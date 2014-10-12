@@ -252,7 +252,7 @@ class PSSWidget(QtGui.QWidget):
                     data.append(self.getActivityData(key))
         return data
 
-    
+
 class MainWindow(QtGui.QMainWindow):
 
     def __init__(self, parent=None):
