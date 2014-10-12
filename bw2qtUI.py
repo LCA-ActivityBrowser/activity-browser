@@ -72,36 +72,16 @@ class Styles(object):
         self.font_big.setPointSize(12)
         self.font_big.setBold(True)
 
-class Webview(QtWebKit.QWebView):
-    def __init__(self, parent=None):
-        super(Webview, self).__init__(parent)
-        self.current_d3_layout = "tree"
-
-    def showGraph(self, data):
-        # print "\nCUSTOM DATA:"
-        # print self.PSS_Widget.PSS.custom_data
-        # TODO: self.PSS_Widget.update_widget_PSS_data()
-        # data needed depends on D3 layout
-        # print "\nProcess Subsystem Data: "
-        # print self.PSS.process_subsystem
-        # print json.dumps(self.PSS.process_subsystem, indent=2)
-        if self.current_d3_layout == "tree":
-            template_data = {
-                'data': json.dumps(data, indent=1)
-            }
-            # print json.dumps(self.PSS_Widget.PSS.tree_data, indent=1)
-        elif self.current_d3_layout == "graph":
-            template_data = {
-                'data': json.dumps(data, indent=1)
-            }
-        self.setHtml(self.template.render(**template_data))
-
 class PSSWidget(QtGui.QWidget):
-    show_graph = QtCore.pyqtSignal()
     def __init__(self, parent=None):
         super(PSSWidget, self).__init__(parent)
         self.PSS = ProcessSubsystem()
         self.helper = HelperMethods()
+        # Webview
+        self.webview = QtWebKit.QWebView()
+        # D3
+        self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
+        self.current_d3_layout = "tree"
 
         # TREEWIDGETS
         self.tree_view_cuts = QtGui.QTreeView()
@@ -132,13 +112,13 @@ class PSSWidget(QtGui.QWidget):
         # Outputs
         self.table_PSS_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_remove_output_item = QtGui.QAction("remove Output", None)
-        self.action_remove_output_item.triggered.connect(self.removeOutputItem)
+        self.action_remove_output_item.triggered.connect(self.removeOutput)
         self.table_PSS_outputs.addAction(self.action_remove_output_item)
         # Chain
         self.table_PSS_chain.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_define_as_Input = QtGui.QAction("define as Output", None)
-        self.action_define_as_Input.triggered.connect(self.define_as_Input)
-        self.table_PSS_chain.addAction(self.action_define_as_Input)
+        self.action_addOutput = QtGui.QAction("define as Output", None)
+        self.action_addOutput.triggered.connect(self.addOutput)
+        self.table_PSS_chain.addAction(self.action_addOutput)
         self.action_remove_chain_item = QtGui.QAction("remove from Process Subsystem", None)
         self.action_remove_chain_item.triggered.connect(self.removeChainItem)
         self.table_PSS_chain.addAction(self.action_remove_chain_item)
@@ -147,28 +127,45 @@ class PSSWidget(QtGui.QWidget):
         if key:
         # if self.lcaData.currentActivity != None:
             self.newProcessSubsystem()
-            self.show_graph.emit()
+            self.showGraph()
 
-    def addParentProcess(self):
-        print "\nCONTEXT MENU: "+self.action_addParentToPSS.text()
-        if self.lcaData.currentActivity:
-            item = self.table_inputs_technosphere.currentItem()
-            self.PSS_Widget.PSS.printEdgesToConsole([(item.activity_or_database_key, self.lcaData.currentActivity)], "New Parent:")
-            self.PSS_Widget.PSS.addProcess(item.activity_or_database_key, self.lcaData.currentActivity)
-            self.show_graph.emit()
+    def addParentProcess(self, item, currentActivity):
+        # print "\nCONTEXT MENU: "+self.action_addParentToPSS.text()
+        # item = self.table_inputs_technosphere.currentItem()
+        self.PSS.printEdgesToConsole([(item.activity_or_database_key, currentActivity)], "New Parent:")
+        self.PSS.addProcess(item.activity_or_database_key, currentActivity)
+        self.showGraph()
 
     def addChildProcess(self):
-        print "\nCONTEXT MENU: "+self.action_addChildToPSS.text()
+        # print "\nCONTEXT MENU: "+self.action_addChildToPSS.text()
         if self.lcaData.currentActivity:
             item = self.table_downstream_activities.currentItem()
             self.PSS_Widget.PSS.printEdgesToConsole([(self.lcaData.currentActivity, item.activity_or_database_key)], "New Child:")
             self.PSS_Widget.PSS.addProcess(self.lcaData.currentActivity, item.activity_or_database_key)
-            self.show_graph.emit()
+            self.showGraph()
+
+    def addOutput(self):
+        print "\nCONTEXT MENU: "+self.action_addOutput.text()
+        item = self.table_PSS_chain.currentItem()
+        self.PSS.linkToProcessSubsystemHead(item.activity_or_database_key)
+        self.showGraph()
+
+    def removeOutput(self):
+        print "\nCONTEXT MENU: "+self.action_remove_output_item.text()
+        item = self.table_PSS_outputs.currentItem()
+        self.PSS.deleteProcessFromOutputs(item.activity_or_database_key)
+        self.showGraph()
+
+    def removeChainItem(self):
+        print "\nCONTEXT MENU: "+self.action_remove_chain_item.text()
+        item = self.table_PSS_chain.currentItem()
+        self.PSS.deleteProcessFromChain(item.activity_or_database_key)
+        self.showGraph()
 
     def new_PSS_name(self):
         name = str(self.line_edit_PSS_name.text())  # otherwise QString
         self.PSS.set_PSS_name(name)
-        self.show_graph.emit()
+        self.showGraph()
 
     def update_PSS_tree_view_cuts(self):
         def formatActivityData(ad):
@@ -225,25 +222,7 @@ class PSSWidget(QtGui.QWidget):
             self.PSS.setOutputQuantity(key, text)
         else:  # ignore!
             print "You don't want to change this, do you?"
-            self.show_graph.emit()
-
-    def removeOutputItem(self):
-        print "\nCONTEXT MENU: "+self.action_remove_output_item.text()
-        item = self.table_PSS_outputs.currentItem()
-        self.PSS.deleteProcessFromOutputs(item.activity_or_database_key)
-        self.show_graph.emit()
-
-    def removeChainItem(self):
-        print "\nCONTEXT MENU: "+self.action_remove_chain_item.text()
-        item = self.table_PSS_chain.currentItem()
-        self.PSS.deleteProcessFromChain(item.activity_or_database_key)
-        self.show_graph.emit()
-
-    def define_as_Input(self):
-        print "\nCONTEXT MENU: "+self.action_define_as_Input.text()
-        item = self.table_PSS_chain.currentItem()
-        self.PSS.linkToProcessSubsystemHead(item.activity_or_database_key)
-        self.show_graph.emit()
+            self.showGraph()
 
     def update_PSS_table_widget_outputs(self):
         keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
@@ -291,6 +270,34 @@ class PSSWidget(QtGui.QWidget):
                     data.append(self.PSS.getActivityData(key))
         return data
 
+    def toggleLayout(self):
+        if self.current_d3_layout == "tree":
+            self.current_d3_layout = "graph"
+            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
+        else:
+            self.current_d3_layout = "tree"
+            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
+        print "New D3 layout: " + self.current_d3_layout
+        self.showGraph()
+
+    def showGraph(self):
+        # print "\nCUSTOM DATA:"
+        # print self.PSS_Widget.PSS.custom_data
+        self.update_widget_PSS_data()
+        # data needed depends on D3 layout
+        # print "\nProcess Subsystem Data: "
+        # print self.PSS.process_subsystem
+        # print json.dumps(self.PSS.process_subsystem, indent=2)
+        if self.current_d3_layout == "tree":
+            template_data = {
+                'data': json.dumps(self.PSS.tree_data, indent=1)
+            }
+            # print json.dumps(self.PSS_Widget.PSS.tree_data, indent=1)
+        elif self.current_d3_layout == "graph":
+            template_data = {
+                'data': json.dumps(self.PSS.graph_data, indent=1)
+            }
+        self.webview.setHtml(self.template.render(**template_data))
 
 class MainWindow(QtGui.QMainWindow):
 
@@ -303,12 +310,6 @@ class MainWindow(QtGui.QMainWindow):
         # LCA Data
         self.lcaData = BrowserStandardTasks()
         self.history = []
-
-        self.webview = Webview()
-
-        # D3
-        self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
-        self.current_d3_layout = "tree"
 
         # create the central container widget
         self.widget = QtGui.QWidget(self)
@@ -356,7 +357,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_multipurpose.setSortingEnabled(True)
 
         # SPLITTERS
-        splitter_right = QtGui.QSplitter(QtCore.Qt.Vertical)
+        self.splitter_right = QtGui.QSplitter(QtCore.Qt.Vertical)
 
         # LAYOUTS
         # V
@@ -400,12 +401,12 @@ class MainWindow(QtGui.QMainWindow):
         self.VL_RIGHT.addWidget(self.label_multi_purpose)
         widget_right_side = QtGui.QWidget()
         widget_right_side.setLayout(self.VL_RIGHT)
-        splitter_right.addWidget(widget_right_side)
-        splitter_right.addWidget(self.webview)
+        self.splitter_right.addWidget(widget_right_side)
+        # splitter_right.addWidget(self.PSS_Widget.webview)
 
         # OVERALL
         hlayout.addLayout(VL_LEFT)
-        hlayout.addWidget(splitter_right)
+        hlayout.addWidget(self.splitter_right)
 
         vlayout.addLayout(hlayout)
 
@@ -442,6 +443,7 @@ class MainWindow(QtGui.QMainWindow):
     def setUpPSSEditor(self):
         self.PSS_Widget = PSSWidget()
         self.tab_widget.addTab(self.PSS_Widget, "PSS Widget")
+        self.splitter_right.addWidget(self.PSS_Widget.webview)
         # ADDING...
         # LABELS
         label_process_subsystem = QtGui.QLabel("Process Subsystem")
@@ -449,12 +451,12 @@ class MainWindow(QtGui.QMainWindow):
         # Technosphere Inputs
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_addParentToPSS = QtGui.QAction("link to Process Subsystem", None)
-        self.action_addParentToPSS.triggered.connect(self.addParentProcess)
+        self.action_addParentToPSS.triggered.connect(lambda: self.PSS_Widget.addParentProcess(self.table_inputs_technosphere.currentItem(), self.lcaData.currentActivity))
         self.table_inputs_technosphere.addAction(self.action_addParentToPSS)
         # Downstream Activities
         self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_addChildToPSS = QtGui.QAction("link to Process Subsystem", None)
-        self.action_addChildToPSS.triggered.connect(self.addChildProcess)
+        self.action_addChildToPSS.triggered.connect(self.PSS_Widget.addChildProcess)
         self.table_downstream_activities.addAction(self.action_addChildToPSS)
         # BUTTONS
         # Process Subsystems
@@ -471,20 +473,11 @@ class MainWindow(QtGui.QMainWindow):
         HL_PS_manipulation.addWidget(button_toggle_layout)
         HL_PS_manipulation.addWidget(button_submit_PSS)
         # CONNECTIONS
-        button_show_process_subsystem.clicked.connect(self.webview.showGraph)
-        button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
-        button_toggle_layout.clicked.connect(self.toggleLayout)
-        self.PSS_Widget.show_graph.connect(self.webview.showGraph)
+        button_show_process_subsystem.clicked.connect(self.PSS_Widget.showGraph)
+        button_new_process_subsystem.clicked.connect(self.PSS_Widget.newProcessSubsystem)
+        button_toggle_layout.clicked.connect(self.PSS_Widget.toggleLayout)
+        # self.PSS_Widget.show_graph.connect(self.PSS_Widget.webview.showGraph)
 
-    def toggleLayout(self):
-        if self.current_d3_layout == "tree":
-            self.current_d3_layout = "graph"
-            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
-        else:
-            self.current_d3_layout = "tree"
-            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
-        print "New D3 layout: " + self.current_d3_layout
-        self.webview.showGraph()
 
     def listDatabases(self):
         data = self.lcaData.getDatabases()
