@@ -46,16 +46,12 @@ class HelperMethods(object):
             return table
         else:
             table.blockSignals(True)
-            # self.PSS_Widget.table_PSS_outputs.blockSignals(True)  # TODO: how to reimplement this?
             table.setRowCount(len(data))
             table.setColumnCount(len(keys))
             table.setHorizontalHeaderLabels(keys)
             for i, d in enumerate(data):
                 for j in range(len(keys)):
                     mtqwi = MyTableQWidgetItem(str(d[keys[j]]))
-                    # if not keys[j] == 'quantity':
-                    #     mtqwi.setFlags(QtCore.Qt.ItemIsSelectable)
-                    # could perhaps be solved more elegantly by using item.setData()
                     mtqwi.activity_or_database_key = d["key"]
                     mtqwi.key_type = d["key_type"]
                     table.setItem(i, j, mtqwi)
@@ -66,20 +62,42 @@ class HelperMethods(object):
             table.setAlternatingRowColors(True)
             table.resizeColumnsToContents()
             table.resizeRowsToContents()
-            # self.PSS_Widget.table_PSS_outputs.blockSignals(False)
             table.blockSignals(False)
         return table
 
 class Styles(object):
     def __init__(self):
-        # STYLES
+        # BIG FONT
         self.font_big = QtGui.QFont()
         self.font_big.setPointSize(12)
         self.font_big.setBold(True)
 
+class Webview(QtWebKit.QWebView):
+    def __init__(self, parent=None):
+        super(Webview, self).__init__(parent)
+        self.current_d3_layout = "tree"
+
+    def showGraph(self, data):
+        # print "\nCUSTOM DATA:"
+        # print self.PSS_Widget.PSS.custom_data
+        # TODO: self.PSS_Widget.update_widget_PSS_data()
+        # data needed depends on D3 layout
+        # print "\nProcess Subsystem Data: "
+        # print self.PSS.process_subsystem
+        # print json.dumps(self.PSS.process_subsystem, indent=2)
+        if self.current_d3_layout == "tree":
+            template_data = {
+                'data': json.dumps(data, indent=1)
+            }
+            # print json.dumps(self.PSS_Widget.PSS.tree_data, indent=1)
+        elif self.current_d3_layout == "graph":
+            template_data = {
+                'data': json.dumps(data, indent=1)
+            }
+        self.setHtml(self.template.render(**template_data))
+
 class PSSWidget(QtGui.QWidget):
     show_graph = QtCore.pyqtSignal()
-
     def __init__(self, parent=None):
         super(PSSWidget, self).__init__(parent)
         self.PSS = ProcessSubsystem()
@@ -124,6 +142,28 @@ class PSSWidget(QtGui.QWidget):
         self.action_remove_chain_item = QtGui.QAction("remove from Process Subsystem", None)
         self.action_remove_chain_item.triggered.connect(self.removeChainItem)
         self.table_PSS_chain.addAction(self.action_remove_chain_item)
+
+    def newProcessSubsystem(self, key):
+        if key:
+        # if self.lcaData.currentActivity != None:
+            self.newProcessSubsystem()
+            self.show_graph.emit()
+
+    def addParentProcess(self):
+        print "\nCONTEXT MENU: "+self.action_addParentToPSS.text()
+        if self.lcaData.currentActivity:
+            item = self.table_inputs_technosphere.currentItem()
+            self.PSS_Widget.PSS.printEdgesToConsole([(item.activity_or_database_key, self.lcaData.currentActivity)], "New Parent:")
+            self.PSS_Widget.PSS.addProcess(item.activity_or_database_key, self.lcaData.currentActivity)
+            self.show_graph.emit()
+
+    def addChildProcess(self):
+        print "\nCONTEXT MENU: "+self.action_addChildToPSS.text()
+        if self.lcaData.currentActivity:
+            item = self.table_downstream_activities.currentItem()
+            self.PSS_Widget.PSS.printEdgesToConsole([(self.lcaData.currentActivity, item.activity_or_database_key)], "New Child:")
+            self.PSS_Widget.PSS.addProcess(self.lcaData.currentActivity, item.activity_or_database_key)
+            self.show_graph.emit()
 
     def new_PSS_name(self):
         name = str(self.line_edit_PSS_name.text())  # otherwise QString
@@ -207,30 +247,29 @@ class PSSWidget(QtGui.QWidget):
 
     def update_PSS_table_widget_outputs(self):
         keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
-        data = self.PSS.getOutputsTableData()
+        data = self.getOutputsTableData()
         self.table_PSS_outputs = self.helper.update_table(self.table_PSS_outputs, data, keys)
 
     def update_PSS_table_widget_chain(self):
         keys = ['product', 'name', 'location', 'unit', 'database']
-        data = self.PSS.getChainTableData()
+        data = self.getChainTableData()
         self.table_PSS_chain = self.helper.update_table(self.table_PSS_chain, data, keys)
 
     def getOutputsTableData(self):
-        # TODO: move to GUI
-        if not self.parents_children:
+        if not self.PSS.parents_children:
             return []
         else:
-            outputs = self.process_subsystem['outputs']
+            outputs = self.PSS.process_subsystem['outputs']
             data = []
             for o in outputs:
-                data.append(self.getActivityData(o))
+                data.append(self.PSS.getActivityData(o))
             # add custom information
             for d in data:
-                if d['key'] in self.custom_data['output names']:
+                if d['key'] in self.PSS.custom_data['output names']:
                     # print "Custom data already available: " + d['name']
                     d.update({
-                        'custom name': self.custom_data['output names'][d['key']],
-                        'quantity': self.custom_data['output quantities'][d['key']],
+                        'custom name': self.PSS.custom_data['output names'][d['key']],
+                        'quantity': self.PSS.custom_data['output quantities'][d['key']],
                     })
                 else:  # register default data
                     d.update({
@@ -241,15 +280,15 @@ class PSSWidget(QtGui.QWidget):
 
     def getChainTableData(self):
         # TODO: move to GUI / PSS widget
-        if not self.parents_children:
+        if not self.PSS.parents_children:
             return []
         else:
             data = []
-            parents, children = zip(*self.parents_children)
+            parents, children = zip(*self.PSS.parents_children)
             uniqueKeys = set(parents+children)
             for key in uniqueKeys:
-                if not self.custom_data['name'] in key:
-                    data.append(self.getActivityData(key))
+                if not self.PSS.custom_data['name'] in key:
+                    data.append(self.PSS.getActivityData(key))
         return data
 
 
@@ -264,6 +303,8 @@ class MainWindow(QtGui.QMainWindow):
         # LCA Data
         self.lcaData = BrowserStandardTasks()
         self.history = []
+
+        self.webview = Webview()
 
         # D3
         self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
@@ -337,9 +378,6 @@ class MainWindow(QtGui.QMainWindow):
         # HL Navigation
         # HL_navigation.addWidget(button_backward)
         # HL_navigation.addWidget(button_forward)
-
-        # QWebView
-        self.webview = QtWebKit.QWebView()
 
         # VL
         # LEFT
@@ -433,10 +471,10 @@ class MainWindow(QtGui.QMainWindow):
         HL_PS_manipulation.addWidget(button_toggle_layout)
         HL_PS_manipulation.addWidget(button_submit_PSS)
         # CONNECTIONS
-        button_show_process_subsystem.clicked.connect(self.showGraph)
+        button_show_process_subsystem.clicked.connect(self.webview.showGraph)
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
         button_toggle_layout.clicked.connect(self.toggleLayout)
-        self.PSS_Widget.show_graph.connect(self.showGraph)
+        self.PSS_Widget.show_graph.connect(self.webview.showGraph)
 
     def toggleLayout(self):
         if self.current_d3_layout == "tree":
@@ -446,47 +484,7 @@ class MainWindow(QtGui.QMainWindow):
             self.current_d3_layout = "tree"
             self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
         print "New D3 layout: " + self.current_d3_layout
-        self.showGraph()
-
-    def newProcessSubsystem(self):
-        if self.lcaData.currentActivity != None:
-            self.PSS_Widget.PSS.newProcessSubsystem()
-            self.showGraph()
-
-    def showGraph(self):
-        print "\nCUSTOM DATA:"
-        print self.PSS_Widget.PSS.custom_data
-        self.PSS_Widget.update_widget_PSS_data()
-        # data needed depends on D3 layout
-        # print "\nProcess Subsystem Data: "
-        # print self.PSS.process_subsystem
-        # print json.dumps(self.PSS.process_subsystem, indent=2)
-        if self.current_d3_layout == "tree":
-            template_data = {
-                'data': json.dumps(self.PSS_Widget.PSS.tree_data, indent=1)
-            }
-            # print json.dumps(self.PSS_Widget.PSS.tree_data, indent=1)
-        elif self.current_d3_layout == "graph":
-            template_data = {
-                'data': json.dumps(self.PSS_Widget.PSS.graph_data, indent=1)
-            }
-        self.webview.setHtml(self.template.render(**template_data))
-
-    def addParentProcess(self):
-        print "\nCONTEXT MENU: "+self.action_addParentToPSS.text()
-        if self.lcaData.currentActivity:
-            item = self.table_inputs_technosphere.currentItem()
-            self.PSS_Widget.PSS.printEdgesToConsole([(item.activity_or_database_key, self.lcaData.currentActivity)], "New Parent:")
-            self.PSS_Widget.PSS.addProcess(item.activity_or_database_key, self.lcaData.currentActivity)
-            self.showGraph()
-
-    def addChildProcess(self):
-        print "\nCONTEXT MENU: "+self.action_addChildToPSS.text()
-        if self.lcaData.currentActivity:
-            item = self.table_downstream_activities.currentItem()
-            self.PSS_Widget.PSS.printEdgesToConsole([(self.lcaData.currentActivity, item.activity_or_database_key)], "New Child:")
-            self.PSS_Widget.PSS.addProcess(self.lcaData.currentActivity, item.activity_or_database_key)
-            self.showGraph()
+        self.webview.showGraph()
 
     def listDatabases(self):
         data = self.lcaData.getDatabases()
