@@ -215,7 +215,44 @@ class PSSWidget(QtGui.QWidget):
         data = self.PSS.getChainTableData()
         self.table_PSS_chain = self.helper.update_table(self.table_PSS_chain, data, keys)
 
+    def getOutputsTableData(self):
+        # TODO: move to GUI
+        if not self.parents_children:
+            return []
+        else:
+            outputs = self.process_subsystem['outputs']
+            data = []
+            for o in outputs:
+                data.append(self.getActivityData(o))
+            # add custom information
+            for d in data:
+                if d['key'] in self.custom_data['output names']:
+                    # print "Custom data already available: " + d['name']
+                    d.update({
+                        'custom name': self.custom_data['output names'][d['key']],
+                        'quantity': self.custom_data['output quantities'][d['key']],
+                    })
+                else:  # register default data
+                    d.update({
+                        'custom name': "default output",
+                        'quantity': 1,
+                    })
+        return data
 
+    def getChainTableData(self):
+        # TODO: move to GUI / PSS widget
+        if not self.parents_children:
+            return []
+        else:
+            data = []
+            parents, children = zip(*self.parents_children)
+            uniqueKeys = set(parents+children)
+            for key in uniqueKeys:
+                if not self.custom_data['name'] in key:
+                    data.append(self.getActivityData(key))
+        return data
+
+    
 class MainWindow(QtGui.QMainWindow):
 
     def __init__(self, parent=None):
