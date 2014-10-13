@@ -73,6 +73,7 @@ class Styles(object):
         self.font_big.setBold(True)
 
 class PSSWidget(QtGui.QWidget):
+    signal_activity_key = QtCore.pyqtSignal(MyTableQWidgetItem)
     def __init__(self, parent=None):
         super(PSSWidget, self).__init__(parent)
         self.PSS = ProcessSubsystem()
@@ -82,7 +83,25 @@ class PSSWidget(QtGui.QWidget):
         # D3
         self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
         self.current_d3_layout = "tree"
-
+        # LABELS
+        label_process_subsystem = QtGui.QLabel("Process Subsystem")
+        # BUTTONS
+        # Process Subsystems
+        button_show_process_subsystem = QtGui.QPushButton("Show")
+        button_new_process_subsystem = QtGui.QPushButton("New")
+        button_toggle_layout = QtGui.QPushButton("Toggle Layout")
+        button_submit_PSS = QtGui.QPushButton("Submit")
+        # Process Subsystem
+        self.HL_PS_manipulation = QtGui.QHBoxLayout()
+        self.HL_PS_manipulation.addWidget(label_process_subsystem)
+        self.HL_PS_manipulation.addWidget(button_show_process_subsystem)
+        self.HL_PS_manipulation.addWidget(button_new_process_subsystem)
+        self.HL_PS_manipulation.addWidget(button_toggle_layout)
+        self.HL_PS_manipulation.addWidget(button_submit_PSS)
+        # CONNECTIONS
+        button_show_process_subsystem.clicked.connect(self.showGraph)
+        button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
+        button_toggle_layout.clicked.connect(self.toggleLayout)
         # TREEWIDGETS
         self.tree_view_cuts = QtGui.QTreeView()
         self.model_tree_view_cuts = QtGui.QStandardItemModel()
@@ -105,9 +124,10 @@ class PSSWidget(QtGui.QWidget):
         VL_PSS_data.addWidget(self.tree_view_cuts)
         # CONNECTIONS
         self.line_edit_PSS_name.returnPressed.connect(self.new_PSS_name)
-        # self.table_PSS_chain.itemDoubleClicked.connect(self.gotoDoubleClickActivity)  # TODO: this should reconnect to Main Window components...
+        self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
         self.model_tree_view_cuts.itemChanged.connect(self.updateCutCustomData)
         self.table_PSS_outputs.itemChanged.connect(self.updateOutputCustomData)
+        button_submit_PSS.clicked.connect(self.PSS.submitPSS)
         # CONTEXT MENUS
         # Outputs
         self.table_PSS_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -123,26 +143,18 @@ class PSSWidget(QtGui.QWidget):
         self.action_remove_chain_item.triggered.connect(self.removeChainItem)
         self.table_PSS_chain.addAction(self.action_remove_chain_item)
 
-    def newProcessSubsystem(self, key):
-        if key:
-        # if self.lcaData.currentActivity != None:
-            self.newProcessSubsystem()
-            self.showGraph()
-
-    def addParentProcess(self, item, currentActivity):
-        # print "\nCONTEXT MENU: "+self.action_addParentToPSS.text()
-        # item = self.table_inputs_technosphere.currentItem()
-        self.PSS.printEdgesToConsole([(item.activity_or_database_key, currentActivity)], "New Parent:")
-        self.PSS.addProcess(item.activity_or_database_key, currentActivity)
+    def newProcessSubsystem(self):
+        self.PSS.newProcessSubsystem()
         self.showGraph()
 
-    def addChildProcess(self):
-        # print "\nCONTEXT MENU: "+self.action_addChildToPSS.text()
-        if self.lcaData.currentActivity:
-            item = self.table_downstream_activities.currentItem()
-            self.PSS_Widget.PSS.printEdgesToConsole([(self.lcaData.currentActivity, item.activity_or_database_key)], "New Child:")
-            self.PSS_Widget.PSS.addProcess(self.lcaData.currentActivity, item.activity_or_database_key)
-            self.showGraph()
+    def addToChain(self, item, currentActivity, type):
+        if type == "as child":
+            self.PSS.printEdgesToConsole([(currentActivity, item.activity_or_database_key)], "\nNew Child:")
+            self.PSS.addProcess(currentActivity, item.activity_or_database_key)
+        elif type == "as parent":
+            self.PSS.printEdgesToConsole([(item.activity_or_database_key, currentActivity)], "\nNew Parent:")
+            self.PSS.addProcess(item.activity_or_database_key, currentActivity)
+        self.showGraph()
 
     def addOutput(self):
         print "\nCONTEXT MENU: "+self.action_addOutput.text()
@@ -299,7 +311,11 @@ class PSSWidget(QtGui.QWidget):
             }
         self.webview.setHtml(self.template.render(**template_data))
 
+    def setNewCurrentActivity(self):
+        self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
+
 class MainWindow(QtGui.QMainWindow):
+    signal_add_to_chain = QtCore.pyqtSignal(MyTableQWidgetItem, tuple, str)
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -443,41 +459,22 @@ class MainWindow(QtGui.QMainWindow):
     def setUpPSSEditor(self):
         self.PSS_Widget = PSSWidget()
         self.tab_widget.addTab(self.PSS_Widget, "PSS Widget")
+        self.VL_RIGHT.addLayout(self.PSS_Widget.HL_PS_manipulation)
         self.splitter_right.addWidget(self.PSS_Widget.webview)
-        # ADDING...
-        # LABELS
-        label_process_subsystem = QtGui.QLabel("Process Subsystem")
         # CONTEXT MENUS
         # Technosphere Inputs
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_addParentToPSS = QtGui.QAction("link to Process Subsystem", None)
-        self.action_addParentToPSS.triggered.connect(lambda: self.PSS_Widget.addParentProcess(self.table_inputs_technosphere.currentItem(), self.lcaData.currentActivity))
+        self.action_addParentToPSS.triggered.connect(self.add_Parent_to_chain)
         self.table_inputs_technosphere.addAction(self.action_addParentToPSS)
         # Downstream Activities
         self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_addChildToPSS = QtGui.QAction("link to Process Subsystem", None)
-        self.action_addChildToPSS.triggered.connect(self.PSS_Widget.addChildProcess)
+        self.action_addChildToPSS.triggered.connect(self.add_Child_to_chain)
         self.table_downstream_activities.addAction(self.action_addChildToPSS)
-        # BUTTONS
-        # Process Subsystems
-        button_show_process_subsystem = QtGui.QPushButton("Show")
-        button_new_process_subsystem = QtGui.QPushButton("New")
-        button_toggle_layout = QtGui.QPushButton("Toggle Layout")
-        button_submit_PSS = QtGui.QPushButton("Submit")
-        # Process Subsystem
-        HL_PS_manipulation = QtGui.QHBoxLayout()
-        self.VL_RIGHT.addLayout(HL_PS_manipulation)
-        HL_PS_manipulation.addWidget(label_process_subsystem)
-        HL_PS_manipulation.addWidget(button_show_process_subsystem)
-        HL_PS_manipulation.addWidget(button_new_process_subsystem)
-        HL_PS_manipulation.addWidget(button_toggle_layout)
-        HL_PS_manipulation.addWidget(button_submit_PSS)
-        # CONNECTIONS
-        button_show_process_subsystem.clicked.connect(self.PSS_Widget.showGraph)
-        button_new_process_subsystem.clicked.connect(self.PSS_Widget.newProcessSubsystem)
-        button_toggle_layout.clicked.connect(self.PSS_Widget.toggleLayout)
-        # self.PSS_Widget.show_graph.connect(self.PSS_Widget.webview.showGraph)
-
+        # CONNECTIONS BETWEEN WIDGETS
+        self.signal_add_to_chain.connect(self.PSS_Widget.addToChain)
+        self.PSS_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
 
     def listDatabases(self):
         data = self.lcaData.getDatabases()
@@ -487,7 +484,7 @@ class MainWindow(QtGui.QMainWindow):
         self.label_multi_purpose.setText(QtCore.QString(label_text))
         self.tab_widget.setCurrentIndex(0)
 
-    def table_headers(self, type="technosphere"):
+    def get_table_headers(self, type="technosphere"):
         if self.lcaData.database_version == 2:
             if type == "technosphere":
                 keys = ["name", "location", "amount", "unit", "database"]
@@ -509,7 +506,7 @@ class MainWindow(QtGui.QMainWindow):
         print "Searched for:", searchString
         if searchString != "":
             try:
-                keys = self.table_headers(type="search")
+                keys = self.get_table_headers(type="search")
                 data = self.lcaData.get_search_results(searchString)
                 self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
                 label_text = str(len(data)) + " activities found."
@@ -521,9 +518,9 @@ class MainWindow(QtGui.QMainWindow):
     def newActivity(self, key=None):
         try:
             self.lcaData.setNewCurrentActivity(key)
-            keys = self.table_headers()
+            keys = self.get_table_headers()
             self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
-            self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.table_headers(type="biosphere"))
+            self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
             self.table_downstream_activities = self.helper.update_table(self.table_downstream_activities, self.lcaData.get_downstream_exchanges(), keys)
             actdata = self.lcaData.getActivityData()
             label_text = actdata["name"]+" {"+actdata["location"]+"}"
@@ -548,7 +545,7 @@ class MainWindow(QtGui.QMainWindow):
             self.label_current_database.setText(QtCore.QString(item.activity_or_database_key))
 
     def showHistory(self):
-        keys = self.table_headers(type="history")
+        keys = self.get_table_headers(type="history")
         data = self.lcaData.getHistory()
         self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
         label_text = "History"
@@ -570,6 +567,12 @@ class MainWindow(QtGui.QMainWindow):
 
     def goForward(self):
         pass
+
+    def add_Child_to_chain(self):
+        self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem(), self.lcaData.currentActivity, "as child")
+
+    def add_Parent_to_chain(self):
+        self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem(), self.lcaData.currentActivity, "as parent")
 
 def main():
     app = QtGui.QApplication(sys.argv)
