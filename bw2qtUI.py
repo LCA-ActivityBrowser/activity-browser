@@ -12,7 +12,7 @@ import time
 from jinja2 import Template
 import json
 import pickle
-# from process import SimplifiedProcess
+from process import SimplifiedProcess
 
 BASE_PATH = os.path.dirname(__file__)
 
@@ -116,33 +116,34 @@ class PSSWidget(QtGui.QWidget):
         label_process_subsystem = QtGui.QLabel("Process Subsystem")
         # BUTTONS
         # Process Subsystems
-        button_show_process_subsystem = QtGui.QPushButton("Show")
+        # button_show_process_subsystem = QtGui.QPushButton("Show")
         button_new_process_subsystem = QtGui.QPushButton("New")
         button_load_process_subsystem_database = QtGui.QPushButton("Load DB")
-        # button_update_table_PSS_database = QtGui.QPushButton("Database")
+        button_saveAs_process_subsystem_database = QtGui.QPushButton("Save DB")
         button_toggle_layout = QtGui.QPushButton("Toggle Layout")
-        button_submit_PSS = QtGui.QPushButton("Submit")
+        button_validate_PSS = QtGui.QPushButton("Validate")
         button_add_PSS_to_Database = QtGui.QPushButton("Add to DB")
         button_delete_PSS_from_Database = QtGui.QPushButton("Delete")
         # Process Subsystem
         self.HL_PS_manipulation = QtGui.QHBoxLayout()
         self.HL_PS_manipulation.addWidget(label_process_subsystem)
-        self.HL_PS_manipulation.addWidget(button_show_process_subsystem)
+        # self.HL_PS_manipulation.addWidget(button_show_process_subsystem)
         self.HL_PS_manipulation.addWidget(button_new_process_subsystem)
         self.HL_PS_manipulation.addWidget(button_load_process_subsystem_database)
-        # self.HL_PS_manipulation.addWidget(button_update_table_PSS_database)
         self.HL_PS_manipulation.addWidget(button_add_PSS_to_Database)
-        self.HL_PS_manipulation.addWidget(button_toggle_layout)
-        self.HL_PS_manipulation.addWidget(button_submit_PSS)
         self.HL_PS_manipulation.addWidget(button_delete_PSS_from_Database)
+        self.HL_PS_manipulation.addWidget(button_saveAs_process_subsystem_database)
+        self.HL_PS_manipulation.addWidget(button_validate_PSS)
+        self.HL_PS_manipulation.addWidget(button_toggle_layout)
         # CONNECTIONS
-        button_show_process_subsystem.clicked.connect(self.showGraph)
+        # button_show_process_subsystem.clicked.connect(self.showGraph)
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
         button_load_process_subsystem_database.clicked.connect(self.loadPSSDatabase)
-        # button_update_table_PSS_database.clicked.connect(self.updateTablePSSDatabase)
+        button_saveAs_process_subsystem_database.clicked.connect(self.saveAsPSSDatabase)
         button_add_PSS_to_Database.clicked.connect(self.addPSStoDatabase)
         button_toggle_layout.clicked.connect(self.toggleLayout)
         button_delete_PSS_from_Database.clicked.connect(self.deletePSSfromDatabase)
+        button_validate_PSS.clicked.connect(self.validatePSS)
         # TREEWIDGETS
         self.tree_view_cuts = QtGui.QTreeView()
         self.model_tree_view_cuts = QtGui.QStandardItemModel()
@@ -169,7 +170,7 @@ class PSSWidget(QtGui.QWidget):
         self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
         self.model_tree_view_cuts.itemChanged.connect(self.updateCutCustomData)
         self.table_PSS_outputs.itemChanged.connect(self.updateOutputCustomData)
-        button_submit_PSS.clicked.connect(self.PSS.submitPSS)
+        button_validate_PSS.clicked.connect(self.PSS.submitPSS)
         self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
         # CONTEXT MENUS
         # Outputs
@@ -199,19 +200,29 @@ class PSSWidget(QtGui.QWidget):
 
     def loadPSSDatabase(self):
         # filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\PSS Databases')
+        file_types = "Pickle (*.pickle);;All (*.*)"
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\PSS Databases', file_types)
         if filename:
             with open(filename, 'rb') as input:
                 self.PSS_database = pickle.load(input)
             self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
             self.updateTablePSSDatabase()
 
-    def savePSSDatabase(self):
-        filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
+    def savePSSDatabase(self, filename=None):
+        if not filename:
+            filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
         with open(filename, 'wb') as output:
             pickle.dump(self.PSS_database, output, -1)
         self.signal_status_bar_message.emit("PSS Database saved.")
         self.updateTablePSSDatabase()
+
+    def saveAsPSSDatabase(self):
+        file_types = "Pickle (*.pickle);;All (*.*)"
+        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\PSS Databases', file_types)
+        # filename = QtGui.QFileDialog.getSaveFileNameAndFilter(self, 'Save File', '.\PSS Databases', file_types)
+        if filename:
+            self.savePSSDatabase(filename)
+            self.signal_status_bar_message.emit("PSS Database saved.")
 
     def updateTablePSSDatabase(self):
         data = []
@@ -240,12 +251,21 @@ class PSSWidget(QtGui.QWidget):
         if self.PSS.pss['name'] not in [pss['name'] for pss in self.PSS_database]:
             self.PSS_database.append(self.PSS.pss)
             self.updateTablePSSDatabase()
-            self.savePSSDatabase()
-            self.signal_status_bar_message.emit("Added PSS to database.")
+            # self.savePSSDatabase()
+            self.signal_status_bar_message.emit("Added PSS to working database (not saved).")
             self.updateTablePSSDatabase()
         else:
             self.signal_status_bar_message.emit("Cannot add PSS. Another PSS with the same name is already registered.")
 
+    def validatePSS(self):
+        self.PSS.submitPSS()
+        try:
+            SimplifiedProcess(**self.PSS.pss)
+            self.signal_status_bar_message.emit("Validation successful.")
+        except:
+            self.signal_status_bar_message.emit("Validation NOT successful.")
+        finally:
+            SimplifiedProcess(**self.PSS.pss)  # to see what was the problem
 
     def deletePSSfromDatabase(self):
         to_be_deleted = self.PSS.custom_data['name']
