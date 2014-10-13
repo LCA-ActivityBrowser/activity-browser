@@ -14,6 +14,8 @@ import json
 import pickle
 # from process import SimplifiedProcess
 
+BASE_PATH = os.path.dirname(__file__)
+
 class MyTableQWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
         super(MyTableQWidgetItem, self).__init__(parent)
@@ -101,7 +103,10 @@ class PSSWidget(QtGui.QWidget):
         self.PSS = ProcessSubsystem()
         self.PSS_database = []
         self.PSS_database_filename = "PSS_test_databse.pkl"
+        self.PSS_database_dir = 'PSS Databases'
         self.helper = HelperMethods()
+        # PSS Data Widget
+        self.PSSdataWidget = QtGui.QWidget()
         # Webview
         self.webview = QtWebKit.QWebView()
         # D3
@@ -149,7 +154,7 @@ class PSSWidget(QtGui.QWidget):
         self.table_PSS_database = QtGui.QTableWidget()
         # PSS data
         VL_PSS_data = QtGui.QVBoxLayout()
-        self.setLayout(VL_PSS_data)
+        self.PSSdataWidget.setLayout(VL_PSS_data)
         self.line_edit_PSS_name = QtGui.QLineEdit(self.PSS.custom_data['name'])
         VL_PSS_data.addWidget(self.line_edit_PSS_name)
         VL_PSS_data.addWidget(self.table_PSS_outputs)
@@ -193,13 +198,17 @@ class PSSWidget(QtGui.QWidget):
         self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
 
     def loadPSSDatabase(self):
-        with open(self.PSS_database_filename, 'rb') as input:
-            self.PSS_database = pickle.load(input)
-        self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
-        self.updateTablePSSDatabase()
+        # filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\PSS Databases')
+        if filename:
+            with open(filename, 'rb') as input:
+                self.PSS_database = pickle.load(input)
+            self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
+            self.updateTablePSSDatabase()
 
     def savePSSDatabase(self):
-        with open(self.PSS_database_filename, 'wb') as output:
+        filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
+        with open(filename, 'wb') as output:
             pickle.dump(self.PSS_database, output, -1)
         self.signal_status_bar_message.emit("PSS Database saved.")
         self.updateTablePSSDatabase()
@@ -538,26 +547,29 @@ class MainWindow(QtGui.QMainWindow):
         file.addAction(addPSS)
 
     def setUpPSSEditor(self):
-        self.PSS_Widget = PSSWidget()
-        self.tab_widget.addTab(self.PSS_Widget, "PSS")
-        self.tab_widget.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
-        self.VL_RIGHT.addLayout(self.PSS_Widget.HL_PS_manipulation)
-        self.splitter_right.addWidget(self.PSS_Widget.webview)
-        # CONTEXT MENUS
-        # Technosphere Inputs
-        self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_addParentToPSS = QtGui.QAction("link to Process Subsystem", None)
-        self.action_addParentToPSS.triggered.connect(self.add_Parent_to_chain)
-        self.table_inputs_technosphere.addAction(self.action_addParentToPSS)
-        # Downstream Activities
-        self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_addChildToPSS = QtGui.QAction("link to Process Subsystem", None)
-        self.action_addChildToPSS.triggered.connect(self.add_Child_to_chain)
-        self.table_downstream_activities.addAction(self.action_addChildToPSS)
-        # CONNECTIONS BETWEEN WIDGETS
-        self.signal_add_to_chain.connect(self.PSS_Widget.addToChain)
-        self.PSS_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
-        self.PSS_Widget.signal_status_bar_message.connect(self.statusBarMessage)
+        if hasattr(self, 'PSS_Widget'):
+            print "PSS WIDGET ALREADY LOADED"
+        else:
+            self.PSS_Widget = PSSWidget()
+            self.tab_widget.addTab(self.PSS_Widget.PSSdataWidget, "PSS")
+            self.tab_widget.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
+            self.VL_RIGHT.addLayout(self.PSS_Widget.HL_PS_manipulation)
+            self.splitter_right.addWidget(self.PSS_Widget.webview)
+            # CONTEXT MENUS
+            # Technosphere Inputs
+            self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+            self.action_addParentToPSS = QtGui.QAction("link to Process Subsystem", None)
+            self.action_addParentToPSS.triggered.connect(self.add_Parent_to_chain)
+            self.table_inputs_technosphere.addAction(self.action_addParentToPSS)
+            # Downstream Activities
+            self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+            self.action_addChildToPSS = QtGui.QAction("link to Process Subsystem", None)
+            self.action_addChildToPSS.triggered.connect(self.add_Child_to_chain)
+            self.table_downstream_activities.addAction(self.action_addChildToPSS)
+            # CONNECTIONS BETWEEN WIDGETS
+            self.signal_add_to_chain.connect(self.PSS_Widget.addToChain)
+            self.PSS_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
+            self.PSS_Widget.signal_status_bar_message.connect(self.statusBarMessage)
 
     def statusBarMessage(self, message):
         self.statusBar().showMessage(message)
