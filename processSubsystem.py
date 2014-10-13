@@ -20,12 +20,30 @@ class ProcessSubsystem(BrowserStandardTasks):
             'output quantities': {},  # dict that map activity key to *amount*
             'cut names': {},  # dict that map activity key to *name*
         }
+        self.pss = {}
 
     def newProcessSubsystem(self):
         self.parents_children = []
         self.tree_data = []
         self.graph_data = []
         self.updateData()
+
+    def loadPSS(self, pss):
+        self.newProcessSubsystem()  # clear existing data
+        self.custom_data['name'] = pss['name']
+        for o in pss['outputs']:
+            self.process_subsystem['outputs'].append(o[0])
+            self.custom_data['output names'].update({o[0]: o[1]})
+            self.custom_data['output quantities'].update({o[0]: o[2]})
+        for c in pss['chain']:
+            self.process_subsystem['chain'].append(c)
+        for c in pss['cuts']:
+            self.process_subsystem['cuts'].append((c[0], c[1]))
+            self.custom_data['cut names'].update({c[0]: c[2]})
+        self.parents_children = pss['edges']
+        self.updateData()
+        # print self.process_subsystem
+        # print self.custom_data
 
     def addProcess(self, parent_key, child_key):
         new_edge = (parent_key, child_key)
@@ -137,7 +155,7 @@ class ProcessSubsystem(BrowserStandardTasks):
 
     def updateCuts(self):
         if not self.parents_children:
-            print "from updateCuts(): No Chain."
+            # print "from updateCuts(): No Chain."
             self.process_subsystem['cuts'] = []
         else:
             parents, children = zip(*self.parents_children)
@@ -209,8 +227,7 @@ class ProcessSubsystem(BrowserStandardTasks):
                 print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+self.getActivityData(pc[1])['name']
 
     def submitPSS(self):
-        SP = {}
-        # TODO: include database name? (technically not really needed anymore)
+        pss = {}
         outputs = []
         for i, key in enumerate(self.process_subsystem['outputs']):
             name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output'+str(i)
@@ -226,17 +243,18 @@ class ProcessSubsystem(BrowserStandardTasks):
             name = self.custom_data['cut names'][parent] if parent in self.custom_data['cut names'] else 'Cut'+str(i)
             cuts.append((parent, child, name))
 
-        SP.update({
+        pss.update({
             'name': self.custom_data['name'],
             'outputs': outputs,
             'chain': chain,
             'cuts': cuts,
+            'edges': self.parents_children
         })
         print "\nPSS as SP:"
-        print SP
-        print json.dumps(SP, indent=2)
-        self.SP = SP
-        self.submitPSS_dagre()
+        print pss
+        # print json.dumps(pss, indent=2)
+        self.pss = pss
+        # self.submitPSS_dagre()
 
     def submitPSS_dagre(self):
         SP = {}

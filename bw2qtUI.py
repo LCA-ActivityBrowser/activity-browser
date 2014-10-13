@@ -11,6 +11,7 @@ from processSubsystem import ProcessSubsystem
 import time
 from jinja2 import Template
 import json
+import pickle
 # from process import SimplifiedProcess
 
 class MyTableQWidgetItem(QtGui.QTableWidgetItem):
@@ -51,10 +52,10 @@ class HelperMethods(object):
             table.setHorizontalHeaderLabels(keys)
             for i, d in enumerate(data):
                 for j in range(len(keys)):
-                    mtqwi = MyTableQWidgetItem(str(d[keys[j]]))
-                    mtqwi.activity_or_database_key = d["key"]
-                    mtqwi.key_type = d["key_type"]
-                    table.setItem(i, j, mtqwi)
+                    mqtwi = MyTableQWidgetItem(str(d[keys[j]]))
+                    mqtwi.activity_or_database_key = d["key"]
+                    mqtwi.key_type = d["key_type"]
+                    table.setItem(i, j, mqtwi)
             if 'quantity' in keys:
                 table.setEditTriggers(QtGui.QTableWidget.DoubleClicked)
             else:
@@ -63,6 +64,26 @@ class HelperMethods(object):
             table.resizeColumnsToContents()
             table.resizeRowsToContents()
             table.blockSignals(False)
+        return table
+
+    def update_normal_table(self, table, data, keys):
+        if not data:
+            table.setRowCount(0)
+            return table
+        else:
+            table.blockSignals(True)
+            table.setRowCount(len(data))
+            table.setColumnCount(len(keys))
+            table.setHorizontalHeaderLabels(keys)
+            for i, d in enumerate(data):
+                for j in range(len(keys)):
+                    qtwi = QtGui.QTableWidgetItem(str(d[keys[j]]))
+                    table.setItem(i, j, qtwi)
+            table.setAlternatingRowColors(True)
+            table.resizeColumnsToContents()
+            table.resizeRowsToContents()
+            table.blockSignals(False)
+            table.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
         return table
 
 class Styles(object):
@@ -74,9 +95,12 @@ class Styles(object):
 
 class PSSWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyTableQWidgetItem)
+    signal_status_bar_message = QtCore.pyqtSignal(str)
     def __init__(self, parent=None):
         super(PSSWidget, self).__init__(parent)
         self.PSS = ProcessSubsystem()
+        self.PSS_database = []
+        self.PSS_database_filename = "PSS_test_databse.pkl"
         self.helper = HelperMethods()
         # Webview
         self.webview = QtWebKit.QWebView()
@@ -89,19 +113,31 @@ class PSSWidget(QtGui.QWidget):
         # Process Subsystems
         button_show_process_subsystem = QtGui.QPushButton("Show")
         button_new_process_subsystem = QtGui.QPushButton("New")
+        button_load_process_subsystem_database = QtGui.QPushButton("Load DB")
+        # button_update_table_PSS_database = QtGui.QPushButton("Database")
         button_toggle_layout = QtGui.QPushButton("Toggle Layout")
         button_submit_PSS = QtGui.QPushButton("Submit")
+        button_add_PSS_to_Database = QtGui.QPushButton("Add to DB")
+        button_delete_PSS_from_Database = QtGui.QPushButton("Delete")
         # Process Subsystem
         self.HL_PS_manipulation = QtGui.QHBoxLayout()
         self.HL_PS_manipulation.addWidget(label_process_subsystem)
         self.HL_PS_manipulation.addWidget(button_show_process_subsystem)
         self.HL_PS_manipulation.addWidget(button_new_process_subsystem)
+        self.HL_PS_manipulation.addWidget(button_load_process_subsystem_database)
+        # self.HL_PS_manipulation.addWidget(button_update_table_PSS_database)
+        self.HL_PS_manipulation.addWidget(button_add_PSS_to_Database)
         self.HL_PS_manipulation.addWidget(button_toggle_layout)
         self.HL_PS_manipulation.addWidget(button_submit_PSS)
+        self.HL_PS_manipulation.addWidget(button_delete_PSS_from_Database)
         # CONNECTIONS
         button_show_process_subsystem.clicked.connect(self.showGraph)
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
+        button_load_process_subsystem_database.clicked.connect(self.loadPSSDatabase)
+        # button_update_table_PSS_database.clicked.connect(self.updateTablePSSDatabase)
+        button_add_PSS_to_Database.clicked.connect(self.addPSStoDatabase)
         button_toggle_layout.clicked.connect(self.toggleLayout)
+        button_delete_PSS_from_Database.clicked.connect(self.deletePSSfromDatabase)
         # TREEWIDGETS
         self.tree_view_cuts = QtGui.QTreeView()
         self.model_tree_view_cuts = QtGui.QStandardItemModel()
@@ -110,6 +146,7 @@ class PSSWidget(QtGui.QWidget):
         self.table_PSS_chain = QtGui.QTableWidget()
         self.table_PSS_chain.setSortingEnabled(True)
         self.table_PSS_outputs = QtGui.QTableWidget()
+        self.table_PSS_database = QtGui.QTableWidget()
         # PSS data
         VL_PSS_data = QtGui.QVBoxLayout()
         self.setLayout(VL_PSS_data)
@@ -128,6 +165,7 @@ class PSSWidget(QtGui.QWidget):
         self.model_tree_view_cuts.itemChanged.connect(self.updateCutCustomData)
         self.table_PSS_outputs.itemChanged.connect(self.updateOutputCustomData)
         button_submit_PSS.clicked.connect(self.PSS.submitPSS)
+        self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
         # CONTEXT MENUS
         # Outputs
         self.table_PSS_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -146,6 +184,66 @@ class PSSWidget(QtGui.QWidget):
     def newProcessSubsystem(self):
         self.PSS.newProcessSubsystem()
         self.showGraph()
+
+    def loadPSSDatabase_via_import_statement(self):
+        import PSS_data
+        self.PSS_database = PSS_data.PSS_data
+        keys = ['name']
+        self.table_PSS_database = self.helper.update_normal_table(self.table_PSS_database, self.PSS_database, keys)
+        self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
+
+    def loadPSSDatabase(self):
+        with open(self.PSS_database_filename, 'rb') as input:
+            self.PSS_database = pickle.load(input)
+        self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
+        self.updateTablePSSDatabase()
+
+    def savePSSDatabase(self):
+        with open(self.PSS_database_filename, 'wb') as output:
+            pickle.dump(self.PSS_database, output, -1)
+        self.signal_status_bar_message.emit("PSS Database saved.")
+        self.updateTablePSSDatabase()
+
+    def updateTablePSSDatabase(self):
+        data = []
+        for pss in self.PSS_database:
+            numbers_elements = [len(pss['outputs']),len(pss['chain']), len(pss['cuts'])]
+            data.append({
+                'name': pss['name'],
+                'outputs/chain/cuts': "/".join(map(str, numbers_elements)),
+                'outputs': ", ".join([o[1] for o in pss['outputs']]),
+                'chain': "//".join([self.PSS.getActivityData(o)['name'] for o in pss['chain']]),
+                'cuts': ", ".join([o[2] for o in pss['cuts']]),
+            })
+        keys = ['name', 'outputs/chain/cuts', 'outputs', 'cuts', 'chain']
+        self.table_PSS_database = self.helper.update_normal_table(self.table_PSS_database, data, keys)
+
+    def loadPSS(self):
+        item = self.table_PSS_database.currentItem()
+        for pss in self.PSS_database:
+            if pss['name'] == str(item.text()):
+                self.PSS.loadPSS(pss)
+        print "Loaded PSS successfully."
+        self.showGraph()
+
+    def addPSStoDatabase(self):
+        self.PSS.submitPSS()
+        if self.PSS.pss['name'] not in [pss['name'] for pss in self.PSS_database]:
+            self.PSS_database.append(self.PSS.pss)
+            self.updateTablePSSDatabase()
+            self.savePSSDatabase()
+            self.signal_status_bar_message.emit("Added PSS to database.")
+            self.updateTablePSSDatabase()
+        else:
+            self.signal_status_bar_message.emit("Cannot add PSS. Another PSS with the same name is already registered.")
+
+
+    def deletePSSfromDatabase(self):
+        to_be_deleted = self.PSS.custom_data['name']
+        self.PSS_database = [pss for pss in self.PSS_database if pss['name'] != to_be_deleted]
+        self.savePSSDatabase()
+        self.updateTablePSSDatabase()
+        self.signal_status_bar_message.emit(str("Deleted: " + to_be_deleted))
 
     def addToChain(self, item, currentActivity, type):
         if type == "as child":
@@ -270,7 +368,6 @@ class PSSWidget(QtGui.QWidget):
         return data
 
     def getChainTableData(self):
-        # TODO: move to GUI / PSS widget
         if not self.PSS.parents_children:
             return []
         else:
@@ -343,10 +440,8 @@ class MainWindow(QtGui.QMainWindow):
         button_search = QtGui.QPushButton("Search")
         button_history = QtGui.QPushButton("History")
         button_databases = QtGui.QPushButton("Databases")
-
         # LINE EDITS
         self.line_edit_search = QtGui.QLineEdit()
-
         # LABELS
         # dynamic
         self.label_current_activity_product = QtGui.QLabel("Product")
@@ -359,28 +454,23 @@ class MainWindow(QtGui.QMainWindow):
         # static
         label_inputs = QtGui.QLabel("Technosphere Inputs")
         label_downstream_activities = QtGui.QLabel("Downstream Activities")
-
         # TABLES
         self.table_inputs_technosphere = QtGui.QTableWidget()
         self.table_inputs_biosphere = QtGui.QTableWidget()
         self.table_downstream_activities = QtGui.QTableWidget()
         self.table_multipurpose = QtGui.QTableWidget()
-
         # set properties
         self.table_inputs_technosphere.setSortingEnabled(True)
         self.table_inputs_biosphere.setSortingEnabled(True)
         self.table_downstream_activities.setSortingEnabled(True)
         self.table_multipurpose.setSortingEnabled(True)
-
         # SPLITTERS
         self.splitter_right = QtGui.QSplitter(QtCore.Qt.Vertical)
-
         # LAYOUTS
         # V
         vlayout = QtGui.QVBoxLayout()
         self.VL_RIGHT = QtGui.QVBoxLayout()
         VL_LEFT = QtGui.QVBoxLayout()
-
         # H
         hlayout = QtGui.QHBoxLayout()
         HL_multi_purpose = QtGui.QHBoxLayout()
@@ -391,11 +481,9 @@ class MainWindow(QtGui.QMainWindow):
         HL_multi_purpose.addWidget(button_history)
         HL_multi_purpose.addWidget(button_databases)
         HL_multi_purpose.addWidget(button_random_activity)
-
         # HL Navigation
         # HL_navigation.addWidget(button_backward)
         # HL_navigation.addWidget(button_forward)
-
         # VL
         # LEFT
         VL_LEFT.addWidget(label_inputs)
@@ -405,13 +493,11 @@ class MainWindow(QtGui.QMainWindow):
         VL_LEFT.addWidget(self.label_current_database)
         VL_LEFT.addWidget(label_downstream_activities)
         VL_LEFT.addWidget(self.table_downstream_activities)
-
         # RIGHT
         # Tabs
         self.tab_widget = QtGui.QTabWidget()
         self.tab_widget.addTab(self.table_multipurpose, "SeHiDa")
         self.tab_widget.addTab(self.table_inputs_biosphere, "Biosphere")
-
         self.VL_RIGHT.addWidget(self.tab_widget)
         self.VL_RIGHT.addLayout(HL_multi_purpose)
         self.VL_RIGHT.addWidget(self.label_multi_purpose)
@@ -419,22 +505,17 @@ class MainWindow(QtGui.QMainWindow):
         widget_right_side.setLayout(self.VL_RIGHT)
         self.splitter_right.addWidget(widget_right_side)
         # splitter_right.addWidget(self.PSS_Widget.webview)
-
         # OVERALL
         hlayout.addLayout(VL_LEFT)
         hlayout.addWidget(self.splitter_right)
-
         vlayout.addLayout(hlayout)
-
         self.widget.setLayout(vlayout)
         self.setCentralWidget(self.widget)
-
         # CONNECTIONS
         button_random_activity.clicked.connect(lambda: self.newActivity())
         # button_backward.clicked.connect(self.goBackward)
         # button_forward.clicked.connect(self.goForward)
         self.line_edit_search.returnPressed.connect(self.search_results)
-
         button_search.clicked.connect(self.search_results)
         button_history.clicked.connect(self.showHistory)
         button_databases.clicked.connect(self.listDatabases)
@@ -458,7 +539,8 @@ class MainWindow(QtGui.QMainWindow):
 
     def setUpPSSEditor(self):
         self.PSS_Widget = PSSWidget()
-        self.tab_widget.addTab(self.PSS_Widget, "PSS Widget")
+        self.tab_widget.addTab(self.PSS_Widget, "PSS")
+        self.tab_widget.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
         self.VL_RIGHT.addLayout(self.PSS_Widget.HL_PS_manipulation)
         self.splitter_right.addWidget(self.PSS_Widget.webview)
         # CONTEXT MENUS
@@ -475,6 +557,10 @@ class MainWindow(QtGui.QMainWindow):
         # CONNECTIONS BETWEEN WIDGETS
         self.signal_add_to_chain.connect(self.PSS_Widget.addToChain)
         self.PSS_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
+        self.PSS_Widget.signal_status_bar_message.connect(self.statusBarMessage)
+
+    def statusBarMessage(self, message):
+        self.statusBar().showMessage(message)
 
     def listDatabases(self):
         data = self.lcaData.getDatabases()
@@ -503,17 +589,21 @@ class MainWindow(QtGui.QMainWindow):
 
     def search_results(self):
         searchString = self.line_edit_search.text()
-        print "Searched for:", searchString
-        if searchString != "":
-            try:
-                keys = self.get_table_headers(type="search")
+        try:
+            if searchString == '':
+                print "Listing all activities in database"
+                data = [self.lcaData.getActivityData(key) for key in self.lcaData.database.keys()]
+                data.sort(key=lambda x: x['name'])
+            else:
+                print "Searched for:", searchString
                 data = self.lcaData.get_search_results(searchString)
-                self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
-                label_text = str(len(data)) + " activities found."
-                self.label_multi_purpose.setText(QtCore.QString(label_text))
-                self.tab_widget.setCurrentIndex(0)
-            except AttributeError:
-                self.statusBar().showMessage("Need to load a database first")
+            keys = self.get_table_headers(type="search")
+            self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
+            label_text = str(len(data)) + " activities found."
+            self.label_multi_purpose.setText(QtCore.QString(label_text))
+            self.tab_widget.setCurrentIndex(0)
+        except AttributeError:
+            self.statusBar().showMessage("Need to load a database first")
 
     def newActivity(self, key=None):
         try:
