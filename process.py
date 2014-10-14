@@ -32,6 +32,7 @@ class SimplifiedProcess(object):
         self.cuts = cuts
         self.depending_database_names = list(set(c[0] for c in self.chain))
         # TODO: load all databases that are listed in the chain (could depend on multiple DB)
+        # TODO: do this with an dict.update() statement
         self.depending_database = self.filter_database(self.chain, Database(self.depending_database_names[0]).load())
         self.edges = self.construct_graph(self.depending_database)
         self.simple, activity_guesses = self.is_simple(self.chain, self.edges)

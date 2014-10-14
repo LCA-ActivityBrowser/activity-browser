@@ -130,10 +130,10 @@ class PSSWidget(QtGui.QWidget):
         # self.HL_PS_manipulation.addWidget(button_show_process_subsystem)
         self.HL_PS_manipulation.addWidget(button_new_process_subsystem)
         self.HL_PS_manipulation.addWidget(button_load_process_subsystem_database)
+        self.HL_PS_manipulation.addWidget(button_validate_PSS)
         self.HL_PS_manipulation.addWidget(button_add_PSS_to_Database)
         self.HL_PS_manipulation.addWidget(button_delete_PSS_from_Database)
         self.HL_PS_manipulation.addWidget(button_saveAs_process_subsystem_database)
-        self.HL_PS_manipulation.addWidget(button_validate_PSS)
         self.HL_PS_manipulation.addWidget(button_toggle_layout)
         # CONNECTIONS
         # button_show_process_subsystem.clicked.connect(self.showGraph)
@@ -203,7 +203,7 @@ class PSSWidget(QtGui.QWidget):
         file_types = "Pickle (*.pickle);;All (*.*)"
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\PSS Databases', file_types)
         if filename:
-            with open(filename, 'rb') as input:
+            with open(filename, 'r') as input:
                 self.PSS_database = pickle.load(input)
             self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
             self.updateTablePSSDatabase()
@@ -223,6 +223,15 @@ class PSSWidget(QtGui.QWidget):
         if filename:
             self.savePSSDatabase(filename)
             self.signal_status_bar_message.emit("PSS Database saved.")
+
+    def export_as_JSON(self):
+        outdata = []
+        for pss in self.PSS_database:
+            outdata.append(self.PSS.getHumanReadiblePSS(pss))
+        file_types = "Python (*.py);;JSON (*.json);;All (*.*)"
+        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\PSS Databases', file_types)
+        with open(filename, 'w') as outfile:
+            json.dump(outdata, outfile, indent=4, sort_keys=True)
 
     def updateTablePSSDatabase(self):
         data = []
@@ -563,7 +572,7 @@ class MainWindow(QtGui.QMainWindow):
         self.connect(addPSS, QtCore.SIGNAL('triggered()'), self.setUpPSSEditor)
         # Add actions
         menubar = self.menuBar()
-        file = menubar.addMenu('&Tools')
+        file = menubar.addMenu('Extensions')
         file.addAction(addPSS)
 
     def setUpPSSEditor(self):
@@ -590,6 +599,15 @@ class MainWindow(QtGui.QMainWindow):
             self.signal_add_to_chain.connect(self.PSS_Widget.addToChain)
             self.PSS_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
             self.PSS_Widget.signal_status_bar_message.connect(self.statusBarMessage)
+            # MENU BAR
+            # Actions
+            exportPSSDatabaseAsJSONFile = QtGui.QAction('Export DB to file', self)
+            exportPSSDatabaseAsJSONFile.setStatusTip('Export the working PSS database as JSON to a .py file')
+            self.connect(exportPSSDatabaseAsJSONFile, QtCore.SIGNAL('triggered()'), self.PSS_Widget.export_as_JSON)
+            # Add actions
+            menubar = self.menuBar()
+            pss_menu = menubar.addMenu('PSS')
+            pss_menu.addAction(exportPSSDatabaseAsJSONFile)
 
     def statusBarMessage(self, message):
         self.statusBar().showMessage(message)
@@ -700,8 +718,8 @@ def main():
     app = QtGui.QApplication(sys.argv)
     mw = MainWindow()
     mw.setUpPSSEditor()
-    mw.lcaData.loadDatabase('ecoinvent 2.2')
-    mw.newActivity()
+    # mw.lcaData.loadDatabase('ecoinvent 2.2')
+    # mw.newActivity()
 
     # wnd.resize(800, 600)
     mw.showMaximized()

@@ -258,7 +258,6 @@ class ProcessSubsystem(BrowserStandardTasks):
 
     def submitPSS_dagre(self):
         SP = {}
-        # TODO: include database name? (technically not really needed anymore)
         outputs = []
         for i, key in enumerate(self.process_subsystem['outputs']):
             name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output'+str(i)
@@ -284,3 +283,29 @@ class ProcessSubsystem(BrowserStandardTasks):
         print SP
         print json.dumps(SP, indent=2)
         self.SP_dagre = SP
+
+    def getHumanReadiblePSS(self, pss):
+        print pss
+
+        def getData(key):
+            try:
+                ad = self.getActivityData(key)
+                return (ad['database'], ad['name'], ad['product'], ad['location'])
+            except:
+                return key
+
+
+        outputs = [(getData(o[0]), o[1]) for o in pss['outputs']]
+        chain = [getData(o) for o in pss['chain']]
+        cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss['cuts']]
+        edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
+        pss_HR = {
+            'name': pss['name'],
+            'outputs': outputs,
+            'chain': chain,
+            'cuts': cuts,
+            'edges': edges,
+        }
+        print "\nPSS (HUMAN READIBLE):"
+        print pss_HR
+        return pss_HR
