@@ -211,7 +211,7 @@ class PSSWidget(QtGui.QWidget):
     def savePSSDatabase(self, filename=None):
         if not filename:
             filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
-        with open(filename, 'wb') as output:
+        with open(filename, 'w') as output:
             pickle.dump(self.PSS_database, output, -1)
         self.signal_status_bar_message.emit("PSS Database saved.")
         self.updateTablePSSDatabase()
@@ -435,13 +435,18 @@ class PSSWidget(QtGui.QWidget):
         # print "\nProcess Subsystem Data: "
         # print self.PSS.process_subsystem
         # print json.dumps(self.PSS.process_subsystem, indent=2)
+        geo = self.webview.geometry()
         if self.current_d3_layout == "tree":
             template_data = {
+                'height': geo.height(),
+                'width': geo.width(),
                 'data': json.dumps(self.PSS.tree_data, indent=1)
             }
             # print json.dumps(self.PSS_Widget.PSS.tree_data, indent=1)
         elif self.current_d3_layout == "graph":
             template_data = {
+                'height': geo.height(),
+                'width': geo.width(),
                 'data': json.dumps(self.PSS.graph_data, indent=1)
             }
         self.webview.setHtml(self.template.render(**template_data))
@@ -725,9 +730,9 @@ class MainWindow(QtGui.QMainWindow):
 def main():
     app = QtGui.QApplication(sys.argv)
     mw = MainWindow()
-    # mw.setUpPSSEditor()
-    # mw.lcaData.loadDatabase('ecoinvent 2.2')
-    # mw.newActivity()
+    mw.setUpPSSEditor()
+    mw.lcaData.loadDatabase('ecoinvent 2.2')
+    mw.newActivity()
 
     # wnd.resize(800, 600)
     mw.showMaximized()

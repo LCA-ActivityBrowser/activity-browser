@@ -130,7 +130,7 @@ class BrowserStandardTasks(object):
                             'key': k,
                             'key_type': 'activity',
                             'name': v['name'],
-                            'product': exc.get('name', 'unknown'),
+                            'product': v.get('reference product',''),  # exc.get('name', 'unknown'),
                             'unit': unit,  # v3: exc.get('unit', 'unknown')
                             'database': k[0],
                             'location': v.get('location', 'unknown')  # self.database[k]['location']
