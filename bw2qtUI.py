@@ -502,53 +502,62 @@ class MainWindow(QtGui.QMainWindow):
         self.table_inputs_biosphere.setSortingEnabled(True)
         self.table_downstream_activities.setSortingEnabled(True)
         self.table_multipurpose.setSortingEnabled(True)
+
         # SPLITTERS
         self.splitter_right = QtGui.QSplitter(QtCore.Qt.Vertical)
+        self.splitter_horizontal = QtGui.QSplitter(QtCore.Qt.Horizontal)
         # LAYOUTS
         # V
         vlayout = QtGui.QVBoxLayout()
         self.VL_RIGHT = QtGui.QVBoxLayout()
-        VL_LEFT = QtGui.QVBoxLayout()
+        self.VL_LEFT = QtGui.QVBoxLayout()
         # H
         hlayout = QtGui.QHBoxLayout()
         HL_multi_purpose = QtGui.QHBoxLayout()
-
         # Search
         HL_multi_purpose.addWidget(self.line_edit_search)
         HL_multi_purpose.addWidget(button_search)
         HL_multi_purpose.addWidget(button_history)
         HL_multi_purpose.addWidget(button_databases)
         HL_multi_purpose.addWidget(button_random_activity)
-        # HL Navigation
-        # HL_navigation.addWidget(button_backward)
-        # HL_navigation.addWidget(button_forward)
+        # TAB WIDGETS
+        self.tab_widget_RIGHT = QtGui.QTabWidget()
+        self.tab_widget_LEFT = QtGui.QTabWidget()
         # VL
         # LEFT
-        VL_LEFT.addWidget(label_inputs)
-        VL_LEFT.addWidget(self.table_inputs_technosphere)
-        VL_LEFT.addWidget(self.label_current_activity_product)
-        VL_LEFT.addWidget(self.label_current_activity)
-        VL_LEFT.addWidget(self.label_current_database)
-        VL_LEFT.addWidget(label_downstream_activities)
-        VL_LEFT.addWidget(self.table_downstream_activities)
-        # RIGHT
-        # Tabs
-        self.tab_widget = QtGui.QTabWidget()
-        self.tab_widget.addTab(self.table_multipurpose, "SeHiDa")
-        self.tab_widget.addTab(self.table_inputs_biosphere, "Biosphere")
-        self.VL_RIGHT.addWidget(self.tab_widget)
+        self.VL_technosphere = QtGui.QVBoxLayout()
+        self.widget_technosphere = QtGui.QWidget()
+        self.widget_technosphere.setLayout(self.VL_technosphere)
+        self.VL_technosphere.addWidget(label_inputs)
+        self.VL_technosphere.addWidget(self.table_inputs_technosphere)
+        self.VL_technosphere.addWidget(self.label_current_activity_product)
+        self.VL_technosphere.addWidget(self.label_current_activity)
+        self.VL_technosphere.addWidget(self.label_current_database)
+        self.VL_technosphere.addWidget(label_downstream_activities)
+        self.VL_technosphere.addWidget(self.table_downstream_activities)
+
+        # WIDGETS
+        self.widget_LEFT = QtGui.QWidget()
+        self.widget_RIGHT = QtGui.QWidget()
+        # RIGHT SIDE
+        self.widget_RIGHT.setLayout(self.VL_RIGHT)
         self.VL_RIGHT.addLayout(HL_multi_purpose)
         self.VL_RIGHT.addWidget(self.label_multi_purpose)
-        widget_right_side = QtGui.QWidget()
-        widget_right_side.setLayout(self.VL_RIGHT)
-        self.splitter_right.addWidget(widget_right_side)
-        # splitter_right.addWidget(self.PSS_Widget.webview)
+        self.VL_RIGHT.addWidget(self.tab_widget_RIGHT)
+        self.tab_widget_RIGHT.addTab(self.table_multipurpose, "SeHiDa")
+        self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, "Biosphere")
+        # LEFT SIDE
+        self.widget_LEFT.setLayout(self.VL_LEFT)
+        self.VL_LEFT.addWidget(self.tab_widget_LEFT)
+        self.tab_widget_LEFT.addTab(self.widget_technosphere, "Technosphere")
         # OVERALL
-        hlayout.addLayout(VL_LEFT)
-        hlayout.addWidget(self.splitter_right)
+        self.splitter_horizontal.addWidget(self.widget_LEFT)
+        self.splitter_horizontal.addWidget(self.widget_RIGHT)
+        hlayout.addWidget(self.splitter_horizontal)
         vlayout.addLayout(hlayout)
         self.widget.setLayout(vlayout)
         self.setCentralWidget(self.widget)
+
         # CONNECTIONS
         button_random_activity.clicked.connect(lambda: self.newActivity())
         # button_backward.clicked.connect(self.goBackward)
@@ -563,7 +572,6 @@ class MainWindow(QtGui.QMainWindow):
         self.table_multipurpose.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
         # CONTEXT MENUS
-
         # MENU BAR
         # Actions
         addPSS = QtGui.QAction('Process Subsystem Editor', self)
@@ -580,10 +588,10 @@ class MainWindow(QtGui.QMainWindow):
             print "PSS WIDGET ALREADY LOADED"
         else:
             self.PSS_Widget = PSSWidget()
-            self.tab_widget.addTab(self.PSS_Widget.PSSdataWidget, "PSS")
-            self.tab_widget.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
-            self.VL_RIGHT.addLayout(self.PSS_Widget.HL_PS_manipulation)
-            self.splitter_right.addWidget(self.PSS_Widget.webview)
+            self.tab_widget_LEFT.addTab(self.PSS_Widget.PSSdataWidget, "PSS")
+            self.tab_widget_LEFT.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
+            self.VL_LEFT.addLayout(self.PSS_Widget.HL_PS_manipulation)
+            self.tab_widget_RIGHT.addTab(self.PSS_Widget.webview, "Graph")
             # CONTEXT MENUS
             # Technosphere Inputs
             self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -618,7 +626,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
         label_text = str(len(data)) + " databases found."
         self.label_multi_purpose.setText(QtCore.QString(label_text))
-        self.tab_widget.setCurrentIndex(0)
+        self.tab_widget_RIGHT.setCurrentIndex(0)
 
     def get_table_headers(self, type="technosphere"):
         if self.lcaData.database_version == 2:
@@ -717,7 +725,7 @@ class MainWindow(QtGui.QMainWindow):
 def main():
     app = QtGui.QApplication(sys.argv)
     mw = MainWindow()
-    mw.setUpPSSEditor()
+    # mw.setUpPSSEditor()
     # mw.lcaData.loadDatabase('ecoinvent 2.2')
     # mw.newActivity()
 

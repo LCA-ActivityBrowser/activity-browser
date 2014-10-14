@@ -137,8 +137,9 @@ class SimplifiedProcess(object):
     @property
     def pp(self):
         """Shortcut, as full method uses no global state"""
+        # TODO: self.database gibt es gar nicht...
         return self.process_products(self.chain, self.edges, self.cuts,
-            self.outputs, self.activity, self.database)
+            self.outputs, self.activity, self.depending_database_names)
 
     def process_products(self, nodes, edges, cuts, outputs, activity, database):
         """Provide data for construction of process-product table.
