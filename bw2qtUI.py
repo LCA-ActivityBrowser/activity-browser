@@ -8,11 +8,13 @@ from PyQt4 import QtCore, QtGui, QtWebKit
 # import brightway2 as bw2
 from standardTasks import BrowserStandardTasks
 from processSubsystem import ProcessSubsystem
+from pssBuilder import ProcessSubsystemManager
 import time
 from jinja2 import Template
 import json
 import pickle
 from process import SimplifiedProcess
+from ast import literal_eval
 
 BASE_PATH = os.path.dirname(__file__)
 
@@ -100,7 +102,7 @@ class PSSWidget(QtGui.QWidget):
     signal_status_bar_message = QtCore.pyqtSignal(str)
     def __init__(self, parent=None):
         super(PSSWidget, self).__init__(parent)
-        self.PSS = ProcessSubsystem()
+        self.PSS = ProcessSubsystemManager()
         self.PSS_database = []
         self.PSS_database_filename = "PSS_test_databse.pkl"
         self.PSS_database_dir = 'PSS Databases'
@@ -212,7 +214,7 @@ class PSSWidget(QtGui.QWidget):
         if not filename:
             filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
         with open(filename, 'w') as output:
-            pickle.dump(self.PSS_database, output, -1)
+            pickle.dump(self.PSS_database, output)
         self.signal_status_bar_message.emit("PSS Database saved.")
         self.updateTablePSSDatabase()
 
@@ -477,6 +479,7 @@ class MainWindow(QtGui.QMainWindow):
         # BUTTONS
         # random activity
         button_random_activity = QtGui.QPushButton("Random Activity")
+        button_key = QtGui.QPushButton("Key")
         # button_backward = QtGui.QPushButton("<<")
         # button_forward = QtGui.QPushButton(">>")
         # search
@@ -525,6 +528,7 @@ class MainWindow(QtGui.QMainWindow):
         HL_multi_purpose.addWidget(button_history)
         HL_multi_purpose.addWidget(button_databases)
         HL_multi_purpose.addWidget(button_random_activity)
+        HL_multi_purpose.addWidget(button_key)
         # TAB WIDGETS
         self.tab_widget_RIGHT = QtGui.QTabWidget()
         self.tab_widget_LEFT = QtGui.QTabWidget()
@@ -571,6 +575,7 @@ class MainWindow(QtGui.QMainWindow):
         button_search.clicked.connect(self.search_results)
         button_history.clicked.connect(self.showHistory)
         button_databases.clicked.connect(self.listDatabases)
+        button_key.clicked.connect(self.search_by_key)
 
         self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
@@ -667,6 +672,24 @@ class MainWindow(QtGui.QMainWindow):
             self.tab_widget.setCurrentIndex(0)
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
+
+    def search_by_key(self):
+        searchString = str(self.line_edit_search.text())
+        try:
+            if searchString != '':
+                print "Searched for:", searchString
+                data = [self.lcaData.getActivityData(literal_eval(searchString))]
+                print "Data: "
+                print data
+                keys = self.get_table_headers(type="search")
+                self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
+                label_text = str(len(data)) + " activities found."
+                self.label_multi_purpose.setText(QtCore.QString(label_text))
+                self.tab_widget.setCurrentIndex(0)
+        except AttributeError:
+            self.statusBar().showMessage("Need to load a database first")
+        # except:
+        #     self.statusBar().showMessage("This did not work.")
 
     def newActivity(self, key=None):
         try:

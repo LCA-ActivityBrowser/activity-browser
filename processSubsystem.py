@@ -23,10 +23,10 @@ class ProcessSubsystem(object):
 
     """
     def __init__(self, name, outputs, chain, cuts, **kwargs):
-        self.key = None # exists only of SP is saved to a DB, either manually or through doing lca calculations
+        self.key = None  # created when PSS saved to a DB
         self.name = name
         self.outputs = outputs
-        self.chain = set(chain)  # order doesn't matter, set searching is fast
+        self.chain = set(chain)
         self.cuts = cuts
         self.depending_databases = list(set(c[0] for c in self.chain))
         self.filtered_database = self.getFilteredDatabase(self.depending_databases, self.chain)
@@ -197,7 +197,7 @@ class ProcessSubsystem(object):
         if self.scaling_activities != 1:
             units_set = set([Database(sa[0]).load()[sa].get(u'unit', '') for sa in self.scaling_activities])
             if len(units_set) > 1:
-                unit = 'NA'  # if several units, display nothing
+                unit = 'several'  # if several units, display nothing
             else:
                 unit = units_set.pop()
         data[self.key] = {

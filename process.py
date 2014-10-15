@@ -256,10 +256,6 @@ class SimplifiedProcess(object):
         db.write(recursive_str_to_unicode(data))
         db.process()
 
-    def translate_names(self):
-        """If supply is initially constructed using human-readable labels, translate to database identifiers. Needs to update ``outputs``, ``chain``, and ``cuts``."""
-        raise NotImplemented("Not yet... still testing!")
-
     def lca(self, method):
         if not self.activity:
             raise ValueError("No defining activity")
@@ -277,7 +273,6 @@ class SimplifiedProcess(object):
                 self.calculated_lca.decompose_technosphere()
                 self.calculated_lca.lcia()
         return self.calculated_lca.score
-
 
     def lci(self):
         if not self.activity:
