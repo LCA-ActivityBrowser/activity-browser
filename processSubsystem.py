@@ -1,311 +1,307 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from brightway2 import *
+from bw2data.utils import recursive_str_to_unicode
+import itertools
+import numpy as np
+import warnings
 
-from standardTasks import BrowserStandardTasks
-import json
+class ProcessSubsystem(object):
+    """A description of a simplified supply chain, which has the following characteristics:
 
-class ProcessSubsystem(BrowserStandardTasks):
-    def __init__(self):
-        self.parents_children = []  # flat: [(parent, child),...]
-        self.tree_data = []  # hierarchical
-        self.graph_data = []  # source --> target
-        self.process_subsystem = {
-            'outputs': [],  # parent keys
-            'chain': [],  # unique chain item keys
-            'cuts': [],  # key tuples (parent, child)
-        }
-        self.custom_data = {
-            'name': 'Default Process Subsystem',
-            'output names': {},  # dict that map activity key to *name*
-            'output quantities': {},  # dict that map activity key to *amount*
-            'cut names': {},  # dict that map activity key to *name*
-        }
-        self.pss = {}
+    * It produces one or more outputs (products)
+    * It has at least one process from an inventory database
+    * It can have links back into the inventory process that are cut; these links can then be replaced at another point with alternative supply chains.
+    * It has one scaling activity, which determines the amounts of the various inputs and outputs
 
-    def newProcessSubsystem(self):
-        self.parents_children = []
-        self.tree_data = []
-        self.graph_data = []
-        self.updateData()
+    Args:
+        * *name* (``str``): Name of the new process
+        * *outputs* (``[(key, str, optional float)]``): A list of products produced by the simplified process. Format is ``(key into inventory database, product name, optional amount of product produced)``.
+        * *chain* (``[key]``): A list of inventory processes in the supply chain (not necessarily in order).
+        * *cuts* (``[(key, key, str)]``): A set of linkages in the supply chain that should be cut. These will appear as **negative** products (i.e. inputs) in the process-product table. Format is (input key, output key, product name).
+        * *scaling activity* (key, optional): The reference activities for the supply chain. **Required** for circular supply chains; in simple supply chains, the scaling activity is calculated automatically.
 
-    def loadPSS(self, pss):
-        self.newProcessSubsystem()  # clear existing data
-        self.custom_data['name'] = pss['name']
-        for o in pss['outputs']:
-            self.process_subsystem['outputs'].append(o[0])
-            self.custom_data['output names'].update({o[0]: o[1]})
-            self.custom_data['output quantities'].update({o[0]: o[2]})
-        for c in pss['chain']:
-            self.process_subsystem['chain'].append(c)
-        for c in pss['cuts']:
-            self.process_subsystem['cuts'].append((c[0], c[1]))
-            self.custom_data['cut names'].update({c[0]: c[2]})
-        self.parents_children = pss['edges']
-        self.updateData()
-        # print self.process_subsystem
-        # print self.custom_data
+    """
+    def __init__(self, name, outputs, chain, cuts, **kwargs):
+        self.key = None # exists only of SP is saved to a DB, either manually or through doing lca calculations
+        self.name = name
+        self.outputs = outputs
+        self.chain = set(chain)  # order doesn't matter, set searching is fast
+        self.cuts = cuts
+        self.depending_databases = list(set(c[0] for c in self.chain))
+        self.filtered_database = self.getFilteredDatabase(self.depending_databases, self.chain)
+        self.edges = self.construct_graph(self.filtered_database)
+        self.isSimple, self.scaling_activities = self.getScalingActivities(self.chain, self.edges)
+        self.mapping, self.matrix, self.supply_vector = \
+            self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
 
-    def addProcess(self, parent_key, child_key):
-        new_edge = (parent_key, child_key)
-        if new_edge not in self.parents_children:
-            self.parents_children.append((parent_key, child_key))
-        self.updateData()
+    def pad_outputs(self, outputs):
+        # TODO: check what it does / reimplement
+        """Add default amount (1) to outputs if not present.
 
-    def linkToProcessSubsystemHead(self, key):
-        # links a node to current Process Subsystem, IF that node is a head (has no further downstream processes)
-        parents, children = zip(*self.parents_children)
-        if not key in parents:
-            self.parents_children.append((key, self.custom_data['name']))
-            self.process_subsystem['outputs'].append(key)
-            self.updateData()
-        else:
-            print "Cannot be defined as input to the Process Subsystem Head. " \
-                  "Perhaps it is not a head of the current system."
+        Args:
+            * *outputs* (list): outputs
 
-    def deleteProcessFromOutputs(self, key):
-        if not self.parents_children:
-            print "No outputs to be removed."
-        else:
-            self.parents_children.remove((key, self.custom_data['name']))
-            print "Removed output: "+self.getActivityData(key)['name']
-            self.updateData()
+        Returns:
+            Padded outputs
 
-    def deleteProcessFromChain(self, key):
-        if self.parents_children:
-            self.printEdgesToConsole(self.parents_children, "Chain before delete:")
-            parents, children = zip(*self.parents_children)
-            if key in children:
-                print "\nCannot remove activity as as other activities still link to it."
-            elif key in parents:  # delete from chain
-                for pc in self.parents_children:
-                    if key in pc:
-                        self.parents_children.remove(pc)
-                self.printEdgesToConsole(self.parents_children, "Chain after edge removal:")
-                self.updateData()
-            else:
-                print "WARNING: Key not in chain. Key: " + self.getActivityData(key)['name']
-
-    def set_PSS_name(self, name):
-        print "New PSS name: "+name
-        # first need to update self.parents_children with new name
-        old_name = self.custom_data['name']
-        for pc in self.parents_children:
-            if old_name in pc:
-                new_pc = (pc[0], name)
-                self.parents_children.remove(pc)
-                self.parents_children.append(new_pc)
-        self.custom_data['name'] = name
-        self.updateData()
-
-    def setOutputName(self, key, name):
-        self.custom_data['output names'].update({
-            key: name
-        })
-        print "\nCustom Data:"
-        print self.custom_data
-
-    def setOutputQuantity(self, key, text):
-        self.custom_data['output quantities'].update({
-            key: text
-        })
-        print "\nCustom Data:"
-        print self.custom_data
-
-    def setCutName(self, key, name):
-        # cut names only get added, but not removed right now when process is removed from PSS
-        # advantage: custom names are already defined, when process is added again;
-        # disadvantage: this might then not make sense
-        self.custom_data['cut names'].update({
-            key: name
-        })
-        print "UPDATED CUT NAME: " + name
-
-    def updateData(self):
-        # PSS
-        self.updateOutputs()
-        self.updateChain()
-        self.updateCuts()
-        # D3
-        self.graph_data = self.getGraphData()
-        self.tree_data = self.getTreeData()
-        # Console output
-        self.printEdgesToConsole(self.parents_children, "\nList of parents / children:")
-        self.printEdgesToConsole(self.process_subsystem['cuts'], "\nCuts:")
-        # print self.process_subsystem['cuts']
-        # print "Tree Data:"
-        # print json.dumps(self.tree_data, indent=2)
-
-    def updateOutputs(self):
-        if not self.parents_children:
-            self.process_subsystem['outputs'] = []
-        else:
-            outputs = []
-            for pc in self.parents_children:
-                if pc[1] == self.custom_data['name']:
-                    outputs.append(pc[0])
-            self.process_subsystem['outputs'] = outputs
-
-    def updateChain(self):
-        if not self.parents_children:
-            self.process_subsystem['chain'] = []
-        else:
-            parents, children = zip(*self.parents_children)
-            uniqueKeys = set(parents+children)
-            self.process_subsystem['chain'] = list(uniqueKeys)
-
-    def updateCuts(self):
-        if not self.parents_children:
-            # print "from updateCuts(): No Chain."
-            self.process_subsystem['cuts'] = []
-        else:
-            parents, children = zip(*self.parents_children)
-            cuts_from = [x for x in parents if x not in children]
-            cuts_from_to = []
-            for cut_from in cuts_from:
-                for pc in self.parents_children:
-                    if cut_from in pc:
-                        cuts_from_to.append(pc)
-            self.process_subsystem['cuts'] = cuts_from_to
-
-    def getGraphData(self):
-        # TODO: move to GUI / visualization
-        graph_data = []
-        for pc in self.parents_children:
-            source = self.getActivityData(pc[0])['name']  # bw2.Database(pc[0][0]).load()[pc[0]]['name']
-            if pc[1] != self.custom_data['name']:
-                target = self.getActivityData(pc[1])['name']
-            else:
-                target = self.custom_data['name']
-            graph_data.append({
-                'source': source,
-                'target': target,
-                'type': "suit"
-            })
-        # print graph_data
-        return graph_data
-
-    def getTreeData(self):
         """
-        :param parents_children: like this: [(key0,key1),...]
-        :return: hierarchical data
+        return [tuple(x) + (1,) * (3 - len(x)) for x in outputs]
+
+    def getFilteredDatabase(self, depending_databases, chain):
+        """Extract the supply chain for this process from larger database.
+
+        Args:
+            * *nodes* (set): The datasets to extract (keys in db dict)
+            * *db* (dict): The inventory database, e.g. ecoinvent
+
+        Returns:
+            A filtered database, in the same dict format
+
         """
-        if not self.parents_children:
-            return []
-        def get_nodes(node):
-            d = {}
-            if node == self.custom_data['name']:
-                d['name'] = node
+        output = {}
+        for name in depending_databases:
+            db = Database(name).load()
+            output.update(
+                dict([(k, v) for k, v in db.iteritems() if k in chain])
+            )
+        return output
+
+    def construct_graph(self, db):
+        """Construct a list of edges.
+
+        Args:
+            * *db* (dict): The supply chain database
+
+        Returns:
+            A list of (in, out, amount) edges.
+
+        """
+        return list(itertools.chain(*[[(tuple(e["input"]), k, e["amount"]) for e in v["exchanges"] if e["type"] != "production"] for k, v in db.iteritems()]))
+
+    def getScalingActivities(self, chain, edges):
+        """Which are the scaling activities (at least one)?
+
+        Calculate by filtering for processes which are not used as inputs.
+
+        Args:
+            * *chain* (set): The supply chain processes
+            * *edges* (list): The list of supply chain edges
+
+        Returns:
+            Boolean isSimple, List heads.
+
+        """
+        used_inputs = [x[0] for x in edges if x[0] in chain]
+        heads = set([tuple(x[1]) for x in edges if x[1] not in used_inputs])
+        isSimple = len(heads) == 1
+        return isSimple, list(heads)
+
+    def get_supply_vector(self, chain, edges, scaling_activities, outputs):
+        """Construct supply vector (solve linear system) for the supply chain of this simplified product system.
+
+        Args:
+            * *chain* (list): Nodes in supply chain
+            * *edges* (list): List of edges
+            * *scaling_activities* (key): Scaling activities
+
+        Returns:
+            Mapping from process keys to supply vector indices
+            Supply vector (as list)
+
+        """
+        output_amounts = dict((o[0], o[2]) for o in outputs)
+        mapping = dict(*[zip(sorted(chain), itertools.count())])
+        M = len(chain)
+        matrix = np.zeros((M, M))
+        # Set ones on diagonal; standard LCA stuff
+        matrix[range(M), range(M)] = 1
+        # Only add edges that are within our system
+        # But, allow multiple links to same product (simply add them)
+        for in_, out_, a in [x for x in edges if x[0] in chain and x[1] in chain]:
+            matrix[
+                mapping[in_],
+                mapping[out_]
+            ] -= a
+        demand = np.zeros((M,))
+        for a in scaling_activities:
+            demand[mapping[a]] = output_amounts[a]
+        return mapping, matrix, np.linalg.solve(matrix, demand).tolist()
+
+    @property
+    def external_edges(self):
+        """Get list of edges outside our system, which are not cut"""
+        return [x for x in self.edges if (x[0] not in self.chain and \
+            x[:2] not in set([y[:2] for y in self.cuts]))]
+
+    @property
+    def external_scaled_edges(self):
+        """Adjust edge amounts by scaling vector"""
+        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges,
+            self.scaling_activities, self.outputs)
+        return [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]
+            ) for x in self.external_edges]
+
+    @property
+    def internal_edges(self):
+        """Get list of edges in chain, i.e. that are not part of external edges or cuts"""
+        return [x for x in self.edges if (x[0] in self.chain and \
+            x[:2] not in set([y[:2] for y in self.cuts]))]
+
+    @property
+    def internal_edges_with_cuts(self):
+        """Get list of edges in chain, i.e. that are not part of external edges or cuts"""
+        return [x for x in self.edges if (x[0] in self.chain or \
+            x[:2] in set([y[:2] for y in self.cuts]))]
+
+    @property
+    def internal_scaled_edges(self):
+        """Scale internal edges according to scaling activities"""
+        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges,
+            self.scaling_activities, self.outputs)
+        return [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]
+            ) for x in self.internal_edges]
+
+    @property
+    def internal_scaled_edges_with_cuts(self):
+        """Scale internal edges (including cuts) according to scaling activities"""
+        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges,
+            self.scaling_activities, self.outputs)
+        return [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]
+            ) for x in self.internal_edges_with_cuts]
+
+    def save_supply_chain_as_new_database(self, db_name="SPDB_default", unit=None,
+            location=None, categories=[]):
+        """Save simplified process to a database.
+
+        Creates database if necessary; otherwise *adds* to existing database. Uses the ``unit`` and ``location`` of ``self.scaling_activities[0]``, if not otherwise provided. Assumes that one unit of the scaling activity is being produced.
+
+        Args:
+            * *db_name* (str): Name of Database
+            * *unit* (str, optional): Unit of the simplified process.
+            * *location* (str, optional): Location of the simplified process.
+            * *categories* (list, optional): Category/ies of the scaling activity. # TODO
+
+        """
+        db = Database(db_name)
+        if db_name not in databases:
+            db.register(format=("Process Subsystem", 1))
+            data = {}
+        else:
+            data = db.load()
+        # put together dataset information
+        self.key = (db_name, self.name)
+        activity = self.scaling_activities[0]
+        metadata = Database(activity[0]).load()[activity]
+        # unit: if all scaling activities have the same unit, then set a unit, otherwise 'NA'
+        if self.scaling_activities != 1:
+            units_set = set([Database(sa[0]).load()[sa].get(u'unit', '') for sa in self.scaling_activities])
+            if len(units_set) > 1:
+                unit = 'NA'  # if several units, display nothing
             else:
-                # print "NODE: " + str(node)
-                d['name'] = self.getActivityData(node)['name']
-            parents = get_parents(node)
-            if parents:
-                d['children'] = [get_nodes(parent) for parent in parents]
-            return d
-        def get_parents(node):
-            return [x[0] for x in parents_children if x[1] == node]
-
-        # self.printEdgesToConsole()
-        # print "\nCalculating Tree Data from Parents/Children"
-        parents_children = self.parents_children
-        parents, children = zip(*parents_children)
-        # find the nodes that are not linked to - they represent a "head"
-        head_nodes = {x for x in children if x not in parents}
-        tree_data = []
-        for head in head_nodes:
-            tree_data.append(get_nodes(head))
-        # print json.dumps(tree_data, indent=2)
-        return tree_data
-
-    def printEdgesToConsole(self, edges_data, message=None):
-        if message:
-            print message
-        for i, pc in enumerate(edges_data):
-            if self.custom_data['name'] in pc:
-                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+pc[1]
-            else:
-                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+self.getActivityData(pc[1])['name']
-
-    def submitPSS(self):
-        pss = {}
-        outputs = []
-        for i, key in enumerate(self.process_subsystem['outputs']):
-            name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output'+str(i)
-            quantity = float(self.custom_data['output quantities'][key]) if key in self.custom_data['output quantities'] else 1.0
-            outputs.append((key, name, quantity))
-        chain = []
-        for key in self.process_subsystem['chain']:
-            if key != self.custom_data['name']:  # only real keys, not the head
-                chain.append(key)
-        cuts = []
-        for i, cut in enumerate(self.process_subsystem['cuts']):
-            parent, child = cut[0], cut[1]
-            name = self.custom_data['cut names'][parent] if parent in self.custom_data['cut names'] else 'Cut'+str(i)
-            cuts.append((parent, child, name))
-
-        pss.update({
-            'name': self.custom_data['name'],
-            'outputs': outputs,
-            'chain': chain,
-            'cuts': cuts,
-            'edges': self.parents_children
-        })
-        print "\nPSS as SP:"
-        print pss
-        # print json.dumps(pss, indent=2)
-        self.pss = pss
-        # self.submitPSS_dagre()
-
-    def submitPSS_dagre(self):
-        SP = {}
-        outputs = []
-        for i, key in enumerate(self.process_subsystem['outputs']):
-            name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output'+str(i)
-            quantity = float(self.custom_data['output quantities'][key]) if key in self.custom_data['output quantities'] else 1.0
-            outputs.append((self.getActivityData(key)['name'], name, quantity))
-        chain = []
-        for key in self.process_subsystem['chain']:
-            if key != self.custom_data['name']:  # only real keys, not the head
-                chain.append(self.getActivityData(key)['name'])
-        cuts = []
-        for i, cut in enumerate(self.process_subsystem['cuts']):
-            parent, child = cut[0], cut[1]
-            name = self.custom_data['cut names'][parent] if parent in self.custom_data['cut names'] else 'Cut'+str(i)
-            cuts.append((self.getActivityData(parent)['name'], self.getActivityData(child)['name'], name))
-
-        SP.update({
-            'name': self.custom_data['name'],
-            'outputs': outputs,
-            'chain': chain,
-            'cuts': cuts,
-        })
-        print "\nPSS as SP (HUMAN READIBLE):"
-        print SP
-        print json.dumps(SP, indent=2)
-        self.SP_dagre = SP
-
-    def getHumanReadiblePSS(self, pss):
-        print pss
-
-        def getData(key):
-            try:
-                ad = self.getActivityData(key)
-                return (ad['database'], ad['name'], ad['product'], ad['location'])
-            except:
-                return key
-
-
-        outputs = [(getData(o[0]), o[1]) for o in pss['outputs']]
-        chain = [getData(o) for o in pss['chain']]
-        cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss['cuts']]
-        edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
-        pss_HR = {
-            'name': pss['name'],
-            'outputs': outputs,
-            'chain': chain,
-            'cuts': cuts,
-            'edges': edges,
+                unit = units_set.pop()
+        data[self.key] = {
+            "name": self.name,
+            "unit": unit or metadata.get(u'unit', ''),
+            "location": location or metadata.get(u'location', ''),
+            "categories": categories,
+            "type": "process",
+            "exchanges": [{
+                "amount": exc[2],
+                "input": exc[0],
+                "type": "biosphere" \
+                    if exc[0][0] in (u"biosphere", u"biosphere3") \
+                    else "technosphere",
+                } for exc in self.external_scaled_edges],
         }
-        print "\nPSS (HUMAN READIBLE):"
-        print pss_HR
-        return pss_HR
+        # Production amount
+        data[self.key]["exchanges"].append({
+            "amount": 1,
+            "input": self.key,
+            "type": "production"
+        })
+        # TODO: Include uncertainty from original databases. Can't just scale
+        # uncertainty parameters. Maybe solution is to use "dummy" processes
+        # like we want to do to separate inputs of same flow in any case.
+        # data = db.relabel_data(data, db_name)
+        db.write(recursive_str_to_unicode(data))
+        db.process()
+
+    def lca(self, method, factorize=False):
+        if not self.scaling_activities:
+            raise ValueError("No scaling activity")
+        if hasattr(self, "calculated_lca"):
+            self.calculated_lca.method = method
+            self.calculated_lca.lcia()
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                if not self.key:
+                    self.save_supply_chain_as_new_database()
+                self.calculated_lca = LCA(demand={self.key: 1}, method=method)
+                self.calculated_lca.lci()
+                if factorize:
+                    self.calculated_lca.decompose_technosphere()
+                self.calculated_lca.lcia()
+        return self.calculated_lca.score
+
+    def lci(self):
+        if not self.scaling_activities:
+            raise ValueError("No scaling activity")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if not self.key:
+                self.save_supply_chain_as_new_database()
+            self.calculated_lca = LCA(demand={self.key: 1})
+        return self.calculated_lca.lci()
+
+    # TODO
+    def process_products(self, nodes, edges, cuts, outputs, scaling_activities, database):
+        """Provide data for construction of process-product table.
+
+        Note that products from multi-output activities are **not** scaled using the amounts in ``outputs``.
+
+        Args:
+            * *nodes* (list): List of processes in supply chain
+            * *edges* (list): List of edges from ``construct_graph``
+            * *cuts* (list): List of cuts from supply chain to inventory database
+            * *outputs* (list): List of products
+            * *scaling_activities* (key): The scaling activities
+            * *database* (dict): Inventory database for supply chain
+
+        Output:
+            List of (name, amount) product names and amounts.
+
+        """
+        products_from_cuts = [(c[2],
+            # Get edge amount
+            filter(lambda y: y[0] == c[0] and y[1] == c[1], edges)[0][2] \
+            # times supply amount of edge end times -1
+            * self.supply_vector[self.mapping[c[1]]] * -1
+            ) for c in cuts]
+
+        # Cuts can be from multiple inputs but the same product
+        # TODO: TEST
+        r = {}
+        for product, amount in products_from_cuts:
+            r[product] = r.get(product, 0) + amount
+        products_from_cuts = list(r.iteritems())
+
+        activity = scaling_activities[0]  # TODO: extend to multiple activities
+        a_data = database[activity]
+        if a_data.get("multioutput", False):
+            # Special handling for MO processes
+            products_from_outputs = [(o[1], a_data["multioutput"][o[0]]
+                ) for o in outputs]
+        else:
+            # One output from scaling activity or manually-specified
+            # multi-output process
+            products_from_outputs = [(o[1], o[2]) for o in outputs]
+
+        return products_from_cuts + products_from_outputs
+
+    @property
+    def pp(self):
+        """Shortcut, as full method uses no global state"""
+        return self.process_products(self.chain, self.edges, self.cuts,
+            self.outputs, self.scaling_activities, self.filtered_database)
