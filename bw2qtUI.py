@@ -10,8 +10,6 @@ from pssBuilder import PSSWidget
 import time
 from ast import literal_eval
 
-BASE_PATH = os.path.dirname(__file__)
-
 class MainWindow(QtGui.QMainWindow):
     signal_add_to_chain = QtCore.pyqtSignal(MyTableQWidgetItem, tuple, str)
 

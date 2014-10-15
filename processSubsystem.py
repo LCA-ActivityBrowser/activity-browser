@@ -26,14 +26,24 @@ class ProcessSubsystem(object):
         self.key = None  # created when PSS saved to a DB
         self.name = name
         self.outputs = outputs
-        self.chain = set(chain)
         self.cuts = cuts
+        self.chain = self.removeChainCuts(chain, self.cuts)
         self.depending_databases = list(set(c[0] for c in self.chain))
         self.filtered_database = self.getFilteredDatabase(self.depending_databases, self.chain)
         self.edges = self.construct_graph(self.filtered_database)
         self.isSimple, self.scaling_activities = self.getScalingActivities(self.chain, self.edges)
         self.mapping, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
+
+    def removeChainCuts(self, chain, cuts):
+        """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.
+
+        """
+        for cut in cuts:
+            if cut[0] in chain:
+                chain.remove(cut[0])
+                print "WARNING: Removed from chain: " + str(cut[0])
+        return set(chain)
 
     def pad_outputs(self, outputs):
         # TODO: check what it does / reimplement
@@ -190,7 +200,7 @@ class ProcessSubsystem(object):
             * *db_name* (str): Name of Database
             * *unit* (str, optional): Unit of the simplified process.
             * *location* (str, optional): Location of the simplified process.
-            * *categories* (list, optional): Category/ies of the scaling activity. # TODO
+            * *categories* (list, optional): Category/ies of the scaling activity.
 
         """
         db = Database(db_name)
