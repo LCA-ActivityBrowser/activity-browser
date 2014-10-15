@@ -161,12 +161,12 @@ class MainWindow(QtGui.QMainWindow):
             # CONTEXT MENUS
             # Technosphere Inputs
             self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-            self.action_addParentToPSS = QtGui.QAction("link to Process Subsystem", None)
+            self.action_addParentToPSS = QtGui.QAction("add to Process Subsystem", None)
             self.action_addParentToPSS.triggered.connect(self.add_Parent_to_chain)
             self.table_inputs_technosphere.addAction(self.action_addParentToPSS)
             # Downstream Activities
             self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-            self.action_addChildToPSS = QtGui.QAction("link to Process Subsystem", None)
+            self.action_addChildToPSS = QtGui.QAction("add to Process Subsystem", None)
             self.action_addChildToPSS.triggered.connect(self.add_Child_to_chain)
             self.table_downstream_activities.addAction(self.action_addChildToPSS)
             # CONNECTIONS BETWEEN WIDGETS

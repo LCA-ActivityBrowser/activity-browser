@@ -170,6 +170,16 @@ class ProcessSubsystem(object):
         return [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]
             ) for x in self.internal_edges_with_cuts]
 
+    @property
+    def pss_data(self):
+        pss_data_dict = {
+            'name': self.name,
+            'outputs': self.outputs,
+            'chain': list(self.chain),
+            'cuts': self.cuts,
+        }
+        return pss_data_dict
+
     def save_supply_chain_as_new_database(self, db_name="SPDB_default", unit=None,
             location=None, categories=[]):
         """Save simplified process to a database.
