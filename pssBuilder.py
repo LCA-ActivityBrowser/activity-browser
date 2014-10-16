@@ -17,8 +17,6 @@ class PSSWidget(QtGui.QWidget):
         super(PSSWidget, self).__init__(parent)
         self.PSS = ProcessSubsystemManager()
         self.PSS_database = []
-        self.PSS_database_filename = "PSS_test_databse.pkl"
-        self.PSS_database_dir = 'PSS Databases'
         self.helper = HelperMethods()
         # PSS Data Widget
         self.PSSdataWidget = QtGui.QWidget()
@@ -109,12 +107,11 @@ class PSSWidget(QtGui.QWidget):
         if filename:
             with open(filename, 'r') as input:
                 self.PSS_database = pickle.load(input)
+            # TODO: update PSS data...
             self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
             self.updateTablePSSDatabase()
 
     def savePSSDatabase(self, filename=None):
-        if not filename:
-            filename = os.path.join(BASE_PATH, self.PSS_database_dir, self.PSS_database_filename)
         with open(filename, 'w') as output:
             pickle.dump(self.PSS_database, output)
         self.signal_status_bar_message.emit("PSS Database saved.")
@@ -140,15 +137,15 @@ class PSSWidget(QtGui.QWidget):
     def updateTablePSSDatabase(self):
         data = []
         for pss in self.PSS_database:
-            numbers_elements = [len(pss['outputs']),len(pss['chain']), len(pss['cuts'])]
+            numbers_elements = [len(pss['outputs']), len(pss['chain']), len(pss['cuts'])]
             data.append({
                 'name': pss['name'],
-                'outputs/chain/cuts': "/".join(map(str, numbers_elements)),
+                'out/chain/cuts': "/".join(map(str, numbers_elements)),
                 'outputs': ", ".join([o[1] for o in pss['outputs']]),
                 'chain': "//".join([self.PSS.getActivityData(o)['name'] for o in pss['chain']]),
                 'cuts': ", ".join([o[2] for o in pss['cuts']]),
             })
-        keys = ['name', 'outputs/chain/cuts', 'outputs', 'cuts', 'chain']
+        keys = ['name', 'out/chain/cuts', 'outputs', 'cuts', 'chain']
         self.table_PSS_database = self.helper.update_normal_table(self.table_PSS_database, data, keys)
 
     def loadPSS(self):
@@ -160,12 +157,11 @@ class PSSWidget(QtGui.QWidget):
         self.showGraph()
 
     def addPSStoDatabase(self):
-        self.PSS.submitPSS()
+        self.validatePSS()
         if self.PSS.pss['name'] not in [pss['name'] for pss in self.PSS_database]:
             self.PSS_database.append(self.PSS.pss)
             self.updateTablePSSDatabase()
-            # self.savePSSDatabase()
-            self.signal_status_bar_message.emit("Added PSS to working database (not saved).")
+            self.signal_status_bar_message.emit("Validation successful. Added PSS to working database (not saved).")
             self.updateTablePSSDatabase()
         else:
             self.signal_status_bar_message.emit("Cannot add PSS. Another PSS with the same name is already registered.")
@@ -177,7 +173,7 @@ class PSSWidget(QtGui.QWidget):
             self.signal_status_bar_message.emit("Validation successful.")
         except:
             self.signal_status_bar_message.emit("Validation NOT successful.")
-        finally:
+            print "PSS for validation:"
             ProcessSubsystem(**self.PSS.pss)  # to see what was the problem
 
     def deletePSSfromDatabase(self):
@@ -294,19 +290,13 @@ class PSSWidget(QtGui.QWidget):
             data = []
             for o in outputs:
                 data.append(self.PSS.getActivityData(o))
-            # add custom information
+            # add custom information (if already available)
+            CD = self.PSS.custom_data
             for d in data:
-                if d['key'] in self.PSS.custom_data['output names']:
-                    # print "Custom data already available: " + d['name']
-                    d.update({
-                        'custom name': self.PSS.custom_data['output names'][d['key']],
-                        'quantity': self.PSS.custom_data['output quantities'][d['key']],
-                    })
-                else:  # register default data
-                    d.update({
-                        'custom name': "default output",
-                        'quantity': 1,
-                    })
+                d.update({'custom name': CD['output names'][d['key']]}) \
+                    if d['key'] in CD['output names'] else d.update({'custom name': "default output"})
+                d.update({'quantity': CD['output quantities'][d['key']]}) \
+                    if d['key'] in CD['output quantities'] else d.update({'quantity': 1})
         return data
 
     def getChainTableData(self):
@@ -549,8 +539,9 @@ class ProcessSubsystemManager(BrowserStandardTasks):
             'outputs': outputs,
             'chain': chain,
             'cuts': cuts,
+            'edges': self.parents_children,
         })
-        print "\nPSS as SP:"
+        print "\nPSS:"
         print pss
         # print json.dumps(pss, indent=2)
         self.pss = pss

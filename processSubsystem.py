@@ -42,7 +42,7 @@ class ProcessSubsystem(object):
         for cut in cuts:
             if cut[0] in chain:
                 chain.remove(cut[0])
-                print "WARNING: Removed from chain: " + str(cut[0])
+                print "WARNING from ProcessSubsystem: Cut removed from chain: " + str(cut[0])
         return set(chain)
 
     def pad_outputs(self, outputs):
