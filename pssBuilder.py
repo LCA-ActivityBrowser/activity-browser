@@ -121,8 +121,16 @@ class PSSWidget(QtGui.QWidget):
             if mode == "load new" or not mode:  # if called via connect: mode = False
                 self.PSS_database = PSS_database
             elif mode == "append":
+                # Check if conflicting names. If so, rename new pss.
+                existing_names = [pss['name'] for pss in self.PSS_database]
+                for new_pss in PSS_database:
+                    while True:
+                        if new_pss['name'] in existing_names:
+                            new_pss['name'] += "__ADDED"
+                        else:
+                            break
                 self.PSS_database = self.PSS_database + PSS_database
-            # TODO: update PSS data...
+            # TODO: update PSS data... ?
             self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
             self.updateTablePSSDatabase()
 
@@ -209,9 +217,8 @@ class PSSWidget(QtGui.QWidget):
                             self.PSS_database.remove(pss)
             if add:
                 self.PSS_database.append(self.PSS.pss)
-                self.updateTablePSSDatabase()
+                self.update_widget_PSS_data()
                 self.signal_status_bar_message.emit("Validation successful. Added PSS to working database (not saved).")
-                self.updateTablePSSDatabase()
 
     def validatePSS(self):
         self.PSS.submitPSS()
