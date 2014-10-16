@@ -27,36 +27,42 @@ class PSSWidget(QtGui.QWidget):
         self.current_d3_layout = "tree"
         # LABELS
         label_process_subsystem = QtGui.QLabel("Process Subsystem")
+        label_PSS_database = QtGui.QLabel("PSS Database")
         # BUTTONS
         # Process Subsystems
-        # button_show_process_subsystem = QtGui.QPushButton("Show")
         button_new_process_subsystem = QtGui.QPushButton("New")
-        button_load_process_subsystem_database = QtGui.QPushButton("Load DB")
-        button_saveAs_process_subsystem_database = QtGui.QPushButton("Save DB")
-        button_toggle_layout = QtGui.QPushButton("Toggle Layout")
-        button_validate_PSS = QtGui.QPushButton("Validate")
         button_add_PSS_to_Database = QtGui.QPushButton("Add to DB")
         button_delete_PSS_from_Database = QtGui.QPushButton("Delete")
+        button_toggle_layout = QtGui.QPushButton("Toggle Graph")
+        # PSS Database
+        button_load_PSS_database = QtGui.QPushButton("Load DB")
+        button_saveAs_PSS_database = QtGui.QPushButton("Save DB")
+        button_addDB = QtGui.QPushButton("Add DB")
+        button_closeDB = QtGui.QPushButton("Close DB")
+        # LAYOUTS for buttons
         # Process Subsystem
-        self.HL_PS_manipulation = QtGui.QHBoxLayout()
-        self.HL_PS_manipulation.addWidget(label_process_subsystem)
-        # self.HL_PS_manipulation.addWidget(button_show_process_subsystem)
-        self.HL_PS_manipulation.addWidget(button_new_process_subsystem)
-        self.HL_PS_manipulation.addWidget(button_load_process_subsystem_database)
-        self.HL_PS_manipulation.addWidget(button_validate_PSS)
-        self.HL_PS_manipulation.addWidget(button_add_PSS_to_Database)
-        self.HL_PS_manipulation.addWidget(button_delete_PSS_from_Database)
-        self.HL_PS_manipulation.addWidget(button_saveAs_process_subsystem_database)
-        self.HL_PS_manipulation.addWidget(button_toggle_layout)
+        self.HL_PSS_buttons = QtGui.QHBoxLayout()
+        self.HL_PSS_buttons.addWidget(label_process_subsystem)
+        self.HL_PSS_buttons.addWidget(button_new_process_subsystem)
+        self.HL_PSS_buttons.addWidget(button_add_PSS_to_Database)
+        self.HL_PSS_buttons.addWidget(button_delete_PSS_from_Database)
+        self.HL_PSS_buttons.addWidget(button_toggle_layout)
+        # PSS Database
+        self.HL_PSS_Database_buttons = QtGui.QHBoxLayout()
+        self.HL_PSS_Database_buttons.addWidget(label_PSS_database)
+        self.HL_PSS_Database_buttons.addWidget(button_load_PSS_database)
+        self.HL_PSS_Database_buttons.addWidget(button_saveAs_PSS_database)
+        self.HL_PSS_Database_buttons.addWidget(button_addDB)
+        self.HL_PSS_Database_buttons.addWidget(button_closeDB)
         # CONNECTIONS
-        # button_show_process_subsystem.clicked.connect(self.showGraph)
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
-        button_load_process_subsystem_database.clicked.connect(self.loadPSSDatabase)
-        button_saveAs_process_subsystem_database.clicked.connect(self.saveAsPSSDatabase)
+        button_load_PSS_database.clicked.connect(self.loadPSSDatabase)
+        button_saveAs_PSS_database.clicked.connect(self.saveAsPSSDatabase)
         button_add_PSS_to_Database.clicked.connect(self.addPSStoDatabase)
         button_toggle_layout.clicked.connect(self.toggleLayout)
         button_delete_PSS_from_Database.clicked.connect(self.deletePSSfromDatabase)
-        button_validate_PSS.clicked.connect(self.validatePSS)
+        button_addDB.clicked.connect(self.addPSSDatabase)
+        button_closeDB.clicked.connect(self.closePSSDatabase)
         # TREEWIDGETS
         self.tree_view_cuts = QtGui.QTreeView()
         self.model_tree_view_cuts = QtGui.QStandardItemModel()
@@ -82,7 +88,6 @@ class PSSWidget(QtGui.QWidget):
         self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
         self.model_tree_view_cuts.itemChanged.connect(self.updateCutCustomData)
         self.table_PSS_outputs.itemChanged.connect(self.updateOutputCustomData)
-        button_validate_PSS.clicked.connect(self.PSS.submitPSS)
         self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
         # CONTEXT MENUS
         # Chain
@@ -96,20 +101,42 @@ class PSSWidget(QtGui.QWidget):
         self.action_remove_chain_item = QtGui.QAction("Remove from chain", None)
         self.action_remove_chain_item.triggered.connect(self.removeChainItem)
         self.table_PSS_chain.addAction(self.action_remove_chain_item)
+        # PSS Database
+        self.table_PSS_database.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.action_delete_selected = QtGui.QAction("Delete selected", None)
+        self.action_delete_selected.triggered.connect(self.delete_selected_PSS)
+        self.table_PSS_database.addAction(self.action_delete_selected)
 
     def newProcessSubsystem(self):
         self.PSS.newProcessSubsystem()
         self.showGraph()
 
-    def loadPSSDatabase(self):
+    def loadPSSDatabase(self, mode="load new"):
         file_types = "Pickle (*.pickle);;All (*.*)"
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\PSS Databases', file_types)
         if filename:
             with open(filename, 'r') as input:
-                self.PSS_database = pickle.load(input)
+                PSS_database = pickle.load(input)
+            print "Load mode: " + str(mode)
+            if mode == "load new" or not mode:  # if called via connect: mode = False
+                self.PSS_database = PSS_database
+            elif mode == "append":
+                self.PSS_database = self.PSS_database + PSS_database
             # TODO: update PSS data...
             self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
             self.updateTablePSSDatabase()
+
+    def addPSSDatabase(self):
+        self.loadPSSDatabase(mode="append")
+
+    def closePSSDatabase(self):
+        msg = "If you reset your database, all unsaved Data will be lost. Continue?"
+        reply = QtGui.QMessageBox.question(self, 'Message',
+                    msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            self.PSS_database = []
+            self.updateTablePSSDatabase()
+            self.signal_status_bar_message.emit("Reset PSS Database.")
 
     def savePSSDatabase(self, filename=None):
         with open(filename, 'w') as output:
@@ -118,12 +145,21 @@ class PSSWidget(QtGui.QWidget):
         self.updateTablePSSDatabase()
 
     def saveAsPSSDatabase(self):
-        file_types = "Pickle (*.pickle);;All (*.*)"
-        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\PSS Databases', file_types)
-        # filename = QtGui.QFileDialog.getSaveFileNameAndFilter(self, 'Save File', '.\PSS Databases', file_types)
-        if filename:
-            self.savePSSDatabase(filename)
-            self.signal_status_bar_message.emit("PSS Database saved.")
+        if self.PSS_database:
+            file_types = "Pickle (*.pickle);;All (*.*)"
+            filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\PSS Databases', file_types)
+            if filename:
+                self.savePSSDatabase(filename)
+                self.signal_status_bar_message.emit("PSS Database saved.")
+
+    def delete_selected_PSS(self):
+        for item in self.table_PSS_database.selectedItems():
+            for pss in self.PSS_database:
+                if pss['name'] == item.text():
+                    self.PSS_database.remove(pss)
+                    print "Deleted from working PSS database: " + item.text()
+        self.updateTablePSSDatabase()
+        self.signal_status_bar_message.emit("Deleted selected items.")
 
     def export_as_JSON(self):
         outdata = []
@@ -137,10 +173,10 @@ class PSSWidget(QtGui.QWidget):
     def updateTablePSSDatabase(self):
         data = []
         for pss in self.PSS_database:
-            numbers_elements = [len(pss['outputs']), len(pss['chain']), len(pss['cuts'])]
+            numbers = [len(pss['outputs']), len(set(pss['chain'])), len(set(pss['cuts']))]
             data.append({
                 'name': pss['name'],
-                'out/chain/cuts': "/".join(map(str, numbers_elements)),
+                'out/chain/cuts': "/".join(map(str, numbers)),
                 'outputs': ", ".join([o[1] for o in pss['outputs']]),
                 'chain': "//".join([self.PSS.getActivityData(o)['name'] for o in pss['chain']]),
                 'cuts': ", ".join([o[2] for o in pss['cuts']]),
@@ -153,18 +189,29 @@ class PSSWidget(QtGui.QWidget):
         for pss in self.PSS_database:
             if pss['name'] == str(item.text()):
                 self.PSS.loadPSS(pss)
-        print "Loaded PSS successfully."
+        self.signal_status_bar_message.emit("Loaded PSS: " + str(item.text()))
         self.showGraph()
 
     def addPSStoDatabase(self):
-        self.validatePSS()
-        if self.PSS.pss['name'] not in [pss['name'] for pss in self.PSS_database]:
-            self.PSS_database.append(self.PSS.pss)
-            self.updateTablePSSDatabase()
-            self.signal_status_bar_message.emit("Validation successful. Added PSS to working database (not saved).")
-            self.updateTablePSSDatabase()
-        else:
-            self.signal_status_bar_message.emit("Cannot add PSS. Another PSS with the same name is already registered.")
+        if self.PSS.parents_children:
+            self.validatePSS()
+            add = False
+            if self.PSS.pss['name'] not in [pss['name'] for pss in self.PSS_database]:
+                add = True
+            else:
+                mgs = "Do you want to overwrite the existing PSS?"
+                reply = QtGui.QMessageBox.question(self, 'Message',
+                            mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+                if reply == QtGui.QMessageBox.Yes:
+                    add = True
+                    for pss in self.PSS_database:  # first remove pss that is to be replaced
+                        if pss['name'] == self.PSS.pss['name']:
+                            self.PSS_database.remove(pss)
+            if add:
+                self.PSS_database.append(self.PSS.pss)
+                self.updateTablePSSDatabase()
+                self.signal_status_bar_message.emit("Validation successful. Added PSS to working database (not saved).")
+                self.updateTablePSSDatabase()
 
     def validatePSS(self):
         self.PSS.submitPSS()
@@ -177,11 +224,11 @@ class PSSWidget(QtGui.QWidget):
             ProcessSubsystem(**self.PSS.pss)  # to see what was the problem
 
     def deletePSSfromDatabase(self):
-        to_be_deleted = self.PSS.custom_data['name']
-        self.PSS_database = [pss for pss in self.PSS_database if pss['name'] != to_be_deleted]
-        self.savePSSDatabase()
-        self.updateTablePSSDatabase()
-        self.signal_status_bar_message.emit(str("Deleted: " + to_be_deleted))
+        if self.PSS.parents_children:
+            to_be_deleted = self.PSS.custom_data['name']
+            self.PSS_database = [pss for pss in self.PSS_database if pss['name'] != to_be_deleted]
+            self.updateTablePSSDatabase()
+            self.signal_status_bar_message.emit(str("Deleted (from working database): " + to_be_deleted))
 
     def addToChain(self, item, currentActivity, type):
         if type == "as child":
@@ -254,22 +301,30 @@ class PSSWidget(QtGui.QWidget):
         self.PSS.setCutName(item.activity_or_database_key, str(item.text()))
 
     def update_widget_PSS_data(self):
+        self.line_edit_PSS_name.setText(self.PSS.custom_data['name'])
+        self.updateTablePSSDatabase()
         self.update_PSS_table_widget_outputs()
         self.update_PSS_table_widget_chain()
         self.update_PSS_tree_view_cuts()
 
     def updateOutputCustomData(self):
+        def is_number(s):
+            try:
+                float(s)
+                return True
+            except ValueError:
+                return False
         item = self.table_PSS_outputs.currentItem()
         text = str(item.text())
         key = item.activity_or_database_key
         if item.column() == 0:  # name
             print "\nChanging output NAME to: " + text
             self.PSS.setOutputName(key, text)
-        elif item.column() == 1:  # quantity
+        elif item.column() == 1 and is_number(text):  # quantity
             print "\nChanging output QUANTITY to: " + text
             self.PSS.setOutputQuantity(key, text)
         else:  # ignore!
-            print "You don't want to change this, do you?"
+            print "You don't want to do this, do you?"
             self.showGraph()
 
     def update_PSS_table_widget_outputs(self):
@@ -375,12 +430,12 @@ class ProcessSubsystemManager(BrowserStandardTasks):
             parents, children = zip(*self.parents_children)
             self.chain = list(set(parents+children))
             # cuts
-            if self.cuts:  # remove false cuts (e.g. previously a cut, but now another parent node was added)
+            if self.cuts:
+                # remove false cuts (e.g. previously a cut, but now another parent node was added)
                 for false_cut in [c for c in self.cuts if c[0] in children]:
                     self.cuts.remove(false_cut)
                     print "removed false cut: "+str(false_cut)
             # pss
-
         # D3
         self.graph_data = self.getGraphData()
         self.tree_data = self.getTreeData()
@@ -405,19 +460,18 @@ class ProcessSubsystemManager(BrowserStandardTasks):
         self.update()
 
     def deleteProcessFromChain(self, key):
-        if self.parents_children:
-            self.printEdgesToConsole(self.parents_children, "Chain before delete:")
-            parents, children = zip(*self.parents_children)
-            if key in children:
-                print "\nCannot remove activity as as other activities still link to it."
-            elif key in parents:  # delete from chain
-                for pc in self.parents_children:
-                    if key in pc:
-                        self.parents_children.remove(pc)
-                self.printEdgesToConsole(self.parents_children, "Chain after removal:")
-                self.update()
-            else:
-                print "WARNING: Key not in chain. Key: " + self.getActivityData(key)['name']
+        self.printEdgesToConsole(self.parents_children, "Chain before delete:")
+        parents, children = zip(*self.parents_children)
+        if key in children:
+            print "\nCannot remove activity as as other activities still link to it."
+        elif key in parents:  # delete from chain
+            for pc in self.parents_children:
+                if key in pc:
+                    self.parents_children.remove(pc)
+            self.printEdgesToConsole(self.parents_children, "Chain after removal:")
+            self.update()
+        else:
+            print "WARNING: Key not in chain. Key: " + self.getActivityData(key)['name']
 
     def addCut(self, from_key):
         parents, children = zip(*self.parents_children)
@@ -450,18 +504,20 @@ class ProcessSubsystemManager(BrowserStandardTasks):
 #  TODO: change later
     def loadPSS(self, pss):
         print pss
-        self.newProcessSubsystem()  # clear existing data
+        # clear existing data
+        self.newProcessSubsystem()
+        print "CUSTOM DATA"
         self.custom_data['name'] = pss['name']
         for o in pss['outputs']:
-            self.outputs.append(o[0])
+            # self.outputs.append(o[0])  # done in update()
             self.custom_data['output names'].update({o[0]: o[1]})
             self.custom_data['output quantities'].update({o[0]: o[2]})
-        for c in pss['chain']:
-            self.chain.append(c)
+        # self.chain = pss['chain']  # done in update()
         for c in pss['cuts']:
             self.cuts.append((c[0], c[1]))
             self.custom_data['cut names'].update({c[0]: c[2]})
         self.parents_children = pss['edges'][:]  # TODO: get edges from ProcessSubsystem self.internal_edges_with_cuts
+        print self.custom_data
         self.update()
         # print self.process_subsystem
         # print self.custom_data
@@ -582,7 +638,7 @@ class ProcessSubsystemManager(BrowserStandardTasks):
         def getData(key):
             try:
                 ad = self.getActivityData(key)
-                return (ad['database'], ad['name'], ad['product'], ad['location'])
+                return (ad['database'], ad['product'], ad['name'], ad['location'])
             except:
                 return key
 

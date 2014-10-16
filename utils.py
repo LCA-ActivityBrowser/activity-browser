@@ -104,7 +104,7 @@ class BrowserStandardTasks(object):
     def loadDatabase(self, db_name):
         self.db = bw2.Database(db_name)
         self.database = self.db.load()
-        self.currentActivity = None
+        # self.currentActivity = None
         self.updateEcoinventVersion(self.db.random())  # random key as no activity has been selected at this stage
 
     def setNewCurrentActivity(self, key=None):

@@ -149,7 +149,8 @@ class MainWindow(QtGui.QMainWindow):
             self.PSS_Widget = PSSWidget()
             self.tab_widget_LEFT.addTab(self.PSS_Widget.PSSdataWidget, "PSS")
             self.tab_widget_LEFT.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
-            self.VL_LEFT.addLayout(self.PSS_Widget.HL_PS_manipulation)
+            self.VL_LEFT.addLayout(self.PSS_Widget.HL_PSS_buttons)
+            self.VL_LEFT.addLayout(self.PSS_Widget.HL_PSS_Database_buttons)
             self.tab_widget_RIGHT.addTab(self.PSS_Widget.webview, "Graph")
             # CONTEXT MENUS
             # Technosphere Inputs
@@ -304,7 +305,7 @@ def main():
     mw = MainWindow()
     mw.setUpPSSEditor()
     mw.lcaData.loadDatabase('ecoinvent 2.2')
-    mw.newActivity()
+    # mw.newActivity()
 
     # wnd.resize(800, 600)
     mw.showMaximized()
