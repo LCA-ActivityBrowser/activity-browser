@@ -54,6 +54,7 @@ class HelperMethods(object):
             table.resizeColumnsToContents()
             table.resizeRowsToContents()
             table.blockSignals(False)
+            table.setSortingEnabled(True)
         return table
 
     def update_normal_table(self, table, data, keys):
@@ -74,6 +75,7 @@ class HelperMethods(object):
             table.resizeRowsToContents()
             table.blockSignals(False)
             table.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
+            table.setSortingEnabled(True)
         return table
 
 class Styles(object):

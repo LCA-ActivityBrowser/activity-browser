@@ -65,7 +65,6 @@ class PSSWidget(QtGui.QWidget):
         self.tree_view_cuts.setModel(self.model_tree_view_cuts)
         # TABLES
         self.table_PSS_chain = QtGui.QTableWidget()
-        self.table_PSS_chain.setSortingEnabled(True)
         self.table_PSS_outputs = QtGui.QTableWidget()
         self.table_PSS_database = QtGui.QTableWidget()
         # PSS data
@@ -103,13 +102,6 @@ class PSSWidget(QtGui.QWidget):
     def newProcessSubsystem(self):
         self.PSS.newProcessSubsystem()
         self.showGraph()
-
-    def loadPSSDatabase_via_import_statement(self):
-        import PSS_data
-        self.PSS_database = PSS_data.PSS_data
-        keys = ['name']
-        self.table_PSS_database = self.helper.update_normal_table(self.table_PSS_database, self.PSS_database, keys)
-        self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
 
     def loadPSSDatabase(self):
         file_types = "Pickle (*.pickle);;All (*.*)"

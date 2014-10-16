@@ -59,11 +59,6 @@ class MainWindow(QtGui.QMainWindow):
         self.table_inputs_biosphere = QtGui.QTableWidget()
         self.table_downstream_activities = QtGui.QTableWidget()
         self.table_multipurpose = QtGui.QTableWidget()
-        # set properties
-        self.table_inputs_technosphere.setSortingEnabled(True)
-        self.table_inputs_biosphere.setSortingEnabled(True)
-        self.table_downstream_activities.setSortingEnabled(True)
-        self.table_multipurpose.setSortingEnabled(True)
 
         # SPLITTERS
         self.splitter_right = QtGui.QSplitter(QtCore.Qt.Vertical)
@@ -223,7 +218,7 @@ class MainWindow(QtGui.QMainWindow):
             self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
             label_text = str(len(data)) + " activities found."
             self.label_multi_purpose.setText(QtCore.QString(label_text))
-            self.tab_widget.setCurrentIndex(0)
+            self.tab_widget_RIGHT.setCurrentIndex(0)
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
 
@@ -239,7 +234,7 @@ class MainWindow(QtGui.QMainWindow):
                 self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
                 label_text = str(len(data)) + " activities found."
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
-                self.tab_widget.setCurrentIndex(0)
+                self.tab_widget_RIGHT.setCurrentIndex(0)
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
         except:
@@ -280,7 +275,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
         label_text = "History"
         self.label_multi_purpose.setText(QtCore.QString(label_text))
-        self.tab_widget.setCurrentIndex(0)
+        self.tab_widget_RIGHT.setCurrentIndex(0)
 
     def goBackward(self):
         # self.lcaData.goBack()
