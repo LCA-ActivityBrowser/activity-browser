@@ -87,7 +87,8 @@ class ProcessSubsystem(object):
             A list of (in, out, amount) edges.
 
         """
-        return list(itertools.chain(*[[(tuple(e["input"]), k, e["amount"]) for e in v["exchanges"] if e["type"] != "production"] for k, v in db.iteritems()]))
+        return list(itertools.chain(*[[(tuple(e["input"]), k, e["amount"])
+                    for e in v["exchanges"] if e["type"] != "production"] for k, v in db.iteritems()]))
 
     def getScalingActivities(self, chain, edges):
         """Which are the scaling activities (at least one)?
