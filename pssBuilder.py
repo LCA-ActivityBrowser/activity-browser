@@ -84,10 +84,10 @@ class PSSWidget(QtGui.QWidget):
         VL_PSS_data.addWidget(QtGui.QLabel("Cuts"))
         VL_PSS_data.addWidget(self.tree_view_cuts)
         # CONNECTIONS
-        self.line_edit_PSS_name.returnPressed.connect(self.new_PSS_name)
+        self.line_edit_PSS_name.returnPressed.connect(self.set_pss_name)
         self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
-        self.model_tree_view_cuts.itemChanged.connect(self.updateCutCustomData)
-        self.table_PSS_outputs.itemChanged.connect(self.updateOutputCustomData)
+        self.model_tree_view_cuts.itemChanged.connect(self.set_cut_custom_data)
+        self.table_PSS_outputs.itemChanged.connect(self.set_output_custom_data)
         self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
         # CONTEXT MENUS
         # Chain
@@ -107,9 +107,7 @@ class PSSWidget(QtGui.QWidget):
         self.action_delete_selected.triggered.connect(self.delete_selected_PSS)
         self.table_PSS_database.addAction(self.action_delete_selected)
 
-    def newProcessSubsystem(self):
-        self.PSS.newProcessSubsystem()
-        self.showGraph()
+    # PSS DATABASE
 
     def loadPSSDatabase(self, mode="load new"):
         file_types = "Pickle (*.pickle);;All (*.*)"
@@ -160,15 +158,6 @@ class PSSWidget(QtGui.QWidget):
                 self.savePSSDatabase(filename)
                 self.signal_status_bar_message.emit("PSS Database saved.")
 
-    def delete_selected_PSS(self):
-        for item in self.table_PSS_database.selectedItems():
-            for pss in self.PSS_database:
-                if pss['name'] == item.text():
-                    self.PSS_database.remove(pss)
-                    print "Deleted from working PSS database: " + item.text()
-        self.updateTablePSSDatabase()
-        self.signal_status_bar_message.emit("Deleted selected items.")
-
     def export_as_JSON(self):
         outdata = []
         for pss in self.PSS_database:
@@ -191,6 +180,8 @@ class PSSWidget(QtGui.QWidget):
             })
         keys = ['name', 'out/chain/cuts', 'outputs', 'cuts', 'chain']
         self.table_PSS_database = self.helper.update_normal_table(self.table_PSS_database, data, keys)
+
+    # PSS <--> PSS DATABASE
 
     def loadPSS(self):
         item = self.table_PSS_database.currentItem()
@@ -220,22 +211,27 @@ class PSSWidget(QtGui.QWidget):
                 self.update_widget_PSS_data()
                 self.signal_status_bar_message.emit("Validation successful. Added PSS to working database (not saved).")
 
-    def validatePSS(self):
-        self.PSS.submitPSS()
-        try:
-            ProcessSubsystem(**self.PSS.pss)
-            self.signal_status_bar_message.emit("Validation successful.")
-        except:
-            self.signal_status_bar_message.emit("Validation NOT successful.")
-            print "PSS for validation:"
-            ProcessSubsystem(**self.PSS.pss)  # to see what was the problem
-
     def deletePSSfromDatabase(self):
         if self.PSS.parents_children:
             to_be_deleted = self.PSS.custom_data['name']
             self.PSS_database = [pss for pss in self.PSS_database if pss['name'] != to_be_deleted]
             self.updateTablePSSDatabase()
             self.signal_status_bar_message.emit(str("Deleted (from working database): " + to_be_deleted))
+
+    def delete_selected_PSS(self):
+        for item in self.table_PSS_database.selectedItems():
+            for pss in self.PSS_database:
+                if pss['name'] == item.text():
+                    self.PSS_database.remove(pss)
+                    print "Deleted from working PSS database: " + item.text()
+        self.updateTablePSSDatabase()
+        self.signal_status_bar_message.emit("Deleted selected items.")
+
+    # PSS
+
+    def newProcessSubsystem(self):
+        self.PSS.newProcessSubsystem()
+        self.showGraph()
 
     def addToChain(self, item, currentActivity, type):
         if type == "as child":
@@ -244,6 +240,12 @@ class PSSWidget(QtGui.QWidget):
         elif type == "as parent":
             self.PSS.printEdgesToConsole([(item.activity_or_database_key, currentActivity)], "\nNew Parent:")
             self.PSS.addProcess(item.activity_or_database_key, currentActivity)
+        self.showGraph()
+
+    def removeChainItem(self):
+        print "\nCONTEXT MENU: "+self.action_remove_chain_item.text()
+        item = self.table_PSS_chain.currentItem()
+        self.PSS.deleteProcessFromChain(item.activity_or_database_key)
         self.showGraph()
 
     def addCut(self):
@@ -258,16 +260,92 @@ class PSSWidget(QtGui.QWidget):
         self.PSS.deleteCut(item.activity_or_database_key)
         self.showGraph()
 
-    def removeChainItem(self):
-        print "\nCONTEXT MENU: "+self.action_remove_chain_item.text()
-        item = self.table_PSS_chain.currentItem()
-        self.PSS.deleteProcessFromChain(item.activity_or_database_key)
-        self.showGraph()
-
-    def new_PSS_name(self):
+    def set_pss_name(self):
         name = str(self.line_edit_PSS_name.text())  # otherwise QString
         self.PSS.set_PSS_name(name)
         self.showGraph()
+        
+    def set_output_custom_data(self):
+        def is_number(s):
+            try:
+                float(s)
+                return True
+            except ValueError:
+                return False
+        item = self.table_PSS_outputs.currentItem()
+        text = str(item.text())
+        key = item.activity_or_database_key
+        if item.column() == 0:  # name
+            print "\nChanging output NAME to: " + text
+            self.PSS.setOutputName(key, text)
+        elif item.column() == 1 and is_number(text):  # quantity
+            print "\nChanging output QUANTITY to: " + text
+            self.PSS.setOutputQuantity(key, text)
+        else:  # ignore!
+            print "\nYou don't want to do this, do you?"
+            self.showGraph()
+
+    def set_cut_custom_data(self):
+        item = self.model_tree_view_cuts.itemFromIndex(self.tree_view_cuts.currentIndex())
+        self.PSS.setCutName(item.activity_or_database_key, str(item.text()))
+
+    def validatePSS(self):
+        pss = self.PSS.format_data_as_pss()
+        try:
+            ProcessSubsystem(**pss)
+            self.signal_status_bar_message.emit("Validation successful.")
+        except:
+            self.signal_status_bar_message.emit("Validation NOT successful.")
+            print "PSS for validation:"
+            ProcessSubsystem(**pss)  # to see what was the problem
+
+    # UPDATING TABLES AND TREEVIEW
+
+    def update_widget_PSS_data(self):
+        self.line_edit_PSS_name.setText(self.PSS.custom_data['name'])
+        self.updateTablePSSDatabase()
+        self.update_PSS_table_widget_outputs()
+        self.update_PSS_table_widget_chain()
+        self.update_PSS_tree_view_cuts()
+
+    def update_PSS_table_widget_outputs(self):
+        keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
+        data = self.getOutputsTableData()
+        self.table_PSS_outputs = self.helper.update_table(self.table_PSS_outputs, data, keys)
+
+    def getOutputsTableData(self):
+        if not self.PSS.outputs:
+            return []
+        else:
+            outputs = self.PSS.outputs
+            data = []
+            for o in outputs:
+                data.append(self.PSS.getActivityData(o))
+            # add custom information (if already available)
+            CD = self.PSS.custom_data
+            for d in data:
+                d.update({'custom name': CD['output names'][d['key']]}) \
+                    if d['key'] in CD['output names'] else d.update({'custom name': "default output"})
+                d.update({'quantity': CD['output quantities'][d['key']]}) \
+                    if d['key'] in CD['output quantities'] else d.update({'quantity': 1})
+        return data
+
+    def update_PSS_table_widget_chain(self):
+        keys = ['product', 'name', 'location', 'unit', 'database']
+        data = self.getChainTableData()
+        self.table_PSS_chain = self.helper.update_table(self.table_PSS_chain, data, keys)
+
+    def getChainTableData(self):
+        if not self.PSS.parents_children:
+            return []
+        else:
+            data = []
+            parents, children = zip(*self.PSS.parents_children)
+            uniqueKeys = set(parents+children)
+            for key in uniqueKeys:
+                if not self.PSS.custom_data['name'] in key:
+                    data.append(self.PSS.getActivityData(key))
+        return data
 
     def update_PSS_tree_view_cuts(self):
         def formatActivityData(ad):
@@ -303,89 +381,12 @@ class PSSWidget(QtGui.QWidget):
             self.tree_view_cuts.resizeColumnToContents(i)
         self.model_tree_view_cuts.blockSignals(False)  # itemChanged signals again after updating
 
-    def updateCutCustomData(self):
-        item = self.model_tree_view_cuts.itemFromIndex(self.tree_view_cuts.currentIndex())
-        self.PSS.setCutName(item.activity_or_database_key, str(item.text()))
-
-    def update_widget_PSS_data(self):
-        self.line_edit_PSS_name.setText(self.PSS.custom_data['name'])
-        self.updateTablePSSDatabase()
-        self.update_PSS_table_widget_outputs()
-        self.update_PSS_table_widget_chain()
-        self.update_PSS_tree_view_cuts()
-
-    def updateOutputCustomData(self):
-        def is_number(s):
-            try:
-                float(s)
-                return True
-            except ValueError:
-                return False
-        item = self.table_PSS_outputs.currentItem()
-        text = str(item.text())
-        key = item.activity_or_database_key
-        if item.column() == 0:  # name
-            print "\nChanging output NAME to: " + text
-            self.PSS.setOutputName(key, text)
-        elif item.column() == 1 and is_number(text):  # quantity
-            print "\nChanging output QUANTITY to: " + text
-            self.PSS.setOutputQuantity(key, text)
-        else:  # ignore!
-            print "You don't want to do this, do you?"
-            self.showGraph()
-
-    def update_PSS_table_widget_outputs(self):
-        keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
-        data = self.getOutputsTableData()
-        self.table_PSS_outputs = self.helper.update_table(self.table_PSS_outputs, data, keys)
-
-    def update_PSS_table_widget_chain(self):
-        keys = ['product', 'name', 'location', 'unit', 'database']
-        data = self.getChainTableData()
-        self.table_PSS_chain = self.helper.update_table(self.table_PSS_chain, data, keys)
-
-    def getOutputsTableData(self):
-        if not self.PSS.outputs:
-            return []
-        else:
-            outputs = self.PSS.outputs
-            data = []
-            for o in outputs:
-                data.append(self.PSS.getActivityData(o))
-            # add custom information (if already available)
-            CD = self.PSS.custom_data
-            for d in data:
-                d.update({'custom name': CD['output names'][d['key']]}) \
-                    if d['key'] in CD['output names'] else d.update({'custom name': "default output"})
-                d.update({'quantity': CD['output quantities'][d['key']]}) \
-                    if d['key'] in CD['output quantities'] else d.update({'quantity': 1})
-        return data
-
-    def getChainTableData(self):
-        if not self.PSS.parents_children:
-            return []
-        else:
-            data = []
-            parents, children = zip(*self.PSS.parents_children)
-            uniqueKeys = set(parents+children)
-            for key in uniqueKeys:
-                if not self.PSS.custom_data['name'] in key:
-                    data.append(self.PSS.getActivityData(key))
-        return data
-
-    def toggleLayout(self):
-        if self.current_d3_layout == "tree":
-            self.current_d3_layout = "graph"
-            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
-        else:
-            self.current_d3_layout = "tree"
-            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
-        print "New D3 layout: " + self.current_d3_layout
-        self.showGraph()
+    # VISUALIZATION
 
     def showGraph(self):
-        # print "\nCUSTOM DATA:"
-        # print self.PSS_Widget.PSS.custom_data
+        print "\nPSS:"
+        # print self.PSS.custom_data
+        print self.PSS.pss
         self.update_widget_PSS_data()
         # data needed depends on D3 layout
         # print "\nProcess Subsystem Data: "
@@ -406,6 +407,18 @@ class PSSWidget(QtGui.QWidget):
                 'data': json.dumps(self.PSS.graph_data, indent=1)
             }
         self.webview.setHtml(self.template.render(**template_data))
+
+    def toggleLayout(self):
+        if self.current_d3_layout == "tree":
+            self.current_d3_layout = "graph"
+            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
+        else:
+            self.current_d3_layout = "tree"
+            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
+        print "New D3 layout: " + self.current_d3_layout
+        self.showGraph()
+
+    # OTHER METHODS
 
     def setNewCurrentActivity(self):
         self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
@@ -431,7 +444,7 @@ class ProcessSubsystemManager(BrowserStandardTasks):
         if not self.parents_children:
             self.outputs, self.chain, self.cuts = [], [], []
         else:
-            # LOCAL DATA
+            # outputs
             self.outputs = self.getHeads()
             # chain
             parents, children = zip(*self.parents_children)
@@ -441,14 +454,12 @@ class ProcessSubsystemManager(BrowserStandardTasks):
                 # remove false cuts (e.g. previously a cut, but now another parent node was added)
                 for false_cut in [c for c in self.cuts if c[0] in children]:
                     self.cuts.remove(false_cut)
-                    print "removed false cut: "+str(false_cut)
-            # pss
+                    print "Removed cut (new parent node was added that links to this cut): "+str(false_cut)
+        # pss
+        self.pss = self.format_data_as_pss()
         # D3
         self.graph_data = self.getGraphData()
         self.tree_data = self.getTreeData()
-        # Console output
-        # self.printEdgesToConsole(self.parents_children, "\nList of parents / children:")
-        # self.printEdgesToConsole(self.process_subsystem['cuts'], "\nCuts:")
 
     def getHeads(self):
         if self.parents_children:
@@ -457,13 +468,29 @@ class ProcessSubsystemManager(BrowserStandardTasks):
         else:
             return []
 
+    def newProcessSubsystem(self):
+        self.parents_children, self.tree_data, self.graph_data = [], [], []
+        self.update()
+
+    def loadPSS(self, pss):
+        print "Loading PSS:" + pss['name']
+        # clear existing data
+        self.newProcessSubsystem()
+        # load and update new data (outputs, chain, cuts are determined from the edges)
+        self.parents_children = pss['edges'][:]  # TODO? get edges from ProcessSubsystem self.internal_edges_with_cuts
+        # load custom data
+        self.custom_data['name'] = pss['name']
+        for o in pss['outputs']:
+            self.custom_data['output names'].update({o[0]: o[1]})
+            self.custom_data['output quantities'].update({o[0]: o[2]})
+        for c in pss['cuts']:
+            self.cuts.append((c[0], c[1]))
+            self.custom_data['cut names'].update({c[0]: c[2]})
+        self.update()
+
     def addProcess(self, parent_key, child_key):
         if (parent_key, child_key) not in self.parents_children:
             self.parents_children.append((parent_key, child_key))
-        self.update()
-
-    def newProcessSubsystem(self):
-        self.parents_children, self.tree_data, self.graph_data = [], [], []
         self.update()
 
     def deleteProcessFromChain(self, key):
@@ -475,8 +502,8 @@ class ProcessSubsystemManager(BrowserStandardTasks):
             for pc in self.parents_children:
                 if key in pc:
                     self.parents_children.remove(pc)
-            self.printEdgesToConsole(self.parents_children, "Chain after removal:")
             self.update()
+            self.printEdgesToConsole(self.parents_children, "Chain after removal:")
         else:
             print "WARNING: Key not in chain. Key: " + self.getActivityData(key)['name']
 
@@ -485,49 +512,55 @@ class ProcessSubsystemManager(BrowserStandardTasks):
         if from_key in children:
             print "Cannot add cut. Activity is linked to by another activity."
         else:
-            self.cuts = list(set(self.cuts + [pc for pc in self.parents_children if from_key == pc[0]] ))
+            self.cuts = list(set(self.cuts + [pc for pc in self.parents_children if from_key == pc[0]]))
             self.update()
 
     def deleteCut(self, from_key):
         for cut in self.cuts:
             if from_key == cut[0]:
                 self.cuts.remove(cut)
+                self.update()
 
     def set_PSS_name(self, name):
         self.custom_data['name'] = name
         self.update()
-        print "\nCustom Data:"
-        print self.custom_data
 
     def setOutputName(self, key, name):
         self.custom_data['output names'].update({key: name})
+        self.update()
 
     def setOutputQuantity(self, key, text):
         self.custom_data['output quantities'].update({key: text})
+        self.update()
 
     def setCutName(self, key, name):
         self.custom_data['cut names'].update({key: name})
-
-#  TODO: change later
-    def loadPSS(self, pss):
-        print pss
-        # clear existing data
-        self.newProcessSubsystem()
-        print "CUSTOM DATA"
-        self.custom_data['name'] = pss['name']
-        for o in pss['outputs']:
-            # self.outputs.append(o[0])  # done in update()
-            self.custom_data['output names'].update({o[0]: o[1]})
-            self.custom_data['output quantities'].update({o[0]: o[2]})
-        # self.chain = pss['chain']  # done in update()
-        for c in pss['cuts']:
-            self.cuts.append((c[0], c[1]))
-            self.custom_data['cut names'].update({c[0]: c[2]})
-        self.parents_children = pss['edges'][:]  # TODO: get edges from ProcessSubsystem self.internal_edges_with_cuts
-        print self.custom_data
         self.update()
-        # print self.process_subsystem
-        # print self.custom_data
+        
+    def format_data_as_pss(self):
+        outputs = []
+        for i, key in enumerate(self.outputs):
+            name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output '+str(i)
+            quantity = float(self.custom_data['output quantities'][key]) if key in self.custom_data['output quantities'] else 1.0
+            outputs.append((key, name, quantity))
+        # self.chain elements contain also cut parents. 
+        # They need to be removed for the ProcessSubsystem as this leads to wrong LCA results.
+        chain_without_cuts = [key for key in self.chain if not key in [cut[0] for cut in self.cuts]]
+        cuts = []
+        for i, cut in enumerate(self.cuts):
+            parent, child = cut[0], cut[1]
+            name = self.custom_data['cut names'][parent] if parent in self.custom_data['cut names'] else 'Cut '+str(i)
+            cuts.append((parent, child, name))
+        pss = {
+            'name': self.custom_data['name'],
+            'outputs': outputs,
+            'chain': chain_without_cuts,
+            'cuts': cuts,
+            'edges': self.parents_children,
+        }
+        return pss
+
+    # VISUALIZATION
 
     def getGraphData(self):
         graph_data = []
@@ -580,38 +613,33 @@ class ProcessSubsystemManager(BrowserStandardTasks):
             else:
                 print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+self.getActivityData(pc[1])['name']
 
-    def submitPSS(self):
-        pss = {}
-        outputs = []
-        for i, key in enumerate(self.outputs):
-            name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output '+str(i)
-            quantity = float(self.custom_data['output quantities'][key]) if key in self.custom_data['output quantities'] else 1.0
-            outputs.append((key, name, quantity))
-        # Chain elements will contain also cut parents.
-        # These are removed when initializing the ProcessSubsystem object.
-        # Otherwise LCA results would be wrong.
-        chain = [key for key in self.chain]
-        cuts = []
-        for i, cut in enumerate(self.cuts):
-            parent, child = cut[0], cut[1]
-            name = self.custom_data['cut names'][parent] if parent in self.custom_data['cut names'] else 'Cut '+str(i)
-            cuts.append((parent, child, name))
+    def getHumanReadiblePSS(self, pss):
+        print pss
 
-        pss.update({
-            'name': self.custom_data['name'],
+        def getData(key):
+            try:
+                ad = self.getActivityData(key)
+                return (ad['database'], ad['product'], ad['name'], ad['location'])
+            except:
+                return key
+
+        outputs = [(getData(o[0]), o[1]) for o in pss['outputs']]
+        chain = [getData(o) for o in pss['chain']]
+        cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss['cuts']]
+        edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
+        pss_HR = {
+            'name': pss['name'],
             'outputs': outputs,
             'chain': chain,
             'cuts': cuts,
-            'edges': self.parents_children,
-        })
-        print "\nPSS:"
-        print pss
-        # print json.dumps(pss, indent=2)
-        self.pss = pss
-        # self.submitPSS_dagre()
+            'edges': edges,
+        }
+        print "\nPSS (HUMAN READIBLE):"
+        print pss_HR
+        return pss_HR
 
 # TODO: remove?
-    def submitPSS_dagre(self):
+    def format_data_as_pss_dagre(self):
         SP = {}
         outputs = []
         for i, key in enumerate(self.process_subsystem['outputs']):
@@ -638,28 +666,3 @@ class ProcessSubsystemManager(BrowserStandardTasks):
         print SP
         print json.dumps(SP, indent=2)
         self.SP_dagre = SP
-
-    def getHumanReadiblePSS(self, pss):
-        print pss
-
-        def getData(key):
-            try:
-                ad = self.getActivityData(key)
-                return (ad['database'], ad['product'], ad['name'], ad['location'])
-            except:
-                return key
-
-        outputs = [(getData(o[0]), o[1]) for o in pss['outputs']]
-        chain = [getData(o) for o in pss['chain']]
-        cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss['cuts']]
-        edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
-        pss_HR = {
-            'name': pss['name'],
-            'outputs': outputs,
-            'chain': chain,
-            'cuts': cuts,
-            'edges': edges,
-        }
-        print "\nPSS (HUMAN READIBLE):"
-        print pss_HR
-        return pss_HR

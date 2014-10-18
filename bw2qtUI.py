@@ -213,7 +213,7 @@ class MainWindow(QtGui.QMainWindow):
                 data = [self.lcaData.getActivityData(key) for key in self.lcaData.database.keys()]
                 data.sort(key=lambda x: x['name'])
             else:
-                print "Searched for:", searchString
+                print "\nSearched for:", searchString
                 data = self.lcaData.get_search_results(searchString)
             keys = self.get_table_headers(type="search")
             self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
@@ -227,7 +227,7 @@ class MainWindow(QtGui.QMainWindow):
         searchString = str(self.line_edit_search.text())
         try:
             if searchString != '':
-                print "Searched for:", searchString
+                print "\nSearched for:", searchString
                 data = [self.lcaData.getActivityData(literal_eval(searchString))]
                 print "Data: "
                 print data

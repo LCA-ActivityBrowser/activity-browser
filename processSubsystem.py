@@ -27,7 +27,7 @@ class ProcessSubsystem(object):
         self.name = name
         self.outputs = outputs
         self.cuts = cuts
-        self.chain = self.removeChainCuts(chain, self.cuts)
+        self.chain = self.remove_cuts_from_chain(chain, self.cuts)
         self.depending_databases = list(set(c[0] for c in self.chain))
         self.filtered_database = self.getFilteredDatabase(self.depending_databases, self.chain)
         self.edges = self.construct_graph(self.filtered_database)
@@ -35,7 +35,7 @@ class ProcessSubsystem(object):
         self.mapping, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
 
-    def removeChainCuts(self, chain, cuts):
+    def remove_cuts_from_chain(self, chain, cuts):
         """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.
 
         """
