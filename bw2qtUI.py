@@ -6,7 +6,7 @@ reload(sys)
 sys.setdefaultencoding("utf-8")
 from PyQt4 import QtCore, QtGui, QtWebKit
 from utils import *
-from pssBuilder import PSSWidget
+from pssWidget import pssWidget
 import time
 from ast import literal_eval
 
@@ -146,7 +146,7 @@ class MainWindow(QtGui.QMainWindow):
         if hasattr(self, 'PSS_Widget'):
             print "PSS WIDGET ALREADY LOADED"
         else:
-            self.PSS_Widget = PSSWidget()
+            self.PSS_Widget = pssWidget()
             self.tab_widget_LEFT.addTab(self.PSS_Widget.PSSdataWidget, "PSS")
             self.tab_widget_LEFT.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
             self.VL_LEFT.addLayout(self.PSS_Widget.HL_PSS_buttons)
