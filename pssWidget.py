@@ -11,7 +11,7 @@ import os
 from pssCreator import ProcessSubsystemCreator
 from processSubsystem import ProcessSubsystem
 
-class PSSWidget(QtGui.QWidget):
+class pssWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyTableQWidgetItem)
     signal_status_bar_message = QtCore.pyqtSignal(str)
     def __init__(self, parent=None):
