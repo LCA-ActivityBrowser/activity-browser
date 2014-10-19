@@ -1,171 +1,142 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from processSubsystem import ProcessSubsystem
 from utils import *
 import json
 
 class ProcessSubsystemCreator(BrowserStandardTasks):
     def __init__(self):
-        self.parents_children = []  # flat: [(parent, child),...]
-        self.outputs = []  # child keys
-        self.chain = []  # unique chain item keys
-        self.cuts = []  # key tuples (parent, child)
-        self.custom_data = {
-            'name': 'Default Process Subsystem',
-            'output names': {},  # map activity key to *name*
-            'output quantities': {},  # map activity key to *amount*
-            'cut names': {},  # map activity key to *name*
-        }
-        self.pss = {}
-        self.tree_data = []  # hierarchical
-        self.graph_data = []  # source --> target
+        self.pss_data = {'name': 'New Process Subsystem', 'outputs': [], 'chain': [], 'cuts': []}
+        self.newProcessSubsystem(self.pss_data)
+        self.name_map = {}  # remembers key: "name" information during a session
 
-    def update(self):
-        if not self.parents_children:
-            self.outputs, self.chain, self.cuts = [], [], []
+    def update_pss(self):
+        self.pss = ProcessSubsystem(**self.pss_data)
+        self.pss_data = self.pss.pss_data
+        self.apply_name_map()
+        # TODO: add custom information if available in name_map
+        print "\nPSS DATA:"
+        print self.pss.pss_data
+        print "INTERNAL EDGES (+CUTS):"
+        print self.pss.internal_edges_with_cuts
+
+    def apply_name_map(self):
+        # name map is applied only if a default name is present
+        # otherwise custom names from other PSS might be overwritten
+        for o in self.pss_data['outputs']:
+            if o[0] in self.name_map and o[1] == "Unspecified Output":
+                self.set_output_name(o[0], self.name_map[o[0]], update=False)
+        for o in self.pss_data['cuts']:
+            if o[0] in self.name_map and o[2] == "Unspecified Input":
+                self.set_cut_name(o[0], self.name_map[o[0]], update=False)
+
+    def newProcessSubsystem(self, pss_data=None):
+        if not pss_data:
+            self.pss_data = {'name': 'New Process Subsystem', 'outputs': [], 'chain': [], 'cuts': []}
+            self.pss = ProcessSubsystem(**self.pss_data)
+        else:  # load with try, except
+            self.pss_data = pss_data
+            self.pss = ProcessSubsystem(**pss_data)
+
+    def load_pss(self, pss):
+        self.pss_data = pss
+        self.update_pss()
+
+    def add_to_chain(self, key):
+        self.pss_data['chain'].append(key)
+        self.update_pss()
+
+    def delete_from_chain(self, key):
+        if not self.pss.internal_edges_with_cuts:  # top processes (no edges yet)
+            self.pss_data['chain'].remove(key)
+            print "Removed key from chain: " + str(key)
+            self.update_pss()
+        else:  # there are already edges
+            parents, children, value = zip(*self.pss.internal_edges_with_cuts)
+            if key in children:
+                print "\nCannot remove activity as as other activities still link to it."
+            elif key in parents:  # delete from chain
+                self.pss_data['chain'].remove(key)
+                print "Removed key from chain: " + str(key)
+                self.update_pss()
+            else:
+                print "WARNING: Key not in chain. Key: " + self.getActivityData(key)['name']
+
+    def add_cut(self, from_key):
+        # TODO: add custom information if available in name_map
+        if not self.pss.internal_edges_with_cuts:
+            print "Nothing to cut from."
         else:
-            # outputs
-            self.outputs = self.getHeads()
-            # chain
-            parents, children = zip(*self.parents_children)
-            self.chain = list(set(parents+children))
-            # cuts
-            if self.cuts:
-                # remove false cuts (e.g. previously a cut, but now another parent node was added)
-                for false_cut in [c for c in self.cuts if c[0] in children]:
-                    self.cuts.remove(false_cut)
-                    print "Removed cut (new parent node was added that links to this cut): "+str(false_cut)
-        # pss
-        self.pss = self.format_data_as_pss()
-        # D3
-        self.graph_data = self.getGraphData()
-        self.tree_data = self.getTreeData()
+            parents, children, value = zip(*self.pss.internal_edges_with_cuts)
+            if from_key in children:
+                print "Cannot add cut. Activity is linked to by another activity."
+            else:
+                new_cuts = [(from_key, pcv[1], "Unspecified Input") for pcv in self.pss.internal_edges_with_cuts if from_key == pcv[0]]
+                self.pss_data['cuts'] = list(set(self.pss_data['cuts'] + new_cuts))
+                print "cutting: " + str(new_cuts)
+                self.update_pss()
 
-    def getHeads(self):
-        if self.parents_children:
-            parents, children = zip(*self.parents_children)
-            return list(set([c for c in children if c not in parents]))
-        else:
-            return []
-
-    def newProcessSubsystem(self):
-        self.parents_children, self.tree_data, self.graph_data = [], [], []
-        self.update()
-
-    def loadPSS(self, pss):
-        print "Loading PSS:" + pss['name']
-        # clear existing data
-        self.newProcessSubsystem()
-        # load and update new data (outputs, chain, cuts are determined from the edges)
-        self.parents_children = pss['edges'][:]  # TODO? get edges from ProcessSubsystem self.internal_edges_with_cuts
-        # load custom data
-        self.custom_data['name'] = pss['name']
-        for o in pss['outputs']:
-            self.custom_data['output names'].update({o[0]: o[1]})
-            self.custom_data['output quantities'].update({o[0]: o[2]})
-        for c in pss['cuts']:
-            self.cuts.append((c[0], c[1]))
-            self.custom_data['cut names'].update({c[0]: c[2]})
-        self.update()
-
-    def addProcess(self, parent_key, child_key):
-        if (parent_key, child_key) not in self.parents_children:
-            self.parents_children.append((parent_key, child_key))
-        self.update()
-
-    def deleteProcessFromChain(self, key):
-        self.printEdgesToConsole(self.parents_children, "Chain before delete:")
-        parents, children = zip(*self.parents_children)
-        if key in children:
-            print "\nCannot remove activity as as other activities still link to it."
-        elif key in parents:  # delete from chain
-            for pc in self.parents_children:
-                if key in pc:
-                    self.parents_children.remove(pc)
-            self.update()
-            self.printEdgesToConsole(self.parents_children, "Chain after removal:")
-        else:
-            print "WARNING: Key not in chain. Key: " + self.getActivityData(key)['name']
-
-    def addCut(self, from_key):
-        parents, children = zip(*self.parents_children)
-        if from_key in children:
-            print "Cannot add cut. Activity is linked to by another activity."
-        else:
-            self.cuts = list(set(self.cuts + [pc for pc in self.parents_children if from_key == pc[0]]))
-            self.update()
-
-    def deleteCut(self, from_key):
-        for cut in self.cuts:
+    def delete_cut(self, from_key):
+        print "FROM KEY...."
+        print from_key
+        for cut in self.pss_data['cuts']:
             if from_key == cut[0]:
-                self.cuts.remove(cut)
-                self.update()
+                self.pss_data['cuts'].remove(cut)
+        self.update_pss()
+        # add deleted cut to chain again...
+        self.add_to_chain(from_key)
 
-    def set_PSS_name(self, name):
-        self.custom_data['name'] = name
-        self.update()
+    def set_pss_name(self, name):
+        self.pss_data['name'] = name
+        self.update_pss()
 
-    def setOutputName(self, key, name):
-        self.custom_data['output names'].update({key: name})
-        self.update()
+    def set_output_name(self, key, name, update=True):
+        for i, o in enumerate(self.pss_data['outputs']):
+            if o[0] == key:
+                self.pss_data['outputs'][i] = tuple([o[0], name, o[2]])
+        if update:
+            self.name_map.update({key: name})
+            self.update_pss()
 
-    def setOutputQuantity(self, key, text):
-        self.custom_data['output quantities'].update({key: text})
-        self.update()
+    def set_output_quantity(self, key, quantity):
+        for i, o in enumerate(self.pss_data['outputs']):
+            if o[0] == key:
+                self.pss_data['outputs'][i] = tuple([o[0], o[1], quantity])
+        self.update_pss()
 
-    def setCutName(self, key, name):
-        self.custom_data['cut names'].update({key: name})
-        self.update()
-
-    def format_data_as_pss(self):
-        outputs = []
-        for i, key in enumerate(self.outputs):
-            name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output '+str(i)
-            quantity = float(self.custom_data['output quantities'][key]) if key in self.custom_data['output quantities'] else 1.0
-            outputs.append((key, name, quantity))
-        # self.chain elements contain also cut parents.
-        # They need to be removed for the ProcessSubsystem as this leads to wrong LCA results.
-        chain_without_cuts = [key for key in self.chain if not key in [cut[0] for cut in self.cuts]]
-        cuts = []
-        for i, cut in enumerate(self.cuts):
-            parent, child = cut[0], cut[1]
-            name = self.custom_data['cut names'][parent] if parent in self.custom_data['cut names'] else 'Cut '+str(i)
-            cuts.append((parent, child, name))
-        pss = {
-            'name': self.custom_data['name'],
-            'outputs': outputs,
-            'chain': chain_without_cuts,
-            'cuts': cuts,
-            'edges': self.parents_children,
-        }
-        return pss
+    def set_cut_name(self, key, name, update=True):
+        for i, o in enumerate(self.pss_data['cuts']):
+            if o[0] == key:
+                self.pss_data['cuts'][i] = tuple([o[0], o[1], name])
+        if update:
+            self.name_map.update({key: name})
+            self.update_pss()
 
     # VISUALIZATION
 
     def getGraphData(self):
         graph_data = []
-        for pc in self.parents_children:
+        for edge in self.pss.internal_edges_with_cuts:
             graph_data.append({
-                'source': self.getActivityData(pc[0])['name'],
-                'target': self.getActivityData(pc[1])['name'],
+                'source': self.getActivityData(edge[0])['name'],
+                'target': self.getActivityData(edge[1])['name'],
                 'type': "suit"
             })
         # append connection to Process Subsystem
-        for head in self.getHeads():
+        for sa in self.pss.scaling_activities:
             graph_data.append({
-                'source': self.getActivityData(head)['name'],
-                'target': self.custom_data['name'],
+                'source': self.getActivityData(sa)['name'],
+                'target': self.pss.name,
                 'type': "suit"
             })
         return graph_data
 
     def getTreeData(self):
         # TODO: rewrite using ProcessSubsystem? To apply: self.internal_scaled_edges_with_cuts
-        if not self.parents_children:
-            return []
         def get_nodes(node):
             d = {}
-            if node == self.custom_data['name']:
+            if node == self.pss.name:
                 d['name'] = node
             else:
                 d['name'] = self.getActivityData(node)['name']
@@ -173,25 +144,20 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
             if parents:
                 d['children'] = [get_nodes(parent) for parent in parents]
             return d
+
         def get_parents(node):
             return [x[0] for x in parents_children if x[1] == node]
 
-        parents_children = self.parents_children[:]  # mutable type, therefore needs slicing
-        head_nodes = self.getHeads()
-        for head in head_nodes:
-            parents_children.append((head, self.custom_data['name']))
+        if not self.pss.chain:
+            return []
         tree_data = []
-        tree_data.append(get_nodes(self.custom_data['name']))
-        return tree_data
+        parents_children = [e[:2] for e in self.pss.internal_edges_with_cuts]  # not using amount yet
+        head_nodes = self.pss.scaling_activities
+        for head in head_nodes:
+            parents_children.append((head, self.pss.name))
 
-    def printEdgesToConsole(self, edges_data, message=None):
-        if message:
-            print message
-        for i, pc in enumerate(edges_data):
-            if self.custom_data['name'] in pc:
-                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+pc[1]
-            else:
-                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+self.getActivityData(pc[1])['name']
+        tree_data.append(get_nodes(self.pss.name))
+        return tree_data
 
     def getHumanReadiblePSS(self, pss):
         print pss
@@ -206,43 +172,23 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         outputs = [(getData(o[0]), o[1]) for o in pss['outputs']]
         chain = [getData(o) for o in pss['chain']]
         cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss['cuts']]
-        edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
+        # edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
         pss_HR = {
             'name': pss['name'],
             'outputs': outputs,
             'chain': chain,
             'cuts': cuts,
-            'edges': edges,
+            # 'edges': edges,
         }
         print "\nPSS (HUMAN READIBLE):"
         print pss_HR
         return pss_HR
 
-# TODO: remove?
-    def format_data_as_pss_dagre(self):
-        SP = {}
-        outputs = []
-        for i, key in enumerate(self.process_subsystem['outputs']):
-            name = self.custom_data['output names'][key] if key in self.custom_data['output names'] else 'Output'+str(i)
-            quantity = float(self.custom_data['output quantities'][key]) if key in self.custom_data['output quantities'] else 1.0
-            outputs.append((self.getActivityData(key)['name'], name, quantity))
-        chain = []
-        for key in self.process_subsystem['chain']:
-            if key != self.custom_data['name']:  # only real keys, not the head
-                chain.append(self.getActivityData(key)['name'])
-        cuts = []
-        for i, cut in enumerate(self.process_subsystem['cuts']):
-            parent, child = cut[0], cut[1]
-            name = self.custom_data['cut names'][parent] if parent in self.custom_data['cut names'] else 'Cut'+str(i)
-            cuts.append((self.getActivityData(parent)['name'], self.getActivityData(child)['name'], name))
-
-        SP.update({
-            'name': self.custom_data['name'],
-            'outputs': outputs,
-            'chain': chain,
-            'cuts': cuts,
-        })
-        print "\nPSS as SP (HUMAN READIBLE):"
-        print SP
-        print json.dumps(SP, indent=2)
-        self.SP_dagre = SP
+    def printEdgesToConsole(self, edges_data, message=None):
+        if message:
+            print message
+        for i, pc in enumerate(edges_data):
+            if self.custom_data['name'] in pc:
+                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+pc[1]
+            else:
+                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+self.getActivityData(pc[1])['name']

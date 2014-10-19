@@ -25,13 +25,14 @@ class ProcessSubsystem(object):
     def __init__(self, name, outputs, chain, cuts, **kwargs):
         self.key = None  # created when PSS saved to a DB
         self.name = name
-        self.outputs = outputs
         self.cuts = cuts
         self.chain = self.remove_cuts_from_chain(chain, self.cuts)
         self.depending_databases = list(set(c[0] for c in self.chain))
         self.filtered_database = self.getFilteredDatabase(self.depending_databases, self.chain)
         self.edges = self.construct_graph(self.filtered_database)
         self.isSimple, self.scaling_activities = self.getScalingActivities(self.chain, self.edges)
+        self.outputs = self.pad_outputs(outputs)
+        # self.check_outputs()
         self.mapping, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
 
@@ -42,11 +43,16 @@ class ProcessSubsystem(object):
         for cut in cuts:
             if cut[0] in chain:
                 chain.remove(cut[0])
-                print "WARNING from ProcessSubsystem: Cut removed from chain: " + str(cut[0])
+                print "PSS WARNING: Cut removed from chain: " + str(cut[0])
         return set(chain)
 
+    # def check_outputs(self):
+    #     output_keys = [o[0] for o in self.outputs]
+    #     if sorted(output_keys) != sorted(self.scaling_activities):
+    #         print "PSS WARNING: Not all outputs have been specified."
+    #     # TODO: unclear what to do then. Could be that there are several heads, but I just want to give it one name.
+
     def pad_outputs(self, outputs):
-        # TODO: check what it does / reimplement
         """Add default amount (1) to outputs if not present.
 
         Args:
@@ -56,7 +62,28 @@ class ProcessSubsystem(object):
             Padded outputs
 
         """
-        return [tuple(x) + (1,) * (3 - len(x)) for x in outputs]
+        padded_outputs = []
+        for i, output in enumerate(outputs):  # add default name and quantity
+            try:
+                output_name = output[1]
+            except IndexError:
+                output_name = "Output " + str(i)
+            try:
+                output_quantity = output[2]
+            except IndexError:
+                output_quantity = 1.0
+            padded_outputs.append((output[0], output_name, output_quantity))
+        # add outputs that were not specified
+        for sa in self.scaling_activities:
+            if sa not in [o[0] for o in outputs]:
+                print "PSS WARNING: Adding an output that was not specified: " + str(sa)
+                padded_outputs.append((sa, "Unspecified Output", 1.0))
+        # remove outputs that were specified, but are *not* outputs
+        for o in outputs:
+            if o[0] not in self.scaling_activities:
+                print "PSS WARNING: Removing a specified output that is *not* actually an output: " + str(o[0])
+                padded_outputs.remove(o)
+        return padded_outputs
 
     def getFilteredDatabase(self, depending_databases, chain):
         """Extract the supply chain for this process from larger database.

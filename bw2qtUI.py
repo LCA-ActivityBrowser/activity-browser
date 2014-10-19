@@ -11,7 +11,7 @@ import time
 from ast import literal_eval
 
 class MainWindow(QtGui.QMainWindow):
-    signal_add_to_chain = QtCore.pyqtSignal(MyTableQWidgetItem, tuple, str)
+    signal_add_to_chain = QtCore.pyqtSignal(MyTableQWidgetItem)
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -295,17 +295,17 @@ class MainWindow(QtGui.QMainWindow):
         pass
 
     def add_Child_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem(), self.lcaData.currentActivity, "as child")
+        self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem())
 
     def add_Parent_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem(), self.lcaData.currentActivity, "as parent")
+        self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
 
 def main():
     app = QtGui.QApplication(sys.argv)
     mw = MainWindow()
     mw.setUpPSSEditor()
     mw.lcaData.loadDatabase('ecoinvent 2.2')
-    # mw.newActivity()
+    mw.newActivity()
 
     # wnd.resize(800, 600)
     mw.showMaximized()

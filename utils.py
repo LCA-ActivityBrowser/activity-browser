@@ -36,6 +36,7 @@ class HelperMethods(object):
             table.setRowCount(0)
             return table
         else:
+            table.setSortingEnabled(False)
             table.blockSignals(True)
             table.setRowCount(len(data))
             table.setColumnCount(len(keys))
@@ -62,6 +63,7 @@ class HelperMethods(object):
             table.setRowCount(0)
             return table
         else:
+            table.setSortingEnabled(False)
             table.blockSignals(True)
             table.setRowCount(len(data))
             table.setColumnCount(len(keys))
