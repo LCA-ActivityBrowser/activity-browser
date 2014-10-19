@@ -15,7 +15,7 @@ class pssWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyTableQWidgetItem)
     signal_status_bar_message = QtCore.pyqtSignal(str)
     def __init__(self, parent=None):
-        super(PSSWidget, self).__init__(parent)
+        super(pssWidget, self).__init__(parent)
         self.PSC = ProcessSubsystemCreator()
         self.PSS_database = []
         self.helper = HelperMethods()
@@ -284,11 +284,12 @@ class pssWidget(QtGui.QWidget):
             self.PSC.set_output_quantity(key, text)
         else:  # ignore!
             print "\nYou don't want to do this, do you?"
-            self.showGraph()
+        self.showGraph()
 
     def set_cut_custom_data(self):
         item = self.model_tree_view_cuts.itemFromIndex(self.tree_view_cuts.currentIndex())
         self.PSC.set_cut_name(item.activity_or_database_key, str(item.text()))
+        self.showGraph()
 
     # UPDATING TABLES AND TREEVIEW
 
@@ -370,19 +371,33 @@ class pssWidget(QtGui.QWidget):
                 'width': geo.width(),
                 'data': json.dumps(self.PSC.getTreeData(), indent=1)
             }
-            # print json.dumps(self.PSC_Widget.PSC.getTreeData(), indent=1)
+            # print json.dumps(self.PSC.getTreeData(), indent=1)
+            self.webview.setHtml(self.template.render(**template_data))
         elif self.current_d3_layout == "graph":
             template_data = {
                 'height': geo.height(),
                 'width': geo.width(),
                 'data': json.dumps(self.PSC.getGraphData(), indent=1)
             }
-        self.webview.setHtml(self.template.render(**template_data))
+            print "GRAPH DATA:"
+            print json.dumps(self.PSC.getGraphData(), indent=2)
+            self.webview.setHtml(self.template.render(**template_data))
+        elif self.current_d3_layout == "dagre":
+            template_data = self.get_dagre_data()
+            # print "DAGRE DATA:"
+            # print json.dumps(self.get_dagre_data(), indent=4, sort_keys=True)
+            url = QtCore.QUrl("file:///C:/Users/Steubing/ETHZ/Python/GUI/QtActivityBrowser/DAGRE_test.html")
+            self.webview.load(url)
+        # self.webview.setHtml(self.template.render(**template_data))
 
     def toggleLayout(self):
         if self.current_d3_layout == "tree":
             self.current_d3_layout = "graph"
+            # self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
             self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
+        elif self.current_d3_layout == "graph":
+            self.current_d3_layout = "dagre"
+            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "dagre_graph.html")).read())
         else:
             self.current_d3_layout = "tree"
             self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
@@ -393,3 +408,66 @@ class pssWidget(QtGui.QWidget):
 
     def setNewCurrentActivity(self):
         self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
+
+    def get_dagre_data(self):
+
+        def chunks(s, n):
+            """Produce `n`-character chunks from `s`."""
+            for start in range(0, len(s), n):
+                yield s[start:start+n]
+
+        def shorten(db, product, name, geo):
+            # name_chunks = chunks(name, 20)
+            # return "\\n".join(name_chunks)
+            return name
+            # return " ".join(name.split(" ")[:8]) + " (%s)" % geo
+        pss = self.PSC.pss
+        data = self.PSC.getHumanReadiblePSS(self.PSC.pss_data)
+        print "DAGRE DATA HR"
+        print data
+        # fc = FormatConverter([copy.deepcopy(data)]).convert()[0]
+        # sp = SimplifiedProcess(**copy.deepcopy(fc))
+        mapping = dict(zip(self.PSC.pss_data['chain'], self.PSC.getHumanReadiblePSS(self.PSC.pss_data)['chain']))
+
+        graph = []
+        for o in data['outputs']:
+            graph.append({
+                'source': shorten(*o[0]),
+                'target': o[1],
+                'amount': o[2],
+                'class': 'output'
+            })
+        for inp, outp, name in data.get('cuts', []):
+            graph.append({
+                'source': shorten(*inp),
+                'target': shorten(*outp),
+                'class': 'cut'
+            })
+            if not [x for x in graph if x['source'] == name and x['target'] == shorten(*outp)]:
+                graph.append({
+                    'source': name,
+                    'target': shorten(*outp),
+                    'class': 'substituted'
+                })
+        for inp, outp, amount in pss.edges:
+            if inp in pss.chain and outp in pss.chain:
+                graph.append({
+                    'source': shorten(*mapping[inp]),
+                    'target': shorten(*mapping[outp]),
+                    'amount': amount,
+                    'class': 'chain'
+                })
+
+        context = {
+            'name': data['name'],
+            'title': data['name'],
+            'data': json.dumps(graph, indent=2)
+        }
+        # print "DAGRE DATA"
+        print json.dumps(graph, indent=2)
+        # save to file
+        template = Template(open(os.path.join(os.getcwd(), "HTML", "dagre_graph.html")).read())
+        with open("DAGRE_test.html", "w") as f:
+            f.write(template.render(**context))
+
+        return context

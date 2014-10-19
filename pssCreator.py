@@ -18,8 +18,8 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         # TODO: add custom information if available in name_map
         print "\nPSS DATA:"
         print self.pss.pss_data
-        print "INTERNAL EDGES (+CUTS):"
-        print self.pss.internal_edges_with_cuts
+        # print "INTERNAL EDGES (+CUTS):"
+        # print self.pss.internal_edges_with_cuts
 
     def apply_name_map(self):
         # name map is applied only if a default name is present
@@ -121,14 +121,16 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
             graph_data.append({
                 'source': self.getActivityData(edge[0])['name'],
                 'target': self.getActivityData(edge[1])['name'],
-                'type': "suit"
+                'type': "suit",
+                'edge_label': self.getActivityData(edge[0])['unit'],
             })
         # append connection to Process Subsystem
         for sa in self.pss.scaling_activities:
             graph_data.append({
                 'source': self.getActivityData(sa)['name'],
                 'target': self.pss.name,
-                'type': "suit"
+                'type': "licensing",
+                # 'edge_label': self.getActivityData(sa)['unit'],
             })
         return graph_data
 
@@ -159,8 +161,8 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         tree_data.append(get_nodes(self.pss.name))
         return tree_data
 
-    def getHumanReadiblePSS(self, pss):
-        print pss
+    def getHumanReadiblePSS(self, pss_data):
+        # print pss_data
 
         def getData(key):
             try:
@@ -169,19 +171,19 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
             except:
                 return key
 
-        outputs = [(getData(o[0]), o[1]) for o in pss['outputs']]
-        chain = [getData(o) for o in pss['chain']]
-        cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss['cuts']]
+        outputs = [(getData(o[0]), o[1], o[2]) for o in pss_data['outputs']]
+        chain = [getData(o) for o in pss_data['chain']]
+        cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss_data['cuts']]
         # edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
         pss_HR = {
-            'name': pss['name'],
+            'name': pss_data['name'],
             'outputs': outputs,
             'chain': chain,
             'cuts': cuts,
             # 'edges': edges,
         }
-        print "\nPSS (HUMAN READIBLE):"
-        print pss_HR
+        # print "\nPSS (HUMAN READIBLE):"
+        # print pss_HR
         return pss_HR
 
     def printEdgesToConsole(self, edges_data, message=None):
