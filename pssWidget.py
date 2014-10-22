@@ -10,6 +10,8 @@ import pickle
 import os
 from pssCreator import ProcessSubsystemCreator
 from processSubsystem import ProcessSubsystem
+import numpy as np
+import itertools
 
 class pssWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyTableQWidgetItem)
@@ -43,6 +45,7 @@ class pssWidget(QtGui.QWidget):
         button_saveAs_PSS_database = QtGui.QPushButton("Save DB")
         button_addDB = QtGui.QPushButton("Add DB")
         button_closeDB = QtGui.QPushButton("Close DB")
+        button_pp_matrix = QtGui.QPushButton("PP-Matrix")
         # LAYOUTS for buttons
         # Process Subsystem
         self.HL_PSS_buttons = QtGui.QHBoxLayout()
@@ -58,6 +61,7 @@ class pssWidget(QtGui.QWidget):
         self.HL_PSS_Database_buttons.addWidget(button_saveAs_PSS_database)
         self.HL_PSS_Database_buttons.addWidget(button_addDB)
         self.HL_PSS_Database_buttons.addWidget(button_closeDB)
+        self.HL_PSS_Database_buttons.addWidget(button_pp_matrix)
         # CONNECTIONS
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
         button_load_PSS_database.clicked.connect(self.loadPSSDatabase)
@@ -67,6 +71,7 @@ class pssWidget(QtGui.QWidget):
         button_delete_PSS_from_Database.clicked.connect(self.deletePSSfromDatabase)
         button_addDB.clicked.connect(self.addPSSDatabase)
         button_closeDB.clicked.connect(self.closePSSDatabase)
+        button_pp_matrix.clicked.connect(self.pp_matrix)
         # TREEWIDGETS
         self.tree_view_cuts = QtGui.QTreeView()
         self.model_tree_view_cuts = QtGui.QStandardItemModel()
@@ -363,51 +368,50 @@ class pssWidget(QtGui.QWidget):
 
     def showGraph(self):
         self.update_widget_PSS_data()
-        # data needed depends on D3 layout
         geo = self.webview.geometry()
+        # data needed depends on D3 layout
         if self.current_d3_layout == "tree":
             template_data = {
                 'height': geo.height(),
                 'width': geo.width(),
                 'data': json.dumps(self.PSC.getTreeData(), indent=1)
             }
-            # print json.dumps(self.PSC.getTreeData(), indent=1)
-            self.webview.setHtml(self.template.render(**template_data))
+            self.set_webview(template_data, self.current_d3_layout)
         elif self.current_d3_layout == "graph":
             template_data = {
                 'height': geo.height(),
                 'width': geo.width(),
                 'data': json.dumps(self.PSC.getGraphData(), indent=1)
             }
-            print "GRAPH DATA:"
-            print json.dumps(self.PSC.getGraphData(), indent=2)
-            self.webview.setHtml(self.template.render(**template_data))
+            self.set_webview(template_data, self.current_d3_layout)
+            print json.dumps(self.PSC.getGraphData(), indent=1)
         elif self.current_d3_layout == "dagre":
             template_data = self.get_dagre_data()
-            # print "DAGRE DATA:"
-            # print json.dumps(self.get_dagre_data(), indent=4, sort_keys=True)
-            url = QtCore.QUrl("file:///C:/Users/Steubing/ETHZ/Python/GUI/QtActivityBrowser/DAGRE_test.html")
-            self.webview.load(url)
-        # self.webview.setHtml(self.template.render(**template_data))
+            self.set_webview(template_data, self.current_d3_layout)
+
+    def set_webview(self, template_data, template_name):
+        templates = {
+            "tree": os.path.join(os.getcwd(), "HTML", "tree_vertical.html"),
+            "graph": os.path.join(os.getcwd(), "HTML", "force_directed_graph.html"),
+            "dagre": os.path.join(os.getcwd(), "HTML", "dagre_graph.html"),
+            "pp_graph": os.path.join(os.getcwd(), "HTML", "force_directed_graph.html"),
+        }
+        filename = os.path.join(os.getcwd(), "HTML", "temp.html")
+        url = QtCore.QUrl("file:///"+"/".join(filename.split("\\")))
+        self.template = Template(open(templates[template_name]).read())
+        with open(filename, "w") as f:
+            f.write(self.template.render(**template_data))
+        self.webview.load(url)
 
     def toggleLayout(self):
         if self.current_d3_layout == "tree":
             self.current_d3_layout = "graph"
-            # self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
-            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "force_directed_graph.html")).read())
         elif self.current_d3_layout == "graph":
             self.current_d3_layout = "dagre"
-            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "dagre_graph.html")).read())
         else:
             self.current_d3_layout = "tree"
-            self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
-        print "New D3 layout: " + self.current_d3_layout
+        print "Visualization as: " + self.current_d3_layout
         self.showGraph()
-
-    # OTHER METHODS
-
-    def setNewCurrentActivity(self):
-        self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
 
     def get_dagre_data(self):
 
@@ -423,10 +427,6 @@ class pssWidget(QtGui.QWidget):
             # return " ".join(name.split(" ")[:8]) + " (%s)" % geo
         pss = self.PSC.pss
         data = self.PSC.getHumanReadiblePSS(self.PSC.pss_data)
-        print "DAGRE DATA HR"
-        print data
-        # fc = FormatConverter([copy.deepcopy(data)]).convert()[0]
-        # sp = SimplifiedProcess(**copy.deepcopy(fc))
         mapping = dict(zip(self.PSC.pss_data['chain'], self.PSC.getHumanReadiblePSS(self.PSC.pss_data)['chain']))
 
         graph = []
@@ -458,16 +458,75 @@ class pssWidget(QtGui.QWidget):
                     'class': 'chain'
                 })
 
-        context = {
+        dagre_data = {
             'name': data['name'],
             'title': data['name'],
             'data': json.dumps(graph, indent=2)
         }
-        # print "DAGRE DATA"
-        print json.dumps(graph, indent=2)
-        # save to file
-        template = Template(open(os.path.join(os.getcwd(), "HTML", "dagre_graph.html")).read())
-        with open("DAGRE_test.html", "w") as f:
-            f.write(template.render(**context))
+        return dagre_data
 
-        return context
+    def get_pp_matrix_graph(self):
+        graph_data = []
+        for pss_data in self.PSS_database:
+            for input in pss_data['cuts']:
+                graph_data.append({
+                    'source': input[2],
+                    'target': pss_data['name'],
+                    'type': "suit",
+                })
+            for output in pss_data['outputs']:
+                graph_data.append({
+                    'source': pss_data['name'],
+                    'target': output[1],
+                    'type': "suit",
+                })
+        print "\nPP-MATRIX GRAPH DATA:"
+        print graph_data
+        return graph_data
+
+    # OTHER METHODS
+
+    def setNewCurrentActivity(self):
+        self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
+
+    def pp_matrix(self):
+        print "\nPP-MATRIX:"
+        processes, products, matrix = self.get_process_products_as_array()
+        print "PROCESSES:"
+        print processes
+        print "PRODUCTS"
+        print products
+        print "MATRIX"
+        print matrix
+
+        template_data = {
+            'height': self.webview.geometry().height(),
+            'width': self.webview.geometry().width(),
+            'data': json.dumps(self.get_pp_matrix_graph(), indent=1)
+        }
+        self.set_webview(template_data, self.current_d3_layout)
+
+    def get_process_products_as_array(self):
+
+        def get_processes(data):
+            return sorted([x.name for x in data])
+
+        def get_products(data):
+            return sorted(set(itertools.chain(*[[x[0] for x in y.pp
+                ] for y in data])))
+
+        PSS_list = []
+        for pss in self.PSS_database:
+            PSS_list.append(ProcessSubsystem(**pss))
+        data = PSS_list
+        # Assume that process names are unique
+        processes = get_processes(data)
+        products = get_products(data)
+        matrix = np.zeros((len(processes), len(products)))
+        proc_mapping = dict(zip(processes, itertools.count()))
+        prod_mapping = dict(zip(products, itertools.count()))
+        for sp in data:
+            for product, amount in sp.pp:
+                matrix[proc_mapping[sp.name], prod_mapping[product]] = amount
+        return processes, products, matrix
+

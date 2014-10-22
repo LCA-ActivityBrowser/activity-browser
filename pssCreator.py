@@ -122,7 +122,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
                 'source': self.getActivityData(edge[0])['name'],
                 'target': self.getActivityData(edge[1])['name'],
                 'type': "suit",
-                'edge_label': self.getActivityData(edge[0])['unit'],
+                # 'edge_label': self.getActivityData(edge[0])['unit'],
             })
         # append connection to Process Subsystem
         for sa in self.pss.scaling_activities:
