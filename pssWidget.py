@@ -97,8 +97,17 @@ class pssWidget(QtGui.QWidget):
         self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
         self.model_tree_view_cuts.itemChanged.connect(self.set_cut_custom_data)
         self.table_PSS_outputs.itemChanged.connect(self.set_output_custom_data)
+        self.table_PSS_outputs.itemDoubleClicked.connect(self.save_text_before_edit)
         self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
         # CONTEXT MENUS
+        # Outputs
+        self.table_PSS_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.action_addOutput = QtGui.QAction("Duplicate", None)
+        self.action_addOutput.triggered.connect(self.addOutput)
+        self.table_PSS_outputs.addAction(self.action_addOutput)
+        self.action_removeOutput = QtGui.QAction("Remove duplicate", None)
+        self.action_removeOutput.triggered.connect(self.removeOutput)
+        self.table_PSS_outputs.addAction(self.action_removeOutput)
         # Chain
         self.table_PSS_chain.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_addCut = QtGui.QAction("Cut", None)
@@ -117,6 +126,8 @@ class pssWidget(QtGui.QWidget):
         self.action_delete_selected = QtGui.QAction("Delete selected", None)
         self.action_delete_selected.triggered.connect(self.delete_selected_PSS)
         self.table_PSS_database.addAction(self.action_delete_selected)
+
+
 
     # PSS DATABASE
 
@@ -243,6 +254,22 @@ class pssWidget(QtGui.QWidget):
         self.PSC.newProcessSubsystem()
         self.showGraph()
 
+    def addOutput(self):
+        item = self.table_PSS_outputs.currentItem()
+        print "\nDuplicating output: " + str(item.activity_or_database_key) + " " + item.text()
+        self.PSC.add_output(item.activity_or_database_key)
+        self.showGraph()
+
+    def removeOutput(self):
+        item = self.table_PSS_outputs.currentItem()
+        print "\nRemoving output: " + str(item.activity_or_database_key) + " " + item.text()
+        key = item.activity_or_database_key
+        row = self.table_PSS_outputs.currentRow()
+        name = str(self.table_PSS_outputs.item(row, 0).text())
+        amount = str(self.table_PSS_outputs.item(row, 1).text())
+        self.PSC.remove_output(key, name, float(amount))
+        self.showGraph()
+
     def addToChain(self, item):
         self.PSC.add_to_chain(item.activity_or_database_key)
         self.showGraph()
@@ -281,15 +308,23 @@ class pssWidget(QtGui.QWidget):
         item = self.table_PSS_outputs.currentItem()
         text = str(item.text())
         key = item.activity_or_database_key
+        # need this information to distinguish between outputs that have the same key
+        # (makes the code a bit ugly, but outputs have no unique id)
+        row = self.table_PSS_outputs.currentRow()
+        name = str(self.table_PSS_outputs.item(row, 0).text())
+        amount = str(self.table_PSS_outputs.item(row, 1).text())
         if item.column() == 0:  # name
             print "\nChanging output NAME to: " + text
-            self.PSC.set_output_name(key, text)
+            self.PSC.set_output_name(key, text, self.text_before_edit, float(amount))
         elif item.column() == 1 and is_number(text):  # quantity
             print "\nChanging output QUANTITY to: " + text
-            self.PSC.set_output_quantity(key, text)
+            self.PSC.set_output_quantity(key, float(text), name, float(self.text_before_edit))
         else:  # ignore!
             print "\nYou don't want to do this, do you?"
         self.showGraph()
+
+    def save_text_before_edit(self):
+        self.text_before_edit = str(self.table_PSS_outputs.currentItem().text())
 
     def set_cut_custom_data(self):
         item = self.model_tree_view_cuts.itemFromIndex(self.tree_view_cuts.currentIndex())

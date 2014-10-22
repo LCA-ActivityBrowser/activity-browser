@@ -69,8 +69,11 @@ class ProcessSubsystem(object):
             except IndexError:
                 output_name = "Output " + str(i)
             try:
-                output_quantity = output[2]
+                output_quantity = float(output[2])
             except IndexError:
+                output_quantity = 1.0
+            except ValueError:
+                print "ValueError in output quantity. Set to 1.0"
                 output_quantity = 1.0
             padded_outputs.append((output[0], output_name, output_quantity))
         # add outputs that were not specified

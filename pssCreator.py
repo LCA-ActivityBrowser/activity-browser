@@ -30,6 +30,8 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         for o in self.pss_data['cuts']:
             if o[0] in self.name_map and o[2] == "Unspecified Input":
                 self.set_cut_name(o[0], self.name_map[o[0]], update=False)
+        # TODO: the value to a key could be a list of already used names for this key.
+        # The user could be given a drop down menu to select one of these
 
     def newProcessSubsystem(self, pss_data=None):
         if not pss_data:
@@ -41,6 +43,16 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
 
     def load_pss(self, pss):
         self.pss_data = pss
+        self.update_pss()
+
+    def add_output(self, key):
+        self.pss_data['outputs'].append((key, "duplicate output", 1.0))
+        self.update_pss()
+
+    def remove_output(self, key, name, amount):
+        for o in self.pss_data['outputs']:
+            if o[0] == key and o[1] == name and o[2] == amount:
+                self.pss_data['outputs'].remove(o)
         self.update_pss()
 
     def add_to_chain(self, key):
@@ -91,18 +103,18 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         self.pss_data['name'] = name
         self.update_pss()
 
-    def set_output_name(self, key, name, update=True):
+    def set_output_name(self, key, new_name, old_name, amount, update=True):
         for i, o in enumerate(self.pss_data['outputs']):
-            if o[0] == key:
-                self.pss_data['outputs'][i] = tuple([o[0], name, o[2]])
+            if o[0] == key and o[1] == old_name and o[2] == amount:
+                self.pss_data['outputs'][i] = tuple([o[0], new_name, o[2]])
         if update:
-            self.name_map.update({key: name})
+            self.name_map.update({key: new_name})
             self.update_pss()
 
-    def set_output_quantity(self, key, quantity):
+    def set_output_quantity(self, key, text, name, amount):
         for i, o in enumerate(self.pss_data['outputs']):
-            if o[0] == key:
-                self.pss_data['outputs'][i] = tuple([o[0], o[1], quantity])
+            if o[0] == key and o[1] == name and o[2] == amount:
+                self.pss_data['outputs'][i] = tuple([o[0], o[1], text])
         self.update_pss()
 
     def set_cut_name(self, key, name, update=True):

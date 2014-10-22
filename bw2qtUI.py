@@ -163,6 +163,11 @@ class MainWindow(QtGui.QMainWindow):
             self.action_addChildToPSS = QtGui.QAction("add to Process Subsystem", None)
             self.action_addChildToPSS.triggered.connect(self.add_Child_to_chain)
             self.table_downstream_activities.addAction(self.action_addChildToPSS)
+            # Search Table
+            self.table_multipurpose.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+            self.action_addToPSS = QtGui.QAction("add to Process Subsystem", None)
+            self.action_addToPSS.triggered.connect(self.add_to_chain)
+            self.table_multipurpose.addAction(self.action_addToPSS)
             # CONNECTIONS BETWEEN WIDGETS
             self.signal_add_to_chain.connect(self.PSS_Widget.addToChain)
             self.PSS_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
@@ -299,6 +304,9 @@ class MainWindow(QtGui.QMainWindow):
 
     def add_Parent_to_chain(self):
         self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
+
+    def add_to_chain(self):
+        self.signal_add_to_chain.emit(self.table_multipurpose.currentItem())
 
 def main():
     app = QtGui.QApplication(sys.argv)
