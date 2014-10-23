@@ -241,10 +241,6 @@ class BrowserStandardTasks(object):
     def set_edit_activity(self, key):
         self.editActivity_key = key
         self.editActivity_values = bw2.Database(key[0]).load()[key]
-        # remove production exchange
-        for exc in self.editActivity_values['exchanges']:
-            if exc['type'] == "production":
-                self.editActivity_values['exchanges'].remove(exc)
 
     def add_exchange(self, key):
         ds = bw2.Database(key[0]).load()[key]
@@ -274,6 +270,10 @@ class BrowserStandardTasks(object):
             self.editActivity_values['unit'] = value
         elif type == "location":
             self.editActivity_values['location'] = value
+        elif type == "amount":
+            for e in self.editActivity_values['exchanges']:
+                if e['type'] == "production":
+                    e['amount'] = float(value)
         else:
             print "Unkown type: " + str(type)
 
@@ -284,6 +284,11 @@ class BrowserStandardTasks(object):
                     exc['amount'] = float(value)
 
     def save_activity_to_database(self, key, values, production_exchange_data=None):
+        # first remove existing production exchange
+        for exc in self.editActivity_values['exchanges']:
+            if exc['type'] == "production":
+                self.editActivity_values['exchanges'].remove(exc)
+        # append new production exchange
         if production_exchange_data:
             values['exchanges'].append(production_exchange_data)
         db_name = key[0]

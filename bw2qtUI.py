@@ -412,7 +412,6 @@ class MainWindow(QtGui.QMainWindow):
         else:
             name = str(self.table_AE_activity.item(0, 1).text())  # activity name
         prod_exc_data = {
-            # "reference product": str(self.table_AE_activity.item(0, 0).text()),
             "name": name,
             "amount": float(self.table_AE_activity.item(0, 2).text()),
             "input": key,
