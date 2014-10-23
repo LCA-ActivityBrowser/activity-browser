@@ -3,7 +3,7 @@
 
 from PyQt4 import QtGui, QtCore
 import brightway2 as bw2
-import uuid
+from bw2data.utils import recursive_str_to_unicode
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -22,28 +22,6 @@ class MyStandardItem(QtGui.QStandardItem):
 class HelperMethods(object):
     def __init__(self):
         pass
-
-    def update_normal_table(self, table, data, keys):
-        if not data:
-            table.setRowCount(0)
-            return table
-        else:
-            table.setSortingEnabled(False)
-            table.blockSignals(True)
-            table.setRowCount(len(data))
-            table.setColumnCount(len(keys))
-            table.setHorizontalHeaderLabels(keys)
-            for i, d in enumerate(data):
-                for j in range(len(keys)):
-                    qtwi = QtGui.QTableWidgetItem(str(d[keys[j]]))
-                    table.setItem(i, j, qtwi)
-            table.setAlternatingRowColors(True)
-            table.resizeColumnsToContents()
-            table.resizeRowsToContents()
-            table.blockSignals(False)
-            table.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
-            table.setSortingEnabled(True)
-        return table
 
     def update_table(self, table, data, keys, edit_keys=None):
         """
@@ -101,9 +79,9 @@ class BrowserStandardTasks(object):
     def updateEcoinventVersion(self, key=None):
         # set database version (2 or 3)
         if key:
-            self.database_version = 2 if bw2.Database(key[0]).load()[key].get('linking', 'unknown') == 'unknown' else 3
+            self.database_version = 2 if bw2.Database(key[0]).load()[key].get('reference product', 'unknown') == 'unknown' else 3
         else:
-            self.database_version = 2 if bw2.Database(self.currentActivity[0]).load()[self.currentActivity].get('linking', 'unknown') == 'unknown' else 3
+            self.database_version = 2 if bw2.Database(self.currentActivity[0]).load()[self.currentActivity].get('reference product', 'unknown') == 'unknown' else 3
 
     def loadDatabase(self, db_name):
         self.db = bw2.Database(db_name)
@@ -146,10 +124,13 @@ class BrowserStandardTasks(object):
         # else:
         #     print "Cannot go further back."
 
-    def getActivityData(self, key=None):
-        if not key:
-            key = self.currentActivity
-        ds = bw2.Database(key[0]).load()[key]
+    def getActivityData(self, key=None, values=None):
+        if values:
+            ds = values
+        else:
+            if not key:
+                key = self.currentActivity
+            ds = bw2.Database(key[0]).load()[key]
         try:
             #  amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
             amount = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
@@ -162,19 +143,21 @@ class BrowserStandardTasks(object):
             'location': ds.get('location', 'unknown'),
             'amount': amount,
             'unit': ds.get('unit', 'unknown'),
-            'database': key[0],
-            'key': key,
+            'database': key[0] if key else 'unknown',
+            'key': key if key else 'unknown',
             'key_type': 'activity',
         }
         return obj
 
-    def get_exchanges(self, key=None, type=None):
-        if not key:
-            key = self.currentActivity
+    def get_exchanges(self, key=None, type=None, exchanges=None):
+        if not exchanges:
+            if not key:
+                key = self.currentActivity
+            exchanges = bw2.Database(key[0]).load()[key]["exchanges"]
         if not type:
             type = "technosphere"
         objs = []
-        for exc in bw2.Database(key[0]).load()[key]["exchanges"]:
+        for exc in exchanges:
             if exc['type'] == type:
                 ds = bw2.Database(exc['input'][0]).load()[exc['input']]
                 objs.append({
@@ -258,23 +241,69 @@ class BrowserStandardTasks(object):
     def set_edit_activity(self, key):
         self.editActivity_key = key
         self.editActivity_values = bw2.Database(key[0]).load()[key]
+        # remove production exchange
+        for exc in self.editActivity_values['exchanges']:
+            if exc['type'] == "production":
+                self.editActivity_values['exchanges'].remove(exc)
 
-    # def get_edit_activity_data(self):
-    #     ds = self.editActivity_values
-    #     try:
-    #         #  amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
-    #         amount = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
-    #     except IndexError:
-    #         print "Amount could not be determined. Perhaps this is a multi-output activity."
-    #         amount = 0
-    #     obj = {
-    #         'name': ds['name'],
-    #         'product': ds.get('reference product', ''),  # nur in v3
-    #         'location': ds.get('location', 'unknown'),
-    #         'amount': amount,
-    #         'unit': ds.get('unit', 'unknown'),
-    #         'database': key[0],
-    #         'key': key,
-    #         'key_type': 'activity',
-    #     }
-    #     return obj
+    def add_exchange(self, key):
+        ds = bw2.Database(key[0]).load()[key]
+        exchange = {
+            'input': key,
+            'name': ds.get('reference product', '') or ds.get('name', ''),
+            'amount': 1.0,
+            'unit': ds.get('unit', ''),
+            'type': "biosphere" if key in bw2.Database('biosphere').load().keys()
+                                or key in bw2.Database('biosphere3').load().keys()
+                                else "technosphere",
+        }
+        print "\nAdding Exchange: " + str(exchange)
+        self.editActivity_values['exchanges'].append(exchange)
+
+    def remove_exchange(self, key):
+        for exc in self.editActivity_values['exchanges']:
+            if exc['input'] == key:
+                self.editActivity_values['exchanges'].remove(exc)
+
+    def change_activity_value(self, value, type=None):
+        if type == "name":
+            self.editActivity_values['name'] = value
+        elif type == "product":
+            self.editActivity_values['reference product'] = value
+        elif type == "unit":
+            self.editActivity_values['unit'] = value
+        elif type == "location":
+            self.editActivity_values['location'] = value
+        else:
+            print "Unkown type: " + str(type)
+
+    def change_exchange_value(self, key, value, type="amount"):
+        for exc in self.editActivity_values['exchanges']:
+            if exc['input'] == key:
+                if type == "amount":
+                    exc['amount'] = float(value)
+
+    def save_activity_to_database(self, key, values, production_exchange_data=None):
+        if production_exchange_data:
+            values['exchanges'].append(production_exchange_data)
+        db_name = key[0]
+        db = bw2.Database(db_name)
+        if db_name not in bw2.databases:
+            db.register(format=("Tannenbaum", 1))
+            data = {}
+        else:
+            data = db.load()
+        data[key] = values
+        db.write(recursive_str_to_unicode(data))
+        db.process()
+        print "saved %s to %s. (key: %s)" % (bw2.Database(key[0]).load()[key]['name'], db_name, str(key))
+
+    def delete_activity(self, key):
+        db_name = key[0]
+        db = bw2.Database(db_name)
+        data = db.load()
+        del data[key]
+        db.write(recursive_str_to_unicode(data))
+        db.process()
+        print "deleted activity: %s" % (str(key))
+

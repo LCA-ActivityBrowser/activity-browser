@@ -9,6 +9,8 @@ from utils import *
 from pssWidget import pssWidget
 import time
 from ast import literal_eval
+import uuid
+import pprint
 
 class MainWindow(QtGui.QMainWindow):
     signal_add_to_chain = QtCore.pyqtSignal(MyQTableWidgetItem)
@@ -22,6 +24,11 @@ class MainWindow(QtGui.QMainWindow):
         # LCA Data
         self.lcaData = BrowserStandardTasks()
         self.history = []
+
+        # Activity Editor settings
+        self.read_only_databases = ["ecoinvent 2.2", "ecoinvent 2.2 multioutput", "ecoinvent 3.01 default",
+                                    "ecoinvent 3.01 cutoff", "ecoinvent 3.01 consequential", "ecoinvent 3.1 default",
+                                    "ecoinvent 3.1 cutoff", "ecoinvent 3.1 consequential", "biosphere", "biosphere3"]
 
         # create the central container widget
         self.widget = QtGui.QWidget(self)
@@ -136,21 +143,13 @@ class MainWindow(QtGui.QMainWindow):
         self.table_multipurpose.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
         # CONTEXT MENUS
-        # Technosphere Inputs
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_copy_technosphere_activity = QtGui.QAction("copy", None)
-        self.action_copy_technosphere_activity.triggered.connect(self.copy_technosphere_activity)
-        self.table_inputs_technosphere.addAction(self.action_copy_technosphere_activity)
-        # Downstream Activities
         self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_copy_downstream_activity = QtGui.QAction("copy", None)
-        self.action_copy_downstream_activity.triggered.connect(self.copy_downstream_activity)
-        self.table_downstream_activities.addAction(self.action_copy_downstream_activity)
-        # Multi-Purpose Table
         self.table_multipurpose.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_copy_multipurpose_activity = QtGui.QAction("copy", None)
-        self.action_copy_multipurpose_activity.triggered.connect(self.copy_multipurpose_activity)
-        self.table_multipurpose.addAction(self.action_copy_multipurpose_activity)
+        self.action_delete_activity = QtGui.QAction("delete activity", None)
+        self.action_delete_activity.triggered.connect(self.delete_activity)
+        self.table_multipurpose.addAction(self.action_delete_activity)
+
         # MENU BAR
         # Actions
         addPSS = QtGui.QAction('Process Subsystem Editor', self)
@@ -164,13 +163,27 @@ class MainWindow(QtGui.QMainWindow):
 
     def setUpActivityEditor(self):
         if not hasattr(self, 'VL_AE'):
-            self.label_ae_activity = QtGui.QLabel("Activity Information")
+            # Labels
+            self.label_ae_activity = QtGui.QLabel("Activity")
+            self.label_ae_database = QtGui.QLabel("Select database")
             self.label_ae_tech_in = QtGui.QLabel("Technosphere Inputs")
             self.label_ae_bio_in = QtGui.QLabel("Biosphere Inputs")
+            # Buttons
+            self.button_save = QtGui.QPushButton("Save Activity")
             # TABLES
             self.table_AE_activity = QtGui.QTableWidget()
             self.table_AE_technosphere = QtGui.QTableWidget()
             self.table_AE_biosphere = QtGui.QTableWidget()
+            # Dropdown
+            self.combo_databases = QtGui.QComboBox(self)
+            for name in [db['name'] for db in self.lcaData.getDatabases() if db['name'] not in self.read_only_databases]:
+                self.combo_databases.addItem(name)
+            # HL
+            self.HL_AE_actions = QtGui.QHBoxLayout()
+            self.HL_AE_actions.addWidget(self.label_ae_database)
+            self.HL_AE_actions.addWidget(self.combo_databases)
+            self.HL_AE_actions.addWidget(self.button_save)
+            self.HL_AE_actions.setAlignment(QtCore.Qt.AlignLeft)
             # VL
             self.VL_AE = QtGui.QVBoxLayout()
             self.VL_AE.addWidget(self.label_ae_activity)
@@ -179,12 +192,40 @@ class MainWindow(QtGui.QMainWindow):
             self.VL_AE.addWidget(self.table_AE_technosphere)
             self.VL_AE.addWidget(self.label_ae_bio_in)
             self.VL_AE.addWidget(self.table_AE_biosphere)
+            self.VL_AE.addLayout(self.HL_AE_actions)
             # AE widget
             self.widget_AE = QtGui.QWidget()
             self.widget_AE.setLayout(self.VL_AE)
             self.tab_widget_RIGHT.addTab(self.widget_AE, "Activity Editor")
             # Connections
             self.table_AE_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
+            self.table_AE_activity.itemChanged.connect(self.change_values_activity)
+            self.table_AE_technosphere.itemChanged.connect(self.change_values_technosphere)
+            self.table_AE_biosphere.itemChanged.connect(self.change_values_biosphere)
+            self.button_save.clicked.connect(self.save_edited_activity)
+            # CONTEXT MENUS
+            # Technosphere Inputs
+            self.action_add_technosphere_exchange = QtGui.QAction("--> edited activity", None)
+            self.action_add_technosphere_exchange.triggered.connect(self.add_technosphere_exchange)
+            self.table_inputs_technosphere.addAction(self.action_add_technosphere_exchange)
+            # Downstream Activities
+            self.action_add_downstream_exchange = QtGui.QAction("--> edited activity", None)
+            self.action_add_downstream_exchange.triggered.connect(self.add_downstream_exchange)
+            self.table_downstream_activities.addAction(self.action_add_downstream_exchange)
+            # Multi-Purpose Table
+            self.action_add_multipurpose_exchange = QtGui.QAction("--> edited activity", None)
+            self.action_add_multipurpose_exchange.triggered.connect(self.add_multipurpose_exchange)
+            self.table_multipurpose.addAction(self.action_add_multipurpose_exchange)
+            # AE Technosphere Table
+            self.table_AE_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+            self.action_remove_exchange_tech = QtGui.QAction("delete", None)
+            self.action_remove_exchange_tech.triggered.connect(self.remove_exchange_from_technosphere)
+            self.table_AE_technosphere.addAction(self.action_remove_exchange_tech)
+            # AE Biosphere Table
+            self.table_AE_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+            self.action_remove_exchange_bio = QtGui.QAction("delete", None)
+            self.action_remove_exchange_bio.triggered.connect(self.remove_exchange_from_biosphere)
+            self.table_AE_biosphere.addAction(self.action_remove_exchange_bio)
 
     def setUpPSSEditor(self):
         if hasattr(self, 'PSS_Widget'):
@@ -198,15 +239,15 @@ class MainWindow(QtGui.QMainWindow):
             self.tab_widget_RIGHT.addTab(self.PSS_Widget.webview, "Graph")
             # CONTEXT MENUS
             # Technosphere Inputs
-            self.action_addParentToPSS = QtGui.QAction("add to Process Subsystem", None)
+            self.action_addParentToPSS = QtGui.QAction("--> Process Subsystem", None)
             self.action_addParentToPSS.triggered.connect(self.add_Parent_to_chain)
             self.table_inputs_technosphere.addAction(self.action_addParentToPSS)
             # Downstream Activities
-            self.action_addChildToPSS = QtGui.QAction("add to Process Subsystem", None)
+            self.action_addChildToPSS = QtGui.QAction("--> Process Subsystem", None)
             self.action_addChildToPSS.triggered.connect(self.add_Child_to_chain)
             self.table_downstream_activities.addAction(self.action_addChildToPSS)
             # Multi-Purpose Table
-            self.action_addToPSS = QtGui.QAction("add to Process Subsystem", None)
+            self.action_addToPSS = QtGui.QAction("--> Process Subsystem", None)
             self.action_addToPSS.triggered.connect(self.add_to_chain)
             self.table_multipurpose.addAction(self.action_addToPSS)
             # CONNECTIONS BETWEEN WIDGETS
@@ -320,55 +361,103 @@ class MainWindow(QtGui.QMainWindow):
         if self.lcaData.currentActivity:
             self.setUpActivityEditor()
             self.lcaData.set_edit_activity(self.lcaData.currentActivity)
-            self.set_initial_AE_data()
+            self.update_AE_tables()
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
 
-    def set_initial_AE_data(self):
-        key = self.lcaData.editActivity_key
-        keys = ['product', 'name', 'amount', 'unit', 'location', 'database']
-        data = self.lcaData.getActivityData(key=key)
-        data['database'] = "please choose"  # for safety reasons. You do not want to modify ecoinvent data.
+    def add_technosphere_exchange(self):
+        self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)
+        self.update_AE_tables()
+
+    def add_downstream_exchange(self):
+        self.lcaData.add_exchange(self.table_downstream_activities.currentItem().activity_or_database_key)
+        self.update_AE_tables()
+
+    def add_multipurpose_exchange(self):
+        self.lcaData.add_exchange(self.table_multipurpose.currentItem().activity_or_database_key)
+        self.update_AE_tables()
+
+    def remove_exchange_from_technosphere(self):
+        self.lcaData.remove_exchange(self.table_AE_technosphere.currentItem().activity_or_database_key)
+        self.update_AE_tables()
+
+    def remove_exchange_from_biosphere(self):
+        self.lcaData.remove_exchange(self.table_AE_biosphere.currentItem().activity_or_database_key)
+        self.update_AE_tables()
+
+    def change_values_activity(self):
+        item = self.table_AE_activity.currentItem()
+        print "Changed value: " + str(item.text())
+        header = str(self.table_AE_activity.horizontalHeaderItem(self.table_AE_activity.currentColumn()).text())
+        self.lcaData.change_activity_value(str(item.text()), type=header)
+        self.update_AE_tables()
+
+    def change_values_technosphere(self):
+        item = self.table_AE_technosphere.currentItem()
+        print "Changed value: " + str(item.text())
+        self.lcaData.change_exchange_value(item.activity_or_database_key, str(item.text()), "amount")
+        self.update_AE_tables()
+
+    def change_values_biosphere(self):
+        item = self.table_AE_biosphere.currentItem()
+        print "Changed value: " + str(item.text())
+        self.lcaData.change_exchange_value(item.activity_or_database_key, str(item.text()), "amount")
+        self.update_AE_tables()
+
+    def save_edited_activity(self):
+        values = self.lcaData.editActivity_values
+        db_name = str(self.combo_databases.currentText())
+        key = (unicode(db_name), unicode(uuid.uuid4().urn[9:]))
+        if str(self.table_AE_activity.item(0, 0).text()):
+            name = str(self.table_AE_activity.item(0, 0).text())  # ref product
+        else:
+            name = str(self.table_AE_activity.item(0, 1).text())  # activity name
+        prod_exc_data = {
+            # "reference product": str(self.table_AE_activity.item(0, 0).text()),
+            "name": name,
+            "amount": float(self.table_AE_activity.item(0, 2).text()),
+            "input": key,
+            "type": "production",
+            "unit": str(self.table_AE_activity.item(0, 3).text()),
+        }
+        print "\nSaving\nKey: " + str(key)
+        print "Values:"
+        pprint.pprint(values)
+        print "Production exchange: " + str(prod_exc_data)
+        self.lcaData.save_activity_to_database(key, values, prod_exc_data)
+        self.statusBar().showMessage("Saved activity. Key: " + str(key))
+
+    def delete_activity(self):
+        key = self.table_multipurpose.currentItem().activity_or_database_key
+        if key[0] not in self.read_only_databases:
+            mgs = "Delete this activity?"
+            reply = QtGui.QMessageBox.question(self, 'Message',
+                        mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.Yes:
+                self.lcaData.delete_activity(key)
+                self.statusBar().showMessage("Deleted activity: "+str(key))
+            else:
+                self.statusBar().showMessage("Yeah... better safe than sorry.")
+        else:
+            self.statusBar().showMessage("Not allowed to delete from: "+str(key[0]))
+
+    def update_AE_tables(self):
+        keys = ['product', 'name', 'amount', 'unit', 'location']
+        ad = self.lcaData.getActivityData(values=self.lcaData.editActivity_values)
+        # ad['database'] = "please choose"  # for safety reasons. You do not want to modify ecoinvent data.
         self.table_AE_activity = self.helper.update_table(
-            self.table_AE_activity, [data], keys, edit_keys=keys)
+            self.table_AE_activity, [ad], keys, edit_keys=keys)
+        exchanges = self.lcaData.editActivity_values['exchanges']
         self.table_AE_technosphere = self.helper.update_table(
             self.table_AE_technosphere,
-            self.lcaData.get_exchanges(key=key, type="technosphere"),
+            self.lcaData.get_exchanges(exchanges=exchanges, type="technosphere"),
             self.get_table_headers(type="technosphere"),
             edit_keys=['amount'])
         self.table_AE_biosphere = self.helper.update_table(
             self.table_AE_biosphere,
-            self.lcaData.get_exchanges(key=key, type="biosphere"),
+            self.lcaData.get_exchanges(exchanges=exchanges, type="biosphere"),
             self.get_table_headers(type="biosphere"),
             edit_keys=['amount'])
         self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height()+self.table_AE_activity.rowHeight(0))
-
-    def update_AE_tables(self):
-        pass
-        # try:
-        #     # self.table_AE_technosphere = self.helper.update_table(self.table_AE_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
-        #
-        #     # actdata = self.lcaData.getActivityData()
-        #     # label_text = actdata["name"]+" {"+actdata["location"]+"}"
-        #     # self.label_current_activity.setText(QtCore.QString(label_text))
-        #     # label_text = actdata["product"]+" ["+str(actdata["amount"])+" "+actdata["unit"]+"]"
-        #     # self.label_current_activity_product.setText(QtCore.QString(label_text))
-        # except AttributeError:
-        #     self.statusBar().showMessage("Need to load a database first")
-
-
-
-    def copy_technosphere_activity(self):
-        self.new_activity(self.table_inputs_technosphere.currentItem().activity_or_database_key)
-        self.setUpActivityEditor()
-
-    def copy_downstream_activity(self):
-        self.new_activity(self.table_downstream_activities.currentItem().activity_or_database_key)
-
-    def copy_multipurpose_activity(self):
-        self.new_activity(self.table_multipurpose.currentItem().activity_or_database_key)
-
-    def new_activity(self, key):
-        self.lcaData.edit_activity(key)
 
     def showHistory(self):
         keys = self.get_table_headers(type="history")
