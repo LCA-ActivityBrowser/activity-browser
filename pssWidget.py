@@ -97,7 +97,7 @@ class pssWidget(QtGui.QWidget):
         self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
         self.model_tree_view_cuts.itemChanged.connect(self.set_cut_custom_data)
         self.table_PSS_outputs.itemChanged.connect(self.set_output_custom_data)
-        self.table_PSS_outputs.itemDoubleClicked.connect(self.save_text_before_edit)
+        self.table_PSS_outputs.currentItemChanged.connect(self.save_text_before_edit)
         self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
         # CONTEXT MENUS
         # Outputs

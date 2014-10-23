@@ -239,8 +239,8 @@ class BrowserStandardTasks(object):
 # CREATE AND MODIFY ACTIVITIES
 
     def set_edit_activity(self, key):
-        self.editActivity_key = key
-        self.editActivity_values = bw2.Database(key[0]).load()[key]
+        self.editActivity_key = key[:]
+        self.editActivity_values = bw2.Database(key[0]).load()[key][:]
 
     def add_exchange(self, key):
         ds = bw2.Database(key[0]).load()[key]
