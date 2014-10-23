@@ -14,7 +14,7 @@ import numpy as np
 import itertools
 
 class pssWidget(QtGui.QWidget):
-    signal_activity_key = QtCore.pyqtSignal(MyTableQWidgetItem)
+    signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
     signal_status_bar_message = QtCore.pyqtSignal(str)
     def __init__(self, parent=None):
         super(pssWidget, self).__init__(parent)
@@ -127,8 +127,6 @@ class pssWidget(QtGui.QWidget):
         self.action_delete_selected.triggered.connect(self.delete_selected_PSS)
         self.table_PSS_database.addAction(self.action_delete_selected)
 
-
-
     # PSS DATABASE
 
     def loadPSSDatabase(self, mode="load new"):
@@ -201,7 +199,7 @@ class pssWidget(QtGui.QWidget):
                 'cuts': ", ".join([o[2] for o in pss['cuts']]),
             })
         keys = ['name', 'out/chain/cuts', 'outputs', 'cuts', 'chain']
-        self.table_PSS_database = self.helper.update_normal_table(self.table_PSS_database, data, keys)
+        self.table_PSS_database = self.helper.update_table(self.table_PSS_database, data, keys)
 
     # PSS <--> PSS DATABASE
 
@@ -342,6 +340,7 @@ class pssWidget(QtGui.QWidget):
 
     def update_PSS_table_widget_outputs(self):
         keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
+        edit_keys = ['custom name', 'quantity']
         data = []
         if self.PSC.pss.outputs:
             for i, output in enumerate(self.PSC.pss.outputs):
@@ -356,7 +355,7 @@ class pssWidget(QtGui.QWidget):
                     output_quantity = "1"
                 output_data.update({'custom name': output_name, 'quantity': output_quantity})
                 data.append(output_data)
-        self.table_PSS_outputs = self.helper.update_table(self.table_PSS_outputs, data, keys)
+        self.table_PSS_outputs = self.helper.update_table(self.table_PSS_outputs, data, keys, edit_keys)
 
     def update_PSS_table_widget_chain(self):
         keys = ['product', 'name', 'location', 'unit', 'database']

@@ -11,7 +11,7 @@ import time
 from ast import literal_eval
 
 class MainWindow(QtGui.QMainWindow):
-    signal_add_to_chain = QtCore.pyqtSignal(MyTableQWidgetItem)
+    signal_add_to_chain = QtCore.pyqtSignal(MyQTableWidgetItem)
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -82,7 +82,9 @@ class MainWindow(QtGui.QMainWindow):
         HL_multi_purpose.addWidget(button_edit)
         # TAB WIDGETS
         self.tab_widget_RIGHT = QtGui.QTabWidget()
+        self.tab_widget_RIGHT.setMovable(True)
         self.tab_widget_LEFT = QtGui.QTabWidget()
+        self.tab_widget_LEFT.setMovable(True)
         # VL
         # LEFT
         self.VL_technosphere = QtGui.QVBoxLayout()
@@ -161,46 +163,14 @@ class MainWindow(QtGui.QMainWindow):
         file.addAction(addPSS)
 
     def setUpActivityEditor(self):
-        if hasattr(self, 'VL_AE'):
-            print "ACTIVITY EDITOR ALREADY SET UP"
-        else:
-            # # line edits
-            # self.line_edit_activity_name = QtGui.QLineEdit()
-            # self.line_edit_activity_amount = QtGui.QLineEdit()
-            # self.line_edit_activity_unit = QtGui.QLineEdit()
-            # self.line_edit_database = QtGui.QLineEdit()
-            # # labels
-            # self.label_ae_name = QtGui.QLabel("Name:")
-            # self.label_ae_amount = QtGui.QLabel("Amount:")
-            # self.label_ae_unit = QtGui.QLabel("Unit:")
-            # self.label_ae_database = QtGui.QLabel("Database:")
+        if not hasattr(self, 'VL_AE'):
             self.label_ae_activity = QtGui.QLabel("Activity Information")
             self.label_ae_tech_in = QtGui.QLabel("Technosphere Inputs")
             self.label_ae_bio_in = QtGui.QLabel("Biosphere Inputs")
-            # # HLs
-            # self.HL_ae_name = QtGui.QHBoxLayout()
-            # self.HL_ae_amount = QtGui.QHBoxLayout()
-            # self.HL_ae_unit = QtGui.QHBoxLayout()
-            # self.HL_ae_database = QtGui.QHBoxLayout()
             # TABLES
             self.table_AE_activity = QtGui.QTableWidget()
             self.table_AE_technosphere = QtGui.QTableWidget()
             self.table_AE_biosphere = QtGui.QTableWidget()
-
-            # PUTTING STUFF TOGETHER
-            # self.HL_ae_name.addWidget(self.label_ae_name)
-            # self.HL_ae_name.addWidget(self.line_edit_activity_name)
-            # self.HL_ae_amount.addWidget(self.label_ae_amount)
-            # self.HL_ae_amount.addWidget(self.line_edit_activity_amount)
-            # self.HL_ae_unit.addWidget(self.label_ae_unit)
-            # self.HL_ae_unit.addWidget(self.line_edit_activity_unit)
-            # self.HL_ae_database.addWidget(self.label_ae_database)
-            # self.HL_ae_database.addWidget(self.line_edit_database)
-
-            # self.VL_AE.addLayout(self.HL_ae_name)
-            # self.VL_AE.addLayout(self.HL_ae_amount)
-            # self.VL_AE.addLayout(self.HL_ae_unit)
-            # self.VL_AE.addLayout(self.HL_ae_database)
             # VL
             self.VL_AE = QtGui.QVBoxLayout()
             self.VL_AE.addWidget(self.label_ae_activity)
@@ -209,13 +179,12 @@ class MainWindow(QtGui.QMainWindow):
             self.VL_AE.addWidget(self.table_AE_technosphere)
             self.VL_AE.addWidget(self.label_ae_bio_in)
             self.VL_AE.addWidget(self.table_AE_biosphere)
-
+            # AE widget
             self.widget_AE = QtGui.QWidget()
             self.widget_AE.setLayout(self.VL_AE)
-
             self.tab_widget_RIGHT.addTab(self.widget_AE, "Activity Editor")
-
-
+            # Connections
+            self.table_AE_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
     def setUpPSSEditor(self):
         if hasattr(self, 'PSS_Widget'):
@@ -263,7 +232,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
         label_text = str(len(data)) + " databases found."
         self.label_multi_purpose.setText(QtCore.QString(label_text))
-        self.tab_widget_RIGHT.setCurrentIndex(0)
+        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
 
     def get_table_headers(self, type="technosphere"):
         if self.lcaData.database_version == 2:
@@ -296,7 +265,7 @@ class MainWindow(QtGui.QMainWindow):
             self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
             label_text = str(len(data)) + " activities found."
             self.label_multi_purpose.setText(QtCore.QString(label_text))
-            self.tab_widget_RIGHT.setCurrentIndex(0)
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
 
@@ -312,7 +281,7 @@ class MainWindow(QtGui.QMainWindow):
                 self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
                 label_text = str(len(data)) + " activities found."
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
-                self.tab_widget_RIGHT.setCurrentIndex(0)
+                self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
         except:
@@ -350,7 +319,41 @@ class MainWindow(QtGui.QMainWindow):
     def edit_activity(self):
         if self.lcaData.currentActivity:
             self.setUpActivityEditor()
-            self.lcaData.copy_activity(self.lcaData.currentActivity)
+            self.lcaData.set_edit_activity(self.lcaData.currentActivity)
+            self.set_initial_AE_data()
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
+
+    def set_initial_AE_data(self):
+        key = self.lcaData.editActivity_key
+        keys = ['product', 'name', 'amount', 'unit', 'location', 'database']
+        data = self.lcaData.getActivityData(key=key)
+        data['database'] = "please choose"  # for safety reasons. You do not want to modify ecoinvent data.
+        self.table_AE_activity = self.helper.update_table(
+            self.table_AE_activity, [data], keys, edit_keys=keys)
+        self.table_AE_technosphere = self.helper.update_table(
+            self.table_AE_technosphere,
+            self.lcaData.get_exchanges(key=key, type="technosphere"),
+            self.get_table_headers(type="technosphere"),
+            edit_keys=['amount'])
+        self.table_AE_biosphere = self.helper.update_table(
+            self.table_AE_biosphere,
+            self.lcaData.get_exchanges(key=key, type="biosphere"),
+            self.get_table_headers(type="biosphere"),
+            edit_keys=['amount'])
+        self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height()+self.table_AE_activity.rowHeight(0))
+
+    def update_AE_tables(self):
+        pass
+        # try:
+        #     # self.table_AE_technosphere = self.helper.update_table(self.table_AE_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
+        #
+        #     # actdata = self.lcaData.getActivityData()
+        #     # label_text = actdata["name"]+" {"+actdata["location"]+"}"
+        #     # self.label_current_activity.setText(QtCore.QString(label_text))
+        #     # label_text = actdata["product"]+" ["+str(actdata["amount"])+" "+actdata["unit"]+"]"
+        #     # self.label_current_activity_product.setText(QtCore.QString(label_text))
+        # except AttributeError:
+        #     self.statusBar().showMessage("Need to load a database first")
 
 
 
@@ -365,7 +368,7 @@ class MainWindow(QtGui.QMainWindow):
         self.new_activity(self.table_multipurpose.currentItem().activity_or_database_key)
 
     def new_activity(self, key):
-        self.lcaData.copy_activity(key)
+        self.lcaData.edit_activity(key)
 
     def showHistory(self):
         keys = self.get_table_headers(type="history")
@@ -373,7 +376,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
         label_text = "History"
         self.label_multi_purpose.setText(QtCore.QString(label_text))
-        self.tab_widget_RIGHT.setCurrentIndex(0)
+        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
 
     def goBackward(self):
         # self.lcaData.goBack()

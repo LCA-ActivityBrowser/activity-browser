@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
 import brightway2 as bw2
 import uuid
 
-class MyTableQWidgetItem(QtGui.QTableWidgetItem):
+class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
-        super(MyTableQWidgetItem, self).__init__(parent)
+        super(MyQTableWidgetItem, self).__init__(parent)
         self.activity_or_database_key = None
         self.key_type = None
-        # self.setFlags(QtCore.Qt.ItemIsEnabled)
-        # self.setFlags(QtCore.Qt.ItemIsSelectable)
-        # self.setFlags(QtCore.Qt.ItemIsEditable)
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
 
 class MyStandardItem(QtGui.QStandardItem):
     def __init__(self, parent=None):
@@ -24,40 +22,6 @@ class MyStandardItem(QtGui.QStandardItem):
 class HelperMethods(object):
     def __init__(self):
         pass
-
-    def update_table(self, table, data, keys):
-        """
-        A generic method to fill a QTableWidget
-        :param table: QTableWidget object
-        :param data: list of dictionaries
-        :param keys: dictionary keys that are to be displayed
-        :return: QTableWidget object
-        """
-        if not data:
-            table.setRowCount(0)
-            return table
-        else:
-            table.setSortingEnabled(False)
-            table.blockSignals(True)
-            table.setRowCount(len(data))
-            table.setColumnCount(len(keys))
-            table.setHorizontalHeaderLabels(keys)
-            for i, d in enumerate(data):
-                for j in range(len(keys)):
-                    mqtwi = MyTableQWidgetItem(str(d[keys[j]]))
-                    mqtwi.activity_or_database_key = d["key"]
-                    mqtwi.key_type = d["key_type"]
-                    table.setItem(i, j, mqtwi)
-            if 'quantity' in keys:
-                table.setEditTriggers(QtGui.QTableWidget.DoubleClicked)
-            else:
-                table.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
-            table.setAlternatingRowColors(True)
-            table.resizeColumnsToContents()
-            table.resizeRowsToContents()
-            table.blockSignals(False)
-            table.setSortingEnabled(True)
-        return table
 
     def update_normal_table(self, table, data, keys):
         if not data:
@@ -78,6 +42,43 @@ class HelperMethods(object):
             table.resizeRowsToContents()
             table.blockSignals(False)
             table.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
+            table.setSortingEnabled(True)
+        return table
+
+    def update_table(self, table, data, keys, edit_keys=None):
+        """
+        A generic method to fill a QTableWidget
+        :param table: QTableWidget object
+        :param data: list of dictionaries
+        :param keys: dictionary keys that are to be displayed
+        :return: QTableWidget object
+        """
+        if not data:
+            table.setRowCount(0)
+            return table
+        else:
+            table.setSortingEnabled(False)
+            table.blockSignals(True)
+            table.setRowCount(len(data))
+            table.setColumnCount(len(keys))
+            table.setHorizontalHeaderLabels(keys)
+            for i, d in enumerate(data):
+                for j in range(len(keys)):
+                    mqtwi = MyQTableWidgetItem(str(d[keys[j]]))
+                    if "key" in d:
+                        mqtwi.activity_or_database_key = d["key"]
+                        mqtwi.key_type = d["key_type"]
+                    if edit_keys and keys[j] in edit_keys:
+                        mqtwi.setFlags(mqtwi.flags() | QtCore.Qt.ItemIsEditable)
+                    table.setItem(i, j, mqtwi)
+            if edit_keys:
+                table.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)
+            else:
+                table.setEditTriggers(QtGui.QTableWidget.NoEditTriggers)
+            table.setAlternatingRowColors(True)
+            table.resizeColumnsToContents()
+            table.resizeRowsToContents()
+            table.blockSignals(False)
             table.setSortingEnabled(True)
         return table
 
@@ -147,7 +148,6 @@ class BrowserStandardTasks(object):
 
     def getActivityData(self, key=None):
         if not key:
-            # ds = self.database[self.currentActivity]
             key = self.currentActivity
         ds = bw2.Database(key[0]).load()[key]
         try:
@@ -168,12 +168,13 @@ class BrowserStandardTasks(object):
         }
         return obj
 
-    def get_exchanges(self, type=None):
+    def get_exchanges(self, key=None, type=None):
+        if not key:
+            key = self.currentActivity
         if not type:
             type = "technosphere"
         objs = []
-        # for exc in self.database[self.currentActivity]["exchanges"]:
-        for exc in bw2.Database(self.currentActivity[0]).load()[self.currentActivity]["exchanges"]:
+        for exc in bw2.Database(key[0]).load()[key]["exchanges"]:
             if exc['type'] == type:
                 ds = bw2.Database(exc['input'][0]).load()[exc['input']]
                 objs.append({
@@ -254,5 +255,26 @@ class BrowserStandardTasks(object):
 
 # CREATE AND MODIFY ACTIVITIES
 
-    def copy_activity(self, key):
-        self.editActivity = key
+    def set_edit_activity(self, key):
+        self.editActivity_key = key
+        self.editActivity_values = bw2.Database(key[0]).load()[key]
+
+    # def get_edit_activity_data(self):
+    #     ds = self.editActivity_values
+    #     try:
+    #         #  amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
+    #         amount = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
+    #     except IndexError:
+    #         print "Amount could not be determined. Perhaps this is a multi-output activity."
+    #         amount = 0
+    #     obj = {
+    #         'name': ds['name'],
+    #         'product': ds.get('reference product', ''),  # nur in v3
+    #         'location': ds.get('location', 'unknown'),
+    #         'amount': amount,
+    #         'unit': ds.get('unit', 'unknown'),
+    #         'database': key[0],
+    #         'key': key,
+    #         'key_type': 'activity',
+    #     }
+    #     return obj
