@@ -30,7 +30,7 @@ class pssWidget(QtGui.QWidget):
         self.webview = QtWebKit.QWebView()
         # D3
         self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
-        self.current_d3_layout = "tree"
+        self.current_d3_layout = "dagre"
         # LABELS
         label_process_subsystem = QtGui.QLabel("Process Subsystem")
         label_PSS_database = QtGui.QLabel("PSS Database")
@@ -105,7 +105,7 @@ class pssWidget(QtGui.QWidget):
         self.action_addOutput = QtGui.QAction("Duplicate", None)
         self.action_addOutput.triggered.connect(self.addOutput)
         self.table_PSS_outputs.addAction(self.action_addOutput)
-        self.action_removeOutput = QtGui.QAction("Remove duplicate", None)
+        self.action_removeOutput = QtGui.QAction("Remove", None)
         self.action_removeOutput.triggered.connect(self.removeOutput)
         self.table_PSS_outputs.addAction(self.action_removeOutput)
         # Chain

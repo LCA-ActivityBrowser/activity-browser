@@ -26,7 +26,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         # otherwise custom names from other PSS might be overwritten
         for o in self.pss_data['outputs']:
             if o[0] in self.name_map and o[1] == "Unspecified Output":
-                self.set_output_name(o[0], self.name_map[o[0]], update=False)
+                self.set_output_name(o[0], self.name_map[o[0]], "Unspecified Output", 1.0, update=False)
         for o in self.pss_data['cuts']:
             if o[0] in self.name_map and o[2] == "Unspecified Input":
                 self.set_cut_name(o[0], self.name_map[o[0]], update=False)

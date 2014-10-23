@@ -221,7 +221,7 @@ class ProcessSubsystem(object):
         }
         return pss_data_dict
 
-    def save_supply_chain_as_new_database(self, db_name="SPDB_default", unit=None,
+    def save_supply_chain_as_new_dataset(self, db_name="SPDB_default", unit=None,
             location=None, categories=[]):
         """Save simplified process to a database.
 
@@ -288,7 +288,7 @@ class ProcessSubsystem(object):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 if not self.key:
-                    self.save_supply_chain_as_new_database()
+                    self.save_supply_chain_as_new_dataset()
                 self.calculated_lca = LCA(demand={self.key: 1}, method=method)
                 self.calculated_lca.lci()
                 if factorize:
@@ -302,7 +302,7 @@ class ProcessSubsystem(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             if not self.key:
-                self.save_supply_chain_as_new_database()
+                self.save_supply_chain_as_new_dataset()
             self.calculated_lca = LCA(demand={self.key: 1})
         return self.calculated_lca.lci()
 

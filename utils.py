@@ -3,6 +3,7 @@
 
 from PyQt4 import QtGui
 import brightway2 as bw2
+import uuid
 
 class MyTableQWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -251,3 +252,7 @@ class BrowserStandardTasks(object):
             })
         return objs
 
+# CREATE AND MODIFY ACTIVITIES
+
+    def copy_activity(self, key):
+        self.editActivity = key
