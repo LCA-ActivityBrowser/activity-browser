@@ -19,6 +19,13 @@ class MyStandardItem(QtGui.QStandardItem):
         self.key_type = None
         self.setEditable(False)
 
+class MyTreeWidgetItem(QtGui.QTreeWidgetItem):
+    def __init__(self, parent=None, *args):
+        super(MyTreeWidgetItem, self).__init__(parent, *args)
+        self.activity_or_database_key = None
+        self.key_type = None
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+
 class HelperMethods(object):
     def __init__(self):
         pass

@@ -76,9 +76,7 @@ class pssWidget(QtGui.QWidget):
         button_closeDB.clicked.connect(self.closePSSDatabase)
         button_pp_matrix.clicked.connect(self.pp_matrix)
         # TREEWIDGETS
-        self.tree_view_cuts = QtGui.QTreeView()
-        self.model_tree_view_cuts = QtGui.QStandardItemModel()
-        self.tree_view_cuts.setModel(self.model_tree_view_cuts)
+        self.tree_widget_cuts = QtGui.QTreeWidget()
         # TABLES
         self.table_PSS_chain = QtGui.QTableWidget()
         self.table_PSS_outputs = QtGui.QTableWidget()
@@ -94,11 +92,11 @@ class pssWidget(QtGui.QWidget):
         VL_PSS_data.addWidget(QtGui.QLabel("Chain"))
         VL_PSS_data.addWidget(self.table_PSS_chain)
         VL_PSS_data.addWidget(QtGui.QLabel("Cuts"))
-        VL_PSS_data.addWidget(self.tree_view_cuts)
+        VL_PSS_data.addWidget(self.tree_widget_cuts)
         # CONNECTIONS
         self.line_edit_PSS_name.returnPressed.connect(self.set_pss_name)
         self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
-        self.model_tree_view_cuts.itemChanged.connect(self.set_cut_custom_data)
+        self.tree_widget_cuts.itemChanged.connect(self.set_cut_custom_data)
         self.table_PSS_outputs.itemChanged.connect(self.set_output_custom_data)
         self.table_PSS_outputs.currentItemChanged.connect(self.save_text_before_edit)
         self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
@@ -120,10 +118,10 @@ class pssWidget(QtGui.QWidget):
         self.action_remove_chain_item.triggered.connect(self.removeChainItem)
         self.table_PSS_chain.addAction(self.action_remove_chain_item)
         # Cuts treeview
-        self.tree_view_cuts.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.tree_widget_cuts.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_removeCut = QtGui.QAction("Remove cut", None)
         self.action_removeCut.triggered.connect(self.deleteCut)
-        self.tree_view_cuts.addAction(self.action_removeCut)
+        self.tree_widget_cuts.addAction(self.action_removeCut)
         # PSS Database
         self.table_PSS_database.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_delete_selected = QtGui.QAction("Delete selected", None)
@@ -289,7 +287,7 @@ class pssWidget(QtGui.QWidget):
 
     def deleteCut(self):
         print "\nCONTEXT MENU: "+self.action_removeCut.text()
-        item = self.model_tree_view_cuts.itemFromIndex(self.tree_view_cuts.currentIndex())
+        item = self.tree_widget_cuts.itemFromIndex(self.tree_widget_cuts.currentIndex())
         if item.activity_or_database_key:
             self.PSC.delete_cut(item.activity_or_database_key)
             self.showGraph()
@@ -328,8 +326,8 @@ class pssWidget(QtGui.QWidget):
         self.text_before_edit = str(self.table_PSS_outputs.currentItem().text())
 
     def set_cut_custom_data(self):
-        item = self.model_tree_view_cuts.itemFromIndex(self.tree_view_cuts.currentIndex())
-        self.PSC.set_cut_name(item.activity_or_database_key, str(item.text()))
+        item = self.tree_widget_cuts.itemFromIndex(self.tree_widget_cuts.currentIndex())
+        self.PSC.set_cut_name(item.activity_or_database_key, str(item.text(0)))
         self.showGraph()
 
     # UPDATING TABLES AND TREEVIEW
@@ -339,7 +337,7 @@ class pssWidget(QtGui.QWidget):
         self.updateTablePSSDatabase()
         self.update_PSS_table_widget_outputs()
         self.update_PSS_table_widget_chain()
-        self.update_PSS_tree_view_cuts()
+        self.update_PSS_tree_widget_cuts()
 
     def update_PSS_table_widget_outputs(self):
         keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
@@ -365,41 +363,39 @@ class pssWidget(QtGui.QWidget):
         data = [self.PSC.getActivityData(c) for c in self.PSC.pss.chain]
         self.table_PSS_chain = self.helper.update_table(self.table_PSS_chain, data, keys)
 
-    def update_PSS_tree_view_cuts(self):
+    def update_PSS_tree_widget_cuts(self):
         def formatActivityData(ad):
             ad_list = []
             for key in keys:
                 ad_list.append(ad.get(key, 'NA'))
             return ad_list
-        self.model_tree_view_cuts.blockSignals(True)  # no itemChanged signals during updating
-        self.model_tree_view_cuts.clear()
+        self.tree_widget_cuts.blockSignals(True)  # no itemChanged signals during updating
+        self.tree_widget_cuts.clear()
         keys = ['product', 'name', 'location', 'unit', 'database']
-        self.model_tree_view_cuts.setHorizontalHeaderLabels(keys)
-        root_node = MyStandardItem('Cuts')
+        self.tree_widget_cuts.setHeaderLabels(keys)
+        root = MyTreeWidgetItem(self.tree_widget_cuts, ['Cuts'])
+
         for i, cut in enumerate(self.PSC.pss.cuts):
             try:
                 cut_name = cut[2]
             except IndexError:
                 cut_name = "Set input name"
-            newNode = MyStandardItem(cut_name)
+            newNode = MyTreeWidgetItem(root, [cut_name])
             newNode.activity_or_database_key = cut[0]
-            newNode.setEditable(True)
+            newNode.setFlags(newNode.flags() | QtCore.Qt.ItemIsEditable)
             # make row with activity data
             ad = formatActivityData(self.PSC.getActivityData(cut[0]))
-            cutFromNode = [MyStandardItem(str(item)) for item in ad]
-            for msi in cutFromNode:
-                msi.activity_or_database_key = cut[0]
-            newNode.appendRow(cutFromNode)
+            cutFromNode = MyTreeWidgetItem(newNode, [str(item) for item in ad])
+            cutFromNode.activity_or_database_key = cut[0]
             ad = formatActivityData(self.PSC.getActivityData(cut[1]))
-            cutToNode = [MyStandardItem(str(item)) for item in ad]
-            newNode.appendRow(cutToNode)
-            root_node.appendRow(newNode)
-        self.model_tree_view_cuts.appendRow(root_node)
-        # display options
-        self.tree_view_cuts.expandAll()
+            cutToNode = MyTreeWidgetItem(newNode, [str(item) for item in ad])
+
+        # display and signals
+        self.tree_widget_cuts.expandAll()
         for i in range(len(keys)):
-            self.tree_view_cuts.resizeColumnToContents(i)
-        self.model_tree_view_cuts.blockSignals(False)  # itemChanged signals again after updating
+            self.tree_widget_cuts.resizeColumnToContents(i)
+        self.tree_widget_cuts.blockSignals(False)  # itemChanged signals again after updating
+        self.tree_widget_cuts.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)
 
     # VISUALIZATION
 
