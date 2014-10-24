@@ -46,7 +46,6 @@
     /*stroke: #FFFFFF;*/
     stroke: #00c262;
     stroke-width: 3px;
-    /*fill: #f88;*/
   }
 
 /*  .node.output text {
@@ -222,9 +221,9 @@ labels
 
 // Create the layout and get the graph
 dagre.layout()
-  .nodeSep(50)
+  .nodeSep(10)
   .edgeSep(10)
-  .rankSep(50)
+  .rankSep(20)
   .nodes(states)
   .edges(graphdata)
   .debugLevel(1)
