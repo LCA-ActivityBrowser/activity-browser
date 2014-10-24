@@ -1,0 +1,296 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Process Subsystem {{ name }}</title>
+  <script src="d3/d3.v3.min.js"></script>
+  <script src="dagre/dagre.js"></script>
+
+  <style>
+  .node rect {
+    stroke-width: 1.5px;
+    stroke: #333;
+    fill: #fff;
+  }
+
+/*  .node.product rect {
+    stroke: #FF00FF;
+    fill:   #FF00FF;
+  }
+
+  .node.process rect {
+    stroke: #FF00FF;
+    fill:   #FF00FF;
+  }*/
+
+  .node.cut rect {
+    stroke: #ff5063;
+    fill:   #FFE6F0;
+  }
+
+  .node.substituted rect {
+    stroke: #ff5063;
+    /*stroke: #9d5b99;*/
+    stroke-width: 4px;
+  }
+
+  .node.activity rect {
+    stroke: #69b5f9;
+    fill: #E6F0FF;
+  }
+
+  .node.chain rect {
+    stroke: #f59861;
+  }
+
+  .node.output rect {
+    /*stroke: #FFFFFF;*/
+    stroke: #00c262;
+    stroke-width: 3px;
+    /*fill: #f88;*/
+  }
+
+/*  .node.output text {
+    font: 12px "sans serif";
+    font-weight: bold;
+  }*/
+
+  #node-CLOSED rect {
+    stroke-width: 3px;
+    
+  }
+
+  .d-output {
+    stroke: #69b5f9;
+    stroke-width: 2px;
+  }
+
+  .d-cut-edge {
+
+  }
+
+  .node text {
+    font: 10px "sans serif";
+  }
+
+  .node:hover {
+    cursor: pointer;
+    opacity: 0.4;
+  }
+
+  path.edge {
+    fill: none;
+    /*stroke: #333;*/
+    stroke: #3366FF;
+    stroke-width: 1.5px;
+  }
+
+  .edge:hover {
+    cursor: pointer;
+    opacity: 0.4;
+  }
+  </style>
+
+</head>
+<body>
+<h1>{{ title }}</h1>
+
+<svg width=0 height=0>
+  <defs>
+    <marker id="arrowhead"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerUnits="strokeWidth"
+            markerWidth="8"
+            markerHeight="5"
+            orient="auto"
+            style="fill: #333">
+      <path d="M 0 0 L 10 5 L 0 10 z"></path>
+    </marker>
+  </defs>
+</svg>
+
+<script type="text/javascript">
+var graphdata= {{ data|safe }};
+
+var nodePadding = 10;
+
+function spline(e) {
+  var points = e.dagre.points.slice(0);
+  var source = dagre.util.intersectRect(e.source.dagre, points[0]);
+  var target = dagre.util.intersectRect(e.target.dagre, points[points.length - 1]);
+  points.unshift(source);
+  points.push(target);
+  return d3.svg.line()
+    .x(function(d) { return d.x; })
+    .y(function(d) { return d.y; })
+    .interpolate("linear")
+    (points);
+}
+
+// Translates all points in the edge using `dx` and `dy`.
+function translateEdge(e, dx, dy) {
+  e.dagre.points.forEach(function(p) {
+    p.x = Math.max(0, Math.min(svgBBox.width, p.x + dx));
+    p.y = Math.max(0, Math.min(svgBBox.height, p.y + dy));
+  });
+}
+
+// Get the data in the right form
+var stateKeys = {};
+graphdata.forEach(function(d) {
+  var source = stateKeys[d.source],
+      target = stateKeys[d.target];
+  if (!source) {
+    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class };
+  };
+  if (!target) {
+    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain"};
+  };
+  if (d.class === "output") {
+    stateKeys[d.target].class = "output";
+    stateKeys[d.source].class = "activity";
+  };
+  source.edges.push(d);
+  target.edges.push(d);
+});
+var states = d3.values(stateKeys);
+graphdata.forEach(function(d) {
+  d.source = stateKeys[d.source];
+  d.target = stateKeys[d.target];
+});
+
+// Now start laying things out
+var svg = d3.select("svg");
+var svgGroup = svg.append("g").attr("transform", "translate(5, 5)");
+
+// `nodes` is center positioned for easy layout later
+var nodes = svgGroup
+  .selectAll("g .node")
+  .data(states)
+  .enter()
+    .append("g")
+    .attr("class", function(d) { console.log(d); return "node " + d.class; })
+    .attr("id", function(d) { return "node-" + d.label });
+
+var edges = svgGroup
+  .selectAll("path .edge")
+  .data(graphdata)
+  .enter()
+    .append("path")
+    .attr("class", "edge")
+    // .attr("stroke-dasharray", "4,2")
+    // .attr("stroke-dashoffset", "5")
+    .attr("marker-end", "url(#arrowhead)");
+
+// Append rectangles to the nodes. We do this before laying out the text
+// because we want the text above the rectangle.
+var rects = nodes
+  .append("rect")
+  .attr("rx", 5)
+  .attr("ry", 5);
+
+// Append text
+var labels = nodes
+  .append("text")
+    .attr("text-anchor", "middle")
+    .attr("x", 0);
+
+labels
+  .append("tspan")
+  .attr("x", 0)
+  .attr("dy", "1em")
+  .text(function(d) { return d.label; });
+
+// We need width and height for layout.
+labels.each(function(d) {
+  var bbox = this.getBBox();
+  d.bbox = bbox;
+  d.width = bbox.width + 2 * nodePadding;
+  d.height = bbox.height + 2 * nodePadding;
+});
+
+rects
+  .attr("x", function(d) { return -(d.bbox.width / 2 + nodePadding); })
+  .attr("y", function(d) { return -(d.bbox.height / 2 + nodePadding); })
+  .attr("width", function(d) { return d.width; })
+  .attr("height", function(d) { return d.height; });
+
+labels
+  .attr("x", function(d) { return -d.bbox.width / 2; })
+  .attr("y", function(d) { return -d.bbox.height / 2; });
+
+// Create the layout and get the graph
+dagre.layout()
+  .nodeSep(50)
+  .edgeSep(10)
+  .rankSep(50)
+  .nodes(states)
+  .edges(graphdata)
+  .debugLevel(1)
+  .run();
+
+nodes.attr("transform", function(d) { return 'translate('+ d.dagre.x +','+ d.dagre.y +')'; });
+
+// Ensure that we have at least two points between source and target
+edges.each(function(d) {
+  var points = d.dagre.points;
+  if (!points.length) {
+    var s = d.source.dagre;
+    var t = d.target.dagre;
+    points.push({ x: (s.x + t.x) / 2, y: (s.y + t.y) / 2 });
+  }
+
+  if (points.length === 1) {
+    points.push({ x: points[0].x, y: points[0].y });
+  }
+});
+
+edges
+  // Set the id. of the SVG element to have access to it later
+  .attr('id', function(e) { return e.dagre.id; })
+  .attr("d", function(e) { return spline(e); });
+
+// Resize the SVG element
+var svgBBox = svg.node().getBBox();
+svg.attr("width", svgBBox.width + 10);
+svg.attr("height", svgBBox.height + 10);
+
+// Drag handlers
+var nodeDrag = d3.behavior.drag()
+  // Set the right origin (based on the Dagre layout or the current position)
+  .origin(function(d) { return d.pos ? {x: d.pos.x, y: d.pos.y} : {x: d.dagre.x, y: d.dagre.y}; })
+  .on('drag', function (d, i) {
+    var prevX = d.dagre.x,
+        prevY = d.dagre.y;
+
+    // The node must be inside the SVG area
+    d.dagre.x = Math.max(d.width / 2, Math.min(svgBBox.width - d.width / 2, d3.event.x));
+    d.dagre.y = Math.max(d.height / 2, Math.min(svgBBox.height - d.height / 2, d3.event.y));
+    d3.select(this).attr('transform', 'translate('+ d.dagre.x +','+ d.dagre.y +')');
+
+    var dx = d.dagre.x - prevX,
+        dy = d.dagre.y - prevY;
+
+    // Edges position (inside SVG area)
+    d.edges.forEach(function(e) {
+      translateEdge(e, dx, dy);
+      d3.select('#'+ e.dagre.id).attr('d', spline(e));
+    });
+  });
+
+var edgeDrag = d3.behavior.drag()
+  .on('drag', function (d, i) {
+    translateEdge(d, d3.event.dx, d3.event.dy);
+    d3.select(this).attr('d', spline(d));
+  });
+
+  // var renderer = new dagreD3.Renderer();
+  // renderer.edgeInterpolate('linear');
+  // renderer.zoom(true);
+
+nodes.call(nodeDrag);
+edges.call(edgeDrag);
+</script>
+</body>
+</html>
