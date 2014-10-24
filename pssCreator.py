@@ -84,7 +84,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
             if from_key in children:
                 print "Cannot add cut. Activity is linked to by another activity."
             else:
-                new_cuts = [(from_key, pcv[1], "Unspecified Input") for pcv in self.pss.internal_edges_with_cuts if from_key == pcv[0]]
+                new_cuts = [(from_key, pcv[1], "Unspecified Input", pcv[2]) for pcv in self.pss.internal_scaled_edges_with_cuts if from_key == pcv[0]]
                 self.pss_data['cuts'] = list(set(self.pss_data['cuts'] + new_cuts))
                 print "cutting: " + str(new_cuts)
                 self.update_pss()
@@ -120,7 +120,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
     def set_cut_name(self, key, name, update=True):
         for i, o in enumerate(self.pss_data['cuts']):
             if o[0] == key:
-                self.pss_data['cuts'][i] = tuple([o[0], o[1], name])
+                self.pss_data['cuts'][i] = tuple([o[0], o[1], name, o[3]])
         if update:
             self.name_map.update({key: name})
             self.update_pss()
@@ -165,7 +165,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         if not self.pss.chain:
             return []
         tree_data = []
-        parents_children = [e[:2] for e in self.pss.internal_edges_with_cuts]  # not using amount yet
+        parents_children = [e[:2] for e in self.pss.internal_scaled_edges_with_cuts]  # not using amount yet
         head_nodes = self.pss.scaling_activities
         for head in head_nodes:
             parents_children.append((head, self.pss.name))
@@ -185,7 +185,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
 
         outputs = [(getData(o[0]), o[1], o[2]) for o in pss_data['outputs']]
         chain = [getData(o) for o in pss_data['chain']]
-        cuts = [(getData(o[0]), getData(o[1]), o[2]) for o in pss_data['cuts']]
+        cuts = [(getData(o[0]), getData(o[1]), o[2], o[3]) for o in pss_data['cuts']]
         # edges = [(getData(o[0]), getData(o[1])) for o in pss['edges']]
         pss_HR = {
             'name': pss_data['name'],

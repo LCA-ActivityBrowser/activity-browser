@@ -371,7 +371,7 @@ class pssWidget(QtGui.QWidget):
             return ad_list
         self.tree_widget_cuts.blockSignals(True)  # no itemChanged signals during updating
         self.tree_widget_cuts.clear()
-        keys = ['product', 'name', 'location', 'unit', 'database']
+        keys = ['product', 'name', 'location', 'amount', 'unit', 'database']
         self.tree_widget_cuts.setHeaderLabels(keys)
         root = MyTreeWidgetItem(self.tree_widget_cuts, ['Cuts'])
 
@@ -385,9 +385,11 @@ class pssWidget(QtGui.QWidget):
             newNode.setFlags(newNode.flags() | QtCore.Qt.ItemIsEditable)
             # make row with activity data
             ad = formatActivityData(self.PSC.getActivityData(cut[0]))
+            ad[3] = cut[3]  # set amount to that of internal_scaled_edge_with_cuts
             cutFromNode = MyTreeWidgetItem(newNode, [str(item) for item in ad])
             cutFromNode.activity_or_database_key = cut[0]
             ad = formatActivityData(self.PSC.getActivityData(cut[1]))
+            ad[3] = ''  # we are only interested in the cutFromNode amount
             cutToNode = MyTreeWidgetItem(newNode, [str(item) for item in ad])
 
         # display and signals
@@ -470,7 +472,7 @@ class pssWidget(QtGui.QWidget):
                 'amount': o[2],
                 'class': 'output'
             })
-        for inp, outp, name in data.get('cuts', []):
+        for inp, outp, name, value in data.get('cuts', []):
             graph.append({
                 'source': shorten(*inp),
                 'target': shorten(*outp),

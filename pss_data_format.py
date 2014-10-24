@@ -22,9 +22,9 @@ pss_data_format = [
         'cuts': [
             (parent_key, child_key, 'custom_name'),
         ],
-        'edges': [ # theoretically not necessary, but more convenient and perhaps helpful
-            (parent_key, child_key),
-        ],
+        # 'edges': [ # theoretically not necessary, but more convenient and perhaps helpful
+        #     (parent_key, child_key),
+        # ],
     },
     # ...
 ]

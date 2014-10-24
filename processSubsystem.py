@@ -35,6 +35,7 @@ class ProcessSubsystem(object):
         # self.check_outputs()
         self.mapping, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
+        self.pad_cuts()
 
     def remove_cuts_from_chain(self, chain, cuts):
         """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.
@@ -46,11 +47,17 @@ class ProcessSubsystem(object):
                 print "PSS WARNING: Cut removed from chain: " + str(cut[0])
         return set(chain)
 
-    # def check_outputs(self):
-    #     output_keys = [o[0] for o in self.outputs]
-    #     if sorted(output_keys) != sorted(self.scaling_activities):
-    #         print "PSS WARNING: Not all outputs have been specified."
-    #     # TODO: unclear what to do then. Could be that there are several heads, but I just want to give it one name.
+    def pad_cuts(self):
+        """
+        Make sure that each cut includes the amount that is cut. This is retrieved from self.internal_scaled_edges_with_cuts
+        """
+        for i, c in enumerate(self.cuts):
+            for e in self.internal_scaled_edges_with_cuts:
+                if c[:2] == e[:2]:
+                    try:
+                        self.cuts[i] = (c[0], c[1], c[2], e[2])
+                    except IndexError:
+                        print "Problem with cut data: " + str(c)
 
     def pad_outputs(self, outputs):
         """Add default amount (1) to outputs if not present.
