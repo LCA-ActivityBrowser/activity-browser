@@ -39,13 +39,14 @@ class pssWidget(QtGui.QWidget):
         button_new_process_subsystem = QtGui.QPushButton("New")
         button_add_PSS_to_Database = QtGui.QPushButton("Add to DB")
         button_delete_PSS_from_Database = QtGui.QPushButton("Delete")
-        button_toggle_layout = QtGui.QPushButton("Toggle Graph")
+        button_graph = QtGui.QPushButton("Graph")
+        button_toggle_layout = QtGui.QPushButton("Toggle")
         # PSS Database
         button_load_PSS_database = QtGui.QPushButton("Load DB")
         button_saveAs_PSS_database = QtGui.QPushButton("Save DB")
         button_addDB = QtGui.QPushButton("Add DB")
         button_closeDB = QtGui.QPushButton("Close DB")
-        button_pp_matrix = QtGui.QPushButton("PP-Matrix")
+        button_pp_matrix = QtGui.QPushButton("PP-Graph")
         # LAYOUTS for buttons
         # Process Subsystem
         self.HL_PSS_buttons = QtGui.QHBoxLayout()
@@ -54,6 +55,7 @@ class pssWidget(QtGui.QWidget):
         self.HL_PSS_buttons.addWidget(button_add_PSS_to_Database)
         self.HL_PSS_buttons.addWidget(button_delete_PSS_from_Database)
         self.HL_PSS_buttons.addWidget(button_toggle_layout)
+        self.HL_PSS_buttons.addWidget(button_graph)
         # PSS Database
         self.HL_PSS_Database_buttons = QtGui.QHBoxLayout()
         self.HL_PSS_Database_buttons.addWidget(label_PSS_database)
@@ -68,6 +70,7 @@ class pssWidget(QtGui.QWidget):
         button_saveAs_PSS_database.clicked.connect(self.saveAsPSSDatabase)
         button_add_PSS_to_Database.clicked.connect(self.addPSStoDatabase)
         button_toggle_layout.clicked.connect(self.toggleLayout)
+        button_graph.clicked.connect(self.showGraph)
         button_delete_PSS_from_Database.clicked.connect(self.deletePSSfromDatabase)
         button_addDB.clicked.connect(self.addPSSDatabase)
         button_closeDB.clicked.connect(self.closePSSDatabase)
@@ -506,13 +509,15 @@ class pssWidget(QtGui.QWidget):
                 graph_data.append({
                     'source': input[2],
                     'target': pss_data['name'],
-                    'type': "suit",
+                    'type': 'suit',
+                    'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
                 })
             for output in pss_data['outputs']:
                 graph_data.append({
                     'source': pss_data['name'],
                     'target': output[1],
-                    'type': "suit",
+                    'type': 'suit',
+                    'class': 'output',
                 })
         print "\nPP-MATRIX GRAPH DATA:"
         print graph_data
