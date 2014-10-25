@@ -208,45 +208,54 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         graph = []
         # outputs
         for outp, name, value in pss.outputs:
+            outp_ad = self.getActivityData(outp)
             graph.append({
                 'source': self.getActivityData(outp)['name'],
                 'target': name,
                 'source_in': '',
-                'source_out': format_output(value, self.getActivityData(outp)['unit']) if len(pss.outputs) == 1 else '',
+                'source_out': format_output(value, outp_ad['unit']) if len(pss.outputs) == 1 else '',
                 'target_in': '',
-                'target_out': format_output(value, self.getActivityData(outp)['unit']),
+                'target_out': format_output(value, outp_ad['unit']),
                 'class': 'output'
             })
         # cuts
         for inp, outp, name, value in pss.cuts:
             val_source_out = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[1] and inp == edge[0]])
             value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
+            inp_ad = self.getActivityData(inp)
+            outp_ad = self.getActivityData(outp)
             graph.append({
-                'source': self.getActivityData(inp)['name'],
-                'target': self.getActivityData(outp)['name'],
+                'source': inp_ad['name'],
+                'target': outp_ad['name'],
+                'source_product': inp_ad['product'],
+                'target_product': outp_ad['product'],
                 'source_in': '',
-                'source_out': format_output(val_source_out, self.getActivityData(inp)['unit']),
+                'source_out': format_output(val_source_out, inp_ad['unit']),
                 'target_in': '',
-                'target_out': format_output(value_output, self.getActivityData(outp)['unit']),
+                'target_out': format_output(value_output, outp_ad['unit']),
                 'class': 'cut'
             })
-            if not [x for x in graph if x['source'] == name and x['target'] == self.getActivityData(outp)['name']]:
+            if not [x for x in graph if x['source'] == name and x['target'] == outp_ad['name']]:
                 graph.append({
                     'source': name,
-                    'target': self.getActivityData(outp)['name'],
+                    'target': outp_ad['name'],
                     'class': 'substituted'
                 })
         # chain
         for inp, outp, value in pss.internal_scaled_edges_with_cuts:
             value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
+            inp_ad = self.getActivityData(inp)
+            outp_ad = self.getActivityData(outp)
             if inp in pss.chain and outp in pss.chain:  # TODO: check necessary?
                 graph.append({
-                    'source': self.getActivityData(inp)['name'],
-                    'target': self.getActivityData(outp)['name'],
+                    'source': inp_ad['name'],
+                    'target': outp_ad['name'],
+                    'source_product': inp_ad['product'],
+                    'target_product': outp_ad['product'],
                     'source_in': '',
-                    'source_out': format_output(value, self.getActivityData(inp)['unit']),
+                    'source_out': format_output(value, inp_ad['unit']),
                     'target_in': '',
-                    'target_out': format_output(value_output, self.getActivityData(outp)['unit']),
+                    'target_out': format_output(value_output, outp_ad['unit']),
                     'class': 'chain'
                 })
 

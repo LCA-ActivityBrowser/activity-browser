@@ -143,10 +143,10 @@ graphdata.forEach(function(d) {
       target = stateKeys[d.target];
       // output = stateKeys[d.output];
   if (!source) {
-    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.source_out };
+    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.source_out, product: d.source_product };
   };
   if (!target) {
-    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.target_out };
+    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.target_out, product: d.target_product };
   };
   // if (!source) {
   //   source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.input };
@@ -223,6 +223,13 @@ labels
   .attr("x", 0)
   .attr("dy", "1em")
   .text(function(d) { return d.output; });
+
+// product:
+labels
+  .append("tspan")
+  .attr("x", 0)
+  .attr("dy", "1em")
+  .text(function(d) { return d.product; });
 
 // We need width and height for layout.
 labels.each(function(d) {
