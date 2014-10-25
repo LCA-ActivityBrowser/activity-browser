@@ -208,12 +208,13 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         graph = []
         # outputs
         for outp, name, value in pss.outputs:
+            value_source = sum([o[2] for o in pss.outputs if o[0] == outp])
             outp_ad = self.getActivityData(outp)
             graph.append({
                 'source': self.getActivityData(outp)['name'],
                 'target': name,
                 'source_in': '',
-                'source_out': format_output(value, outp_ad['unit']) if len(pss.outputs) == 1 else '',
+                'source_out': format_output(value_source, outp_ad['unit']),
                 'target_in': '',
                 'target_out': format_output(value, outp_ad['unit']),
                 'class': 'output'
