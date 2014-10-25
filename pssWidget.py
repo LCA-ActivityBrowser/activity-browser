@@ -460,42 +460,53 @@ class pssWidget(QtGui.QWidget):
             # return "\\n".join(name_chunks)
             return name
             # return " ".join(name.split(" ")[:8]) + " (%s)" % geo
-        pss = self.PSC.pss
-        data = self.PSC.getHumanReadiblePSS(self.PSC.pss_data)
-        mapping = dict(zip(self.PSC.pss_data['chain'], self.PSC.getHumanReadiblePSS(self.PSC.pss_data)['chain']))
 
+        def format_output(number, unit, product=''):
+            return " ".join(["{:.2g}".format(number), unit, product])
+
+        pss = self.PSC.pss
         graph = []
-        for o in data['outputs']:
+        # outputs
+        for key, name, value in pss.outputs:
             graph.append({
-                'source': shorten(*o[0]),
-                'target': o[1],
-                'amount': o[2],
+                'source': self.PSC.getActivityData(key)['name'],
+                'target': name,
+                'output': format_output(value, self.PSC.getActivityData(key)['unit']),
                 'class': 'output'
             })
-        for inp, outp, name, value in data.get('cuts', []):
+        # cuts
+        for inp, outp, name, value in pss.cuts:
+            value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
             graph.append({
-                'source': shorten(*inp),
-                'target': shorten(*outp),
+                'source': self.PSC.getActivityData(inp)['name'],
+                'target': self.PSC.getActivityData(outp)['name'],
+                'input': format_output(value, self.PSC.getActivityData(inp)['unit']),
+                'output': format_output(value_output, self.PSC.getActivityData(outp)['unit']),
                 'class': 'cut'
             })
             if not [x for x in graph if x['source'] == name and x['target'] == shorten(*outp)]:
                 graph.append({
                     'source': name,
-                    'target': shorten(*outp),
+                    'target': self.PSC.getActivityData(outp)['name'],
                     'class': 'substituted'
                 })
-        for inp, outp, amount in pss.edges:
+        # chain
+        for inp, outp, value in pss.internal_scaled_edges_with_cuts:
+            value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
             if inp in pss.chain and outp in pss.chain:
                 graph.append({
-                    'source': shorten(*mapping[inp]),
-                    'target': shorten(*mapping[outp]),
-                    'amount': amount,
+                    'source': self.PSC.getActivityData(inp)['name'],
+                    'target': self.PSC.getActivityData(outp)['name'],
+                    'input': format_output(value, self.PSC.getActivityData(inp)['unit']),
+                    'output': format_output(value_output, self.PSC.getActivityData(outp)['unit']),
                     'class': 'chain'
                 })
+                # print "in: " + format_output(value, self.PSC.getActivityData(inp)['unit'])
+                # print "out: " + format_output(value_output, self.PSC.getActivityData(outp)['unit'])
 
         dagre_data = {
-            'name': data['name'],
-            'title': data['name'],
+            'name': pss.name,
+            'title': pss.name,
             'data': json.dumps(graph, indent=2)
         }
         return dagre_data

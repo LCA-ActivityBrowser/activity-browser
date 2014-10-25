@@ -113,7 +113,7 @@
 <script type="text/javascript">
 var graphdata= {{ data|safe }};
 
-var nodePadding = 10;
+var nodePadding = 8;
 
 function spline(e) {
   var points = e.dagre.points.slice(0);
@@ -141,15 +141,18 @@ var stateKeys = {};
 graphdata.forEach(function(d) {
   var source = stateKeys[d.source],
       target = stateKeys[d.target];
+      // output = stateKeys[d.output];
   if (!source) {
-    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class };
+    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.input };
   };
   if (!target) {
-    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain"};
+    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.output };
   };
   if (d.class === "output") {
-    stateKeys[d.target].class = "output";
     stateKeys[d.source].class = "activity";
+    stateKeys[d.target].class = "output";
+    stateKeys[d.source].output = stateKeys[d.target].output;
+    stateKeys[d.target].output = "";
   };
   source.edges.push(d);
   target.edges.push(d);
@@ -200,7 +203,20 @@ labels
   .append("tspan")
   .attr("x", 0)
   .attr("dy", "1em")
+  .text(function(d) { return d.input; });
+
+labels
+  .append("tspan")
+  .attr("x", 0)
+  .attr("dy", "1em")
   .text(function(d) { return d.label; });
+
+// output:
+labels
+  .append("tspan")
+  .attr("x", 0)
+  .attr("dy", "1em")
+  .text(function(d) { return d.output; });
 
 // We need width and height for layout.
 labels.each(function(d) {

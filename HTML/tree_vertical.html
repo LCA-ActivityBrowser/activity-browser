@@ -13,7 +13,7 @@
 	  stroke-width: 3px;
 	}
 
-	.node text { font: 10px sans-serif; }
+	.node text { font: 12px sans-serif; }
 
 	.link {
 	  fill: none;
@@ -64,7 +64,7 @@ function update(source) {
 	  links = tree.links(nodes);
 
   // Normalize for fixed-depth.
-  nodes.forEach(function(d) { d.y = d.depth * 50; });
+  nodes.forEach(function(d) { d.y = d.depth * 70; });
 
   // Declare the nodesâ€¦
   var node = svg.selectAll("g.node")
@@ -82,11 +82,20 @@ function update(source) {
 
   nodeEnter.append("text")
 	  .attr("y", function(d) { 
-		  return d.children || d._children ? -18 : 18; })
+		  return d.children || d._children ? -18 : -18; })
 	  .attr("dy", ".35em")
 	  .attr("text-anchor", "middle")
 	  .text(function(d) { return d.name; })
 	  .style("fill-opacity", 1);
+
+// output amount and unit:
+  nodeEnter.append("text")
+    .attr("y", function(d) { 
+      return d.children || d._children ? -30 : -30; })
+    .attr("dy", ".35em")
+    .attr("text-anchor", "middle")
+    .text(function(d) { return d.output; })
+    .style("fill-opacity", 1);
 
   // Declare the linksâ€¦
   var link = svg.selectAll("path.link")

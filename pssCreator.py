@@ -148,15 +148,27 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
 
     def getTreeData(self):
         # TODO: rewrite using ProcessSubsystem? To apply: self.internal_scaled_edges_with_cuts
-        def get_nodes(node):
+        def get_nodes(node, child=None):
             d = {}
             if node == self.pss.name:
                 d['name'] = node
+            elif child == self.pss.name:
+                d['name'] = self.getActivityData(node)['name']
+                output_amount = [o[2] for o in self.pss.outputs]
+                if output_amount:
+                    d['output'] = " ".join(["{:10.2g}".format(output_amount[0]), self.getActivityData(node)['unit']])
             else:
                 d['name'] = self.getActivityData(node)['name']
+                # output amount
+                output_amount = [edge[2] for edge in self.pss.internal_scaled_edges_with_cuts
+                              if node == edge[0] and child == edge[1]]
+                if len(output_amount) > 1:
+                    print "WARNING, several outputs were found."
+                elif output_amount:
+                    d['output'] = " ".join(["{:10.2g}".format(output_amount[0]), self.getActivityData(node)['unit']])
             parents = get_parents(node)
-            if parents:
-                d['children'] = [get_nodes(parent) for parent in parents]
+            if parents:  # parents and children have the opposite meaning in this method and in the LCI database
+                d['children'] = [get_nodes(parent, node) for parent in parents]
             return d
 
         def get_parents(node):
