@@ -143,16 +143,22 @@ graphdata.forEach(function(d) {
       target = stateKeys[d.target];
       // output = stateKeys[d.output];
   if (!source) {
-    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.input };
+    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.source_out };
   };
   if (!target) {
-    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.output };
+    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.target_out };
   };
+  // if (!source) {
+  //   source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.input };
+  // };
+  // if (!target) {
+  //   target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.output };
+  // };
   if (d.class === "output") {
     stateKeys[d.source].class = "activity";
     stateKeys[d.target].class = "output";
-    stateKeys[d.source].output = stateKeys[d.target].output;
-    stateKeys[d.target].output = "";
+    // stateKeys[d.source].output = stateKeys[d.target].output;
+    // stateKeys[d.target].output = "";
   };
   source.edges.push(d);
   target.edges.push(d);

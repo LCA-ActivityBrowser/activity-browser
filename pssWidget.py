@@ -421,7 +421,7 @@ class pssWidget(QtGui.QWidget):
             self.set_webview(template_data, self.current_d3_layout)
             print json.dumps(self.PSC.getGraphData(), indent=1)
         elif self.current_d3_layout == "dagre":
-            template_data = self.get_dagre_data()
+            template_data = self.PSC.get_dagre_data()
             self.set_webview(template_data, self.current_d3_layout)
 
     def set_webview(self, template_data, template_name):
@@ -447,69 +447,6 @@ class pssWidget(QtGui.QWidget):
             self.current_d3_layout = "tree"
         print "Visualization as: " + self.current_d3_layout
         self.showGraph()
-
-    def get_dagre_data(self):
-
-        def chunks(s, n):
-            """Produce `n`-character chunks from `s`."""
-            for start in range(0, len(s), n):
-                yield s[start:start+n]
-
-        def shorten(db, product, name, geo):
-            # name_chunks = chunks(name, 20)
-            # return "\\n".join(name_chunks)
-            return name
-            # return " ".join(name.split(" ")[:8]) + " (%s)" % geo
-
-        def format_output(number, unit, product=''):
-            return " ".join(["{:.2g}".format(number), unit, product])
-
-        pss = self.PSC.pss
-        graph = []
-        # outputs
-        for key, name, value in pss.outputs:
-            graph.append({
-                'source': self.PSC.getActivityData(key)['name'],
-                'target': name,
-                'output': format_output(value, self.PSC.getActivityData(key)['unit']),
-                'class': 'output'
-            })
-        # cuts
-        for inp, outp, name, value in pss.cuts:
-            value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
-            graph.append({
-                'source': self.PSC.getActivityData(inp)['name'],
-                'target': self.PSC.getActivityData(outp)['name'],
-                'input': format_output(value, self.PSC.getActivityData(inp)['unit']),
-                'output': format_output(value_output, self.PSC.getActivityData(outp)['unit']),
-                'class': 'cut'
-            })
-            if not [x for x in graph if x['source'] == name and x['target'] == shorten(*outp)]:
-                graph.append({
-                    'source': name,
-                    'target': self.PSC.getActivityData(outp)['name'],
-                    'class': 'substituted'
-                })
-        # chain
-        for inp, outp, value in pss.internal_scaled_edges_with_cuts:
-            value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
-            if inp in pss.chain and outp in pss.chain:
-                graph.append({
-                    'source': self.PSC.getActivityData(inp)['name'],
-                    'target': self.PSC.getActivityData(outp)['name'],
-                    'input': format_output(value, self.PSC.getActivityData(inp)['unit']),
-                    'output': format_output(value_output, self.PSC.getActivityData(outp)['unit']),
-                    'class': 'chain'
-                })
-                # print "in: " + format_output(value, self.PSC.getActivityData(inp)['unit'])
-                # print "out: " + format_output(value_output, self.PSC.getActivityData(outp)['unit'])
-
-        dagre_data = {
-            'name': pss.name,
-            'title': pss.name,
-            'data': json.dumps(graph, indent=2)
-        }
-        return dagre_data
 
     def get_pp_graph(self):
         graph_data = []

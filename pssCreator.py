@@ -185,6 +185,78 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         tree_data.append(get_nodes(self.pss.name))
         return tree_data
 
+    def get_dagre_data(self):
+
+        def chunks(s, n):
+            """Produce `n`-character chunks from `s`."""
+            for start in range(0, len(s), n):
+                yield s[start:start+n]
+
+        def shorten(db, product, name, geo):
+            # name_chunks = chunks(name, 20)
+            # return "\\n".join(name_chunks)
+            return name
+            # return " ".join(name.split(" ")[:8]) + " (%s)" % geo
+
+        def format_output(number, unit, product=''):
+            if number:
+                return " ".join(["{:.2g}".format(number), unit, product])
+            else:
+                return ''
+
+        pss = self.pss
+        graph = []
+        # outputs
+        for outp, name, value in pss.outputs:
+            graph.append({
+                'source': self.getActivityData(outp)['name'],
+                'target': name,
+                'source_in': '',
+                'source_out': format_output(value, self.getActivityData(outp)['unit']) if len(pss.outputs) == 1 else '',
+                'target_in': '',
+                'target_out': format_output(value, self.getActivityData(outp)['unit']),
+                'class': 'output'
+            })
+        # cuts
+        for inp, outp, name, value in pss.cuts:
+            val_source_out = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[1] and inp == edge[0]])
+            value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
+            graph.append({
+                'source': self.getActivityData(inp)['name'],
+                'target': self.getActivityData(outp)['name'],
+                'source_in': '',
+                'source_out': format_output(val_source_out, self.getActivityData(inp)['unit']),
+                'target_in': '',
+                'target_out': format_output(value_output, self.getActivityData(outp)['unit']),
+                'class': 'cut'
+            })
+            if not [x for x in graph if x['source'] == name and x['target'] == self.getActivityData(outp)['name']]:
+                graph.append({
+                    'source': name,
+                    'target': self.getActivityData(outp)['name'],
+                    'class': 'substituted'
+                })
+        # chain
+        for inp, outp, value in pss.internal_scaled_edges_with_cuts:
+            value_output = sum([edge[2] for edge in pss.internal_scaled_edges_with_cuts if outp == edge[0]])
+            if inp in pss.chain and outp in pss.chain:  # TODO: check necessary?
+                graph.append({
+                    'source': self.getActivityData(inp)['name'],
+                    'target': self.getActivityData(outp)['name'],
+                    'source_in': '',
+                    'source_out': format_output(value, self.getActivityData(inp)['unit']),
+                    'target_in': '',
+                    'target_out': format_output(value_output, self.getActivityData(outp)['unit']),
+                    'class': 'chain'
+                })
+
+        dagre_data = {
+            'name': pss.name,
+            'title': pss.name,
+            'data': json.dumps(graph, indent=2)
+        }
+        return dagre_data
+
     def getHumanReadiblePSS(self, pss_data):
         # print pss_data
 

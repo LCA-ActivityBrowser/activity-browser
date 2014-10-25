@@ -142,7 +142,7 @@ class BrowserStandardTasks(object):
             #  amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
             amount = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
         except IndexError:
-            print "Amount could not be determined. Perhaps this is a multi-output activity."
+            # print "Amount could not be determined. Perhaps this is a multi-output activity."
             amount = 0
         obj = {
             'name': ds['name'],

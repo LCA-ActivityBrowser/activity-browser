@@ -158,7 +158,6 @@ class ProcessSubsystem(object):
             Supply vector (as list)
 
         """
-        output_amounts = dict((o[0], o[2]) for o in outputs)
         mapping = dict(*[zip(sorted(chain), itertools.count())])
         M = len(chain)
         matrix = np.zeros((M, M))
@@ -173,7 +172,8 @@ class ProcessSubsystem(object):
             ] -= a
         demand = np.zeros((M,))
         for a in scaling_activities:
-            demand[mapping[a]] = output_amounts[a]
+            for o in [output for output in outputs if output[0] == a]:
+                demand[mapping[a]] += o[2]
         return mapping, matrix, np.linalg.solve(matrix, demand).tolist()
 
     @property
