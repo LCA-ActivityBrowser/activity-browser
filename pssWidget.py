@@ -46,7 +46,7 @@ class pssWidget(QtGui.QWidget):
         button_saveAs_PSS_database = QtGui.QPushButton("Save DB")
         button_addDB = QtGui.QPushButton("Add DB")
         button_closeDB = QtGui.QPushButton("Close DB")
-        button_pp_matrix = QtGui.QPushButton("PP-Graph")
+        button_pp_graph = QtGui.QPushButton("PP-Graph")
         # LAYOUTS for buttons
         # Process Subsystem
         self.HL_PSS_buttons = QtGui.QHBoxLayout()
@@ -63,7 +63,7 @@ class pssWidget(QtGui.QWidget):
         self.HL_PSS_Database_buttons.addWidget(button_saveAs_PSS_database)
         self.HL_PSS_Database_buttons.addWidget(button_addDB)
         self.HL_PSS_Database_buttons.addWidget(button_closeDB)
-        self.HL_PSS_Database_buttons.addWidget(button_pp_matrix)
+        self.HL_PSS_Database_buttons.addWidget(button_pp_graph)
         # CONNECTIONS
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
         button_load_PSS_database.clicked.connect(self.loadPSSDatabase)
@@ -74,7 +74,7 @@ class pssWidget(QtGui.QWidget):
         button_delete_PSS_from_Database.clicked.connect(self.deletePSSfromDatabase)
         button_addDB.clicked.connect(self.addPSSDatabase)
         button_closeDB.clicked.connect(self.closePSSDatabase)
-        button_pp_matrix.clicked.connect(self.pp_matrix)
+        button_pp_graph.clicked.connect(self.pp_graph)
         # TREEWIDGETS
         self.tree_widget_cuts = QtGui.QTreeWidget()
         # TABLES
@@ -500,7 +500,7 @@ class pssWidget(QtGui.QWidget):
         }
         return dagre_data
 
-    def get_pp_matrix_graph(self):
+    def get_pp_graph(self):
         graph_data = []
         for pss_data in self.PSS_database:
             for input in pss_data['cuts']:
@@ -521,12 +521,42 @@ class pssWidget(QtGui.QWidget):
         print graph_data
         return graph_data
 
+    def get_pp_tree(self):
+        def get_nodes(node):
+            d = {}
+            if node == root:
+                d['name'] = node
+            else:
+                d['name'] = node
+            parents = get_parents(node)
+            if parents:
+                d['children'] = [get_nodes(parent) for parent in parents]
+            return d
+
+        def get_parents(node):
+            return [x[0] for x in parents_children if x[1] == node]
+
+        # if not self.pss.chain:
+        #     return []
+        tree_data = []
+        graph_data = self.get_pp_graph()  # source / target dicts
+        parents_children = [(d['source'], d['target']) for d in graph_data]  # not using amount yet
+        sources, targets = zip(*parents_children)
+        head_nodes = list(set([t for t in targets if not t in sources]))
+
+        root = "PSS database outputs"
+        for head in head_nodes:
+            parents_children.append((head, root))
+
+        tree_data.append(get_nodes(root))
+        return tree_data
+
     # OTHER METHODS
 
     def setNewCurrentActivity(self):
         self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
 
-    def pp_matrix(self):
+    def pp_graph(self):
         print "\nPP-MATRIX:"
         processes, products, matrix = self.get_process_products_as_array()
         print "PROCESSES:"
@@ -536,11 +566,18 @@ class pssWidget(QtGui.QWidget):
         print "MATRIX"
         print matrix
 
-        template_data = {
-            'height': self.webview.geometry().height(),
-            'width': self.webview.geometry().width(),
-            'data': json.dumps(self.get_pp_matrix_graph(), indent=1)
-        }
+        if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
+            template_data = {
+                'height': self.webview.geometry().height(),
+                'width': self.webview.geometry().width(),
+                'data': json.dumps(self.get_pp_graph(), indent=1)
+            }
+        elif self.current_d3_layout == "tree":
+            template_data = {
+                'height': self.webview.geometry().height(),
+                'width': self.webview.geometry().width(),
+                'data': json.dumps(self.get_pp_tree(), indent=1)
+            }
         self.set_webview(template_data, self.current_d3_layout)
 
     def get_process_products_as_array(self):

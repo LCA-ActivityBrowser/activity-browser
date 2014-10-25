@@ -20,7 +20,7 @@ pss_data_format = [
             (parent_key, child_key),
         ],
         'cuts': [
-            (parent_key, child_key, 'custom_name'),
+            (parent_key, child_key, 'custom_name', amount),
         ],
         # 'edges': [ # theoretically not necessary, but more convenient and perhaps helpful
         #     (parent_key, child_key),
