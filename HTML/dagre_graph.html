@@ -205,12 +205,14 @@ var labels = nodes
     .attr("text-anchor", "middle")
     .attr("x", 0);
 
+// input:
 labels
   .append("tspan")
   .attr("x", 0)
   .attr("dy", "1em")
   .text(function(d) { return d.input; });
 
+// activity name:
 labels
   .append("tspan")
   .attr("x", 0)

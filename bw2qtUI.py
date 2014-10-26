@@ -234,6 +234,7 @@ class MainWindow(QtGui.QMainWindow):
             self.PSS_Widget = pssWidget()
             self.tab_widget_LEFT.addTab(self.PSS_Widget.PSSdataWidget, "PSS")
             self.tab_widget_LEFT.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
+            self.tab_widget_LEFT.addTab(self.PSS_Widget.PP_analyzer, "PP Analyzer")
             self.VL_LEFT.addLayout(self.PSS_Widget.HL_PSS_buttons)
             self.VL_LEFT.addLayout(self.PSS_Widget.HL_PSS_Database_buttons)
             self.tab_widget_RIGHT.addTab(self.PSS_Widget.webview, "Graph")

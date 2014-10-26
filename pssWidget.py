@@ -12,6 +12,7 @@ from pssCreator import ProcessSubsystemCreator
 from processSubsystem import ProcessSubsystem
 import numpy as np
 import itertools
+import networkx as nx  # TODO get rid of this dependency?
 
 class pssWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
@@ -22,9 +23,10 @@ class pssWidget(QtGui.QWidget):
         self.PSS_database = []
         self.helper = HelperMethods()
         self.setupUserInterface()
+        self.set_up_PP_analyzer()
 
     def setupUserInterface(self):
-        # PSS Data Widget
+        # PSS Widgets
         self.PSSdataWidget = QtGui.QWidget()
         # Webview
         self.webview = QtWebKit.QWebView()
@@ -127,6 +129,29 @@ class pssWidget(QtGui.QWidget):
         self.action_delete_selected = QtGui.QAction("Delete selected", None)
         self.action_delete_selected.triggered.connect(self.delete_selected_PSS)
         self.table_PSS_database.addAction(self.action_delete_selected)
+
+    def set_up_PP_analyzer(self):
+        self.PP_analyzer = QtGui.QWidget()
+        # PP Analyzer
+        self.button_PP_pathways = QtGui.QPushButton("Pathways")
+        self.button_PP_lca = QtGui.QPushButton("LCA")
+        self.button_PP_lca_pathways = QtGui.QPushButton("LCA-Pathways")
+        # Dropdown
+        self.combo_functional_unit = QtGui.QComboBox(self)
+        # HL
+        self.HL_functional_unit = QtGui.QHBoxLayout()
+        self.HL_functional_unit.addWidget(self.combo_functional_unit)
+        self.HL_functional_unit.addWidget(self.button_PP_pathways)
+        self.HL_functional_unit.addWidget(self.button_PP_lca)
+        self.HL_functional_unit.addWidget(self.button_PP_lca_pathways)
+        # VL
+        self.VL_PP_analyzer = QtGui.QVBoxLayout()
+        self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
+        self.PP_analyzer.setLayout(self.VL_PP_analyzer)
+        # Connections
+        self.button_PP_pathways.clicked.connect(self.get_all_pathways_in_pp_graph)
+        self.button_PP_lca.clicked.connect(self.get_all_lca_scores_in_pp_graph)
+        self.button_PP_lca_pathways.clicked.connect(self.compare_pathway_lcas)
 
     # PSS DATABASE
 
@@ -448,6 +473,108 @@ class pssWidget(QtGui.QWidget):
         print "Visualization as: " + self.current_d3_layout
         self.showGraph()
 
+    def get_all_pathways_in_pp_graph(self, functional_unit=None):
+        functional_unit = str(self.combo_functional_unit.currentText())
+        print "\nAnalyzing all possibilities to produce: " + functional_unit
+        # get subgraphs (i.e. with a square matrix)
+        edge_list = []
+        for d in self.get_pp_graph():
+            edge_list.append((d['source'], d['target']))
+        G = nx.DiGraph()
+        G.add_edges_from(edge_list)
+        Gr = G.reverse(copy=True)
+        upstream_heads = [n for n, d in Gr.out_degree().items() if d == 0]  # all possible starting points
+        print "Starting points: " + str(upstream_heads)
+        unique_pathways = []
+        for start in upstream_heads:
+            for p in nx.all_simple_paths(G, start, functional_unit):
+                unique_pathways.append(p)
+
+        print "Unique pathways:"
+        for i, p in enumerate(unique_pathways):
+            print i, p
+
+        return unique_pathways
+
+    def get_all_lca_scores_in_pp_graph(self, method=None):
+        if not method:
+            method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+        mapping_lca = {}
+        for pss_data in self.PSS_database:
+            pss = ProcessSubsystem(**pss_data)
+            score = pss.lca(method, factorize=False)
+            mapping_lca.update({
+                pss_data['name']: score,
+            })
+        print "\nLCA results:"
+        # print mapping_lca
+        for k, v in mapping_lca.items():
+            print "{0}: {1:.2g}".format(k, v)
+
+    def compare_pathway_lcas(self):
+
+        # solve matrix (i.e. get scaling vector
+        # multiply scaling vector with LCA results for each PSS
+        unique_paths = self.get_all_pathways_in_pp_graph()
+        # build matrix
+        path_data = []  # will contain dictionaries with all path results
+        pss_names = [pss_data['name'] for pss_data in self.PSS_database]
+        for path in unique_paths:
+            # TODO: this works only if pss names and products are different!
+            processes = [node for node in path if node in pss_names]
+            products = [node for node in path if node not in pss_names]
+            mapping_processes = dict(*[zip(sorted(processes), itertools.count())])
+            mapping_products = dict(*[zip(sorted(products), itertools.count())])
+
+            print "processes and products (in path):"
+            print processes
+            print products
+
+            M = len(mapping_processes)
+            matrix = np.zeros((M, M))
+            # Set ones on diagonal; standard LCA stuff
+            # matrix[range(M), range(M)] = 1
+
+            # Only add edges that are within our system
+            # But, allow multiple links to same product (simply add them)
+            # for in_, out_, a in [x for x in edges if x[0] in chain and x[1] in chain]:
+            # for product_, process_, a in [x for x in edges if x[0] in chain and x[1] in chain]:
+            for process in processes:
+                pss_data = [pss for pss in self.PSS_database if pss['name'] == process][0]  # there should only be unique names
+                inputs = [c for c in pss_data['cuts'] if c[2] in products]
+                outputs = [o for o in pss_data['outputs'] if o[1] in products]
+                for i in inputs:
+                    matrix[
+                        mapping_products[i[2]],
+                        mapping_processes[process]
+                    ] -= i[3]
+                for o in outputs:
+                    matrix[
+                        mapping_products[o[1]],
+                        mapping_processes[process]
+                    ] += o[2]
+
+            path_data.append({
+                'path': path,
+                'matrix': matrix,
+            })
+
+        print "\nUnique pathways and matrices:"
+        for p in path_data:
+            for k, v in p.items():
+                print k
+                print v
+
+            # demand = np.zeros((M,))
+
+        # for a in scaling_activities:
+        #     for o in [output for output in outputs if output[0] == a]:
+        #         demand[mapping[a]] += o[2]
+        # return mapping, matrix, np.linalg.solve(matrix, demand).tolist()
+
+        # path_lca_scores = self.get_all_lca_scores_in_pp_graph()
+
+
     def get_pp_graph(self):
         graph_data = []
         for pss_data in self.PSS_database:
@@ -457,6 +584,7 @@ class pssWidget(QtGui.QWidget):
                     'target': pss_data['name'],
                     'type': 'suit',
                     'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
+                    'product_in': input[3],
                 })
             for output in pss_data['outputs']:
                 graph_data.append({
@@ -464,9 +592,8 @@ class pssWidget(QtGui.QWidget):
                     'target': output[1],
                     'type': 'suit',
                     'class': 'output',
+                    'product_out': output[2],
                 })
-        print "\nPP-MATRIX GRAPH DATA:"
-        print graph_data
         return graph_data
 
     def get_pp_tree(self):
@@ -505,8 +632,12 @@ class pssWidget(QtGui.QWidget):
         self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
 
     def pp_graph(self):
-        print "\nPP-MATRIX:"
         processes, products, matrix = self.get_process_products_as_array()
+        self.combo_functional_unit.clear()
+        for product in products:
+            self.combo_functional_unit.addItem(product)
+
+        print "\nPP-MATRIX:"
         print "PROCESSES:"
         print processes
         print "PRODUCTS"
@@ -520,6 +651,9 @@ class pssWidget(QtGui.QWidget):
                 'width': self.webview.geometry().width(),
                 'data': json.dumps(self.get_pp_graph(), indent=1)
             }
+            print "\nPP-GRAPH DATA:"
+            print self.get_pp_graph()
+
         elif self.current_d3_layout == "tree":
             template_data = {
                 'height': self.webview.geometry().height(),

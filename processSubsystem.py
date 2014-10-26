@@ -228,7 +228,7 @@ class ProcessSubsystem(object):
         }
         return pss_data_dict
 
-    def save_supply_chain_as_new_dataset(self, db_name="SPDB_default", unit=None,
+    def save_supply_chain_as_new_dataset(self, db_name="PSS default", unit=None,
             location=None, categories=[]):
         """Save simplified process to a database.
 
@@ -243,12 +243,12 @@ class ProcessSubsystem(object):
         """
         db = Database(db_name)
         if db_name not in databases:
-            db.register(format=("Process Subsystem", 1))
+            db.register()
             data = {}
         else:
             data = db.load()
         # put together dataset information
-        self.key = (db_name, self.name)
+        self.key = (db_name, self.name)  # TODO: change to UUID
         activity = self.scaling_activities[0]
         metadata = Database(activity[0]).load()[activity]
         # unit: if all scaling activities have the same unit, then set a unit, otherwise 'NA'

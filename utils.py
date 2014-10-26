@@ -246,8 +246,8 @@ class BrowserStandardTasks(object):
 # CREATE AND MODIFY ACTIVITIES
 
     def set_edit_activity(self, key):
-        self.editActivity_key = key[:]
-        self.editActivity_values = bw2.Database(key[0]).load()[key][:]
+        self.editActivity_key = key
+        self.editActivity_values = bw2.Database(key[0]).load()[key]
 
     def add_exchange(self, key):
         ds = bw2.Database(key[0]).load()[key]
@@ -301,7 +301,7 @@ class BrowserStandardTasks(object):
         db_name = key[0]
         db = bw2.Database(db_name)
         if db_name not in bw2.databases:
-            db.register(format=("Tannenbaum", 1))
+            db.register()
             data = {}
         else:
             data = db.load()
