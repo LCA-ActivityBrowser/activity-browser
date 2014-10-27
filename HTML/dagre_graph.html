@@ -38,6 +38,11 @@
     fill: #E6F0FF;
   }
 
+  .node.activity_part_of_path rect {
+    stroke: #69b5f9;
+    fill: #33ADFF;
+  }
+
   .node.chain rect {
     stroke: #f59861;
     fill: #FFF0E6;
@@ -47,6 +52,13 @@
     /*stroke: #FFFFFF;*/
     stroke: #00c262;
     stroke-width: 3px;
+  }
+
+  .node.output_part_of_path rect {
+    /*stroke: #FFFFFF;*/
+    stroke: #00c262;
+    stroke-width: 3px;
+    /*fill:   #FFFF00;*/
   }
 
 /*  .node.output text {
@@ -65,7 +77,6 @@
   }
 
   .d-cut-edge {
-
   }
 
   .node text {
@@ -83,6 +94,10 @@
     stroke: #3366FF;
     stroke-width: 1.5px;
   }
+
+/*  path.edge text{
+    font: 12px "sans serif";
+  }*/
 
   .edge:hover {
     cursor: pointer;
@@ -143,7 +158,8 @@ graphdata.forEach(function(d) {
       target = stateKeys[d.target];
       // output = stateKeys[d.output];
   if (!source) {
-    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.source_out, product: d.source_product };
+    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.source_out, product: d.source_product, 
+      pop: d.part_of_path };
   };
   if (!target) {
     target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.target_out, product: d.target_product };
@@ -157,6 +173,12 @@ graphdata.forEach(function(d) {
   if (d.class === "output") {
     stateKeys[d.source].class = "activity";
     stateKeys[d.target].class = "output";
+    // stateKeys[d.source].output = stateKeys[d.target].output;
+    // stateKeys[d.target].output = "";
+  };
+  if (d.class === "output" && d.part_of_path) {
+    stateKeys[d.source].class = "activity_part_of_path";
+    stateKeys[d.target].class = "output_part_of_path";
     // stateKeys[d.source].output = stateKeys[d.target].output;
     // stateKeys[d.target].output = "";
   };
@@ -191,6 +213,19 @@ var edges = svgGroup
     // .attr("stroke-dasharray", "4,2")
     // .attr("stroke-dashoffset", "5")
     .attr("marker-end", "url(#arrowhead)");
+
+// // Append text
+// var lab = edges
+//   .append("text")
+//     .attr("text-anchor", "middle")
+//     .attr("x", 0);
+
+// lab
+//   .append("tspan")
+//   .attr("x", 0)
+//   .attr("dy", "1em")
+//   .text("Hi");
+
 
 // Append rectangles to the nodes. We do this before laying out the text
 // because we want the text above the rectangle.

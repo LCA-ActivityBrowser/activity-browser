@@ -11,6 +11,7 @@ class MyQTableWidgetItem(QtGui.QTableWidgetItem):
         self.activity_or_database_key = None
         self.key_type = None
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
+        self.path = None  # TODO: need a more generic data store
 
 class MyStandardItem(QtGui.QStandardItem):
     def __init__(self, parent=None):
@@ -47,12 +48,15 @@ class HelperMethods(object):
             table.setRowCount(len(data))
             table.setColumnCount(len(keys))
             table.setHorizontalHeaderLabels(keys)
+
             for i, d in enumerate(data):
                 for j in range(len(keys)):
                     mqtwi = MyQTableWidgetItem(str(d[keys[j]]))
                     if "key" in d:
                         mqtwi.activity_or_database_key = d["key"]
                         mqtwi.key_type = d["key_type"]
+                    if 'path' in d:
+                        mqtwi.path = d['path']
                     if edit_keys and keys[j] in edit_keys:
                         mqtwi.setFlags(mqtwi.flags() | QtCore.Qt.ItemIsEditable)
                     table.setItem(i, j, mqtwi)
@@ -67,6 +71,13 @@ class HelperMethods(object):
             table.setSortingEnabled(True)
         return table
 
+    def is_number(self, s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
 class Styles(object):
     def __init__(self):
         # BIG FONT
@@ -74,6 +85,8 @@ class Styles(object):
         self.font_big.setPointSize(12)
         self.font_big.setBold(True)
 
+class Checks(object):
+    pass
 
 class BrowserStandardTasks(object):
     def __init__(self):

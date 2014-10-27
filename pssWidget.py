@@ -13,6 +13,7 @@ from processSubsystem import ProcessSubsystem
 import numpy as np
 import itertools
 import networkx as nx  # TODO get rid of this dependency?
+import pprint
 
 class pssWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
@@ -132,26 +133,45 @@ class pssWidget(QtGui.QWidget):
 
     def set_up_PP_analyzer(self):
         self.PP_analyzer = QtGui.QWidget()
-        # PP Analyzer
+        # Labels
+        label_functional_unit = QtGui.QLabel("Functional Unit:")
+        self.label_FU_unit = QtGui.QLabel("unit")
+        # Line edits
+        self.line_edit_FU = QtGui.QLineEdit("1.0")
+        # Buttons
         self.button_PP_pathways = QtGui.QPushButton("Pathways")
         self.button_PP_lca = QtGui.QPushButton("LCA")
         self.button_PP_lca_pathways = QtGui.QPushButton("LCA-Pathways")
         # Dropdown
         self.combo_functional_unit = QtGui.QComboBox(self)
+        self.combo_functional_unit.setMinimumWidth(200)
+        # Tables
+        self.table_PP_comparison = QtGui.QTableWidget()
         # HL
         self.HL_functional_unit = QtGui.QHBoxLayout()
+        self.HL_functional_unit.setAlignment(QtCore.Qt.AlignLeft)
+        self.HL_functional_unit.addWidget(label_functional_unit)
+        self.HL_functional_unit.addWidget(self.line_edit_FU)
+        self.HL_functional_unit.addWidget(self.label_FU_unit)
         self.HL_functional_unit.addWidget(self.combo_functional_unit)
-        self.HL_functional_unit.addWidget(self.button_PP_pathways)
-        self.HL_functional_unit.addWidget(self.button_PP_lca)
-        self.HL_functional_unit.addWidget(self.button_PP_lca_pathways)
+
+        self.HL_PP_analysis = QtGui.QHBoxLayout()
+        self.HL_PP_analysis.setAlignment(QtCore.Qt.AlignLeft)
+        self.HL_PP_analysis.addWidget(self.button_PP_pathways)
+        self.HL_PP_analysis.addWidget(self.button_PP_lca)
+        self.HL_PP_analysis.addWidget(self.button_PP_lca_pathways)
         # VL
         self.VL_PP_analyzer = QtGui.QVBoxLayout()
         self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
+        self.VL_PP_analyzer.addLayout(self.HL_PP_analysis)
+        self.VL_PP_analyzer.addWidget(self.table_PP_comparison)
         self.PP_analyzer.setLayout(self.VL_PP_analyzer)
         # Connections
         self.button_PP_pathways.clicked.connect(self.get_all_pathways_in_pp_graph)
         self.button_PP_lca.clicked.connect(self.get_all_lca_scores_in_pp_graph)
         self.button_PP_lca_pathways.clicked.connect(self.compare_pathway_lcas)
+        self.combo_functional_unit.currentIndexChanged.connect(self.update_FU_unit)
+        self.table_PP_comparison.doubleClicked.connect(self.show_path_graph)
 
     # PSS DATABASE
 
@@ -323,12 +343,7 @@ class pssWidget(QtGui.QWidget):
         self.showGraph()
         
     def set_output_custom_data(self):
-        def is_number(s):
-            try:
-                float(s)
-                return True
-            except ValueError:
-                return False
+
         item = self.table_PSS_outputs.currentItem()
         text = str(item.text())
         key = item.activity_or_database_key
@@ -340,7 +355,7 @@ class pssWidget(QtGui.QWidget):
         if item.column() == 0:  # name
             print "\nChanging output NAME to: " + text
             self.PSC.set_output_name(key, text, self.text_before_edit, float(amount))
-        elif item.column() == 1 and is_number(text):  # quantity
+        elif item.column() == 1 and self.helper.is_number(text):  # quantity
             print "\nChanging output QUANTITY to: " + text
             self.PSC.set_output_quantity(key, float(text), name, float(self.text_before_edit))
         else:  # ignore!
@@ -424,6 +439,19 @@ class pssWidget(QtGui.QWidget):
         self.tree_widget_cuts.blockSignals(False)  # itemChanged signals again after updating
         self.tree_widget_cuts.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)
 
+    def update_FU_unit(self):
+        for pss in self.PSS_database:
+            for o in pss['outputs']:
+                if str(self.combo_functional_unit.currentText()) == o[1]:
+                    unit = self.PSC.getActivityData(o[0])['unit']
+        self.label_FU_unit.setText(QtCore.QString(unit))
+
+    def update_PP_path_comparison_table(self):
+        print "was in update_PP_table"
+        keys = ['LCA result', 'path']
+        data = self.get_pathway_lcas()
+        self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
+
     # VISUALIZATION
 
     def showGraph(self):
@@ -473,6 +501,44 @@ class pssWidget(QtGui.QWidget):
         print "Visualization as: " + self.current_d3_layout
         self.showGraph()
 
+    def show_path_graph(self):
+        item = self.table_PP_comparison.currentItem()
+        if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
+            template_data = {
+                'height': self.webview.geometry().height(),
+                'width': self.webview.geometry().width(),
+                'data': json.dumps(self.get_pp_path_graph(item.path), indent=1)
+            }
+            self.set_webview(template_data, self.current_d3_layout)
+
+    def get_pp_path_graph(self, path):
+        print "PATH:"
+        print path
+
+        graph_data = []
+        for pss_data in self.PSS_database:
+            part_of_path = True if pss_data['name'] in path else False
+
+            for input in pss_data['cuts']:
+                graph_data.append({
+                    'source': input[2],
+                    'target': pss_data['name'],
+                    'type': 'suit',
+                    'class': 'chain',# if not part_of_path else "part_of_path",  # this gets overwritten with "activity" in dagre_graph.html
+                    'product_in': input[3],
+                    'part_of_path': part_of_path,
+                })
+            for output in pss_data['outputs']:
+                graph_data.append({
+                    'source': pss_data['name'],
+                    'target': output[1],
+                    'type': 'suit',
+                    'class': 'output',# if not part_of_path else "part_of_path",
+                    'product_out': output[2],
+                    'part_of_path': part_of_path,
+                })
+        return graph_data
+
     def get_all_pathways_in_pp_graph(self, functional_unit=None):
         functional_unit = str(self.combo_functional_unit.currentText())
         print "\nAnalyzing all possibilities to produce: " + functional_unit
@@ -497,6 +563,9 @@ class pssWidget(QtGui.QWidget):
         return unique_pathways
 
     def get_all_lca_scores_in_pp_graph(self, method=None):
+        """
+        returns dict where: keys = PSS name, value = LCA score
+        """
         if not method:
             method = (u'IPCC 2007', u'climate change', u'GWP 100a')
         mapping_lca = {}
@@ -510,14 +579,19 @@ class pssWidget(QtGui.QWidget):
         # print mapping_lca
         for k, v in mapping_lca.items():
             print "{0}: {1:.2g}".format(k, v)
+        return mapping_lca
 
     def compare_pathway_lcas(self):
+        self.update_PP_path_comparison_table()
 
-        # solve matrix (i.e. get scaling vector
-        # multiply scaling vector with LCA results for each PSS
+
+    def get_pathway_lcas(self):
         unique_paths = self.get_all_pathways_in_pp_graph()
-        # build matrix
-        path_data = []  # will contain dictionaries with all path results
+        functional_unit = str(self.combo_functional_unit.currentText())
+        # TODO: would it be better if this came later, just to save time if there is an error later on?
+        path_lca_scores = self.get_all_lca_scores_in_pp_graph()
+
+        path_data = []  # will contain dictionaries with all path results (matrix, demand, supply, LCA results)
         pss_names = [pss_data['name'] for pss_data in self.PSS_database]
         for path in unique_paths:
             # TODO: this works only if pss names and products are different!
@@ -526,19 +600,12 @@ class pssWidget(QtGui.QWidget):
             mapping_processes = dict(*[zip(sorted(processes), itertools.count())])
             mapping_products = dict(*[zip(sorted(products), itertools.count())])
 
-            print "processes and products (in path):"
+            print "\nProcesses and products (in path):"
             print processes
             print products
-
+            # build matrix
             M = len(mapping_processes)
             matrix = np.zeros((M, M))
-            # Set ones on diagonal; standard LCA stuff
-            # matrix[range(M), range(M)] = 1
-
-            # Only add edges that are within our system
-            # But, allow multiple links to same product (simply add them)
-            # for in_, out_, a in [x for x in edges if x[0] in chain and x[1] in chain]:
-            # for product_, process_, a in [x for x in edges if x[0] in chain and x[1] in chain]:
             for process in processes:
                 pss_data = [pss for pss in self.PSS_database if pss['name'] == process][0]  # there should only be unique names
                 inputs = [c for c in pss_data['cuts'] if c[2] in products]
@@ -553,27 +620,39 @@ class pssWidget(QtGui.QWidget):
                         mapping_products[o[1]],
                         mapping_processes[process]
                     ] += o[2]
-
+            print "Matrix:"
+            print matrix
+            # demand vector
+            demand = np.zeros((M,))
+            if self.line_edit_FU and self.helper.is_number(self.line_edit_FU.text()):
+                demand[mapping_products[functional_unit]] = float(self.line_edit_FU.text())
+            else:
+                demand[mapping_products[functional_unit]] = 1.0
+                print "WARNING: Functional unit must be a number. Calculating for functional unit of '1.0'."
+            print "Demand vector:"
+            print demand
+            # solve matrix (i.e. get scaling vector)
+            supply = np.linalg.solve(matrix, demand).tolist()
+            print "Supply vector:"
+            print supply
+            # multiply scaling vector with LCA results for each PSS
+            path_lca_score = 0.0
+            for process in processes:
+                path_lca_score += supply[mapping_processes[process]] * path_lca_scores[process]
+            print "LCA score: "
+            print path_lca_score
+            # store data for this path
             path_data.append({
                 'path': path,
                 'matrix': matrix,
+                'demand': demand,
+                'scaling': supply,
+                'LCA result': path_lca_score
             })
 
-        print "\nUnique pathways and matrices:"
-        for p in path_data:
-            for k, v in p.items():
-                print k
-                print v
-
-            # demand = np.zeros((M,))
-
-        # for a in scaling_activities:
-        #     for o in [output for output in outputs if output[0] == a]:
-        #         demand[mapping[a]] += o[2]
-        # return mapping, matrix, np.linalg.solve(matrix, demand).tolist()
-
-        # path_lca_scores = self.get_all_lca_scores_in_pp_graph()
-
+        print "\nPath data"
+        pprint.pprint(path_data)
+        return path_data
 
     def get_pp_graph(self):
         graph_data = []
