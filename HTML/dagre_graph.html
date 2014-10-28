@@ -12,16 +12,6 @@
     fill: #fff;
   }
 
-/*  .node.product rect {
-    stroke: #FF00FF;
-    fill:   #FF00FF;
-  }
-
-  .node.process rect {
-    stroke: #FF00FF;
-    fill:   #FF00FF;
-  }*/
-
   .node.cut rect {
     stroke: #ff5063;
     fill:   #FFE6F0;
@@ -38,11 +28,6 @@
     fill: #E6F0FF;
   }
 
-  .node.activity_part_of_path rect {
-    stroke: #69b5f9;
-    fill: #33ADFF;
-  }
-
   .node.chain rect {
     stroke: #f59861;
     fill: #FFF0E6;
@@ -52,13 +37,6 @@
     /*stroke: #FFFFFF;*/
     stroke: #00c262;
     stroke-width: 3px;
-  }
-
-  .node.output_part_of_path rect {
-    /*stroke: #FFFFFF;*/
-    stroke: #00c262;
-    stroke-width: 3px;
-    /*fill:   #FFFF00;*/
   }
 
 /*  .node.output text {
@@ -164,23 +142,9 @@ graphdata.forEach(function(d) {
   if (!target) {
     target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.target_out, product: d.target_product };
   };
-  // if (!source) {
-  //   source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.input };
-  // };
-  // if (!target) {
-  //   target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.output };
-  // };
   if (d.class === "output") {
     stateKeys[d.source].class = "activity";
     stateKeys[d.target].class = "output";
-    // stateKeys[d.source].output = stateKeys[d.target].output;
-    // stateKeys[d.target].output = "";
-  };
-  if (d.class === "output" && d.part_of_path) {
-    stateKeys[d.source].class = "activity_part_of_path";
-    stateKeys[d.target].class = "output_part_of_path";
-    // stateKeys[d.source].output = stateKeys[d.target].output;
-    // stateKeys[d.target].output = "";
   };
   source.edges.push(d);
   target.edges.push(d);

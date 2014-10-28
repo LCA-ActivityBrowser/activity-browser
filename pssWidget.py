@@ -139,12 +139,13 @@ class pssWidget(QtGui.QWidget):
         # Line edits
         self.line_edit_FU = QtGui.QLineEdit("1.0")
         # Buttons
-        self.button_PP_pathways = QtGui.QPushButton("Pathways")
         self.button_PP_lca = QtGui.QPushButton("LCA")
+        self.button_PP_pathways = QtGui.QPushButton("Pathways")
         self.button_PP_lca_pathways = QtGui.QPushButton("LCA-Pathways")
         # Dropdown
         self.combo_functional_unit = QtGui.QComboBox(self)
         self.combo_functional_unit.setMinimumWidth(200)
+        self.combo_lcia_method = QtGui.QComboBox(self)
         # Tables
         self.table_PP_comparison = QtGui.QTableWidget()
         # HL
@@ -157,9 +158,11 @@ class pssWidget(QtGui.QWidget):
 
         self.HL_PP_analysis = QtGui.QHBoxLayout()
         self.HL_PP_analysis.setAlignment(QtCore.Qt.AlignLeft)
-        self.HL_PP_analysis.addWidget(self.button_PP_pathways)
         self.HL_PP_analysis.addWidget(self.button_PP_lca)
+        self.HL_PP_analysis.addWidget(self.button_PP_pathways)
         self.HL_PP_analysis.addWidget(self.button_PP_lca_pathways)
+        self.HL_PP_analysis.addWidget(self.combo_lcia_method)
+        self.combo_lcia_method.addItem(str((u'IPCC 2007', u'climate change', u'GWP 100a')))
         # VL
         self.VL_PP_analyzer = QtGui.QVBoxLayout()
         self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
@@ -167,11 +170,11 @@ class pssWidget(QtGui.QWidget):
         self.VL_PP_analyzer.addWidget(self.table_PP_comparison)
         self.PP_analyzer.setLayout(self.VL_PP_analyzer)
         # Connections
-        self.button_PP_pathways.clicked.connect(self.get_all_pathways_in_pp_graph)
+        self.button_PP_pathways.clicked.connect(self.show_all_pathways)
         self.button_PP_lca.clicked.connect(self.get_all_lca_scores_in_pp_graph)
         self.button_PP_lca_pathways.clicked.connect(self.compare_pathway_lcas)
         self.combo_functional_unit.currentIndexChanged.connect(self.update_FU_unit)
-        self.table_PP_comparison.doubleClicked.connect(self.show_path_graph)
+        self.table_PP_comparison.itemSelectionChanged.connect(self.show_path_graph)
 
     # PSS DATABASE
 
@@ -447,7 +450,6 @@ class pssWidget(QtGui.QWidget):
         self.label_FU_unit.setText(QtCore.QString(unit))
 
     def update_PP_path_comparison_table(self):
-        print "was in update_PP_table"
         keys = ['LCA result', 'path']
         data = self.get_pathway_lcas()
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
@@ -483,6 +485,7 @@ class pssWidget(QtGui.QWidget):
             "graph": os.path.join(os.getcwd(), "HTML", "force_directed_graph.html"),
             "dagre": os.path.join(os.getcwd(), "HTML", "dagre_graph.html"),
             "pp_graph": os.path.join(os.getcwd(), "HTML", "force_directed_graph.html"),
+            "dagre_path": os.path.join(os.getcwd(), "HTML", "dagre_graph_path.html"),
         }
         filename = os.path.join(os.getcwd(), "HTML", "temp.html")
         url = QtCore.QUrl("file:///"+"/".join(filename.split("\\")))
@@ -503,41 +506,54 @@ class pssWidget(QtGui.QWidget):
 
     def show_path_graph(self):
         item = self.table_PP_comparison.currentItem()
-        if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
-            template_data = {
-                'height': self.webview.geometry().height(),
-                'width': self.webview.geometry().width(),
-                'data': json.dumps(self.get_pp_path_graph(item.path), indent=1)
-            }
-            self.set_webview(template_data, self.current_d3_layout)
+        template_data = {
+            'height': self.webview.geometry().height(),
+            'width': self.webview.geometry().width(),
+            'data': json.dumps(self.get_pp_path_graph(item.path), indent=1)
+        }
+        self.set_webview(template_data, "dagre_path")
 
     def get_pp_path_graph(self, path):
         print "PATH:"
         print path
+        path_data = [pd for pd in self.path_data if path == pd['path']][0]
+        print path_data
 
         graph_data = []
         for pss_data in self.PSS_database:
             part_of_path = True if pss_data['name'] in path else False
+            if part_of_path:
+                lca_score = path_data['PSS contribution'][pss_data['name']]
+                lca_score_rel = path_data['PSS contribution relative'][pss_data['name']]
+                lca_result = "{0:.3g} ({1:.3g}%)".format(lca_score, lca_score_rel*100)
 
             for input in pss_data['cuts']:
                 graph_data.append({
                     'source': input[2],
                     'target': pss_data['name'],
                     'type': 'suit',
-                    'class': 'chain',# if not part_of_path else "part_of_path",  # this gets overwritten with "activity" in dagre_graph.html
+                    'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
                     'product_in': input[3],
                     'part_of_path': part_of_path,
+                    # 'lca_score': '' if not part_of_path else lca_result,
                 })
             for output in pss_data['outputs']:
                 graph_data.append({
                     'source': pss_data['name'],
                     'target': output[1],
                     'type': 'suit',
-                    'class': 'output',# if not part_of_path else "part_of_path",
+                    'class': 'output',
                     'product_out': output[2],
                     'part_of_path': part_of_path,
+                    'lca_score': '' if not part_of_path else lca_result,
                 })
         return graph_data
+
+    def show_all_pathways(self):
+        data = [{'path': p} for p in self.get_all_pathways_in_pp_graph()]
+        keys = ['path']
+        self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
+
 
     def get_all_pathways_in_pp_graph(self, functional_unit=None):
         functional_unit = str(self.combo_functional_unit.currentText())
@@ -583,7 +599,6 @@ class pssWidget(QtGui.QWidget):
 
     def compare_pathway_lcas(self):
         self.update_PP_path_comparison_table()
-
 
     def get_pathway_lcas(self):
         unique_paths = self.get_all_pathways_in_pp_graph()
@@ -636,9 +651,16 @@ class pssWidget(QtGui.QWidget):
             print "Supply vector:"
             print supply
             # multiply scaling vector with LCA results for each PSS
+            process_contribution = {}
             path_lca_score = 0.0
             for process in processes:
-                path_lca_score += supply[mapping_processes[process]] * path_lca_scores[process]
+                process_score = supply[mapping_processes[process]] * path_lca_scores[process]
+                process_contribution.update({process: process_score})
+                path_lca_score += process_score
+            process_contribution_relative = {}
+            for process in processes:
+                process_score = supply[mapping_processes[process]] * path_lca_scores[process]
+                process_contribution_relative.update({process:process_score/path_lca_score})
             print "LCA score: "
             print path_lca_score
             # store data for this path
@@ -647,11 +669,14 @@ class pssWidget(QtGui.QWidget):
                 'matrix': matrix,
                 'demand': demand,
                 'scaling': supply,
-                'LCA result': path_lca_score
+                'PSS contribution': process_contribution,
+                'PSS contribution relative': process_contribution_relative,
+                'LCA result': path_lca_score,
             })
 
         print "\nPath data"
         pprint.pprint(path_data)
+        self.path_data = path_data
         return path_data
 
     def get_pp_graph(self):
@@ -664,6 +689,7 @@ class pssWidget(QtGui.QWidget):
                     'type': 'suit',
                     'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
                     'product_in': input[3],
+                    # 'lca_score': "0.555",
                 })
             for output in pss_data['outputs']:
                 graph_data.append({
@@ -672,6 +698,7 @@ class pssWidget(QtGui.QWidget):
                     'type': 'suit',
                     'class': 'output',
                     'product_out': output[2],
+                    # 'lca_score': "0.415",
                 })
         return graph_data
 
