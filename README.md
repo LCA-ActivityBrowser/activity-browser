@@ -16,4 +16,4 @@ The Activity Browser is extended with features to group life cycle inventories i
 
 ### Who do I talk to? ###
 
-* feel free to write me: steubing@ifu.baug.ethz.ch
+* please feel free to write me: steubing@ifu.baug.ethz.ch 
