@@ -250,7 +250,7 @@ class BrowserStandardTasks(object):
             objs.append({
                 'name': db_name,
                 'activities': bw2.databases[db_name].get('number', 'unknown'),
-                'dependencies': bw2.databases[db_name].get('depends', 'unknown'),
+                'dependencies': ", ".join(bw2.databases[db_name].get('depends', [])),
                 'key': db_name,
                 'key_type': 'database',
             })
