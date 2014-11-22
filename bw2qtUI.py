@@ -35,6 +35,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setStandardWidgets()
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
+        self.listDatabases()
 
     def setStandardWidgets(self):
         # BUTTONS
