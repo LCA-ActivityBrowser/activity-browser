@@ -36,6 +36,7 @@ class ProcessSubsystem(object):
         self.mapping, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
         self.pad_cuts()
+        # TODO: write a method that does all self.edges_blabla calculations and gets rid of the many methods for those
 
     def remove_cuts_from_chain(self, chain, cuts):
         """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.

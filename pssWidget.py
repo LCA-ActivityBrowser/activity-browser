@@ -428,6 +428,7 @@ class pssWidget(QtGui.QWidget):
             newNode.setFlags(newNode.flags() | QtCore.Qt.ItemIsEditable)
             # make row with activity data
             ad = formatActivityData(self.PSC.getActivityData(cut[0]))
+            # TODO: fix bug for multi-output activities (e.g. sawing): cut too high (activity scaled by several outputs)!
             ad[3] = cut[3]  # set amount to that of internal_scaled_edge_with_cuts
             cutFromNode = MyTreeWidgetItem(newNode, [str(item) for item in ad])
             cutFromNode.activity_or_database_key = cut[0]
