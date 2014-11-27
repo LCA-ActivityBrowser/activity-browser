@@ -744,13 +744,26 @@ class pssWidget(QtGui.QWidget):
         for product in products:
             self.combo_functional_unit.addItem(product)
 
-        print "\nPP-MATRIX:"
-        print "PROCESSES:"
-        print processes
-        print "PRODUCTS"
-        print products
-        print "MATRIX"
-        print matrix
+        # print "\nPP-MATRIX:"
+        # print "PROCESSES:"
+        # print processes
+        # print "PRODUCTS"
+        # print products
+        # print "MATRIX"
+        # print matrix
+
+        # export pp-matrix data to pickle file
+        data = {
+            'processes': processes,
+            'products': products,
+            'matrix': matrix,
+        }
+        filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.pickle")
+        with open(filename, 'w') as output:
+            pickle.dump(data, output)
+        filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.json")
+        with open(filename, 'w') as outfile:
+            json.dump(data, outfile, indent=2)
 
         if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
             template_data = {
