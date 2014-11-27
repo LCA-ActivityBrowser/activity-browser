@@ -761,9 +761,9 @@ class pssWidget(QtGui.QWidget):
         filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.pickle")
         with open(filename, 'w') as output:
             pickle.dump(data, output)
-        filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.json")
-        with open(filename, 'w') as outfile:
-            json.dump(data, outfile, indent=2)
+        # filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.json")
+        # with open(filename, 'w') as outfile:
+        #     json.dump(data, outfile, indent=2)
 
         if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
             template_data = {
