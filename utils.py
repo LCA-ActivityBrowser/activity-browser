@@ -3,7 +3,9 @@
 
 from PyQt4 import QtGui, QtCore
 import brightway2 as bw2
+from bw2analyzer import ContributionAnalysis
 from bw2data.utils import recursive_str_to_unicode
+import uuid
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -12,6 +14,7 @@ class MyQTableWidgetItem(QtGui.QTableWidgetItem):
         self.key_type = None
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
         self.path = None  # TODO: need a more generic data store
+        self.uuid_ = None
 
 class MyStandardItem(QtGui.QStandardItem):
     def __init__(self, parent=None):
@@ -57,6 +60,8 @@ class HelperMethods(object):
                         mqtwi.key_type = d["key_type"]
                     if 'path' in d:
                         mqtwi.path = d['path']
+                    if 'uuid_' in d:
+                        mqtwi.uuid_ = d['uuid_']
                     if edit_keys and keys[j] in edit_keys:
                         mqtwi.setFlags(mqtwi.flags() | QtCore.Qt.ItemIsEditable)
                     table.setItem(i, j, mqtwi)
@@ -82,8 +87,12 @@ class Styles(object):
     def __init__(self):
         # BIG FONT
         self.font_big = QtGui.QFont()
-        self.font_big.setPointSize(12)
+        self.font_big.setPointSize(10)
         self.font_big.setBold(True)
+        # FAT
+        self.font_bold = QtGui.QFont()
+        self.font_bold.setPointSize(9)
+        self.font_bold.setBold(True)
 
 class Checks(object):
     pass
@@ -95,6 +104,7 @@ class BrowserStandardTasks(object):
         self.db = None
         self.database = None
         self.database_version = None
+        self.LCIA_calculations = {}  # used to store LCIA calculations
 
     def updateEcoinventVersion(self, key=None):
         # set database version (2 or 3)
@@ -159,7 +169,7 @@ class BrowserStandardTasks(object):
             amount = 0
         obj = {
             'name': ds['name'],
-            'product': ds.get('reference product', ''),  # nur in v3
+            'product': ds.get('reference product', ''),  # only in v3
             'location': ds.get('location', 'unknown'),
             'amount': amount,
             'unit': ds.get('unit', 'unknown'),
@@ -255,6 +265,28 @@ class BrowserStandardTasks(object):
                 'key_type': 'database',
             })
         return objs
+
+    def lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a')):
+        # TODO add factorization / redo lci...
+        if not key:
+            key = self.currentActivity
+        lca = bw2.LCA({key: amount}, method)
+        lca.lci()
+        lca.lcia()
+        uuid_ = unicode(uuid.uuid4().urn[9:])
+        lcia_data = {
+            'key': key,
+            'functional unit': amount,
+            'method': method,
+            'lca': lca,
+            'score': lca.score,
+            'top processes': ContributionAnalysis().annotated_top_processes(lca),
+            'top emissions': ContributionAnalysis().annotated_top_emissions(lca),
+            'uuid_': uuid_,
+        }
+        self.LCIA_calculations.update({uuid_: lcia_data})
+        return uuid_
+
 
 # CREATE AND MODIFY ACTIVITIES
 

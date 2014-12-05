@@ -229,6 +229,7 @@ class ProcessSubsystem(object):
         }
         return pss_data_dict
 
+# TODO: implement a method that saves the PSS as "outputs - inputs"
     def save_supply_chain_as_new_dataset(self, db_name="PSS default", unit=None,
             location=None, categories=[]):
         """Save simplified process to a database.

@@ -36,6 +36,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
         self.listDatabases()
+        self.setUpLCIAWidget()
 
     def setStandardWidgets(self):
         # BUTTONS
@@ -49,6 +50,7 @@ class MainWindow(QtGui.QMainWindow):
         button_history = QtGui.QPushButton("History")
         button_databases = QtGui.QPushButton("Databases")
         button_edit = QtGui.QPushButton("Edit")
+        button_goto_lcia_widget = QtGui.QPushButton("LCIA")
         # LINE EDITS
         self.line_edit_search = QtGui.QLineEdit()
         # LABELS
@@ -87,7 +89,11 @@ class MainWindow(QtGui.QMainWindow):
         HL_multi_purpose.addWidget(button_databases)
         HL_multi_purpose.addWidget(button_random_activity)
         HL_multi_purpose.addWidget(button_key)
-        HL_multi_purpose.addWidget(button_edit)
+        # Activity Buttons
+        HL_activity_buttons = QtGui.QHBoxLayout()
+        HL_activity_buttons.setAlignment(QtCore.Qt.AlignLeft)
+        HL_activity_buttons.addWidget(button_edit)
+        HL_activity_buttons.addWidget(button_goto_lcia_widget)
         # TAB WIDGETS
         self.tab_widget_RIGHT = QtGui.QTabWidget()
         self.tab_widget_RIGHT.setMovable(True)
@@ -103,6 +109,7 @@ class MainWindow(QtGui.QMainWindow):
         self.VL_technosphere.addWidget(self.label_current_activity_product)
         self.VL_technosphere.addWidget(self.label_current_activity)
         self.VL_technosphere.addWidget(self.label_current_database)
+        self.VL_technosphere.addLayout(HL_activity_buttons)
         self.VL_technosphere.addWidget(label_downstream_activities)
         self.VL_technosphere.addWidget(self.table_downstream_activities)
 
@@ -114,7 +121,7 @@ class MainWindow(QtGui.QMainWindow):
         self.VL_RIGHT.addLayout(HL_multi_purpose)
         self.VL_RIGHT.addWidget(self.label_multi_purpose)
         self.VL_RIGHT.addWidget(self.tab_widget_RIGHT)
-        self.tab_widget_RIGHT.addTab(self.table_multipurpose, "SeHiDa")
+        self.tab_widget_RIGHT.addTab(self.table_multipurpose, "Navigation")
         self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, "Biosphere")
         # LEFT SIDE
         self.widget_LEFT.setLayout(self.VL_LEFT)
@@ -138,6 +145,7 @@ class MainWindow(QtGui.QMainWindow):
         button_databases.clicked.connect(self.listDatabases)
         button_key.clicked.connect(self.search_by_key)
         button_edit.clicked.connect(self.edit_activity)
+        button_goto_lcia_widget.clicked.connect(self.goto_lcia_widget)
 
         self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
@@ -161,6 +169,83 @@ class MainWindow(QtGui.QMainWindow):
         menubar = self.menuBar()
         file = menubar.addMenu('Extensions')
         file.addAction(addPSS)
+
+    def setUpLCIAWidget(self):
+        if not hasattr(self, 'widget_LCIA'):
+            self.widget_LCIA = QtGui.QWidget()
+            self.tab_widget_LEFT.addTab(self.widget_LCIA, "LCIA")
+            # Labels
+            self.label_LCIAW_activity = QtGui.QLabel("Activity")
+            self.label_LCIAW_activity.setFont(self.styles.font_bold)
+            self.label_LCIAW_functional_unit = QtGui.QLabel("Functional Unit:")
+            self.label_LCIAW_unit = QtGui.QLabel("unit")
+            label_previous_calcs = QtGui.QLabel("Previous calculations")
+            # Line edits
+            self.line_edit_FU = QtGui.QLineEdit("1.0")
+            # Buttons
+            self.button_calc_lcia = QtGui.QPushButton("Calculate")
+            # Dropdown
+            self.combo_lcia_method = QtGui.QComboBox(self)
+            # Tables
+            self.table_previous_calcs = QtGui.QTableWidget()
+            # HL
+            self.HL_functional_unit = QtGui.QHBoxLayout()
+            self.HL_functional_unit.setAlignment(QtCore.Qt.AlignLeft)
+            self.HL_functional_unit.addWidget(self.label_LCIAW_functional_unit)
+            self.HL_functional_unit.addWidget(self.line_edit_FU)
+            self.HL_functional_unit.addWidget(self.label_LCIAW_unit)
+            self.HL_functional_unit.addWidget(self.combo_lcia_method)
+
+            self.HL_calculation = QtGui.QHBoxLayout()
+            self.HL_calculation.setAlignment(QtCore.Qt.AlignLeft)
+            self.HL_calculation.addWidget(self.button_calc_lcia)
+
+            self.combo_lcia_method.addItem(str((u'IPCC 2007', u'climate change', u'GWP 100a')))
+            # VL
+            self.VL_LCIA_widget = QtGui.QVBoxLayout()
+            self.VL_LCIA_widget.addWidget(self.label_LCIAW_activity)
+            self.VL_LCIA_widget.addLayout(self.HL_functional_unit)
+            self.VL_LCIA_widget.addLayout(self.HL_calculation)
+            self.VL_LCIA_widget.addWidget(label_previous_calcs)
+            self.VL_LCIA_widget.addWidget(self.table_previous_calcs)
+            self.widget_LCIA.setLayout(self.VL_LCIA_widget)
+            # Connections
+            self.button_calc_lcia.clicked.connect(self.calculate_lcia)
+            self.table_previous_calcs.itemDoubleClicked.connect(self.goto_LCA_results)
+
+    def setUpLCAResults(self):
+        if not hasattr(self, 'widget_LCIA_Results'):
+            self.widget_LCIA_Results = QtGui.QWidget()
+            self.tab_widget_RIGHT.addTab(self.widget_LCIA_Results, "LCA Results")
+            # Labels
+            self.label_LCAR_activity_name = QtGui.QLabel("Activity")
+            self.label_LCAR_activity_name.setFont(self.styles.font_bold)
+            self.label_LCAR_fu = QtGui.QLabel("Functional Unit")
+            self.label_LCAR_method = QtGui.QLabel("Method")
+            self.label_LCAR_score = QtGui.QLabel("LCA score")
+            self.label_LCAR_score.setFont(self.styles.font_bold)
+            self.label_LCAR_score.setStyleSheet("QLabel { color : red; }")
+            label_top_processes = QtGui.QLabel("Top Processes")
+            label_top_emissions = QtGui.QLabel("Top Emissions")
+            # Buttons
+            # Dropdown
+            # Tables
+            self.table_lcia_results = QtGui.QTableWidget()
+            self.table_top_processes = QtGui.QTableWidget()
+            self.table_top_emissions = QtGui.QTableWidget()
+
+            # VL
+            self.VL_widget_LCIA_Results = QtGui.QVBoxLayout()
+            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_activity_name)
+            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_fu)
+            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_method)
+            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_score)
+            self.VL_widget_LCIA_Results.addWidget(label_top_processes)
+            self.VL_widget_LCIA_Results.addWidget(self.table_top_processes)
+            self.VL_widget_LCIA_Results.addWidget(label_top_emissions)
+            self.VL_widget_LCIA_Results.addWidget(self.table_top_emissions)
+            self.widget_LCIA_Results.setLayout(self.VL_widget_LCIA_Results)
+            # Connections
 
     def setUpActivityEditor(self):
         if not hasattr(self, 'VL_AE'):
@@ -337,11 +422,14 @@ class MainWindow(QtGui.QMainWindow):
             self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
             self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
             self.table_downstream_activities = self.helper.update_table(self.table_downstream_activities, self.lcaData.get_downstream_exchanges(), keys)
-            actdata = self.lcaData.getActivityData()
-            label_text = actdata["name"]+" {"+actdata["location"]+"}"
+            ad = self.lcaData.getActivityData()
+            label_text = ad["name"]+" {"+ad["location"]+"}"
             self.label_current_activity.setText(QtCore.QString(label_text))
-            label_text = actdata["product"]+" ["+str(actdata["amount"])+" "+actdata["unit"]+"]"
+            label_text = ad["product"]+" ["+str(ad["amount"])+" "+ad["unit"]+"]"
             self.label_current_activity_product.setText(QtCore.QString(label_text))
+            self.label_current_database.setText(QtCore.QString(ad['database']))
+            self.label_LCIAW_activity.setText(" ".join([ad['product'], ad['name'], "{", ad['location'], "}", ad['database']]))
+            self.label_LCIAW_unit.setText(ad['unit'])
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
 
@@ -350,14 +438,14 @@ class MainWindow(QtGui.QMainWindow):
         if item.key_type == "activity":
             print "Loading Activity:", item.activity_or_database_key
             self.load_new_current_activity(item.activity_or_database_key)
-            self.label_current_database.setText(QtCore.QString(item.activity_or_database_key[0]))
+            # self.label_current_database.setText(QtCore.QString(item.activity_or_database_key[0]))
         else:  # database
             tic = time.clock()
             self.statusBar().showMessage("Loading... "+item.activity_or_database_key)
             print "Loading Database:", item.activity_or_database_key
             self.lcaData.loadDatabase(item.activity_or_database_key)
             self.statusBar().showMessage(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
-            self.label_current_database.setText(QtCore.QString(item.activity_or_database_key))
+            # self.label_current_database.setText(QtCore.QString(item.activity_or_database_key))
 
     def edit_activity(self):
         if self.lcaData.currentActivity:
@@ -365,6 +453,70 @@ class MainWindow(QtGui.QMainWindow):
             self.lcaData.set_edit_activity(self.lcaData.currentActivity)
             self.update_AE_tables()
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
+
+# TODO this could be come a button for quick LCA calculation with 1.0 GWP or the last used method
+    def goto_lcia_widget(self):
+        if not self.lcaData.currentActivity:
+            self.statusBar().showMessage("Need to load an activity first.")
+        else:
+            self.tab_widget_LEFT.setCurrentIndex(self.tab_widget_LEFT.indexOf(self.widget_LCIA))
+
+    def calculate_lcia(self):
+        if not self.lcaData.currentActivity:
+            self.statusBar().showMessage("Need to load an activity first.")
+        else:
+            self.setUpLCAResults()
+            if self.line_edit_FU and self.helper.is_number(self.line_edit_FU.text()):
+                amount = float(self.line_edit_FU.text())
+            else:
+                amount = 1.0
+            uuid_ = self.lcaData.lcia(amount=amount)  # TODO load LCIA method from combobox
+
+            # Update Table Previous LCA calculations
+            keys = ['product', 'name', 'location', 'database', 'functional unit', 'unit', 'method']
+            data = []
+            for lcia_data in self.lcaData.LCIA_calculations.values():
+                data.append(dict(lcia_data.items() + self.lcaData.getActivityData(lcia_data['key']).items()))
+            self.table_previous_calcs = self.helper.update_table(
+                self.table_previous_calcs, data, keys)
+            # Update LCA results
+            self.update_LCA_results(uuid_)
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_LCIA_Results))
+
+    def update_LCA_results(self, uuid_):
+        lcia_data = self.lcaData.LCIA_calculations[uuid_]
+        ad = self.lcaData.getActivityData(lcia_data['key'])
+        # Update Labels
+        self.label_LCAR_activity_name.setText(" ".join([ad['product'], ad['name'], "{", ad['location'], "}", ad['database']]))
+        self.label_LCAR_fu.setText(" ".join(["{:.3g}".format(lcia_data['functional unit']), ad['unit']]))
+        self.label_LCAR_method.setText(", ".join([m for m in lcia_data['method']]))
+        self.label_LCAR_score.setText("{:.3g} {:}".format(lcia_data['score'], bw2.methods[lcia_data['method']]['unit']))
+        # Tables
+        # Top Processes
+        keys = ['quantity', 'name']
+        data = []
+        for row in lcia_data['top processes']:
+            data.append({
+                'quantity': "{:.3g}".format(row[0]),
+                'name': row[1],
+            })
+        self.table_top_processes = self.helper.update_table(
+            self.table_top_processes, data, keys)
+        # Top Emissions
+        data = []
+        for row in lcia_data['top emissions']:
+            data.append({
+                'quantity': "{:.3g}".format(row[0]),
+                'name': row[1],
+            })
+        self.table_top_emissions = self.helper.update_table(
+            self.table_top_emissions, data, keys)
+
+    def goto_LCA_results(self, item):
+        print "DOUBLECLICK on: ", item.text()
+        if item.uuid_:
+            print "Loading LCA Results:"
+            self.update_LCA_results(item.uuid_)
 
     def add_technosphere_exchange(self):
         self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)
@@ -499,8 +651,8 @@ def main():
 
     # auto-start of certain functionality
     # mw.setUpPSSEditor()
-    # mw.lcaData.loadDatabase('ecoinvent 2.2')
-    # mw.load_new_current_activity()
+    mw.lcaData.loadDatabase('ecoinvent 2.2')
+    mw.load_new_current_activity()
 
     # wnd.resize(800, 600)
     mw.showMaximized()
