@@ -175,8 +175,12 @@ class MainWindow(QtGui.QMainWindow):
             self.widget_LCIA = QtGui.QWidget()
             self.tab_widget_LEFT.addTab(self.widget_LCIA, "LCIA")
             # Labels
+            self.label_LCIAW_product = QtGui.QLabel("Product")
+            self.label_LCIAW_product.setFont(self.styles.font_bold)
+            self.label_LCIAW_product.setStyleSheet("QLabel { color : blue; }")
             self.label_LCIAW_activity = QtGui.QLabel("Activity")
             self.label_LCIAW_activity.setFont(self.styles.font_bold)
+            self.label_LCIAW_database = QtGui.QLabel("Database")
             self.label_LCIAW_functional_unit = QtGui.QLabel("Functional Unit:")
             self.label_LCIAW_unit = QtGui.QLabel("unit")
             label_previous_calcs = QtGui.QLabel("Previous calculations")
@@ -203,7 +207,9 @@ class MainWindow(QtGui.QMainWindow):
             self.combo_lcia_method.addItem(str((u'IPCC 2007', u'climate change', u'GWP 100a')))
             # VL
             self.VL_LCIA_widget = QtGui.QVBoxLayout()
+            self.VL_LCIA_widget.addWidget(self.label_LCIAW_product)
             self.VL_LCIA_widget.addWidget(self.label_LCIAW_activity)
+            self.VL_LCIA_widget.addWidget(self.label_LCIAW_database)
             self.VL_LCIA_widget.addLayout(self.HL_functional_unit)
             self.VL_LCIA_widget.addLayout(self.HL_calculation)
             self.VL_LCIA_widget.addWidget(label_previous_calcs)
@@ -218,8 +224,12 @@ class MainWindow(QtGui.QMainWindow):
             self.widget_LCIA_Results = QtGui.QWidget()
             self.tab_widget_RIGHT.addTab(self.widget_LCIA_Results, "LCA Results")
             # Labels
-            self.label_LCAR_activity_name = QtGui.QLabel("Activity")
-            self.label_LCAR_activity_name.setFont(self.styles.font_bold)
+            self.label_LCAR_product = QtGui.QLabel("Product")
+            self.label_LCAR_product.setFont(self.styles.font_bold)
+            self.label_LCAR_product.setStyleSheet("QLabel { color : blue; }")
+            self.label_LCAR_activity = QtGui.QLabel("Activity")
+            self.label_LCAR_activity.setFont(self.styles.font_bold)
+            self.label_LCAR_database = QtGui.QLabel("Database")
             self.label_LCAR_fu = QtGui.QLabel("Functional Unit")
             self.label_LCAR_method = QtGui.QLabel("Method")
             self.label_LCAR_score = QtGui.QLabel("LCA score")
@@ -236,7 +246,9 @@ class MainWindow(QtGui.QMainWindow):
 
             # VL
             self.VL_widget_LCIA_Results = QtGui.QVBoxLayout()
-            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_activity_name)
+            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_product)
+            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_activity)
+            self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_database)
             self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_fu)
             self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_method)
             self.VL_widget_LCIA_Results.addWidget(self.label_LCAR_score)
@@ -428,7 +440,10 @@ class MainWindow(QtGui.QMainWindow):
             label_text = ad["product"]+" ["+str(ad["amount"])+" "+ad["unit"]+"]"
             self.label_current_activity_product.setText(QtCore.QString(label_text))
             self.label_current_database.setText(QtCore.QString(ad['database']))
-            self.label_LCIAW_activity.setText(" ".join([ad['product'], ad['name'], "{", ad['location'], "}", ad['database']]))
+            # update LCIA widget
+            self.label_LCIAW_product.setText(ad['product'])
+            self.label_LCIAW_activity.setText("".join([ad['name'], " {", ad['location'], "}"]))
+            self.label_LCIAW_database.setText(ad['database'])
             self.label_LCIAW_unit.setText(ad['unit'])
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
@@ -438,14 +453,12 @@ class MainWindow(QtGui.QMainWindow):
         if item.key_type == "activity":
             print "Loading Activity:", item.activity_or_database_key
             self.load_new_current_activity(item.activity_or_database_key)
-            # self.label_current_database.setText(QtCore.QString(item.activity_or_database_key[0]))
         else:  # database
             tic = time.clock()
             self.statusBar().showMessage("Loading... "+item.activity_or_database_key)
             print "Loading Database:", item.activity_or_database_key
             self.lcaData.loadDatabase(item.activity_or_database_key)
             self.statusBar().showMessage(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
-            # self.label_current_database.setText(QtCore.QString(item.activity_or_database_key))
 
     def edit_activity(self):
         if self.lcaData.currentActivity:
@@ -465,6 +478,7 @@ class MainWindow(QtGui.QMainWindow):
         if not self.lcaData.currentActivity:
             self.statusBar().showMessage("Need to load an activity first.")
         else:
+            tic = time.clock()
             self.setUpLCAResults()
             if self.line_edit_FU and self.helper.is_number(self.line_edit_FU.text()):
                 amount = float(self.line_edit_FU.text())
@@ -482,23 +496,28 @@ class MainWindow(QtGui.QMainWindow):
             # Update LCA results
             self.update_LCA_results(uuid_)
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_LCIA_Results))
+            self.statusBar().showMessage("Calculated LCIA score in {:.2f} seconds.".format(time.clock()-tic))
 
     def update_LCA_results(self, uuid_):
         lcia_data = self.lcaData.LCIA_calculations[uuid_]
         ad = self.lcaData.getActivityData(lcia_data['key'])
         # Update Labels
-        self.label_LCAR_activity_name.setText(" ".join([ad['product'], ad['name'], "{", ad['location'], "}", ad['database']]))
+        # self.label_LCAR_activity_name.setText("".join([ad['product'], " {", ad['location'], "} ", ad['name'], " [", ad['database'], "]"]))
+        self.label_LCAR_product.setText(ad['product'])
+        self.label_LCAR_activity.setText("".join([ad['name'], " {", ad['location'], "}"]))
+        self.label_LCAR_database.setText(ad['database'])
         self.label_LCAR_fu.setText(" ".join(["{:.3g}".format(lcia_data['functional unit']), ad['unit']]))
         self.label_LCAR_method.setText(", ".join([m for m in lcia_data['method']]))
         self.label_LCAR_score.setText("{:.3g} {:}".format(lcia_data['score'], bw2.methods[lcia_data['method']]['unit']))
         # Tables
         # Top Processes
-        keys = ['quantity', 'name']
+        keys = ['impact score', '%', 'name']
         data = []
         for row in lcia_data['top processes']:
             data.append({
-                'quantity': "{:.3g}".format(row[0]),
-                'name': row[1],
+                'impact score': "{:.3g}".format(row[0]),
+                '%': "{:.2f}".format(row[1]),
+                'name': row[2],
             })
         self.table_top_processes = self.helper.update_table(
             self.table_top_processes, data, keys)
@@ -506,17 +525,21 @@ class MainWindow(QtGui.QMainWindow):
         data = []
         for row in lcia_data['top emissions']:
             data.append({
-                'quantity': "{:.3g}".format(row[0]),
-                'name': row[1],
+                'impact score': "{:.3g}".format(row[0]),
+                '%': "{:.2f}".format(row[1]),
+                'name': row[2],
             })
         self.table_top_emissions = self.helper.update_table(
             self.table_top_emissions, data, keys)
+        print "was in update_LCA_results"
 
     def goto_LCA_results(self, item):
         print "DOUBLECLICK on: ", item.text()
         if item.uuid_:
             print "Loading LCA Results:"
             self.update_LCA_results(item.uuid_)
+        else:
+            print "Error: Item does not have a UUID"
 
     def add_technosphere_exchange(self):
         self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)

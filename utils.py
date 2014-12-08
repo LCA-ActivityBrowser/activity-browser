@@ -280,12 +280,18 @@ class BrowserStandardTasks(object):
             'method': method,
             'lca': lca,
             'score': lca.score,
-            'top processes': ContributionAnalysis().annotated_top_processes(lca),
-            'top emissions': ContributionAnalysis().annotated_top_emissions(lca),
+            'top processes': self.pimp_contribution_analysis(ContributionAnalysis().annotated_top_processes(lca), lca.score),
+            'top emissions': self.pimp_contribution_analysis(ContributionAnalysis().annotated_top_emissions(lca), lca.score),
             'uuid_': uuid_,
         }
         self.LCIA_calculations.update({uuid_: lcia_data})
         return uuid_
+
+    def pimp_contribution_analysis(self, top_list, lca_score):
+        pimped_CA = []
+        for row in top_list:
+            pimped_CA.append([row[0], 100*row[0]/lca_score, row[1]])
+        return pimped_CA
 
 
 # CREATE AND MODIFY ACTIVITIES
