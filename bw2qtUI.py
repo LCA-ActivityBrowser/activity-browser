@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys
-import os
 reload(sys)
 sys.setdefaultencoding("utf-8")
+import os
 from PyQt4 import QtCore, QtGui, QtWebKit
 from utils import *
 from pssWidget import pssWidget
@@ -23,7 +23,7 @@ class MainWindow(QtGui.QMainWindow):
 
         # LCA Data
         self.lcaData = BrowserStandardTasks()
-        self.history = []
+        # self.history = []
 
         # Activity Editor settings
         self.read_only_databases = ["ecoinvent 2.2", "ecoinvent 2.2 multioutput", "ecoinvent 3.01 default",
@@ -183,13 +183,20 @@ class MainWindow(QtGui.QMainWindow):
             self.label_LCIAW_database = QtGui.QLabel("Database")
             self.label_LCIAW_functional_unit = QtGui.QLabel("Functional Unit:")
             self.label_LCIAW_unit = QtGui.QLabel("unit")
+            label_lcia_method = QtGui.QLabel("LCIA method:")
             label_previous_calcs = QtGui.QLabel("Previous calculations")
             # Line edits
             self.line_edit_FU = QtGui.QLineEdit("1.0")
             # Buttons
+            self.button_clear_lcia_methods = QtGui.QPushButton("Clear")
             self.button_calc_lcia = QtGui.QPushButton("Calculate")
             # Dropdown
-            self.combo_lcia_method = QtGui.QComboBox(self)
+            self.combo_lcia_method_part0 = QtGui.QComboBox(self)
+            self.combo_lcia_method_part1 = QtGui.QComboBox(self)
+            self.combo_lcia_method_part2 = QtGui.QComboBox(self)
+            # set default LCIA method
+            self.update_lcia_method(selection=(u'IPCC 2007', u'climate change', u'GWP 100a'))
+
             # Tables
             self.table_previous_calcs = QtGui.QTableWidget()
             # HL
@@ -198,19 +205,27 @@ class MainWindow(QtGui.QMainWindow):
             self.HL_functional_unit.addWidget(self.label_LCIAW_functional_unit)
             self.HL_functional_unit.addWidget(self.line_edit_FU)
             self.HL_functional_unit.addWidget(self.label_LCIAW_unit)
-            self.HL_functional_unit.addWidget(self.combo_lcia_method)
+
+            self.HL_LCIA = QtGui.QHBoxLayout()
+            self.HL_LCIA.setAlignment(QtCore.Qt.AlignLeft)
+            self.HL_LCIA.addWidget(label_lcia_method)
+            self.HL_LCIA.addWidget(self.button_clear_lcia_methods)
+
 
             self.HL_calculation = QtGui.QHBoxLayout()
             self.HL_calculation.setAlignment(QtCore.Qt.AlignLeft)
             self.HL_calculation.addWidget(self.button_calc_lcia)
 
-            self.combo_lcia_method.addItem(str((u'IPCC 2007', u'climate change', u'GWP 100a')))
             # VL
             self.VL_LCIA_widget = QtGui.QVBoxLayout()
             self.VL_LCIA_widget.addWidget(self.label_LCIAW_product)
             self.VL_LCIA_widget.addWidget(self.label_LCIAW_activity)
             self.VL_LCIA_widget.addWidget(self.label_LCIAW_database)
             self.VL_LCIA_widget.addLayout(self.HL_functional_unit)
+            self.VL_LCIA_widget.addLayout(self.HL_LCIA)
+            self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part0)
+            self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part1)
+            self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part2)
             self.VL_LCIA_widget.addLayout(self.HL_calculation)
             self.VL_LCIA_widget.addWidget(label_previous_calcs)
             self.VL_LCIA_widget.addWidget(self.table_previous_calcs)
@@ -218,6 +233,11 @@ class MainWindow(QtGui.QMainWindow):
             # Connections
             self.button_calc_lcia.clicked.connect(self.calculate_lcia)
             self.table_previous_calcs.itemDoubleClicked.connect(self.goto_LCA_results)
+            self.combo_lcia_method_part0.currentIndexChanged.connect(self.update_lcia_method)
+            self.combo_lcia_method_part1.currentIndexChanged.connect(self.update_lcia_method)
+            self.combo_lcia_method_part2.currentIndexChanged.connect(self.update_lcia_method)
+            self.button_clear_lcia_methods.clicked.connect(lambda: self.update_lcia_method(selection=('','','')))
+            # button_random_activity.clicked.connect(lambda: self.load_new_current_activity())
 
     def setUpLCAResults(self):
         if not hasattr(self, 'widget_LCIA_Results'):
@@ -474,9 +494,26 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.tab_widget_LEFT.setCurrentIndex(self.tab_widget_LEFT.indexOf(self.widget_LCIA))
 
+    def update_lcia_method(self, current_index=0, selection=None):
+        if not selection:
+            selection = (str(self.combo_lcia_method_part0.currentText()), str(self.combo_lcia_method_part1.currentText()), str(self.combo_lcia_method_part2.currentText()))
+            print "LCIA method combobox selection: "+str(selection)
+        methods, parts = self.lcaData.get_selectable_LCIA_methods(selection)
+        # set new available choices
+        comboboxes = [self.combo_lcia_method_part0, self.combo_lcia_method_part1, self.combo_lcia_method_part2]
+        for i, combo in enumerate(comboboxes):
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItems(['']+parts[i])
+            if len(parts[i]) == 1:  # choice made for this combobox (and then only 2 left: 0='', 1='choice'
+                combo.setCurrentIndex(1)
+            combo.blockSignals(False)
+
     def calculate_lcia(self):
         if not self.lcaData.currentActivity:
             self.statusBar().showMessage("Need to load an activity first.")
+        elif not self.lcaData.LCIA_method:
+            self.statusBar().showMessage("Need to select an LCIA method first.")
         else:
             tic = time.clock()
             self.setUpLCAResults()
@@ -484,7 +521,7 @@ class MainWindow(QtGui.QMainWindow):
                 amount = float(self.line_edit_FU.text())
             else:
                 amount = 1.0
-            uuid_ = self.lcaData.lcia(amount=amount)  # TODO load LCIA method from combobox
+            uuid_ = self.lcaData.lcia(amount=amount, method=self.lcaData.LCIA_method)
 
             # Update Table Previous LCA calculations
             keys = ['product', 'name', 'location', 'database', 'functional unit', 'unit', 'method']
@@ -684,5 +721,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

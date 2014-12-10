@@ -105,6 +105,7 @@ class BrowserStandardTasks(object):
         self.database = None
         self.database_version = None
         self.LCIA_calculations = {}  # used to store LCIA calculations
+        self.LCIA_method = None
 
     def updateEcoinventVersion(self, key=None):
         # set database version (2 or 3)
@@ -265,6 +266,24 @@ class BrowserStandardTasks(object):
                 'key_type': 'database',
             })
         return objs
+
+    def get_selectable_LCIA_methods(self, preselection=None):
+        methods = [m for m in bw2.methods if len(m) == 3]  # consider only methods with three parts
+        if preselection:
+            for i, ps in enumerate(preselection):
+                if ps:
+                    methods = [m for m in methods if m[i] == ps]
+        # get three parts individually as sets
+        method_parts = [[m[i] for m in methods] for i in range(3)]
+        method_parts = [sorted(set(p), key=lambda item: (int(item.partition(' ')[0])
+                                   if item[0].isdigit() else float('inf'), item)) for p in method_parts]
+        # set LCIA method if possible
+        if len(methods) == 1:
+            self.LCIA_method = methods[0]
+            print "LCIA method set to "+str(self.LCIA_method)
+        else:
+            self.LCIA_method = None
+        return methods, method_parts
 
     def lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a')):
         # TODO add factorization / redo lci...
