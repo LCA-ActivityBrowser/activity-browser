@@ -22,6 +22,11 @@ pss_data_format = [
         'cuts': [
             (parent_key, child_key, 'custom_name', amount),
         ],
+        # scaling activities: mainly necessary for multi-output activities, where outputs shall be overriden
+        # or where artificual outputs shall be added and not used for scaling
+        'scaling activities': [
+            (key, 'custom_amount')
+        ],
         # 'edges': [ # theoretically not necessary, but more convenient and perhaps helpful
         #     (parent_key, child_key),
         # ],

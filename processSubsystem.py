@@ -5,6 +5,7 @@ from bw2data.utils import recursive_str_to_unicode
 import itertools
 import numpy as np
 import warnings
+import uuid
 
 class ProcessSubsystem(object):
     """A description of a simplified supply chain, which has the following characteristics:
@@ -32,7 +33,7 @@ class ProcessSubsystem(object):
         self.edges = self.construct_graph(self.filtered_database)
         self.isSimple, self.scaling_activities = self.getScalingActivities(self.chain, self.edges)
         self.outputs = self.pad_outputs(outputs)
-        self.mapping, self.matrix, self.supply_vector = \
+        self.mapping, self.demand, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
         self.get_edge_lists()
         self.pad_cuts()
@@ -151,7 +152,8 @@ class ProcessSubsystem(object):
         mapping = dict(*[zip(sorted(chain), itertools.count())])
         reverse_mapping = dict(*[zip(itertools.count(), sorted(chain))])
 
-        # Scale diagonal (usually 1, but there are exceptions)
+        # CREATE MATRIX THAT RELATES TO PROCESSES IN THE CHAIN
+        # Diagonal values (usually 1, but there are exceptions)
         M = len(chain)
         matrix = np.zeros((M, M))
         for m in range(M):
@@ -164,33 +166,35 @@ class ProcessSubsystem(object):
                 print "WARNING: Amount could not be determined. Perhaps this is a multi-output activity. Results may be wrong."
                 diagonal_value = 1.0
             matrix[m,m] = diagonal_value
-
-        # Only add edges that are within our system
-        # But, allow multiple links to same product (simply add them)
+        # Non-diagonal values
+        # Only add edges that are within our system, but allow multiple links to same product (simply add them)
         for in_, out_, a in [x for x in edges if x[0] in chain and x[1] in chain]:
             matrix[
                 mapping[in_],
                 mapping[out_]
             ] -= a
+        # demand vector
         demand = np.zeros((M,))
         for sa in scaling_activities:
             for o in [output for output in outputs if output[0] == sa]:
                 demand[mapping[sa]] += o[2]
-        return mapping, matrix, np.linalg.solve(matrix, demand).tolist()
+        return mapping, demand, matrix, np.linalg.solve(matrix, demand).tolist()
 
     def get_edge_lists(self):
         """Get lists of external and internal edges with original flow values or scaled to the meta-process"""
-        self.external_edges = [x for x in self.edges if
-                               (x[0] not in self.chain and x[:2] not in set([y[:2] for y in self.cuts]))]
-        self.internal_edges = [x for x in self.edges if
-                               (x[0] in self.chain and x[:2] not in set([y[:2] for y in self.cuts]))]
-        self.internal_edges_with_cuts = [x for x in self.edges if
-                                                (x[0] in self.chain or x[:2] in set([y[:2] for y in self.cuts]))]
+        self.external_edges = \
+            [x for x in self.edges if (x[0] not in self.chain and x[:2] not in set([y[:2] for y in self.cuts]))]
+        self.internal_edges = \
+            [x for x in self.edges if (x[0] in self.chain and x[:2] not in set([y[:2] for y in self.cuts]))]
+        self.internal_edges_with_cuts = \
+            [x for x in self.edges if (x[0] in self.chain or x[:2] in set([y[:2] for y in self.cuts]))]
         # scale these edges
-        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
-        self.external_scaled_edges = [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]) for x in self.external_edges]
-        self.internal_scaled_edges = [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]) for x in self.internal_edges]
-        self.internal_scaled_edges_with_cuts = [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]) for x in self.internal_edges_with_cuts]
+        self.external_scaled_edges = \
+            [(x[0], x[1], x[2] * self.supply_vector[self.mapping[x[1]]]) for x in self.external_edges]
+        self.internal_scaled_edges = \
+            [(x[0], x[1], x[2] * self.supply_vector[self.mapping[x[1]]]) for x in self.internal_edges]
+        self.internal_scaled_edges_with_cuts = \
+            [(x[0], x[1], x[2] * self.supply_vector[self.mapping[x[1]]]) for x in self.internal_edges_with_cuts]
 
     def pad_cuts(self):
         """
@@ -235,33 +239,48 @@ class ProcessSubsystem(object):
         else:
             data = db.load()
         # put together dataset information
-        self.key = (db_name, self.name)  # TODO: change to UUID
+        self.key = (unicode(db_name), unicode(uuid.uuid4().urn[9:]))
         activity = self.scaling_activities[0]
         metadata = Database(activity[0]).load()[activity]
-        # unit: if all scaling activities have the same unit, then set a unit, otherwise 'NA'
+        # unit: if all scaling activities have the same unit, then set a unit, otherwise 'several'
         if self.scaling_activities != 1:
             units_set = set([Database(sa[0]).load()[sa].get(u'unit', '') for sa in self.scaling_activities])
             if len(units_set) > 1:
                 unit = 'several'  # if several units, display nothing
             else:
                 unit = units_set.pop()
+        # EXCHANGES
+        exchanges = []
+        # scaling activities
+        for sa in self.scaling_activities:
+            exchanges.append({
+                "amount": self.demand[self.mapping[sa]],
+                "input": sa,
+                "type": "biosphere" \
+                    if sa[0] in (u"biosphere", u"biosphere3") \
+                    else "technosphere",
+            })
+        # cuts
+        for cut in self.cuts:
+            exchanges.append({
+                "amount": -cut[3],
+                "input": cut[0],
+                "type": "biosphere" \
+                    if cut[0] in (u"biosphere", u"biosphere3") \
+                    else "technosphere",
+            })
+
         data[self.key] = {
             "name": self.name,
             "unit": unit or metadata.get(u'unit', ''),
             "location": location or metadata.get(u'location', ''),
             "categories": categories,
             "type": "process",
-            "exchanges": [{
-                "amount": exc[2],
-                "input": exc[0],
-                "type": "biosphere" \
-                    if exc[0][0] in (u"biosphere", u"biosphere3") \
-                    else "technosphere",
-                } for exc in self.external_scaled_edges],
+            "exchanges": exchanges,
         }
         # Production amount
         data[self.key]["exchanges"].append({
-            "amount": 1,
+            "amount": 1,  # TODO: correct with real output value; if several outputs: set to 1 and adapt unit to "multiple"
             "input": self.key,
             "type": "production"
         })
@@ -300,6 +319,7 @@ class ProcessSubsystem(object):
             self.calculated_lca = LCA(demand={self.key: 1})
         return self.calculated_lca.lci()
 
+# TODO: check if needs to adapt with overriding the scaling activities
     def process_products(self, nodes, edges, cuts, outputs, scaling_activities, database):
         """Provide data for construction of process-product table.
 
@@ -349,3 +369,61 @@ class ProcessSubsystem(object):
         """Shortcut, as full method uses no global state"""
         return self.process_products(self.chain, self.edges, self.cuts,
             self.outputs, self.scaling_activities, self.filtered_database)
+
+
+    # def save_supply_chain_as_new_dataset(self, db_name="PSS default", unit=None,
+    #         location=None, categories=[]):
+    #     """Save simplified process to a database.
+    #
+    #     Creates database if necessary; otherwise *adds* to existing database. Uses the ``unit`` and ``location`` of ``self.scaling_activities[0]``, if not otherwise provided. Assumes that one unit of the scaling activity is being produced.
+    #
+    #     Args:
+    #         * *db_name* (str): Name of Database
+    #         * *unit* (str, optional): Unit of the simplified process.
+    #         * *location* (str, optional): Location of the simplified process.
+    #         * *categories* (list, optional): Category/ies of the scaling activity.
+    #
+    #     """
+    #     db = Database(db_name)
+    #     if db_name not in databases:
+    #         db.register()
+    #         data = {}
+    #     else:
+    #         data = db.load()
+    #     # put together dataset information
+    #     self.key = (db_name, self.name)  # TODO: change to UUID
+    #     activity = self.scaling_activities[0]
+    #     metadata = Database(activity[0]).load()[activity]
+    #     # unit: if all scaling activities have the same unit, then set a unit, otherwise 'NA'
+    #     if self.scaling_activities != 1:
+    #         units_set = set([Database(sa[0]).load()[sa].get(u'unit', '') for sa in self.scaling_activities])
+    #         if len(units_set) > 1:
+    #             unit = 'several'  # if several units, display nothing
+    #         else:
+    #             unit = units_set.pop()
+    #     data[self.key] = {
+    #         "name": self.name,
+    #         "unit": unit or metadata.get(u'unit', ''),
+    #         "location": location or metadata.get(u'location', ''),
+    #         "categories": categories,
+    #         "type": "process",
+    #         "exchanges": [{
+    #             "amount": exc[2],
+    #             "input": exc[0],
+    #             "type": "biosphere" \
+    #                 if exc[0][0] in (u"biosphere", u"biosphere3") \
+    #                 else "technosphere",
+    #             } for exc in self.external_scaled_edges],
+    #     }
+    #     # Production amount
+    #     data[self.key]["exchanges"].append({
+    #         "amount": 1,  # TODO: correct with real output value; if several outputs: set to 1 and adapt unit to "multiple"
+    #         "input": self.key,
+    #         "type": "production"
+    #     })
+    #     # TODO: Include uncertainty from original databases. Can't just scale
+    #     # uncertainty parameters. Maybe solution is to use "dummy" processes
+    #     # like we want to do to separate inputs of same flow in any case.
+    #     # data = db.relabel_data(data, db_name)
+    #     db.write(recursive_str_to_unicode(data))
+    #     db.process()
