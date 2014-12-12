@@ -32,7 +32,6 @@ class ProcessSubsystem(object):
         self.edges = self.construct_graph(self.filtered_database)
         self.isSimple, self.scaling_activities = self.getScalingActivities(self.chain, self.edges)
         self.outputs = self.pad_outputs(outputs)
-        # self.check_outputs()
         self.mapping, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
         self.get_edge_lists()
@@ -47,42 +46,6 @@ class ProcessSubsystem(object):
                 chain.remove(cut[0])
                 print "PSS WARNING: Cut removed from chain: " + str(cut[0])
         return set(chain)
-
-    def pad_outputs(self, outputs):
-        """Add default amount (1) to outputs if not present.
-
-        Args:
-            * *outputs* (list): outputs
-
-        Returns:
-            Padded outputs
-
-        """
-        padded_outputs = []
-        for i, output in enumerate(outputs):  # add default name and quantity
-            try:
-                output_name = output[1]
-            except IndexError:
-                output_name = "Output " + str(i)
-            try:
-                output_quantity = float(output[2])
-            except IndexError:
-                output_quantity = 1.0
-            except ValueError:
-                print "ValueError in output quantity. Set to 1.0"
-                output_quantity = 1.0
-            padded_outputs.append((output[0], output_name, output_quantity))
-        # add outputs that were not specified
-        for sa in self.scaling_activities:
-            if sa not in [o[0] for o in outputs]:
-                print "PSS WARNING: Adding an output that was not specified: " + str(sa)
-                padded_outputs.append((sa, "Unspecified Output", 1.0))
-        # remove outputs that were specified, but are *not* outputs
-        for o in outputs:
-            if o[0] not in self.scaling_activities:
-                print "PSS WARNING: Removing a specified output that is *not* actually an output: " + str(o[0])
-                padded_outputs.remove(o)
-        return padded_outputs
 
     def getFilteredDatabase(self, depending_databases, chain):
         """Extract the supply chain for this process from larger database.
@@ -134,6 +97,44 @@ class ProcessSubsystem(object):
         isSimple = len(heads) == 1
         return isSimple, list(heads)
 
+    def pad_outputs(self, outputs):
+        """If not present, add to outputs default
+        - name
+        - amount (1)
+
+        Args:
+            * *outputs* (list): outputs
+
+        Returns:
+            Padded outputs
+
+        """
+        padded_outputs = []
+        for i, output in enumerate(outputs):  # add default name and quantity if necessary
+            try:
+                output_name = output[1]
+            except IndexError:
+                output_name = "Output " + str(i)
+            try:
+                output_quantity = float(output[2])
+            except IndexError:
+                output_quantity = 1.0
+            except ValueError:
+                print "ValueError in output quantity. Set to 1.0"
+                output_quantity = 1.0
+            padded_outputs.append((output[0], output_name, output_quantity))
+        # add outputs that were not specified
+        for sa in self.scaling_activities:
+            if sa not in [o[0] for o in outputs]:
+                print "PSS WARNING: Adding an output that was not specified: " + str(sa)
+                padded_outputs.append((sa, "Unspecified Output", 1.0))
+        # remove outputs that were specified, but are *not* outputs
+        for o in outputs:
+            if o[0] not in self.scaling_activities:
+                print "PSS WARNING: Removing a specified output that is *not* actually an output: " + str(o[0])
+                padded_outputs.remove(o)
+        return padded_outputs
+
     def get_supply_vector(self, chain, edges, scaling_activities, outputs):
         """Construct supply vector (solve linear system) for the supply chain of this simplified product system.
 
@@ -148,10 +149,22 @@ class ProcessSubsystem(object):
 
         """
         mapping = dict(*[zip(sorted(chain), itertools.count())])
+        reverse_mapping = dict(*[zip(itertools.count(), sorted(chain))])
+
+        # Scale diagonal (usually 1, but there are exceptions)
         M = len(chain)
         matrix = np.zeros((M, M))
-        # Set ones on diagonal; standard LCA stuff
-        matrix[range(M), range(M)] = 1
+        for m in range(M):
+            key = reverse_mapping[m]
+            ds = Database(key[0]).load()[key]
+            try:
+                # amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
+                diagonal_value = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
+            except IndexError:
+                print "WARNING: Amount could not be determined. Perhaps this is a multi-output activity. Results may be wrong."
+                diagonal_value = 1.0
+            matrix[m,m] = diagonal_value
+
         # Only add edges that are within our system
         # But, allow multiple links to same product (simply add them)
         for in_, out_, a in [x for x in edges if x[0] in chain and x[1] in chain]:
@@ -160,9 +173,9 @@ class ProcessSubsystem(object):
                 mapping[out_]
             ] -= a
         demand = np.zeros((M,))
-        for a in scaling_activities:
-            for o in [output for output in outputs if output[0] == a]:
-                demand[mapping[a]] += o[2]
+        for sa in scaling_activities:
+            for o in [output for output in outputs if output[0] == sa]:
+                demand[mapping[sa]] += o[2]
         return mapping, matrix, np.linalg.solve(matrix, demand).tolist()
 
     def get_edge_lists(self):
