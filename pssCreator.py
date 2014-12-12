@@ -186,7 +186,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         return tree_data
 
     def get_dagre_data(self):
-
+    # TODO: whenever a process has several inputs then only the amount of one is displayed instead of the sum
         def chunks(s, n):
             """Produce `n`-character chunks from `s`."""
             for start in range(0, len(s), n):

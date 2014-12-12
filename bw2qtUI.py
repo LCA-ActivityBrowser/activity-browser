@@ -18,25 +18,26 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        # tools from utils
         self.styles = Styles()
         self.helper = HelperMethods()
-
-        # LCA Data
         self.lcaData = BrowserStandardTasks()
-        # self.history = []
 
         # Activity Editor settings
         self.read_only_databases = ["ecoinvent 2.2", "ecoinvent 2.2 multioutput", "ecoinvent 3.01 default",
                                     "ecoinvent 3.01 cutoff", "ecoinvent 3.01 consequential", "ecoinvent 3.1 default",
                                     "ecoinvent 3.1 cutoff", "ecoinvent 3.1 consequential", "biosphere", "biosphere3"]
 
-        # create the central container widget
+        # set up central widget
         self.widget = QtGui.QWidget(self)
         self.setStandardWidgets()
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
-        self.listDatabases()
+        # set up additional widgets
         self.setUpLCIAWidget()
+
+        # at program start
+        self.listDatabases()
 
     def setStandardWidgets(self):
         # BUTTONS
@@ -50,7 +51,7 @@ class MainWindow(QtGui.QMainWindow):
         button_history = QtGui.QPushButton("History")
         button_databases = QtGui.QPushButton("Databases")
         button_edit = QtGui.QPushButton("Edit")
-        button_goto_lcia_widget = QtGui.QPushButton("LCIA")
+        button_calc_lca = QtGui.QPushButton("Calculate LCA")
         # LINE EDITS
         self.line_edit_search = QtGui.QLineEdit()
         # LABELS
@@ -93,7 +94,7 @@ class MainWindow(QtGui.QMainWindow):
         HL_activity_buttons = QtGui.QHBoxLayout()
         HL_activity_buttons.setAlignment(QtCore.Qt.AlignLeft)
         HL_activity_buttons.addWidget(button_edit)
-        HL_activity_buttons.addWidget(button_goto_lcia_widget)
+        HL_activity_buttons.addWidget(button_calc_lca)
         # TAB WIDGETS
         self.tab_widget_RIGHT = QtGui.QTabWidget()
         self.tab_widget_RIGHT.setMovable(True)
@@ -145,7 +146,7 @@ class MainWindow(QtGui.QMainWindow):
         button_databases.clicked.connect(self.listDatabases)
         button_key.clicked.connect(self.search_by_key)
         button_edit.clicked.connect(self.edit_activity)
-        button_goto_lcia_widget.clicked.connect(self.goto_lcia_widget)
+        button_calc_lca.clicked.connect(self.calculate_lcia)
 
         self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
@@ -171,6 +172,11 @@ class MainWindow(QtGui.QMainWindow):
         file.addAction(addPSS)
 
     def setUpLCIAWidget(self):
+        # TODO: create a table that can be filled with methods
+        # - one should be able to select e.g. ReCiPe and then get all of its submethods.
+        # - the LCA results widget should then also contain a table with Results for all methods
+        # - this should be exportable (copy whole table)
+
         if not hasattr(self, 'widget_LCIA'):
             self.widget_LCIA = QtGui.QWidget()
             self.tab_widget_LEFT.addTab(self.widget_LCIA, "LCIA")
@@ -237,7 +243,6 @@ class MainWindow(QtGui.QMainWindow):
             self.combo_lcia_method_part1.currentIndexChanged.connect(self.update_lcia_method)
             self.combo_lcia_method_part2.currentIndexChanged.connect(self.update_lcia_method)
             self.button_clear_lcia_methods.clicked.connect(lambda: self.update_lcia_method(selection=('','','')))
-            # button_random_activity.clicked.connect(lambda: self.load_new_current_activity())
 
     def setUpLCAResults(self):
         if not hasattr(self, 'widget_LCIA_Results'):
@@ -486,13 +491,6 @@ class MainWindow(QtGui.QMainWindow):
             self.lcaData.set_edit_activity(self.lcaData.currentActivity)
             self.update_AE_tables()
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
-
-# TODO this could be come a button for quick LCA calculation with 1.0 GWP or the last used method
-    def goto_lcia_widget(self):
-        if not self.lcaData.currentActivity:
-            self.statusBar().showMessage("Need to load an activity first.")
-        else:
-            self.tab_widget_LEFT.setCurrentIndex(self.tab_widget_LEFT.indexOf(self.widget_LCIA))
 
     def update_lcia_method(self, current_index=0, selection=None):
         if not selection:

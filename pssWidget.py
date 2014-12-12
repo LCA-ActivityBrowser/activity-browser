@@ -584,6 +584,7 @@ class pssWidget(QtGui.QWidget):
         returns dict where: keys = PSS name, value = LCA score
         """
         if not method:
+            print "Using default LCIA method: (u'IPCC 2007', u'climate change', u'GWP 100a')"
             method = (u'IPCC 2007', u'climate change', u'GWP 100a')
         mapping_lca = {}
         for pss_data in self.PSS_database:

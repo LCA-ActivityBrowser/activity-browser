@@ -35,8 +35,8 @@ class ProcessSubsystem(object):
         # self.check_outputs()
         self.mapping, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
+        self.get_edge_lists()
         self.pad_cuts()
-        # TODO: write a method that does all self.edges_blabla calculations and gets rid of the many methods for those
 
     def remove_cuts_from_chain(self, chain, cuts):
         """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.
@@ -47,18 +47,6 @@ class ProcessSubsystem(object):
                 chain.remove(cut[0])
                 print "PSS WARNING: Cut removed from chain: " + str(cut[0])
         return set(chain)
-
-    def pad_cuts(self):
-        """
-        Make sure that each cut includes the amount that is cut. This is retrieved from self.internal_scaled_edges_with_cuts
-        """
-        for i, c in enumerate(self.cuts):
-            for e in self.internal_scaled_edges_with_cuts:
-                if c[:2] == e[:2]:
-                    try:
-                        self.cuts[i] = (c[0], c[1], c[2], e[2])
-                    except IndexError:
-                        print "Problem with cut data: " + str(c)
 
     def pad_outputs(self, outputs):
         """Add default amount (1) to outputs if not present.
@@ -177,47 +165,31 @@ class ProcessSubsystem(object):
                 demand[mapping[a]] += o[2]
         return mapping, matrix, np.linalg.solve(matrix, demand).tolist()
 
-    @property
-    def external_edges(self):
-        """Get list of edges outside our system, which are not cut"""
-        return [x for x in self.edges if (x[0] not in self.chain and \
-            x[:2] not in set([y[:2] for y in self.cuts]))]
+    def get_edge_lists(self):
+        """Get lists of external and internal edges with original flow values or scaled to the meta-process"""
+        self.external_edges = [x for x in self.edges if
+                               (x[0] not in self.chain and x[:2] not in set([y[:2] for y in self.cuts]))]
+        self.internal_edges = [x for x in self.edges if
+                               (x[0] in self.chain and x[:2] not in set([y[:2] for y in self.cuts]))]
+        self.internal_edges_with_cuts = [x for x in self.edges if
+                                                (x[0] in self.chain or x[:2] in set([y[:2] for y in self.cuts]))]
+        # scale these edges
+        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
+        self.external_scaled_edges = [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]) for x in self.external_edges]
+        self.internal_scaled_edges = [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]) for x in self.internal_edges]
+        self.internal_scaled_edges_with_cuts = [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]) for x in self.internal_edges_with_cuts]
 
-    @property
-    def external_scaled_edges(self):
-        """Adjust edge amounts by scaling vector"""
-        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges,
-            self.scaling_activities, self.outputs)
-        return [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]
-            ) for x in self.external_edges]
-
-    @property
-    def internal_edges(self):
-        """Get list of edges in chain, i.e. that are not part of external edges or cuts"""
-        return [x for x in self.edges if (x[0] in self.chain and \
-            x[:2] not in set([y[:2] for y in self.cuts]))]
-
-    @property
-    def internal_edges_with_cuts(self):
-        """Get list of edges in chain, i.e. that are not part of external edges or cuts"""
-        return [x for x in self.edges if (x[0] in self.chain or \
-            x[:2] in set([y[:2] for y in self.cuts]))]
-
-    @property
-    def internal_scaled_edges(self):
-        """Scale internal edges according to scaling activities"""
-        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges,
-            self.scaling_activities, self.outputs)
-        return [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]
-            ) for x in self.internal_edges]
-
-    @property
-    def internal_scaled_edges_with_cuts(self):
-        """Scale internal edges (including cuts) according to scaling activities"""
-        mapping, matrix, supply_vector = self.get_supply_vector(self.chain, self.edges,
-            self.scaling_activities, self.outputs)
-        return [(x[0], x[1], x[2] * supply_vector[mapping[x[1]]]
-            ) for x in self.internal_edges_with_cuts]
+    def pad_cuts(self):
+        """
+        Make sure that each cut includes the amount that is cut. This is retrieved from self.internal_scaled_edges_with_cuts
+        """
+        for i, c in enumerate(self.cuts):
+            for e in self.internal_scaled_edges_with_cuts:
+                if c[:2] == e[:2]:
+                    try:
+                        self.cuts[i] = (c[0], c[1], c[2], e[2])
+                    except IndexError:
+                        print "Problem with cut data: " + str(c)
 
     @property
     def pss_data(self):
@@ -315,7 +287,6 @@ class ProcessSubsystem(object):
             self.calculated_lca = LCA(demand={self.key: 1})
         return self.calculated_lca.lci()
 
-    # TODO
     def process_products(self, nodes, edges, cuts, outputs, scaling_activities, database):
         """Provide data for construction of process-product table.
 
