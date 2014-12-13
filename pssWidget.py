@@ -350,10 +350,7 @@ class pssWidget(QtGui.QWidget):
         self.showGraph()
 
     def set_output_based_scaling(self):
-        if self.checkbox_output_based_scaling.isChecked():
-            self.PSC.set_output_based_scaling(True)
-        else:
-            self.PSC.set_output_based_scaling(False)
+        self.PSC.set_output_based_scaling(self.checkbox_output_based_scaling.isChecked())
         self.showGraph()
 
     def set_output_custom_data(self):

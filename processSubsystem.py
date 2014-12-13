@@ -27,12 +27,12 @@ class ProcessSubsystem(object):
         self.key = None  # created when PSS saved to a DB
         self.name = name
         self.cuts = cuts
+        self.output_based_scaling = output_based_scaling
         self.chain = self.remove_cuts_from_chain(chain, self.cuts)
         self.depending_databases = list(set(c[0] for c in self.chain))
         self.filtered_database = self.getFilteredDatabase(self.depending_databases, self.chain)
         self.edges = self.construct_graph(self.filtered_database)
         self.scaling_activities, self.isSimple = self.getScalingActivities(self.chain, self.edges)
-        self.output_based_scaling = output_based_scaling
         self.outputs = self.pad_outputs(outputs)
         self.mapping, self.demand, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
@@ -153,7 +153,7 @@ class ProcessSubsystem(object):
         mapping = dict(*[zip(sorted(chain), itertools.count())])
         reverse_mapping = dict(*[zip(itertools.count(), sorted(chain))])
 
-        # CREATE MATRIX THAT RELATES TO PROCESSES IN THE CHAIN
+        # MATRIX (that relates to processes in the chain)
         # Diagonal values (usually 1, but there are exceptions)
         M = len(chain)
         matrix = np.zeros((M, M))
@@ -178,7 +178,7 @@ class ProcessSubsystem(object):
                 mapping[in_],
                 mapping[out_]
             ] -= a
-        # demand vector
+        # DEMAND VECTOR
         demand = np.zeros((M,))
         for sa in scaling_activities:
             if not self.output_based_scaling:
@@ -227,7 +227,6 @@ class ProcessSubsystem(object):
         }
         return pss_data_dict
 
-# TODO: implement a method that saves the PSS as "outputs - inputs"
     def save_supply_chain_as_new_dataset(self, db_name="PSS default", unit=None,
             location=None, categories=[], save_aggregated_inventory=False):
         """Save simplified process to a database.
@@ -247,7 +246,7 @@ class ProcessSubsystem(object):
             data = {}
         else:
             data = db.load()
-        # put together dataset information
+        # GATHER DATASET INFORMATION
         self.key = (unicode(db_name), unicode(uuid.uuid4().urn[9:]))
         activity = self.scaling_activities[0]
         metadata = Database(activity[0]).load()[activity]
@@ -288,7 +287,7 @@ class ProcessSubsystem(object):
             "input": self.key,
             "type": "production"
         })
-
+        # WRITE DATASET INFORMATION
         data[self.key] = {
             "name": self.name,
             "unit": unit or metadata.get(u'unit', ''),
@@ -333,53 +332,10 @@ class ProcessSubsystem(object):
             self.calculated_lca = LCA(demand={self.key: 1})
         return self.calculated_lca.lci()
 
-# TODO: check if needs to adapt with overriding the scaling activities
-    def process_products(self, nodes, edges, cuts, outputs, scaling_activities, database):
-        """Provide data for construction of process-product table.
-
-        Note that products from multi-output activities are **not** scaled using the amounts in ``outputs``.
-
-        Args:
-            * *nodes* (list): List of processes in supply chain
-            * *edges* (list): List of edges from ``construct_graph``
-            * *cuts* (list): List of cuts from supply chain to inventory database
-            * *outputs* (list): List of products
-            * *scaling_activities* (key): The scaling activities
-            * *database* (dict): Inventory database for supply chain
-
-        Output:
-            List of (name, amount) product names and amounts.
-
-        """
-        products_from_cuts = [(c[2],
-            # Get edge amount
-            filter(lambda y: y[0] == c[0] and y[1] == c[1], edges)[0][2] \
-            # times supply amount of edge end times -1
-            * self.supply_vector[self.mapping[c[1]]] * -1
-            ) for c in cuts]
-
-        # Cuts can be from multiple inputs but the same product
-        # TODO: TEST
-        r = {}
-        for product, amount in products_from_cuts:
-            r[product] = r.get(product, 0) + amount
-        products_from_cuts = list(r.iteritems())
-
-        activity = scaling_activities[0]  # TODO: extend to multiple activities
-        a_data = database[activity]
-        if a_data.get("multioutput", False):
-            # Special handling for MO processes
-            products_from_outputs = [(o[1], a_data["multioutput"][o[0]]
-                ) for o in outputs]
-        else:
-            # One output from scaling activity or manually-specified
-            # multi-output process
-            products_from_outputs = [(o[1], o[2]) for o in outputs]
-
-        return products_from_cuts + products_from_outputs
+    def get_product_inputs_and_outputs(self):
+        return [(cut[2], cut[3]) for cut in self.cuts] + [(output[1], output[2]) for output in self.outputs]
 
     @property
     def pp(self):
         """Shortcut, as full method uses no global state"""
-        return self.process_products(self.chain, self.edges, self.cuts,
-            self.outputs, self.scaling_activities, self.filtered_database)
+        return self.get_product_inputs_and_outputs()
