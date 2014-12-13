@@ -229,7 +229,7 @@ class ProcessSubsystem(object):
 
 # TODO: implement a method that saves the PSS as "outputs - inputs"
     def save_supply_chain_as_new_dataset(self, db_name="PSS default", unit=None,
-            location=None, categories=[]):
+            location=None, categories=[], save_aggregated_inventory=False):
         """Save simplified process to a database.
 
         Creates database if necessary; otherwise *adds* to existing database. Uses the ``unit`` and ``location`` of ``self.scaling_activities[0]``, if not otherwise provided. Assumes that one unit of the scaling activity is being produced.
@@ -260,24 +260,34 @@ class ProcessSubsystem(object):
                 unit = units_set.pop()
         # EXCHANGES
         exchanges = []
-        # scaling activities
-        for sa in self.scaling_activities:
-            exchanges.append({
-                "amount": self.demand[self.mapping[sa]],
-                "input": sa,
-                "type": "biosphere" \
-                    if sa[0] in (u"biosphere", u"biosphere3") \
-                    else "technosphere",
-            })
-        # cuts
-        for cut in self.cuts:
-            exchanges.append({
-                "amount": -cut[3],
-                "input": cut[0],
-                "type": "biosphere" \
-                    if cut[0] in (u"biosphere", u"biosphere3") \
-                    else "technosphere",
-            })
+        if not save_aggregated_inventory:  # save inventory as scaling activities - cuts
+            # scaling activities
+            for sa in self.scaling_activities:
+                exchanges.append({
+                    "amount": self.demand[self.mapping[sa]],
+                    "input": sa,
+                    "type": "biosphere" if sa[0] in (u"biosphere", u"biosphere3") else "technosphere",
+                })
+            # cuts
+            for cut in self.cuts:
+                exchanges.append({
+                    "amount": -cut[3],
+                    "input": cut[0],
+                    "type": "biosphere" if cut[0] in (u"biosphere", u"biosphere3") else "technosphere",
+                })
+        else:  # save aggregated inventory of all processes in chain
+            exchanges = [{
+                "amount": exc[2],
+                "input": exc[0],
+                "type": "biosphere" if exc[0][0] in (u"biosphere", u"biosphere3") else "technosphere",
+            } for exc in self.external_scaled_edges]
+        # Production amount
+        exchanges.append({
+            # Output value unless several outputs, then 1.0
+            "amount": self.outputs[0][2] if len(self.outputs) == 1 else 1.0,
+            "input": self.key,
+            "type": "production"
+        })
 
         data[self.key] = {
             "name": self.name,
@@ -287,12 +297,7 @@ class ProcessSubsystem(object):
             "type": "process",
             "exchanges": exchanges,
         }
-        # Production amount
-        data[self.key]["exchanges"].append({
-            "amount": 1,  # TODO: correct with real output value; if several outputs: set to 1 and adapt unit to "multiple"
-            "input": self.key,
-            "type": "production"
-        })
+
         # TODO: Include uncertainty from original databases. Can't just scale
         # uncertainty parameters. Maybe solution is to use "dummy" processes
         # like we want to do to separate inputs of same flow in any case.
@@ -378,61 +383,3 @@ class ProcessSubsystem(object):
         """Shortcut, as full method uses no global state"""
         return self.process_products(self.chain, self.edges, self.cuts,
             self.outputs, self.scaling_activities, self.filtered_database)
-
-
-    # def save_supply_chain_as_new_dataset(self, db_name="PSS default", unit=None,
-    #         location=None, categories=[]):
-    #     """Save simplified process to a database.
-    #
-    #     Creates database if necessary; otherwise *adds* to existing database. Uses the ``unit`` and ``location`` of ``self.scaling_activities[0]``, if not otherwise provided. Assumes that one unit of the scaling activity is being produced.
-    #
-    #     Args:
-    #         * *db_name* (str): Name of Database
-    #         * *unit* (str, optional): Unit of the simplified process.
-    #         * *location* (str, optional): Location of the simplified process.
-    #         * *categories* (list, optional): Category/ies of the scaling activity.
-    #
-    #     """
-    #     db = Database(db_name)
-    #     if db_name not in databases:
-    #         db.register()
-    #         data = {}
-    #     else:
-    #         data = db.load()
-    #     # put together dataset information
-    #     self.key = (db_name, self.name)  # TODO: change to UUID
-    #     activity = self.scaling_activities[0]
-    #     metadata = Database(activity[0]).load()[activity]
-    #     # unit: if all scaling activities have the same unit, then set a unit, otherwise 'NA'
-    #     if self.scaling_activities != 1:
-    #         units_set = set([Database(sa[0]).load()[sa].get(u'unit', '') for sa in self.scaling_activities])
-    #         if len(units_set) > 1:
-    #             unit = 'several'  # if several units, display nothing
-    #         else:
-    #             unit = units_set.pop()
-    #     data[self.key] = {
-    #         "name": self.name,
-    #         "unit": unit or metadata.get(u'unit', ''),
-    #         "location": location or metadata.get(u'location', ''),
-    #         "categories": categories,
-    #         "type": "process",
-    #         "exchanges": [{
-    #             "amount": exc[2],
-    #             "input": exc[0],
-    #             "type": "biosphere" \
-    #                 if exc[0][0] in (u"biosphere", u"biosphere3") \
-    #                 else "technosphere",
-    #             } for exc in self.external_scaled_edges],
-    #     }
-    #     # Production amount
-    #     data[self.key]["exchanges"].append({
-    #         "amount": 1,  # TODO: correct with real output value; if several outputs: set to 1 and adapt unit to "multiple"
-    #         "input": self.key,
-    #         "type": "production"
-    #     })
-    #     # TODO: Include uncertainty from original databases. Can't just scale
-    #     # uncertainty parameters. Maybe solution is to use "dummy" processes
-    #     # like we want to do to separate inputs of same flow in any case.
-    #     # data = db.relabel_data(data, db_name)
-    #     db.write(recursive_str_to_unicode(data))
-    #     db.process()
