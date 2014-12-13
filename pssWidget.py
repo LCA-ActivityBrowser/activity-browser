@@ -84,12 +84,15 @@ class pssWidget(QtGui.QWidget):
         self.table_PSS_chain = QtGui.QTableWidget()
         self.table_PSS_outputs = QtGui.QTableWidget()
         self.table_PSS_database = QtGui.QTableWidget()
+        # Checkboxes
+        self.checkbox_output_based_scaling = QtGui.QCheckBox('Output based scaling (default)')
+        self.checkbox_output_based_scaling.setChecked(True)
         # PSS data
         VL_PSS_data = QtGui.QVBoxLayout()
         self.PSSdataWidget.setLayout(VL_PSS_data)
         self.line_edit_PSS_name = QtGui.QLineEdit(self.PSC.pss.name)
         VL_PSS_data.addWidget(self.line_edit_PSS_name)
-        VL_PSS_data.addWidget(self.table_PSS_outputs)
+        VL_PSS_data.addWidget(self.checkbox_output_based_scaling)
         VL_PSS_data.addWidget(QtGui.QLabel("Outputs"))
         VL_PSS_data.addWidget(self.table_PSS_outputs)
         VL_PSS_data.addWidget(QtGui.QLabel("Chain"))
@@ -103,6 +106,7 @@ class pssWidget(QtGui.QWidget):
         self.table_PSS_outputs.itemChanged.connect(self.set_output_custom_data)
         self.table_PSS_outputs.currentItemChanged.connect(self.save_text_before_edit)
         self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
+        self.checkbox_output_based_scaling.stateChanged.connect(self.set_output_based_scaling)
         # CONTEXT MENUS
         # Outputs
         self.table_PSS_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -344,7 +348,14 @@ class pssWidget(QtGui.QWidget):
         name = str(self.line_edit_PSS_name.text())  # otherwise QString
         self.PSC.set_pss_name(name)
         self.showGraph()
-        
+
+    def set_output_based_scaling(self):
+        if self.checkbox_output_based_scaling.isChecked():
+            self.PSC.set_output_based_scaling(True)
+        else:
+            self.PSC.set_output_based_scaling(False)
+        self.showGraph()
+
     def set_output_custom_data(self):
 
         item = self.table_PSS_outputs.currentItem()
@@ -381,6 +392,7 @@ class pssWidget(QtGui.QWidget):
         self.update_PSS_table_widget_outputs()
         self.update_PSS_table_widget_chain()
         self.update_PSS_tree_widget_cuts()
+        self.update_checkbox_output_based_scaling()
 
     def update_PSS_table_widget_outputs(self):
         keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
@@ -442,6 +454,9 @@ class pssWidget(QtGui.QWidget):
             self.tree_widget_cuts.resizeColumnToContents(i)
         self.tree_widget_cuts.blockSignals(False)  # itemChanged signals again after updating
         self.tree_widget_cuts.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)
+
+    def update_checkbox_output_based_scaling(self):
+        self.checkbox_output_based_scaling.setChecked(self.PSC.pss_data['output_based_scaling'])
 
     def update_FU_unit(self):
         for pss in self.PSS_database:

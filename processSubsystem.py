@@ -23,7 +23,7 @@ class ProcessSubsystem(object):
         * *scaling activity* (key, optional): The reference activities for the supply chain. **Required** for circular supply chains; in simple supply chains, the scaling activity is calculated automatically.
 
     """
-    def __init__(self, name, outputs, chain, cuts, **kwargs):
+    def __init__(self, name, outputs, chain, cuts, output_based_scaling=True, **kwargs):
         self.key = None  # created when PSS saved to a DB
         self.name = name
         self.cuts = cuts
@@ -31,7 +31,8 @@ class ProcessSubsystem(object):
         self.depending_databases = list(set(c[0] for c in self.chain))
         self.filtered_database = self.getFilteredDatabase(self.depending_databases, self.chain)
         self.edges = self.construct_graph(self.filtered_database)
-        self.isSimple, self.scaling_activities = self.getScalingActivities(self.chain, self.edges)
+        self.scaling_activities, self.isSimple = self.getScalingActivities(self.chain, self.edges)
+        self.output_based_scaling = output_based_scaling
         self.outputs = self.pad_outputs(outputs)
         self.mapping, self.demand, self.matrix, self.supply_vector = \
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
@@ -96,7 +97,7 @@ class ProcessSubsystem(object):
         used_inputs = [x[0] for x in edges if x[0] in chain]
         heads = set([tuple(x[1]) for x in edges if x[1] not in used_inputs])
         isSimple = len(heads) == 1
-        return isSimple, list(heads)
+        return list(heads), isSimple
 
     def pad_outputs(self, outputs):
         """If not present, add to outputs default
@@ -158,13 +159,17 @@ class ProcessSubsystem(object):
         matrix = np.zeros((M, M))
         for m in range(M):
             key = reverse_mapping[m]
-            ds = Database(key[0]).load()[key]
-            try:
-                # amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
-                diagonal_value = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
-            except IndexError:
-                print "WARNING: Amount could not be determined. Perhaps this is a multi-output activity. Results may be wrong."
+            if key in self.scaling_activities and not self.output_based_scaling:
+                print "Did not apply output based scaling: scaling activity and output product amounts set manually."
                 diagonal_value = 1.0
+            else:
+                try:
+                    ds = Database(key[0]).load()[key]
+                    # amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
+                    diagonal_value = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
+                except IndexError:
+                    print "WARNING: Amount could not be determined. Perhaps this is a multi-output activity. Results may be wrong."
+                    diagonal_value = 1.0
             matrix[m,m] = diagonal_value
         # Non-diagonal values
         # Only add edges that are within our system, but allow multiple links to same product (simply add them)
@@ -176,8 +181,11 @@ class ProcessSubsystem(object):
         # demand vector
         demand = np.zeros((M,))
         for sa in scaling_activities:
-            for o in [output for output in outputs if output[0] == sa]:
-                demand[mapping[sa]] += o[2]
+            if not self.output_based_scaling:
+                demand[mapping[sa]] = 1.0
+            else:
+                for o in [output for output in outputs if output[0] == sa]:
+                    demand[mapping[sa]] += o[2]
         return mapping, demand, matrix, np.linalg.solve(matrix, demand).tolist()
 
     def get_edge_lists(self):
@@ -215,6 +223,7 @@ class ProcessSubsystem(object):
             'outputs': self.outputs,
             'chain': list(self.chain),
             'cuts': self.cuts,
+            'output_based_scaling': self.output_based_scaling,
         }
         return pss_data_dict
 

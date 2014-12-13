@@ -22,11 +22,11 @@ pss_data_format = [
         'cuts': [
             (parent_key, child_key, 'custom_name', amount),
         ],
-        # scaling activities: mainly necessary for multi-output activities, where outputs shall be overriden
-        # or where artificual outputs shall be added and not used for scaling
-        'scaling activities': [
-            (key, 'custom_amount')
-        ],
+        # OPTIONAL
+        # Normally output based scaling (True). For multi-output activities this can be set to False.
+        # In that case the scaling activities are always scaled with 1.0. Product outputs need to be adapted manually.
+        # This allows to model multiple outputs that do not add up to 1 (e.g. 0.46 MJ heat and 0.08 kWh electricity).
+        'output_based_scaling': True,
         # 'edges': [ # theoretically not necessary, but more convenient and perhaps helpful
         #     (parent_key, child_key),
         # ],

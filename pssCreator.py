@@ -7,7 +7,7 @@ import json
 
 class ProcessSubsystemCreator(BrowserStandardTasks):
     def __init__(self):
-        self.pss_data = {'name': 'New Process Subsystem', 'outputs': [], 'chain': [], 'cuts': []}
+        self.pss_data = {'name': 'New Process Subsystem', 'outputs': [], 'chain': [], 'cuts': [], 'output_based_scaling': True}
         self.newProcessSubsystem(self.pss_data)
         self.name_map = {}  # remembers key: "name" information during a session
 
@@ -35,7 +35,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
 
     def newProcessSubsystem(self, pss_data=None):
         if not pss_data:
-            self.pss_data = {'name': 'New Process Subsystem', 'outputs': [], 'chain': [], 'cuts': []}
+            self.pss_data = {'name': 'New Process Subsystem', 'outputs': [], 'chain': [], 'cuts': [], 'output_based_scaling': True}
             self.pss = ProcessSubsystem(**self.pss_data)
         else:  # load with try, except
             self.pss_data = pss_data
@@ -101,6 +101,11 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
 
     def set_pss_name(self, name):
         self.pss_data['name'] = name
+        self.update_pss()
+
+    def set_output_based_scaling(self, bool):
+        self.pss_data['output_based_scaling'] = bool
+        print "Set output based scaling to: " + str(bool)
         self.update_pss()
 
     def set_output_name(self, key, new_name, old_name, amount, update=True):
