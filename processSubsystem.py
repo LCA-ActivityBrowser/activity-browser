@@ -160,7 +160,8 @@ class ProcessSubsystem(object):
         for m in range(M):
             key = reverse_mapping[m]
             if key in self.scaling_activities and not self.output_based_scaling:
-                print "Did not apply output based scaling: scaling activity and output product amounts set manually."
+                print "Did not apply output based scaling: scaling activity set to 1.0, " \
+                      "which may not relate to manually defined output product quantities."
                 diagonal_value = 1.0
             else:
                 try:
@@ -168,7 +169,8 @@ class ProcessSubsystem(object):
                     # amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
                     diagonal_value = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
                 except IndexError:
-                    print "WARNING: Amount could not be determined. Perhaps this is a multi-output activity. Results may be wrong."
+                    print "WARNING: Amount could not be determined. Perhaps this is a multi-output activity. " \
+                          "Results may be wrong."
                     diagonal_value = 1.0
             matrix[m,m] = diagonal_value
         # Non-diagonal values
@@ -333,7 +335,7 @@ class ProcessSubsystem(object):
         return self.calculated_lca.lci()
 
     def get_product_inputs_and_outputs(self):
-        return [(cut[2], cut[3]) for cut in self.cuts] + [(output[1], output[2]) for output in self.outputs]
+        return [(cut[2], -cut[3]) for cut in self.cuts] + [(output[1], output[2]) for output in self.outputs]
 
     @property
     def pp(self):

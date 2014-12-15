@@ -757,13 +757,13 @@ class pssWidget(QtGui.QWidget):
         for product in products:
             self.combo_functional_unit.addItem(product)
 
-        # print "\nPP-MATRIX:"
-        # print "PROCESSES:"
-        # print processes
-        # print "PRODUCTS"
-        # print products
-        # print "MATRIX"
-        # print matrix
+        print "\nPP-MATRIX:"
+        print "PROCESSES:"
+        print processes
+        print "PRODUCTS"
+        print products
+        print "MATRIX"
+        print matrix
 
         # export pp-matrix data to pickle file
         data = {
@@ -811,11 +811,10 @@ class pssWidget(QtGui.QWidget):
         # Assume that process names are unique
         processes = get_processes(data)
         products = get_products(data)
-        matrix = np.zeros((len(processes), len(products)))
+        matrix = np.zeros((len(products), len(processes)))
         proc_mapping = dict(zip(processes, itertools.count()))
         prod_mapping = dict(zip(products, itertools.count()))
         for sp in data:
             for product, amount in sp.pp:
-                matrix[proc_mapping[sp.name], prod_mapping[product]] = amount
+                matrix[prod_mapping[product], proc_mapping[sp.name]] = amount
         return processes, products, matrix
-
