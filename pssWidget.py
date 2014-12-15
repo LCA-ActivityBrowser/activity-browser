@@ -7,6 +7,7 @@ from utils import *
 from jinja2 import Template
 import json
 import pickle
+import xlsxwriter
 import os
 from pssCreator import ProcessSubsystemCreator
 from processSubsystem import ProcessSubsystem
@@ -774,6 +775,8 @@ class pssWidget(QtGui.QWidget):
         filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.pickle")
         with open(filename, 'w') as output:
             pickle.dump(data, output)
+        # Excel export
+        self.export_pp_matrix_to_excel(processes, products, matrix)
         # filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.json")
         # with open(filename, 'w') as outfile:
         #     json.dump(data, outfile, indent=2)
@@ -794,6 +797,17 @@ class pssWidget(QtGui.QWidget):
                 'data': json.dumps(self.get_pp_tree(), indent=1)
             }
         self.set_webview(template_data, self.current_d3_layout)
+
+    def export_pp_matrix_to_excel(self, processes, products, matrix, filename='pp-matrix.xlsx'):
+        workbook = xlsxwriter.Workbook(filename)
+        ws = workbook.add_worksheet('pp-matrix')
+        for i, p in enumerate(processes):  # write process names
+            ws.write(0, i+1, p)
+        for i, p in enumerate(products):  # write product names
+            ws.write(i+1, 0, p)
+        for i, row in enumerate(range(matrix.shape[0])):  # write matrix
+            ws.write_row(i+1, 1, matrix[i, :])
+        workbook.close()
 
     def get_process_products_as_array(self):
 
