@@ -799,6 +799,7 @@ class pssWidget(QtGui.QWidget):
         self.set_webview(template_data, self.current_d3_layout)
 
     def export_pp_matrix_to_excel(self, processes, products, matrix, filename='pp-matrix.xlsx'):
+        filename = os.path.join(os.getcwd(), "PSS Databases", filename)
         workbook = xlsxwriter.Workbook(filename)
         ws = workbook.add_worksheet('pp-matrix')
         for i, p in enumerate(processes):  # write process names
