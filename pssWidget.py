@@ -776,7 +776,10 @@ class pssWidget(QtGui.QWidget):
         with open(filename, 'w') as output:
             pickle.dump(data, output)
         # Excel export
-        self.export_pp_matrix_to_excel(processes, products, matrix)
+        try:
+            self.export_pp_matrix_to_excel(processes, products, matrix)
+        except:
+            print "An error has occured saving the PP-Matrix as .xlsx file."
         # filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.json")
         # with open(filename, 'w') as outfile:
         #     json.dump(data, outfile, indent=2)
@@ -802,12 +805,26 @@ class pssWidget(QtGui.QWidget):
         filename = os.path.join(os.getcwd(), "PSS Databases", filename)
         workbook = xlsxwriter.Workbook(filename)
         ws = workbook.add_worksheet('pp-matrix')
-        for i, p in enumerate(processes):  # write process names
-            ws.write(0, i+1, p)
-        for i, p in enumerate(products):  # write product names
-            ws.write(i+1, 0, p)
-        for i, row in enumerate(range(matrix.shape[0])):  # write matrix
-            ws.write_row(i+1, 1, matrix[i, :])
+        # formatting
+        # border
+        format_border = workbook.add_format()
+        format_border.set_border(1)
+        format_border.set_font_size(9)
+        # border + text wrap
+        format_border_text_wrap = workbook.add_format()
+        format_border_text_wrap.set_text_wrap()
+        format_border_text_wrap.set_border(1)
+        format_border_text_wrap.set_font_size(9)
+        # set column width
+        ws.set_column(0, 1, width=15, cell_format=None)
+        ws.set_column(1, 50, width=9, cell_format=None)
+        # write data
+        for i, p in enumerate(processes):  # process names
+            ws.write(0, i+1, p, format_border_text_wrap)
+        for i, p in enumerate(products):  # product names
+            ws.write(i+1, 0, p, format_border)
+        for i, row in enumerate(range(matrix.shape[0])):  # matrix
+            ws.write_row(i+1, 1, matrix[i, :], format_border)
         workbook.close()
 
     def get_process_products_as_array(self):
