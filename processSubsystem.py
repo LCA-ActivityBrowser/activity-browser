@@ -309,10 +309,8 @@ class ProcessSubsystem(object):
 
     def get_background_lci_demand(self, foreground_amount):
         demand = {}  # dictionary for the brightway2 LCA object {activity key: amount}
-        # scaling activities
         for sa in self.scaling_activities:
             demand.update({sa: self.demand[self.mapping[sa]]*foreground_amount})
-        # cuts
         for cut in self.cuts:
             demand.update({cut[0]: -cut[3]*foreground_amount})
         return demand
@@ -332,32 +330,11 @@ class ProcessSubsystem(object):
             self.calculated_lca.lcia()
         return self.calculated_lca.score
 
-    # def lca(self, method, amount=1.0, factorize=False):
-    #     if not self.scaling_activities:
-    #         raise ValueError("No scaling activity")
-    #     if hasattr(self, "calculated_lca"):
-    #         self.calculated_lca.method = method
-    #         self.calculated_lca.lcia()
-    #     else:
-    #         with warnings.catch_warnings():
-    #             warnings.simplefilter("ignore")
-    #             if not self.key:
-    #                 self.save_supply_chain_as_new_dataset()
-    #             self.calculated_lca = LCA(demand={self.key: amount}, method=method)
-    #             self.calculated_lca.lci()
-    #             if factorize:
-    #                 self.calculated_lca.decompose_technosphere()
-    #             self.calculated_lca.lcia()
-    #     return self.calculated_lca.score
-
     def lci(self, amount=1.0):
         if not self.scaling_activities:
             raise ValueError("No scaling activity")
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            if not self.key:
-                self.save_supply_chain_as_new_dataset()
-            self.calculated_lca = LCA(demand={self.key: amount})
+        demand = self.get_background_lci_demand(amount)
+        self.calculated_lca = LCA(demand={self.key: amount})
         return self.calculated_lca.lci()
 
     def get_product_inputs_and_outputs(self):

@@ -11,7 +11,7 @@ import xlsxwriter
 import os
 from pssCreator import ProcessSubsystemCreator
 from processSubsystem import ProcessSubsystem
-from lmp import LinkedMetaProcess
+from lmp import LinkedMetaProcessSystem
 import numpy as np
 import itertools
 import networkx as nx  # TODO get rid of this dependency?
@@ -186,7 +186,7 @@ class pssWidget(QtGui.QWidget):
 
     def loadPSSDatabase(self, mode="load new"):
         file_types = "Pickle (*.pickle);;All (*.*)"
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\PSS Databases', file_types)
+        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\MetaProcessDatabases', file_types)
         if filename:
             with open(filename, 'r') as input:
                 PSS_database = pickle.load(input)
@@ -228,7 +228,7 @@ class pssWidget(QtGui.QWidget):
     def saveAsPSSDatabase(self):
         if self.PSS_database:
             file_types = "Pickle (*.pickle);;All (*.*)"
-            filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\PSS Databases', file_types)
+            filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
             if filename:
                 self.savePSSDatabase(filename)
                 self.signal_status_bar_message.emit("PSS Database saved.")
@@ -238,7 +238,7 @@ class pssWidget(QtGui.QWidget):
         for pss in self.PSS_database:
             outdata.append(self.PSC.getHumanReadiblePSS(pss))
         file_types = "Python (*.py);;JSON (*.json);;All (*.*)"
-        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\PSS Databases', file_types)
+        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
         with open(filename, 'w') as outfile:
             json.dump(outdata, outfile, indent=4, sort_keys=True)
 
@@ -621,7 +621,7 @@ class pssWidget(QtGui.QWidget):
             print i, p
 
         # # save to pickle
-        # filename = os.path.join(os.getcwd(), "PSS Databases", "pp_nx_graph.pickle")
+        # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp_nx_graph.pickle")
         # with open(filename, 'w') as output:
         #     pickle.dump(G, output)
 
@@ -649,7 +649,7 @@ class pssWidget(QtGui.QWidget):
     #         print i, p
     #
     #     # save to pickle (TODO just temporary, remove again)
-    #     filename = os.path.join(os.getcwd(), "PSS Databases", "pp_nx_graph.pickle")
+    #     filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp_nx_graph.pickle")
     #     with open(filename, 'w') as output:
     #         pickle.dump(G, output)
     #
@@ -848,7 +848,7 @@ class pssWidget(QtGui.QWidget):
             'products': products,
             'matrix': matrix,
         }
-        filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.pickle")
+        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.pickle")
         with open(filename, 'w') as output:
             pickle.dump(data, output)
         # Excel export
@@ -856,7 +856,7 @@ class pssWidget(QtGui.QWidget):
             self.export_pp_matrix_to_excel(processes, products, matrix)
         except:
             print "An error has occured saving the PP-Matrix as .xlsx file."
-        # filename = os.path.join(os.getcwd(), "PSS Databases", "pp-matrix.json")
+        # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.json")
         # with open(filename, 'w') as outfile:
         #     json.dump(data, outfile, indent=2)
 
@@ -878,7 +878,7 @@ class pssWidget(QtGui.QWidget):
         self.set_webview(template_data, self.current_d3_layout)
 
     def export_pp_matrix_to_excel(self, processes, products, matrix, filename='pp-matrix.xlsx'):
-        filename = os.path.join(os.getcwd(), "PSS Databases", filename)
+        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", filename)
         workbook = xlsxwriter.Workbook(filename)
         ws = workbook.add_worksheet('pp-matrix')
         # formatting

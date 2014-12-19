@@ -73,7 +73,7 @@ class LinkedMetaProcessSystem(object):
         # accepts both a list of names or a list of meta-processes
         if not isinstance(mp_list[0], ProcessSubsystem):
             mp_list = self.get_processes(mp_list)
-        matrix = np.zeros((len(mp_list), len(mp_list)))
+        matrix = np.zeros((len(self.get_product_names(mp_list)), len(mp_list)))
         map_processes_number = dict(zip(self.get_process_names(mp_list), itertools.count()))
         map_products_number = dict(zip(self.get_product_names(mp_list), itertools.count()))
         for mp in mp_list:
@@ -81,19 +81,38 @@ class LinkedMetaProcessSystem(object):
                 matrix[map_products_number[product], map_processes_number[mp.name]] = amount
         return matrix, map_processes_number, map_products_number
 
-    def scaling_vector(self, process_list, demand):
+    def scaling_vector_foreground_demand(self, process_list, demand):
         # matrix
         matrix, map_processes, map_products = self.get_pp_matrix(process_list)
-        # TODO: define conditions that must be met (e.g. square, single-output); Processes can still have multiple outputs (system expansion)
-        # matrix needs to be square to be invertable!
-        assert matrix.shape[0] == matrix.shape[1]
+        try:
+            # TODO: define conditions that must be met (e.g. square, single-output); Processes can still have multiple outputs (system expansion)
+            assert matrix.shape[0] == matrix.shape[1]  # matrix needs to be square to be invertable!
+        except AssertionError:
+            print "Matrix must be square!", matrix.shape[0], matrix.shape[1]
+            return False
         # demand vector
         demand_vector = np.zeros((len(matrix),))
         for name, amount in demand.items():
             demand_vector[map_products[name]] = amount
         # scaling vector
-        scaling_vector = np.linalg.solve(matrix, demand_vector).tolist()
-        return scaling_vector, map_processes
+        try:
+            scaling_vector = np.linalg.solve(matrix, demand_vector).tolist()
+        except np.linalg.linalg.LinAlgError:
+            print "Singular matrix. Cannot solve."
+            return False
+        except:
+            print "Could not solve matrix"
+        scaling_dict = dict([(name, scaling_vector[index]) for name, index in map_processes.items()])
+        # # foreground product demand (can be different from scaling vector if diagonal values are not 1)
+        # foreground_demand = {}
+        # for name, amount in scaling_dict.items():
+        #     number_in_matrix = map_processes[name]
+        #     product = [name for name, number in map_products.items() if number == number_in_matrix][0]
+        #     foreground_demand.update({
+        #         product: amount*matrix[number_in_matrix, number_in_matrix]
+        #     })
+        return scaling_dict  # foreground_demand
+
 
     def product_process_dict(self, process_list=None, product_list=None):
         """
@@ -147,20 +166,47 @@ class LinkedMetaProcessSystem(object):
         ancestor_processes, ancestor_products = self.upstream_products_processes(functional_unit)
         product_processes = self.product_process_dict(process_list=ancestor_processes, product_list=ancestor_products)
         # get all combinations of meta-processes
+        # TODO: this can give too many combinations, if not all processes are in a specific path
         unique_pathways = list(itertools.product(*product_processes.values()))
         return unique_pathways
 
-    def lca_scores(self, method, process_list=None, factorize=False):
+    def lca_processes(self, method, process_list=None, factorize=False):
         """
         returns dict where: keys = PSS name, value = LCA score
         """
         if not process_list:
             process_list = self.processes
-        map_process_lcascore = {}
-        for mp in self.mp_list:
-            if mp.name in process_list:
-                map_process_lcascore.update({mp.name: mp.lca(method, factorize=factorize)})
+        map_process_lcascore = dict([(mp.name, mp.lca(method, factorize=factorize))
+                                     for mp in self.mp_list if mp.name in process_list])
         return map_process_lcascore
+
+    def lca_linked_processes(self, method, process_list, demand):
+        scaling_dict = self.scaling_vector_foreground_demand(process_list, demand)
+        lca_scores = self.lca_processes(method, process_list)
+        # multiply scaling vector with process LCA scores
+        output = {}
+        # TODO: process contribution
+        for process, amount in scaling_dict.items():
+            output.update({
+                process: amount*lca_scores[process],
+                'total score': output.get('total score', 0) + amount*lca_scores[process],
+            })
+        return output
+
+    def lca_alternatives(self, method, demand):
+        # assume that only one product is demanded for now (functional unit)
+        lca_results = []
+        for alternative in self.all_pathways(demand.keys()[0]):
+            lca_results.append({
+                'path': alternative,
+                'lca results': self.lca_linked_processes(method, alternative, demand)
+            })
+        return lca_results
+
+
+
+
+
 
 
 
