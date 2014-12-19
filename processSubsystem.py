@@ -23,6 +23,7 @@ class ProcessSubsystem(object):
         * *scaling activity* (key, optional): The reference activities for the supply chain. **Required** for circular supply chains; in simple supply chains, the scaling activity is calculated automatically.
 
     """
+    # TODO: introduce UUID for meta-processes
     def __init__(self, name, outputs, chain, cuts, output_based_scaling=True, **kwargs):
         self.key = None  # created when PSS saved to a DB
         self.name = name
@@ -306,32 +307,57 @@ class ProcessSubsystem(object):
         db.write(recursive_str_to_unicode(data))
         db.process()
 
-    def lca(self, method, factorize=False):
+    def get_background_lci_demand(self, foreground_amount):
+        demand = {}  # dictionary for the brightway2 LCA object {activity key: amount}
+        # scaling activities
+        for sa in self.scaling_activities:
+            demand.update({sa: self.demand[self.mapping[sa]]*foreground_amount})
+        # cuts
+        for cut in self.cuts:
+            demand.update({cut[0]: -cut[3]*foreground_amount})
+        return demand
+
+    def lca(self, method, amount=1.0, factorize=False):
         if not self.scaling_activities:
             raise ValueError("No scaling activity")
         if hasattr(self, "calculated_lca"):
             self.calculated_lca.method = method
             self.calculated_lca.lcia()
         else:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                if not self.key:
-                    self.save_supply_chain_as_new_dataset()
-                self.calculated_lca = LCA(demand={self.key: 1}, method=method)
-                self.calculated_lca.lci()
-                if factorize:
-                    self.calculated_lca.decompose_technosphere()
-                self.calculated_lca.lcia()
+            demand = self.get_background_lci_demand(amount)
+            self.calculated_lca = LCA(demand, method=method)
+            self.calculated_lca.lci()
+            if factorize:
+                self.calculated_lca.decompose_technosphere()
+            self.calculated_lca.lcia()
         return self.calculated_lca.score
 
-    def lci(self):
+    # def lca(self, method, amount=1.0, factorize=False):
+    #     if not self.scaling_activities:
+    #         raise ValueError("No scaling activity")
+    #     if hasattr(self, "calculated_lca"):
+    #         self.calculated_lca.method = method
+    #         self.calculated_lca.lcia()
+    #     else:
+    #         with warnings.catch_warnings():
+    #             warnings.simplefilter("ignore")
+    #             if not self.key:
+    #                 self.save_supply_chain_as_new_dataset()
+    #             self.calculated_lca = LCA(demand={self.key: amount}, method=method)
+    #             self.calculated_lca.lci()
+    #             if factorize:
+    #                 self.calculated_lca.decompose_technosphere()
+    #             self.calculated_lca.lcia()
+    #     return self.calculated_lca.score
+
+    def lci(self, amount=1.0):
         if not self.scaling_activities:
             raise ValueError("No scaling activity")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             if not self.key:
                 self.save_supply_chain_as_new_dataset()
-            self.calculated_lca = LCA(demand={self.key: 1})
+            self.calculated_lca = LCA(demand={self.key: amount})
         return self.calculated_lca.lci()
 
     def get_product_inputs_and_outputs(self):

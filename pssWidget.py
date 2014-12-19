@@ -11,6 +11,7 @@ import xlsxwriter
 import os
 from pssCreator import ProcessSubsystemCreator
 from processSubsystem import ProcessSubsystem
+from lmp import LinkedMetaProcess
 import numpy as np
 import itertools
 import networkx as nx  # TODO get rid of this dependency?
@@ -176,7 +177,7 @@ class pssWidget(QtGui.QWidget):
         self.PP_analyzer.setLayout(self.VL_PP_analyzer)
         # Connections
         self.button_PP_pathways.clicked.connect(self.show_all_pathways)
-        self.button_PP_lca.clicked.connect(self.get_all_lca_scores_in_pp_graph)
+        self.button_PP_lca.clicked.connect(self.get_meta_process_lcas)
         self.button_PP_lca_pathways.clicked.connect(self.compare_pathway_lcas)
         self.combo_functional_unit.currentIndexChanged.connect(self.update_FU_unit)
         self.table_PP_comparison.itemSelectionChanged.connect(self.show_path_graph)
@@ -463,9 +464,8 @@ class pssWidget(QtGui.QWidget):
                     unit = self.PSC.getActivityData(o[0])['unit']
         self.label_FU_unit.setText(QtCore.QString(unit))
 
-    def update_PP_path_comparison_table(self):
+    def update_PP_path_comparison_table(self, data):
         keys = ['LCA result', 'path']
-        data = self.get_pathway_lcas()
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
     # VISUALIZATION
@@ -564,35 +564,98 @@ class pssWidget(QtGui.QWidget):
         return graph_data
 
     def show_all_pathways(self):
-        data = [{'path': p} for p in self.get_all_pathways_in_pp_graph()]
+        functional_unit = str(self.combo_functional_unit.currentText())
+        data = [{'path': p} for p in self.get_all_pathways_in_pp_graph(functional_unit)]
         keys = ['path']
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
-
-    def get_all_pathways_in_pp_graph(self, functional_unit=None):
-        functional_unit = str(self.combo_functional_unit.currentText())
-        print "\nAnalyzing all possibilities to produce: " + functional_unit
-        # get subgraphs (i.e. with a square matrix)
+    def get_products_processes_for_functional_unit(self, functional_unit):
+        if not functional_unit:
+            return [], []
+        # get PP-Graph to be able to exclude processes that are not needed for the functional unit
         edge_list = []
         for d in self.get_pp_graph():
             edge_list.append((d['source'], d['target']))
         G = nx.DiGraph()
         G.add_edges_from(edge_list)
-        Gr = G.reverse(copy=True)
-        upstream_heads = [n for n, d in Gr.out_degree().items() if d == 0]  # all possible starting points
-        print "Starting points: " + str(upstream_heads)
-        unique_pathways = []
-        for start in upstream_heads:
-            for p in nx.all_simple_paths(G, start, functional_unit):
-                unique_pathways.append(p)
+        functional_unit_ancestors = nx.ancestors(G, functional_unit)  # set
+        functional_unit_ancestors.update([functional_unit])  # add functional unit
+        # split up into products and processes
+        pss_database_products = set([mp['outputs'][0][1] for mp in self.PSS_database])  # TODO: this works only for sinlge-output mp
+        pss_database_processes = set([mp['name'] for mp in self.PSS_database])
+        ancestors_processes = [a for a in functional_unit_ancestors if a in pss_database_processes]
+        ancestors_products = [a for a in functional_unit_ancestors if a in pss_database_products]
+        return ancestors_processes, ancestors_products
 
-        print "Unique pathways:"
+    def get_product_process_dict(self, process_list=None, product_list=None):
+        # construct dict, where products are keys and meta-processes producing these products are list values
+        # if process/product lists are provided, these are used as filters
+        # otherwise all processes/products are considered
+        product_processes = {}
+        for mp in self.PSS_database:
+            output = mp['outputs'][0][1]  # assuming all processes are single-output!!
+            name = mp['name']
+            if output in product_list or not product_list:
+                if name in process_list or not process_list:
+                    product_processes[output] = product_processes.get(output, [])
+                    product_processes[output].append(name)
+        return product_processes
+
+    def get_all_pathways_in_pp_graph(self, functional_unit):
+        ancestors_processes, ancestors_products = self.get_products_processes_for_functional_unit(functional_unit)
+        product_processes = self.get_product_process_dict(process_list=ancestors_processes, product_list=ancestors_products)
+
+        # get all combinations of meta-processes from this dict
+        unique_pathways = list(itertools.product(*product_processes.values()))
+
+        # console output
+        product_list = product_processes.keys()
+        process_list = [item for sublist in product_processes.values() for item in sublist]
+        print "\nAnalyzing all possibilities to produce: " + functional_unit
+        print "Meta-processes in the supply chain: %s" % len(process_list)
+        print process_list
+        print "Products in the supply chain: %s" % len(product_list)
+        print product_list
+        print "Unique pathways: %s" % len(unique_pathways)
         for i, p in enumerate(unique_pathways):
             print i, p
 
+        # # save to pickle
+        # filename = os.path.join(os.getcwd(), "PSS Databases", "pp_nx_graph.pickle")
+        # with open(filename, 'w') as output:
+        #     pickle.dump(G, output)
+
         return unique_pathways
 
-    def get_all_lca_scores_in_pp_graph(self, method=None):
+    # def get_all_pathways_in_pp_graph_old(self, functional_unit=None):
+    #     functional_unit = str(self.combo_functional_unit.currentText())
+    #     print "\nAnalyzing all possibilities to produce: " + functional_unit
+    #     # get subgraphs (i.e. with a square matrix)
+    #     edge_list = []
+    #     for d in self.get_pp_graph():
+    #         edge_list.append((d['source'], d['target']))
+    #     G = nx.DiGraph()
+    #     G.add_edges_from(edge_list)
+    #     Gr = G.reverse(copy=True)
+    #     upstream_heads = [n for n, d in Gr.out_degree().items() if d == 0]  # all possible starting points
+    #     print "Starting points: " + str(upstream_heads)
+    #     unique_pathways = []
+    #     for start in upstream_heads:
+    #         for p in nx.all_simple_paths(G, start, functional_unit):
+    #             unique_pathways.append(p)
+    #
+    #     print "Unique pathways:"
+    #     for i, p in enumerate(unique_pathways):
+    #         print i, p
+    #
+    #     # save to pickle (TODO just temporary, remove again)
+    #     filename = os.path.join(os.getcwd(), "PSS Databases", "pp_nx_graph.pickle")
+    #     with open(filename, 'w') as output:
+    #         pickle.dump(G, output)
+    #
+    #     return unique_pathways
+
+    def get_meta_process_lcas(self, process_list=None, method=None):
         """
         returns dict where: keys = PSS name, value = LCA score
         """
@@ -601,11 +664,12 @@ class pssWidget(QtGui.QWidget):
             method = (u'IPCC 2007', u'climate change', u'GWP 100a')
         mapping_lca = {}
         for pss_data in self.PSS_database:
-            pss = ProcessSubsystem(**pss_data)
-            score = pss.lca(method, factorize=False)
-            mapping_lca.update({
-                pss_data['name']: score,
-            })
+            if pss_data['name'] in process_list or not process_list:
+                pss = ProcessSubsystem(**pss_data)
+                score = pss.lca(method, factorize=False)
+                mapping_lca.update({
+                    pss_data['name']: score,
+                })
         print "\nLCA results:"
         # print mapping_lca
         for k, v in mapping_lca.items():
@@ -613,13 +677,25 @@ class pssWidget(QtGui.QWidget):
         return mapping_lca
 
     def compare_pathway_lcas(self):
-        self.update_PP_path_comparison_table()
+        functional_unit = str(self.combo_functional_unit.currentText())
+        unique_paths = self.get_all_pathways_in_pp_graph(functional_unit)
+        mp_lca_scores = self.get_meta_process_lcas()
+        data = self.get_pathway_lcas()
+        self.update_PP_path_comparison_table(data)
 
     def get_pathway_lcas(self):
+        functional_unit = str(self.combo_functional_unit.currentText())
+        unique_paths = self.get_all_pathways_in_pp_graph(functional_unit)
+
+
+        # calculate LCA for all relevant meta-processes
+        path_lca_scores = self.get_meta_process_lcas()
+
+    def get_pathway_lcas_old(self):
         unique_paths = self.get_all_pathways_in_pp_graph()
         functional_unit = str(self.combo_functional_unit.currentText())
         # TODO: would it be better if this came later, just to save time if there is an error later on?
-        path_lca_scores = self.get_all_lca_scores_in_pp_graph()
+        path_lca_scores = self.get_meta_process_lcas()
 
         path_data = []  # will contain dictionaries with all path results (matrix, demand, supply, LCA results)
         pss_names = [pss_data['name'] for pss_data in self.PSS_database]
