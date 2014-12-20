@@ -10,8 +10,8 @@ import pickle
 import xlsxwriter
 import os
 from pssCreator import ProcessSubsystemCreator
-from processSubsystem import ProcessSubsystem
-from lmp import LinkedMetaProcessSystem
+from metaprocess import ProcessSubsystem
+from linkedmetaprocess import LinkedMetaProcessSystem
 import numpy as np
 import itertools
 import networkx as nx  # TODO get rid of this dependency?
