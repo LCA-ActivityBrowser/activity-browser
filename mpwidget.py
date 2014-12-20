@@ -10,7 +10,7 @@ import pickle
 import xlsxwriter
 import os
 from mpcreator import ProcessSubsystemCreator
-from metaprocess import ProcessSubsystem
+from metaprocess import MetaProcess
 from linkedmetaprocess import LinkedMetaProcessSystem
 import numpy as np
 import itertools
@@ -665,7 +665,7 @@ class MPWidget(QtGui.QWidget):
         mapping_lca = {}
         for pss_data in self.PSS_database:
             if pss_data['name'] in process_list or not process_list:
-                pss = ProcessSubsystem(**pss_data)
+                pss = MetaProcess(**pss_data)
                 score = pss.lca(method, factorize=False)
                 mapping_lca.update({
                     pss_data['name']: score,
@@ -915,7 +915,7 @@ class MPWidget(QtGui.QWidget):
 
         PSS_list = []
         for pss in self.PSS_database:
-            PSS_list.append(ProcessSubsystem(**pss))
+            PSS_list.append(MetaProcess(**pss))
         data = PSS_list
         # Assume that process names are unique
         processes = get_processes(data)

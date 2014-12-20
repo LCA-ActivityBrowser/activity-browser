@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from metaprocess import ProcessSubsystem
+from metaprocess import MetaProcess
 from utils import *
 import json
 
@@ -12,7 +12,7 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
         self.name_map = {}  # remembers key: "name" information during a session
 
     def update_pss(self):
-        self.pss = ProcessSubsystem(**self.pss_data)
+        self.pss = MetaProcess(**self.pss_data)
         self.pss_data = self.pss.pss_data
         self.apply_name_map()
         # TODO: add custom information if available in name_map
@@ -36,10 +36,10 @@ class ProcessSubsystemCreator(BrowserStandardTasks):
     def newProcessSubsystem(self, pss_data=None):
         if not pss_data:
             self.pss_data = {'name': 'New Process Subsystem', 'outputs': [], 'chain': [], 'cuts': []}
-            self.pss = ProcessSubsystem(**self.pss_data)
+            self.pss = MetaProcess(**self.pss_data)
         else:  # load with try, except
             self.pss_data = pss_data
-            self.pss = ProcessSubsystem(**pss_data)
+            self.pss = MetaProcess(**pss_data)
 
     def load_pss(self, pss):
         self.pss_data = pss

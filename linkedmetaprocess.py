@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from metaprocess import ProcessSubsystem
+from metaprocess import MetaProcess
 import itertools
 import numpy as np
 import networkx as nx
@@ -19,7 +19,7 @@ class LinkedMetaProcessSystem(object):
         for mp in mp_list:
             names = set()
             try:
-                assert isinstance(mp, ProcessSubsystem)
+                assert isinstance(mp, MetaProcess)
                 assert mp.name not in names  # check if process names are unique
                 names.update(mp.name)
             except AssertionError:
@@ -71,7 +71,7 @@ class LinkedMetaProcessSystem(object):
 
     def get_pp_matrix(self, mp_list):
         # accepts both a list of names or a list of meta-processes
-        if not isinstance(mp_list[0], ProcessSubsystem):
+        if not isinstance(mp_list[0], MetaProcess):
             mp_list = self.get_processes(mp_list)
         matrix = np.zeros((len(self.get_product_names(mp_list)), len(mp_list)))
         map_processes_number = dict(zip(self.get_process_names(mp_list), itertools.count()))

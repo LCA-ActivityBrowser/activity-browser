@@ -7,7 +7,7 @@ import numpy as np
 import warnings
 import uuid
 
-class ProcessSubsystem(object):
+class MetaProcess(object):
     """A description of a simplified supply chain, which has the following characteristics:
 
     * It produces one or more outputs (products)
