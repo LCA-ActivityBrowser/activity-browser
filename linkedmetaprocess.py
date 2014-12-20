@@ -4,7 +4,7 @@
 from metaprocess import MetaProcess
 import itertools
 import numpy as np
-import networkx as nx
+import networkx as nx  # TODO: get rid of this dependency
 
 class LinkedMetaProcessSystem(object):
     """

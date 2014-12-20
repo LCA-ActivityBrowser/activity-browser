@@ -4,7 +4,6 @@ from brightway2 import *
 from bw2data.utils import recursive_str_to_unicode
 import itertools
 import numpy as np
-import warnings
 import uuid
 
 class MetaProcess(object):

@@ -312,7 +312,6 @@ class BrowserStandardTasks(object):
             pimped_CA.append([row[0], 100*row[0]/lca_score, row[1]])
         return pimped_CA
 
-
 # CREATE AND MODIFY ACTIVITIES
 
     def set_edit_activity(self, key):
