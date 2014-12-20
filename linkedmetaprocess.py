@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from processSubsystem import ProcessSubsystem
+from metaprocess import ProcessSubsystem
 import itertools
 import numpy as np
 import networkx as nx
