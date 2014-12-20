@@ -113,7 +113,6 @@ class LinkedMetaProcessSystem(object):
         #     })
         return scaling_dict  # foreground_demand
 
-
     def product_process_dict(self, process_list=None, product_list=None):
         """
         returns dict, where products are keys and meta-processes producing these products are list values
