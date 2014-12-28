@@ -15,6 +15,7 @@ tic = time.clock()
 # load meta-process database
 dir = os.path.dirname(__file__)
 filename = os.path.join(dir, 'transport_example_CC.pickle')
+# filename = os.path.join(dir, 'Heat example.pickle')
 print "Test database:", filename
 # filename = os.path.join(os.getcwd(), "transport_example_CC.pickle")
 # filename = 'transport_example_CC.pickle'
@@ -27,7 +28,7 @@ lmp = LinkedMetaProcessSystem(mp_list)
 
 print "Processes: %s" % len(lmp.processes)
 print lmp.processes
-print "Processes: %s" % len(lmp.products)
+print "Products: %s" % len(lmp.products)
 print lmp.products
 print "Matrix:"
 print lmp.pp_matrix
@@ -42,6 +43,7 @@ print "\nEdges:"
 print lmp.edges()
 
 functional_unit = 'transport'
+# functional_unit = 'Heat'
 
 print "\nUpstream processes and products:"
 proc, prod = lmp.upstream_products_processes(functional_unit)
@@ -71,35 +73,34 @@ print scaling_dict
 # print foreground_demand
 tic = time_info(tic)
 
-
 # LCA for
-print "\n1. specific processes: lca_scores"
-print "LCA scores:"
-method = (u'IPCC 2007', u'climate change', u'GWP 100a')
-process_list = ['Transport, natural gas car', 'Transport, natural gas car_2', 'NG production']
-scores = lmp.lca_processes(method=method, process_list=process_list)
-for k, v in scores.items():
-    print "{0}: {1:.2g}".format(k, v)
-tic = time_info(tic)
-
-print "\n2. A specific demand from linked meta-process system"
-print "LCA score:"
-demand = {'transport': 1.0}
-print "demand:", demand
-mp_selection = ['Transport, natural gas car', 'NG production']
-print lmp.lca_linked_processes(method, mp_selection, demand)
-# check with meta-process that does NOT have 1 on the diagonal
-mp_selection = ['Transport, natural gas car_2', 'NG production']
-print lmp.lca_linked_processes(method, mp_selection, demand)
-tic = time_info(tic)
-
-print "\n3. LCA results for all combinations for a given functional unit"
-print "LCA scores:"
-demand = {'transport': 1.0}
-print "demand:", demand
-lca_results = lmp.lca_alternatives(method, demand)
-for i, l in enumerate(lca_results):
-    print
-    print i+1, l['path']
-    print l['lca results']
-tic = time_info(tic)
+# print "\n1. specific processes: lca_scores"
+# print "LCA scores:"
+# method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+# process_list = ['Transport, natural gas car', 'Transport, natural gas car_2', 'NG production']
+# scores = lmp.lca_processes(method=method, process_list=process_list)
+# for k, v in scores.items():
+#     print "{0}: {1:.2g}".format(k, v)
+# tic = time_info(tic)
+#
+# print "\n2. A specific demand from linked meta-process system"
+# print "LCA score:"
+# demand = {'transport': 1.0}
+# print "demand:", demand
+# mp_selection = ['Transport, natural gas car', 'NG production']
+# print lmp.lca_linked_processes(method, mp_selection, demand)
+# # check with meta-process that does NOT have 1 on the diagonal
+# mp_selection = ['Transport, natural gas car_2', 'NG production']
+# print lmp.lca_linked_processes(method, mp_selection, demand)
+# tic = time_info(tic)
+#
+# print "\n3. LCA results for all combinations for a given functional unit"
+# print "LCA scores:"
+# demand = {'transport': 1.0}
+# print "demand:", demand
+# lca_results = lmp.lca_alternatives(method, demand)
+# for i, l in enumerate(lca_results):
+#     print
+#     print i+1, l['path']
+#     print l['lca results']
+# tic = time_info(tic)

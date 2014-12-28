@@ -82,13 +82,20 @@ class LinkedMetaProcessSystem(object):
         return matrix, map_processes_number, map_products_number
 
     def scaling_vector_foreground_demand(self, process_list, demand):
+        """
+        Returns a scaling dictionary for a given demand and matrix defined by a list of processes.
+        Keys: process names. Values: scaling vector values.
+        :param process_list:
+        :param demand:
+        :return:
+        """
         # matrix
         matrix, map_processes, map_products = self.get_pp_matrix(process_list)
         try:
             # TODO: define conditions that must be met (e.g. square, single-output); Processes can still have multiple outputs (system expansion)
             assert matrix.shape[0] == matrix.shape[1]  # matrix needs to be square to be invertable!
         except AssertionError:
-            print "Matrix must be square!", matrix.shape[0], matrix.shape[1]
+            print "Matrix must be square! Current shape:", matrix.shape[0], matrix.shape[1]
             return False
         # demand vector
         demand_vector = np.zeros((len(matrix),))
@@ -135,8 +142,8 @@ class LinkedMetaProcessSystem(object):
     def edges(self):
         edges = []
         for mp in self.mp_list:
-            for input in mp.cuts:
-                edges.append((input[2], mp.name))
+            for cut in mp.cuts:
+                edges.append((cut[2], mp.name))
             for output in mp.outputs:
                 edges.append((mp.name, output[1]))
         return edges
@@ -158,16 +165,46 @@ class LinkedMetaProcessSystem(object):
 
     def all_pathways(self, functional_unit):
         """
-        Returns a list of tuples. Each tuple contains the meta-processes that make up a unique pathway to produce the functional unit.
+        Returns a list of tuples. Each tuple contains the meta-processes
+        that make up a unique pathway to produce the functional unit.
+        First all theoretical unique pathways are identified, then the
+        theoretical pathways are reduced to actually different pathways
+        by eliminating processes that are not actually part of those supply chains.
+        Note: A better approach could be a graph traversal algorithm
+        to find all paths (see and/or graphs in future).
         :param functional_unit:
         :return:
         """
         ancestor_processes, ancestor_products = self.upstream_products_processes(functional_unit)
         product_processes = self.product_process_dict(process_list=ancestor_processes, product_list=ancestor_products)
         # get all combinations of meta-processes
-        # TODO: this can give too many combinations, if not all processes are in a specific path
+        # some are merely theoretical, i.e. contain processes that are not actually part of the supply chain
         unique_pathways = list(itertools.product(*product_processes.values()))
-        return unique_pathways
+
+        # now we need to eliminate those combinations that don't make sense (if any)
+        unique_pathways_cleaned = []
+        G = nx.DiGraph()
+        G.add_edges_from(self.edges())
+        for path in unique_pathways:
+            process_part_of_path = {}
+            for process in path:
+                process_part_of_path.update({process: False})
+                simple_paths = nx.all_simple_paths(G, process, functional_unit)
+                for simple_path in simple_paths:
+                    simple_path = [sp for sp in simple_path if sp in self.processes]
+                    if [s in path for s in simple_path].count(True) == len(simple_path):
+                        process_part_of_path[process] = True
+
+            # remove process(es) from unique paths if they are not part of it
+            for process, part_of_path in process_part_of_path.items():
+                if not part_of_path:
+                    # print process, path
+                    path = list(path)
+                    path.remove(process)
+                    path = tuple(path)
+            unique_pathways_cleaned.append(path)
+
+        return list(set(unique_pathways_cleaned))
 
     def lca_processes(self, method, process_list=None, factorize=False):
         """
@@ -193,6 +230,14 @@ class LinkedMetaProcessSystem(object):
         return output
 
     def lca_alternatives(self, method, demand):
+        """
+        Returns LCA results (a dict) for all pathways that can supply a given demand.
+        'path' points to a tuple containing the processes along a pathway.
+        'lca results' points to a dictionary with LCA results for a pathway.
+        :param method:
+        :param demand:
+        :return:
+        """
         # assume that only one product is demanded for now (functional unit)
         lca_results = []
         for alternative in self.all_pathways(demand.keys()[0]):

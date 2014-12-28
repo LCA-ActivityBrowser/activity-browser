@@ -1,17 +1,15 @@
 """
 
-Data exchange format for Process Subsystems
-It can be used to:
-- store and load PSS from file
-- as keyword arguments to initialize a ProcessSubsystem object
+Data format for Meta-Processes
+It is used to define and store meta-processes.
 
-All other information, such as scaling of edges, LCA results, etc.
-can be retrieved from the ProcessSubsystem objects methods.
+All other properties are calculated based on this data,
+e.g. scaling of edges, LCA results, etc. using the methods
+of the MetaProcess class.
 
 """
 
-pss_data_format = [
-    {
+data_format = {
         'name': "custom_name",
         'outputs': [
             (key, 'custom_name', 'custom_amount'),
@@ -22,14 +20,12 @@ pss_data_format = [
         'cuts': [
             (parent_key, child_key, 'custom_name', amount),
         ],
-        # OPTIONAL
-        # Normally output based scaling (True). For multi-output activities this can be set to False.
-        # In that case the scaling activities are always scaled with 1.0. Product outputs need to be adapted manually.
+        'output_based_scaling': True,  # optional, by default True
+        # If False, the scaling activity will be set to 1.0 independently of the outputs.
+        # This can be useful for multi-output activities, if
+        # a) product outputs are not defined in the dataset (as in brightway2 for ecoinvent multi-output activities).
+        # b) if 
+        # where product outputs are not imported in brightway2. If set False, scaling activities are scaled with 1.0
+        # independently of the product output, which needs to be defined and checked manually.
         # This allows to model multiple outputs that do not add up to 1 (e.g. 0.46 MJ heat and 0.08 kWh electricity).
-        'output_based_scaling': True,
-        # 'edges': [ # theoretically not necessary, but more convenient and perhaps helpful
-        #     (parent_key, child_key),
-        # ],
-    },
-    # ...
-]
+}
