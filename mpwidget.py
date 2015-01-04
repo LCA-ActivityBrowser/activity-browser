@@ -570,6 +570,7 @@ class MPWidget(QtGui.QWidget):
         keys = ['path']
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
+# delete/replace
     def get_products_processes_for_functional_unit(self, functional_unit):
         if not functional_unit:
             return [], []

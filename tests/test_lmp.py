@@ -12,25 +12,38 @@ def time_info(tic):
     return time.clock()
 
 tic = time.clock()
+
+lmp = LinkedMetaProcessSystem()
+
 # load meta-process database
 dir = os.path.dirname(__file__)
 filename = os.path.join(dir, 'transport_example_CC.pickle')
 # filename = os.path.join(dir, 'Heat example.pickle')
-print "Test database:", filename
-# filename = os.path.join(os.getcwd(), "transport_example_CC.pickle")
-# filename = 'transport_example_CC.pickle'
-with open(filename, 'r') as input:
-    MP_DB = pickle.load(input)
-
-mp_list = [MetaProcess(**pss) for pss in MP_DB]
-
-lmp = LinkedMetaProcessSystem(mp_list)
-
+print "\nLoading database:", filename
+lmp.load_from_file(filename)
 print "Processes: %s" % len(lmp.processes)
 print lmp.processes
 print lmp.get_process_names(mp_list=lmp.mp_list[:3])
 print "Products: %s" % len(lmp.products)
 print lmp.products
+
+outfile = 'test_save.pickle'
+print "\nSaving database:", outfile
+lmp.save_to_file(outfile)
+
+mp = lmp.mp_list[-1]
+print "\nRemoving the meta-process:", mp.name
+lmp.remove_mp([mp])
+print lmp.processes
+print "Adding it again..."
+lmp.add_mp([mp])
+print lmp.processes
+print "And adding it again... (provoking an error as identical names are not allowed!)"
+try:
+    lmp.add_mp([mp])
+except ValueError:
+    print "Adding processes with the same name gives a ValueError."
+print lmp.processes
 
 matrix, process_dict, products_dict = lmp.get_pp_matrix()
 print "\nMatrix:"
@@ -114,3 +127,6 @@ for i, l in enumerate(lca_results):
     print l['process contribution']
     print l['relative process contribution']
 tic = time_info(tic)
+
+print "\nName Map:"
+print lmp.name_map

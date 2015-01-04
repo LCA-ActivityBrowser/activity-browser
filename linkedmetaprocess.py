@@ -5,6 +5,8 @@ from metaprocess import MetaProcess
 import itertools
 import numpy as np
 import networkx as nx  # TODO: get rid of this dependency
+import pickle
+import os
 
 class LinkedMetaProcessSystem(object):
     """
@@ -15,19 +17,41 @@ class LinkedMetaProcessSystem(object):
     * *mp_list* (``[MetaProcess]``): A list of meta-processes
     """
 
-    def __init__(self, mp_list):
+    def __init__(self, mp_list=None):
+        self.mp_list = []
+        self.map_name_mp = dict()
+        self.map_processes_number = dict()
+        self.map_products_number = dict()
+        self.name_map = {}  # {activity key: output name}
+        if mp_list:
+            self.update(mp_list)
+
+    def update(self, mp_list):
+        names = set()
         for mp in mp_list:
-            names = set()
             try:
                 assert isinstance(mp, MetaProcess)
-                assert mp.name not in names  # check if process names are unique
-                names.update(mp.name)
             except AssertionError:
-                raise ValueError(u"Invalid input: must be Meta-Processes with unique names")
+                raise ValueError(u"Input must be of MetaProcesses type.")
+            try:
+                assert mp.name not in names  # check if process names are unique
+                names.add(mp.name)
+            except AssertionError:
+                raise ValueError(u'Meta-Process names must be unique.')
         self.mp_list = mp_list
         self.map_name_mp = dict([(mp.name, mp) for mp in self.mp_list])
         self.map_processes_number = dict(zip(self.processes, itertools.count()))
         self.map_products_number = dict(zip(self.products, itertools.count()))
+        self.update_name_map()
+
+    def update_name_map(self):
+        for mp in self.mp_list:
+            for output in mp.outputs:
+                self.name_map[output[0]] = self.name_map.get(output[0], set())
+                self.name_map[output[0]].add(output[1])
+            for cut in mp.cuts:
+                self.name_map[cut[0]] = self.name_map.get(cut[0], set())
+                self.name_map[cut[0]].add(cut[2])
 
     # SHORTCUTS
 
@@ -39,6 +63,63 @@ class LinkedMetaProcessSystem(object):
     def products(self):
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
             ] for y in self.mp_list])))
+
+    # DATABASE METHODS (FILE I/O, LMPS MODIFICATION)
+
+    def load_from_file(self, filepath):
+        """
+        Load meta-process database, make a MetaProcess object from each meta-process and
+        add them to the linked meta-process system.
+        :param filepath:
+        :return:
+        """
+        try:
+            with open(filepath, 'r') as infile:
+                mp_database = pickle.load(infile)
+        except:
+            raise IOError(u'Could not load file')
+        self.update([MetaProcess(**mp) for mp in mp_database])
+
+    def save_to_file(self, filepath, mp_list=None):
+        """
+        Save data for each meta-process in the meta-process data format using pickle and
+        update the linked meta process system.
+        mp_list can be used as filter to save only selected meta-processes.
+        :param mp_list:
+        :return:
+        """
+        data = []
+        for mp in self.get_processes(mp_list):
+            data.append(mp.pss_data)
+        with open(filepath, 'w') as outfile:
+            pickle.dump(data, outfile)
+
+    def add_mp(self, mp_list):
+        """
+        Add meta-processes to the linked meta-process system.
+        mp_list can contain meta-processes or the original data format used to initialize meta-processes.
+        :param mp_list:
+        :return:
+        """
+        new_mp_list = []
+        for mp in mp_list:
+            if not isinstance(mp, MetaProcess):
+                mp = MetaProcess(**mp)
+            new_mp_list.append(mp)
+        self.update(self.mp_list + new_mp_list)
+
+    def remove_mp(self, mp_list):
+        """
+        Remove meta-processes from the linked meta-process system.
+        mp_list can contain meta-processes or names of existing meta-processes.
+        :param mp_list:
+        :return:
+        """
+        for mp in mp_list:
+            if not isinstance(mp, MetaProcess):
+                mp = self.get_processes(mp)
+            self.mp_list.remove(mp)
+        self.update(self.mp_list)
 
     # METHODS THAT RETURN DATA FOR A SUBSET OR THE ENTIRE LMPS
 
