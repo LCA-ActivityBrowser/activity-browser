@@ -28,7 +28,6 @@ class LinkedMetaProcessSystem(object):
         self.map_name_mp = dict([(mp.name, mp) for mp in self.mp_list])
         self.map_processes_number = dict(zip(self.processes, itertools.count()))
         self.map_products_number = dict(zip(self.products, itertools.count()))
-        self.lca_results = {}  # {meta-process name: lca score}
 
     @ property
     def processes(self):
@@ -182,6 +181,9 @@ class LinkedMetaProcessSystem(object):
         unique_pathways = list(itertools.product(*product_processes.values()))
 
         # now we need to eliminate those combinations that don't make sense (if any)
+        # each process within a unique path must have a simple path connection to the functional unit
+        # otherwise it is not actually part of the supply chain; the code below checks for this
+        # and assigns the value True to each process where this holds true
         unique_pathways_cleaned = []
         G = nx.DiGraph()
         G.add_edges_from(self.edges())
@@ -220,13 +222,24 @@ class LinkedMetaProcessSystem(object):
         scaling_dict = self.scaling_vector_foreground_demand(process_list, demand)
         lca_scores = self.lca_processes(method, process_list)
         # multiply scaling vector with process LCA scores
-        output = {}
-        # TODO: process contribution
+        path_lca_score = 0.0
+        process_contribution = {}
         for process, amount in scaling_dict.items():
-            output.update({
-                process: amount*lca_scores[process],
-                'total score': output.get('total score', 0) + amount*lca_scores[process],
-            })
+            process_contribution.update({process: amount*lca_scores[process]})
+            path_lca_score = path_lca_score + amount*lca_scores[process]
+        process_contribution_relative = {}
+        for process, amount in scaling_dict.items():
+            process_contribution_relative.update({process: amount*lca_scores[process]/path_lca_score})
+
+        output = {
+            'meta-processes': process_list,
+            'demand': demand,
+            'scaling vector': scaling_dict,
+            'LCIA method': method,
+            'MP contribution': process_contribution,
+            'MP relative contribution': process_contribution_relative,
+            'LCA result': path_lca_score,
+        }
         return output
 
     def lca_alternatives(self, method, demand):
@@ -239,13 +252,10 @@ class LinkedMetaProcessSystem(object):
         :return:
         """
         # assume that only one product is demanded for now (functional unit)
-        lca_results = []
-        for alternative in self.all_pathways(demand.keys()[0]):
-            lca_results.append({
-                'path': alternative,
-                'lca results': self.lca_linked_processes(method, alternative, demand)
-            })
-        return lca_results
+        path_lca_data = []
+        for path in self.all_pathways(demand.keys()[0]):
+            path_lca_data.append(self.lca_linked_processes(method, path, demand))
+        return path_lca_data
 
 
 

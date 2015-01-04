@@ -182,7 +182,7 @@ class MPWidget(QtGui.QWidget):
         self.combo_functional_unit.currentIndexChanged.connect(self.update_FU_unit)
         self.table_PP_comparison.itemSelectionChanged.connect(self.show_path_graph)
 
-    # PSS DATABASE
+    # MP DATABASE
 
     def loadPSSDatabase(self, mode="load new"):
         file_types = "Pickle (*.pickle);;All (*.*)"
@@ -203,7 +203,6 @@ class MPWidget(QtGui.QWidget):
                         else:
                             break
                 self.PSS_database = self.PSS_database + PSS_database
-            # TODO: update PSS data... ?
             self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
             self.updateTablePSSDatabase()
 
@@ -211,13 +210,13 @@ class MPWidget(QtGui.QWidget):
         self.loadPSSDatabase(mode="append")
 
     def closePSSDatabase(self):
-        msg = "If you reset your database, all unsaved Data will be lost. Continue?"
+        msg = "If you close the database, all unsaved Data will be lost. Continue?"
         reply = QtGui.QMessageBox.question(self, 'Message',
                     msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
             self.PSS_database = []
             self.updateTablePSSDatabase()
-            self.signal_status_bar_message.emit("Reset PSS Database.")
+            self.signal_status_bar_message.emit("Closed PSS Database.")
 
     def savePSSDatabase(self, filename=None):
         with open(filename, 'w') as output:
@@ -256,7 +255,7 @@ class MPWidget(QtGui.QWidget):
         keys = ['name', 'out/chain/cuts', 'outputs', 'cuts', 'chain']
         self.table_PSS_database = self.helper.update_table(self.table_PSS_database, data, keys)
 
-    # PSS <--> PSS DATABASE
+    # MP <--> MP DATABASE
 
     def loadPSS(self):
         item = self.table_PSS_database.currentItem()
@@ -301,7 +300,7 @@ class MPWidget(QtGui.QWidget):
         self.updateTablePSSDatabase()
         self.signal_status_bar_message.emit("Deleted selected items.")
 
-    # PSS
+    # MP
 
     def newProcessSubsystem(self):
         self.PSC.newProcessSubsystem()
@@ -383,7 +382,9 @@ class MPWidget(QtGui.QWidget):
         self.PSC.set_cut_name(item.activity_or_database_key, str(item.text(0)))
         self.showGraph()
 
-    # UPDATING TABLES AND TREEVIEW
+    # MP LCA
+
+    # UPDATING TABLES AND TREEWIDGET
 
     def update_widget_PSS_data(self):
         self.line_edit_PSS_name.setText(self.PSC.pss.name)
@@ -587,6 +588,7 @@ class MPWidget(QtGui.QWidget):
         ancestors_products = [a for a in functional_unit_ancestors if a in pss_database_products]
         return ancestors_processes, ancestors_products
 
+# delete
     def get_product_process_dict(self, process_list=None, product_list=None):
         # construct dict, where products are keys and meta-processes producing these products are list values
         # if process/product lists are provided, these are used as filters
@@ -601,6 +603,7 @@ class MPWidget(QtGui.QWidget):
                     product_processes[output].append(name)
         return product_processes
 
+# replace
     def get_all_pathways_in_pp_graph(self, functional_unit):
         ancestors_processes, ancestors_products = self.get_products_processes_for_functional_unit(functional_unit)
         product_processes = self.get_product_process_dict(process_list=ancestors_processes, product_list=ancestors_products)
@@ -627,34 +630,35 @@ class MPWidget(QtGui.QWidget):
 
         return unique_pathways
 
-    # def get_all_pathways_in_pp_graph_old(self, functional_unit=None):
-    #     functional_unit = str(self.combo_functional_unit.currentText())
-    #     print "\nAnalyzing all possibilities to produce: " + functional_unit
-    #     # get subgraphs (i.e. with a square matrix)
-    #     edge_list = []
-    #     for d in self.get_pp_graph():
-    #         edge_list.append((d['source'], d['target']))
-    #     G = nx.DiGraph()
-    #     G.add_edges_from(edge_list)
-    #     Gr = G.reverse(copy=True)
-    #     upstream_heads = [n for n, d in Gr.out_degree().items() if d == 0]  # all possible starting points
-    #     print "Starting points: " + str(upstream_heads)
-    #     unique_pathways = []
-    #     for start in upstream_heads:
-    #         for p in nx.all_simple_paths(G, start, functional_unit):
-    #             unique_pathways.append(p)
-    #
-    #     print "Unique pathways:"
-    #     for i, p in enumerate(unique_pathways):
-    #         print i, p
-    #
-    #     # save to pickle (TODO just temporary, remove again)
-    #     filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp_nx_graph.pickle")
-    #     with open(filename, 'w') as output:
-    #         pickle.dump(G, output)
-    #
-    #     return unique_pathways
+    def get_all_pathways_in_pp_graph_old(self, functional_unit=None):
+        functional_unit = str(self.combo_functional_unit.currentText())
+        print "\nAnalyzing all possibilities to produce: " + functional_unit
+        # get subgraphs (i.e. with a square matrix)
+        edge_list = []
+        for d in self.get_pp_graph():
+            edge_list.append((d['source'], d['target']))
+        G = nx.DiGraph()
+        G.add_edges_from(edge_list)
+        Gr = G.reverse(copy=True)
+        upstream_heads = [n for n, d in Gr.out_degree().items() if d == 0]  # all possible starting points
+        print "Starting points: " + str(upstream_heads)
+        unique_pathways = []
+        for start in upstream_heads:
+            for p in nx.all_simple_paths(G, start, functional_unit):
+                unique_pathways.append(p)
 
+        print "Unique pathways:"
+        for i, p in enumerate(unique_pathways):
+            print i, p
+
+        # save to pickle (TODO just temporary, remove again)
+        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp_nx_graph.pickle")
+        with open(filename, 'w') as output:
+            pickle.dump(G, output)
+
+        return unique_pathways
+
+# replace
     def get_meta_process_lcas(self, process_list=None, method=None):
         """
         returns dict where: keys = PSS name, value = LCA score
@@ -676,6 +680,7 @@ class MPWidget(QtGui.QWidget):
             print "{0}: {1:.2g}".format(k, v)
         return mapping_lca
 
+# delete
     def compare_pathway_lcas(self):
         functional_unit = str(self.combo_functional_unit.currentText())
         # unique_paths = self.get_all_pathways_in_pp_graph(functional_unit)
@@ -684,6 +689,7 @@ class MPWidget(QtGui.QWidget):
         data = self.get_pathway_lcas()
         self.update_PP_path_comparison_table(data)
 
+# delete
     def get_pathway_lcas(self):
         functional_unit = str(self.combo_functional_unit.currentText())
         unique_paths = self.get_all_pathways_in_pp_graph(functional_unit)
@@ -692,6 +698,7 @@ class MPWidget(QtGui.QWidget):
         # calculate LCA for all relevant meta-processes
         path_lca_scores = self.get_meta_process_lcas()
 
+# replace
     def get_pathway_lcas_old(self):
         unique_paths = self.get_all_pathways_in_pp_graph()
         functional_unit = str(self.combo_functional_unit.currentText())
@@ -752,7 +759,7 @@ class MPWidget(QtGui.QWidget):
             process_contribution_relative = {}
             for process in processes:
                 process_score = supply[mapping_processes[process]] * path_lca_scores[process]
-                process_contribution_relative.update({process:process_score/path_lca_score})
+                process_contribution_relative.update({process: process_score/path_lca_score})
             print "LCA score: "
             print path_lca_score
             # store data for this path
@@ -904,6 +911,7 @@ class MPWidget(QtGui.QWidget):
             ws.write_row(i+1, 1, matrix[i, :], format_border)
         workbook.close()
 
+# replace
     def get_process_products_as_array(self):
 
         def get_processes(data):

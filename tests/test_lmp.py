@@ -74,33 +74,33 @@ print scaling_dict
 tic = time_info(tic)
 
 # LCA for
-# print "\n1. specific processes: lca_scores"
-# print "LCA scores:"
-# method = (u'IPCC 2007', u'climate change', u'GWP 100a')
-# process_list = ['Transport, natural gas car', 'Transport, natural gas car_2', 'NG production']
-# scores = lmp.lca_processes(method=method, process_list=process_list)
-# for k, v in scores.items():
-#     print "{0}: {1:.2g}".format(k, v)
-# tic = time_info(tic)
-#
-# print "\n2. A specific demand from linked meta-process system"
-# print "LCA score:"
-# demand = {'transport': 1.0}
-# print "demand:", demand
-# mp_selection = ['Transport, natural gas car', 'NG production']
-# print lmp.lca_linked_processes(method, mp_selection, demand)
-# # check with meta-process that does NOT have 1 on the diagonal
-# mp_selection = ['Transport, natural gas car_2', 'NG production']
-# print lmp.lca_linked_processes(method, mp_selection, demand)
-# tic = time_info(tic)
-#
-# print "\n3. LCA results for all combinations for a given functional unit"
-# print "LCA scores:"
-# demand = {'transport': 1.0}
-# print "demand:", demand
-# lca_results = lmp.lca_alternatives(method, demand)
-# for i, l in enumerate(lca_results):
-#     print
-#     print i+1, l['path']
-#     print l['lca results']
-# tic = time_info(tic)
+print "\n1. specific processes: lca_scores"
+print "LCA scores:"
+method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+process_list = ['Transport, natural gas car', 'Transport, natural gas car_2', 'NG production']
+scores = lmp.lca_processes(method=method, process_list=process_list)
+for k, v in scores.items():
+    print "{0}: {1:.2g}".format(k, v)
+tic = time_info(tic)
+
+print "\n2. A specific demand from linked meta-process system"
+print "LCA score:"
+demand = {'transport': 1.0}
+print "demand:", demand
+mp_selection = ['Transport, natural gas car', 'NG production']
+print lmp.lca_linked_processes(method, mp_selection, demand)
+# check with meta-process that does NOT have 1 on the diagonal
+mp_selection = ['Transport, natural gas car_2', 'NG production']
+print lmp.lca_linked_processes(method, mp_selection, demand)
+tic = time_info(tic)
+
+print "\n3. LCA results for all combinations for a given functional unit"
+print "LCA scores:"
+demand = {'transport': 1.0}
+print "demand:", demand
+lca_results = lmp.lca_alternatives(method, demand)
+for i, l in enumerate(lca_results):
+    print
+    print i+1, l['path']
+    print l['lca results']
+tic = time_info(tic)
