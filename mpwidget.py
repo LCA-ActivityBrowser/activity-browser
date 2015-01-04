@@ -212,7 +212,6 @@ class MPWidget(QtGui.QWidget):
     def savePSSDatabase(self, filename=None):
         self.lmp.save_to_file(filename)
         self.signal_status_bar_message.emit("PSS Database saved.")
-        # self.updateTablePSSDatabase()
 
     def saveAsPSSDatabase(self):
         if self.lmp.mp_list:
@@ -221,15 +220,6 @@ class MPWidget(QtGui.QWidget):
             if filename:
                 self.savePSSDatabase(filename)
                 self.signal_status_bar_message.emit("PSS Database saved.")
-
-    def export_as_JSON(self):
-        outdata = []
-        for mp_data in self.lmp.raw_data:
-            outdata.append(self.PSC.getHumanReadiblePSS(mp_data))
-        file_types = "Python (*.py);;JSON (*.json);;All (*.*)"
-        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
-        with open(filename, 'w') as outfile:
-            json.dump(outdata, outfile, indent=4, sort_keys=True)
 
     def updateTablePSSDatabase(self):
         data = []
@@ -368,9 +358,7 @@ class MPWidget(QtGui.QWidget):
         self.PSC.set_cut_name(item.activity_or_database_key, str(item.text(0)))
         self.showGraph()
 
-    # MP LCA
-
-    # UPDATING TABLES AND TREEWIDGET
+    # UPDATING TABLES etc: MP
 
     def update_widget_PSS_data(self):
         self.line_edit_PSS_name.setText(self.PSC.pss.name)
@@ -444,6 +432,36 @@ class MPWidget(QtGui.QWidget):
     def update_checkbox_output_based_scaling(self):
         self.checkbox_output_based_scaling.setChecked(self.PSC.pss_data['output_based_scaling'])
 
+    # LMP alternatives and LCA
+
+    def get_meta_process_lcas(self, process_list=None, method=None):
+        """
+        returns dict where: keys = PSS name, value = LCA score
+        """
+        method = (u'IPCC 2007', u'climate change', u'GWP 100a')  # TODO
+        map_process_lcascore = self.lmp.lca_processes(method, process_names=process_list)
+        data = []
+        for name, score in map_process_lcascore.items():
+            data.append({
+                'meta-process': name,
+                'LCA score': score
+            })
+        self.update_PP_comparison_table(data=data, keys=['meta-process', 'LCA score'])
+
+    def show_all_pathways(self):
+        functional_unit = str(self.combo_functional_unit.currentText())
+        data = [{'path': p} for p in self.lmp.all_pathways(functional_unit)]
+        keys = ['path']
+        self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
+
+# TODO: check if demand propagates all the way through mp.lca
+    # TODO: get method from combobox
+    def compare_pathway_lcas(self):
+        method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+        demand = {str(self.combo_functional_unit.currentText()): 1.0}
+        self.path_data = self.lmp.lca_alternatives(method, demand)
+        self.update_PP_comparison_table(data=self.path_data, keys=['LCA score', 'path'])
+
     def update_FU_unit(self):
         for mp in self.lmp.mp_list:
             for o in mp.outputs:
@@ -451,8 +469,7 @@ class MPWidget(QtGui.QWidget):
                     unit = self.PSC.getActivityData(o[0])['unit']
         self.label_FU_unit.setText(QtCore.QString(unit))
 
-    def update_PP_path_comparison_table(self, data):
-        keys = ['LCA score', 'path']
+    def update_PP_comparison_table(self, data, keys):
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
     # VISUALIZATION
@@ -505,77 +522,28 @@ class MPWidget(QtGui.QWidget):
         print "Visualization as: " + self.current_d3_layout
         self.showGraph()
 
-    def show_path_graph(self):
-        item = self.table_PP_comparison.currentItem()
-        template_data = {
-            'height': self.webview.geometry().height(),
-            'width': self.webview.geometry().width(),
-            'data': json.dumps(self.get_pp_path_graph(item.path), indent=1)
-        }
-        self.set_webview(template_data, "dagre_path")
+    def pp_graph(self):
+        self.save_pp_matrix()
+        self.combo_functional_unit.clear()
+        for product in self.lmp.products:
+            self.combo_functional_unit.addItem(product)
 
-    def get_pp_path_graph(self, path):
-        print "PATH:", path
-        path_data = [pd for pd in self.path_data if path == pd['path']][0]
-        print path_data
+        if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
+            template_data = {
+                'height': self.webview.geometry().height(),
+                'width': self.webview.geometry().width(),
+                'data': json.dumps(self.get_pp_graph(), indent=1)
+            }
+            print "\nPP-GRAPH DATA:"
+            print self.get_pp_graph()
 
-        graph_data = []
-        for mp in self.lmp.mp_list:
-            part_of_path = True if mp.name in path else False
-            if part_of_path:
-                lca_score = path_data['process contribution'][mp.name]
-                lca_score_rel = path_data['relative process contribution'][mp.name]
-                lca_result = "{0:.3g} ({1:.3g}%)".format(lca_score, lca_score_rel*100)
-
-            for input in mp.cuts:
-                graph_data.append({
-                    'source': input[2],
-                    'target': mp.name,
-                    'type': 'suit',
-                    'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
-                    'product_in': input[3],
-                    'part_of_path': part_of_path,
-                    # 'lca_score': '' if not part_of_path else lca_result,
-                })
-            for output in mp.outputs:
-                graph_data.append({
-                    'source': mp.name,
-                    'target': output[1],
-                    'type': 'suit',
-                    'class': 'output',
-                    'product_out': output[2],
-                    'part_of_path': part_of_path,
-                    'lca_score': '' if not part_of_path else lca_result,
-                })
-        return graph_data
-
-    def show_all_pathways(self):
-        functional_unit = str(self.combo_functional_unit.currentText())
-        data = [{'path': p} for p in self.lmp.all_pathways(functional_unit)]
-        keys = ['path']
-        self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
-
-    def get_meta_process_lcas(self, process_list=None, method=None):
-        """
-        returns dict where: keys = PSS name, value = LCA score
-        """
-        if not method:
-            print "Using default LCIA method: (u'IPCC 2007', u'climate change', u'GWP 100a')"
-            method = (u'IPCC 2007', u'climate change', u'GWP 100a')
-        mapping_lca = self.lmp.lca_processes(method, process_names=process_list)
-        print "\nLCA results:"
-        # print mapping_lca
-        for k, v in mapping_lca.items():
-            print "{0}: {1:.2g}".format(k, v)
-        return mapping_lca
-
-# TODO: check if demand propagates all the way through mp.lca
-    # TODO: get method from combobox
-    def compare_pathway_lcas(self):
-        method = (u'IPCC 2007', u'climate change', u'GWP 100a')
-        demand = {str(self.combo_functional_unit.currentText()): 1.0}
-        self.path_data = self.lmp.lca_alternatives(method, demand)
-        self.update_PP_path_comparison_table(self.path_data)
+        elif self.current_d3_layout == "tree":
+            template_data = {
+                'height': self.webview.geometry().height(),
+                'width': self.webview.geometry().width(),
+                'data': json.dumps(self.get_pp_tree(), indent=1)
+            }
+        self.set_webview(template_data, self.current_d3_layout)
 
     def get_pp_graph(self):
         graph_data = []
@@ -630,33 +598,54 @@ class MPWidget(QtGui.QWidget):
         tree_data.append(get_nodes(root))
         return tree_data
 
+    def show_path_graph(self):
+        item = self.table_PP_comparison.currentItem()
+        template_data = {
+            'height': self.webview.geometry().height(),
+            'width': self.webview.geometry().width(),
+            'data': json.dumps(self.get_pp_path_graph(item.path), indent=1)
+        }
+        self.set_webview(template_data, "dagre_path")
+
+    def get_pp_path_graph(self, path):
+        print "PATH:", path
+        path_data = [pd for pd in self.path_data if path == pd['path']][0]
+        print path_data
+
+        graph_data = []
+        for mp in self.lmp.mp_list:
+            part_of_path = True if mp.name in path else False
+            if part_of_path:
+                lca_score = path_data['process contribution'][mp.name]
+                lca_score_rel = path_data['relative process contribution'][mp.name]
+                lca_result = "{0:.3g} ({1:.3g}%)".format(lca_score, lca_score_rel*100)
+
+            for input in mp.cuts:
+                graph_data.append({
+                    'source': input[2],
+                    'target': mp.name,
+                    'type': 'suit',
+                    'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
+                    'product_in': input[3],
+                    'part_of_path': part_of_path,
+                    # 'lca_score': '' if not part_of_path else lca_result,
+                })
+            for output in mp.outputs:
+                graph_data.append({
+                    'source': mp.name,
+                    'target': output[1],
+                    'type': 'suit',
+                    'class': 'output',
+                    'product_out': output[2],
+                    'part_of_path': part_of_path,
+                    'lca_score': '' if not part_of_path else lca_result,
+                })
+        return graph_data
+
     # OTHER METHODS
 
     def setNewCurrentActivity(self):
         self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
-
-    def pp_graph(self):
-        self.save_pp_matrix()
-        self.combo_functional_unit.clear()
-        for product in self.lmp.products:
-            self.combo_functional_unit.addItem(product)
-
-        if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
-            template_data = {
-                'height': self.webview.geometry().height(),
-                'width': self.webview.geometry().width(),
-                'data': json.dumps(self.get_pp_graph(), indent=1)
-            }
-            print "\nPP-GRAPH DATA:"
-            print self.get_pp_graph()
-
-        elif self.current_d3_layout == "tree":
-            template_data = {
-                'height': self.webview.geometry().height(),
-                'width': self.webview.geometry().width(),
-                'data': json.dumps(self.get_pp_tree(), indent=1)
-            }
-        self.set_webview(template_data, self.current_d3_layout)
 
     def save_pp_matrix(self):
         matrix, processes, products = self.lmp.get_pp_matrix()  # self.get_process_products_as_array()
@@ -714,3 +703,11 @@ class MPWidget(QtGui.QWidget):
             ws.write_row(i+1, 1, matrix[i, :], format_border)
         workbook.close()
 
+    def export_as_JSON(self):
+        outdata = []
+        for mp_data in self.lmp.raw_data:
+            outdata.append(self.PSC.getHumanReadiblePSS(mp_data))
+        file_types = "Python (*.py);;JSON (*.json);;All (*.*)"
+        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
+        with open(filename, 'w') as outfile:
+            json.dump(outdata, outfile, indent=4, sort_keys=True)
