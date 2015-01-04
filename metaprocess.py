@@ -224,15 +224,15 @@ class MetaProcess(object):
     # METHODS THAT RETURN META-PROCESS DATA
 
     @property
-    def pss_data(self):
-        pss_data_dict = {
+    def mp_data(self):
+        mp_data_dict = {
             'name': self.name,
             'outputs': self.outputs,
             'chain': list(self.chain),
             'cuts': self.cuts,
             'output_based_scaling': self.output_based_scaling,
         }
-        return pss_data_dict
+        return mp_data_dict
 
     def get_product_inputs_and_outputs(self):
         return [(cut[2], -cut[3]) for cut in self.cuts] + [(output[1], output[2]) for output in self.outputs]

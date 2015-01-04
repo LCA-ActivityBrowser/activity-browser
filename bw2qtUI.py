@@ -162,14 +162,14 @@ class MainWindow(QtGui.QMainWindow):
 
         # MENU BAR
         # Actions
-        addPSS = QtGui.QAction('Process Subsystem Editor', self)
-        addPSS.setShortcut('Ctrl+E')
-        addPSS.setStatusTip('Start Process Subsystem Editor')
-        self.connect(addPSS, QtCore.SIGNAL('triggered()'), self.setUpPSSEditor)
+        addMP = QtGui.QAction('Meta-Process Editor', self)
+        addMP.setShortcut('Ctrl+E')
+        addMP.setStatusTip('Start Meta-Process Editor')
+        self.connect(addMP, QtCore.SIGNAL('triggered()'), self.setUpPMPEditor)
         # Add actions
         menubar = self.menuBar()
         file = menubar.addMenu('Extensions')
-        file.addAction(addPSS)
+        file.addAction(addMP)
 
     def setUpLCIAWidget(self):
         # TODO: create a table that can be filled with methods
@@ -350,43 +350,43 @@ class MainWindow(QtGui.QMainWindow):
             self.action_remove_exchange_bio.triggered.connect(self.remove_exchange_from_biosphere)
             self.table_AE_biosphere.addAction(self.action_remove_exchange_bio)
 
-    def setUpPSSEditor(self):
-        if hasattr(self, 'PSS_Widget'):
-            print "PSS WIDGET ALREADY LOADED"
+    def setUpPMPEditor(self):
+        if hasattr(self, 'MP_Widget'):
+            print "MP WIDGET ALREADY LOADED"
         else:
-            self.PSS_Widget = MPWidget()
-            self.tab_widget_LEFT.addTab(self.PSS_Widget.PSSdataWidget, "PSS")
-            self.tab_widget_LEFT.addTab(self.PSS_Widget.table_PSS_database, "PSS database")
-            self.tab_widget_LEFT.addTab(self.PSS_Widget.PP_analyzer, "PP LCA")
-            self.VL_LEFT.addLayout(self.PSS_Widget.HL_PSS_buttons)
-            self.VL_LEFT.addLayout(self.PSS_Widget.HL_PSS_Database_buttons)
-            self.tab_widget_RIGHT.addTab(self.PSS_Widget.webview, "Graph")
+            self.MP_Widget = MPWidget()
+            self.tab_widget_LEFT.addTab(self.MP_Widget.MPdataWidget, "MP")
+            self.tab_widget_LEFT.addTab(self.MP_Widget.table_MP_database, "MP database")
+            self.tab_widget_LEFT.addTab(self.MP_Widget.PP_analyzer, "PP LCA")
+            self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_buttons)
+            self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_Database_buttons)
+            self.tab_widget_RIGHT.addTab(self.MP_Widget.webview, "Graph")
             # CONTEXT MENUS
             # Technosphere Inputs
-            self.action_addParentToPSS = QtGui.QAction("--> Process Subsystem", None)
-            self.action_addParentToPSS.triggered.connect(self.add_Parent_to_chain)
-            self.table_inputs_technosphere.addAction(self.action_addParentToPSS)
+            self.action_addParentToMP = QtGui.QAction("--> Meta-Process", None)
+            self.action_addParentToMP.triggered.connect(self.add_Parent_to_chain)
+            self.table_inputs_technosphere.addAction(self.action_addParentToMP)
             # Downstream Activities
-            self.action_addChildToPSS = QtGui.QAction("--> Process Subsystem", None)
-            self.action_addChildToPSS.triggered.connect(self.add_Child_to_chain)
-            self.table_downstream_activities.addAction(self.action_addChildToPSS)
+            self.action_addChildToMP = QtGui.QAction("--> Meta-Process", None)
+            self.action_addChildToMP.triggered.connect(self.add_Child_to_chain)
+            self.table_downstream_activities.addAction(self.action_addChildToMP)
             # Multi-Purpose Table
-            self.action_addToPSS = QtGui.QAction("--> Process Subsystem", None)
-            self.action_addToPSS.triggered.connect(self.add_to_chain)
-            self.table_multipurpose.addAction(self.action_addToPSS)
+            self.action_addToMP = QtGui.QAction("--> Meta-Process", None)
+            self.action_addToMP.triggered.connect(self.add_to_chain)
+            self.table_multipurpose.addAction(self.action_addToMP)
             # CONNECTIONS BETWEEN WIDGETS
-            self.signal_add_to_chain.connect(self.PSS_Widget.addToChain)
-            self.PSS_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
-            self.PSS_Widget.signal_status_bar_message.connect(self.statusBarMessage)
+            self.signal_add_to_chain.connect(self.MP_Widget.addToChain)
+            self.MP_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
+            self.MP_Widget.signal_status_bar_message.connect(self.statusBarMessage)
             # MENU BAR
             # Actions
-            exportPSSDatabaseAsJSONFile = QtGui.QAction('Export DB to file', self)
-            exportPSSDatabaseAsJSONFile.setStatusTip('Export the working PSS database as JSON to a .py file')
-            self.connect(exportPSSDatabaseAsJSONFile, QtCore.SIGNAL('triggered()'), self.PSS_Widget.export_as_JSON)
+            exportMPDatabaseAsJSONFile = QtGui.QAction('Export DB to file', self)
+            exportMPDatabaseAsJSONFile.setStatusTip('Export the working MP database as JSON to a .py file')
+            self.connect(exportMPDatabaseAsJSONFile, QtCore.SIGNAL('triggered()'), self.MP_Widget.export_as_JSON)
             # Add actions
             menubar = self.menuBar()
-            pss_menu = menubar.addMenu('PSS')
-            pss_menu.addAction(exportPSSDatabaseAsJSONFile)
+            mp_menu = menubar.addMenu('MP')
+            mp_menu.addAction(exportMPDatabaseAsJSONFile)
 
     def statusBarMessage(self, message):
         self.statusBar().showMessage(message)
@@ -708,7 +708,7 @@ def main():
     mw = MainWindow()
 
     # auto-start of certain functionality
-    # mw.setUpPSSEditor()
+    # mw.setUpMPEditor()
     mw.lcaData.loadDatabase('ecoinvent 2.2')
     mw.load_new_current_activity()
 

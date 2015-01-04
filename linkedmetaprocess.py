@@ -44,7 +44,7 @@ class LinkedMetaProcessSystem(object):
         self.map_processes_number = dict(zip(self.processes, itertools.count()))
         self.map_products_number = dict(zip(self.products, itertools.count()))
         self.update_name_map()
-        self.raw_data = [mp.pss_data for mp in self.mp_list]
+        self.raw_data = [mp.mp_data for mp in self.mp_list]
 
     def update_name_map(self):
         for mp in self.mp_list:
@@ -124,8 +124,8 @@ class LinkedMetaProcessSystem(object):
         """
         for mp in mp_list:
             if not isinstance(mp, MetaProcess):
-                mp = self.get_processes(mp)
-            self.mp_list.remove(mp)
+                mp = self.get_processes([mp])
+            self.mp_list.remove(mp[0])
         self.update(self.mp_list)
 
     # METHODS THAT RETURN DATA FOR A SUBSET OR THE ENTIRE LMPS

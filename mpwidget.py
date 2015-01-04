@@ -9,7 +9,7 @@ import json
 import pickle
 import xlsxwriter
 import os
-from mpcreator import ProcessSubsystemCreator
+from mpcreator import MetaProcessCreator
 from metaprocess import MetaProcess
 from linkedmetaprocess import LinkedMetaProcessSystem
 import numpy as np
@@ -23,120 +23,120 @@ class MPWidget(QtGui.QWidget):
     signal_status_bar_message = QtCore.pyqtSignal(str)
     def __init__(self, parent=None):
         super(MPWidget, self).__init__(parent)
-        self.PSC = ProcessSubsystemCreator()
+        self.MPC = MetaProcessCreator()
         self.lmp = LinkedMetaProcessSystem()
         self.helper = HelperMethods()
         self.setupUserInterface()
         self.set_up_PP_analyzer()
 
     def setupUserInterface(self):
-        # PSS Widgets
-        self.PSSdataWidget = QtGui.QWidget()
+        # MP Widgets
+        self.MPdataWidget = QtGui.QWidget()
         # Webview
         self.webview = QtWebKit.QWebView()
         # D3
         self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
         self.current_d3_layout = "dagre"
         # LABELS
-        label_process_subsystem = QtGui.QLabel("Process Subsystem")
-        label_PSS_database = QtGui.QLabel("PSS Database")
+        label_process_subsystem = QtGui.QLabel("Meta-Process")
+        label_MP_database = QtGui.QLabel("MP Database")
         # BUTTONS
-        # Process Subsystems
+        # Meta-Processs
         button_new_process_subsystem = QtGui.QPushButton("New")
-        button_add_PSS_to_Database = QtGui.QPushButton("Add to DB")
-        button_delete_PSS_from_Database = QtGui.QPushButton("Delete")
+        button_add_MP_to_Database = QtGui.QPushButton("Add to DB")
+        button_delete_MP_from_Database = QtGui.QPushButton("Delete")
         button_graph = QtGui.QPushButton("Graph")
         button_toggle_layout = QtGui.QPushButton("Toggle")
-        # PSS Database
-        button_load_PSS_database = QtGui.QPushButton("Load DB")
-        button_saveAs_PSS_database = QtGui.QPushButton("Save DB")
+        # MP Database
+        button_load_MP_database = QtGui.QPushButton("Load DB")
+        button_saveAs_MP_database = QtGui.QPushButton("Save DB")
         button_addDB = QtGui.QPushButton("Add DB")
         button_closeDB = QtGui.QPushButton("Close DB")
         button_pp_graph = QtGui.QPushButton("PP-Graph")
         # LAYOUTS for buttons
-        # Process Subsystem
-        self.HL_PSS_buttons = QtGui.QHBoxLayout()
-        self.HL_PSS_buttons.addWidget(label_process_subsystem)
-        self.HL_PSS_buttons.addWidget(button_new_process_subsystem)
-        self.HL_PSS_buttons.addWidget(button_add_PSS_to_Database)
-        self.HL_PSS_buttons.addWidget(button_delete_PSS_from_Database)
-        self.HL_PSS_buttons.addWidget(button_toggle_layout)
-        self.HL_PSS_buttons.addWidget(button_graph)
-        # PSS Database
-        self.HL_PSS_Database_buttons = QtGui.QHBoxLayout()
-        self.HL_PSS_Database_buttons.addWidget(label_PSS_database)
-        self.HL_PSS_Database_buttons.addWidget(button_load_PSS_database)
-        self.HL_PSS_Database_buttons.addWidget(button_saveAs_PSS_database)
-        self.HL_PSS_Database_buttons.addWidget(button_addDB)
-        self.HL_PSS_Database_buttons.addWidget(button_closeDB)
-        self.HL_PSS_Database_buttons.addWidget(button_pp_graph)
+        # Meta-Process
+        self.HL_MP_buttons = QtGui.QHBoxLayout()
+        self.HL_MP_buttons.addWidget(label_process_subsystem)
+        self.HL_MP_buttons.addWidget(button_new_process_subsystem)
+        self.HL_MP_buttons.addWidget(button_add_MP_to_Database)
+        self.HL_MP_buttons.addWidget(button_delete_MP_from_Database)
+        self.HL_MP_buttons.addWidget(button_toggle_layout)
+        self.HL_MP_buttons.addWidget(button_graph)
+        # MP Database
+        self.HL_MP_Database_buttons = QtGui.QHBoxLayout()
+        self.HL_MP_Database_buttons.addWidget(label_MP_database)
+        self.HL_MP_Database_buttons.addWidget(button_load_MP_database)
+        self.HL_MP_Database_buttons.addWidget(button_saveAs_MP_database)
+        self.HL_MP_Database_buttons.addWidget(button_addDB)
+        self.HL_MP_Database_buttons.addWidget(button_closeDB)
+        self.HL_MP_Database_buttons.addWidget(button_pp_graph)
         # CONNECTIONS
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
-        button_load_PSS_database.clicked.connect(self.loadPSSDatabase)
-        button_saveAs_PSS_database.clicked.connect(self.saveAsPSSDatabase)
-        button_add_PSS_to_Database.clicked.connect(self.addPSStoDatabase)
+        button_load_MP_database.clicked.connect(self.loadMPDatabase)
+        button_saveAs_MP_database.clicked.connect(self.saveAsMPDatabase)
+        button_add_MP_to_Database.clicked.connect(self.addMPtoDatabase)
         button_toggle_layout.clicked.connect(self.toggleLayout)
         button_graph.clicked.connect(self.showGraph)
-        button_delete_PSS_from_Database.clicked.connect(self.deletePSSfromDatabase)
-        button_addDB.clicked.connect(self.addPSSDatabase)
-        button_closeDB.clicked.connect(self.closePSSDatabase)
+        button_delete_MP_from_Database.clicked.connect(self.deleteMPfromDatabase)
+        button_addDB.clicked.connect(self.addMPDatabase)
+        button_closeDB.clicked.connect(self.closeMPDatabase)
         button_pp_graph.clicked.connect(self.pp_graph)
         # TREEWIDGETS
         self.tree_widget_cuts = QtGui.QTreeWidget()
         # TABLES
-        self.table_PSS_chain = QtGui.QTableWidget()
-        self.table_PSS_outputs = QtGui.QTableWidget()
-        self.table_PSS_database = QtGui.QTableWidget()
+        self.table_MP_chain = QtGui.QTableWidget()
+        self.table_MP_outputs = QtGui.QTableWidget()
+        self.table_MP_database = QtGui.QTableWidget()
         # Checkboxes
         self.checkbox_output_based_scaling = QtGui.QCheckBox('Output based scaling (default)')
         self.checkbox_output_based_scaling.setChecked(True)
-        # PSS data
-        VL_PSS_data = QtGui.QVBoxLayout()
-        self.PSSdataWidget.setLayout(VL_PSS_data)
-        self.line_edit_PSS_name = QtGui.QLineEdit(self.PSC.pss.name)
-        VL_PSS_data.addWidget(self.line_edit_PSS_name)
-        VL_PSS_data.addWidget(self.checkbox_output_based_scaling)
-        VL_PSS_data.addWidget(QtGui.QLabel("Outputs"))
-        VL_PSS_data.addWidget(self.table_PSS_outputs)
-        VL_PSS_data.addWidget(QtGui.QLabel("Chain"))
-        VL_PSS_data.addWidget(self.table_PSS_chain)
-        VL_PSS_data.addWidget(QtGui.QLabel("Cuts"))
-        VL_PSS_data.addWidget(self.tree_widget_cuts)
+        # MP data
+        VL_MP_data = QtGui.QVBoxLayout()
+        self.MPdataWidget.setLayout(VL_MP_data)
+        self.line_edit_MP_name = QtGui.QLineEdit(self.MPC.mp.name)
+        VL_MP_data.addWidget(self.line_edit_MP_name)
+        VL_MP_data.addWidget(self.checkbox_output_based_scaling)
+        VL_MP_data.addWidget(QtGui.QLabel("Outputs"))
+        VL_MP_data.addWidget(self.table_MP_outputs)
+        VL_MP_data.addWidget(QtGui.QLabel("Chain"))
+        VL_MP_data.addWidget(self.table_MP_chain)
+        VL_MP_data.addWidget(QtGui.QLabel("Cuts"))
+        VL_MP_data.addWidget(self.tree_widget_cuts)
         # CONNECTIONS
-        self.line_edit_PSS_name.returnPressed.connect(self.set_pss_name)
-        self.table_PSS_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
+        self.line_edit_MP_name.returnPressed.connect(self.set_mp_name)
+        self.table_MP_chain.itemDoubleClicked.connect(self.setNewCurrentActivity)
         self.tree_widget_cuts.itemChanged.connect(self.set_cut_custom_data)
-        self.table_PSS_outputs.itemChanged.connect(self.set_output_custom_data)
-        self.table_PSS_outputs.currentItemChanged.connect(self.save_text_before_edit)
-        self.table_PSS_database.itemDoubleClicked.connect(self.loadPSS)
+        self.table_MP_outputs.itemChanged.connect(self.set_output_custom_data)
+        self.table_MP_outputs.currentItemChanged.connect(self.save_text_before_edit)
+        self.table_MP_database.itemDoubleClicked.connect(self.loadMP)
         self.checkbox_output_based_scaling.stateChanged.connect(self.set_output_based_scaling)
         # CONTEXT MENUS
         # Outputs
-        self.table_PSS_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.table_MP_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_addOutput = QtGui.QAction("Duplicate", None)
         self.action_addOutput.triggered.connect(self.addOutput)
-        self.table_PSS_outputs.addAction(self.action_addOutput)
+        self.table_MP_outputs.addAction(self.action_addOutput)
         self.action_removeOutput = QtGui.QAction("Remove", None)
         self.action_removeOutput.triggered.connect(self.removeOutput)
-        self.table_PSS_outputs.addAction(self.action_removeOutput)
+        self.table_MP_outputs.addAction(self.action_removeOutput)
         # Chain
-        self.table_PSS_chain.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.table_MP_chain.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_addCut = QtGui.QAction("Cut", None)
         self.action_addCut.triggered.connect(self.addCut)
-        self.table_PSS_chain.addAction(self.action_addCut)
-        self.action_remove_chain_item = QtGui.QAction("Remove from PSS", None)
+        self.table_MP_chain.addAction(self.action_addCut)
+        self.action_remove_chain_item = QtGui.QAction("Remove from MP", None)
         self.action_remove_chain_item.triggered.connect(self.removeChainItem)
-        self.table_PSS_chain.addAction(self.action_remove_chain_item)
+        self.table_MP_chain.addAction(self.action_remove_chain_item)
         # Cuts treeview
         self.tree_widget_cuts.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_removeCut = QtGui.QAction("Remove cut", None)
         self.action_removeCut.triggered.connect(self.deleteCut)
         self.tree_widget_cuts.addAction(self.action_removeCut)
-        # PSS Database
-        self.table_PSS_database.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        # MP Database
+        self.table_MP_database.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_delete_selected = QtGui.QAction("Delete selected", None)
-        self.action_delete_selected.triggered.connect(self.delete_selected_PSS)
-        self.table_PSS_database.addAction(self.action_delete_selected)
+        self.action_delete_selected.triggered.connect(self.delete_selected_MP)
+        self.table_MP_database.addAction(self.action_delete_selected)
 
     def set_up_PP_analyzer(self):
         self.PP_analyzer = QtGui.QWidget()
@@ -185,7 +185,7 @@ class MPWidget(QtGui.QWidget):
 
     # MP DATABASE
 
-    def loadPSSDatabase(self, mode="load new"):
+    def loadMPDatabase(self, mode="load new"):
         file_types = "Pickle (*.pickle);;All (*.*)"
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\MetaProcessDatabases', file_types)
         if filename:
@@ -194,34 +194,34 @@ class MPWidget(QtGui.QWidget):
                 self.lmp.load_from_file(filename)
             elif mode == "append":
                 self.lmp.load_from_file(filename, append=True)
-            self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
-            self.updateTablePSSDatabase()
+            self.signal_status_bar_message.emit("Loaded MP Database successfully.")
+            self.updateTableMPDatabase()
 
-    def addPSSDatabase(self):
-        self.loadPSSDatabase(mode="append")
+    def addMPDatabase(self):
+        self.loadMPDatabase(mode="append")
 
-    def closePSSDatabase(self):
+    def closeMPDatabase(self):
         msg = "If you close the database, all unsaved Data will be lost. Continue?"
         reply = QtGui.QMessageBox.question(self, 'Message',
                     msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
             self.lmp = LinkedMetaProcessSystem()
-            self.updateTablePSSDatabase()
-            self.signal_status_bar_message.emit("Closed PSS Database.")
+            self.updateTableMPDatabase()
+            self.signal_status_bar_message.emit("Closed MP Database.")
 
-    def savePSSDatabase(self, filename=None):
+    def saveMPDatabase(self, filename=None):
         self.lmp.save_to_file(filename)
-        self.signal_status_bar_message.emit("PSS Database saved.")
+        self.signal_status_bar_message.emit("MP Database saved.")
 
-    def saveAsPSSDatabase(self):
+    def saveAsMPDatabase(self):
         if self.lmp.mp_list:
             file_types = "Pickle (*.pickle);;All (*.*)"
             filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
             if filename:
-                self.savePSSDatabase(filename)
-                self.signal_status_bar_message.emit("PSS Database saved.")
+                self.saveMPDatabase(filename)
+                self.signal_status_bar_message.emit("MP Database saved.")
 
-    def updateTablePSSDatabase(self):
+    def updateTableMPDatabase(self):
         data = []
         for mp_data in self.lmp.raw_data:
             numbers = [len(mp_data['outputs']), len(set(mp_data['chain'])), len(set(mp_data['cuts']))]
@@ -229,152 +229,153 @@ class MPWidget(QtGui.QWidget):
                 'name': mp_data['name'],
                 'out/chain/cuts': "/".join(map(str, numbers)),
                 'outputs': ", ".join([o[1] for o in mp_data['outputs']]),
-                'chain': "//".join([self.PSC.getActivityData(o)['name'] for o in mp_data['chain']]),
+                'chain': "//".join([self.MPC.getActivityData(o)['name'] for o in mp_data['chain']]),
                 'cuts': ", ".join([o[2] for o in mp_data['cuts']]),
             })
         keys = ['name', 'out/chain/cuts', 'outputs', 'cuts', 'chain']
-        self.table_PSS_database = self.helper.update_table(self.table_PSS_database, data, keys)
+        self.table_MP_database = self.helper.update_table(self.table_MP_database, data, keys)
 
     # MP <--> MP DATABASE
 
-    def loadPSS(self):
-        item = self.table_PSS_database.currentItem()
-        for pss in self.lmp.raw_data:
-            if pss['name'] == str(item.text()):
-                self.PSC.load_pss(pss)
-        self.signal_status_bar_message.emit("Loaded PSS: " + str(item.text()))
+    def loadMP(self):
+        item = self.table_MP_database.currentItem()
+        for mp in self.lmp.raw_data:
+            if mp['name'] == str(item.text()):
+                self.MPC.load_mp(mp)
+        self.signal_status_bar_message.emit("Loaded MP: " + str(item.text()))
         self.showGraph()
 
-    def addPSStoDatabase(self):
-        if self.PSC.pss_data['chain']:
+    def addMPtoDatabase(self):
+        if self.MPC.mp_data['chain']:
             add = False
-            mp_name = self.PSC.pss_data['name']
+            mp_name = self.MPC.mp_data['name']
             if mp_name not in self.lmp.processes:
                 add = True
             else:
-                mgs = "Do you want to overwrite the existing PSS?"
+                mgs = "Do you want to overwrite the existing MP?"
                 reply = QtGui.QMessageBox.question(self, 'Message',
                             mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
                 if reply == QtGui.QMessageBox.Yes:
                     add = True
-                    self.lmp.remove_mp(mp_name)  # first remove pss that is to be replaced
+                    self.lmp.remove_mp([mp_name])  # first remove mp that is to be replaced
             if add:
-                self.lmp.add_mp([self.PSC.pss_data])
-                self.update_widget_PSS_data()
-                self.signal_status_bar_message.emit("Added PSS to working database (not saved).")
+                self.lmp.add_mp([self.MPC.mp_data])
+                self.update_widget_MP_data()
+                self.signal_status_bar_message.emit("Added MP to working database (not saved).")
 
-    def deletePSSfromDatabase(self):
-        if self.PSC.pss_data['chain']:
-            self.lmp.remove_mp([self.PSC.pss_data['name']])
-            self.updateTablePSSDatabase()
-            self.signal_status_bar_message.emit(str("Deleted (from working database): " + self.PSC.pss_data['name']))
+# TODO: remove; doesn't seem necessary anymore
+    def deleteMPfromDatabase(self):
+        if self.MPC.mp_data['chain']:
+            self.lmp.remove_mp([self.MPC.mp_data['name']])
+            self.updateTableMPDatabase()
+            self.signal_status_bar_message.emit(str("Deleted (from working database): " + self.MPC.mp_data['name']))
 
-    def delete_selected_PSS(self):
-        processes_to_delete = [item.text() for item in self.table_PSS_database.selectedItems()]
+    def delete_selected_MP(self):
+        processes_to_delete = [str(item.text()) for item in self.table_MP_database.selectedItems()]
         self.lmp.remove_mp(processes_to_delete)
-        print "Deleted from working PSS database: " + processes_to_delete
-        self.updateTablePSSDatabase()
+        print "Deleted from working MP database:", processes_to_delete
+        self.updateTableMPDatabase()
         self.signal_status_bar_message.emit("Deleted selected items.")
 
     # MP
 
     def newProcessSubsystem(self):
-        self.PSC.newProcessSubsystem()
+        self.MPC.newMetaProcess()
         self.showGraph()
 
     def addOutput(self):
-        item = self.table_PSS_outputs.currentItem()
+        item = self.table_MP_outputs.currentItem()
         print "\nDuplicating output: " + str(item.activity_or_database_key) + " " + item.text()
-        self.PSC.add_output(item.activity_or_database_key)
+        self.MPC.add_output(item.activity_or_database_key)
         self.showGraph()
 
     def removeOutput(self):
-        item = self.table_PSS_outputs.currentItem()
+        item = self.table_MP_outputs.currentItem()
         print "\nRemoving output: " + str(item.activity_or_database_key) + " " + item.text()
         key = item.activity_or_database_key
-        row = self.table_PSS_outputs.currentRow()
-        name = str(self.table_PSS_outputs.item(row, 0).text())
-        amount = str(self.table_PSS_outputs.item(row, 1).text())
-        self.PSC.remove_output(key, name, float(amount))
+        row = self.table_MP_outputs.currentRow()
+        name = str(self.table_MP_outputs.item(row, 0).text())
+        amount = str(self.table_MP_outputs.item(row, 1).text())
+        self.MPC.remove_output(key, name, float(amount))
         self.showGraph()
 
     def addToChain(self, item):
-        self.PSC.add_to_chain(item.activity_or_database_key)
+        self.MPC.add_to_chain(item.activity_or_database_key)
         self.showGraph()
 
     def removeChainItem(self):
         print "\nCONTEXT MENU: "+self.action_remove_chain_item.text()
-        item = self.table_PSS_chain.currentItem()
-        self.PSC.delete_from_chain(item.activity_or_database_key)
+        item = self.table_MP_chain.currentItem()
+        self.MPC.delete_from_chain(item.activity_or_database_key)
         self.showGraph()
 
     def addCut(self):
         print "\nCONTEXT MENU: "+self.action_addCut.text()
-        item = self.table_PSS_chain.currentItem()
-        self.PSC.add_cut(item.activity_or_database_key)
+        item = self.table_MP_chain.currentItem()
+        self.MPC.add_cut(item.activity_or_database_key)
         self.showGraph()
 
     def deleteCut(self):
         print "\nCONTEXT MENU: "+self.action_removeCut.text()
         item = self.tree_widget_cuts.itemFromIndex(self.tree_widget_cuts.currentIndex())
         if item.activity_or_database_key:
-            self.PSC.delete_cut(item.activity_or_database_key)
+            self.MPC.delete_cut(item.activity_or_database_key)
             self.showGraph()
 
-    def set_pss_name(self):
-        name = str(self.line_edit_PSS_name.text())  # otherwise QString
-        self.PSC.set_pss_name(name)
+    def set_mp_name(self):
+        name = str(self.line_edit_MP_name.text())  # otherwise QString
+        self.MPC.set_mp_name(name)
         self.showGraph()
 
     def set_output_based_scaling(self):
-        self.PSC.set_output_based_scaling(self.checkbox_output_based_scaling.isChecked())
+        self.MPC.set_output_based_scaling(self.checkbox_output_based_scaling.isChecked())
         self.showGraph()
 
     def set_output_custom_data(self):
 
-        item = self.table_PSS_outputs.currentItem()
+        item = self.table_MP_outputs.currentItem()
         text = str(item.text())
         key = item.activity_or_database_key
         # need this information to distinguish between outputs that have the same key
         # (makes the code a bit ugly, but outputs have no unique id)
-        row = self.table_PSS_outputs.currentRow()
-        name = str(self.table_PSS_outputs.item(row, 0).text())
-        amount = str(self.table_PSS_outputs.item(row, 1).text())
+        row = self.table_MP_outputs.currentRow()
+        name = str(self.table_MP_outputs.item(row, 0).text())
+        amount = str(self.table_MP_outputs.item(row, 1).text())
         if item.column() == 0:  # name
             print "\nChanging output NAME to: " + text
-            self.PSC.set_output_name(key, text, self.text_before_edit, float(amount))
+            self.MPC.set_output_name(key, text, self.text_before_edit, float(amount))
         elif item.column() == 1 and self.helper.is_number(text):  # quantity
             print "\nChanging output QUANTITY to: " + text
-            self.PSC.set_output_quantity(key, float(text), name, float(self.text_before_edit))
+            self.MPC.set_output_quantity(key, float(text), name, float(self.text_before_edit))
         else:  # ignore!
             print "\nYou don't want to do this, do you?"
         self.showGraph()
 
     def save_text_before_edit(self):
-        self.text_before_edit = str(self.table_PSS_outputs.currentItem().text())
+        self.text_before_edit = str(self.table_MP_outputs.currentItem().text())
 
     def set_cut_custom_data(self):
         item = self.tree_widget_cuts.itemFromIndex(self.tree_widget_cuts.currentIndex())
-        self.PSC.set_cut_name(item.activity_or_database_key, str(item.text(0)))
+        self.MPC.set_cut_name(item.activity_or_database_key, str(item.text(0)))
         self.showGraph()
 
     # UPDATING TABLES etc: MP
 
-    def update_widget_PSS_data(self):
-        self.line_edit_PSS_name.setText(self.PSC.pss.name)
-        self.updateTablePSSDatabase()
-        self.update_PSS_table_widget_outputs()
-        self.update_PSS_table_widget_chain()
-        self.update_PSS_tree_widget_cuts()
+    def update_widget_MP_data(self):
+        self.line_edit_MP_name.setText(self.MPC.mp.name)
+        self.updateTableMPDatabase()
+        self.update_MP_table_widget_outputs()
+        self.update_MP_table_widget_chain()
+        self.update_MP_tree_widget_cuts()
         self.update_checkbox_output_based_scaling()
 
-    def update_PSS_table_widget_outputs(self):
+    def update_MP_table_widget_outputs(self):
         keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
         edit_keys = ['custom name', 'quantity']
         data = []
-        if self.PSC.pss.outputs:
-            for i, output in enumerate(self.PSC.pss.outputs):
-                output_data = self.PSC.getActivityData(output[0])
+        if self.MPC.mp.outputs:
+            for i, output in enumerate(self.MPC.mp.outputs):
+                output_data = self.MPC.getActivityData(output[0])
                 try:
                     output_name = output[1]
                 except IndexError:
@@ -385,14 +386,14 @@ class MPWidget(QtGui.QWidget):
                     output_quantity = "1"
                 output_data.update({'custom name': output_name, 'quantity': output_quantity})
                 data.append(output_data)
-        self.table_PSS_outputs = self.helper.update_table(self.table_PSS_outputs, data, keys, edit_keys)
+        self.table_MP_outputs = self.helper.update_table(self.table_MP_outputs, data, keys, edit_keys)
 
-    def update_PSS_table_widget_chain(self):
+    def update_MP_table_widget_chain(self):
         keys = ['product', 'name', 'location', 'unit', 'database']
-        data = [self.PSC.getActivityData(c) for c in self.PSC.pss.chain]
-        self.table_PSS_chain = self.helper.update_table(self.table_PSS_chain, data, keys)
+        data = [self.MPC.getActivityData(c) for c in self.MPC.mp.chain]
+        self.table_MP_chain = self.helper.update_table(self.table_MP_chain, data, keys)
 
-    def update_PSS_tree_widget_cuts(self):
+    def update_MP_tree_widget_cuts(self):
         def formatActivityData(ad):
             ad_list = []
             for key in keys:
@@ -404,7 +405,7 @@ class MPWidget(QtGui.QWidget):
         self.tree_widget_cuts.setHeaderLabels(keys)
         root = MyTreeWidgetItem(self.tree_widget_cuts, ['Cuts'])
 
-        for i, cut in enumerate(self.PSC.pss.cuts):
+        for i, cut in enumerate(self.MPC.mp.cuts):
             try:
                 cut_name = cut[2]
             except IndexError:
@@ -413,12 +414,12 @@ class MPWidget(QtGui.QWidget):
             newNode.activity_or_database_key = cut[0]
             newNode.setFlags(newNode.flags() | QtCore.Qt.ItemIsEditable)
             # make row with activity data
-            ad = formatActivityData(self.PSC.getActivityData(cut[0]))
+            ad = formatActivityData(self.MPC.getActivityData(cut[0]))
             # TODO: fix bug for multi-output activities (e.g. sawing): cut too high (activity scaled by several outputs)!
             ad[3] = cut[3]  # set amount to that of internal_scaled_edge_with_cuts
             cutFromNode = MyTreeWidgetItem(newNode, [str(item) for item in ad])
             cutFromNode.activity_or_database_key = cut[0]
-            ad = formatActivityData(self.PSC.getActivityData(cut[1]))
+            ad = formatActivityData(self.MPC.getActivityData(cut[1]))
             ad[3] = ''  # we are only interested in the cutFromNode amount
             cutToNode = MyTreeWidgetItem(newNode, [str(item) for item in ad])
 
@@ -430,13 +431,13 @@ class MPWidget(QtGui.QWidget):
         self.tree_widget_cuts.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)
 
     def update_checkbox_output_based_scaling(self):
-        self.checkbox_output_based_scaling.setChecked(self.PSC.pss_data['output_based_scaling'])
+        self.checkbox_output_based_scaling.setChecked(self.MPC.mp_data['output_based_scaling'])
 
     # LMP alternatives and LCA
 
     def get_meta_process_lcas(self, process_list=None, method=None):
         """
-        returns dict where: keys = PSS name, value = LCA score
+        returns dict where: keys = MP name, value = LCA score
         """
         method = (u'IPCC 2007', u'climate change', u'GWP 100a')  # TODO
         map_process_lcascore = self.lmp.lca_processes(method, process_names=process_list)
@@ -466,7 +467,7 @@ class MPWidget(QtGui.QWidget):
         for mp in self.lmp.mp_list:
             for o in mp.outputs:
                 if str(self.combo_functional_unit.currentText()) == o[1]:
-                    unit = self.PSC.getActivityData(o[0])['unit']
+                    unit = self.MPC.getActivityData(o[0])['unit']
         self.label_FU_unit.setText(QtCore.QString(unit))
 
     def update_PP_comparison_table(self, data, keys):
@@ -475,26 +476,26 @@ class MPWidget(QtGui.QWidget):
     # VISUALIZATION
 
     def showGraph(self):
-        self.update_widget_PSS_data()
+        self.update_widget_MP_data()
         geo = self.webview.geometry()
         # data needed depends on D3 layout
         if self.current_d3_layout == "tree":
             template_data = {
                 'height': geo.height(),
                 'width': geo.width(),
-                'data': json.dumps(self.PSC.getTreeData(), indent=1)
+                'data': json.dumps(self.MPC.getTreeData(), indent=1)
             }
             self.set_webview(template_data, self.current_d3_layout)
         elif self.current_d3_layout == "graph":
             template_data = {
                 'height': geo.height(),
                 'width': geo.width(),
-                'data': json.dumps(self.PSC.getGraphData(), indent=1)
+                'data': json.dumps(self.MPC.getGraphData(), indent=1)
             }
             self.set_webview(template_data, self.current_d3_layout)
-            print json.dumps(self.PSC.getGraphData(), indent=1)
+            print json.dumps(self.MPC.getGraphData(), indent=1)
         elif self.current_d3_layout == "dagre":
-            template_data = self.PSC.get_dagre_data()
+            template_data = self.MPC.get_dagre_data()
             self.set_webview(template_data, self.current_d3_layout)
 
     def set_webview(self, template_data, template_name):
@@ -582,16 +583,13 @@ class MPWidget(QtGui.QWidget):
 
         def get_parents(node):
             return [x[0] for x in parents_children if x[1] == node]
-
-        # if not self.pss.chain:
-        #     return []
         tree_data = []
         graph_data = self.get_pp_graph()  # source / target dicts
         parents_children = [(d['source'], d['target']) for d in graph_data]  # not using amount yet
         sources, targets = zip(*parents_children)
         head_nodes = list(set([t for t in targets if not t in sources]))
 
-        root = "PSS database outputs"
+        root = "MP database outputs"
         for head in head_nodes:
             parents_children.append((head, root))
 
@@ -600,12 +598,13 @@ class MPWidget(QtGui.QWidget):
 
     def show_path_graph(self):
         item = self.table_PP_comparison.currentItem()
-        template_data = {
-            'height': self.webview.geometry().height(),
-            'width': self.webview.geometry().width(),
-            'data': json.dumps(self.get_pp_path_graph(item.path), indent=1)
-        }
-        self.set_webview(template_data, "dagre_path")
+        if item.path:
+            template_data = {
+                'height': self.webview.geometry().height(),
+                'width': self.webview.geometry().width(),
+                'data': json.dumps(self.get_pp_path_graph(item.path), indent=1)
+            }
+            self.set_webview(template_data, "dagre_path")
 
     def get_pp_path_graph(self, path):
         print "PATH:", path
@@ -645,7 +644,7 @@ class MPWidget(QtGui.QWidget):
     # OTHER METHODS
 
     def setNewCurrentActivity(self):
-        self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
+        self.signal_activity_key.emit(self.table_MP_chain.currentItem())
 
     def save_pp_matrix(self):
         matrix, processes, products = self.lmp.get_pp_matrix()  # self.get_process_products_as_array()
@@ -706,7 +705,7 @@ class MPWidget(QtGui.QWidget):
     def export_as_JSON(self):
         outdata = []
         for mp_data in self.lmp.raw_data:
-            outdata.append(self.PSC.getHumanReadiblePSS(mp_data))
+            outdata.append(self.MPC.getHumanReadibleMP(mp_data))
         file_types = "Python (*.py);;JSON (*.json);;All (*.*)"
         filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
         with open(filename, 'w') as outfile:
