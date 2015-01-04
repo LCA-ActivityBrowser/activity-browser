@@ -29,49 +29,83 @@ class LinkedMetaProcessSystem(object):
         self.map_processes_number = dict(zip(self.processes, itertools.count()))
         self.map_products_number = dict(zip(self.products, itertools.count()))
 
+    # SHORTCUTS
+
     @ property
     def processes(self):
         return sorted([mp.name for mp in self.mp_list])
 
     @ property
-    def products(self, mp_list=None):
+    def products(self):
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
             ] for y in self.mp_list])))
 
-    @ property
-    def pp_matrix(self):
-        matrix = np.zeros((len(self.products), len(self.processes)))
-        for mp in self.mp_list:
-            for product, amount in mp.pp:
-                matrix[self.map_products_number[product], self.map_processes_number[mp.name]] = amount
-        return matrix
+    # METHODS THAT RETURN DATA FOR A SUBSET OR THE ENTIRE LMPS
 
-    def ppm(self):
-        return self.processes, self.products, self.pp_matrix
+    def get_processes(self, mp_list=None):
+        """
+        returns a list of meta-processes
+        mp_list can either be a list of names or a list of meta-processes
+        :param mp_list:
+        :return:
+        """
+        # if empty list return all meta-processes
+        if not mp_list:
+            return self.mp_list
+        else:
+            # if name list find corresponding meta-processes
+            if not isinstance(mp_list[0], MetaProcess):
+                return [self.map_name_mp.get(name, None) for name in mp_list]
+            else:
+                return mp_list
 
-    def get_processes(self, name_list):
-        return [self.map_name_mp.get(name, None) for name in name_list]
-
-    def get_process_names(self, mp_list):
+    def get_process_names(self, mp_list=None):
         """
         Input: a list of meta-processes. Output: a list of process names.
         :param mp_list:
         :return:
         """
-        return sorted([mp.name for mp in mp_list])
+        return sorted([mp.name for mp in self.get_processes(mp_list)])
 
-    def get_product_names(self, mp_list):
+    def get_product_names(self, mp_list=None):
         """
         Input: a list of meta-processes. Output: a list of product names.
         :return:
         """
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
-            ] for y in mp_list])))
+            ] for y in self.get_processes(mp_list)])))
 
-    def get_pp_matrix(self, mp_list):
-        # accepts both a list of names or a list of meta-processes
-        if not isinstance(mp_list[0], MetaProcess):
-            mp_list = self.get_processes(mp_list)
+    def product_process_dict(self, mp_list=None, process_names=None, product_names=None):
+        """
+        returns dict, where products are keys and meta-processes producing these products are list values
+        if process/product names are provided, these are used as filters
+        equally, if mp_list is provided, it can be used as a filter
+        otherwise all processes/products are considered
+        """
+        if not process_names:
+            process_names = self.processes
+        if not product_names:
+            product_names = self.products
+        product_processes = {}
+        for mp in self.get_processes(mp_list):
+            for output in mp.outputs:
+                output_name = output[1]
+                if output_name in product_names and mp.name in process_names:
+                    product_processes[output_name] = product_processes.get(output_name, [])
+                    product_processes[output_name].append(mp.name)
+        return product_processes
+
+    def edges(self, mp_list=None):
+        edges = []
+        for mp in self.get_processes(mp_list):
+            for cut in mp.cuts:
+                edges.append((cut[2], mp.name))
+            for output in mp.outputs:
+                edges.append((mp.name, output[1]))
+        return edges
+
+    def get_pp_matrix(self, mp_list=None):
+        mp_list = self.get_processes(mp_list)
         matrix = np.zeros((len(self.get_product_names(mp_list)), len(mp_list)))
         map_processes_number = dict(zip(self.get_process_names(mp_list), itertools.count()))
         map_products_number = dict(zip(self.get_product_names(mp_list), itertools.count()))
@@ -80,72 +114,7 @@ class LinkedMetaProcessSystem(object):
                 matrix[map_products_number[product], map_processes_number[mp.name]] = amount
         return matrix, map_processes_number, map_products_number
 
-    def scaling_vector_foreground_demand(self, process_list, demand):
-        """
-        Returns a scaling dictionary for a given demand and matrix defined by a list of processes.
-        Keys: process names. Values: scaling vector values.
-        :param process_list:
-        :param demand:
-        :return:
-        """
-        # matrix
-        matrix, map_processes, map_products = self.get_pp_matrix(process_list)
-        try:
-            # TODO: define conditions that must be met (e.g. square, single-output); Processes can still have multiple outputs (system expansion)
-            assert matrix.shape[0] == matrix.shape[1]  # matrix needs to be square to be invertable!
-        except AssertionError:
-            print "Matrix must be square! Current shape:", matrix.shape[0], matrix.shape[1]
-            return False
-        # demand vector
-        demand_vector = np.zeros((len(matrix),))
-        for name, amount in demand.items():
-            demand_vector[map_products[name]] = amount
-        # scaling vector
-        try:
-            scaling_vector = np.linalg.solve(matrix, demand_vector).tolist()
-        except np.linalg.linalg.LinAlgError:
-            print "Singular matrix. Cannot solve."
-            return False
-        except:
-            print "Could not solve matrix"
-        scaling_dict = dict([(name, scaling_vector[index]) for name, index in map_processes.items()])
-        # # foreground product demand (can be different from scaling vector if diagonal values are not 1)
-        # foreground_demand = {}
-        # for name, amount in scaling_dict.items():
-        #     number_in_matrix = map_processes[name]
-        #     product = [name for name, number in map_products.items() if number == number_in_matrix][0]
-        #     foreground_demand.update({
-        #         product: amount*matrix[number_in_matrix, number_in_matrix]
-        #     })
-        return scaling_dict  # foreground_demand
-
-    def product_process_dict(self, process_list=None, product_list=None):
-        """
-        returns dict, where products are keys and meta-processes producing these products are list values
-        if process/product lists are provided, these are used as filters
-        otherwise all processes/products are considered
-        """
-        if not process_list:
-            process_list = self.processes
-        if not product_list:
-            product_list = self.products
-        product_processes = {}
-        for mp in self.mp_list:
-            output = mp.outputs[0][1]  # assuming all processes are single-output!!
-            name = mp.name
-            if output in product_list and name in process_list:
-                product_processes[output] = product_processes.get(output, [])
-                product_processes[output].append(name)
-        return product_processes
-
-    def edges(self):
-        edges = []
-        for mp in self.mp_list:
-            for cut in mp.cuts:
-                edges.append((cut[2], mp.name))
-            for output in mp.outputs:
-                edges.append((mp.name, output[1]))
-        return edges
+    # ALTERNATIVE PATHWAYS
 
     def upstream_products_processes(self, product):
         """
@@ -175,7 +144,7 @@ class LinkedMetaProcessSystem(object):
         :return:
         """
         ancestor_processes, ancestor_products = self.upstream_products_processes(functional_unit)
-        product_processes = self.product_process_dict(process_list=ancestor_processes, product_list=ancestor_products)
+        product_processes = self.product_process_dict(process_names=ancestor_processes, product_names=ancestor_products)
         # get all combinations of meta-processes
         # some are merely theoretical, i.e. contain processes that are not actually part of the supply chain
         unique_pathways = list(itertools.product(*product_processes.values()))
@@ -208,19 +177,59 @@ class LinkedMetaProcessSystem(object):
 
         return list(set(unique_pathways_cleaned))
 
-    def lca_processes(self, method, process_list=None, factorize=False):
+    # LCA
+
+    def scaling_vector_foreground_demand(self, process_names, demand):
+        """
+        Returns a scaling dictionary for a given demand and matrix defined by a list of processes.
+        Keys: process names. Values: scaling vector values.
+        :param process_names:
+        :param demand:
+        :return:
+        """
+        # matrix
+        matrix, map_processes, map_products = self.get_pp_matrix(process_names)
+        try:
+            # TODO: define conditions that must be met (e.g. square, single-output); Processes can still have multiple outputs (system expansion)
+            assert matrix.shape[0] == matrix.shape[1]  # matrix needs to be square to be invertable!
+        except AssertionError:
+            print "Matrix must be square! Current shape:", matrix.shape[0], matrix.shape[1]
+        # demand vector
+        demand_vector = np.zeros((len(matrix),))
+        for name, amount in demand.items():
+            demand_vector[map_products[name]] = amount
+        # scaling vector
+        try:
+            scaling_vector = np.linalg.solve(matrix, demand_vector).tolist()
+        except np.linalg.linalg.LinAlgError:
+            print "Singular matrix. Cannot solve."
+            return False
+        except:
+            print "Could not solve matrix"
+        scaling_dict = dict([(name, scaling_vector[index]) for name, index in map_processes.items()])
+        # # foreground product demand (can be different from scaling vector if diagonal values are not 1)
+        # foreground_demand = {}
+        # for name, amount in scaling_dict.items():
+        #     number_in_matrix = map_processes[name]
+        #     product = [name for name, number in map_products.items() if number == number_in_matrix][0]
+        #     foreground_demand.update({
+        #         product: amount*matrix[number_in_matrix, number_in_matrix]
+        #     })
+        return scaling_dict  # foreground_demand
+
+    def lca_processes(self, method, process_names=None, factorize=False):
         """
         returns dict where: keys = PSS name, value = LCA score
         """
-        if not process_list:
-            process_list = self.processes
+        if not process_names:
+            process_names = self.processes
         map_process_lcascore = dict([(mp.name, mp.lca(method, factorize=factorize))
-                                     for mp in self.mp_list if mp.name in process_list])
+                                     for mp in self.get_processes(process_names)])
         return map_process_lcascore
 
-    def lca_linked_processes(self, method, process_list, demand):
-        scaling_dict = self.scaling_vector_foreground_demand(process_list, demand)
-        lca_scores = self.lca_processes(method, process_list)
+    def lca_linked_processes(self, method, process_names, demand):
+        scaling_dict = self.scaling_vector_foreground_demand(process_names, demand)
+        lca_scores = self.lca_processes(method, process_names)
         # multiply scaling vector with process LCA scores
         path_lca_score = 0.0
         process_contribution = {}
@@ -232,13 +241,13 @@ class LinkedMetaProcessSystem(object):
             process_contribution_relative.update({process: amount*lca_scores[process]/path_lca_score})
 
         output = {
-            'meta-processes': process_list,
+            'meta-processes': process_names,
             'demand': demand,
             'scaling vector': scaling_dict,
             'LCIA method': method,
-            'MP contribution': process_contribution,
-            'MP relative contribution': process_contribution_relative,
-            'LCA result': path_lca_score,
+            'process contribution': process_contribution,
+            'relative process contribution': process_contribution_relative,
+            'LCA score': path_lca_score,
         }
         return output
 

@@ -28,10 +28,18 @@ lmp = LinkedMetaProcessSystem(mp_list)
 
 print "Processes: %s" % len(lmp.processes)
 print lmp.processes
+print lmp.get_process_names(mp_list=lmp.mp_list[:3])
 print "Products: %s" % len(lmp.products)
 print lmp.products
-print "Matrix:"
-print lmp.pp_matrix
+
+matrix, process_dict, products_dict = lmp.get_pp_matrix()
+print "\nMatrix:"
+print matrix
+print "Processes:"
+print process_dict
+print "Products:"
+print products_dict
+
 
 print "\nProduct-Process Map:"
 print lmp.product_process_dict()
@@ -78,7 +86,7 @@ print "\n1. specific processes: lca_scores"
 print "LCA scores:"
 method = (u'IPCC 2007', u'climate change', u'GWP 100a')
 process_list = ['Transport, natural gas car', 'Transport, natural gas car_2', 'NG production']
-scores = lmp.lca_processes(method=method, process_list=process_list)
+scores = lmp.lca_processes(method=method, process_names=process_list)
 for k, v in scores.items():
     print "{0}: {1:.2g}".format(k, v)
 tic = time_info(tic)
@@ -101,6 +109,8 @@ print "demand:", demand
 lca_results = lmp.lca_alternatives(method, demand)
 for i, l in enumerate(lca_results):
     print
-    print i+1, l['path']
-    print l['lca results']
+    print i+1, l['meta-processes']
+    print l['LCA score']
+    print l['process contribution']
+    print l['relative process contribution']
 tic = time_info(tic)

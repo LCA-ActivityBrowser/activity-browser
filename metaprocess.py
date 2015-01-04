@@ -22,7 +22,10 @@ class MetaProcess(object):
         * *scaling activity* (key, optional): The reference activities for the supply chain. **Required** for circular supply chains; in simple supply chains, the scaling activity is calculated automatically.
 
     """
-    # TODO: introduce UUID for meta-processes
+    # TODO: introduce UUID for meta-processes?
+
+    # INTERNAL METHODS FOR CONSTRUCTING META-PROCESSES
+
     def __init__(self, name, outputs, chain, cuts, output_based_scaling=True, **kwargs):
         self.key = None  # created when PSS saved to a DB
         self.name = name
@@ -218,6 +221,8 @@ class MetaProcess(object):
                     except IndexError:
                         print "Problem with cut data: " + str(c)
 
+    # METHODS THAT RETURN META-PROCESS DATA
+
     @property
     def pss_data(self):
         pss_data_dict = {
@@ -229,7 +234,49 @@ class MetaProcess(object):
         }
         return pss_data_dict
 
-    def save_supply_chain_as_new_dataset(self, db_name="PSS default", unit=None,
+    def get_product_inputs_and_outputs(self):
+        return [(cut[2], -cut[3]) for cut in self.cuts] + [(output[1], output[2]) for output in self.outputs]
+
+    @property
+    def pp(self):
+        """Shortcut, as full method uses no global state"""
+        return self.get_product_inputs_and_outputs()
+
+    # LCA
+
+    def get_background_lci_demand(self, foreground_amount):
+        demand = {}  # dictionary for the brightway2 LCA object {activity key: amount}
+        for sa in self.scaling_activities:
+            demand.update({sa: self.demand[self.mapping[sa]]*foreground_amount})
+        for cut in self.cuts:
+            demand.update({cut[0]: -cut[3]*foreground_amount})
+        return demand
+
+    def lca(self, method, amount=1.0, factorize=False):
+        if not self.scaling_activities:
+            raise ValueError("No scaling activity")
+        if hasattr(self, "calculated_lca"):
+            self.calculated_lca.method = method
+            self.calculated_lca.lcia()
+        else:
+            demand = self.get_background_lci_demand(amount)
+            self.calculated_lca = LCA(demand, method=method)
+            self.calculated_lca.lci()
+            if factorize:
+                self.calculated_lca.decompose_technosphere()
+            self.calculated_lca.lcia()
+        return self.calculated_lca.score
+
+    def lci(self, amount=1.0):
+        if not self.scaling_activities:
+            raise ValueError("No scaling activity")
+        demand = self.get_background_lci_demand(amount)
+        self.calculated_lca = LCA(demand={self.key: amount})
+        return self.calculated_lca.lci()
+
+    # SAVE AS REGULAR ACTIVITY
+
+    def save_as_bw2_dataset(self, db_name="MP default", unit=None,
             location=None, categories=[], save_aggregated_inventory=False):
         """Save simplified process to a database.
 
@@ -305,41 +352,3 @@ class MetaProcess(object):
         # data = db.relabel_data(data, db_name)
         db.write(recursive_str_to_unicode(data))
         db.process()
-
-    def get_background_lci_demand(self, foreground_amount):
-        demand = {}  # dictionary for the brightway2 LCA object {activity key: amount}
-        for sa in self.scaling_activities:
-            demand.update({sa: self.demand[self.mapping[sa]]*foreground_amount})
-        for cut in self.cuts:
-            demand.update({cut[0]: -cut[3]*foreground_amount})
-        return demand
-
-    def lca(self, method, amount=1.0, factorize=False):
-        if not self.scaling_activities:
-            raise ValueError("No scaling activity")
-        if hasattr(self, "calculated_lca"):
-            self.calculated_lca.method = method
-            self.calculated_lca.lcia()
-        else:
-            demand = self.get_background_lci_demand(amount)
-            self.calculated_lca = LCA(demand, method=method)
-            self.calculated_lca.lci()
-            if factorize:
-                self.calculated_lca.decompose_technosphere()
-            self.calculated_lca.lcia()
-        return self.calculated_lca.score
-
-    def lci(self, amount=1.0):
-        if not self.scaling_activities:
-            raise ValueError("No scaling activity")
-        demand = self.get_background_lci_demand(amount)
-        self.calculated_lca = LCA(demand={self.key: amount})
-        return self.calculated_lca.lci()
-
-    def get_product_inputs_and_outputs(self):
-        return [(cut[2], -cut[3]) for cut in self.cuts] + [(output[1], output[2]) for output in self.outputs]
-
-    @property
-    def pp(self):
-        """Shortcut, as full method uses no global state"""
-        return self.get_product_inputs_and_outputs()
