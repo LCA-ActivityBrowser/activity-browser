@@ -16,6 +16,7 @@ import numpy as np
 import itertools
 import networkx as nx  # TODO get rid of this dependency?
 import pprint
+import operator
 
 class MPWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
@@ -23,7 +24,7 @@ class MPWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         super(MPWidget, self).__init__(parent)
         self.PSC = ProcessSubsystemCreator()
-        self.PSS_database = []
+        self.lmp = LinkedMetaProcessSystem()
         self.helper = HelperMethods()
         self.setupUserInterface()
         self.set_up_PP_analyzer()
@@ -188,21 +189,11 @@ class MPWidget(QtGui.QWidget):
         file_types = "Pickle (*.pickle);;All (*.*)"
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\MetaProcessDatabases', file_types)
         if filename:
-            with open(filename, 'r') as input:
-                PSS_database = pickle.load(input)
             print "Load mode: " + str(mode)
             if mode == "load new" or not mode:  # if called via connect: mode = False
-                self.PSS_database = PSS_database
+                self.lmp.load_from_file(filename)
             elif mode == "append":
-                # Check if conflicting names. If so, rename new pss.
-                existing_names = [pss['name'] for pss in self.PSS_database]
-                for new_pss in PSS_database:
-                    while True:
-                        if new_pss['name'] in existing_names:
-                            new_pss['name'] += "__ADDED"
-                        else:
-                            break
-                self.PSS_database = self.PSS_database + PSS_database
+                self.lmp.load_from_file(filename, append=True)
             self.signal_status_bar_message.emit("Loaded PSS Database successfully.")
             self.updateTablePSSDatabase()
 
@@ -214,18 +205,17 @@ class MPWidget(QtGui.QWidget):
         reply = QtGui.QMessageBox.question(self, 'Message',
                     msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
-            self.PSS_database = []
+            self.lmp = LinkedMetaProcessSystem()
             self.updateTablePSSDatabase()
             self.signal_status_bar_message.emit("Closed PSS Database.")
 
     def savePSSDatabase(self, filename=None):
-        with open(filename, 'w') as output:
-            pickle.dump(self.PSS_database, output)
+        self.lmp.save_to_file(filename)
         self.signal_status_bar_message.emit("PSS Database saved.")
-        self.updateTablePSSDatabase()
+        # self.updateTablePSSDatabase()
 
     def saveAsPSSDatabase(self):
-        if self.PSS_database:
+        if self.lmp.mp_list:
             file_types = "Pickle (*.pickle);;All (*.*)"
             filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
             if filename:
@@ -234,8 +224,8 @@ class MPWidget(QtGui.QWidget):
 
     def export_as_JSON(self):
         outdata = []
-        for pss in self.PSS_database:
-            outdata.append(self.PSC.getHumanReadiblePSS(pss))
+        for mp_data in self.lmp.raw_data:
+            outdata.append(self.PSC.getHumanReadiblePSS(mp_data))
         file_types = "Python (*.py);;JSON (*.json);;All (*.*)"
         filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '.\MetaProcessDatabases', file_types)
         with open(filename, 'w') as outfile:
@@ -243,14 +233,14 @@ class MPWidget(QtGui.QWidget):
 
     def updateTablePSSDatabase(self):
         data = []
-        for pss in self.PSS_database:
-            numbers = [len(pss['outputs']), len(set(pss['chain'])), len(set(pss['cuts']))]
+        for mp_data in self.lmp.raw_data:
+            numbers = [len(mp_data['outputs']), len(set(mp_data['chain'])), len(set(mp_data['cuts']))]
             data.append({
-                'name': pss['name'],
+                'name': mp_data['name'],
                 'out/chain/cuts': "/".join(map(str, numbers)),
-                'outputs': ", ".join([o[1] for o in pss['outputs']]),
-                'chain': "//".join([self.PSC.getActivityData(o)['name'] for o in pss['chain']]),
-                'cuts': ", ".join([o[2] for o in pss['cuts']]),
+                'outputs': ", ".join([o[1] for o in mp_data['outputs']]),
+                'chain': "//".join([self.PSC.getActivityData(o)['name'] for o in mp_data['chain']]),
+                'cuts': ", ".join([o[2] for o in mp_data['cuts']]),
             })
         keys = ['name', 'out/chain/cuts', 'outputs', 'cuts', 'chain']
         self.table_PSS_database = self.helper.update_table(self.table_PSS_database, data, keys)
@@ -259,7 +249,7 @@ class MPWidget(QtGui.QWidget):
 
     def loadPSS(self):
         item = self.table_PSS_database.currentItem()
-        for pss in self.PSS_database:
+        for pss in self.lmp.raw_data:
             if pss['name'] == str(item.text()):
                 self.PSC.load_pss(pss)
         self.signal_status_bar_message.emit("Loaded PSS: " + str(item.text()))
@@ -268,7 +258,8 @@ class MPWidget(QtGui.QWidget):
     def addPSStoDatabase(self):
         if self.PSC.pss_data['chain']:
             add = False
-            if self.PSC.pss_data['name'] not in [pss['name'] for pss in self.PSS_database]:
+            mp_name = self.PSC.pss_data['name']
+            if mp_name not in self.lmp.processes:
                 add = True
             else:
                 mgs = "Do you want to overwrite the existing PSS?"
@@ -276,27 +267,22 @@ class MPWidget(QtGui.QWidget):
                             mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
                 if reply == QtGui.QMessageBox.Yes:
                     add = True
-                    for pss in self.PSS_database:  # first remove pss that is to be replaced
-                        if pss['name'] == self.PSC.pss_data['name']:
-                            self.PSS_database.remove(pss)
+                    self.lmp.remove_mp(mp_name)  # first remove pss that is to be replaced
             if add:
-                self.PSS_database.append(self.PSC.pss_data)
+                self.lmp.add_mp([self.PSC.pss_data])
                 self.update_widget_PSS_data()
                 self.signal_status_bar_message.emit("Added PSS to working database (not saved).")
 
     def deletePSSfromDatabase(self):
         if self.PSC.pss_data['chain']:
-            to_be_deleted = self.PSC.pss_data['name']
-            self.PSS_database = [pss for pss in self.PSS_database if pss['name'] != to_be_deleted]
+            self.lmp.remove_mp([self.PSC.pss_data['name']])
             self.updateTablePSSDatabase()
-            self.signal_status_bar_message.emit(str("Deleted (from working database): " + to_be_deleted))
+            self.signal_status_bar_message.emit(str("Deleted (from working database): " + self.PSC.pss_data['name']))
 
     def delete_selected_PSS(self):
-        for item in self.table_PSS_database.selectedItems():
-            for pss in self.PSS_database:
-                if pss['name'] == item.text():
-                    self.PSS_database.remove(pss)
-                    print "Deleted from working PSS database: " + item.text()
+        processes_to_delete = [item.text() for item in self.table_PSS_database.selectedItems()]
+        self.lmp.remove_mp(processes_to_delete)
+        print "Deleted from working PSS database: " + processes_to_delete
         self.updateTablePSSDatabase()
         self.signal_status_bar_message.emit("Deleted selected items.")
 
@@ -459,14 +445,14 @@ class MPWidget(QtGui.QWidget):
         self.checkbox_output_based_scaling.setChecked(self.PSC.pss_data['output_based_scaling'])
 
     def update_FU_unit(self):
-        for pss in self.PSS_database:
-            for o in pss['outputs']:
+        for mp in self.lmp.mp_list:
+            for o in mp.outputs:
                 if str(self.combo_functional_unit.currentText()) == o[1]:
                     unit = self.PSC.getActivityData(o[0])['unit']
         self.label_FU_unit.setText(QtCore.QString(unit))
 
     def update_PP_path_comparison_table(self, data):
-        keys = ['LCA result', 'path']
+        keys = ['LCA score', 'path']
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
     # VISUALIZATION
@@ -529,32 +515,31 @@ class MPWidget(QtGui.QWidget):
         self.set_webview(template_data, "dagre_path")
 
     def get_pp_path_graph(self, path):
-        print "PATH:"
-        print path
+        print "PATH:", path
         path_data = [pd for pd in self.path_data if path == pd['path']][0]
         print path_data
 
         graph_data = []
-        for pss_data in self.PSS_database:
-            part_of_path = True if pss_data['name'] in path else False
+        for mp in self.lmp.mp_list:
+            part_of_path = True if mp.name in path else False
             if part_of_path:
-                lca_score = path_data['PSS contribution'][pss_data['name']]
-                lca_score_rel = path_data['PSS contribution relative'][pss_data['name']]
+                lca_score = path_data['process contribution'][mp.name]
+                lca_score_rel = path_data['relative process contribution'][mp.name]
                 lca_result = "{0:.3g} ({1:.3g}%)".format(lca_score, lca_score_rel*100)
 
-            for input in pss_data['cuts']:
+            for input in mp.cuts:
                 graph_data.append({
                     'source': input[2],
-                    'target': pss_data['name'],
+                    'target': mp.name,
                     'type': 'suit',
                     'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
                     'product_in': input[3],
                     'part_of_path': part_of_path,
                     # 'lca_score': '' if not part_of_path else lca_result,
                 })
-            for output in pss_data['outputs']:
+            for output in mp.outputs:
                 graph_data.append({
-                    'source': pss_data['name'],
+                    'source': mp.name,
                     'target': output[1],
                     'type': 'suit',
                     'class': 'output',
@@ -566,100 +551,10 @@ class MPWidget(QtGui.QWidget):
 
     def show_all_pathways(self):
         functional_unit = str(self.combo_functional_unit.currentText())
-        data = [{'path': p} for p in self.get_all_pathways_in_pp_graph(functional_unit)]
+        data = [{'path': p} for p in self.lmp.all_pathways(functional_unit)]
         keys = ['path']
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
-# delete/replace
-    def get_products_processes_for_functional_unit(self, functional_unit):
-        if not functional_unit:
-            return [], []
-        # get PP-Graph to be able to exclude processes that are not needed for the functional unit
-        edge_list = []
-        for d in self.get_pp_graph():
-            edge_list.append((d['source'], d['target']))
-        G = nx.DiGraph()
-        G.add_edges_from(edge_list)
-        functional_unit_ancestors = nx.ancestors(G, functional_unit)  # set
-        functional_unit_ancestors.update([functional_unit])  # add functional unit
-        # split up into products and processes
-        pss_database_products = set([mp['outputs'][0][1] for mp in self.PSS_database])  # TODO: this works only for sinlge-output mp
-        pss_database_processes = set([mp['name'] for mp in self.PSS_database])
-        ancestors_processes = [a for a in functional_unit_ancestors if a in pss_database_processes]
-        ancestors_products = [a for a in functional_unit_ancestors if a in pss_database_products]
-        return ancestors_processes, ancestors_products
-
-# delete
-    def get_product_process_dict(self, process_list=None, product_list=None):
-        # construct dict, where products are keys and meta-processes producing these products are list values
-        # if process/product lists are provided, these are used as filters
-        # otherwise all processes/products are considered
-        product_processes = {}
-        for mp in self.PSS_database:
-            output = mp['outputs'][0][1]  # assuming all processes are single-output!!
-            name = mp['name']
-            if output in product_list or not product_list:
-                if name in process_list or not process_list:
-                    product_processes[output] = product_processes.get(output, [])
-                    product_processes[output].append(name)
-        return product_processes
-
-# replace
-    def get_all_pathways_in_pp_graph(self, functional_unit):
-        ancestors_processes, ancestors_products = self.get_products_processes_for_functional_unit(functional_unit)
-        product_processes = self.get_product_process_dict(process_list=ancestors_processes, product_list=ancestors_products)
-
-        # get all combinations of meta-processes from this dict
-        unique_pathways = list(itertools.product(*product_processes.values()))
-
-        # console output
-        product_list = product_processes.keys()
-        process_list = [item for sublist in product_processes.values() for item in sublist]
-        print "\nAnalyzing all possibilities to produce: " + functional_unit
-        print "Meta-processes in the supply chain: %s" % len(process_list)
-        print process_list
-        print "Products in the supply chain: %s" % len(product_list)
-        print product_list
-        print "Unique pathways: %s" % len(unique_pathways)
-        for i, p in enumerate(unique_pathways):
-            print i, p
-
-        # # save to pickle
-        # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp_nx_graph.pickle")
-        # with open(filename, 'w') as output:
-        #     pickle.dump(G, output)
-
-        return unique_pathways
-
-    def get_all_pathways_in_pp_graph_old(self, functional_unit=None):
-        functional_unit = str(self.combo_functional_unit.currentText())
-        print "\nAnalyzing all possibilities to produce: " + functional_unit
-        # get subgraphs (i.e. with a square matrix)
-        edge_list = []
-        for d in self.get_pp_graph():
-            edge_list.append((d['source'], d['target']))
-        G = nx.DiGraph()
-        G.add_edges_from(edge_list)
-        Gr = G.reverse(copy=True)
-        upstream_heads = [n for n, d in Gr.out_degree().items() if d == 0]  # all possible starting points
-        print "Starting points: " + str(upstream_heads)
-        unique_pathways = []
-        for start in upstream_heads:
-            for p in nx.all_simple_paths(G, start, functional_unit):
-                unique_pathways.append(p)
-
-        print "Unique pathways:"
-        for i, p in enumerate(unique_pathways):
-            print i, p
-
-        # save to pickle (TODO just temporary, remove again)
-        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp_nx_graph.pickle")
-        with open(filename, 'w') as output:
-            pickle.dump(G, output)
-
-        return unique_pathways
-
-# replace
     def get_meta_process_lcas(self, process_list=None, method=None):
         """
         returns dict where: keys = PSS name, value = LCA score
@@ -667,133 +562,36 @@ class MPWidget(QtGui.QWidget):
         if not method:
             print "Using default LCIA method: (u'IPCC 2007', u'climate change', u'GWP 100a')"
             method = (u'IPCC 2007', u'climate change', u'GWP 100a')
-        mapping_lca = {}
-        for pss_data in self.PSS_database:
-            if pss_data['name'] in process_list or not process_list:
-                pss = MetaProcess(**pss_data)
-                score = pss.lca(method, factorize=False)
-                mapping_lca.update({
-                    pss_data['name']: score,
-                })
+        mapping_lca = self.lmp.lca_processes(method, process_names=process_list)
         print "\nLCA results:"
         # print mapping_lca
         for k, v in mapping_lca.items():
             print "{0}: {1:.2g}".format(k, v)
         return mapping_lca
 
-# delete
+# TODO: check if demand propagates all the way through mp.lca
+    # TODO: get method from combobox
     def compare_pathway_lcas(self):
-        functional_unit = str(self.combo_functional_unit.currentText())
-        # unique_paths = self.get_all_pathways_in_pp_graph(functional_unit)
-        # unique_paths =
-        mp_lca_scores = self.get_meta_process_lcas()
-        data = self.get_pathway_lcas()
-        self.update_PP_path_comparison_table(data)
-
-# delete
-    def get_pathway_lcas(self):
-        functional_unit = str(self.combo_functional_unit.currentText())
-        unique_paths = self.get_all_pathways_in_pp_graph(functional_unit)
-
-
-        # calculate LCA for all relevant meta-processes
-        path_lca_scores = self.get_meta_process_lcas()
-
-# replace
-    def get_pathway_lcas_old(self):
-        unique_paths = self.get_all_pathways_in_pp_graph()
-        functional_unit = str(self.combo_functional_unit.currentText())
-        # TODO: would it be better if this came later, just to save time if there is an error later on?
-        path_lca_scores = self.get_meta_process_lcas()
-
-        path_data = []  # will contain dictionaries with all path results (matrix, demand, supply, LCA results)
-        pss_names = [pss_data['name'] for pss_data in self.PSS_database]
-        for path in unique_paths:
-            # TODO: this works only if pss names and products are different!
-            processes = [node for node in path if node in pss_names]
-            products = [node for node in path if node not in pss_names]
-            mapping_processes = dict(*[zip(sorted(processes), itertools.count())])
-            mapping_products = dict(*[zip(sorted(products), itertools.count())])
-
-            print "\nProcesses and products (in path):"
-            print processes
-            print products
-            # build matrix
-            M = len(mapping_processes)
-            matrix = np.zeros((M, M))
-            for process in processes:
-                pss_data = [pss for pss in self.PSS_database if pss['name'] == process][0]  # there should only be unique names
-                inputs = [c for c in pss_data['cuts'] if c[2] in products]
-                outputs = [o for o in pss_data['outputs'] if o[1] in products]
-                for i in inputs:
-                    matrix[
-                        mapping_products[i[2]],
-                        mapping_processes[process]
-                    ] -= i[3]
-                for o in outputs:
-                    matrix[
-                        mapping_products[o[1]],
-                        mapping_processes[process]
-                    ] += o[2]
-            print "Matrix:"
-            print matrix
-            # demand vector
-            demand = np.zeros((M,))
-            if self.line_edit_FU and self.helper.is_number(self.line_edit_FU.text()):
-                demand[mapping_products[functional_unit]] = float(self.line_edit_FU.text())
-            else:
-                demand[mapping_products[functional_unit]] = 1.0
-                print "WARNING: Functional unit must be a number. Calculating for functional unit of '1.0'."
-            print "Demand vector:"
-            print demand
-            # solve matrix (i.e. get scaling vector)
-            supply = np.linalg.solve(matrix, demand).tolist()
-            print "Supply vector:"
-            print supply
-            # multiply scaling vector with LCA results for each PSS
-            process_contribution = {}
-            path_lca_score = 0.0
-            for process in processes:
-                process_score = supply[mapping_processes[process]] * path_lca_scores[process]
-                process_contribution.update({process: process_score})
-                path_lca_score += process_score
-            process_contribution_relative = {}
-            for process in processes:
-                process_score = supply[mapping_processes[process]] * path_lca_scores[process]
-                process_contribution_relative.update({process: process_score/path_lca_score})
-            print "LCA score: "
-            print path_lca_score
-            # store data for this path
-            path_data.append({
-                'path': path,
-                'matrix': matrix,
-                'demand': demand,
-                'scaling': supply,
-                'PSS contribution': process_contribution,
-                'PSS contribution relative': process_contribution_relative,
-                'LCA result': path_lca_score,
-            })
-
-        print "\nPath data"
-        pprint.pprint(path_data)
-        self.path_data = path_data
-        return path_data
+        method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+        demand = {str(self.combo_functional_unit.currentText()): 1.0}
+        self.path_data = self.lmp.lca_alternatives(method, demand)
+        self.update_PP_path_comparison_table(self.path_data)
 
     def get_pp_graph(self):
         graph_data = []
-        for pss_data in self.PSS_database:
-            for input in pss_data['cuts']:
+        for mp in self.lmp.mp_list:
+            for input in mp.cuts:
                 graph_data.append({
                     'source': input[2],
-                    'target': pss_data['name'],
+                    'target': mp.name,
                     'type': 'suit',
                     'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
                     'product_in': input[3],
                     # 'lca_score': "0.555",
                 })
-            for output in pss_data['outputs']:
+            for output in mp.outputs:
                 graph_data.append({
-                    'source': pss_data['name'],
+                    'source': mp.name,
                     'target': output[1],
                     'type': 'suit',
                     'class': 'output',
@@ -838,36 +636,10 @@ class MPWidget(QtGui.QWidget):
         self.signal_activity_key.emit(self.table_PSS_chain.currentItem())
 
     def pp_graph(self):
-        processes, products, matrix = self.get_process_products_as_array()
+        self.save_pp_matrix()
         self.combo_functional_unit.clear()
-        for product in products:
+        for product in self.lmp.products:
             self.combo_functional_unit.addItem(product)
-
-        print "\nPP-MATRIX:"
-        print "PROCESSES:"
-        print processes
-        print "PRODUCTS"
-        print products
-        print "MATRIX"
-        print matrix
-
-        # export pp-matrix data to pickle file
-        data = {
-            'processes': processes,
-            'products': products,
-            'matrix': matrix,
-        }
-        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.pickle")
-        with open(filename, 'w') as output:
-            pickle.dump(data, output)
-        # Excel export
-        try:
-            self.export_pp_matrix_to_excel(processes, products, matrix)
-        except:
-            print "An error has occured saving the PP-Matrix as .xlsx file."
-        # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.json")
-        # with open(filename, 'w') as outfile:
-        #     json.dump(data, outfile, indent=2)
 
         if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
             template_data = {
@@ -885,6 +657,36 @@ class MPWidget(QtGui.QWidget):
                 'data': json.dumps(self.get_pp_tree(), indent=1)
             }
         self.set_webview(template_data, self.current_d3_layout)
+
+    def save_pp_matrix(self):
+        matrix, processes, products = self.lmp.get_pp_matrix()  # self.get_process_products_as_array()
+
+        print "\nPP-MATRIX:"
+        print "PROCESSES:"
+        print processes
+        print "PRODUCTS"
+        print products
+        print "MATRIX"
+        print matrix
+
+        # export pp-matrix data to pickle file
+        # order processes/products by number in dictionary
+        data = {
+            'processes': [x[0] for x in sorted(processes.items(), key=operator.itemgetter(1))],
+            'products': [x[0] for x in sorted(products.items(), key=operator.itemgetter(1))],
+            'matrix': matrix,
+        }
+        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.pickle")
+        with open(filename, 'w') as output:
+            pickle.dump(data, output)
+        # Excel export
+        try:
+            self.export_pp_matrix_to_excel(processes, products, matrix)
+        except:
+            print "An error has occured saving the PP-Matrix as .xlsx file."
+        # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.json")
+        # with open(filename, 'w') as outfile:
+        #     json.dump(data, outfile, indent=2)
 
     def export_pp_matrix_to_excel(self, processes, products, matrix, filename='pp-matrix.xlsx'):
         filename = os.path.join(os.getcwd(), "MetaProcessDatabases", filename)
@@ -912,27 +714,3 @@ class MPWidget(QtGui.QWidget):
             ws.write_row(i+1, 1, matrix[i, :], format_border)
         workbook.close()
 
-# replace
-    def get_process_products_as_array(self):
-
-        def get_processes(data):
-            return sorted([x.name for x in data])
-
-        def get_products(data):
-            return sorted(set(itertools.chain(*[[x[0] for x in y.pp
-                ] for y in data])))
-
-        PSS_list = []
-        for pss in self.PSS_database:
-            PSS_list.append(MetaProcess(**pss))
-        data = PSS_list
-        # Assume that process names are unique
-        processes = get_processes(data)
-        products = get_products(data)
-        matrix = np.zeros((len(products), len(processes)))
-        proc_mapping = dict(zip(processes, itertools.count()))
-        prod_mapping = dict(zip(products, itertools.count()))
-        for sp in data:
-            for product, amount in sp.pp:
-                matrix[prod_mapping[product], proc_mapping[sp.name]] = amount
-        return processes, products, matrix

@@ -23,6 +23,7 @@ class LinkedMetaProcessSystem(object):
         self.map_processes_number = dict()
         self.map_products_number = dict()
         self.name_map = {}  # {activity key: output name}
+        self.raw_data = []
         if mp_list:
             self.update(mp_list)
 
@@ -43,6 +44,7 @@ class LinkedMetaProcessSystem(object):
         self.map_processes_number = dict(zip(self.processes, itertools.count()))
         self.map_products_number = dict(zip(self.products, itertools.count()))
         self.update_name_map()
+        self.raw_data = [mp.pss_data for mp in self.mp_list]
 
     def update_name_map(self):
         for mp in self.mp_list:
@@ -66,7 +68,7 @@ class LinkedMetaProcessSystem(object):
 
     # DATABASE METHODS (FILE I/O, LMPS MODIFICATION)
 
-    def load_from_file(self, filepath):
+    def load_from_file(self, filepath, append=False):
         """
         Load meta-process database, make a MetaProcess object from each meta-process and
         add them to the linked meta-process system.
@@ -75,10 +77,14 @@ class LinkedMetaProcessSystem(object):
         """
         try:
             with open(filepath, 'r') as infile:
-                mp_database = pickle.load(infile)
+                raw_data = pickle.load(infile)
         except:
-            raise IOError(u'Could not load file')
-        self.update([MetaProcess(**mp) for mp in mp_database])
+            raise IOError(u'Could not load file.')
+        mp_list = [MetaProcess(**mp) for mp in raw_data]
+        if append:
+            self.add_mp(mp_list, rename=True)
+        else:
+            self.update(mp_list)
 
     def save_to_file(self, filepath, mp_list=None):
         """
@@ -88,13 +94,10 @@ class LinkedMetaProcessSystem(object):
         :param mp_list:
         :return:
         """
-        data = []
-        for mp in self.get_processes(mp_list):
-            data.append(mp.pss_data)
         with open(filepath, 'w') as outfile:
-            pickle.dump(data, outfile)
+            pickle.dump(self.raw_data, outfile)
 
-    def add_mp(self, mp_list):
+    def add_mp(self, mp_list, rename=False):
         """
         Add meta-processes to the linked meta-process system.
         mp_list can contain meta-processes or the original data format used to initialize meta-processes.
@@ -106,6 +109,10 @@ class LinkedMetaProcessSystem(object):
             if not isinstance(mp, MetaProcess):
                 mp = MetaProcess(**mp)
             new_mp_list.append(mp)
+        if rename:
+            for mp in new_mp_list:
+                if mp.name in self.processes:
+                    mp.name += '__ADDED'
         self.update(self.mp_list + new_mp_list)
 
     def remove_mp(self, mp_list):
@@ -322,7 +329,7 @@ class LinkedMetaProcessSystem(object):
             process_contribution_relative.update({process: amount*lca_scores[process]/path_lca_score})
 
         output = {
-            'meta-processes': process_names,
+            'path': process_names,
             'demand': demand,
             'scaling vector': scaling_dict,
             'LCIA method': method,
