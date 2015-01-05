@@ -6,6 +6,7 @@ sys.setdefaultencoding("utf-8")
 import os
 from PyQt4 import QtCore, QtGui, QtWebKit
 from utils import *
+import settings
 from mpwidget import MPWidget
 import time
 from ast import literal_eval
@@ -22,11 +23,6 @@ class MainWindow(QtGui.QMainWindow):
         self.styles = Styles()
         self.helper = HelperMethods()
         self.lcaData = BrowserStandardTasks()
-
-        # Activity Editor settings
-        self.read_only_databases = ["ecoinvent 2.2", "ecoinvent 2.2 multioutput", "ecoinvent 3.01 default",
-                                    "ecoinvent 3.01 cutoff", "ecoinvent 3.01 consequential", "ecoinvent 3.1 default",
-                                    "ecoinvent 3.1 cutoff", "ecoinvent 3.1 consequential", "biosphere", "biosphere3"]
 
         # set up central widget
         self.widget = QtGui.QWidget(self)
@@ -299,7 +295,7 @@ class MainWindow(QtGui.QMainWindow):
             self.table_AE_biosphere = QtGui.QTableWidget()
             # Dropdown
             self.combo_databases = QtGui.QComboBox(self)
-            for name in [db['name'] for db in self.lcaData.getDatabases() if db['name'] not in self.read_only_databases]:
+            for name in [db['name'] for db in self.lcaData.getDatabases() if db['name'] not in settings.read_only_databases]:
                 self.combo_databases.addItem(name)
             # HL
             self.HL_AE_actions = QtGui.QHBoxLayout()
@@ -357,7 +353,7 @@ class MainWindow(QtGui.QMainWindow):
             self.MP_Widget = MPWidget()
             self.tab_widget_LEFT.addTab(self.MP_Widget.MPdataWidget, "MP")
             self.tab_widget_LEFT.addTab(self.MP_Widget.table_MP_database, "MP database")
-            self.tab_widget_LEFT.addTab(self.MP_Widget.PP_analyzer, "PP LCA")
+            self.tab_widget_LEFT.addTab(self.MP_Widget.PP_analyzer, "MP LCA")
             self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_buttons)
             self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_Database_buttons)
             self.tab_widget_RIGHT.addTab(self.MP_Widget.webview, "Graph")
@@ -566,12 +562,11 @@ class MainWindow(QtGui.QMainWindow):
             })
         self.table_top_emissions = self.helper.update_table(
             self.table_top_emissions, data, keys)
-        print "was in update_LCA_results"
 
     def goto_LCA_results(self, item):
         print "DOUBLECLICK on: ", item.text()
         if item.uuid_:
-            print "Loading LCA Results:"
+            print "Loading LCA Results for:", str(item.text())
             self.update_LCA_results(item.uuid_)
         else:
             print "Error: Item does not have a UUID"
@@ -639,7 +634,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def delete_activity(self):
         key = self.table_multipurpose.currentItem().activity_or_database_key
-        if key[0] not in self.read_only_databases:
+        if key[0] not in settings.read_only_databases:
             mgs = "Delete this activity?"
             reply = QtGui.QMessageBox.question(self, 'Message',
                         mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
@@ -707,7 +702,7 @@ def main():
     app = QtGui.QApplication(sys.argv)
     mw = MainWindow()
 
-    # auto-start of certain functionality
+    # AUTO-START CUSTOMIZATION
     # mw.setUpMPEditor()
     mw.lcaData.loadDatabase('ecoinvent 2.2')
     mw.load_new_current_activity()

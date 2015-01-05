@@ -468,7 +468,7 @@ class MPWidget(QtGui.QWidget):
             for o in mp.outputs:
                 if str(self.combo_functional_unit.currentText()) == o[1]:
                     unit = self.MPC.getActivityData(o[0])['unit']
-        self.label_FU_unit.setText(QtCore.QString(unit))
+                    self.label_FU_unit.setText(QtCore.QString(unit))  # TODO: check if indentation solved the error message; before at level of first "for"
 
     def update_PP_comparison_table(self, data, keys):
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
