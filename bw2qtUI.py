@@ -13,6 +13,10 @@ import time
 from ast import literal_eval
 import uuid
 import pprint
+import multiprocessing
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+import matplotlib.pyplot as plt
 
 class MainWindow(QtGui.QMainWindow):
     signal_add_to_chain = QtCore.pyqtSignal(MyQTableWidgetItem)
@@ -202,6 +206,7 @@ class MainWindow(QtGui.QMainWindow):
             # Buttons
             self.button_clear_lcia_methods = QtGui.QPushButton("Clear")
             self.button_calc_lcia = QtGui.QPushButton("Calculate")
+            self.button_calc_monte_carlo = QtGui.QPushButton("Monte Carlo")
             # Dropdown
             self.combo_lcia_method_part0 = QtGui.QComboBox(self)
             self.combo_lcia_method_part1 = QtGui.QComboBox(self)
@@ -211,6 +216,18 @@ class MainWindow(QtGui.QMainWindow):
 
             # Tables
             self.table_previous_calcs = QtGui.QTableWidget()
+
+            # MATPLOTLIB FIGURE Monte Carlo
+            self.matplotlib_figure_mc = QtGui.QWidget()
+            self.figure_mc = plt.figure()
+            self.canvas_mc = FigureCanvas(self.figure_mc)
+            self.toolbar_mc = NavigationToolbar(self.canvas_mc, self.matplotlib_figure_mc)
+            # set the layout
+            plt_layout = QtGui.QVBoxLayout()
+            plt_layout.addWidget(self.toolbar_mc)
+            plt_layout.addWidget(self.canvas_mc)
+            self.matplotlib_figure_mc.setLayout(plt_layout)
+
             # HL
             self.HL_functional_unit = QtGui.QHBoxLayout()
             self.HL_functional_unit.setAlignment(QtCore.Qt.AlignLeft)
@@ -226,6 +243,7 @@ class MainWindow(QtGui.QMainWindow):
             self.HL_calculation = QtGui.QHBoxLayout()
             self.HL_calculation.setAlignment(QtCore.Qt.AlignLeft)
             self.HL_calculation.addWidget(self.button_calc_lcia)
+            self.HL_calculation.addWidget(self.button_calc_monte_carlo)
 
             # VL
             self.VL_LCIA_widget = QtGui.QVBoxLayout()
@@ -240,14 +258,18 @@ class MainWindow(QtGui.QMainWindow):
             self.VL_LCIA_widget.addLayout(self.HL_calculation)
             self.VL_LCIA_widget.addWidget(label_previous_calcs)
             self.VL_LCIA_widget.addWidget(self.table_previous_calcs)
+            self.VL_LCIA_widget.addWidget(self.matplotlib_figure_mc)
             self.widget_LCIA.setLayout(self.VL_LCIA_widget)
             # Connections
             self.button_calc_lcia.clicked.connect(self.calculate_lcia)
+            self.button_calc_monte_carlo.clicked.connect(self.calculate_monte_carlo)
             self.table_previous_calcs.itemDoubleClicked.connect(self.goto_LCA_results)
             self.combo_lcia_method_part0.currentIndexChanged.connect(self.update_lcia_method)
             self.combo_lcia_method_part1.currentIndexChanged.connect(self.update_lcia_method)
             self.combo_lcia_method_part2.currentIndexChanged.connect(self.update_lcia_method)
             self.button_clear_lcia_methods.clicked.connect(lambda: self.update_lcia_method(selection=('','','')))
+            # CPU count
+            self.cpu_count = multiprocessing.cpu_count()
 
     def setUpLCAResults(self):
         if not hasattr(self, 'widget_LCIA_Results'):
@@ -590,19 +612,34 @@ be distributed to others without the consent of the author."""
                 combo.setCurrentIndex(1)
             combo.blockSignals(False)
 
-    def calculate_lcia(self):
+    def get_lca_inputs(self):
         if not self.lcaData.currentActivity:
             self.statusBar().showMessage("Need to load an activity first.")
         elif not self.lcaData.LCIA_method:
             self.statusBar().showMessage("Need to select an LCIA method first.")
         else:
-            tic = time.clock()
-            self.setUpLCAResults()
             if self.line_edit_FU and self.helper.is_number(self.line_edit_FU.text()):
                 amount = float(self.line_edit_FU.text())
             else:
                 amount = 1.0
-            uuid_ = self.lcaData.lcia(amount=amount, method=self.lcaData.LCIA_method)
+            input = {
+                'amount': amount,
+                'method': self.lcaData.LCIA_method,
+                'complete': True,
+            }
+            return input
+
+    def calculate_lcia(self, monte_carlo=False):
+        input = self.get_lca_inputs()
+        if input.get('complete', False):
+            self.setUpLCAResults()
+            tic = time.clock()
+            uuid_ = self.lcaData.lcia(amount=input['amount'], method=input['method'])
+            # Monte Carlo LCA
+            if monte_carlo:
+                mc_data = self.lcaData.mc_lcia(key=None, amount=input['amount'], method=input['method'],
+                                 iterations=500, cpu_count=self.cpu_count)
+                self.plot_figure_mc(mc_data)
 
             # Update Table Previous LCA calculations
             keys = ['product', 'name', 'location', 'database', 'functional unit', 'unit', 'method']
@@ -615,6 +652,40 @@ be distributed to others without the consent of the author."""
             self.update_LCA_results(uuid_)
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_LCIA_Results))
             self.statusBar().showMessage("Calculated LCIA score in {:.2f} seconds.".format(time.clock()-tic))
+
+    def calculate_monte_carlo(self):
+        self.calculate_lcia(monte_carlo=True)
+
+    def plot_figure_mc(self, mc):
+        ''' plot matplotlib Monte Carlo figure '''
+        # get matplotlib figure data
+        hist = np.array(mc['histogram'])
+        smoothed = np.array(mc['smoothed'])
+        values = hist[:, 0]
+        bins = hist[:, 1]
+        sm_x = smoothed[:, 0]
+        sm_y = smoothed[:, 1]
+        median = mc['statistics']['median']
+        mean = mc['statistics']['mean']
+        lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
+
+        # plot
+        self.figure_mc.clf()
+        ax = self.figure_mc.add_subplot(111)
+        plt.rcParams.update({'font.size': 10})
+        ax.plot(values, bins)
+        ax.plot(sm_x, sm_y)
+        ax.vlines(lconfi, 0 , sm_y[0],
+                  label='lower 95%: {:.3g}'.format(lconfi), color='red', linewidth=2.0)
+        ax.vlines(upconfi, 0 , sm_y[-1],
+                  label='upper 95%: {:.3g}'.format(upconfi), color='red', linewidth=2.0)
+        ax.vlines(median, 0 , sm_y[self.helper.find_nearest(sm_x, median)],
+                  label='median: {:.3g}'.format(median), color='magenta', linewidth=2.0)
+        ax.vlines(mean, 0 , sm_y[self.helper.find_nearest(sm_x, mean)],
+                  label='mean: {:.3g}'.format(mean), color='blue', linewidth=2.0)
+        plt.xlabel('LCA scores'), plt.ylabel('count')
+        plt.legend(loc='upper right', prop={'size':10})
+        self.canvas_mc.draw()
 
     def update_LCA_results(self, uuid_):
         lcia_data = self.lcaData.LCIA_calculations[uuid_]

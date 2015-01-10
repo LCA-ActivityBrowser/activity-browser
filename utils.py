@@ -4,6 +4,8 @@
 from PyQt4 import QtGui, QtCore
 import brightway2 as bw2
 from bw2analyzer import ContributionAnalysis
+from bw2analyzer import SerializedLCAReport
+import numpy as np
 from bw2data.utils import recursive_str_to_unicode
 import uuid
 from copy import deepcopy
@@ -84,6 +86,10 @@ class HelperMethods(object):
         except ValueError:
             return False
 
+    def find_nearest(self, array, value):
+        index = (np.abs(array-value)).argmin()
+        return index
+
 class Styles(object):
     def __init__(self):
         # BIG FONT
@@ -106,6 +112,7 @@ class BrowserStandardTasks(object):
         self.database = None
         self.database_version = None
         self.LCIA_calculations = {}  # used to store LCIA calculations
+        self.mc_LCIA_calculations = {}
         self.LCIA_method = None
 
     def updateEcoinventVersion(self, key=None):
@@ -306,6 +313,14 @@ class BrowserStandardTasks(object):
         }
         self.LCIA_calculations.update({uuid_: lcia_data})
         return uuid_
+
+    def mc_lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a'),
+                iterations=500, cpu_count=1):
+        if not key:
+            key = self.currentActivity
+        report = SerializedLCAReport({key: amount}, method, iterations, cpu_count)
+        return report.get_monte_carlo()
+
 
 # CREATE AND MODIFY ACTIVITIES
 
