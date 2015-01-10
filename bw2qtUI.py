@@ -297,7 +297,8 @@ class MainWindow(QtGui.QMainWindow):
             self.label_ae_tech_in = QtGui.QLabel("Technosphere Inputs")
             self.label_ae_bio_in = QtGui.QLabel("Biosphere Inputs")
             # Buttons
-            self.button_save = QtGui.QPushButton("Save Activity")
+            self.button_save = QtGui.QPushButton("Save New Activity")
+            self.button_replace = QtGui.QPushButton("Replace Existing")
             # TABLES
             self.table_AE_activity = QtGui.QTableWidget()
             self.table_AE_technosphere = QtGui.QTableWidget()
@@ -311,6 +312,7 @@ class MainWindow(QtGui.QMainWindow):
             self.HL_AE_actions.addWidget(self.label_ae_database)
             self.HL_AE_actions.addWidget(self.combo_databases)
             self.HL_AE_actions.addWidget(self.button_save)
+            self.HL_AE_actions.addWidget(self.button_replace)
             self.HL_AE_actions.setAlignment(QtCore.Qt.AlignLeft)
             # VL
             self.VL_AE = QtGui.QVBoxLayout()
@@ -331,6 +333,7 @@ class MainWindow(QtGui.QMainWindow):
             self.table_AE_technosphere.itemChanged.connect(self.change_values_technosphere)
             self.table_AE_biosphere.itemChanged.connect(self.change_values_biosphere)
             self.button_save.clicked.connect(self.save_edited_activity)
+            self.button_replace.clicked.connect(self.replace_edited_activity)
             # CONTEXT MENUS
             # Technosphere Inputs
             self.action_add_technosphere_exchange = QtGui.QAction("--> edited activity", None)
@@ -344,6 +347,11 @@ class MainWindow(QtGui.QMainWindow):
             self.action_add_multipurpose_exchange = QtGui.QAction("--> edited activity", None)
             self.action_add_multipurpose_exchange.triggered.connect(self.add_multipurpose_exchange)
             self.table_multipurpose.addAction(self.action_add_multipurpose_exchange)
+            # Biosphere Table
+            self.table_inputs_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+            self.action_add_biosphere_exchange = QtGui.QAction("--> edited activity", None)
+            self.action_add_biosphere_exchange.triggered.connect(self.add_biosphere_exchange)
+            self.table_inputs_biosphere.addAction(self.action_add_biosphere_exchange)
             # AE Technosphere Table
             self.table_AE_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
             self.action_remove_exchange_tech = QtGui.QAction("delete", None)
@@ -671,6 +679,10 @@ be distributed to others without the consent of the author."""
         self.lcaData.add_exchange(self.table_multipurpose.currentItem().activity_or_database_key)
         self.update_AE_tables()
 
+    def add_biosphere_exchange(self):
+        self.lcaData.add_exchange(self.table_inputs_biosphere.currentItem().activity_or_database_key)
+        self.update_AE_tables()
+
     def remove_exchange_from_technosphere(self):
         self.lcaData.remove_exchange(self.table_AE_technosphere.currentItem().activity_or_database_key)
         self.update_AE_tables()
@@ -698,14 +710,16 @@ be distributed to others without the consent of the author."""
         self.lcaData.change_exchange_value(item.activity_or_database_key, str(item.text()), "amount")
         self.update_AE_tables()
 
-    def save_edited_activity(self):
-        values = self.lcaData.editActivity_values
-        db_name = str(self.combo_databases.currentText())
-        key = (unicode(db_name), unicode(uuid.uuid4().urn[9:]))
+    def save_edited_activity(self, overwrite=False):
+        if overwrite:
+            key = self.lcaData.editActivity_key
+        else:
+            key = (unicode(str(self.combo_databases.currentText())), unicode(uuid.uuid4().urn[9:]))
         if str(self.table_AE_activity.item(0, 0).text()):
             name = str(self.table_AE_activity.item(0, 0).text())  # ref product
         else:
             name = str(self.table_AE_activity.item(0, 1).text())  # activity name
+        values = self.lcaData.editActivity_values
         prod_exc_data = {
             "name": name,
             "amount": float(self.table_AE_activity.item(0, 2).text()),
@@ -718,7 +732,17 @@ be distributed to others without the consent of the author."""
         pprint.pprint(values)
         print "Production exchange: " + str(prod_exc_data)
         self.lcaData.save_activity_to_database(key, values, prod_exc_data)
-        self.statusBar().showMessage("Saved activity. Key: " + str(key))
+        if overwrite:
+            self.statusBar().showMessage("Replaced existing activity.")
+        else:
+            self.statusBar().showMessage("Saved as new activity.")
+
+    def replace_edited_activity(self):
+        key = self.lcaData.editActivity_key
+        if key[0] in settings.read_only_databases:
+            self.statusBar().showMessage('Cannot save to protected database "'+str(key[0])+'". See settings file.')
+        else:
+            self.save_edited_activity(overwrite=True)
 
     def delete_activity(self):
         key = self.table_multipurpose.currentItem().activity_or_database_key

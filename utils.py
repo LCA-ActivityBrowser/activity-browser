@@ -6,6 +6,7 @@ import brightway2 as bw2
 from bw2analyzer import ContributionAnalysis
 from bw2data.utils import recursive_str_to_unicode
 import uuid
+from copy import deepcopy
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -126,12 +127,12 @@ class BrowserStandardTasks(object):
             print "Need to load a database first"
         self.record_history()
         if key:
-            print "activity requested:", bw2.Database(key[0]).load()[key]['name']  # self.database[key]["name"]
+            print "activity requested:", bw2.Database(key[0]).load()[key].get('name', '')  # self.database[key]["name"]
         else:
             print "activity requested:", key
         if key is None or key == "":
             key = self.db.random()
-            print "new random activity key: ", self.database[key]["name"]
+            print "new random activity key: ", self.database[key].get('name', '')
         self.currentActivity = key
         self.updateEcoinventVersion()
 
@@ -164,12 +165,12 @@ class BrowserStandardTasks(object):
             ds = bw2.Database(key[0]).load()[key]
         try:
             #  amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
-            amount = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
+            amount = [exc.get('amount', '') for exc in ds.get('exchanges', []) if exc.get('type', None) == "production"][0]
         except IndexError:
             # print "Amount could not be determined. Perhaps this is a multi-output activity."
             amount = 0
         obj = {
-            'name': ds['name'],
+            'name': ds.get('name', ''),
             'product': ds.get('reference product', ''),  # only in v3
             'location': ds.get('location', 'unknown'),
             'amount': amount,
@@ -184,21 +185,21 @@ class BrowserStandardTasks(object):
         if not exchanges:
             if not key:
                 key = self.currentActivity
-            exchanges = bw2.Database(key[0]).load()[key]["exchanges"]
+            exchanges = bw2.Database(key[0]).load()[key].get("exchanges", [])
         if not type:
             type = "technosphere"
         objs = []
         for exc in exchanges:
             if exc['type'] == type:
-                ds = bw2.Database(exc['input'][0]).load()[exc['input']]
+                ds = bw2.Database(exc.get('input', None)[0]).load()[exc.get('input', None)]
                 objs.append({
-                    'name': ds['name'],
+                    'name': ds.get('name', ''),
                     'product': ds.get('reference product', ''),  # nur in v3
                     'location': ds.get('location', 'unknown'),
                     'amount': exc['amount'],
                     'unit': ds.get('unit', 'unknown'),
-                    'database': exc['input'][0],
-                    'key': exc['input'],
+                    'database': exc.get('input', 'unknown')[0],
+                    'key': exc.get('input', 'unknown'),
                     'key_type': 'activity',
                 })
         objs.sort(key=lambda x: x['name'])
@@ -223,16 +224,16 @@ class BrowserStandardTasks(object):
                     if activity == exc['input']:
                         if self.database_version == 2:
                             # unit = self.database[self.currentActivity]['unit']
-                            unit = bw2.Database(self.currentActivity[0]).load()[self.currentActivity]['unit']
+                            unit = bw2.Database(self.currentActivity[0]).load()[self.currentActivity].get('unit', 'unknown')
                         else:
                             unit = exc.get('unit', 'unknown')
                         excs.append({
                             'input': k,
-                            'amount': exc['amount'],
+                            'amount': exc.get('amount', 'unknown'),
                             'key': k,
                             'key_type': 'activity',
-                            'name': v['name'],
-                            'product': v.get('reference product',''),  # exc.get('name', 'unknown'),
+                            'name': v.get('name', ''),
+                            'product': v.get('reference product', ''),  # exc.get('name', 'unknown'),
                             'unit': unit,  # v3: exc.get('unit', 'unknown')
                             'database': k[0],
                             'location': v.get('location', 'unknown')  # self.database[k]['location']
@@ -315,11 +316,16 @@ class BrowserStandardTasks(object):
 # CREATE AND MODIFY ACTIVITIES
 
     def set_edit_activity(self, key):
+        """
+        Makes a copy of the original activity using deepcopy.
+        :param key:
+        :return:
+        """
         self.editActivity_key = key
-        self.editActivity_values = bw2.Database(key[0]).load()[key]
+        self.editActivity_values = deepcopy(bw2.Database(key[0]).load()[key])
 
     def add_exchange(self, key):
-        ds = bw2.Database(key[0]).load()[key]
+        ds = deepcopy(bw2.Database(key[0]).load()[key])
         exchange = {
             'input': key,
             'name': ds.get('reference product', '') or ds.get('name', ''),
