@@ -22,12 +22,20 @@ class LinkedMetaProcessSystem(object):
         self.map_name_mp = dict()
         self.map_processes_number = dict()
         self.map_products_number = dict()
+        self.map_number_processes = dict()
+        self.map_number_products = dict()
         self.name_map = {}  # {activity key: output name}
         self.raw_data = []
         if mp_list:
             self.update(mp_list)
 
     def update(self, mp_list):
+        """
+        Updates the linked meta-process system every time processes
+        are added, modified, or deleted.
+        :param mp_list:
+        :return:
+        """
         names = set()
         for mp in mp_list:
             try:
@@ -43,10 +51,15 @@ class LinkedMetaProcessSystem(object):
         self.map_name_mp = dict([(mp.name, mp) for mp in self.mp_list])
         self.map_processes_number = dict(zip(self.processes, itertools.count()))
         self.map_products_number = dict(zip(self.products, itertools.count()))
+        self.map_number_processes = {v: k for k, v in self.map_processes_number.items()}
+        self.map_number_products = {v: k for k, v in self.map_products_number.items()}
         self.update_name_map()
         self.raw_data = [mp.mp_data for mp in self.mp_list]
 
     def update_name_map(self):
+        """
+        Updates the name map, which maps output or cut names to activity keys.
+        """
         for mp in self.mp_list:
             for output in mp.outputs:
                 self.name_map[output[0]] = self.name_map.get(output[0], set())
@@ -162,6 +175,12 @@ class LinkedMetaProcessSystem(object):
         """
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
             ] for y in self.get_processes(mp_list)])))
+
+    def get_output_names(self, mp_list=None):
+        return sorted(list(set([name for mp in self.get_processes(mp_list) for name in mp.output_names])))
+
+    def get_cut_names(self, mp_list=None):
+        return sorted(list(set([name for mp in self.get_processes(mp_list) for name in mp.cut_names])))
 
     def product_process_dict(self, mp_list=None, process_names=None, product_names=None):
         """

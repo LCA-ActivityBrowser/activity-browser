@@ -41,6 +41,9 @@ class MetaProcess(object):
             self.get_supply_vector(self.chain, self.edges, self.scaling_activities, self.outputs)
         self.get_edge_lists()
         self.pad_cuts()
+        # a bit of convenience for users
+        self.output_names = [o[1] for o in self.outputs]
+        self.cut_names = [c[2] for c in self.cuts]
 
     def remove_cuts_from_chain(self, chain, cuts):
         """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.

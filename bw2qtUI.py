@@ -5,6 +5,7 @@ reload(sys)
 sys.setdefaultencoding("utf-8")
 import os
 from PyQt4 import QtCore, QtGui, QtWebKit
+# from PySide import QtCore, QtGui, QtWebKit
 from utils import *
 import settings
 from mpwidget import MPWidget
@@ -25,7 +26,7 @@ class MainWindow(QtGui.QMainWindow):
         self.lcaData = BrowserStandardTasks()
 
         # set up central widget
-        self.widget = QtGui.QWidget(self)
+        self.central_widget = QtGui.QWidget(self)
         self.setStandardWidgets()
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
@@ -34,6 +35,8 @@ class MainWindow(QtGui.QMainWindow):
 
         # at program start
         self.listDatabases()
+
+    # Setup of UIs, connections...
 
     def setStandardWidgets(self):
         # BUTTONS
@@ -45,7 +48,7 @@ class MainWindow(QtGui.QMainWindow):
         # search
         button_search = QtGui.QPushButton("Search")
         button_history = QtGui.QPushButton("History")
-        button_databases = QtGui.QPushButton("Databases")
+        # button_databases = QtGui.QPushButton("Databases")
         button_edit = QtGui.QPushButton("Edit")
         button_calc_lca = QtGui.QPushButton("Calculate LCA")
         # LINE EDITS
@@ -67,6 +70,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_inputs_biosphere = QtGui.QTableWidget()
         self.table_downstream_activities = QtGui.QTableWidget()
         self.table_multipurpose = QtGui.QTableWidget()
+        self.table_databases = QtGui.QTableWidget()
 
         # SPLITTERS
         self.splitter_right = QtGui.QSplitter(QtCore.Qt.Vertical)
@@ -83,7 +87,7 @@ class MainWindow(QtGui.QMainWindow):
         HL_multi_purpose.addWidget(self.line_edit_search)
         HL_multi_purpose.addWidget(button_search)
         HL_multi_purpose.addWidget(button_history)
-        HL_multi_purpose.addWidget(button_databases)
+        # HL_multi_purpose.addWidget(button_databases)
         HL_multi_purpose.addWidget(button_random_activity)
         HL_multi_purpose.addWidget(button_key)
         # Activity Buttons
@@ -118,7 +122,8 @@ class MainWindow(QtGui.QMainWindow):
         self.VL_RIGHT.addLayout(HL_multi_purpose)
         self.VL_RIGHT.addWidget(self.label_multi_purpose)
         self.VL_RIGHT.addWidget(self.tab_widget_RIGHT)
-        self.tab_widget_RIGHT.addTab(self.table_multipurpose, "Navigation")
+        self.tab_widget_RIGHT.addTab(self.table_databases, "Databases")
+        self.tab_widget_RIGHT.addTab(self.table_multipurpose, "Search")
         self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, "Biosphere")
         # LEFT SIDE
         self.widget_LEFT.setLayout(self.VL_LEFT)
@@ -129,8 +134,8 @@ class MainWindow(QtGui.QMainWindow):
         self.splitter_horizontal.addWidget(self.widget_RIGHT)
         hlayout.addWidget(self.splitter_horizontal)
         vlayout.addLayout(hlayout)
-        self.widget.setLayout(vlayout)
-        self.setCentralWidget(self.widget)
+        self.central_widget.setLayout(vlayout)
+        self.setCentralWidget(self.central_widget)
 
         # CONNECTIONS
         button_random_activity.clicked.connect(lambda: self.load_new_current_activity())
@@ -139,7 +144,7 @@ class MainWindow(QtGui.QMainWindow):
         self.line_edit_search.returnPressed.connect(self.search_results)
         button_search.clicked.connect(self.search_results)
         button_history.clicked.connect(self.showHistory)
-        button_databases.clicked.connect(self.listDatabases)
+        # button_databases.clicked.connect(self.listDatabases)
         button_key.clicked.connect(self.search_by_key)
         button_edit.clicked.connect(self.edit_activity)
         button_calc_lca.clicked.connect(self.calculate_lcia)
@@ -147,6 +152,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_multipurpose.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
+        self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
 
         # CONTEXT MENUS
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -158,14 +164,18 @@ class MainWindow(QtGui.QMainWindow):
 
         # MENU BAR
         # Actions
-        addMP = QtGui.QAction('Meta-Process Editor', self)
+        addMP = QtGui.QAction('&Meta-Process Editor', self)
         addMP.setShortcut('Ctrl+E')
         addMP.setStatusTip('Start Meta-Process Editor')
-        self.connect(addMP, QtCore.SIGNAL('triggered()'), self.setUpPMPEditor)
+        self.connect(addMP, QtCore.SIGNAL('triggered()'), self.setUpMPEditor)
         # Add actions
         menubar = self.menuBar()
-        file = menubar.addMenu('Extensions')
-        file.addAction(addMP)
+        extensions_menu = menubar.addMenu('&Extensions')
+        extensions_menu.addAction(addMP)
+
+        help_menu = QtGui.QMenu('&Help', self)
+        menubar.addMenu(help_menu)
+        help_menu.addAction('&About', self.about)
 
     def setUpLCIAWidget(self):
         # TODO: create a table that can be filled with methods
@@ -212,7 +222,6 @@ class MainWindow(QtGui.QMainWindow):
             self.HL_LCIA.setAlignment(QtCore.Qt.AlignLeft)
             self.HL_LCIA.addWidget(label_lcia_method)
             self.HL_LCIA.addWidget(self.button_clear_lcia_methods)
-
 
             self.HL_calculation = QtGui.QHBoxLayout()
             self.HL_calculation.setAlignment(QtCore.Qt.AlignLeft)
@@ -346,7 +355,37 @@ class MainWindow(QtGui.QMainWindow):
             self.action_remove_exchange_bio.triggered.connect(self.remove_exchange_from_biosphere)
             self.table_AE_biosphere.addAction(self.action_remove_exchange_bio)
 
-    def setUpPMPEditor(self):
+    def about(self):
+        QtGui.QMessageBox.about(self, "About",
+"""Activity Browser
+
+Copyright 2015 Bernhard Steubing, ETH Zurich
+email: steubing@ifu.baug.ethz.ch
+
+This software servers as a graphical user interface to do LCA
+and is based on the brightway2 LCA software (http://brightwaylca.org/)
+as well as own extensions.
+
+Feel free to contact me regarding additional extensions as well
+as its use for private and commercial applications.
+
+As licensing questions are not yet determined, the software
+shall *not* be used and modified without prior consent of the author;
+copies as well as modified versions of the software shall *not*
+be distributed to others without the consent of the author."""
+)
+
+    def statusBarMessage(self, message):
+        """
+        Can be used to display status bar messages from other widgets via signal-connect.
+        :param message:
+        :return:
+        """
+        self.statusBar().showMessage(message)
+
+    # META-PROCESS STUFF
+
+    def setUpMPEditor(self):
         if hasattr(self, 'MP_Widget'):
             print "MP WIDGET ALREADY LOADED"
         else:
@@ -357,6 +396,11 @@ class MainWindow(QtGui.QMainWindow):
             self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_buttons)
             self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_Database_buttons)
             self.tab_widget_RIGHT.addTab(self.MP_Widget.webview, "Graph")
+            # self.webview = QtWebKit.QWebView()
+            # self.setCentralWidget(self.webview)
+            # self.tab_widget_RIGHT.addTab(self.webview, "Graph")
+            # self.tab_widget_RIGHT.addTab(QtGui.QWidget(), "Graph")
+
             # CONTEXT MENUS
             # Technosphere Inputs
             self.action_addParentToMP = QtGui.QAction("--> Meta-Process", None)
@@ -384,16 +428,67 @@ class MainWindow(QtGui.QMainWindow):
             mp_menu = menubar.addMenu('MP')
             mp_menu.addAction(exportMPDatabaseAsJSONFile)
 
-    def statusBarMessage(self, message):
-        self.statusBar().showMessage(message)
+    def add_Child_to_chain(self):
+        self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem())
 
-    def listDatabases(self):
-        data = self.lcaData.getDatabases()
-        keys = ["name", "activities", "dependencies"]
+    def add_Parent_to_chain(self):
+        self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
+
+    def add_to_chain(self):
+        self.signal_add_to_chain.emit(self.table_multipurpose.currentItem())
+
+    # NAVIGATION
+
+    def gotoDoubleClickActivity(self, item):
+        print "DOUBLECLICK on: ", item.text()
+        if item.key_type == "activity":
+            print "Loading Activity:", item.activity_or_database_key
+            self.load_new_current_activity(item.activity_or_database_key)
+
+    def load_new_current_activity(self, key=None):
+        try:
+            self.lcaData.setNewCurrentActivity(key)
+            keys = self.get_table_headers()
+            self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
+            self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
+            self.table_downstream_activities = self.helper.update_table(self.table_downstream_activities, self.lcaData.get_downstream_exchanges(), keys)
+            ad = self.lcaData.getActivityData()
+            label_text = ad["name"]+" {"+ad["location"]+"}"
+            self.label_current_activity.setText(QtCore.QString(label_text))
+            label_text = ad["product"]+" ["+str(ad["amount"])+" "+ad["unit"]+"]"
+            self.label_current_activity_product.setText(QtCore.QString(label_text))
+            self.label_current_database.setText(QtCore.QString(ad['database']))
+            # update LCIA widget
+            self.label_LCIAW_product.setText(ad['product'])
+            self.label_LCIAW_activity.setText("".join([ad['name'], " {", ad['location'], "}"]))
+            self.label_LCIAW_database.setText(ad['database'])
+            self.label_LCIAW_unit.setText(ad['unit'])
+        except AttributeError:
+            self.statusBar().showMessage("Need to load a database first")
+
+    def showHistory(self):
+        keys = self.get_table_headers(type="history")
+        data = self.lcaData.getHistory()
         self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
-        label_text = str(len(data)) + " databases found."
+        label_text = "History"
         self.label_multi_purpose.setText(QtCore.QString(label_text))
         self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+
+    def goBackward(self):
+        # self.lcaData.goBack()
+        print "HISTORY:"
+        for key in self.lcaData.history:
+            print key, self.lcaData.database[key]["name"]
+
+        if self.lcaData.history:
+            self.lcaData.currentActivity = self.lcaData.history.pop()
+            self.load_new_current_activity(self.lcaData.currentActivity)
+            # self.load_new_current_activity(self.lcaData.history.pop())
+        else:
+            print "Cannot go further back."
+
+    def goForward(self):
+        pass
 
     def get_table_headers(self, type="technosphere"):
         if self.lcaData.database_version == 2:
@@ -402,15 +497,37 @@ class MainWindow(QtGui.QMainWindow):
             elif type == "biosphere":
                 keys = ["name", "amount", "unit"]
             elif type == "history" or type == "search":
-                keys = ["name", "location", "unit", "database"]
+                keys = ["name", "location", "unit", "database", "key"]
         else:
             if type == "technosphere":
                 keys = ["product", "name", "location", "amount", "unit", "database"]
             elif type == "biosphere":
                 keys = ["name", "amount", "unit"]
             elif type == "history" or type == "search":
-                keys = ["product", "name", "location", "unit", "database"]
+                keys = ["product", "name", "location", "unit", "database", "key"]
         return keys
+
+    # DATABASES
+
+    def listDatabases(self):
+        data = self.lcaData.getDatabases()
+        keys = ["name", "activities", "dependencies"]
+        self.table_databases = self.helper.update_table(self.table_databases, data, keys)
+        # self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
+        # label_text = str(len(data)) + " databases found."
+        # self.label_multi_purpose.setText(QtCore.QString(label_text))
+        # self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+
+    def gotoDoubleClickDatabase(self, item):
+        print "DOUBLECLICK on: ", item.text()
+        if item.key_type != "activity":
+            tic = time.clock()
+            self.statusBar().showMessage("Loading... "+item.activity_or_database_key)
+            print "Loading Database:", item.activity_or_database_key
+            self.lcaData.loadDatabase(item.activity_or_database_key)
+            self.statusBar().showMessage(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
+
+    # SEARCH
 
     def search_results(self):
         searchString = self.line_edit_search.text()
@@ -446,47 +563,9 @@ class MainWindow(QtGui.QMainWindow):
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
         except:
-            self.statusBar().showMessage("This did not work.")
+            self.statusBar().showMessage("Could not find activity key for searchstring.")
 
-    def load_new_current_activity(self, key=None):
-        try:
-            self.lcaData.setNewCurrentActivity(key)
-            keys = self.get_table_headers()
-            self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
-            self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
-            self.table_downstream_activities = self.helper.update_table(self.table_downstream_activities, self.lcaData.get_downstream_exchanges(), keys)
-            ad = self.lcaData.getActivityData()
-            label_text = ad["name"]+" {"+ad["location"]+"}"
-            self.label_current_activity.setText(QtCore.QString(label_text))
-            label_text = ad["product"]+" ["+str(ad["amount"])+" "+ad["unit"]+"]"
-            self.label_current_activity_product.setText(QtCore.QString(label_text))
-            self.label_current_database.setText(QtCore.QString(ad['database']))
-            # update LCIA widget
-            self.label_LCIAW_product.setText(ad['product'])
-            self.label_LCIAW_activity.setText("".join([ad['name'], " {", ad['location'], "}"]))
-            self.label_LCIAW_database.setText(ad['database'])
-            self.label_LCIAW_unit.setText(ad['unit'])
-        except AttributeError:
-            self.statusBar().showMessage("Need to load a database first")
-
-    def gotoDoubleClickActivity(self, item):
-        print "DOUBLECLICK on: ", item.text()
-        if item.key_type == "activity":
-            print "Loading Activity:", item.activity_or_database_key
-            self.load_new_current_activity(item.activity_or_database_key)
-        else:  # database
-            tic = time.clock()
-            self.statusBar().showMessage("Loading... "+item.activity_or_database_key)
-            print "Loading Database:", item.activity_or_database_key
-            self.lcaData.loadDatabase(item.activity_or_database_key)
-            self.statusBar().showMessage(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
-
-    def edit_activity(self):
-        if self.lcaData.currentActivity:
-            self.setUpActivityEditor()
-            self.lcaData.set_edit_activity(self.lcaData.currentActivity)
-            self.update_AE_tables()
-            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
+    # LCIA and LCA Results
 
     def update_lcia_method(self, current_index=0, selection=None):
         if not selection:
@@ -570,6 +649,15 @@ class MainWindow(QtGui.QMainWindow):
             self.update_LCA_results(item.uuid_)
         else:
             print "Error: Item does not have a UUID"
+
+    # ACTIVITY EDITOR (AE)
+
+    def edit_activity(self):
+        if self.lcaData.currentActivity:
+            self.setUpActivityEditor()
+            self.lcaData.set_edit_activity(self.lcaData.currentActivity)
+            self.update_AE_tables()
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
 
     def add_technosphere_exchange(self):
         self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)
@@ -665,47 +753,14 @@ class MainWindow(QtGui.QMainWindow):
             edit_keys=['amount'])
         self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height()+self.table_AE_activity.rowHeight(0))
 
-    def showHistory(self):
-        keys = self.get_table_headers(type="history")
-        data = self.lcaData.getHistory()
-        self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
-        label_text = "History"
-        self.label_multi_purpose.setText(QtCore.QString(label_text))
-        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
-
-    def goBackward(self):
-        # self.lcaData.goBack()
-        print "HISTORY:"
-        for key in self.lcaData.history:
-            print key, self.lcaData.database[key]["name"]
-
-        if self.lcaData.history:
-            self.lcaData.currentActivity = self.lcaData.history.pop()
-            self.load_new_current_activity(self.lcaData.currentActivity)
-            # self.load_new_current_activity(self.lcaData.history.pop())
-        else:
-            print "Cannot go further back."
-
-    def goForward(self):
-        pass
-
-    def add_Child_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem())
-
-    def add_Parent_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
-
-    def add_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_multipurpose.currentItem())
-
 def main():
     app = QtGui.QApplication(sys.argv)
     mw = MainWindow()
 
     # AUTO-START CUSTOMIZATION
     # mw.setUpMPEditor()
-    mw.lcaData.loadDatabase('ecoinvent 2.2')
-    mw.load_new_current_activity()
+    # mw.lcaData.loadDatabase('ecoinvent 2.2')
+    # mw.load_new_current_activity()
 
     # wnd.resize(800, 600)
     mw.showMaximized()

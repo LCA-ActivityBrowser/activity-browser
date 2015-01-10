@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt4 import QtCore, QtGui, QtWebKit
+# from PySide import QtCore, QtGui, QtWebKit
 
 from utils import *
 from jinja2 import Template
@@ -17,6 +18,9 @@ import itertools
 import networkx as nx  # TODO get rid of this dependency?
 import pprint
 import operator
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+import matplotlib.pyplot as plt
 
 class MPWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
@@ -155,6 +159,19 @@ class MPWidget(QtGui.QWidget):
         self.combo_lcia_method = QtGui.QComboBox(self)
         # Tables
         self.table_PP_comparison = QtGui.QTableWidget()
+
+        # MATPLOTLIB FIGURE
+        self.matplotlib_figure = QtGui.QWidget()
+        self.figure = plt.figure()
+        self.canvas = FigureCanvas(self.figure)
+        # self.toolbar = NavigationToolbar(self.canvas, self)  # it takes the Canvas widget and a parent
+        self.toolbar = NavigationToolbar(self.canvas, self.matplotlib_figure)
+        # set the layout
+        plt_layout = QtGui.QVBoxLayout()
+        plt_layout.addWidget(self.toolbar)
+        plt_layout.addWidget(self.canvas)
+        self.matplotlib_figure.setLayout(plt_layout)
+
         # HL
         self.HL_functional_unit = QtGui.QHBoxLayout()
         self.HL_functional_unit.setAlignment(QtCore.Qt.AlignLeft)
@@ -175,6 +192,7 @@ class MPWidget(QtGui.QWidget):
         self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
         self.VL_PP_analyzer.addLayout(self.HL_PP_analysis)
         self.VL_PP_analyzer.addWidget(self.table_PP_comparison)
+        self.VL_PP_analyzer.addWidget(self.matplotlib_figure)
         self.PP_analyzer.setLayout(self.VL_PP_analyzer)
         # Connections
         self.button_PP_pathways.clicked.connect(self.show_all_pathways)
@@ -461,7 +479,45 @@ class MPWidget(QtGui.QWidget):
         method = (u'IPCC 2007', u'climate change', u'GWP 100a')
         demand = {str(self.combo_functional_unit.currentText()): 1.0}
         self.path_data = self.lmp.lca_alternatives(method, demand)
+        self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score
         self.update_PP_comparison_table(data=self.path_data, keys=['LCA score', 'path'])
+        self.plot_figure()
+
+    def plot_figure(self):
+        ''' plot matplotlib figure for LCA alternatives '''
+        # get matplotlib figure data
+        data = np.zeros((len(self.lmp.map_products_number), len(self.path_data)), dtype=np.float)
+        for i, l in enumerate(self.path_data):
+            for process, value in l['process contribution'].items():
+                # creates matrix where rows are products and columns hold process/product specific impact scores
+                data[self.lmp.map_products_number[self.lmp.get_output_names([process])[0]], i] = value  # caution, problem for multi-output processes
+
+        # data for labels, colors, ...
+        number_products = len(data)
+        number_lcas = len(self.path_data)
+        ind = np.arange(number_lcas)
+        ind_label = np.arange(number_lcas)
+        product_label = [self.lmp.map_number_products[i] for i in np.arange(number_products)]
+        bottom = np.vstack((np.zeros((data.shape[1],), dtype=data.dtype), np.cumsum(data, axis=0)[:-1]))
+        colormap = plt.cm.autumn
+        colors = [colormap(c) for c in np.linspace(0, 1, number_products)]
+
+        # plotting
+        self.figure.clf()
+        ax = self.figure.add_subplot(111)
+        plt.rcParams.update({'font.size': 10})
+        for dat, col, bot, label in zip(data, colors, bottom, product_label):
+            ax.bar(ind, dat, color=col, bottom=bot, label=label, edgecolor="none")
+        plt.xticks(ind+0.5, ind_label+1)
+        impact_unit = bw2.methods[self.path_data[0]['LCIA method']]['unit']
+        demand_product = "'"+self.path_data[0]['demand'].keys()[0]+"'"
+        plt.xlabel('alternatives to produce '+demand_product), plt.ylabel(impact_unit)
+        # reverse the order of the legend
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1], loc='upper right', prop={'size':10})
+        # plt.legend(loc='upper right', prop={'size':10})
+        # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        self.canvas.draw()
 
     def update_FU_unit(self):
         for mp in self.lmp.mp_list:
