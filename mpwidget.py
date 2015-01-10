@@ -4,7 +4,7 @@
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
 
-from utils import *
+from browser_utils import *
 from jinja2 import Template
 import json
 import pickle

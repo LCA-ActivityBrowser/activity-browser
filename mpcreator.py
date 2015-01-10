@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from metaprocess import MetaProcess
-from utils import *
+from browser_utils import *
 import json
 
 class MetaProcessCreator(BrowserStandardTasks):

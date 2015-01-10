@@ -6,7 +6,7 @@ sys.setdefaultencoding("utf-8")
 import os
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
-from utils import *
+from browser_utils import *
 import settings
 from mpwidget import MPWidget
 import time
@@ -725,6 +725,7 @@ be distributed to others without the consent of the author."""
             })
         self.table_top_emissions = self.helper.update_table(
             self.table_top_emissions, data, keys)
+        # Monte Carlo
 
     def goto_LCA_results(self, item):
         print "DOUBLECLICK on: ", item.text()
