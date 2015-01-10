@@ -620,7 +620,6 @@ be distributed to others without the consent of the author."""
         lcia_data = self.lcaData.LCIA_calculations[uuid_]
         ad = self.lcaData.getActivityData(lcia_data['key'])
         # Update Labels
-        # self.label_LCAR_activity_name.setText("".join([ad['product'], " {", ad['location'], "} ", ad['name'], " [", ad['database'], "]"]))
         self.label_LCAR_product.setText(ad['product'])
         self.label_LCAR_activity.setText("".join([ad['name'], " {", ad['location'], "}"]))
         self.label_LCAR_database.setText(ad['database'])
@@ -629,23 +628,29 @@ be distributed to others without the consent of the author."""
         self.label_LCAR_score.setText("{:.3g} {:}".format(lcia_data['score'], bw2.methods[lcia_data['method']]['unit']))
         # Tables
         # Top Processes
-        keys = ['impact score', '%', 'name']
+        keys = ['inventory', 'unit', 'name', 'impact score', '%']
         data = []
         for row in lcia_data['top processes']:
+            acd = self.lcaData.getActivityData(row[-1])
             data.append({
+                'inventory': "{:.3g}".format(row[1]),
+                'unit': acd['unit'],
                 'impact score': "{:.3g}".format(row[0]),
-                '%': "{:.2f}".format(row[1]),
-                'name': row[2],
+                '%': "{:.2f}".format(100*row[0]/lcia_data['score']),
+                'name': acd['name'],
             })
         self.table_top_processes = self.helper.update_table(
             self.table_top_processes, data, keys)
         # Top Emissions
         data = []
         for row in lcia_data['top emissions']:
+            acd = self.lcaData.getActivityData(row[-1])
             data.append({
+                'inventory': "{:.3g}".format(row[1]),
+                'unit': acd['unit'],
                 'impact score': "{:.3g}".format(row[0]),
-                '%': "{:.2f}".format(row[1]),
-                'name': row[2],
+                '%': "{:.2f}".format(100*row[0]/lcia_data['score']),
+                'name': acd['name'],
             })
         self.table_top_emissions = self.helper.update_table(
             self.table_top_emissions, data, keys)
