@@ -112,7 +112,7 @@ class BrowserStandardTasks(object):
         self.database = None
         self.database_version = None
         self.LCIA_calculations = {}  # used to store LCIA calculations
-        self.mc_LCIA_calculations = {}
+        self.LCIA_calculations_mc = {}
         self.LCIA_method = None
 
     def updateEcoinventVersion(self, key=None):
@@ -314,13 +314,14 @@ class BrowserStandardTasks(object):
         self.LCIA_calculations.update({uuid_: lcia_data})
         return uuid_
 
-    def mc_lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a'),
-                iterations=500, cpu_count=1):
+    def monte_carlo_lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a'),
+                iterations=500, cpu_count=1, uuid_=None):
         if not key:
             key = self.currentActivity
-        report = SerializedLCAReport({key: amount}, method, iterations, cpu_count)
-        return report.get_monte_carlo()
-
+        mc_data = SerializedLCAReport({key: amount}, method, iterations, cpu_count).get_monte_carlo()
+        if uuid_:
+            self.LCIA_calculations_mc.update({uuid_: mc_data})
+        return mc_data
 
 # CREATE AND MODIFY ACTIVITIES
 

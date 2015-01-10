@@ -612,35 +612,20 @@ be distributed to others without the consent of the author."""
                 combo.setCurrentIndex(1)
             combo.blockSignals(False)
 
-    def get_lca_inputs(self):
+    def calculate_lcia(self, monte_carlo=False):
+        method = self.lcaData.LCIA_method
         if not self.lcaData.currentActivity:
             self.statusBar().showMessage("Need to load an activity first.")
-        elif not self.lcaData.LCIA_method:
+        elif not method:
             self.statusBar().showMessage("Need to select an LCIA method first.")
         else:
             if self.line_edit_FU and self.helper.is_number(self.line_edit_FU.text()):
                 amount = float(self.line_edit_FU.text())
             else:
                 amount = 1.0
-            input = {
-                'amount': amount,
-                'method': self.lcaData.LCIA_method,
-                'complete': True,
-            }
-            return input
-
-    def calculate_lcia(self, monte_carlo=False):
-        input = self.get_lca_inputs()
-        if input.get('complete', False):
             self.setUpLCAResults()
             tic = time.clock()
-            uuid_ = self.lcaData.lcia(amount=input['amount'], method=input['method'])
-            # Monte Carlo LCA
-            if monte_carlo:
-                mc_data = self.lcaData.mc_lcia(key=None, amount=input['amount'], method=input['method'],
-                                 iterations=500, cpu_count=self.cpu_count)
-                self.plot_figure_mc(mc_data)
-
+            uuid_ = self.lcaData.lcia(amount=amount, method=method)
             # Update Table Previous LCA calculations
             keys = ['product', 'name', 'location', 'database', 'functional unit', 'unit', 'method']
             data = []
@@ -648,6 +633,10 @@ be distributed to others without the consent of the author."""
                 data.append(dict(lcia_data.items() + self.lcaData.getActivityData(lcia_data['key']).items()))
             self.table_previous_calcs = self.helper.update_table(
                 self.table_previous_calcs, data, keys)
+            # Monte Carlo LCA
+            if monte_carlo:
+                self.lcaData.monte_carlo_lcia(key=None, amount=amount, method=method,
+                                              iterations=500, cpu_count=self.cpu_count, uuid_=uuid_)
             # Update LCA results
             self.update_LCA_results(uuid_)
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_LCIA_Results))
@@ -656,36 +645,13 @@ be distributed to others without the consent of the author."""
     def calculate_monte_carlo(self):
         self.calculate_lcia(monte_carlo=True)
 
-    def plot_figure_mc(self, mc):
-        ''' plot matplotlib Monte Carlo figure '''
-        # get matplotlib figure data
-        hist = np.array(mc['histogram'])
-        smoothed = np.array(mc['smoothed'])
-        values = hist[:, 0]
-        bins = hist[:, 1]
-        sm_x = smoothed[:, 0]
-        sm_y = smoothed[:, 1]
-        median = mc['statistics']['median']
-        mean = mc['statistics']['mean']
-        lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
-
-        # plot
-        self.figure_mc.clf()
-        ax = self.figure_mc.add_subplot(111)
-        plt.rcParams.update({'font.size': 10})
-        ax.plot(values, bins)
-        ax.plot(sm_x, sm_y)
-        ax.vlines(lconfi, 0 , sm_y[0],
-                  label='lower 95%: {:.3g}'.format(lconfi), color='red', linewidth=2.0)
-        ax.vlines(upconfi, 0 , sm_y[-1],
-                  label='upper 95%: {:.3g}'.format(upconfi), color='red', linewidth=2.0)
-        ax.vlines(median, 0 , sm_y[self.helper.find_nearest(sm_x, median)],
-                  label='median: {:.3g}'.format(median), color='magenta', linewidth=2.0)
-        ax.vlines(mean, 0 , sm_y[self.helper.find_nearest(sm_x, mean)],
-                  label='mean: {:.3g}'.format(mean), color='blue', linewidth=2.0)
-        plt.xlabel('LCA scores'), plt.ylabel('count')
-        plt.legend(loc='upper right', prop={'size':10})
-        self.canvas_mc.draw()
+    def goto_LCA_results(self, item):
+        print "DOUBLECLICK on: ", item.text()
+        if item.uuid_:
+            print "Loading LCA Results for:", str(item.text())
+            self.update_LCA_results(item.uuid_)
+        else:
+            print "Error: Item does not have a UUID"
 
     def update_LCA_results(self, uuid_):
         lcia_data = self.lcaData.LCIA_calculations[uuid_]
@@ -726,14 +692,42 @@ be distributed to others without the consent of the author."""
         self.table_top_emissions = self.helper.update_table(
             self.table_top_emissions, data, keys)
         # Monte Carlo
-
-    def goto_LCA_results(self, item):
-        print "DOUBLECLICK on: ", item.text()
-        if item.uuid_:
-            print "Loading LCA Results for:", str(item.text())
-            self.update_LCA_results(item.uuid_)
+        if uuid_ in self.lcaData.LCIA_calculations_mc.keys():
+            self.plot_figure_mc(self.lcaData.LCIA_calculations_mc[uuid_])
         else:
-            print "Error: Item does not have a UUID"
+            self.figure_mc.clf()
+            self.canvas_mc.draw()
+
+    def plot_figure_mc(self, mc):
+        ''' plot matplotlib Monte Carlo figure '''
+        # get matplotlib figure data
+        hist = np.array(mc['histogram'])
+        smoothed = np.array(mc['smoothed'])
+        values = hist[:, 0]
+        bins = hist[:, 1]
+        sm_x = smoothed[:, 0]
+        sm_y = smoothed[:, 1]
+        median = mc['statistics']['median']
+        mean = mc['statistics']['mean']
+        lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
+
+        # plot
+        self.figure_mc.clf()
+        ax = self.figure_mc.add_subplot(111)
+        plt.rcParams.update({'font.size': 10})
+        ax.plot(values, bins)
+        ax.plot(sm_x, sm_y)
+        ax.vlines(lconfi, 0 , sm_y[0],
+                  label='lower 95%: {:.3g}'.format(lconfi), color='red', linewidth=2.0)
+        ax.vlines(upconfi, 0 , sm_y[-1],
+                  label='upper 95%: {:.3g}'.format(upconfi), color='red', linewidth=2.0)
+        ax.vlines(median, 0 , sm_y[self.helper.find_nearest(sm_x, median)],
+                  label='median: {:.3g}'.format(median), color='magenta', linewidth=2.0)
+        ax.vlines(mean, 0 , sm_y[self.helper.find_nearest(sm_x, mean)],
+                  label='mean: {:.3g}'.format(mean), color='blue', linewidth=2.0)
+        plt.xlabel('LCA scores'), plt.ylabel('count')
+        plt.legend(loc='upper right', prop={'size':10})
+        self.canvas_mc.draw()
 
     # ACTIVITY EDITOR (AE)
 
