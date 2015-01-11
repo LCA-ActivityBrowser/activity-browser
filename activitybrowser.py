@@ -40,6 +40,8 @@ class MainWindow(QtGui.QMainWindow):
 
         self.tab_widget_LEFT = QtGui.QTabWidget()
         self.tab_widget_RIGHT = QtGui.QTabWidget()
+        self.tab_widget_LEFT.setMovable(True)
+        self.tab_widget_RIGHT.setMovable(True)
 
         self.splitter_horizontal = QtGui.QSplitter(QtCore.Qt.Horizontal)
         self.splitter_horizontal.addWidget(self.tab_widget_LEFT)
