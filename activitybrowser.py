@@ -34,22 +34,21 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
 
-        # LAYOUTS FOR 2 TAB WIDGETS
-        self.VL_LEFT = QtGui.QVBoxLayout()
-        self.VL_RIGHT = QtGui.QVBoxLayout()
+        # MAIN LAYOUT
+        # H-LAYOUT -- SPLITTER -- TWO TABWIDGETS
         self.HL = QtGui.QHBoxLayout()
-        self.HL.addLayout(self.VL_LEFT)
-        self.HL.addLayout(self.VL_RIGHT)
+
+        self.tab_widget_LEFT = QtGui.QTabWidget()
+        self.tab_widget_RIGHT = QtGui.QTabWidget()
+
+        self.splitter_horizontal = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        self.splitter_horizontal.addWidget(self.tab_widget_LEFT)
+        self.splitter_horizontal.addWidget(self.tab_widget_RIGHT)
+        self.HL.addWidget(self.splitter_horizontal)
 
         self.central_widget = QtGui.QWidget()
         self.central_widget.setLayout(self.HL)
         self.setCentralWidget(self.central_widget)
-        # self.setLayout(self.HL)
-
-        self.tab_widget_LEFT = QtGui.QTabWidget()
-        self.tab_widget_RIGHT = QtGui.QTabWidget()
-        self.VL_LEFT.addWidget(self.tab_widget_LEFT)
-        self.VL_RIGHT.addWidget(self.tab_widget_RIGHT)
 
         # DOCKS - NOT USED HERE FOR NOW
         # dock info
@@ -722,6 +721,7 @@ be distributed to others without the consent of the author."""
         data = self.lcaData.getDatabases()
         keys = ["name", "activities", "dependencies"]
         self.table_databases = self.helper.update_table(self.table_databases, data, keys)
+        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
 
     def gotoDoubleClickDatabase(self, item):
         print "DOUBLECLICK on: ", item.text()
@@ -748,7 +748,7 @@ be distributed to others without the consent of the author."""
             self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
             label_text = str(len(data)) + " activities found."
             self.label_multi_purpose.setText(QtCore.QString(label_text))
-            # TODO self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
 
@@ -764,7 +764,7 @@ be distributed to others without the consent of the author."""
                 self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
                 label_text = str(len(data)) + " activities found."
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
-                # TODO self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+                self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
         except:
