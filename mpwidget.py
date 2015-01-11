@@ -4,6 +4,7 @@
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
 
+# from activitybrowser import MainWindow
 from browser_utils import *
 from jinja2 import Template
 import json
@@ -21,6 +22,16 @@ import operator
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
+
+
+# class TestMyIdea(MainWindow):
+#
+#     def __init__(self, parent=None):
+#         # super(TestMyIdea, self).__init__(parent)
+#         print "was in TestMyIdea"
+#         table_databases = QtGui.QTableWidget()
+#         self.add_dock(table_databases, 'MyIdea',  QtCore.Qt.LeftDockWidgetArea)
+
 
 class MPWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
@@ -57,23 +68,38 @@ class MPWidget(QtGui.QWidget):
         button_addDB = QtGui.QPushButton("Add DB")
         button_closeDB = QtGui.QPushButton("Close DB")
         button_pp_graph = QtGui.QPushButton("PP-Graph")
+
+        # buttons TOOLBAR
+        self.toolbar_MP = QtGui.QToolBar()
+        self.toolbar_MP.addWidget(button_new_process_subsystem)
+        self.toolbar_MP.addWidget(button_add_MP_to_Database)
+        self.toolbar_MP.addWidget(button_delete_MP_from_Database)
+        self.toolbar_MP.addWidget(button_graph)
+        self.toolbar_MP.addWidget(button_toggle_layout)
+        self.toolbar_MP.addWidget(button_load_MP_database)
+        self.toolbar_MP.addWidget(button_saveAs_MP_database)
+        self.toolbar_MP.addWidget(button_addDB)
+        self.toolbar_MP.addWidget(button_closeDB)
+        self.toolbar_MP.addWidget(button_pp_graph)
+
         # LAYOUTS for buttons
         # Meta-Process
         self.HL_MP_buttons = QtGui.QHBoxLayout()
-        self.HL_MP_buttons.addWidget(label_process_subsystem)
-        self.HL_MP_buttons.addWidget(button_new_process_subsystem)
-        self.HL_MP_buttons.addWidget(button_add_MP_to_Database)
-        self.HL_MP_buttons.addWidget(button_delete_MP_from_Database)
-        self.HL_MP_buttons.addWidget(button_toggle_layout)
-        self.HL_MP_buttons.addWidget(button_graph)
+        # self.HL_MP_buttons.addWidget(label_process_subsystem)
+        # self.HL_MP_buttons.addWidget(button_new_process_subsystem)
+        # self.HL_MP_buttons.addWidget(button_add_MP_to_Database)
+        # self.HL_MP_buttons.addWidget(button_delete_MP_from_Database)
+        # self.HL_MP_buttons.addWidget(button_toggle_layout)
+        # self.HL_MP_buttons.addWidget(button_graph)
         # MP Database
         self.HL_MP_Database_buttons = QtGui.QHBoxLayout()
-        self.HL_MP_Database_buttons.addWidget(label_MP_database)
-        self.HL_MP_Database_buttons.addWidget(button_load_MP_database)
-        self.HL_MP_Database_buttons.addWidget(button_saveAs_MP_database)
-        self.HL_MP_Database_buttons.addWidget(button_addDB)
-        self.HL_MP_Database_buttons.addWidget(button_closeDB)
-        self.HL_MP_Database_buttons.addWidget(button_pp_graph)
+        # self.HL_MP_Database_buttons.addWidget(label_MP_database)
+        # self.HL_MP_Database_buttons.addWidget(button_load_MP_database)
+        # self.HL_MP_Database_buttons.addWidget(button_saveAs_MP_database)
+        # self.HL_MP_Database_buttons.addWidget(button_addDB)
+        # self.HL_MP_Database_buttons.addWidget(button_closeDB)
+        # self.HL_MP_Database_buttons.addWidget(button_pp_graph)
+
         # CONNECTIONS
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
         button_load_MP_database.clicked.connect(self.loadMPDatabase)
