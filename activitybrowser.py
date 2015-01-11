@@ -57,6 +57,7 @@ class MainWindow(QtGui.QMainWindow):
         button_calc_lca = QtGui.QPushButton("Calculate LCA")
         # LINE EDITS
         self.line_edit_search = QtGui.QLineEdit()
+        self.line_edit_search.setMaximumSize(QtCore.QSize(200, 30))
         # LABELS
         # dynamic
         self.label_current_activity_product = QtGui.QLabel("Product")
@@ -86,14 +87,25 @@ class MainWindow(QtGui.QMainWindow):
         self.VL_LEFT = QtGui.QVBoxLayout()
         # H
         hlayout = QtGui.QHBoxLayout()
-        HL_multi_purpose = QtGui.QHBoxLayout()
-        # Search
-        HL_multi_purpose.addWidget(self.line_edit_search)
-        HL_multi_purpose.addWidget(button_search)
-        HL_multi_purpose.addWidget(button_history)
-        # HL_multi_purpose.addWidget(button_databases)
-        HL_multi_purpose.addWidget(button_random_activity)
-        HL_multi_purpose.addWidget(button_key)
+        # HL_multi_purpose = QtGui.QHBoxLayout()
+        # # Search
+        # HL_multi_purpose.addWidget(self.line_edit_search)
+        # HL_multi_purpose.addWidget(button_search)
+        # HL_multi_purpose.addWidget(button_history)
+        # # HL_multi_purpose.addWidget(button_databases)
+        # HL_multi_purpose.addWidget(button_random_activity)
+        # HL_multi_purpose.addWidget(button_key)
+
+        # toolbar
+        self.toolbar = QtGui.QToolBar()
+        self.addToolBar(self.toolbar)
+
+        self.toolbar.addWidget(self.line_edit_search)
+        self.toolbar.addWidget(button_search)
+        self.toolbar.addWidget(button_history)
+        self.toolbar.addWidget(button_random_activity)
+        self.toolbar.addWidget(button_key)
+
         # Activity Buttons
         HL_activity_buttons = QtGui.QHBoxLayout()
         HL_activity_buttons.setAlignment(QtCore.Qt.AlignLeft)
@@ -123,11 +135,16 @@ class MainWindow(QtGui.QMainWindow):
         self.widget_RIGHT = QtGui.QWidget()
         # RIGHT SIDE
         self.widget_RIGHT.setLayout(self.VL_RIGHT)
-        self.VL_RIGHT.addLayout(HL_multi_purpose)
-        self.VL_RIGHT.addWidget(self.label_multi_purpose)
+        # self.VL_RIGHT.addLayout(HL_multi_purpose)
+        vl = QtGui.QVBoxLayout()
+        vl.addWidget(self.label_multi_purpose)
+        vl.addWidget(self.table_multipurpose)
+        self.widget_search = QtGui.QWidget()
+        self.widget_search.setLayout(vl)
+        # self.VL_RIGHT.addWidget(self.label_multi_purpose)
         self.VL_RIGHT.addWidget(self.tab_widget_RIGHT)
         self.tab_widget_RIGHT.addTab(self.table_databases, "Databases")
-        self.tab_widget_RIGHT.addTab(self.table_multipurpose, "Search")
+        self.tab_widget_RIGHT.addTab(self.widget_search, "Search")
         self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, "Biosphere")
         # LEFT SIDE
         self.widget_LEFT.setLayout(self.VL_LEFT)
@@ -423,8 +440,9 @@ be distributed to others without the consent of the author."""
             self.tab_widget_LEFT.addTab(self.MP_Widget.MPdataWidget, "MP")
             self.tab_widget_LEFT.addTab(self.MP_Widget.table_MP_database, "MP database")
             self.tab_widget_LEFT.addTab(self.MP_Widget.PP_analyzer, "MP LCA")
-            self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_buttons)
-            self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_Database_buttons)
+            # self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_buttons)
+            # self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_Database_buttons)
+            self.addToolBar(self.MP_Widget.toolbar_MP)
             self.tab_widget_RIGHT.addTab(self.MP_Widget.webview, "Graph")
             # self.webview = QtWebKit.QWebView()
             # self.setCentralWidget(self.webview)
@@ -573,7 +591,7 @@ be distributed to others without the consent of the author."""
             self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
             label_text = str(len(data)) + " activities found."
             self.label_multi_purpose.setText(QtCore.QString(label_text))
-            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
 
