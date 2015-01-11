@@ -206,13 +206,13 @@ class MainWindow(QtGui.QMainWindow):
         vl.addWidget(self.label_multi_purpose)
         vl.addWidget(self.table_multipurpose)
         # dock
-        widget = QtGui.QWidget()
-        widget.setLayout(vl)
+        self.widget_search = QtGui.QWidget()
+        self.widget_search.setLayout(vl)
         # self.add_dock(widget, 'Search', QtCore.Qt.RightDockWidgetArea)
         # Connections
         self.table_multipurpose.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
-        self.tab_widget_RIGHT.addTab(widget, 'Search')
+        self.tab_widget_RIGHT.addTab(self.widget_search, 'Search')
 
     def set_up_widget_biosphere(self):
         self.table_inputs_biosphere = QtGui.QTableWidget()
@@ -377,12 +377,12 @@ class MainWindow(QtGui.QMainWindow):
         VL_widget_LCIA_Results.addWidget(label_top_emissions)
         VL_widget_LCIA_Results.addWidget(self.table_top_emissions)
         # dock
-        widget_LCIA_Results = QtGui.QWidget()
-        widget_LCIA_Results.setLayout(VL_widget_LCIA_Results)
+        self.widget_LCIA_Results = QtGui.QWidget()
+        self.widget_LCIA_Results.setLayout(VL_widget_LCIA_Results)
         # self.add_dock(widget_LCIA_Results, 'LCA Results', QtCore.Qt.RightDockWidgetArea)
         # Connections
 
-        self.tab_widget_RIGHT.addTab(widget_LCIA_Results, 'LCA Results')
+        self.tab_widget_RIGHT.addTab(self.widget_LCIA_Results, 'LCA Results')
 
     def setup_widget_activity_editor(self):
         # Labels
@@ -419,8 +419,8 @@ class MainWindow(QtGui.QMainWindow):
         VL_AE.addLayout(HL_AE_actions)
         # AE widget
         # dock
-        widget_AE = QtGui.QWidget()
-        widget_AE.setLayout(VL_AE)
+        self.widget_AE = QtGui.QWidget()
+        self.widget_AE.setLayout(VL_AE)
         # self.add_dock(widget_AE, 'Activity Editor', QtCore.Qt.RightDockWidgetArea)
 
         # Connections
@@ -460,7 +460,7 @@ class MainWindow(QtGui.QMainWindow):
         self.action_remove_exchange_bio.triggered.connect(self.remove_exchange_from_biosphere)
         self.table_AE_biosphere.addAction(self.action_remove_exchange_bio)
 
-        self.tab_widget_RIGHT.addTab(widget_AE, 'Activity Editor')
+        self.tab_widget_RIGHT.addTab(self.widget_AE, 'Activity Editor')
 
 # TODO
     def to_be_deleted_(self):
@@ -682,7 +682,7 @@ be distributed to others without the consent of the author."""
         self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
         label_text = "History"
         self.label_multi_purpose.setText(QtCore.QString(label_text))
-        # TODO: self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
 
     def goBackward(self):
         # self.lcaData.goBack()
@@ -723,7 +723,7 @@ be distributed to others without the consent of the author."""
         data = self.lcaData.getDatabases()
         keys = ["name", "activities", "dependencies"]
         self.table_databases = self.helper.update_table(self.table_databases, data, keys)
-        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_databases))
 
     def gotoDoubleClickDatabase(self, item):
         print "DOUBLECLICK on: ", item.text()
@@ -750,7 +750,7 @@ be distributed to others without the consent of the author."""
             self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
             label_text = str(len(data)) + " activities found."
             self.label_multi_purpose.setText(QtCore.QString(label_text))
-            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
 
@@ -766,7 +766,7 @@ be distributed to others without the consent of the author."""
                 self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
                 label_text = str(len(data)) + " activities found."
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
-                self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+                self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
         except:
@@ -816,7 +816,7 @@ be distributed to others without the consent of the author."""
                                               iterations=500, cpu_count=self.cpu_count, uuid_=uuid_)
             # Update LCA results
             self.update_LCA_results(uuid_)
-            # TODO self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_LCIA_Results))
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_LCIA_Results))
             self.statusBar().showMessage("Calculated LCIA score in {:.2f} seconds.".format(time.clock()-tic))
 
     def calculate_monte_carlo(self):
@@ -912,7 +912,7 @@ be distributed to others without the consent of the author."""
         if self.lcaData.currentActivity:
             self.lcaData.set_edit_activity(self.lcaData.currentActivity)
             self.update_AE_tables()
-            # TODO: self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
+            self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
 
     def add_technosphere_exchange(self):
         self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)
