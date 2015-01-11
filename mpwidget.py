@@ -24,15 +24,6 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 import matplotlib.pyplot as plt
 
 
-# class TestMyIdea(MainWindow):
-#
-#     def __init__(self, parent=None):
-#         # super(TestMyIdea, self).__init__(parent)
-#         print "was in TestMyIdea"
-#         table_databases = QtGui.QTableWidget()
-#         self.add_dock(table_databases, 'MyIdea',  QtCore.Qt.LeftDockWidgetArea)
-
-
 class MPWidget(QtGui.QWidget):
     signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
     signal_status_bar_message = QtCore.pyqtSignal(str)

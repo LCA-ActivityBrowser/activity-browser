@@ -19,24 +19,6 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 import matplotlib.pyplot as plt
 
 
-# class TestMyIdea(QtGui.QWidget):
-#
-#     def __init__(self, parent=None):
-#         super(TestMyIdea, self).__init__(parent)
-#         print "was in TestMyIdea"
-#
-#     def load_Idea(self):
-#         table_databases = QtGui.QTableWidget()
-#         self.add_dock(table_databases, 'MyIdea',  QtCore.Qt.LeftDockWidgetArea)
-
-# class MySoftware():
-#
-#     def __init__(self, parent=None):
-#         mw = MainWindow()
-#
-#     def set_up_MP(self):
-#         print "was in TestMyIdea"
-
 class MainWindow(QtGui.QMainWindow):
     signal_add_to_chain = QtCore.pyqtSignal(MyQTableWidgetItem)
 
@@ -52,30 +34,47 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
 
+        # LAYOUTS FOR 2 TAB WIDGETS
+        self.VL_LEFT = QtGui.QVBoxLayout()
+        self.VL_RIGHT = QtGui.QVBoxLayout()
+        self.HL = QtGui.QHBoxLayout()
+        self.HL.addLayout(self.VL_LEFT)
+        self.HL.addLayout(self.VL_RIGHT)
+
+        self.central_widget = QtGui.QWidget()
+        self.central_widget.setLayout(self.HL)
+        self.setCentralWidget(self.central_widget)
+        # self.setLayout(self.HL)
+
+        self.tab_widget_LEFT = QtGui.QTabWidget()
+        self.tab_widget_RIGHT = QtGui.QTabWidget()
+        self.VL_LEFT.addWidget(self.tab_widget_LEFT)
+        self.VL_RIGHT.addWidget(self.tab_widget_RIGHT)
+
+        # DOCKS - NOT USED HERE FOR NOW
         # dock info
         self.map_dock_name = {}
         self.map_name_dock = {}
         self.dock_info = {}
         self.areas = {}
 
+        # EXCEPT FOR THIS BLOCK:
         # set up standard widgets in docks
         self.set_up_standard_widgets()
         self.set_up_menu_bar()
         self.set_up_context_menus()
 
-        # layout docks
-        self.setDockOptions(QtGui.QMainWindow.AllowNestedDocks
-                            | QtGui.QMainWindow.AllowTabbedDocks
-                            | QtGui.QMainWindow.AnimatedDocks)
-        self.position_docks_at_start()
-        self.update_dock_positions()
-        # raise first tab
-        self.map_name_dock['Technosphere'].raise_()
-        self.map_name_dock['Databases'].raise_()
-        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtGui.QTabWidget.North)
-        self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtGui.QTabWidget.North)
-
-
+        # # layout docks
+        # self.setDockOptions(QtGui.QMainWindow.AllowNestedDocks
+        #                     | QtGui.QMainWindow.AllowTabbedDocks
+        #                     | QtGui.QMainWindow.AnimatedDocks)
+        # self.position_docks_at_start()
+        # self.update_dock_positions()
+        # # raise first tab
+        # self.map_name_dock['Technosphere'].raise_()
+        # self.map_name_dock['Databases'].raise_()
+        # self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtGui.QTabWidget.North)
+        # self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtGui.QTabWidget.North)
 
         # at program start
         self.listDatabases()
@@ -144,7 +143,7 @@ class MainWindow(QtGui.QMainWindow):
         self.set_up_widget_search()
         self.set_up_widget_biosphere()
         self.set_up_widget_toolbar()
-        self.setup_widget_activity_editor()
+        # self.setup_widget_activity_editor()
 
     def set_up_widget_technosphere(self):
         button_edit = QtGui.QPushButton("Edit")
@@ -180,18 +179,23 @@ class MainWindow(QtGui.QMainWindow):
         widget_technosphere = QtGui.QWidget()
         widget_technosphere.setLayout(VL_technosphere)
         # dock
-        self.add_dock(widget_technosphere, 'Technosphere', QtCore.Qt.RightDockWidgetArea)
+        # self.add_dock(widget_technosphere, 'Technosphere', QtCore.Qt.RightDockWidgetArea)
+
         # Connections
         button_edit.clicked.connect(self.edit_activity)
         button_calc_lca.clicked.connect(self.calculate_lcia)
         self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
+        self.tab_widget_LEFT.addTab(widget_technosphere, 'Technosphere')
+
     def set_up_widget_databases(self):
         self.table_databases = QtGui.QTableWidget()
-        self.add_dock(self.table_databases, 'Databases', QtCore.Qt.LeftDockWidgetArea)
+        # self.add_dock(self.table_databases, 'Databases', QtCore.Qt.LeftDockWidgetArea)
         # Connections
         self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
+
+        self.tab_widget_RIGHT.addTab(self.table_databases, 'Databases')
 
     def set_up_widget_search(self):
         self.label_multi_purpose = QtGui.QLabel()
@@ -203,13 +207,17 @@ class MainWindow(QtGui.QMainWindow):
         # dock
         widget = QtGui.QWidget()
         widget.setLayout(vl)
-        self.add_dock(widget, 'Search', QtCore.Qt.RightDockWidgetArea)
+        # self.add_dock(widget, 'Search', QtCore.Qt.RightDockWidgetArea)
         # Connections
         self.table_multipurpose.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
+        self.tab_widget_RIGHT.addTab(widget, 'Search')
+
     def set_up_widget_biosphere(self):
         self.table_inputs_biosphere = QtGui.QTableWidget()
-        self.add_dock(self.table_inputs_biosphere, 'Biosphere', QtCore.Qt.RightDockWidgetArea)
+        # self.add_dock(self.table_inputs_biosphere, 'Biosphere', QtCore.Qt.RightDockWidgetArea)
+
+        self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, 'Biosphere')
 
     def set_up_widget_toolbar(self):
         self.line_edit_search = QtGui.QLineEdit()
@@ -221,7 +229,7 @@ class MainWindow(QtGui.QMainWindow):
         # button_forward = QtGui.QPushButton(">>")
         button_search = QtGui.QPushButton("Search")
         button_history = QtGui.QPushButton("History")
-        button_test = QtGui.QPushButton("Test")
+        # button_test = QtGui.QPushButton("Test")
 
         # toolbar
         self.toolbar = QtGui.QToolBar()
@@ -232,7 +240,7 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbar.addWidget(button_history)
         self.toolbar.addWidget(button_random_activity)
         self.toolbar.addWidget(button_key)
-        self.toolbar.addWidget(button_test)
+        # self.toolbar.addWidget(button_test)
 
         # Connections
         button_random_activity.clicked.connect(lambda: self.load_new_current_activity())
@@ -240,13 +248,7 @@ class MainWindow(QtGui.QMainWindow):
         button_search.clicked.connect(self.search_results)
         button_history.clicked.connect(self.showHistory)
         button_key.clicked.connect(self.search_by_key)
-        button_test.clicked.connect(self.setupMP)
-
-    def setupMP(self):
-        # from mpwidget import MPWidget, TestMyIdea
-        print "was in setupMP"
-        myIdea = TestMyIdea()
-        # myIdea.load_Idea()
+        # button_test.clicked.connect(self.setupMP)
 
     def set_up_widget_LCIA(self):
         # TODO this should be split into user interface and update method
@@ -330,7 +332,7 @@ class MainWindow(QtGui.QMainWindow):
         # dock
         self.widget_LCIA = QtGui.QWidget()
         self.widget_LCIA.setLayout(self.VL_LCIA_widget)
-        self.add_dock(self.widget_LCIA, 'LCIA', QtCore.Qt.LeftDockWidgetArea)
+        # self.add_dock(self.widget_LCIA, 'LCIA', QtCore.Qt.LeftDockWidgetArea)
         # Connections
         self.button_calc_lcia.clicked.connect(self.calculate_lcia)
         self.button_calc_monte_carlo.clicked.connect(self.calculate_monte_carlo)
@@ -339,6 +341,8 @@ class MainWindow(QtGui.QMainWindow):
         self.combo_lcia_method_part1.currentIndexChanged.connect(self.update_lcia_method)
         self.combo_lcia_method_part2.currentIndexChanged.connect(self.update_lcia_method)
         self.button_clear_lcia_methods.clicked.connect(lambda: self.update_lcia_method(selection=('','','')))
+
+        self.tab_widget_LEFT.addTab(self.widget_LCIA, 'LCIA')
 
     def set_up_widget_LCA_results(self):
         # Labels
@@ -374,8 +378,10 @@ class MainWindow(QtGui.QMainWindow):
         # dock
         widget_LCIA_Results = QtGui.QWidget()
         widget_LCIA_Results.setLayout(VL_widget_LCIA_Results)
-        self.add_dock(widget_LCIA_Results, 'LCA Results', QtCore.Qt.RightDockWidgetArea)
+        # self.add_dock(widget_LCIA_Results, 'LCA Results', QtCore.Qt.RightDockWidgetArea)
         # Connections
+
+        self.tab_widget_RIGHT.addTab(widget_LCIA_Results, 'LCA Results')
 
     def setup_widget_activity_editor(self):
         # Labels
@@ -411,9 +417,11 @@ class MainWindow(QtGui.QMainWindow):
         VL_AE.addWidget(self.table_AE_biosphere)
         VL_AE.addLayout(HL_AE_actions)
         # AE widget
+        # dock
         widget_AE = QtGui.QWidget()
         widget_AE.setLayout(VL_AE)
-        self.add_dock(widget_AE, 'Activity Editor', QtCore.Qt.RightDockWidgetArea)
+        # self.add_dock(widget_AE, 'Activity Editor', QtCore.Qt.RightDockWidgetArea)
+
         # Connections
         self.table_AE_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_AE_activity.itemChanged.connect(self.change_values_activity)
@@ -450,6 +458,8 @@ class MainWindow(QtGui.QMainWindow):
         self.action_remove_exchange_bio = QtGui.QAction("delete", None)
         self.action_remove_exchange_bio.triggered.connect(self.remove_exchange_from_biosphere)
         self.table_AE_biosphere.addAction(self.action_remove_exchange_bio)
+
+        self.tab_widget_RIGHT.addTab(widget_AE, 'Activity Editor')
 
 # TODO
     def to_be_deleted_(self):
@@ -1012,14 +1022,6 @@ be distributed to others without the consent of the author."""
             edit_keys=['amount'])
         self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height()+self.table_AE_activity.rowHeight(0))
 
-
-# class TestMyIdea(MainWindow):
-#
-#     def __init__(self):
-#         # super(TestMyIdea, self).__init__(parent)
-#         print "was in TestMyIdea"
-#         table_databases = QtGui.QTableWidget()
-#         super(TestMyIdea, self).add_dock(table_databases, 'MyIdea',  QtCore.Qt.LeftDockWidgetArea)
 
 def main():
     app = QtGui.QApplication(sys.argv)
