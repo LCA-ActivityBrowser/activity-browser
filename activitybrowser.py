@@ -7,7 +7,7 @@ import os
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
 from browser_utils import *
-import settings
+import browser_settings
 from mpwidget import MPWidget
 import time
 from ast import literal_eval
@@ -327,7 +327,7 @@ class MainWindow(QtGui.QMainWindow):
             self.table_AE_biosphere = QtGui.QTableWidget()
             # Dropdown
             self.combo_databases = QtGui.QComboBox(self)
-            for name in [db['name'] for db in self.lcaData.getDatabases() if db['name'] not in settings.read_only_databases]:
+            for name in [db['name'] for db in self.lcaData.getDatabases() if db['name'] not in browser_settings.read_only_databases]:
                 self.combo_databases.addItem(name)
             # HL
             self.HL_AE_actions = QtGui.QHBoxLayout()
@@ -810,14 +810,14 @@ be distributed to others without the consent of the author."""
 
     def replace_edited_activity(self):
         key = self.lcaData.editActivity_key
-        if key[0] in settings.read_only_databases:
+        if key[0] in browser_settings.read_only_databases:
             self.statusBar().showMessage('Cannot save to protected database "'+str(key[0])+'". See settings file.')
         else:
             self.save_edited_activity(overwrite=True)
 
     def delete_activity(self):
         key = self.table_multipurpose.currentItem().activity_or_database_key
-        if key[0] not in settings.read_only_databases:
+        if key[0] not in browser_settings.read_only_databases:
             mgs = "Delete this activity?"
             reply = QtGui.QMessageBox.question(self, 'Message',
                         mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
