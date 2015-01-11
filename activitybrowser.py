@@ -607,7 +607,7 @@ be distributed to others without the consent of the author."""
                 self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
                 label_text = str(len(data)) + " activities found."
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
-                self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_multipurpose))
+                self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
         except:
