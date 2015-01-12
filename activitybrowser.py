@@ -344,8 +344,7 @@ class MainWindow(QtGui.QMainWindow):
             self.table_AE_biosphere = QtGui.QTableWidget()
             # Dropdown
             self.combo_databases = QtGui.QComboBox(self)
-            for name in [db['name'] for db in self.lcaData.getDatabases() if db['name'] not in browser_settings.read_only_databases]:
-                self.combo_databases.addItem(name)
+            self.update_read_and_write_database_list()
             # HL
             self.HL_AE_actions = QtGui.QHBoxLayout()
             self.HL_AE_actions.addWidget(self.label_ae_database)
@@ -755,6 +754,7 @@ be distributed to others without the consent of the author."""
             self.lcaData.set_edit_activity(self.lcaData.currentActivity)
             self.update_AE_tables()
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
+            self.update_read_and_write_database_list()
 
     def add_technosphere_exchange(self):
         self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)
@@ -864,7 +864,18 @@ be distributed to others without the consent of the author."""
             self.lcaData.get_exchanges(exchanges=exchanges, type="biosphere"),
             self.get_table_headers(type="biosphere"),
             edit_keys=['amount'])
-        self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height()+self.table_AE_activity.rowHeight(0))
+        self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height() +
+                                                self.table_AE_activity.rowHeight(0))
+
+    def update_read_and_write_database_list(self):
+        db_for_saving = [db['name'] for db in self.lcaData.getDatabases()
+                         if db['name'] not in browser_settings.read_only_databases]
+        if not db_for_saving:
+            self.statusBar().showMessage('No database found that is not read-only. '
+                                         'Please add a database that can be saved to.')
+        else:
+            for name in db_for_saving:
+                self.combo_databases.addItem(name)
 
 def main():
     app = QtGui.QApplication(sys.argv)
