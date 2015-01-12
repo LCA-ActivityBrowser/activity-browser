@@ -6,6 +6,7 @@ import itertools
 import numpy as np
 import uuid
 
+
 class MetaProcess(object):
     """A description of a simplified supply chain, which has the following characteristics:
 

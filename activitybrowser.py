@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+# from PyQt4 import QtCore, QtGui, QtWebKit
+# from PySide import QtCore, QtGui, QtWebKit
 import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
-import os
-from PyQt4 import QtCore, QtGui, QtWebKit
-# from PySide import QtCore, QtGui, QtWebKit
 from browser_utils import *
 import browser_settings
 from mpwidget import MPWidget
@@ -139,12 +139,12 @@ class MainWindow(QtGui.QMainWindow):
     def set_up_standard_widgets(self):
         self.set_up_widget_technosphere()
         self.set_up_widget_LCIA()
-        self.set_up_widget_LCA_results()
         self.set_up_widget_databases()
         self.set_up_widget_search()
         self.set_up_widget_biosphere()
+        self.set_up_widget_LCA_results()
         self.set_up_widget_toolbar()
-        # self.setup_widget_activity_editor()
+        self.setup_widget_activity_editor()
 
     def set_up_widget_technosphere(self):
         button_edit = QtGui.QPushButton("Edit")
@@ -274,6 +274,8 @@ class MainWindow(QtGui.QMainWindow):
         label_previous_calcs = QtGui.QLabel("Previous calculations")
         # Line edits
         self.line_edit_FU = QtGui.QLineEdit("1.0")
+        self.line_edit_monte_carlo_iterations = QtGui.QLineEdit("100")
+        self.line_edit_monte_carlo_iterations.setMaximumSize(QtCore.QSize(80, 30))
         # Buttons
         self.button_clear_lcia_methods = QtGui.QPushButton("Clear")
         self.button_calc_lcia = QtGui.QPushButton("Calculate")
@@ -315,6 +317,7 @@ class MainWindow(QtGui.QMainWindow):
         self.HL_calculation.setAlignment(QtCore.Qt.AlignLeft)
         self.HL_calculation.addWidget(self.button_calc_lcia)
         self.HL_calculation.addWidget(self.button_calc_monte_carlo)
+        self.HL_calculation.addWidget(self.line_edit_monte_carlo_iterations)
 
         # VL
         self.VL_LCIA_widget = QtGui.QVBoxLayout()
@@ -399,7 +402,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_AE_biosphere = QtGui.QTableWidget()
         # Dropdown
         self.combo_databases = QtGui.QComboBox(self)
-            self.update_read_and_write_database_list()
+        self.update_read_and_write_database_list()
         # HL
         HL_AE_actions = QtGui.QHBoxLayout()
         HL_AE_actions.addWidget(self.label_ae_database)
@@ -461,62 +464,6 @@ class MainWindow(QtGui.QMainWindow):
 
         self.tab_widget_RIGHT.addTab(self.widget_AE, 'Activity Editor')
 
-# TODO
-    def to_be_deleted_(self):
-        # TABLES
-
-        # SPLITTERS
-        # self.splitter_right = QtGui.QSplitter(QtCore.Qt.Vertical)
-        # self.splitter_horizontal = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        # LAYOUTS
-        # V
-        # vlayout = QtGui.QVBoxLayout()
-        # self.VL_RIGHT = QtGui.QVBoxLayout()
-        # self.VL_LEFT = QtGui.QVBoxLayout()
-        # H
-
-
-        # TAB WIDGETS
-        # self.tab_widget_RIGHT = QtGui.QTabWidget()
-        # self.tab_widget_RIGHT.setMovable(True)
-        # self.tab_widget_LEFT = QtGui.QTabWidget()
-        # self.tab_widget_LEFT.setMovable(True)
-        # VL
-        # LEFT
-
-
-        # WIDGETS
-        # self.widget_LEFT = QtGui.QWidget()
-        # self.widget_RIGHT = QtGui.QWidget()
-        # RIGHT SIDE
-        # self.widget_RIGHT.setLayout(self.VL_RIGHT)
-        # self.VL_RIGHT.addLayout(HL_multi_purpose)
-        self.VL_RIGHT.addWidget(self.label_multi_purpose)
-        self.VL_RIGHT.addWidget(self.tab_widget_RIGHT)
-        # self.tab_widget_RIGHT.addTab(self.table_databases, "Databases")
-
-        # self.tab_widget_RIGHT.addTab(self.table_multipurpose, "Search")
-
-        # self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, "Biosphere")
-
-        # LEFT SIDE
-        self.widget_LEFT.setLayout(self.VL_LEFT)
-        self.VL_LEFT.addWidget(self.tab_widget_LEFT)
-        # self.tab_widget_LEFT.addTab(self.widget_technosphere, "Technosphere")
-
-        # OVERALL
-        self.splitter_horizontal.addWidget(self.widget_LEFT)
-        self.splitter_horizontal.addWidget(self.widget_RIGHT)
-        hlayout.addWidget(self.splitter_horizontal)
-        vlayout.addLayout(hlayout)
-        self.central_widget.setLayout(vlayout)
-        # self.setCentralWidget(self.central_widget)
-
-        # CONNECTIONS
-
-        # button_backward.clicked.connect(self.goBackward)
-        # button_forward.clicked.connect(self.goForward)
-
     def set_up_context_menus(self):
         # CONTEXT MENUS
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -541,7 +488,6 @@ class MainWindow(QtGui.QMainWindow):
         help_menu = QtGui.QMenu('&Help', self)
         menubar.addMenu(help_menu)
         help_menu.addAction('&About', self.about)
-
 
     def about(self):
         QtGui.QMessageBox.about(self, "About",
@@ -578,15 +524,15 @@ be distributed to others without the consent of the author."""
             print "MP WIDGET ALREADY LOADED"
         else:
             self.MP_Widget = MPWidget()
-            # self.tab_widget_LEFT.addTab(self.MP_Widget.MPdataWidget, "MP")
-            self.add_dock(self.MP_Widget.MPdataWidget, 'MP', QtCore.Qt.LeftDockWidgetArea)
-            # self.tab_widget_LEFT.addTab(self.MP_Widget.table_MP_database, "MP database")
-            self.add_dock(self.MP_Widget.table_MP_database, 'MP database', QtCore.Qt.LeftDockWidgetArea)
-            # self.tab_widget_LEFT.addTab(self.MP_Widget.PP_analyzer, "MP LCA")
-            self.add_dock(self.MP_Widget.PP_analyzer, 'MP LCA', QtCore.Qt.LeftDockWidgetArea)
+            self.tab_widget_LEFT.addTab(self.MP_Widget.MPdataWidget, "MP")
+            # self.add_dock(self.MP_Widget.MPdataWidget, 'MP', QtCore.Qt.LeftDockWidgetArea)
+            self.tab_widget_LEFT.addTab(self.MP_Widget.table_MP_database, "MP database")
+            # self.add_dock(self.MP_Widget.table_MP_database, 'MP database', QtCore.Qt.LeftDockWidgetArea)
+            self.tab_widget_LEFT.addTab(self.MP_Widget.PP_analyzer, "MP LCA")
+            # self.add_dock(self.MP_Widget.PP_analyzer, 'MP LCA', QtCore.Qt.LeftDockWidgetArea)
             # self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_buttons)
             # self.VL_LEFT.addLayout(self.MP_Widget.HL_MP_Database_buttons)
-            # add buttons as new toolbar
+
             # toolbar
             self.toolbar_MP = QtGui.QToolBar()
             self.addToolBar(self.MP_Widget.toolbar_MP)
@@ -598,17 +544,17 @@ be distributed to others without the consent of the author."""
             # widget.setLayout(vl)
             # self.add_dock(widget, 'buttons', QtCore.Qt.LeftDockWidgetArea)
 
-            # self.tab_widget_RIGHT.addTab(self.MP_Widget.webview, "Graph")
-            self.add_dock(self.MP_Widget.webview, 'Graph', QtCore.Qt.RightDockWidgetArea)
+            self.tab_widget_RIGHT.addTab(self.MP_Widget.webview, "Graph")
+            # self.add_dock(self.MP_Widget.webview, 'Graph', QtCore.Qt.RightDockWidgetArea)
             # self.webview = QtWebKit.QWebView()
             # self.setCentralWidget(self.webview)
             # self.tab_widget_RIGHT.addTab(self.webview, "Graph")
             # self.tab_widget_RIGHT.addTab(QtGui.QWidget(), "Graph")
             # self.position_docks_at_start()
             # self.update_dock_positions()
-            print self.map_name_dock.keys()
-            print self.areas
-            print self.dock_info
+            # print self.map_name_dock.keys()
+            # print self.areas
+            # print self.dock_info
 
             # CONTEXT MENUS
             # Technosphere Inputs
@@ -795,13 +741,23 @@ be distributed to others without the consent of the author."""
         elif not method:
             self.statusBar().showMessage("Need to select an LCIA method first.")
         else:
-            if self.line_edit_FU and self.helper.is_number(self.line_edit_FU.text()):
+            if self.line_edit_FU and self.helper.is_float(self.line_edit_FU.text()):
                 amount = float(self.line_edit_FU.text())
             else:
                 amount = 1.0
 
             tic = time.clock()
+            # Standard LCA
             uuid_ = self.lcaData.lcia(amount=amount, method=method)
+            # Monte Carlo LCA
+            if self.helper.is_int(self.line_edit_monte_carlo_iterations.text()):
+                self.mc_iterations = int(self.line_edit_monte_carlo_iterations.text())
+            else:
+                self.mc_iterations = 100
+            if monte_carlo:
+                self.lcaData.monte_carlo_lcia(key=None, amount=amount, method=method,
+                                              iterations=self.mc_iterations, cpu_count=self.cpu_count, uuid_=uuid_)
+            self.statusBar().showMessage("Calculated LCIA score in {:.2f} seconds.".format(time.clock()-tic))
             # Update Table Previous LCA calculations
             keys = ['product', 'name', 'location', 'database', 'functional unit', 'unit', 'method']
             data = []
@@ -809,14 +765,9 @@ be distributed to others without the consent of the author."""
                 data.append(dict(lcia_data.items() + self.lcaData.getActivityData(lcia_data['key']).items()))
             self.table_previous_calcs = self.helper.update_table(
                 self.table_previous_calcs, data, keys)
-            # Monte Carlo LCA
-            if monte_carlo:
-                self.lcaData.monte_carlo_lcia(key=None, amount=amount, method=method,
-                                              iterations=500, cpu_count=self.cpu_count, uuid_=uuid_)
             # Update LCA results
             self.update_LCA_results(uuid_)
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_LCIA_Results))
-            self.statusBar().showMessage("Calculated LCIA score in {:.2f} seconds.".format(time.clock()-tic))
 
     def calculate_monte_carlo(self):
         self.calculate_lcia(monte_carlo=True)
@@ -901,8 +852,8 @@ be distributed to others without the consent of the author."""
                   label='median: {:.3g}'.format(median), color='magenta', linewidth=2.0)
         ax.vlines(mean, 0 , sm_y[self.helper.find_nearest(sm_x, mean)],
                   label='mean: {:.3g}'.format(mean), color='blue', linewidth=2.0)
-        plt.xlabel('LCA scores'), plt.ylabel('count')
-        plt.legend(loc='upper right', prop={'size':10})
+        plt.xlabel('LCA scores ('+str(mc['iterations'])+' runs)'), plt.ylabel('count')
+        plt.legend(loc='upper right', prop={'size': 10})
         self.canvas_mc.draw()
 
     # ACTIVITY EDITOR (AE)
@@ -1015,13 +966,12 @@ be distributed to others without the consent of the author."""
         self.table_AE_technosphere = self.helper.update_table(
             self.table_AE_technosphere,
             self.lcaData.get_exchanges(exchanges=exchanges, type="technosphere"),
-            self.get_table_headers(type="technosphere"),
-            edit_keys=['amount'])
-        self.table_AE_biosphere = self.helper.update_table(
-            self.table_AE_biosphere,
-            self.lcaData.get_exchanges(exchanges=exchanges, type="biosphere"),
-            self.get_table_headers(type="biosphere"),
-            edit_keys=['amount'])
+            self.get_table_headers(type="technosphere"), edit_keys=['amount'])
+        self.table_AE_biosphere = \
+            self.helper.update_table(
+                self.table_AE_biosphere,
+                self.lcaData.get_exchanges(exchanges=exchanges, type="biosphere"),
+                self.get_table_headers(type="biosphere"), edit_keys=['amount'])
         self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height() +
                                                 self.table_AE_activity.rowHeight(0))
 

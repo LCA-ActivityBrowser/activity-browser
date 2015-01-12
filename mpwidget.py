@@ -3,8 +3,6 @@
 
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
-
-# from activitybrowser import MainWindow
 from browser_utils import *
 from jinja2 import Template
 import json
@@ -12,12 +10,8 @@ import pickle
 import xlsxwriter
 import os
 from mpcreator import MetaProcessCreator
-from metaprocess import MetaProcess
 from linkedmetaprocess import LinkedMetaProcessSystem
 import numpy as np
-import itertools
-import networkx as nx  # TODO get rid of this dependency?
-import pprint
 import operator
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -67,6 +61,7 @@ class MPWidget(QtGui.QWidget):
         self.toolbar_MP.addWidget(button_delete_MP_from_Database)
         self.toolbar_MP.addWidget(button_graph)
         self.toolbar_MP.addWidget(button_toggle_layout)
+        self.toolbar_MP.addSeparator()
         self.toolbar_MP.addWidget(button_load_MP_database)
         self.toolbar_MP.addWidget(button_saveAs_MP_database)
         self.toolbar_MP.addWidget(button_addDB)
@@ -379,7 +374,7 @@ class MPWidget(QtGui.QWidget):
         if item.column() == 0:  # name
             print "\nChanging output NAME to: " + text
             self.MPC.set_output_name(key, text, self.text_before_edit, float(amount))
-        elif item.column() == 1 and self.helper.is_number(text):  # quantity
+        elif item.column() == 1 and self.helper.is_float(text):  # quantity
             print "\nChanging output QUANTITY to: " + text
             self.MPC.set_output_quantity(key, float(text), name, float(self.text_before_edit))
         else:  # ignore!

@@ -8,6 +8,7 @@ import networkx as nx  # TODO: get rid of this dependency
 import pickle
 import os
 
+
 class LinkedMetaProcessSystem(object):
     """
     A class for doing stuff with linked meta-procseses.
@@ -372,12 +373,3 @@ class LinkedMetaProcessSystem(object):
         for path in self.all_pathways(demand.keys()[0]):
             path_lca_data.append(self.lca_linked_processes(method, path, demand))
         return path_lca_data
-
-
-
-
-
-
-
-
-

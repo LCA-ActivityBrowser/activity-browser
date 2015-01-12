@@ -5,6 +5,7 @@ from metaprocess import MetaProcess
 from browser_utils import *
 import json
 
+
 class MetaProcessCreator(BrowserStandardTasks):
     def __init__(self):
         self.mp_data = {'name': 'New Meta-Process', 'outputs': [], 'chain': [], 'cuts': []}

@@ -79,7 +79,14 @@ class HelperMethods(object):
             table.setSortingEnabled(True)
         return table
 
-    def is_number(self, s):
+    def is_int(self, s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+
+    def is_float(self, s):
         try:
             float(s)
             return True
@@ -320,6 +327,7 @@ class BrowserStandardTasks(object):
             key = self.currentActivity
         mc_data = SerializedLCAReport({key: amount}, method, iterations, cpu_count).get_monte_carlo()
         if uuid_:
+            mc_data['iterations'] = iterations
             self.LCIA_calculations_mc.update({uuid_: mc_data})
         return mc_data
 
