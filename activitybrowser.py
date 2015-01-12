@@ -233,7 +233,7 @@ class MainWindow(QtGui.QMainWindow):
         # button_test = QtGui.QPushButton("Test")
 
         # toolbar
-        self.toolbar = QtGui.QToolBar()
+        self.toolbar = QtGui.QToolBar('Toolbar')
         self.addToolBar(self.toolbar)
 
         self.toolbar.addWidget(self.line_edit_search)
