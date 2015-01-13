@@ -735,7 +735,7 @@ be distributed to others without the consent of the author."""
             combo.blockSignals(False)
 
     def calculate_lcia(self, monte_carlo=False):
-        method = self.lcaData.LCIA_method
+        method = self.lcaData.LCIA_METHOD
         if not self.lcaData.currentActivity:
             self.statusBar().showMessage("Need to load an activity first.")
         elif not method:
@@ -745,7 +745,6 @@ be distributed to others without the consent of the author."""
                 amount = float(self.line_edit_FU.text())
             else:
                 amount = 1.0
-
             tic = time.clock()
             # Standard LCA
             uuid_ = self.lcaData.lcia(amount=amount, method=method)

@@ -3,7 +3,7 @@
 
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
-from browser_utils import *
+from browser_utils import HelperMethods, MyQTableWidgetItem, BrowserStandardTasks
 from jinja2 import Template
 import json
 import pickle
@@ -26,6 +26,7 @@ class MPWidget(QtGui.QWidget):
         self.MPC = MetaProcessCreator()
         self.lmp = LinkedMetaProcessSystem()
         self.helper = HelperMethods()
+        self.lcaData = BrowserStandardTasks()
         self.setupUserInterface()
         self.set_up_PP_analyzer()
 
@@ -159,6 +160,7 @@ class MPWidget(QtGui.QWidget):
         # Labels
         label_functional_unit = QtGui.QLabel("Functional Unit:")
         self.label_FU_unit = QtGui.QLabel("unit")
+        self.label_LCIA_method = QtGui.QLabel("LCIA Method: (see LCIA tab)")
         # Line edits
         self.line_edit_FU = QtGui.QLineEdit("1.0")
         # Buttons
@@ -168,7 +170,6 @@ class MPWidget(QtGui.QWidget):
         # Dropdown
         self.combo_functional_unit = QtGui.QComboBox(self)
         self.combo_functional_unit.setMinimumWidth(200)
-        self.combo_lcia_method = QtGui.QComboBox(self)
         # Tables
         self.table_PP_comparison = QtGui.QTableWidget()
 
@@ -190,15 +191,14 @@ class MPWidget(QtGui.QWidget):
         self.HL_functional_unit.addWidget(label_functional_unit)
         self.HL_functional_unit.addWidget(self.line_edit_FU)
         self.HL_functional_unit.addWidget(self.label_FU_unit)
-        self.HL_functional_unit.addWidget(self.combo_functional_unit)
 
         self.HL_PP_analysis = QtGui.QHBoxLayout()
         self.HL_PP_analysis.setAlignment(QtCore.Qt.AlignLeft)
         self.HL_PP_analysis.addWidget(self.button_PP_lca)
         self.HL_PP_analysis.addWidget(self.button_PP_pathways)
         self.HL_PP_analysis.addWidget(self.button_PP_lca_pathways)
-        self.HL_PP_analysis.addWidget(self.combo_lcia_method)
-        self.combo_lcia_method.addItem(str((u'IPCC 2007', u'climate change', u'GWP 100a')))
+        self.HL_PP_analysis.addWidget(self.label_LCIA_method)
+
         # VL
         self.VL_PP_analyzer = QtGui.QVBoxLayout()
         self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
@@ -469,15 +469,19 @@ class MPWidget(QtGui.QWidget):
         """
         returns dict where: keys = MP name, value = LCA score
         """
-        method = (u'IPCC 2007', u'climate change', u'GWP 100a')  # TODO
-        map_process_lcascore = self.lmp.lca_processes(method, process_names=process_list)
-        data = []
-        for name, score in map_process_lcascore.items():
-            data.append({
-                'meta-process': name,
-                'LCA score': score
-            })
-        self.update_PP_comparison_table(data=data, keys=['meta-process', 'LCA score'])
+        # method = (u'IPCC 2007', u'climate change', u'GWP 100a')  # TODO
+        method = self.lcaData.LCIA_METHOD
+        if not method:
+            self.signal_status_bar_message.emit('Need to define an LCIA method first.')
+        else:
+            map_process_lcascore = self.lmp.lca_processes(method, process_names=process_list)
+            data = []
+            for name, score in map_process_lcascore.items():
+                data.append({
+                    'meta-process': name,
+                    'LCA score': score
+                })
+            self.update_PP_comparison_table(data=data, keys=['meta-process', 'LCA score'])
 
     def show_all_pathways(self):
         functional_unit = str(self.combo_functional_unit.currentText())

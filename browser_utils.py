@@ -111,7 +111,12 @@ class Styles(object):
 class Checks(object):
     pass
 
+
+
 class BrowserStandardTasks(object):
+
+    LCIA_METHOD = (u'IPCC 2007', u'climate change', u'GWP 100a')
+
     def __init__(self):
         self.history = []
         self.currentActivity = None
@@ -120,7 +125,7 @@ class BrowserStandardTasks(object):
         self.database_version = None
         self.LCIA_calculations = {}  # used to store LCIA calculations
         self.LCIA_calculations_mc = {}
-        self.LCIA_method = None
+
 
     def updateEcoinventVersion(self, key=None):
         # set database version (2 or 3)
@@ -294,10 +299,10 @@ class BrowserStandardTasks(object):
                                    if item[0].isdigit() else float('inf'), item)) for p in method_parts]
         # set LCIA method if possible
         if len(methods) == 1:
-            self.LCIA_method = methods[0]
-            print "LCIA method set to "+str(self.LCIA_method)
+            BrowserStandardTasks.LCIA_METHOD = methods[0]
+            print "LCIA method set to "+str(methods[0])
         else:
-            self.LCIA_method = None
+            BrowserStandardTasks.LCIA_METHOD = None
         return methods, method_parts
 
     def lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a')):
