@@ -55,7 +55,7 @@ class MPWidget(QtGui.QWidget):
         button_pp_graph = QtGui.QPushButton("PP-Graph")
 
         # buttons TOOLBAR
-        self.toolbar_MP = QtGui.QToolBar()
+        self.toolbar_MP = QtGui.QToolBar('Toolbar MP')
         self.toolbar_MP.addWidget(button_new_process_subsystem)
         self.toolbar_MP.addWidget(button_add_MP_to_Database)
         self.toolbar_MP.addWidget(button_delete_MP_from_Database)
