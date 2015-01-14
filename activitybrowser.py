@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# from PyQt4 import QtCore, QtGui, QtWebKit
+from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
 import sys
 reload(sys)
@@ -17,10 +17,241 @@ import multiprocessing
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
+import pickle
+
+
+class WidgetMultiLCA(QtGui.QWidget):
+    """
+    A widget for performing LCA calculations for multiple datasets and multiple LCIA methods.
+    """
+
+    signal_status_bar_message = QtCore.pyqtSignal(str)
+    PATH_MULTI_LCA = '.\Multi-LCA'
+
+    def __init__(self, parent=None):
+        super(WidgetMultiLCA, self).__init__(parent)
+        self.lcaData = BrowserStandardTasks()
+        self.helper = HelperMethods()
+        self.selected_methods = []
+        self.selected_activities = []
+        self.results = {}
+
+        self.set_up_ui()
+        self.set_up_connections_and_context_menus()
+        self.initialize_methods_table()
+
+    def set_up_ui(self):
+        # Labels
+
+        # Buttons
+        self.button_calc_lcas = QtGui.QPushButton("Calculate")
+        self.button_save_results = QtGui.QPushButton("Save results")
+        self.button_load_activities = QtGui.QPushButton("Load Activities")
+        self.button_save_activities = QtGui.QPushButton("Save Activities")
+        self.button_load_methods = QtGui.QPushButton("Load Methods")
+        self.button_save_methods = QtGui.QPushButton("Save Methods")
+        # Layout buttons
+        buttons_layout = QtGui.QHBoxLayout()
+        buttons_layout.setAlignment(QtCore.Qt.AlignLeft)
+        buttons_layout.addWidget(self.button_calc_lcas)
+        buttons_layout.addWidget(self.button_save_results)
+        buttons_layout.addWidget(self.button_load_activities)
+        buttons_layout.addWidget(self.button_save_activities)
+        buttons_layout.addWidget(self.button_load_methods)
+        buttons_layout.addWidget(self.button_save_methods)
+
+        # Tables
+        self.table_activities = QtGui.QTableWidget()
+        self.table_all_methods = QtGui.QTableWidget()
+        self.table_selected_methods = QtGui.QTableWidget()
+        # Layout Tables
+        VL_table_all_methods = QtGui.QVBoxLayout()
+        VL_table_all_methods.addWidget(QtGui.QLabel('Available LCIA Methods (add to selection via right-click):'))
+        VL_table_all_methods.addWidget(self.table_all_methods)
+        widget_all_methods = QtGui.QWidget()
+        widget_all_methods.setLayout(VL_table_all_methods)
+
+        VL_table_selected_methods = QtGui.QVBoxLayout()
+        VL_table_selected_methods.addWidget(QtGui.QLabel('Selected LCIA Methods (remove from selection via right-click):'))
+        VL_table_selected_methods.addWidget(self.table_selected_methods)
+        widget_selected_methods = QtGui.QWidget()
+        widget_selected_methods.setLayout(VL_table_selected_methods)
+
+        VL_table_activities = QtGui.QVBoxLayout()
+        VL_table_activities.addWidget(QtGui.QLabel('Selected activities:'))
+        VL_table_activities.addWidget(self.table_activities)
+        widget_activities = QtGui.QWidget()
+        widget_activities.setLayout(VL_table_activities)
+        # Add tables to Splitter
+        splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        splitter.addWidget(widget_all_methods)
+        splitter.addWidget(widget_selected_methods)
+        splitter.addWidget(widget_activities)
+
+        # Overall layout
+        vlayout = QtGui.QVBoxLayout()
+        vlayout.addLayout(buttons_layout)
+        vlayout.addWidget(splitter)
+        self.setLayout(vlayout)
+
+    def set_up_connections_and_context_menus(self):
+        # CONTEXT MENUS
+        # Table ALL Methods
+        self.table_all_methods.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.action_add_methods = QtGui.QAction("Add selection", None)
+        self.action_add_methods.triggered.connect(self.add_selected_methods)
+        self.table_all_methods.addAction(self.action_add_methods)
+        # Table SELECTED Methods
+        self.table_selected_methods.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.action_remove_methods = QtGui.QAction("Remove selection", None)
+        self.action_remove_methods.triggered.connect(self.remove_selected_methods)
+        self.table_selected_methods.addAction(self.action_remove_methods)
+        # Table ACTIVITIES
+        self.table_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.action_remove_activities = QtGui.QAction("Remove selection", None)
+        self.action_remove_activities.triggered.connect(self.remove_selected_activities)
+        self.table_activities.addAction(self.action_remove_activities)
+
+        # CONNECTIONS
+        self.button_calc_lcas.clicked.connect(self.calculate_lcas)
+        self.button_save_results.clicked.connect(self.save_results)
+        self.button_load_activities.clicked.connect(self.load_activities)
+        self.button_save_activities.clicked.connect(self.save_activities)
+        self.button_load_methods.clicked.connect(self.load_methods)
+        self.button_save_methods.clicked.connect(self.save_methods)
+
+    def initialize_methods_table(self):
+        keys = ["Family", "Category", "Subcategory"]
+        methods = self.lcaData.search_methods(searchString='', length=None, does_not_contain='ecoinvent3')
+        data = self.format_methods_dict(methods)
+        self.table_all_methods = self.helper.update_table(self.table_all_methods, data, keys)
+
+    def format_methods_dict(self, methods):
+        data = []
+        for method in methods:
+            data.append({
+                'Family': method[0],
+                'Category': method[1] if len(method) > 1 else '',
+                'Subcategory': method[2] if len(method) > 2 else '',
+                'key': method,
+                'key_type': 'lcia method',
+            })
+        data.sort(key=lambda x: x['Family'])
+        return data
+
+    def add_selected_methods(self):
+        methods_to_add = [item.activity_or_database_key for item in self.table_all_methods.selectedItems()
+                          if item.activity_or_database_key not in self.selected_methods]
+        self.selected_methods = self.selected_methods + methods_to_add
+        self.update_table_selected_methods()
+
+    def remove_selected_methods(self):
+        methods_to_remove = [item.activity_or_database_key for item in self.table_selected_methods.selectedItems()]
+        for method in methods_to_remove:
+            self.selected_methods.remove(method)
+        self.update_table_selected_methods()
+
+    def update_table_selected_methods(self):
+        keys = ["Family", "Category", "Subcategory"]
+        data = self.format_methods_dict(self.selected_methods)
+        # data.sort(key=lambda x: x['Family'])
+        self.table_selected_methods = self.helper.update_table(self.table_selected_methods, data, keys)
+
+    def add_selected_activities(self, mqtw_items):
+        for item in mqtw_items:
+            if item.activity_or_database_key not in self.selected_activities:
+                self.selected_activities.append(item.activity_or_database_key)
+        self.update_table_activities()
+
+    def remove_selected_activities(self):
+        for item in self.table_activities.selectedItems():
+            self.selected_activities.remove(item.activity_or_database_key)
+        self.update_table_activities()
+
+    def update_table_activities(self):
+        keys = ["product", "name", "location", "amount", "unit", "database"]
+        data = [self.lcaData.getActivityData(key) for key in self.selected_activities]
+        # data.sort(key=lambda x: x['name'])
+        self.table_activities = self.helper.update_table(self.table_activities, data, keys)
+
+    def load_activities(self):
+        file_types = "Pickle (*.pickle);;All (*.*)"
+        filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.PATH_MULTI_LCA, file_types)
+        try:
+            with open(filepath, 'r') as infile:
+                raw_data = pickle.load(infile)
+        except:
+            raise IOError(u'Could not load file.')
+        self.selected_activities = raw_data
+        self.update_table_activities()
+        self.signal_status_bar_message.emit('Loaded activities from file.')
+
+    def save_activities(self):
+        file_types = "Pickle (*.pickle);;All (*.*)"
+        filepath = str(QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.PATH_MULTI_LCA, file_types))
+        with open(filepath, 'w') as outfile:
+            pickle.dump(self.selected_activities, outfile)
+        self.signal_status_bar_message.emit('Saved selected activities to file.')
+
+    def load_methods(self):
+        file_types = "Pickle (*.pickle);;All (*.*)"
+        filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.PATH_MULTI_LCA, file_types)
+        try:
+            with open(filepath, 'r') as infile:
+                raw_data = pickle.load(infile)
+        except:
+            raise IOError(u'Could not load file.')
+        self.selected_methods = raw_data
+        self.update_table_selected_methods()
+        self.signal_status_bar_message.emit('Loaded methods from file.')
+
+    def save_methods(self):
+        file_types = "Pickle (*.pickle);;All (*.*)"
+        filepath = str(QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.PATH_MULTI_LCA, file_types))
+        with open(filepath, 'w') as outfile:
+            pickle.dump(self.selected_methods, outfile)
+        self.signal_status_bar_message.emit('Saved selected methods to file.')
+
+    def calculate_lcas(self):
+        self.signal_status_bar_message.emit('Calculating...')
+        tic = time.clock()
+        if not self.selected_methods:
+            self.signal_status_bar_message.emit('You need to add methods first.')
+        elif not self.selected_activities:
+            self.signal_status_bar_message.emit('You need to add activities first.')
+        else:
+            lca_scores, methods, activities = \
+                self.lcaData.multi_lca(self.selected_activities, self.selected_methods)
+            self.results.update({
+                'lca_scores': lca_scores,
+                'methods': methods,
+                'activities': activities,
+            })
+            print activities
+            print methods
+            print lca_scores
+            self.signal_status_bar_message.emit('Done in {:.2f} seconds.'.format(time.clock()-tic))
+
+    def save_results(self):
+        activity_names = [' // '.join(filter(None, [self.lcaData.getActivityData(key)['product'],
+                                                    self.lcaData.getActivityData(key)['name']]))
+                          for key in self.results['activities']]
+        methods = [', '.join(method) for method in self.results['methods']]  # excelwrite does not support tuples
+        matrix_lca_scores = self.results['lca_scores']
+        file_types = "Excel (*.xlsx);;"
+        filepath = str(QtGui.QFileDialog.getSaveFileName(self, 'Save File', self.PATH_MULTI_LCA, file_types))
+        if filepath:
+            try:
+                export_matrix_to_excel(activity_names, methods, matrix_lca_scores, filepath, sheetname='Multi-LCA-Results')
+                self.signal_status_bar_message.emit('Multi-LCA Results saved to: '+filepath)
+            except IOError:
+                self.signal_status_bar_message.emit('Could not save to file.')
 
 
 class MainWindow(QtGui.QMainWindow):
     signal_add_to_chain = QtCore.pyqtSignal(MyQTableWidgetItem)
+    signal_MyQTableWidgetItem = QtCore.pyqtSignal(MyQTableWidgetItem)
+    signal_MyQTableWidgetItemsList = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -146,6 +377,13 @@ class MainWindow(QtGui.QMainWindow):
         self.set_up_widget_toolbar()
         self.setup_widget_activity_editor()
 
+        # FROM OUTSIDE CLASSES
+        # Widget Multi-LCA
+        self.widget_multi_lca = WidgetMultiLCA()
+        self.tab_widget_LEFT.addTab(self.widget_multi_lca, 'Multi-LCA')
+        self.signal_MyQTableWidgetItemsList.connect(self.widget_multi_lca.add_selected_activities)
+        self.widget_multi_lca.signal_status_bar_message.connect(self.statusBarMessage)
+
     def set_up_widget_technosphere(self):
         button_edit = QtGui.QPushButton("Edit")
         button_calc_lca = QtGui.QPushButton("Calculate LCA")
@@ -182,6 +420,9 @@ class MainWindow(QtGui.QMainWindow):
         # dock
         # self.add_dock(widget_technosphere, 'Technosphere', QtCore.Qt.RightDockWidgetArea)
 
+        # CONTEXT MENUS
+        self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
         # Connections
         button_edit.clicked.connect(self.edit_activity)
         button_calc_lca.clicked.connect(self.calculate_lcia)
@@ -200,17 +441,29 @@ class MainWindow(QtGui.QMainWindow):
 
     def set_up_widget_search(self):
         self.label_multi_purpose = QtGui.QLabel()
-        self.table_multipurpose = QtGui.QTableWidget()
+        self.table_search = QtGui.QTableWidget()
         # Layout
         vl = QtGui.QVBoxLayout()
         vl.addWidget(self.label_multi_purpose)
-        vl.addWidget(self.table_multipurpose)
+        vl.addWidget(self.table_search)
         # dock
         self.widget_search = QtGui.QWidget()
         self.widget_search.setLayout(vl)
         # self.add_dock(widget, 'Search', QtCore.Qt.RightDockWidgetArea)
+
+        # CONTEXT MENUS
+        self.table_search.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+        self.action_delete_activity = QtGui.QAction("delete activity", None)
+        self.action_delete_activity.triggered.connect(self.delete_activity)
+        self.table_search.addAction(self.action_delete_activity)
+
+        self.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)
+        self.action_add_to_multi_lca.triggered.connect(self.add_to_multi_lca)
+        self.table_search.addAction(self.action_add_to_multi_lca)
+
         # Connections
-        self.table_multipurpose.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
+        self.table_search.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
         self.tab_widget_RIGHT.addTab(self.widget_search, 'Search')
 
@@ -445,7 +698,7 @@ class MainWindow(QtGui.QMainWindow):
         # Multi-Purpose Table
         self.action_add_multipurpose_exchange = QtGui.QAction("--> edited activity", None)
         self.action_add_multipurpose_exchange.triggered.connect(self.add_multipurpose_exchange)
-        self.table_multipurpose.addAction(self.action_add_multipurpose_exchange)
+        self.table_search.addAction(self.action_add_multipurpose_exchange)
         # Biosphere Table
         self.table_inputs_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.action_add_biosphere_exchange = QtGui.QAction("--> edited activity", None)
@@ -466,12 +719,9 @@ class MainWindow(QtGui.QMainWindow):
 
     def set_up_context_menus(self):
         # CONTEXT MENUS
-        self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        # self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.table_multipurpose.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_delete_activity = QtGui.QAction("delete activity", None)
-        self.action_delete_activity.triggered.connect(self.delete_activity)
-        self.table_multipurpose.addAction(self.action_delete_activity)
+
 
     def set_up_menu_bar(self):
         # MENU BAR
@@ -479,7 +729,7 @@ class MainWindow(QtGui.QMainWindow):
         addMP = QtGui.QAction('&Meta-Process Editor', self)
         addMP.setShortcut('Ctrl+E')
         addMP.setStatusTip('Start Meta-Process Editor')
-        self.connect(addMP, QtCore.SIGNAL('triggered()'), self.set_up_widgets_meta_process)
+        addMP.triggered.connect(self.set_up_widgets_meta_process)
         # Add actions
         menubar = self.menuBar()
         extensions_menu = menubar.addMenu('&Extensions')
@@ -516,6 +766,10 @@ be distributed to others without the consent of the author."""
         :return:
         """
         self.statusBar().showMessage(message)
+
+    # SIGNAL-SLOT METHODS
+    def add_to_multi_lca(self):
+        self.signal_MyQTableWidgetItemsList.emit(self.table_search.selectedItems())
 
     # META-PROCESS STUFF
 
@@ -568,10 +822,10 @@ be distributed to others without the consent of the author."""
             # Multi-Purpose Table
             self.action_addToMP = QtGui.QAction("--> Meta-Process", None)
             self.action_addToMP.triggered.connect(self.add_to_chain)
-            self.table_multipurpose.addAction(self.action_addToMP)
+            self.table_search.addAction(self.action_addToMP)
             # CONNECTIONS BETWEEN WIDGETS
             self.signal_add_to_chain.connect(self.MP_Widget.addToChain)
-            self.MP_Widget.signal_activity_key.connect(self.gotoDoubleClickActivity)
+            self.MP_Widget.signal_MyQTableWidgetItem.connect(self.gotoDoubleClickActivity)
             self.MP_Widget.signal_status_bar_message.connect(self.statusBarMessage)
             # MENU BAR
             # Actions
@@ -590,7 +844,7 @@ be distributed to others without the consent of the author."""
         self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
 
     def add_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_multipurpose.currentItem())
+        self.signal_add_to_chain.emit(self.table_search.currentItem())
 
     # NAVIGATION
 
@@ -624,7 +878,7 @@ be distributed to others without the consent of the author."""
     def showHistory(self):
         keys = self.get_table_headers(type="history")
         data = self.lcaData.getHistory()
-        self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
+        self.table_search = self.helper.update_table(self.table_search, data, keys)
         label_text = "History"
         self.label_multi_purpose.setText(QtCore.QString(label_text))
         self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
@@ -685,14 +939,13 @@ be distributed to others without the consent of the author."""
         searchString = self.line_edit_search.text()
         try:
             if searchString == '':
-                print "Listing all activities in database"
-                data = [self.lcaData.getActivityData(key) for key in self.lcaData.database.keys()]
-                data.sort(key=lambda x: x['name'])
+                print "Listing all activities in:", self.lcaData.db
+                data = self.lcaData.search_activities(searchString)
             else:
                 print "\nSearched for:", searchString
-                data = self.lcaData.get_search_results(searchString)
+                data = self.lcaData.search_activities(searchString)
             keys = self.get_table_headers(type="search")
-            self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
+            self.table_search = self.helper.update_table(self.table_search, data, keys)
             label_text = str(len(data)) + " activities found."
             self.label_multi_purpose.setText(QtCore.QString(label_text))
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
@@ -708,7 +961,7 @@ be distributed to others without the consent of the author."""
                 print "Data: "
                 print data
                 keys = self.get_table_headers(type="search")
-                self.table_multipurpose = self.helper.update_table(self.table_multipurpose, data, keys)
+                self.table_search = self.helper.update_table(self.table_search, data, keys)
                 label_text = str(len(data)) + " activities found."
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
                 self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
@@ -873,7 +1126,7 @@ be distributed to others without the consent of the author."""
         self.update_AE_tables()
 
     def add_multipurpose_exchange(self):
-        self.lcaData.add_exchange(self.table_multipurpose.currentItem().activity_or_database_key)
+        self.lcaData.add_exchange(self.table_search.currentItem().activity_or_database_key)
         self.update_AE_tables()
 
     def add_biosphere_exchange(self):
@@ -942,7 +1195,7 @@ be distributed to others without the consent of the author."""
             self.save_edited_activity(overwrite=True)
 
     def delete_activity(self):
-        key = self.table_multipurpose.currentItem().activity_or_database_key
+        key = self.table_search.currentItem().activity_or_database_key
         if key[0] not in browser_settings.read_only_databases:
             mgs = "Delete this activity?"
             reply = QtGui.QMessageBox.question(self, 'Message',

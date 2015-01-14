@@ -5,10 +5,12 @@ from PyQt4 import QtGui, QtCore
 import brightway2 as bw2
 from bw2analyzer import ContributionAnalysis
 from bw2analyzer import SerializedLCAReport
-import numpy as np
 from bw2data.utils import recursive_str_to_unicode
+import numpy as np
 import uuid
 from copy import deepcopy
+import multiprocessing
+import xlsxwriter
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -260,17 +262,49 @@ class BrowserStandardTasks(object):
         excs.sort(key=lambda x: x['name'])
         return excs
 
-    def get_search_results(self, searchString=None):
-        if searchString is None or searchString == "":
-            print "Invalid search string"
-        else:
-            objs = []
-            # querying: http://nbviewer.ipython.org/url/brightwaylca.org/tutorials/Searching-databases.ipynb
-            results = self.db.query(bw2.Filter('name', 'has', searchString))
-            for key in results:
-                objs.append(self.getActivityData(key))
-            objs.sort(key=lambda x: x['name'])
+    def search_activities(self, searchString=None):
+        """
+        Returns a list of dictionaries with activity data sorted by activity name
+        for those activities that contain the search string in their name.
+        Returns all keys in the database if no search string is supplied.
+        :param searchString:
+        :return:
+        """
+        objs = []
+        if self.db:
+            if searchString == "":
+                objs = [self.getActivityData(key) for key in self.database.keys()]
+                objs.sort(key=lambda x: x['name'])
+            else:
+                # querying: http://nbviewer.ipython.org/url/brightwaylca.org/tutorials/Searching-databases.ipynb
+                results = self.db.query(bw2.Filter('name', 'has', searchString))
+                for key in results:
+                    objs.append(self.getActivityData(key))
+                objs.sort(key=lambda x: x['name'])
         return objs
+
+    def search_methods(self, searchString=None, length=None, does_not_contain=None):
+        """
+        Returns all methods for which the search string is part of.
+        Returns all methods if no search string is specified.
+        If length is provided, results are reduced to those that have
+        a length of x, i.e. x parts in the method tuple.
+        :param searchString:
+        :return:
+        """
+        output = []
+        if searchString is None or searchString == "":
+            output = bw2.methods
+        else:
+            for method in bw2.methods:
+                for part in method:
+                    if searchString in part:
+                        output.append(method)
+        if length:
+            output = [out for out in output if len(out) == length]
+        if does_not_contain:
+            output = [out for out in output if does_not_contain not in [part for part in out]]
+        return output
 
     def getHistory(self):
         return [self.getActivityData(key) for key in self.history]
@@ -335,6 +369,74 @@ class BrowserStandardTasks(object):
             mc_data['iterations'] = iterations
             self.LCIA_calculations_mc.update({uuid_: mc_data})
         return mc_data
+
+    def multi_lca(self, activities, methods):
+        """
+        Performs LCA for multiple activities and LCIA methods on multiple CPU cores.
+        :param activities:
+        :param methods:
+        :return:
+        """
+        # TO BE APPLIED AS SOON AS .GEOMAPPING BRIGHTWAY PROBLEM IS SOLVED...
+
+        # def helper_function(activities, method):
+        #     output = np.zeros((len(activities),))
+        #     # Create LCA object which will do all calculating
+        #     lca = bw2.LCA({activities[0]: 1}, method=method)
+        #     # Keep the LU factorized matrices for faster calculations
+        #     # Only need to do this once for all activities
+        #     lca.lci(factorize=True)
+        #     lca.lcia()
+        #     for index, activity_name in enumerate(activities):
+        #         # Skip ecoinvent processes that have no exchanges (their score is 0)
+        #         if bw2.mapping[activity_name] not in lca.technosphere_dict:
+        #             continue
+        #         lca.redo_lci({activity_name: 1})
+        #         lca.lcia_calculation()
+        #         output[index] = lca.score
+        #     return (method, output)
+        #
+        # activities = activities
+        # methods = methods
+        # num_methods = len(methods)
+        # num_processes = len(activities)
+        #
+        # pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        # jobs = [pool.apply_async(helper_function, (activities, method))
+        #         for method in methods]
+        # pool.close()
+        # pool.join()  # Blocks until calculation is finished
+        # results = dict([job.get() for job in jobs])
+        #
+        # # Create array to store calculated results
+        # lca_scores = np.zeros((num_processes, num_methods), dtype=np.float32)
+        #
+        # for index, method in enumerate(methods):
+        #     lca_scores[:, index] = results[method]
+        #
+        # return lca_scores, methods, activities
+
+        # MEANWHILE USING THIS METHOD:
+        lca_scores = np.zeros((len(activities), len(methods)))
+        # Create LCA object which will do all calculating
+        lca = bw2.LCA({activities[0]: 1}, method=methods[0])
+        # Keep the LU factorized matrices for faster calculations
+        # Only need to do this once for all activities
+        lca.lci(factorize=True)
+        lca.lcia()
+        for index_a, activity in enumerate(activities):
+            # Skip ecoinvent processes that have no exchanges (their score is 0)
+            if bw2.mapping[activity] not in lca.technosphere_dict:
+                continue
+            lcia_scores_for_this_process = np.zeros((len(methods)))
+            for index_m, method in enumerate(methods):
+                lca.redo_lci({activity: 1})
+                lca.method = method
+                lca.lcia()
+                lcia_scores_for_this_process[index_m] = lca.score
+            lca_scores[index_a, :] = lcia_scores_for_this_process
+        return lca_scores, methods, activities
+
 
 # CREATE AND MODIFY ACTIVITIES
 
@@ -417,3 +519,30 @@ class BrowserStandardTasks(object):
         db.process()
         print "deleted activity: %s" % (str(key))
 
+# MODULE FUNCTIONS
+
+
+def export_matrix_to_excel(row_names, col_names, matrix, filepath='export.xlsx', sheetname='Export'):
+    workbook = xlsxwriter.Workbook(filepath)
+    ws = workbook.add_worksheet(sheetname)
+    # formatting
+    # border
+    format_border = workbook.add_format()
+    format_border.set_border(1)
+    format_border.set_font_size(9)
+    # border + text wrap
+    format_border_text_wrap = workbook.add_format()
+    format_border_text_wrap.set_text_wrap()
+    format_border_text_wrap.set_border(1)
+    format_border_text_wrap.set_font_size(9)
+    # set column width
+    ws.set_column(0, 1, width=15, cell_format=None)
+    ws.set_column(1, 50, width=9, cell_format=None)
+    # write data
+    for i, p in enumerate(col_names):  # process names
+        ws.write(0, i+1, p, format_border_text_wrap)
+    for i, p in enumerate(row_names):  # product names
+        ws.write(i+1, 0, p, format_border)
+    for i, row in enumerate(range(matrix.shape[0])):  # matrix
+        ws.write_row(i+1, 1, matrix[i, :], format_border)
+    workbook.close()

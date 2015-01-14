@@ -3,7 +3,7 @@
 
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
-from browser_utils import HelperMethods, MyQTableWidgetItem, BrowserStandardTasks
+from browser_utils import *
 from jinja2 import Template
 import json
 import pickle
@@ -19,8 +19,10 @@ import matplotlib.pyplot as plt
 
 
 class MPWidget(QtGui.QWidget):
-    signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
+    signal_MyQTableWidgetItem = QtCore.pyqtSignal(MyQTableWidgetItem)
     signal_status_bar_message = QtCore.pyqtSignal(str)
+    # signal_
+
     def __init__(self, parent=None):
         super(MPWidget, self).__init__(parent)
         self.MPC = MetaProcessCreator()
@@ -469,7 +471,6 @@ class MPWidget(QtGui.QWidget):
         """
         returns dict where: keys = MP name, value = LCA score
         """
-        # method = (u'IPCC 2007', u'climate change', u'GWP 100a')  # TODO
         method = self.lcaData.LCIA_METHOD
         if not method:
             self.signal_status_bar_message.emit('Need to define an LCIA method first.')
@@ -716,7 +717,7 @@ class MPWidget(QtGui.QWidget):
     # OTHER METHODS
 
     def setNewCurrentActivity(self):
-        self.signal_activity_key.emit(self.table_MP_chain.currentItem())
+        self.signal_MyQTableWidgetItem.emit(self.table_MP_chain.currentItem())
 
     def save_pp_matrix(self):
         matrix, processes, products = self.lmp.get_pp_matrix()  # self.get_process_products_as_array()
@@ -741,38 +742,39 @@ class MPWidget(QtGui.QWidget):
             pickle.dump(data, output)
         # Excel export
         try:
-            self.export_pp_matrix_to_excel(processes, products, matrix)
+            filename = 'pp-matrix.xlsx'
+            filepath = os.path.join(os.getcwd(), "MetaProcessDatabases", filename)
+            export_matrix_to_excel(products, processes, matrix, filepath)
         except:
             print "An error has occured saving the PP-Matrix as .xlsx file."
         # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.json")
         # with open(filename, 'w') as outfile:
         #     json.dump(data, outfile, indent=2)
 
-    def export_pp_matrix_to_excel(self, processes, products, matrix, filename='pp-matrix.xlsx'):
-        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", filename)
-        workbook = xlsxwriter.Workbook(filename)
-        ws = workbook.add_worksheet('pp-matrix')
-        # formatting
-        # border
-        format_border = workbook.add_format()
-        format_border.set_border(1)
-        format_border.set_font_size(9)
-        # border + text wrap
-        format_border_text_wrap = workbook.add_format()
-        format_border_text_wrap.set_text_wrap()
-        format_border_text_wrap.set_border(1)
-        format_border_text_wrap.set_font_size(9)
-        # set column width
-        ws.set_column(0, 1, width=15, cell_format=None)
-        ws.set_column(1, 50, width=9, cell_format=None)
-        # write data
-        for i, p in enumerate(processes):  # process names
-            ws.write(0, i+1, p, format_border_text_wrap)
-        for i, p in enumerate(products):  # product names
-            ws.write(i+1, 0, p, format_border)
-        for i, row in enumerate(range(matrix.shape[0])):  # matrix
-            ws.write_row(i+1, 1, matrix[i, :], format_border)
-        workbook.close()
+    # def export_matrix_to_excel(self, row_names, col_names, matrix, filepath='export.xlsx', sheetname='Export'):
+    #     workbook = xlsxwriter.Workbook(filepath)
+    #     ws = workbook.add_worksheet(sheetname)
+    #     # formatting
+    #     # border
+    #     format_border = workbook.add_format()
+    #     format_border.set_border(1)
+    #     format_border.set_font_size(9)
+    #     # border + text wrap
+    #     format_border_text_wrap = workbook.add_format()
+    #     format_border_text_wrap.set_text_wrap()
+    #     format_border_text_wrap.set_border(1)
+    #     format_border_text_wrap.set_font_size(9)
+    #     # set column width
+    #     ws.set_column(0, 1, width=15, cell_format=None)
+    #     ws.set_column(1, 50, width=9, cell_format=None)
+    #     # write data
+    #     for i, p in enumerate(col_names):  # process names
+    #         ws.write(0, i+1, p, format_border_text_wrap)
+    #     for i, p in enumerate(row_names):  # product names
+    #         ws.write(i+1, 0, p, format_border)
+    #     for i, row in enumerate(range(matrix.shape[0])):  # matrix
+    #         ws.write_row(i+1, 1, matrix[i, :], format_border)
+    #     workbook.close()
 
     def export_as_JSON(self):
         outdata = []
