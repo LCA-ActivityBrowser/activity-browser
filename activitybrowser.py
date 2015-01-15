@@ -432,12 +432,36 @@ class MainWindow(QtGui.QMainWindow):
         self.tab_widget_LEFT.addTab(widget_technosphere, 'Technosphere')
 
     def set_up_widget_databases(self):
+        button_add_db = QtGui.QPushButton('New Database')
+        button_refresh = QtGui.QPushButton('Refresh')
+        # Layout buttons
+        buttons_layout = QtGui.QHBoxLayout()
+        buttons_layout.setAlignment(QtCore.Qt.AlignLeft)
+        buttons_layout.addWidget(button_add_db)
+        buttons_layout.addWidget(button_refresh)
+        # Table
         self.table_databases = QtGui.QTableWidget()
+        # Overall Layout
+        VL_database_tab = QtGui.QVBoxLayout()
+        VL_database_tab.addWidget(self.table_databases)
+        VL_database_tab.addLayout(buttons_layout)
+        widget_databases = QtGui.QWidget()
+        widget_databases.setLayout(VL_database_tab)
         # self.add_dock(self.table_databases, 'Databases', QtCore.Qt.LeftDockWidgetArea)
+
+        # Context menus
+        self.table_databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+        self.action_delete_database = QtGui.QAction("delete database", None)
+        self.action_delete_database.triggered.connect(self.delete_database)
+        self.table_databases.addAction(self.action_delete_database)
+
         # Connections
         self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
+        button_add_db.clicked.connect(self.new_database)
+        button_refresh.clicked.connect(self.listDatabases)
 
-        self.tab_widget_RIGHT.addTab(self.table_databases, 'Databases')
+        self.tab_widget_RIGHT.addTab(widget_databases, 'Databases')
 
     def set_up_widget_search(self):
         self.label_multi_purpose = QtGui.QLabel()
@@ -932,6 +956,30 @@ be distributed to others without the consent of the author."""
             print "Loading Database:", item.activity_or_database_key
             self.lcaData.loadDatabase(item.activity_or_database_key)
             self.statusBar().showMessage(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
+
+    def new_database(self):
+        name, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
+            'Please enter a database name:')
+        if ok:
+            if name in self.lcaData.list_databases():
+                self.statusBar().showMessage('The name you have specified already exists. Please choose another name.')
+            else:
+                self.lcaData.add_database(str(name), data={})
+                self.statusBar().showMessage("Created new database: %s" % name)
+                self.listDatabases()
+
+    def delete_database(self):
+        item = self.table_databases.currentItem()
+        msg = "You are about to delete the database: \n%s \nAre you sure you want to continue?" % item.activity_or_database_key
+        reply = QtGui.QMessageBox.question(self, 'Message',
+            msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        if reply:
+            try:
+                self.lcaData.delete_database(item.activity_or_database_key)
+                self.statusBar().showMessage("Deleted "+item.activity_or_database_key)
+                self.listDatabases()
+            except:
+                self.statusBar().showMessage("An error must have occured. Could not delete database.")
 
     # SEARCH
 

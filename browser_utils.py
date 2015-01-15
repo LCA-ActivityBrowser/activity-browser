@@ -309,6 +309,9 @@ class BrowserStandardTasks(object):
     def getHistory(self):
         return [self.getActivityData(key) for key in self.history]
 
+    def list_databases(self):
+        return bw2.databases.list
+
     def getDatabases(self):
         objs = []
         for db_name in bw2.databases.list:
@@ -338,6 +341,8 @@ class BrowserStandardTasks(object):
         else:
             BrowserStandardTasks.LCIA_METHOD = None
         return methods, method_parts
+
+# LCA
 
     def lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a')):
         # TODO add factorization / redo lci...
@@ -437,6 +442,19 @@ class BrowserStandardTasks(object):
             lca_scores[index_a, :] = lcia_scores_for_this_process
         return lca_scores, methods, activities
 
+# CREATE AND MODIFY DATABASES
+
+    def add_database(self, name, data={}):
+        db = bw2.Database(name)
+        db.validate(data)
+        if name not in bw2.databases:
+            db.register()
+            db.write(data)
+            db.process()
+            db.load()
+
+    def delete_database(self, name):
+        del bw2.databases[name]
 
 # CREATE AND MODIFY ACTIVITIES
 
