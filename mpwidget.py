@@ -193,6 +193,7 @@ class MPWidget(QtGui.QWidget):
         self.HL_functional_unit.addWidget(label_functional_unit)
         self.HL_functional_unit.addWidget(self.line_edit_FU)
         self.HL_functional_unit.addWidget(self.label_FU_unit)
+        self.HL_functional_unit.addWidget(self.combo_functional_unit)
 
         self.HL_PP_analysis = QtGui.QHBoxLayout()
         self.HL_PP_analysis.setAlignment(QtCore.Qt.AlignLeft)
