@@ -1152,7 +1152,7 @@ be distributed to others without the consent of the author."""
                   label='median: {:.3g}'.format(median), color='magenta', linewidth=2.0)
         ax.vlines(mean, 0 , sm_y[self.helper.find_nearest(sm_x, mean)],
                   label='mean: {:.3g}'.format(mean), color='blue', linewidth=2.0)
-        plt.xlabel('LCA scores ('+str(mc['iterations'])+' runs)'), plt.ylabel('count')
+        plt.xlabel('LCA scores ('+str(mc['iterations'])+' runs)'), plt.ylabel('probability')
         plt.legend(loc='upper right', prop={'size': 10})
         self.canvas_mc.draw()
 
