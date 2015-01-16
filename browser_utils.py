@@ -283,6 +283,31 @@ class BrowserStandardTasks(object):
                 objs.sort(key=lambda x: x['name'])
         return objs
 
+    def multi_search_activities(self, searchString1='', searchString2=''):
+        """
+        Returns a list of dictionaries with activity data sorted by activity name
+        for those activities that contain the search string in their name.
+        Returns all keys in the database if no search string is supplied.
+        :param searchString1:
+        :return:
+        """
+        if self.db:
+            if not searchString1 and not searchString2:
+                objs = [self.getActivityData(key) for key in self.database.keys()]
+            elif searchString1 and searchString2:
+                objs = [self.getActivityData(key) for key in self.database.keys()
+                        if (searchString1 in self.database[key].get('name', '')
+                            or searchString1 in self.database[key].get('reference product', ''))
+                        and (searchString2 in self.database[key].get('name', '')
+                             or searchString2 in self.database[key].get('reference product', ''))]
+            else:
+                searchstring = searchString1 or searchString2
+                objs = [self.getActivityData(key) for key in self.database.keys()
+                        if searchstring in self.database[key].get('name', '')
+                        or searchstring in self.database[key].get('reference product', '')]
+            objs.sort(key=lambda x: x['name'])
+            return objs
+
     def search_methods(self, searchString=None, length=None, does_not_contain=None):
         """
         Returns all methods for which the search string is part of.

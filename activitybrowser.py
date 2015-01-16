@@ -500,6 +500,8 @@ class MainWindow(QtGui.QMainWindow):
     def set_up_widget_toolbar(self):
         self.line_edit_search = QtGui.QLineEdit()
         self.line_edit_search.setMaximumSize(QtCore.QSize(200, 30))
+        self.line_edit_search_1 = QtGui.QLineEdit()
+        self.line_edit_search_1.setMaximumSize(QtCore.QSize(200, 30))
         # buttons
         button_random_activity = QtGui.QPushButton("Random Activity")
         button_key = QtGui.QPushButton("Key")
@@ -514,6 +516,8 @@ class MainWindow(QtGui.QMainWindow):
         self.addToolBar(self.toolbar)
 
         self.toolbar.addWidget(self.line_edit_search)
+        self.toolbar.addSeparator()
+        self.toolbar.addWidget(self.line_edit_search_1)
         self.toolbar.addWidget(button_search)
         self.toolbar.addWidget(button_history)
         self.toolbar.addWidget(button_random_activity)
@@ -523,6 +527,7 @@ class MainWindow(QtGui.QMainWindow):
         # Connections
         button_random_activity.clicked.connect(lambda: self.load_new_current_activity())
         self.line_edit_search.returnPressed.connect(self.search_results)
+        self.line_edit_search_1.returnPressed.connect(self.search_results)
         button_search.clicked.connect(self.search_results)
         button_history.clicked.connect(self.showHistory)
         button_key.clicked.connect(self.search_by_key)
@@ -984,20 +989,17 @@ be distributed to others without the consent of the author."""
     # SEARCH
 
     def search_results(self):
-        searchString = self.line_edit_search.text()
-        try:
-            if searchString == '':
-                print "Listing all activities in:", self.lcaData.db
-                data = self.lcaData.search_activities(searchString)
-            else:
-                print "\nSearched for:", searchString
-                data = self.lcaData.search_activities(searchString)
+        searchString1 = str(self.line_edit_search.text())
+        searchString2 = str(self.line_edit_search_1.text())
+        self.statusBar().showMessage("Searched for "+' + '.join(filter(None, [searchString1, searchString2])))
+        if self.lcaData.db:
+            data = self.lcaData.multi_search_activities(searchString1, searchString2)
             keys = self.get_table_headers(type="search")
             self.table_search = self.helper.update_table(self.table_search, data, keys)
             label_text = str(len(data)) + " activities found."
             self.label_multi_purpose.setText(QtCore.QString(label_text))
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
-        except AttributeError:
+        else:
             self.statusBar().showMessage("Need to load a database first")
 
     def search_by_key(self):
