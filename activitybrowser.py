@@ -423,6 +423,15 @@ class MainWindow(QtGui.QMainWindow):
         # CONTEXT MENUS
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
+        self.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)
+        self.action_add_to_multi_lca.triggered.connect(
+            lambda: self.add_to_multi_lca(self.table_inputs_technosphere.selectedItems()))
+        self.table_inputs_technosphere.addAction(self.action_add_to_multi_lca)
+
+        self.action_add_to_multi_lca.triggered.connect(
+            lambda: self.add_to_multi_lca(self.table_downstream_activities.selectedItems()))
+        self.table_downstream_activities.addAction(self.action_add_to_multi_lca)
+
         # Connections
         button_edit.clicked.connect(self.edit_activity)
         button_calc_lca.clicked.connect(self.calculate_lcia)
@@ -482,8 +491,9 @@ class MainWindow(QtGui.QMainWindow):
         self.action_delete_activity.triggered.connect(self.delete_activity)
         self.table_search.addAction(self.action_delete_activity)
 
-        self.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)
-        self.action_add_to_multi_lca.triggered.connect(self.add_to_multi_lca)
+        # self.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)  # defined in set_up_widget_technosphere
+        self.action_add_to_multi_lca.triggered.connect(
+            lambda: self.add_to_multi_lca(self.table_search.selectedItems()))
         self.table_search.addAction(self.action_add_to_multi_lca)
 
         # Connections
@@ -499,9 +509,9 @@ class MainWindow(QtGui.QMainWindow):
 
     def set_up_widget_toolbar(self):
         self.line_edit_search = QtGui.QLineEdit()
-        self.line_edit_search.setMaximumSize(QtCore.QSize(200, 30))
+        self.line_edit_search.setMaximumSize(QtCore.QSize(150, 30))
         self.line_edit_search_1 = QtGui.QLineEdit()
-        self.line_edit_search_1.setMaximumSize(QtCore.QSize(200, 30))
+        self.line_edit_search_1.setMaximumSize(QtCore.QSize(150, 30))
         # buttons
         button_random_activity = QtGui.QPushButton("Random Activity")
         button_key = QtGui.QPushButton("Key")
@@ -797,8 +807,8 @@ be distributed to others without the consent of the author."""
         self.statusBar().showMessage(message)
 
     # SIGNAL-SLOT METHODS
-    def add_to_multi_lca(self):
-        self.signal_MyQTableWidgetItemsList.emit(self.table_search.selectedItems())
+    def add_to_multi_lca(self, selectedItems):
+        self.signal_MyQTableWidgetItemsList.emit(selectedItems)
 
     # META-PROCESS STUFF
 
