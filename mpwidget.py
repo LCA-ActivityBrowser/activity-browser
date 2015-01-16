@@ -181,9 +181,16 @@ class MPWidget(QtGui.QWidget):
         self.canvas = FigureCanvas(self.figure)
         # self.toolbar = NavigationToolbar(self.canvas, self)  # it takes the Canvas widget and a parent
         self.toolbar = NavigationToolbar(self.canvas, self.matplotlib_figure)
+        button_plot_processes = QtGui.QPushButton("Processes")
+        button_plot_products = QtGui.QPushButton("Products")
+        # Layout toolbar
+        hl_toolbar = QtGui.QHBoxLayout()
+        hl_toolbar.addWidget(self.toolbar)
+        hl_toolbar.addWidget(button_plot_processes)
+        hl_toolbar.addWidget(button_plot_products)
         # set the layout
         plt_layout = QtGui.QVBoxLayout()
-        plt_layout.addWidget(self.toolbar)
+        plt_layout.addLayout(hl_toolbar)
         plt_layout.addWidget(self.canvas)
         self.matplotlib_figure.setLayout(plt_layout)
 
@@ -202,12 +209,27 @@ class MPWidget(QtGui.QWidget):
         self.HL_PP_analysis.addWidget(self.button_PP_lca_pathways)
         self.HL_PP_analysis.addWidget(self.label_LCIA_method)
 
-        # VL
+        # VL (with splitter)
+        # upper part of splitter
+        VL_upper_part = QtGui.QVBoxLayout()
+        VL_upper_part.addLayout(self.HL_functional_unit)
+        VL_upper_part.addLayout(self.HL_PP_analysis)
+        VL_upper_part.addWidget(self.table_PP_comparison)
+        widget_upper_part = QtGui.QWidget()
+        widget_upper_part.setLayout(VL_upper_part)
+        # lower part: self.matplotlib_figure
+        # Splitter
+        splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        splitter.addWidget(widget_upper_part)
+        splitter.addWidget(self.matplotlib_figure)
+
         self.VL_PP_analyzer = QtGui.QVBoxLayout()
-        self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
-        self.VL_PP_analyzer.addLayout(self.HL_PP_analysis)
-        self.VL_PP_analyzer.addWidget(self.table_PP_comparison)
-        self.VL_PP_analyzer.addWidget(self.matplotlib_figure)
+        self.VL_PP_analyzer.addWidget(splitter)
+        # self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
+        # self.VL_PP_analyzer.addLayout(self.HL_PP_analysis)
+        # self.VL_PP_analyzer.addWidget(self.table_PP_comparison)
+        # self.VL_PP_analyzer.addWidget(self.matplotlib_figure)
+
         self.PP_analyzer.setLayout(self.VL_PP_analyzer)
         # Connections
         self.button_PP_pathways.clicked.connect(self.show_all_pathways)
@@ -215,6 +237,8 @@ class MPWidget(QtGui.QWidget):
         self.button_PP_lca_pathways.clicked.connect(self.compare_pathway_lcas)
         self.combo_functional_unit.currentIndexChanged.connect(self.update_FU_unit)
         self.table_PP_comparison.itemSelectionChanged.connect(self.show_path_graph)
+        button_plot_processes.clicked.connect(lambda: self.plot_figure('processes'))
+        button_plot_products.clicked.connect(lambda: self.plot_figure('products'))
 
     # MP DATABASE
 
@@ -344,8 +368,9 @@ class MPWidget(QtGui.QWidget):
 
     def addCut(self):
         print "\nCONTEXT MENU: "+self.action_addCut.text()
-        item = self.table_MP_chain.currentItem()
-        self.MPC.add_cut(item.activity_or_database_key)
+        for item in self.table_MP_chain.selectedItems():
+        # item = self.table_MP_chain.currentItem()
+            self.MPC.add_cut(item.activity_or_database_key)
         self.showGraph()
 
     def deleteCut(self):
@@ -499,32 +524,43 @@ class MPWidget(QtGui.QWidget):
         self.path_data = self.lmp.lca_alternatives(method, demand)
         self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score
         self.update_PP_comparison_table(data=self.path_data, keys=['LCA score', 'path'])
-        self.plot_figure()
+        self.plot_figure('products')
 
-    def plot_figure(self):
+    def plot_figure(self, type):
         ''' plot matplotlib figure for LCA alternatives '''
-        # get matplotlib figure data
-        data = np.zeros((len(self.lmp.map_products_number), len(self.path_data)), dtype=np.float)
-        for i, l in enumerate(self.path_data):
-            for process, value in l['process contribution'].items():
-                # creates matrix where rows are products and columns hold process/product specific impact scores
-                data[self.lmp.map_products_number[self.lmp.get_output_names([process])[0]], i] = value  # caution, problem for multi-output processes
+        # get figure data
+        if type == 'processes':
+            # creates matrix where rows are products and columns hold PROCESS specific impact scores
+            data = np.zeros((len(self.lmp.map_processes_number), len(self.path_data)), dtype=np.float)
+            for i, l in enumerate(self.path_data):
+                for process, value in l['process contribution'].items():
+                    data[self.lmp.map_processes_number[process], i] = value
+            # data for labels, colors, ...
+            label_product_or_process = [self.lmp.map_number_processes[i] for i in np.arange(len(data))]
+            colormap = plt.cm.nipy_spectral
+        elif type == 'products':
+            # creates matrix where rows are products and columns hold PROCESS specific impact scores
+            data = np.zeros((len(self.lmp.map_products_number), len(self.path_data)), dtype=np.float)
+            for i, l in enumerate(self.path_data):
+                for process, value in l['process contribution'].items():
+                    data[self.lmp.map_products_number[self.lmp.get_output_names([process])[0]], i] = value  # caution, problem for multi-output processes
+            # data for labels, colors, ...
+            label_product_or_process = [self.lmp.map_number_products[i] for i in np.arange(len(data))]
+            colormap = plt.cm.autumn
 
         # data for labels, colors, ...
-        number_products = len(data)
         number_lcas = len(self.path_data)
         ind = np.arange(number_lcas)
         ind_label = np.arange(number_lcas)
-        product_label = [self.lmp.map_number_products[i] for i in np.arange(number_products)]
+
         bottom = np.vstack((np.zeros((data.shape[1],), dtype=data.dtype), np.cumsum(data, axis=0)[:-1]))
-        colormap = plt.cm.autumn
-        colors = [colormap(c) for c in np.linspace(0, 1, number_products)]
+        colors = [colormap(c) for c in np.linspace(0, 1, len(data))]
 
         # plotting
         self.figure.clf()
         ax = self.figure.add_subplot(111)
         plt.rcParams.update({'font.size': 10})
-        for dat, col, bot, label in zip(data, colors, bottom, product_label):
+        for dat, col, bot, label in zip(data, colors, bottom, label_product_or_process):
             ax.bar(ind, dat, color=col, bottom=bot, label=label, edgecolor="none")
         plt.xticks(ind+0.5, ind_label+1)
         impact_unit = bw2.methods[self.path_data[0]['LCIA method']]['unit']

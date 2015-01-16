@@ -164,7 +164,10 @@ class WidgetMultiLCA(QtGui.QWidget):
         self.update_table_activities()
 
     def remove_selected_activities(self):
+        print "Activities: "
+        print self.selected_activities
         for item in self.table_activities.selectedItems():
+            print "removing: " + str(item.activity_or_database_key)
             self.selected_activities.remove(item.activity_or_database_key)
         self.update_table_activities()
 
@@ -234,7 +237,8 @@ class WidgetMultiLCA(QtGui.QWidget):
 
     def save_results(self):
         activity_names = [' // '.join(filter(None, [self.lcaData.getActivityData(key)['product'],
-                                                    self.lcaData.getActivityData(key)['name']]))
+                                                    self.lcaData.getActivityData(key)['name'],
+                                                    self.lcaData.getActivityData(key)['location']]))
                           for key in self.results['activities']]
         methods = [', '.join(method) for method in self.results['methods']]  # excelwrite does not support tuples
         matrix_lca_scores = self.results['lca_scores']
@@ -877,10 +881,14 @@ be distributed to others without the consent of the author."""
             mp_menu.addAction(exportMPDatabaseAsJSONFile)
 
     def add_Child_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem())
+        for item in self.table_downstream_activities.selectedItems():
+            self.signal_add_to_chain.emit(item)
+        # self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem())
 
     def add_Parent_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
+        for item in self.table_inputs_technosphere.selectedItems():
+            self.signal_add_to_chain.emit(item)
+        # self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
 
     def add_to_chain(self):
         self.signal_add_to_chain.emit(self.table_search.currentItem())
