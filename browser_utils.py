@@ -5,10 +5,12 @@ from PyQt4 import QtGui, QtCore
 import brightway2 as bw2
 from bw2analyzer import ContributionAnalysis
 from bw2analyzer import SerializedLCAReport
-import numpy as np
 from bw2data.utils import recursive_str_to_unicode
+import numpy as np
 import uuid
 from copy import deepcopy
+import multiprocessing
+import xlsxwriter
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -79,7 +81,14 @@ class HelperMethods(object):
             table.setSortingEnabled(True)
         return table
 
-    def is_number(self, s):
+    def is_int(self, s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+
+    def is_float(self, s):
         try:
             float(s)
             return True
@@ -104,7 +113,12 @@ class Styles(object):
 class Checks(object):
     pass
 
+
+
 class BrowserStandardTasks(object):
+
+    LCIA_METHOD = (u'IPCC 2007', u'climate change', u'GWP 100a')
+
     def __init__(self):
         self.history = []
         self.currentActivity = None
@@ -113,7 +127,7 @@ class BrowserStandardTasks(object):
         self.database_version = None
         self.LCIA_calculations = {}  # used to store LCIA calculations
         self.LCIA_calculations_mc = {}
-        self.LCIA_method = None
+
 
     def updateEcoinventVersion(self, key=None):
         # set database version (2 or 3)
@@ -248,20 +262,80 @@ class BrowserStandardTasks(object):
         excs.sort(key=lambda x: x['name'])
         return excs
 
-    def get_search_results(self, searchString=None):
-        if searchString is None or searchString == "":
-            print "Invalid search string"
-        else:
-            objs = []
-            # querying: http://nbviewer.ipython.org/url/brightwaylca.org/tutorials/Searching-databases.ipynb
-            results = self.db.query(bw2.Filter('name', 'has', searchString))
-            for key in results:
-                objs.append(self.getActivityData(key))
-            objs.sort(key=lambda x: x['name'])
+    def search_activities(self, searchString=None):
+        """
+        Returns a list of dictionaries with activity data sorted by activity name
+        for those activities that contain the search string in their name.
+        Returns all keys in the database if no search string is supplied.
+        :param searchString:
+        :return:
+        """
+        objs = []
+        if self.db:
+            if searchString == "":
+                objs = [self.getActivityData(key) for key in self.database.keys()]
+                objs.sort(key=lambda x: x['name'])
+            else:
+                # querying: http://nbviewer.ipython.org/url/brightwaylca.org/tutorials/Searching-databases.ipynb
+                results = self.db.query(bw2.Filter('name', 'has', searchString))
+                for key in results:
+                    objs.append(self.getActivityData(key))
+                objs.sort(key=lambda x: x['name'])
         return objs
+
+    def multi_search_activities(self, searchString1='', searchString2=''):
+        """
+        Returns a list of dictionaries with activity data sorted by activity name
+        for those activities that contain the search string in their name.
+        Returns all keys in the database if no search string is supplied.
+        :param searchString1:
+        :return:
+        """
+        if self.db:
+            if not searchString1 and not searchString2:
+                objs = [self.getActivityData(key) for key in self.database.keys()]
+            elif searchString1 and searchString2:
+                objs = [self.getActivityData(key) for key in self.database.keys()
+                        if (searchString1 in self.database[key].get('name', '')
+                            or searchString1 in self.database[key].get('reference product', ''))
+                        and (searchString2 in self.database[key].get('name', '')
+                             or searchString2 in self.database[key].get('reference product', ''))]
+            else:
+                searchstring = searchString1 or searchString2
+                objs = [self.getActivityData(key) for key in self.database.keys()
+                        if searchstring in self.database[key].get('name', '')
+                        or searchstring in self.database[key].get('reference product', '')]
+            objs.sort(key=lambda x: x['name'])
+            return objs
+
+    def search_methods(self, searchString=None, length=None, does_not_contain=None):
+        """
+        Returns all methods for which the search string is part of.
+        Returns all methods if no search string is specified.
+        If length is provided, results are reduced to those that have
+        a length of x, i.e. x parts in the method tuple.
+        :param searchString:
+        :return:
+        """
+        output = []
+        if searchString is None or searchString == "":
+            output = bw2.methods
+        else:
+            for method in bw2.methods:
+                for part in method:
+                    if searchString in part:
+                        output.append(method)
+        if length:
+            output = [out for out in output if len(out) == length]
+        if does_not_contain:
+            output = [out for out in output if does_not_contain not in [part for part in out]]
+        return output
 
     def getHistory(self):
         return [self.getActivityData(key) for key in self.history]
+
+    def list_databases(self):
+        return bw2.databases.list
 
     def getDatabases(self):
         objs = []
@@ -287,11 +361,13 @@ class BrowserStandardTasks(object):
                                    if item[0].isdigit() else float('inf'), item)) for p in method_parts]
         # set LCIA method if possible
         if len(methods) == 1:
-            self.LCIA_method = methods[0]
-            print "LCIA method set to "+str(self.LCIA_method)
+            BrowserStandardTasks.LCIA_METHOD = methods[0]
+            print "LCIA method set to "+str(methods[0])
         else:
-            self.LCIA_method = None
+            BrowserStandardTasks.LCIA_METHOD = None
         return methods, method_parts
+
+# LCA
 
     def lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a')):
         # TODO add factorization / redo lci...
@@ -320,8 +396,90 @@ class BrowserStandardTasks(object):
             key = self.currentActivity
         mc_data = SerializedLCAReport({key: amount}, method, iterations, cpu_count).get_monte_carlo()
         if uuid_:
+            mc_data['iterations'] = iterations
             self.LCIA_calculations_mc.update({uuid_: mc_data})
         return mc_data
+
+    def multi_lca(self, activities, methods):
+        """
+        Performs LCA for multiple activities and LCIA methods on multiple CPU cores.
+        :param activities:
+        :param methods:
+        :return:
+        """
+        # TO BE APPLIED AS SOON AS .GEOMAPPING BRIGHTWAY PROBLEM IS SOLVED...
+
+        # def helper_function(activities, method):
+        #     output = np.zeros((len(activities),))
+        #     # Create LCA object which will do all calculating
+        #     lca = bw2.LCA({activities[0]: 1}, method=method)
+        #     # Keep the LU factorized matrices for faster calculations
+        #     # Only need to do this once for all activities
+        #     lca.lci(factorize=True)
+        #     lca.lcia()
+        #     for index, activity_name in enumerate(activities):
+        #         # Skip ecoinvent processes that have no exchanges (their score is 0)
+        #         if bw2.mapping[activity_name] not in lca.technosphere_dict:
+        #             continue
+        #         lca.redo_lci({activity_name: 1})
+        #         lca.lcia_calculation()
+        #         output[index] = lca.score
+        #     return (method, output)
+        #
+        # activities = activities
+        # methods = methods
+        # num_methods = len(methods)
+        # num_processes = len(activities)
+        #
+        # pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        # jobs = [pool.apply_async(helper_function, (activities, method))
+        #         for method in methods]
+        # pool.close()
+        # pool.join()  # Blocks until calculation is finished
+        # results = dict([job.get() for job in jobs])
+        #
+        # # Create array to store calculated results
+        # lca_scores = np.zeros((num_processes, num_methods), dtype=np.float32)
+        #
+        # for index, method in enumerate(methods):
+        #     lca_scores[:, index] = results[method]
+        #
+        # return lca_scores, methods, activities
+
+        # MEANWHILE USING THIS METHOD:
+        lca_scores = np.zeros((len(activities), len(methods)))
+        # Create LCA object which will do all calculating
+        lca = bw2.LCA({activities[0]: 1}, method=methods[0])
+        # Keep the LU factorized matrices for faster calculations
+        # Only need to do this once for all activities
+        lca.lci(factorize=True)
+        lca.lcia()
+        for index_a, activity in enumerate(activities):
+            # Skip ecoinvent processes that have no exchanges (their score is 0)
+            if bw2.mapping[activity] not in lca.technosphere_dict:
+                continue
+            lcia_scores_for_this_process = np.zeros((len(methods)))
+            for index_m, method in enumerate(methods):
+                lca.redo_lci({activity: 1})
+                lca.method = method
+                lca.lcia()
+                lcia_scores_for_this_process[index_m] = lca.score
+            lca_scores[index_a, :] = lcia_scores_for_this_process
+        return lca_scores, methods, activities
+
+# CREATE AND MODIFY DATABASES
+
+    def add_database(self, name, data={}):
+        db = bw2.Database(name)
+        db.validate(data)
+        if name not in bw2.databases:
+            db.register()
+            db.write(data)
+            db.process()
+            db.load()
+
+    def delete_database(self, name):
+        del bw2.databases[name]
 
 # CREATE AND MODIFY ACTIVITIES
 
@@ -404,3 +562,30 @@ class BrowserStandardTasks(object):
         db.process()
         print "deleted activity: %s" % (str(key))
 
+# MODULE FUNCTIONS
+
+
+def export_matrix_to_excel(row_names, col_names, matrix, filepath='export.xlsx', sheetname='Export'):
+    workbook = xlsxwriter.Workbook(filepath)
+    ws = workbook.add_worksheet(sheetname)
+    # formatting
+    # border
+    format_border = workbook.add_format()
+    format_border.set_border(1)
+    format_border.set_font_size(9)
+    # border + text wrap
+    format_border_text_wrap = workbook.add_format()
+    format_border_text_wrap.set_text_wrap()
+    format_border_text_wrap.set_border(1)
+    format_border_text_wrap.set_font_size(9)
+    # set column width
+    ws.set_column(0, 1, width=15, cell_format=None)
+    ws.set_column(1, 50, width=9, cell_format=None)
+    # write data
+    for i, p in enumerate(col_names):  # process names
+        ws.write(0, i+1, p, format_border_text_wrap)
+    for i, p in enumerate(row_names):  # product names
+        ws.write(i+1, 0, p, format_border)
+    for i, row in enumerate(range(matrix.shape[0])):  # matrix
+        ws.write_row(i+1, 1, matrix[i, :], format_border)
+    workbook.close()

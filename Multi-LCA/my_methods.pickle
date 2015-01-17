@@ -1,0 +1,23 @@
+(lp0
+(VCML 2001
+p1
+Vfreshwater aquatic ecotoxicity
+p2
+VFAETP infinite
+p3
+tp4
+a(VTRACI
+p5
+Venvironmental impact
+p6
+Vglobal warming
+p7
+tp8
+a(VUSEtox
+p9
+Vecotoxicity
+p10
+Vtotal
+p11
+tp12
+a.

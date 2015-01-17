@@ -3,7 +3,6 @@
 
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
-
 from browser_utils import *
 from jinja2 import Template
 import json
@@ -11,25 +10,25 @@ import pickle
 import xlsxwriter
 import os
 from mpcreator import MetaProcessCreator
-from metaprocess import MetaProcess
 from linkedmetaprocess import LinkedMetaProcessSystem
 import numpy as np
-import itertools
-import networkx as nx  # TODO get rid of this dependency?
-import pprint
 import operator
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
 
+
 class MPWidget(QtGui.QWidget):
-    signal_activity_key = QtCore.pyqtSignal(MyQTableWidgetItem)
+    signal_MyQTableWidgetItem = QtCore.pyqtSignal(MyQTableWidgetItem)
     signal_status_bar_message = QtCore.pyqtSignal(str)
+    # signal_
+
     def __init__(self, parent=None):
         super(MPWidget, self).__init__(parent)
         self.MPC = MetaProcessCreator()
         self.lmp = LinkedMetaProcessSystem()
         self.helper = HelperMethods()
+        self.lcaData = BrowserStandardTasks()
         self.setupUserInterface()
         self.set_up_PP_analyzer()
 
@@ -57,25 +56,9 @@ class MPWidget(QtGui.QWidget):
         button_addDB = QtGui.QPushButton("Add DB")
         button_closeDB = QtGui.QPushButton("Close DB")
         button_pp_graph = QtGui.QPushButton("PP-Graph")
-        # # LAYOUTS for buttons
-        # # Meta-Process
-        # self.HL_MP_buttons = QtGui.QHBoxLayout()
-        # self.HL_MP_buttons.addWidget(label_process_subsystem)
-        # self.HL_MP_buttons.addWidget(button_new_process_subsystem)
-        # self.HL_MP_buttons.addWidget(button_add_MP_to_Database)
-        # self.HL_MP_buttons.addWidget(button_delete_MP_from_Database)
-        # self.HL_MP_buttons.addWidget(button_toggle_layout)
-        # self.HL_MP_buttons.addWidget(button_graph)
-        # # MP Database
-        # self.HL_MP_Database_buttons = QtGui.QHBoxLayout()
-        # self.HL_MP_Database_buttons.addWidget(label_MP_database)
-        # self.HL_MP_Database_buttons.addWidget(button_load_MP_database)
-        # self.HL_MP_Database_buttons.addWidget(button_saveAs_MP_database)
-        # self.HL_MP_Database_buttons.addWidget(button_addDB)
-        # self.HL_MP_Database_buttons.addWidget(button_closeDB)
-        # self.HL_MP_Database_buttons.addWidget(button_pp_graph)
+
         # buttons TOOLBAR
-        self.toolbar_MP = QtGui.QToolBar()
+        self.toolbar_MP = QtGui.QToolBar('Toolbar MP')
         self.toolbar_MP.addWidget(button_new_process_subsystem)
         self.toolbar_MP.addWidget(button_add_MP_to_Database)
         self.toolbar_MP.addWidget(button_delete_MP_from_Database)
@@ -87,6 +70,24 @@ class MPWidget(QtGui.QWidget):
         self.toolbar_MP.addWidget(button_addDB)
         self.toolbar_MP.addWidget(button_closeDB)
         self.toolbar_MP.addWidget(button_pp_graph)
+
+        # LAYOUTS for buttons
+        # Meta-Process
+        self.HL_MP_buttons = QtGui.QHBoxLayout()
+        # self.HL_MP_buttons.addWidget(label_process_subsystem)
+        # self.HL_MP_buttons.addWidget(button_new_process_subsystem)
+        # self.HL_MP_buttons.addWidget(button_add_MP_to_Database)
+        # self.HL_MP_buttons.addWidget(button_delete_MP_from_Database)
+        # self.HL_MP_buttons.addWidget(button_toggle_layout)
+        # self.HL_MP_buttons.addWidget(button_graph)
+        # MP Database
+        self.HL_MP_Database_buttons = QtGui.QHBoxLayout()
+        # self.HL_MP_Database_buttons.addWidget(label_MP_database)
+        # self.HL_MP_Database_buttons.addWidget(button_load_MP_database)
+        # self.HL_MP_Database_buttons.addWidget(button_saveAs_MP_database)
+        # self.HL_MP_Database_buttons.addWidget(button_addDB)
+        # self.HL_MP_Database_buttons.addWidget(button_closeDB)
+        # self.HL_MP_Database_buttons.addWidget(button_pp_graph)
 
         # CONNECTIONS
         button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
@@ -161,6 +162,7 @@ class MPWidget(QtGui.QWidget):
         # Labels
         label_functional_unit = QtGui.QLabel("Functional Unit:")
         self.label_FU_unit = QtGui.QLabel("unit")
+        self.label_LCIA_method = QtGui.QLabel("LCIA Method: (see LCIA tab)")
         # Line edits
         self.line_edit_FU = QtGui.QLineEdit("1.0")
         # Buttons
@@ -170,7 +172,6 @@ class MPWidget(QtGui.QWidget):
         # Dropdown
         self.combo_functional_unit = QtGui.QComboBox(self)
         self.combo_functional_unit.setMinimumWidth(200)
-        self.combo_lcia_method = QtGui.QComboBox(self)
         # Tables
         self.table_PP_comparison = QtGui.QTableWidget()
 
@@ -180,9 +181,16 @@ class MPWidget(QtGui.QWidget):
         self.canvas = FigureCanvas(self.figure)
         # self.toolbar = NavigationToolbar(self.canvas, self)  # it takes the Canvas widget and a parent
         self.toolbar = NavigationToolbar(self.canvas, self.matplotlib_figure)
+        button_plot_processes = QtGui.QPushButton("Processes")
+        button_plot_products = QtGui.QPushButton("Products")
+        # Layout toolbar
+        hl_toolbar = QtGui.QHBoxLayout()
+        hl_toolbar.addWidget(self.toolbar)
+        hl_toolbar.addWidget(button_plot_processes)
+        hl_toolbar.addWidget(button_plot_products)
         # set the layout
         plt_layout = QtGui.QVBoxLayout()
-        plt_layout.addWidget(self.toolbar)
+        plt_layout.addLayout(hl_toolbar)
         plt_layout.addWidget(self.canvas)
         self.matplotlib_figure.setLayout(plt_layout)
 
@@ -199,14 +207,29 @@ class MPWidget(QtGui.QWidget):
         self.HL_PP_analysis.addWidget(self.button_PP_lca)
         self.HL_PP_analysis.addWidget(self.button_PP_pathways)
         self.HL_PP_analysis.addWidget(self.button_PP_lca_pathways)
-        self.HL_PP_analysis.addWidget(self.combo_lcia_method)
-        self.combo_lcia_method.addItem(str((u'IPCC 2007', u'climate change', u'GWP 100a')))
-        # VL
+        self.HL_PP_analysis.addWidget(self.label_LCIA_method)
+
+        # VL (with splitter)
+        # upper part of splitter
+        VL_upper_part = QtGui.QVBoxLayout()
+        VL_upper_part.addLayout(self.HL_functional_unit)
+        VL_upper_part.addLayout(self.HL_PP_analysis)
+        VL_upper_part.addWidget(self.table_PP_comparison)
+        widget_upper_part = QtGui.QWidget()
+        widget_upper_part.setLayout(VL_upper_part)
+        # lower part: self.matplotlib_figure
+        # Splitter
+        splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        splitter.addWidget(widget_upper_part)
+        splitter.addWidget(self.matplotlib_figure)
+
         self.VL_PP_analyzer = QtGui.QVBoxLayout()
-        self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
-        self.VL_PP_analyzer.addLayout(self.HL_PP_analysis)
-        self.VL_PP_analyzer.addWidget(self.table_PP_comparison)
-        self.VL_PP_analyzer.addWidget(self.matplotlib_figure)
+        self.VL_PP_analyzer.addWidget(splitter)
+        # self.VL_PP_analyzer.addLayout(self.HL_functional_unit)
+        # self.VL_PP_analyzer.addLayout(self.HL_PP_analysis)
+        # self.VL_PP_analyzer.addWidget(self.table_PP_comparison)
+        # self.VL_PP_analyzer.addWidget(self.matplotlib_figure)
+
         self.PP_analyzer.setLayout(self.VL_PP_analyzer)
         # Connections
         self.button_PP_pathways.clicked.connect(self.show_all_pathways)
@@ -214,6 +237,8 @@ class MPWidget(QtGui.QWidget):
         self.button_PP_lca_pathways.clicked.connect(self.compare_pathway_lcas)
         self.combo_functional_unit.currentIndexChanged.connect(self.update_FU_unit)
         self.table_PP_comparison.itemSelectionChanged.connect(self.show_path_graph)
+        button_plot_processes.clicked.connect(lambda: self.plot_figure('processes'))
+        button_plot_products.clicked.connect(lambda: self.plot_figure('products'))
 
     # MP DATABASE
 
@@ -343,8 +368,9 @@ class MPWidget(QtGui.QWidget):
 
     def addCut(self):
         print "\nCONTEXT MENU: "+self.action_addCut.text()
-        item = self.table_MP_chain.currentItem()
-        self.MPC.add_cut(item.activity_or_database_key)
+        for item in self.table_MP_chain.selectedItems():
+        # item = self.table_MP_chain.currentItem()
+            self.MPC.add_cut(item.activity_or_database_key)
         self.showGraph()
 
     def deleteCut(self):
@@ -376,7 +402,7 @@ class MPWidget(QtGui.QWidget):
         if item.column() == 0:  # name
             print "\nChanging output NAME to: " + text
             self.MPC.set_output_name(key, text, self.text_before_edit, float(amount))
-        elif item.column() == 1 and self.helper.is_number(text):  # quantity
+        elif item.column() == 1 and self.helper.is_float(text):  # quantity
             print "\nChanging output QUANTITY to: " + text
             self.MPC.set_output_quantity(key, float(text), name, float(self.text_before_edit))
         else:  # ignore!
@@ -471,15 +497,18 @@ class MPWidget(QtGui.QWidget):
         """
         returns dict where: keys = MP name, value = LCA score
         """
-        method = (u'IPCC 2007', u'climate change', u'GWP 100a')  # TODO
-        map_process_lcascore = self.lmp.lca_processes(method, process_names=process_list)
-        data = []
-        for name, score in map_process_lcascore.items():
-            data.append({
-                'meta-process': name,
-                'LCA score': score
-            })
-        self.update_PP_comparison_table(data=data, keys=['meta-process', 'LCA score'])
+        method = self.lcaData.LCIA_METHOD
+        if not method:
+            self.signal_status_bar_message.emit('Need to define an LCIA method first.')
+        else:
+            map_process_lcascore = self.lmp.lca_processes(method, process_names=process_list)
+            data = []
+            for name, score in map_process_lcascore.items():
+                data.append({
+                    'meta-process': name,
+                    'LCA score': score
+                })
+            self.update_PP_comparison_table(data=data, keys=['meta-process', 'LCA score'])
 
     def show_all_pathways(self):
         functional_unit = str(self.combo_functional_unit.currentText())
@@ -495,32 +524,43 @@ class MPWidget(QtGui.QWidget):
         self.path_data = self.lmp.lca_alternatives(method, demand)
         self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score
         self.update_PP_comparison_table(data=self.path_data, keys=['LCA score', 'path'])
-        self.plot_figure()
+        self.plot_figure('products')
 
-    def plot_figure(self):
+    def plot_figure(self, type):
         ''' plot matplotlib figure for LCA alternatives '''
-        # get matplotlib figure data
-        data = np.zeros((len(self.lmp.map_products_number), len(self.path_data)), dtype=np.float)
-        for i, l in enumerate(self.path_data):
-            for process, value in l['process contribution'].items():
-                # creates matrix where rows are products and columns hold process/product specific impact scores
-                data[self.lmp.map_products_number[self.lmp.get_output_names([process])[0]], i] = value  # caution, problem for multi-output processes
+        # get figure data
+        if type == 'processes':
+            # creates matrix where rows are products and columns hold PROCESS specific impact scores
+            data = np.zeros((len(self.lmp.map_processes_number), len(self.path_data)), dtype=np.float)
+            for i, l in enumerate(self.path_data):
+                for process, value in l['process contribution'].items():
+                    data[self.lmp.map_processes_number[process], i] = value
+            # data for labels, colors, ...
+            label_product_or_process = [self.lmp.map_number_processes[i] for i in np.arange(len(data))]
+            colormap = plt.cm.nipy_spectral
+        elif type == 'products':
+            # creates matrix where rows are products and columns hold PROCESS specific impact scores
+            data = np.zeros((len(self.lmp.map_products_number), len(self.path_data)), dtype=np.float)
+            for i, l in enumerate(self.path_data):
+                for process, value in l['process contribution'].items():
+                    data[self.lmp.map_products_number[self.lmp.get_output_names([process])[0]], i] = value  # caution, problem for multi-output processes
+            # data for labels, colors, ...
+            label_product_or_process = [self.lmp.map_number_products[i] for i in np.arange(len(data))]
+            colormap = plt.cm.autumn
 
         # data for labels, colors, ...
-        number_products = len(data)
         number_lcas = len(self.path_data)
         ind = np.arange(number_lcas)
         ind_label = np.arange(number_lcas)
-        product_label = [self.lmp.map_number_products[i] for i in np.arange(number_products)]
+
         bottom = np.vstack((np.zeros((data.shape[1],), dtype=data.dtype), np.cumsum(data, axis=0)[:-1]))
-        colormap = plt.cm.autumn
-        colors = [colormap(c) for c in np.linspace(0, 1, number_products)]
+        colors = [colormap(c) for c in np.linspace(0, 1, len(data))]
 
         # plotting
         self.figure.clf()
         ax = self.figure.add_subplot(111)
         plt.rcParams.update({'font.size': 10})
-        for dat, col, bot, label in zip(data, colors, bottom, product_label):
+        for dat, col, bot, label in zip(data, colors, bottom, label_product_or_process):
             ax.bar(ind, dat, color=col, bottom=bot, label=label, edgecolor="none")
         plt.xticks(ind+0.5, ind_label+1)
         impact_unit = bw2.methods[self.path_data[0]['LCIA method']]['unit']
@@ -714,7 +754,7 @@ class MPWidget(QtGui.QWidget):
     # OTHER METHODS
 
     def setNewCurrentActivity(self):
-        self.signal_activity_key.emit(self.table_MP_chain.currentItem())
+        self.signal_MyQTableWidgetItem.emit(self.table_MP_chain.currentItem())
 
     def save_pp_matrix(self):
         matrix, processes, products = self.lmp.get_pp_matrix()  # self.get_process_products_as_array()
@@ -739,38 +779,39 @@ class MPWidget(QtGui.QWidget):
             pickle.dump(data, output)
         # Excel export
         try:
-            self.export_pp_matrix_to_excel(processes, products, matrix)
+            filename = 'pp-matrix.xlsx'
+            filepath = os.path.join(os.getcwd(), "MetaProcessDatabases", filename)
+            export_matrix_to_excel(products, processes, matrix, filepath)
         except:
             print "An error has occured saving the PP-Matrix as .xlsx file."
         # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.json")
         # with open(filename, 'w') as outfile:
         #     json.dump(data, outfile, indent=2)
 
-    def export_pp_matrix_to_excel(self, processes, products, matrix, filename='pp-matrix.xlsx'):
-        filename = os.path.join(os.getcwd(), "MetaProcessDatabases", filename)
-        workbook = xlsxwriter.Workbook(filename)
-        ws = workbook.add_worksheet('pp-matrix')
-        # formatting
-        # border
-        format_border = workbook.add_format()
-        format_border.set_border(1)
-        format_border.set_font_size(9)
-        # border + text wrap
-        format_border_text_wrap = workbook.add_format()
-        format_border_text_wrap.set_text_wrap()
-        format_border_text_wrap.set_border(1)
-        format_border_text_wrap.set_font_size(9)
-        # set column width
-        ws.set_column(0, 1, width=15, cell_format=None)
-        ws.set_column(1, 50, width=9, cell_format=None)
-        # write data
-        for i, p in enumerate(processes):  # process names
-            ws.write(0, i+1, p, format_border_text_wrap)
-        for i, p in enumerate(products):  # product names
-            ws.write(i+1, 0, p, format_border)
-        for i, row in enumerate(range(matrix.shape[0])):  # matrix
-            ws.write_row(i+1, 1, matrix[i, :], format_border)
-        workbook.close()
+    # def export_matrix_to_excel(self, row_names, col_names, matrix, filepath='export.xlsx', sheetname='Export'):
+    #     workbook = xlsxwriter.Workbook(filepath)
+    #     ws = workbook.add_worksheet(sheetname)
+    #     # formatting
+    #     # border
+    #     format_border = workbook.add_format()
+    #     format_border.set_border(1)
+    #     format_border.set_font_size(9)
+    #     # border + text wrap
+    #     format_border_text_wrap = workbook.add_format()
+    #     format_border_text_wrap.set_text_wrap()
+    #     format_border_text_wrap.set_border(1)
+    #     format_border_text_wrap.set_font_size(9)
+    #     # set column width
+    #     ws.set_column(0, 1, width=15, cell_format=None)
+    #     ws.set_column(1, 50, width=9, cell_format=None)
+    #     # write data
+    #     for i, p in enumerate(col_names):  # process names
+    #         ws.write(0, i+1, p, format_border_text_wrap)
+    #     for i, p in enumerate(row_names):  # product names
+    #         ws.write(i+1, 0, p, format_border)
+    #     for i, row in enumerate(range(matrix.shape[0])):  # matrix
+    #         ws.write_row(i+1, 1, matrix[i, :], format_border)
+    #     workbook.close()
 
     def export_as_JSON(self):
         outdata = []
