@@ -286,8 +286,12 @@ class MainWindow(QtGui.QMainWindow):
         self.splitter_horizontal.addWidget(self.tab_widget_RIGHT)
         self.HL.addWidget(self.splitter_horizontal)
 
+        self.VL = QtGui.QVBoxLayout()
+        # self.VL.addWidget(self.table_current_activity)
+        self.VL.addLayout(self.HL)
+
         self.central_widget = QtGui.QWidget()
-        self.central_widget.setLayout(self.HL)
+        self.central_widget.setLayout(self.VL)
         self.setCentralWidget(self.central_widget)
 
         # DOCKS - NOT USED HERE FOR NOW
@@ -301,6 +305,11 @@ class MainWindow(QtGui.QMainWindow):
         # set up standard widgets in docks
         self.set_up_standard_widgets()
         self.set_up_menu_bar()
+
+        # self.toolbar_ca = QtGui.QToolBar('Current Activity')
+        # self.toolbar_ca.addWidget(self.table_current_activity)
+        # self.addToolBar(self.toolbar_ca)
+
         self.set_up_toolbar()
         self.set_up_context_menus()
 
@@ -403,26 +412,26 @@ class MainWindow(QtGui.QMainWindow):
         # static
         label_inputs = QtGui.QLabel("Technosphere Inputs")
         label_current_activity = QtGui.QLabel("Current Activity")
-        label_current_activity.setFont(self.styles.font_bold)
+        # label_current_activity.setFont(self.styles.font_bold)
         label_downstream_activities = QtGui.QLabel("Downstream Activities")
         self.table_inputs_technosphere = QtGui.QTableWidget()
         self.table_current_activity = QtGui.QTableWidget()
         self.table_downstream_activities = QtGui.QTableWidget()
-        # Activity Buttons
-        VL_activity_info = QtGui.QVBoxLayout()
-        VL_activity_info.setAlignment(QtCore.Qt.AlignLeft)
-        VL_activity_info.addWidget(self.label_current_activity_product)
-        VL_activity_info.addWidget(self.label_current_activity)
-        VL_activity_info.addWidget(self.label_current_database)
-        frame = QtGui.QFrame()
-        frame.setLayout(VL_activity_info)
+        # Current Activity
+        # VL_activity_info = QtGui.QVBoxLayout()
+        # VL_activity_info.setAlignment(QtCore.Qt.AlignLeft)
+        # VL_activity_info.addWidget(self.label_current_activity_product)
+        # VL_activity_info.addWidget(self.label_current_activity)
+        # VL_activity_info.addWidget(self.label_current_database)
+        # frame = QtGui.QFrame()
+        # frame.setLayout(VL_activity_info)
         # Layout
         VL_technosphere = QtGui.QVBoxLayout()
         VL_technosphere.addWidget(label_inputs)
         VL_technosphere.addWidget(self.table_inputs_technosphere)
-        # VL_technosphere.addWidget(label_current_activity)
-        # VL_technosphere.addWidget(self.table_current_activity)
-        VL_technosphere.addWidget(frame)
+        VL_technosphere.addWidget(label_current_activity)
+        VL_technosphere.addWidget(self.table_current_activity)
+        # VL_technosphere.addWidget(frame)
         VL_technosphere.addWidget(label_downstream_activities)
         VL_technosphere.addWidget(self.table_downstream_activities)
         widget_technosphere = QtGui.QWidget()
@@ -968,18 +977,29 @@ the author's written consent."""
             ad = self.lcaData.getActivityData()
 
             keys = self.get_table_headers()
-            # self.table_current_activity = self.helper.update_table(self.table_current_activity, [ad], keys, bold=True)
-            # self.table_current_activity.setMaximumHeight(self.table_current_activity.horizontalHeader().height() +
-            #                             2*self.table_current_activity.rowHeight(0))
+            # current activity table
+            self.table_current_activity = self.helper.update_table(self.table_current_activity, [ad], keys, bold=True)
+            self.table_current_activity.setMaximumHeight(
+                # self.table_current_activity.horizontalHeader().height()
+                + self.table_current_activity.rowHeight(0)
+                + self.table_current_activity.autoScrollMargin()
+            )
+            self.table_current_activity.setShowGrid(False)
+            self.table_current_activity.horizontalHeader().hide()
+            self.table_current_activity.verticalHeader().hide()
+
+            # other tables
             self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
             self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
             self.table_downstream_activities = self.helper.update_table(self.table_downstream_activities, self.lcaData.get_downstream_exchanges(), keys)
 
-            label_text = ad["name"]+" {"+ad["location"]+"}"
-            self.label_current_activity.setText(QtCore.QString(label_text))
-            label_text = ad["product"]+" ["+str(ad["amount"])+" "+ad["unit"]+"]"
-            self.label_current_activity_product.setText(QtCore.QString(label_text))
-            self.label_current_database.setText(QtCore.QString(ad['database']))
+
+            # label_text = ad["name"]+" {"+ad["location"]+"}"
+            # self.label_current_activity.setText(QtCore.QString(label_text))
+            # label_text = ad["product"]+" ["+str(ad["amount"])+" "+ad["unit"]+"]"
+            # self.label_current_activity_product.setText(QtCore.QString(label_text))
+            # self.label_current_database.setText(QtCore.QString(ad['database']))
+
             # update LCIA widget
             self.label_LCIAW_product.setText(ad['product'])
             self.label_LCIAW_activity.setText("".join([ad['name'], " {", ad['location'], "}"]))
@@ -1359,8 +1379,11 @@ the author's written consent."""
                 self.table_AE_biosphere,
                 self.lcaData.get_exchanges(exchanges=exchanges, type="biosphere"),
                 self.get_table_headers(type="biosphere"), edit_keys=['amount'])
-        self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height() +
-                                                2*self.table_AE_activity.rowHeight(0))
+        self.table_AE_activity.setMaximumHeight(
+            self.table_AE_activity.horizontalHeader().height() +
+            self.table_AE_activity.rowHeight(0) +
+            self.table_AE_activity.autoScrollMargin()
+        )
 
     def update_read_and_write_database_list(self):
         db_for_saving = [db['name'] for db in self.lcaData.getDatabases()

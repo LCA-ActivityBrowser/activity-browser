@@ -26,7 +26,9 @@ table_item_colors = {
     'product': (0, 0, 204),
     'name': (0, 0, 0),
     'amount': (0, 0, 0),
-    'unit': (153, 0, 153),
+    'unit': (51, 153, 255),
+    # 'unit': (0, 76, 153),
+    # 'unit': (0, 102, 204),
     'location': (0, 102, 51),
-    'database': (0, 0, 0),
+    'database': (96, 96, 96),
 }

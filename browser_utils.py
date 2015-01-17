@@ -79,8 +79,9 @@ class HelperMethods(object):
                     if bold:
                         font = QtGui.QFont()
                         font.setBold(True)
-                        font.setPointSize(10)
+                        font.setPointSize(9)
                         mqtwi.setFont(font)
+                        mqtwi.setBackgroundColor(QtGui.QColor(224, 224, 224))
                     table.setItem(i, j, mqtwi)
             if edit_keys:
                 table.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)
