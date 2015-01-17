@@ -20,3 +20,13 @@ dock_positions_at_start = {
     top: [],
     bottom: []
 }
+
+# RGB coloring of table contents
+table_item_colors = {
+    'product': (0, 0, 204),
+    'name': (0, 0, 0),
+    'amount': (0, 0, 0),
+    'unit': (153, 0, 153),
+    'location': (0, 102, 51),
+    'database': (0, 0, 0),
+}

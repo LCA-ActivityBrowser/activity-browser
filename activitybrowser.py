@@ -220,9 +220,9 @@ class WidgetMultiLCA(QtGui.QWidget):
         self.signal_status_bar_message.emit('Calculating...')
         tic = time.clock()
         if not self.selected_methods:
-            self.signal_status_bar_message.emit('You need to add methods first.')
+            self.signal_status_bar_message.emit('Add methods first.')
         elif not self.selected_activities:
-            self.signal_status_bar_message.emit('You need to add activities first.')
+            self.signal_status_bar_message.emit('Add activities first.')
         else:
             lca_scores, methods, activities = \
                 self.lcaData.multi_lca(self.selected_activities, self.selected_methods)
@@ -269,8 +269,8 @@ class MainWindow(QtGui.QMainWindow):
         # Main Window
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
-        icon_file = 'icons/pony/pony%s.png' % str(randint(1, 7))
-        self.setWindowIcon(QtGui.QIcon(icon_file))
+        self.icon = QtGui.QIcon('icons/pony/pony%s.png' % str(randint(1, 7)))
+        self.setWindowIcon(self.icon)
 
         # MAIN LAYOUT
         # H-LAYOUT -- SPLITTER -- TWO TABWIDGETS
@@ -392,8 +392,6 @@ class MainWindow(QtGui.QMainWindow):
         self.widget_multi_lca.signal_status_bar_message.connect(self.statusBarMessage)
 
     def set_up_widget_technosphere(self):
-        button_edit = QtGui.QPushButton("Edit")
-        button_calc_lca = QtGui.QPushButton("Calculate LCA")
         # LABELS
         # dynamic
         self.label_current_activity_product = QtGui.QLabel("Product")
@@ -404,22 +402,27 @@ class MainWindow(QtGui.QMainWindow):
         self.label_current_database = QtGui.QLabel("Database")
         # static
         label_inputs = QtGui.QLabel("Technosphere Inputs")
+        label_current_activity = QtGui.QLabel("Current Activity")
+        label_current_activity.setFont(self.styles.font_bold)
         label_downstream_activities = QtGui.QLabel("Downstream Activities")
         self.table_inputs_technosphere = QtGui.QTableWidget()
+        self.table_current_activity = QtGui.QTableWidget()
         self.table_downstream_activities = QtGui.QTableWidget()
         # Activity Buttons
-        HL_activity_buttons = QtGui.QHBoxLayout()
-        HL_activity_buttons.setAlignment(QtCore.Qt.AlignLeft)
-        HL_activity_buttons.addWidget(button_edit)
-        HL_activity_buttons.addWidget(button_calc_lca)
+        VL_activity_info = QtGui.QVBoxLayout()
+        VL_activity_info.setAlignment(QtCore.Qt.AlignLeft)
+        VL_activity_info.addWidget(self.label_current_activity_product)
+        VL_activity_info.addWidget(self.label_current_activity)
+        VL_activity_info.addWidget(self.label_current_database)
+        frame = QtGui.QFrame()
+        frame.setLayout(VL_activity_info)
         # Layout
         VL_technosphere = QtGui.QVBoxLayout()
         VL_technosphere.addWidget(label_inputs)
         VL_technosphere.addWidget(self.table_inputs_technosphere)
-        VL_technosphere.addWidget(self.label_current_activity_product)
-        VL_technosphere.addWidget(self.label_current_activity)
-        VL_technosphere.addWidget(self.label_current_database)
-        VL_technosphere.addLayout(HL_activity_buttons)
+        # VL_technosphere.addWidget(label_current_activity)
+        # VL_technosphere.addWidget(self.table_current_activity)
+        VL_technosphere.addWidget(frame)
         VL_technosphere.addWidget(label_downstream_activities)
         VL_technosphere.addWidget(self.table_downstream_activities)
         widget_technosphere = QtGui.QWidget()
@@ -439,8 +442,6 @@ class MainWindow(QtGui.QMainWindow):
         self.table_downstream_activities.addAction(action_add_to_multi_lca)
 
         # Connections
-        button_edit.clicked.connect(self.edit_activity)
-        button_calc_lca.clicked.connect(self.calculate_lcia)
         self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
@@ -558,17 +559,28 @@ class MainWindow(QtGui.QMainWindow):
         action_forward.setShortcut('Alt+right')
         action_forward.triggered.connect(self.goForward)
 
+        # Edit
+        action_edit = QtGui.QAction(QtGui.QIcon('icons/edit.png'), 'Edit activity', self)
+        action_edit.triggered.connect(self.edit_activity)
+
+        # Calculate
+        action_calculate = QtGui.QAction(QtGui.QIcon('icons/calculate.png'),
+                                       'Calculate LCA (with settings in LCIA tab)', self)
+        action_calculate.triggered.connect(self.calculate_lcia)
+
         # toolbar
         self.toolbar = QtGui.QToolBar('Toolbar')
         self.toolbar.addWidget(self.line_edit_search)
         self.toolbar.addSeparator()
         self.toolbar.addWidget(self.line_edit_search_1)
         self.toolbar.addAction(action_search)
-        self.toolbar.addAction(action_random_activity)
         self.toolbar.addAction(action_key)
+        self.toolbar.addAction(action_random_activity)
         self.toolbar.addAction(action_history)
         self.toolbar.addAction(action_backward)
         self.toolbar.addAction(action_forward)
+        self.toolbar.addAction(action_edit)
+        self.toolbar.addAction(action_calculate)
         self.addToolBar(self.toolbar)
 
         # Connections
@@ -795,42 +807,55 @@ class MainWindow(QtGui.QMainWindow):
         # self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
-
     def set_up_menu_bar(self):
-        # MENU BAR
-        # Actions
-        addMP = QtGui.QAction('&Meta-Process Editor', self)
+        # EXTENSIONS
+        extensions_menu = QtGui.QMenu('&Extensions', self)
+
+        addMP = QtGui.QAction(QtGui.QIcon('icons/metaprocess.png'), '&Meta-Process Editor', self)
         addMP.setShortcut('Ctrl+E')
         addMP.setStatusTip('Start Meta-Process Editor')
         addMP.triggered.connect(self.set_up_widgets_meta_process)
-        # Add actions
-        menubar = self.menuBar()
-        extensions_menu = menubar.addMenu('&Extensions')
+
         extensions_menu.addAction(addMP)
 
+        # HELP
         help_menu = QtGui.QMenu('&Help', self)
+        help_menu.addAction(self.icon, '&About Activity Browser', self.about)
+        help_menu.addAction('&About Qt', self.about_qt)
+
+        # ::: MENU BAR :::
+        menubar = self.menuBar()
+        menubar.addMenu(extensions_menu)
         menubar.addMenu(help_menu)
-        help_menu.addAction('&About', self.about)
 
     def about(self):
-        QtGui.QMessageBox.about(self, "About",
-"""Activity Browser
+        text="""
+Activity Browser
 
 Copyright 2015 Bernhard Steubing, ETH Zurich
-email: steubing@ifu.baug.ethz.ch
 
-This software servers as a graphical user interface to do LCA
-and is based on the brightway2 LCA software (http://brightwaylca.org/)
-as well as own extensions.
+Contact: steubing@ifu.baug.ethz.ch
 
-Feel free to contact me regarding additional extensions as well
-as its use for private and commercial applications.
+The Activity Browser is an LCA software based on
+brightway2: http://brightwaylca.org/
 
-As licensing questions are not yet determined, the software
-shall *not* be used and modified without prior consent of the author;
-copies as well as modified versions of the software shall *not*
-be distributed to others without the consent of the author."""
-)
+The Activity Browser may *not* be used or modified
+without prior consent of the author. Copies of
+the software may *not* be distributed without
+the author's written consent."""
+
+        # QtGui.QMessageBox.about(self, "About", text)
+
+        msgBox = QtGui.QMessageBox()
+        msgBox.setWindowTitle('About the Activity Browser')
+        pixmap = self.icon.pixmap(QtCore.QSize(150, 150))
+        msgBox.setIconPixmap(pixmap)
+        msgBox.setWindowIcon(self.icon)
+        msgBox.setText(text)
+        msgBox.exec_()
+
+    def about_qt(self):
+        QtGui.QMessageBox.aboutQt(self)
 
     def statusBarMessage(self, message):
         """
@@ -940,11 +965,16 @@ be distributed to others without the consent of the author."""
             elif mode == 'forward':
                 self.lcaData.go_forward()
 
+            ad = self.lcaData.getActivityData()
+
             keys = self.get_table_headers()
+            # self.table_current_activity = self.helper.update_table(self.table_current_activity, [ad], keys, bold=True)
+            # self.table_current_activity.setMaximumHeight(self.table_current_activity.horizontalHeader().height() +
+            #                             2*self.table_current_activity.rowHeight(0))
             self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
             self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
             self.table_downstream_activities = self.helper.update_table(self.table_downstream_activities, self.lcaData.get_downstream_exchanges(), keys)
-            ad = self.lcaData.getActivityData()
+
             label_text = ad["name"]+" {"+ad["location"]+"}"
             self.label_current_activity.setText(QtCore.QString(label_text))
             label_text = ad["product"]+" ["+str(ad["amount"])+" "+ad["unit"]+"]"
@@ -957,7 +987,7 @@ be distributed to others without the consent of the author."""
             self.label_LCIAW_unit.setText(ad['unit'])
             self.statusBar().showMessage("Loaded activity: "+ad['name'])
         except AttributeError:
-            self.statusBar().showMessage("Need to load a database first")
+            self.statusBar().showMessage("Load a database first")
 
     def showHistory(self):
         keys = self.get_table_headers(type="history")
@@ -982,14 +1012,16 @@ be distributed to others without the consent of the author."""
     def get_table_headers(self, type="technosphere"):
         if self.lcaData.database_version == 2:
             if type == "technosphere":
-                keys = ["name", "location", "amount", "unit", "database"]
+                # keys = ["name", "location", "amount", "unit", "database"]
+                keys = ["amount", "unit", "name", "location", "database"]
             elif type == "biosphere":
                 keys = ["name", "amount", "unit"]
             elif type == "history" or type == "search":
                 keys = ["name", "location", "unit", "database", "key"]
         else:
             if type == "technosphere":
-                keys = ["product", "name", "location", "amount", "unit", "database"]
+                # keys = ["product", "name", "location", "amount", "unit", "database"]
+                keys = ["amount", "unit", "product", "name", "location", "database"]
             elif type == "biosphere":
                 keys = ["name", "amount", "unit"]
             elif type == "history" or type == "search":
@@ -1051,7 +1083,7 @@ be distributed to others without the consent of the author."""
             self.label_multi_purpose.setText(QtCore.QString(label_text))
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         else:
-            self.statusBar().showMessage("Need to load a database first")
+            self.statusBar().showMessage("Load a database first")
 
     def search_by_key(self):
         searchString = str(self.line_edit_search.text())
@@ -1067,9 +1099,9 @@ be distributed to others without the consent of the author."""
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
                 self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         except AttributeError:
-            self.statusBar().showMessage("Need to load a database first")
+            self.statusBar().showMessage("Load a database first")
         except:
-            self.statusBar().showMessage("Could not find activity key for searchstring.")
+            self.statusBar().showMessage("Cannot find activity key for this.")
 
     # LCIA and LCA Results
 
@@ -1091,9 +1123,9 @@ be distributed to others without the consent of the author."""
     def calculate_lcia(self, monte_carlo=False):
         method = self.lcaData.LCIA_METHOD
         if not self.lcaData.currentActivity:
-            self.statusBar().showMessage("Need to load an activity first.")
+            self.statusBar().showMessage("Load an activity first.")
         elif not method:
-            self.statusBar().showMessage("Need to select an LCIA method first.")
+            self.statusBar().showMessage("Select an LCIA method first.")
         else:
             if self.line_edit_FU and self.helper.is_float(self.line_edit_FU.text()):
                 amount = float(self.line_edit_FU.text())
@@ -1217,6 +1249,8 @@ be distributed to others without the consent of the author."""
             self.update_AE_tables()
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
             self.update_read_and_write_database_list()
+        else:
+            self.statusBar().showMessage("Load an activity first.")
 
     def add_technosphere_exchange(self):
         self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)
@@ -1326,7 +1360,7 @@ be distributed to others without the consent of the author."""
                 self.lcaData.get_exchanges(exchanges=exchanges, type="biosphere"),
                 self.get_table_headers(type="biosphere"), edit_keys=['amount'])
         self.table_AE_activity.setMaximumHeight(self.table_AE_activity.horizontalHeader().height() +
-                                                self.table_AE_activity.rowHeight(0))
+                                                2*self.table_AE_activity.rowHeight(0))
 
     def update_read_and_write_database_list(self):
         db_for_saving = [db['name'] for db in self.lcaData.getDatabases()

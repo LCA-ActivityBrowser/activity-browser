@@ -11,6 +11,7 @@ import uuid
 from copy import deepcopy
 import multiprocessing
 import xlsxwriter
+import browser_settings
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -39,7 +40,7 @@ class HelperMethods(object):
     def __init__(self):
         pass
 
-    def update_table(self, table, data, keys, edit_keys=None):
+    def update_table(self, table, data, keys, edit_keys=None, bold=False):
         """
         A generic method to fill a QTableWidget
         :param table: QTableWidget object
@@ -47,6 +48,8 @@ class HelperMethods(object):
         :param keys: dictionary keys that are to be displayed
         :return: QTableWidget object
         """
+
+
         if not data:
             table.setRowCount(0)
             return table
@@ -69,6 +72,15 @@ class HelperMethods(object):
                         mqtwi.uuid_ = d['uuid_']
                     if edit_keys and keys[j] in edit_keys:
                         mqtwi.setFlags(mqtwi.flags() | QtCore.Qt.ItemIsEditable)
+                    # Color
+                    mqtwi.setTextColor(QtGui.QColor(*browser_settings.table_item_colors.get(
+                        keys[j], (0, 0, 0))))
+                    # Font
+                    if bold:
+                        font = QtGui.QFont()
+                        font.setBold(True)
+                        font.setPointSize(10)
+                        mqtwi.setFont(font)
                     table.setItem(i, j, mqtwi)
             if edit_keys:
                 table.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)
