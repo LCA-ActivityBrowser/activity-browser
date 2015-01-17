@@ -120,11 +120,18 @@ class BrowserStandardTasks(object):
     LCIA_METHOD = (u'IPCC 2007', u'climate change', u'GWP 100a')
 
     def __init__(self):
-        self.history = []
         self.currentActivity = None
         self.db = None
         self.database = None
         self.database_version = None
+
+        # Navigation
+        self.history = set()
+        self.last_activity = None
+        self.backward_options = []
+        self.forward_options = []
+
+        # LCA data
         self.LCIA_calculations = {}  # used to store LCIA calculations
         self.LCIA_calculations_mc = {}
 
@@ -139,43 +146,44 @@ class BrowserStandardTasks(object):
     def loadDatabase(self, db_name):
         self.db = bw2.Database(db_name)
         self.database = self.db.load()
-        # self.currentActivity = None
         self.updateEcoinventVersion(self.db.random())  # random key as no activity has been selected at this stage
 
-    def setNewCurrentActivity(self, key=None):
+    def setNewCurrentActivity(self, key=None, record=True):
         # need to load new database in case the new activity is in another db...
         if not self.db:
             print "Need to load a database first"
-        self.record_history()
-        if key:
-            print "activity requested:", bw2.Database(key[0]).load()[key].get('name', '')  # self.database[key]["name"]
-        else:
-            print "activity requested:", key
+            return
         if key is None or key == "":
             key = self.db.random()
-            print "new random activity key: ", self.database[key].get('name', '')
+            print "random activity key"
+        print "\nNew current activity: ", bw2.Database(key[0]).load()[key].get('name', '')
+        last_activity = self.currentActivity
         self.currentActivity = key
         self.updateEcoinventVersion()
+        self.history.add(self.currentActivity)
+        if record and last_activity:
+            self.backward_options.append(last_activity)
+        # reset forward options if gone forward and new current activity is not last forward option
+        if record and self.forward_options:
+            if self.currentActivity != self.forward_options.pop():
+                self.forward_options = []
 
-    def record_history(self):
-        # self.history.append(self.currentActivity)
-        if self.currentActivity:
-            if self.history:
-                if self.history != self.currentActivity:
-                    self.history.append(self.currentActivity)
-            else:
-                self.history.append(self.currentActivity)
+        # print "\nLast activity:", self.getActivityData(self.last_activity)['name']  # wrong first time as None --> getAD returns self.current...
+        # print "History:", [self.getActivityData(key)['name'] for key in self.history]
+        # print "Current activity:", self.getActivityData(self.currentActivity)['name']
+        # print "Backward options:", [self.getActivityData(key)['name'] for key in self.backward_options]
+        # print "Forward options:", [self.getActivityData(key)['name'] for key in self.forward_options]
+        # print
 
-    def goBack(self):
-        pass
-        #     print "HISTORY:"
-        # for key in self.lcaData.history:
-        #     print key, self.lcaData.database[key]["name"]
-        #
-        # if self.lcaData.history:
-        #     self.newActivity(self.lcaData.history.pop())
-        # else:
-        #     print "Cannot go further back."
+    def go_backward(self):
+        if self.backward_options:
+            self.forward_options.append(self.currentActivity)
+            self.setNewCurrentActivity(self.backward_options.pop(), record=False)
+
+    def go_forward(self):
+        if self.forward_options:
+            self.backward_options.append(self.currentActivity)
+            self.setNewCurrentActivity(self.forward_options.pop(), record=False)
 
     def getActivityData(self, key=None, values=None):
         if values:

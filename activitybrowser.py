@@ -18,6 +18,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
 import pickle
+from random import randint
 
 
 class WidgetMultiLCA(QtGui.QWidget):
@@ -268,6 +269,8 @@ class MainWindow(QtGui.QMainWindow):
         # Main Window
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
+        icon_file = 'icons/pony/pony%s.png' % str(randint(1, 7))
+        self.setWindowIcon(QtGui.QIcon(icon_file))
 
         # MAIN LAYOUT
         # H-LAYOUT -- SPLITTER -- TWO TABWIDGETS
@@ -298,6 +301,7 @@ class MainWindow(QtGui.QMainWindow):
         # set up standard widgets in docks
         self.set_up_standard_widgets()
         self.set_up_menu_bar()
+        self.set_up_toolbar()
         self.set_up_context_menus()
 
         # # layout docks
@@ -378,7 +382,6 @@ class MainWindow(QtGui.QMainWindow):
         self.set_up_widget_search()
         self.set_up_widget_biosphere()
         self.set_up_widget_LCA_results()
-        self.set_up_widget_toolbar()
         self.setup_widget_activity_editor()
 
         # FROM OUTSIDE CLASSES
@@ -427,14 +430,13 @@ class MainWindow(QtGui.QMainWindow):
         # CONTEXT MENUS
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
-        self.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)
-        self.action_add_to_multi_lca.triggered.connect(
-            lambda: self.add_to_multi_lca(self.table_inputs_technosphere.selectedItems()))
-        self.table_inputs_technosphere.addAction(self.action_add_to_multi_lca)
+        action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", self.table_inputs_technosphere)
+        action_add_to_multi_lca.triggered.connect(lambda: self.add_to_multi_lca(self.table_inputs_technosphere.selectedItems()))
+        self.table_inputs_technosphere.addAction(action_add_to_multi_lca)
 
-        self.action_add_to_multi_lca.triggered.connect(
-            lambda: self.add_to_multi_lca(self.table_downstream_activities.selectedItems()))
-        self.table_downstream_activities.addAction(self.action_add_to_multi_lca)
+        action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", self.table_downstream_activities)
+        action_add_to_multi_lca.triggered.connect(lambda: self.add_to_multi_lca(self.table_downstream_activities.selectedItems()))
+        self.table_downstream_activities.addAction(action_add_to_multi_lca)
 
         # Connections
         button_edit.clicked.connect(self.edit_activity)
@@ -495,10 +497,18 @@ class MainWindow(QtGui.QMainWindow):
         self.action_delete_activity.triggered.connect(self.delete_activity)
         self.table_search.addAction(self.action_delete_activity)
 
-        # self.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)  # defined in set_up_widget_technosphere
-        self.action_add_to_multi_lca.triggered.connect(
-            lambda: self.add_to_multi_lca(self.table_search.selectedItems()))
-        self.table_search.addAction(self.action_add_to_multi_lca)
+        # self.action_add_to_multi_lca_from_search = QtGui.QAction("add to Multi-LCA", None)
+        # self.action_add_to_multi_lca_from_search.triggered.connect(
+        #     lambda: self.add_to_multi_lca(self.table_search.selectedItems()))
+        # self.table_search.addAction(self.action_add_to_multi_lca_from_search)
+
+        # self.table_search.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)
+        # self.table_search.action_add_to_multi_lca.triggered.connect(self.add_to_multi_lca1)
+        # self.table_search.addAction(self.table_search.action_add_to_multi_lca)
+
+        action_add_to_multi_lca = QtGui.QAction(QtGui.QIcon("icons/key.png"), "add to Multi-LCA", self.table_search)
+        action_add_to_multi_lca.triggered.connect(lambda: self.add_to_multi_lca(self.table_search.selectedItems()))
+        self.table_search.addAction(action_add_to_multi_lca)
 
         # Connections
         self.table_search.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
@@ -511,40 +521,60 @@ class MainWindow(QtGui.QMainWindow):
 
         self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, 'Biosphere')
 
-    def set_up_widget_toolbar(self):
+    def set_up_toolbar(self):
+        # free icons from http://www.flaticon.com/search/history
+
+        # Search line edits
         self.line_edit_search = QtGui.QLineEdit()
-        self.line_edit_search.setMaximumSize(QtCore.QSize(150, 30))
+        self.line_edit_search.setMaximumSize(QtCore.QSize(150, 25))
         self.line_edit_search_1 = QtGui.QLineEdit()
-        self.line_edit_search_1.setMaximumSize(QtCore.QSize(150, 30))
-        # buttons
-        button_random_activity = QtGui.QPushButton("Random Activity")
-        button_key = QtGui.QPushButton("Key")
-        # button_backward = QtGui.QPushButton("<<")
-        # button_forward = QtGui.QPushButton(">>")
-        button_search = QtGui.QPushButton("Search")
-        button_history = QtGui.QPushButton("History")
-        # button_test = QtGui.QPushButton("Test")
+        self.line_edit_search_1.setMaximumSize(QtCore.QSize(150, 25))
+
+        # Search
+        action_search = QtGui.QAction(QtGui.QIcon('icons/search.png'), 'Search activites (blank: all activities)', self)
+        # action_search.setShortcut('Ctrl+Q')
+        # action_search.setToolTip('Search activites (blank: all activities)')
+        action_search.triggered.connect(self.search_results)
+
+        # Key
+        action_key = QtGui.QAction(QtGui.QIcon('icons/key.png'), 'Search by key', self)
+        action_key.triggered.connect(self.search_by_key)
+
+        # Random activity
+        action_random_activity = QtGui.QAction(QtGui.QIcon('icons/random_activity.png'), 'Load a random activity', self)
+        action_random_activity.triggered.connect(lambda: self.load_new_current_activity())
+
+        # History
+        action_history = QtGui.QAction(QtGui.QIcon('icons/history.png'), 'Previously visited activities', self)
+        action_history.triggered.connect(self.showHistory)
+
+        # Backward
+        action_backward = QtGui.QAction(QtGui.QIcon('icons/backward.png'), 'Go backward', self)
+        action_backward.setShortcut('Alt+left')
+        action_backward.triggered.connect(self.goBackward)
+
+        # Forward
+        action_forward = QtGui.QAction(QtGui.QIcon('icons/forward.png'), 'Go forward', self)
+        action_forward.setShortcut('Alt+right')
+        action_forward.triggered.connect(self.goForward)
 
         # toolbar
         self.toolbar = QtGui.QToolBar('Toolbar')
-        self.addToolBar(self.toolbar)
-
         self.toolbar.addWidget(self.line_edit_search)
         self.toolbar.addSeparator()
         self.toolbar.addWidget(self.line_edit_search_1)
-        self.toolbar.addWidget(button_search)
-        self.toolbar.addWidget(button_history)
-        self.toolbar.addWidget(button_random_activity)
-        self.toolbar.addWidget(button_key)
-        # self.toolbar.addWidget(button_test)
+        self.toolbar.addAction(action_search)
+        self.toolbar.addAction(action_random_activity)
+        self.toolbar.addAction(action_key)
+        self.toolbar.addAction(action_history)
+        self.toolbar.addAction(action_backward)
+        self.toolbar.addAction(action_forward)
+        self.addToolBar(self.toolbar)
 
         # Connections
-        button_random_activity.clicked.connect(lambda: self.load_new_current_activity())
         self.line_edit_search.returnPressed.connect(self.search_results)
         self.line_edit_search_1.returnPressed.connect(self.search_results)
-        button_search.clicked.connect(self.search_results)
-        button_history.clicked.connect(self.showHistory)
-        button_key.clicked.connect(self.search_by_key)
+
         # button_test.clicked.connect(self.setupMP)
 
     def set_up_widget_LCIA(self):
@@ -901,9 +931,15 @@ be distributed to others without the consent of the author."""
             print "Loading Activity:", item.activity_or_database_key
             self.load_new_current_activity(item.activity_or_database_key)
 
-    def load_new_current_activity(self, key=None):
+    def load_new_current_activity(self, key=None, mode=None):
         try:
-            self.lcaData.setNewCurrentActivity(key)
+            if not mode:
+                self.lcaData.setNewCurrentActivity(key, record=True)
+            elif mode == 'backward':
+                self.lcaData.go_backward()
+            elif mode == 'forward':
+                self.lcaData.go_forward()
+
             keys = self.get_table_headers()
             self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
             self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
@@ -919,6 +955,7 @@ be distributed to others without the consent of the author."""
             self.label_LCIAW_activity.setText("".join([ad['name'], " {", ad['location'], "}"]))
             self.label_LCIAW_database.setText(ad['database'])
             self.label_LCIAW_unit.setText(ad['unit'])
+            self.statusBar().showMessage("Loaded activity: "+ad['name'])
         except AttributeError:
             self.statusBar().showMessage("Need to load a database first")
 
@@ -931,20 +968,16 @@ be distributed to others without the consent of the author."""
         self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
 
     def goBackward(self):
-        # self.lcaData.goBack()
-        print "HISTORY:"
-        for key in self.lcaData.history:
-            print key, self.lcaData.database[key]["name"]
-
-        if self.lcaData.history:
-            self.lcaData.currentActivity = self.lcaData.history.pop()
-            self.load_new_current_activity(self.lcaData.currentActivity)
-            # self.load_new_current_activity(self.lcaData.history.pop())
+        if self.lcaData.backward_options:
+            self.load_new_current_activity(mode='backward')
         else:
-            print "Cannot go further back."
+            self.statusBar().showMessage("Cannot go further back.")
 
     def goForward(self):
-        pass
+        if self.lcaData.forward_options:
+            self.load_new_current_activity(mode='forward')
+        else:
+            self.statusBar().showMessage("Cannot go forward.")
 
     def get_table_headers(self, type="technosphere"):
         if self.lcaData.database_version == 2:
