@@ -270,6 +270,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
         self.icon = QtGui.QIcon('icons/pony/pony%s.png' % str(randint(1, 7)))
+        # self.icon = QtGui.QIcon('icons/activitybrowser.png')
         self.setWindowIcon(self.icon)
 
         # MAIN LAYOUT
@@ -615,12 +616,14 @@ class MainWindow(QtGui.QMainWindow):
         self.label_LCIAW_activity = QtGui.QLabel("Activity")
         self.label_LCIAW_activity.setFont(self.styles.font_bold)
         self.label_LCIAW_database = QtGui.QLabel("Database")
+
         self.label_LCIAW_functional_unit = QtGui.QLabel("Functional Unit:")
         self.label_LCIAW_unit = QtGui.QLabel("unit")
         label_lcia_method = QtGui.QLabel("LCIA method:")
         label_previous_calcs = QtGui.QLabel("Previous calculations")
         # Line edits
         self.line_edit_FU = QtGui.QLineEdit("1.0")
+        self.line_edit_FU.setMaximumSize(QtCore.QSize(40, 30))
         self.line_edit_monte_carlo_iterations = QtGui.QLineEdit("100")
         self.line_edit_monte_carlo_iterations.setMaximumSize(QtCore.QSize(80, 30))
         # Buttons
@@ -633,6 +636,7 @@ class MainWindow(QtGui.QMainWindow):
         self.combo_lcia_method_part2 = QtGui.QComboBox(self)
         # Tables
         self.table_previous_calcs = QtGui.QTableWidget()
+        self.table_current_activity_lcia = QtGui.QTableWidget()
 
         # set default LCIA method
         self.update_lcia_method(selection=(u'IPCC 2007', u'climate change', u'GWP 100a'))
@@ -653,30 +657,37 @@ class MainWindow(QtGui.QMainWindow):
         self.HL_functional_unit.setAlignment(QtCore.Qt.AlignLeft)
         self.HL_functional_unit.addWidget(self.label_LCIAW_functional_unit)
         self.HL_functional_unit.addWidget(self.line_edit_FU)
-        self.HL_functional_unit.addWidget(self.label_LCIAW_unit)
+        # self.HL_functional_unit.addWidget(self.label_LCIAW_unit)
+        self.HL_functional_unit.addWidget(self.table_current_activity_lcia)
 
         self.HL_LCIA = QtGui.QHBoxLayout()
         self.HL_LCIA.setAlignment(QtCore.Qt.AlignLeft)
         self.HL_LCIA.addWidget(label_lcia_method)
         self.HL_LCIA.addWidget(self.button_clear_lcia_methods)
+        self.HL_LCIA.addWidget(self.button_calc_lcia)
+        self.HL_LCIA.addWidget(self.button_calc_monte_carlo)
+        self.HL_LCIA.addWidget(self.line_edit_monte_carlo_iterations)
 
-        self.HL_calculation = QtGui.QHBoxLayout()
-        self.HL_calculation.setAlignment(QtCore.Qt.AlignLeft)
-        self.HL_calculation.addWidget(self.button_calc_lcia)
-        self.HL_calculation.addWidget(self.button_calc_monte_carlo)
-        self.HL_calculation.addWidget(self.line_edit_monte_carlo_iterations)
+        # self.HL_calculation = QtGui.QHBoxLayout()
+        # self.HL_calculation.setAlignment(QtCore.Qt.AlignLeft)
+        # self.HL_calculation.addWidget(self.button_calc_lcia)
+        # self.HL_calculation.addWidget(self.button_calc_monte_carlo)
+        # self.HL_calculation.addWidget(self.line_edit_monte_carlo_iterations)
 
         # VL
         self.VL_LCIA_widget = QtGui.QVBoxLayout()
-        self.VL_LCIA_widget.addWidget(self.label_LCIAW_product)
-        self.VL_LCIA_widget.addWidget(self.label_LCIAW_activity)
-        self.VL_LCIA_widget.addWidget(self.label_LCIAW_database)
-        self.VL_LCIA_widget.addLayout(self.HL_functional_unit)
+        # self.VL_LCIA_widget.addWidget(self.table_current_activity_lcia)
+        # self.VL_LCIA_widget.addWidget(self.label_LCIAW_product)
+        # self.VL_LCIA_widget.addWidget(self.label_LCIAW_activity)
+        # self.VL_LCIA_widget.addWidget(self.label_LCIAW_database)
+        # self.VL_LCIA_widget.addLayout(self.HL_functional_unit)
+        self.VL_LCIA_widget.addWidget(self.label_LCIAW_functional_unit)
+        self.VL_LCIA_widget.addWidget(self.table_current_activity_lcia)
         self.VL_LCIA_widget.addLayout(self.HL_LCIA)
         self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part0)
         self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part1)
         self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part2)
-        self.VL_LCIA_widget.addLayout(self.HL_calculation)
+        # self.VL_LCIA_widget.addLayout(self.HL_calculation)
         self.VL_LCIA_widget.addWidget(label_previous_calcs)
         self.VL_LCIA_widget.addWidget(self.table_previous_calcs)
         self.VL_LCIA_widget.addWidget(self.matplotlib_figure_mc)
@@ -692,6 +703,8 @@ class MainWindow(QtGui.QMainWindow):
         self.combo_lcia_method_part1.currentIndexChanged.connect(self.update_lcia_method)
         self.combo_lcia_method_part2.currentIndexChanged.connect(self.update_lcia_method)
         self.button_clear_lcia_methods.clicked.connect(lambda: self.update_lcia_method(selection=('','','')))
+        self.table_current_activity_lcia.itemChanged.connect(self.update_functional_unit)
+
 
         self.tab_widget_LEFT.addTab(self.widget_LCIA, 'LCIA')
 
@@ -966,7 +979,10 @@ the author's written consent."""
             self.load_new_current_activity(item.activity_or_database_key)
 
     def load_new_current_activity(self, key=None, mode=None):
-        try:
+
+        if not self.lcaData.db:
+            self.statusBar().showMessage("Load a database first")
+        else:
             if not mode:
                 self.lcaData.setNewCurrentActivity(key, record=True)
             elif mode == 'backward':
@@ -978,15 +994,10 @@ the author's written consent."""
 
             keys = self.get_table_headers()
             # current activity table
-            self.table_current_activity = self.helper.update_table(self.table_current_activity, [ad], keys, bold=True)
-            self.table_current_activity.setMaximumHeight(
-                # self.table_current_activity.horizontalHeader().height()
-                + self.table_current_activity.rowHeight(0)
-                + self.table_current_activity.autoScrollMargin()
-            )
-            self.table_current_activity.setShowGrid(False)
-            self.table_current_activity.horizontalHeader().hide()
-            self.table_current_activity.verticalHeader().hide()
+            self.table_current_activity = self.format_table_current_activity(
+                self.table_current_activity, keys, ad)
+            self.table_current_activity_lcia = self.format_table_current_activity(
+                self.table_current_activity_lcia, keys, ad, edit_keys='amount')
 
             # other tables
             self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
@@ -1006,8 +1017,18 @@ the author's written consent."""
             self.label_LCIAW_database.setText(ad['database'])
             self.label_LCIAW_unit.setText(ad['unit'])
             self.statusBar().showMessage("Loaded activity: "+ad['name'])
-        except AttributeError:
-            self.statusBar().showMessage("Load a database first")
+
+    def format_table_current_activity(self, table, keys, ad, edit_keys=None):
+        table = self.helper.update_table(table, [ad], keys, bold=True, edit_keys=edit_keys)
+        table.setMaximumHeight(
+            # btable.horizontalHeader().height()
+            + table.rowHeight(0)
+            + table.autoScrollMargin()
+        )
+        table.setShowGrid(False)
+        table.horizontalHeader().hide()
+        table.verticalHeader().hide()
+        return table
 
     def showHistory(self):
         keys = self.get_table_headers(type="history")
@@ -1125,6 +1146,17 @@ the author's written consent."""
 
     # LCIA and LCA Results
 
+    def update_functional_unit(self):
+        keys = self.get_table_headers()
+        ad = self.lcaData.getActivityData()
+        item = self.table_current_activity_lcia.currentItem()
+        value = item.text()
+        if self.helper.is_float(value):
+            ad['amount'] = float(value)
+        # update current activity table lcia
+        self.table_current_activity_lcia = self.format_table_current_activity(
+            self.table_current_activity_lcia, keys, ad, edit_keys='amount')
+
     def update_lcia_method(self, current_index=0, selection=None):
         if not selection:
             selection = (str(self.combo_lcia_method_part0.currentText()), str(self.combo_lcia_method_part1.currentText()), str(self.combo_lcia_method_part2.currentText()))
@@ -1147,8 +1179,12 @@ the author's written consent."""
         elif not method:
             self.statusBar().showMessage("Select an LCIA method first.")
         else:
-            if self.line_edit_FU and self.helper.is_float(self.line_edit_FU.text()):
-                amount = float(self.line_edit_FU.text())
+            # if self.line_edit_FU and self.helper.is_float(self.line_edit_FU.text()):
+            item = self.helper.get_table_item(self.table_current_activity_lcia, 0, 'amount')
+            if self.helper.is_float(item.text()):
+                # amount = float(self.line_edit_FU.text())
+                amount = float(item.text())
+                print "amount of functional unit: ", amount
             else:
                 amount = 1.0
             tic = time.clock()

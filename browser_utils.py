@@ -94,6 +94,15 @@ class HelperMethods(object):
             table.setSortingEnabled(True)
         return table
 
+    def get_table_item(self, table, row_num, col_name):
+        headercount = table.columnCount()
+        for i in range(0, headercount):
+            headertext = table.horizontalHeaderItem(i).text()
+            if col_name == headertext:
+                matchcol = i
+                break
+        return table.item(row_num, matchcol)
+
     def is_int(self, s):
         try:
             int(s)
