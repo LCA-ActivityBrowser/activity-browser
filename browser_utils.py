@@ -11,7 +11,7 @@ import uuid
 from copy import deepcopy
 import multiprocessing
 import xlsxwriter
-import browser_settings
+import style
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, parent=None):
@@ -73,7 +73,7 @@ class HelperMethods(object):
                     if edit_keys and keys[j] in edit_keys:
                         mqtwi.setFlags(mqtwi.flags() | QtCore.Qt.ItemIsEditable)
                     # Color
-                    mqtwi.setTextColor(QtGui.QColor(*browser_settings.table_item_colors.get(
+                    mqtwi.setTextColor(QtGui.QColor(*style.colors_table_current_activity.get(
                         keys[j], (0, 0, 0))))
                     # Font
                     if bold:
@@ -81,7 +81,6 @@ class HelperMethods(object):
                         font.setBold(True)
                         font.setPointSize(9)
                         mqtwi.setFont(font)
-                        mqtwi.setBackgroundColor(QtGui.QColor(224, 224, 224))
                     table.setItem(i, j, mqtwi)
             if edit_keys:
                 table.setEditTriggers(QtGui.QTableWidget.AllEditTriggers)

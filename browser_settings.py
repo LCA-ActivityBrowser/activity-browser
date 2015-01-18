@@ -11,6 +11,8 @@ read_only_databases = \
      "ecoinvent 3.01 cutoff", "ecoinvent 3.01 consequential", "ecoinvent 3.1 default",
      "ecoinvent 3.1 cutoff", "ecoinvent 3.1 consequential", "biosphere", "biosphere3"]
 
+default_LCIA_method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+
 # Initial positions of docks: (area in main window, position if tabbed)
 # NOT YET USED
 left, right, top, bottom = 1, 2, 4, 8  # integers corresponding to QtCore.Qt.LeftDockWidgetArea etc.
@@ -19,16 +21,4 @@ dock_positions_at_start = {
     right: ['Databases', 'Search', 'Biosphere'],
     top: [],
     bottom: []
-}
-
-# RGB coloring of table contents
-table_item_colors = {
-    'product': (0, 0, 204),
-    'name': (0, 0, 0),
-    'amount': (0, 0, 0),
-    'unit': (51, 153, 255),
-    # 'unit': (0, 76, 153),
-    # 'unit': (0, 102, 204),
-    'location': (0, 102, 51),
-    'database': (96, 96, 96),
 }

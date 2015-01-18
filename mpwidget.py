@@ -29,8 +29,67 @@ class MPWidget(QtGui.QWidget):
         self.lmp = LinkedMetaProcessSystem()
         self.helper = HelperMethods()
         self.lcaData = BrowserStandardTasks()
+
+        self.graph_layouts = ['dagre', 'graph', 'tree']
+
+        self.set_up_toolbar()
         self.setupUserInterface()
         self.set_up_PP_analyzer()
+
+    def set_up_toolbar(self):
+        # free icons from http://www.flaticon.com/search/history
+
+        self.combobox_graph_type = QtGui.QComboBox()
+        self.combobox_graph_type.addItems(self.graph_layouts)
+        self.combobox_graph_type.currentIndexChanged.connect(self.set_graph_layout)
+
+        # ACTIONS
+        # New
+        action_new_metaprocess = QtGui.QAction(QtGui.QIcon('icons/metaprocess/new_metaprocess.png'), 'New Meta-Process', self)
+        # action_backward.setShortcut('Alt+left')
+        action_new_metaprocess.triggered.connect(self.newProcessSubsystem)
+
+        # Add Meta-Process to Database
+        action_add_to_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/save_metaprocess.png'), 'Save Meta-Process to database', self)
+        action_add_to_database.triggered.connect(self.addMPtoDatabase)
+
+        # Load Meta-Process Database
+        action_load_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/open_database.png'), 'Load Meta-Process database', self)
+        action_load_database.triggered.connect(self.loadMPDatabase)
+
+        # Add a Meta-Process Database
+        action_add_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/add_database.png'), 'Add Meta-Process database', self)
+        action_add_database.triggered.connect(self.addMPDatabase)
+
+        # Save Meta-Process Database
+        action_save_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/save_database.png'), 'Save Meta-Process database', self)
+        action_save_database.triggered.connect(self.saveMPDatabase)
+
+        # Close Meta-Process Database
+        action_close_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/close_database.png'), 'Close Meta-Process database', self)
+        action_close_database.triggered.connect(self.closeMPDatabase)
+
+        # Graph Meta-Process
+        action_graph_metaprocess = QtGui.QAction(QtGui.QIcon('icons/metaprocess/graph_metaprocess.png'), 'Graph Meta-Process', self)
+        action_graph_metaprocess.triggered.connect(self.showGraph)
+
+        # Graph Linked Meta-Process
+        action_graph_metaprocess_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/graph_linkedmetaprocess.png'), 'Graph Linked Meta-Process (database)', self)
+        action_graph_metaprocess_database.triggered.connect(self.pp_graph)
+
+        # toolbar
+        self.toolbar = QtGui.QToolBar('Meta-Process Toolbar')
+        self.toolbar.addAction(action_new_metaprocess)
+        self.toolbar.addAction(action_add_to_database)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(action_load_database)
+        self.toolbar.addAction(action_add_database)
+        self.toolbar.addAction(action_save_database)
+        self.toolbar.addAction(action_close_database)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(action_graph_metaprocess)
+        self.toolbar.addAction(action_graph_metaprocess_database)
+        self.toolbar.addWidget(self.combobox_graph_type)
 
     def setupUserInterface(self):
         # MP Widgets
@@ -40,66 +99,7 @@ class MPWidget(QtGui.QWidget):
         # D3
         self.template = Template(open(os.path.join(os.getcwd(), "HTML", "tree_vertical.html")).read())
         self.current_d3_layout = "dagre"
-        # LABELS
-        label_process_subsystem = QtGui.QLabel("Meta-Process")
-        label_MP_database = QtGui.QLabel("MP Database")
-        # BUTTONS
-        # Meta-Processs
-        button_new_process_subsystem = QtGui.QPushButton("New")
-        button_add_MP_to_Database = QtGui.QPushButton("Add to DB")
-        button_delete_MP_from_Database = QtGui.QPushButton("Delete")
-        button_graph = QtGui.QPushButton("Graph")
-        button_toggle_layout = QtGui.QPushButton("Toggle")
-        # MP Database
-        button_load_MP_database = QtGui.QPushButton("Load DB")
-        button_saveAs_MP_database = QtGui.QPushButton("Save DB")
-        button_addDB = QtGui.QPushButton("Add DB")
-        button_closeDB = QtGui.QPushButton("Close DB")
-        button_pp_graph = QtGui.QPushButton("PP-Graph")
 
-        # buttons TOOLBAR
-        self.toolbar_MP = QtGui.QToolBar('Toolbar MP')
-        self.toolbar_MP.addWidget(button_new_process_subsystem)
-        self.toolbar_MP.addWidget(button_add_MP_to_Database)
-        self.toolbar_MP.addWidget(button_delete_MP_from_Database)
-        self.toolbar_MP.addWidget(button_graph)
-        self.toolbar_MP.addWidget(button_toggle_layout)
-        self.toolbar_MP.addSeparator()
-        self.toolbar_MP.addWidget(button_load_MP_database)
-        self.toolbar_MP.addWidget(button_saveAs_MP_database)
-        self.toolbar_MP.addWidget(button_addDB)
-        self.toolbar_MP.addWidget(button_closeDB)
-        self.toolbar_MP.addWidget(button_pp_graph)
-
-        # LAYOUTS for buttons
-        # Meta-Process
-        self.HL_MP_buttons = QtGui.QHBoxLayout()
-        # self.HL_MP_buttons.addWidget(label_process_subsystem)
-        # self.HL_MP_buttons.addWidget(button_new_process_subsystem)
-        # self.HL_MP_buttons.addWidget(button_add_MP_to_Database)
-        # self.HL_MP_buttons.addWidget(button_delete_MP_from_Database)
-        # self.HL_MP_buttons.addWidget(button_toggle_layout)
-        # self.HL_MP_buttons.addWidget(button_graph)
-        # MP Database
-        self.HL_MP_Database_buttons = QtGui.QHBoxLayout()
-        # self.HL_MP_Database_buttons.addWidget(label_MP_database)
-        # self.HL_MP_Database_buttons.addWidget(button_load_MP_database)
-        # self.HL_MP_Database_buttons.addWidget(button_saveAs_MP_database)
-        # self.HL_MP_Database_buttons.addWidget(button_addDB)
-        # self.HL_MP_Database_buttons.addWidget(button_closeDB)
-        # self.HL_MP_Database_buttons.addWidget(button_pp_graph)
-
-        # CONNECTIONS
-        button_new_process_subsystem.clicked.connect(self.newProcessSubsystem)
-        button_load_MP_database.clicked.connect(self.loadMPDatabase)
-        button_saveAs_MP_database.clicked.connect(self.saveAsMPDatabase)
-        button_add_MP_to_Database.clicked.connect(self.addMPtoDatabase)
-        button_toggle_layout.clicked.connect(self.toggleLayout)
-        button_graph.clicked.connect(self.showGraph)
-        button_delete_MP_from_Database.clicked.connect(self.deleteMPfromDatabase)
-        button_addDB.clicked.connect(self.addMPDatabase)
-        button_closeDB.clicked.connect(self.closeMPDatabase)
-        button_pp_graph.clicked.connect(self.pp_graph)
         # TREEWIDGETS
         self.tree_widget_cuts = QtGui.QTreeWidget()
         # TABLES
@@ -180,12 +180,12 @@ class MPWidget(QtGui.QWidget):
         self.figure = plt.figure()
         self.canvas = FigureCanvas(self.figure)
         # self.toolbar = NavigationToolbar(self.canvas, self)  # it takes the Canvas widget and a parent
-        self.toolbar = NavigationToolbar(self.canvas, self.matplotlib_figure)
+        self.toolbar_plt = NavigationToolbar(self.canvas, self.matplotlib_figure)
         button_plot_processes = QtGui.QPushButton("Processes")
         button_plot_products = QtGui.QPushButton("Products")
         # Layout toolbar
         hl_toolbar = QtGui.QHBoxLayout()
-        hl_toolbar.addWidget(self.toolbar)
+        hl_toolbar.addWidget(self.toolbar_plt)
         hl_toolbar.addWidget(button_plot_processes)
         hl_toolbar.addWidget(button_plot_products)
         # set the layout
@@ -585,6 +585,11 @@ class MPWidget(QtGui.QWidget):
 
     # VISUALIZATION
 
+    def set_graph_layout(self):
+        self.current_d3_layout = self.graph_layouts[self.combobox_graph_type.currentIndex()]
+        # print "Changed graph layout to: ", self.graph_layouts[self.combobox_graph_type.currentIndex()]
+        self.showGraph()
+
     def showGraph(self):
         self.update_widget_MP_data()
         geo = self.webview.geometry()
@@ -622,16 +627,6 @@ class MPWidget(QtGui.QWidget):
         with open(filename, "w") as f:
             f.write(self.template.render(**template_data))
         self.webview.load(url)
-
-    def toggleLayout(self):
-        if self.current_d3_layout == "tree":
-            self.current_d3_layout = "graph"
-        elif self.current_d3_layout == "graph":
-            self.current_d3_layout = "dagre"
-        else:
-            self.current_d3_layout = "tree"
-        print "Visualization as: " + self.current_d3_layout
-        self.showGraph()
 
     def pp_graph(self):
         self.save_pp_matrix()
