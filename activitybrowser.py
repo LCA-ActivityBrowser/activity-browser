@@ -270,8 +270,8 @@ class MainWindow(QtGui.QMainWindow):
         # Main Window
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
-        self.icon = QtGui.QIcon('icons/pony/pony%s.png' % str(randint(1, 7)))
-        # self.icon = QtGui.QIcon('icons/activitybrowser.png')
+        # self.icon = QtGui.QIcon('icons/pony/pony%s.png' % str(randint(1, 7)))
+        self.icon = QtGui.QIcon('icons/activitybrowser.png')
         self.setWindowIcon(self.icon)
 
         # MAIN LAYOUT
