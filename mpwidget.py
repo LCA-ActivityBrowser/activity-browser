@@ -45,36 +45,36 @@ class MPWidget(QtGui.QWidget):
 
         # ACTIONS
         # New
-        action_new_metaprocess = QtGui.QAction(QtGui.QIcon('icons/metaprocess/new_metaprocess.png'), 'New Meta-Process', self)
+        action_new_metaprocess = QtGui.QAction(QtGui.QIcon(style.icons.mp.new), 'New Meta-Process', self)
         # action_backward.setShortcut('Alt+left')
         action_new_metaprocess.triggered.connect(self.newProcessSubsystem)
 
         # Add Meta-Process to Database
-        action_add_to_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/save_metaprocess.png'), 'Save Meta-Process to database', self)
+        action_add_to_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.save_mp), 'Save Meta-Process to database', self)
         action_add_to_database.triggered.connect(self.addMPtoDatabase)
 
         # Load Meta-Process Database
-        action_load_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/open_database.png'), 'Load Meta-Process database', self)
+        action_load_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.load_db), 'Load Meta-Process database', self)
         action_load_database.triggered.connect(self.loadMPDatabase)
 
         # Add a Meta-Process Database
-        action_add_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/add_database.png'), 'Add Meta-Process database', self)
+        action_add_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.add_db), 'Add Meta-Process database', self)
         action_add_database.triggered.connect(self.addMPDatabase)
 
         # Save Meta-Process Database
-        action_save_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/save_database.png'), 'Save Meta-Process database', self)
+        action_save_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.save_db), 'Save Meta-Process database', self)
         action_save_database.triggered.connect(self.saveMPDatabase)
 
         # Close Meta-Process Database
-        action_close_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/close_database.png'), 'Close Meta-Process database', self)
+        action_close_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.close_db), 'Close Meta-Process database', self)
         action_close_database.triggered.connect(self.closeMPDatabase)
 
         # Graph Meta-Process
-        action_graph_metaprocess = QtGui.QAction(QtGui.QIcon('icons/metaprocess/graph_metaprocess.png'), 'Graph Meta-Process', self)
+        action_graph_metaprocess = QtGui.QAction(QtGui.QIcon(style.icons.mp.graph_mp), 'Graph Meta-Process', self)
         action_graph_metaprocess.triggered.connect(self.showGraph)
 
         # Graph Linked Meta-Process
-        action_graph_metaprocess_database = QtGui.QAction(QtGui.QIcon('icons/metaprocess/graph_linkedmetaprocess.png'), 'Graph Linked Meta-Process (database)', self)
+        action_graph_metaprocess_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.graph_lmp), 'Graph Linked Meta-Process (database)', self)
         action_graph_metaprocess_database.triggered.connect(self.pp_graph)
 
         # toolbar
@@ -132,28 +132,28 @@ class MPWidget(QtGui.QWidget):
         # CONTEXT MENUS
         # Outputs
         self.table_MP_outputs.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_addOutput = QtGui.QAction("Duplicate", None)
+        self.action_addOutput = QtGui.QAction(QtGui.QIcon(style.icons.mp.duplicate), "Duplicate", None)
         self.action_addOutput.triggered.connect(self.addOutput)
         self.table_MP_outputs.addAction(self.action_addOutput)
-        self.action_removeOutput = QtGui.QAction("Remove", None)
+        self.action_removeOutput = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Remove", None)
         self.action_removeOutput.triggered.connect(self.removeOutput)
         self.table_MP_outputs.addAction(self.action_removeOutput)
         # Chain
         self.table_MP_chain.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_addCut = QtGui.QAction("Cut", None)
+        self.action_addCut = QtGui.QAction(QtGui.QIcon(style.icons.mp.cut), "Cut", None)
         self.action_addCut.triggered.connect(self.addCut)
         self.table_MP_chain.addAction(self.action_addCut)
-        self.action_remove_chain_item = QtGui.QAction("Remove from MP", None)
+        self.action_remove_chain_item = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Remove from MP", None)
         self.action_remove_chain_item.triggered.connect(self.removeChainItem)
         self.table_MP_chain.addAction(self.action_remove_chain_item)
         # Cuts treeview
         self.tree_widget_cuts.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_removeCut = QtGui.QAction("Remove cut", None)
+        self.action_removeCut = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Remove cut", None)
         self.action_removeCut.triggered.connect(self.deleteCut)
         self.tree_widget_cuts.addAction(self.action_removeCut)
         # MP Database
         self.table_MP_database.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_delete_selected = QtGui.QAction("Delete selected", None)
+        self.action_delete_selected = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Delete selected", None)
         self.action_delete_selected.triggered.connect(self.delete_selected_MP)
         self.table_MP_database.addAction(self.action_delete_selected)
 

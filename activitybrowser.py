@@ -39,7 +39,7 @@ class WidgetMultiLCA(QtGui.QWidget):
         self.results = {}
 
         self.set_up_ui()
-        self.set_up_connections_and_context_menus()
+        self.set_up_connections_and_context()
         self.initialize_methods_table()
 
     def set_up_ui(self):
@@ -96,21 +96,21 @@ class WidgetMultiLCA(QtGui.QWidget):
         vlayout.addWidget(splitter)
         self.setLayout(vlayout)
 
-    def set_up_connections_and_context_menus(self):
+    def set_up_connections_and_context(self):
         # CONTEXT MENUS
         # Table ALL Methods
         self.table_all_methods.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_add_methods = QtGui.QAction("Add selection", None)
+        self.action_add_methods = QtGui.QAction(QtGui.QIcon(style.icons.context.to_multi_lca), "Add selection", None)
         self.action_add_methods.triggered.connect(self.add_selected_methods)
         self.table_all_methods.addAction(self.action_add_methods)
         # Table SELECTED Methods
         self.table_selected_methods.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_remove_methods = QtGui.QAction("Remove selection", None)
+        self.action_remove_methods = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Remove selection", None)
         self.action_remove_methods.triggered.connect(self.remove_selected_methods)
         self.table_selected_methods.addAction(self.action_remove_methods)
         # Table ACTIVITIES
         self.table_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_remove_activities = QtGui.QAction("Remove selection", None)
+        self.action_remove_activities = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Remove selection", None)
         self.action_remove_activities.triggered.connect(self.remove_selected_activities)
         self.table_activities.addAction(self.action_remove_activities)
 
@@ -267,6 +267,9 @@ class MainWindow(QtGui.QMainWindow):
         self.helper = HelperMethods()
         self.lcaData = BrowserStandardTasks()
 
+        # global properties
+        self.cpu_count = multiprocessing.cpu_count()
+
         # Main Window
         self.setWindowTitle("Activity Browser")
         self.statusBar().showMessage("Welcome")
@@ -289,7 +292,6 @@ class MainWindow(QtGui.QMainWindow):
         self.HL.addWidget(self.splitter_horizontal)
 
         self.VL = QtGui.QVBoxLayout()
-        # self.VL.addWidget(self.table_current_activity)
         self.VL.addLayout(self.HL)
 
         self.central_widget = QtGui.QWidget()
@@ -305,15 +307,9 @@ class MainWindow(QtGui.QMainWindow):
 
         # EXCEPT FOR THIS BLOCK:
         # set up standard widgets in docks
+        self.set_up_toolbar()
         self.set_up_standard_widgets()
         self.set_up_menu_bar()
-
-        # self.toolbar_ca = QtGui.QToolBar('Current Activity')
-        # self.toolbar_ca.addWidget(self.table_current_activity)
-        # self.addToolBar(self.toolbar_ca)
-
-        self.set_up_toolbar()
-        self.set_up_context_menus()
 
         # # layout docks
         # self.setDockOptions(QtGui.QMainWindow.AllowNestedDocks
@@ -332,66 +328,12 @@ class MainWindow(QtGui.QMainWindow):
 
     # Setup of UIs, connections...
 
-    def add_dock(self, widget, dockName, area, tab_pos=None):
-        dock = QtGui.QDockWidget(dockName)
-        dock.setWidget(widget)
-        dock.setFeatures(QtGui.QDockWidget.DockWidgetClosable |
-                         QtGui.QDockWidget.DockWidgetMovable |
-                         QtGui.QDockWidget.DockWidgetFloatable)
-        self.addDockWidget(area, dock)
-        self.map_dock_name.update({dock: dockName})
-        self.map_name_dock.update({dockName: dock})
-        self.dock_info.update()
-        self.dock_info.update({
-            dockName: {
-                'area': area,
-                'tab position': tab_pos,
-            }
-        })
-
-    def position_docks_at_start(self):
-        """
-        Set areas and tab positions. Override with information from settings file.
-        """
-        # Update self.dock_info based on settings file
-        for area, dock_names in browser_settings.dock_positions_at_start.items():
-            for index, dock_name in enumerate(dock_names):
-                self.dock_info[dock_name].update({
-                    'area': area,
-                    'tab position': index,
-                })
-
-        # assign all docks to areas
-        for name, info in self.dock_info.items():
-            self.areas.setdefault(info['area'], []).append(name)
-        # print areas
-
-        # order dock names in areas
-        for area, dock_names in self.areas.items():
-            # remove names from settings file from dock_names
-            preset_names = browser_settings.dock_positions_at_start[area]
-            for name in preset_names:
-                dock_names.remove(name)
-            self.areas[area] = preset_names + dock_names
-
-    def update_dock_positions(self):
-        # place docks in areas
-        for name, dock in self.map_name_dock.items():
-            area = self.dock_info[name]['area']
-            self.addDockWidget(area, dock)
-        # tabify docks
-        for area, dock_names in self.areas.items():
-            if len(dock_names) > 1:
-                for index in range(0, len(dock_names) - 1):
-                    self.tabifyDockWidget(self.map_name_dock[dock_names[index]],
-                                          self.map_name_dock[dock_names[index + 1]])
-
     def set_up_standard_widgets(self):
-        self.set_up_widget_technosphere()
-        self.set_up_widget_LCIA()
         self.set_up_widget_databases()
-        self.set_up_widget_search()
+        self.set_up_widget_technosphere()
         self.set_up_widget_biosphere()
+        self.set_up_widget_search()
+        self.set_up_widget_LCIA()
         self.set_up_widget_LCA_results()
         self.setup_widget_activity_editor()
 
@@ -402,136 +344,30 @@ class MainWindow(QtGui.QMainWindow):
         self.signal_MyQTableWidgetItemsList.connect(self.widget_multi_lca.add_selected_activities)
         self.widget_multi_lca.signal_status_bar_message.connect(self.statusBarMessage)
 
-    def set_up_widget_technosphere(self):
-        # LABELS
-        # dynamic
-        self.label_current_activity_product = QtGui.QLabel("Product")
-        self.label_current_activity_product.setFont(self.styles.font_big)
-        self.label_current_activity_product.setStyleSheet("QLabel { color : blue; }")
-        self.label_current_activity = QtGui.QLabel("Activity Name")
-        self.label_current_activity.setFont(self.styles.font_big)
-        self.label_current_database = QtGui.QLabel("Database")
-        # static
-        label_inputs = QtGui.QLabel("Technosphere Inputs")
-        label_current_activity = QtGui.QLabel("Current Activity")
-        # label_current_activity.setFont(self.styles.font_bold)
-        label_downstream_activities = QtGui.QLabel("Downstream Activities")
-        self.table_inputs_technosphere = QtGui.QTableWidget()
-        self.table_current_activity = QtGui.QTableWidget()
-        self.table_downstream_activities = QtGui.QTableWidget()
-        # Current Activity
-        # VL_activity_info = QtGui.QVBoxLayout()
-        # VL_activity_info.setAlignment(QtCore.Qt.AlignLeft)
-        # VL_activity_info.addWidget(self.label_current_activity_product)
-        # VL_activity_info.addWidget(self.label_current_activity)
-        # VL_activity_info.addWidget(self.label_current_database)
-        # frame = QtGui.QFrame()
-        # frame.setLayout(VL_activity_info)
-        # Layout
-        VL_technosphere = QtGui.QVBoxLayout()
-        VL_technosphere.addWidget(label_inputs)
-        VL_technosphere.addWidget(self.table_inputs_technosphere)
-        VL_technosphere.addWidget(label_current_activity)
-        VL_technosphere.addWidget(self.table_current_activity)
-        # VL_technosphere.addWidget(frame)
-        VL_technosphere.addWidget(label_downstream_activities)
-        VL_technosphere.addWidget(self.table_downstream_activities)
-        widget_technosphere = QtGui.QWidget()
-        widget_technosphere.setLayout(VL_technosphere)
-        # dock
-        # self.add_dock(widget_technosphere, 'Technosphere', QtCore.Qt.RightDockWidgetArea)
+        self.set_up_additional_context_menus()
 
-        # CONTEXT MENUS
-        self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+    def set_up_menu_bar(self):
+        # EXTENSIONS
+        extensions_menu = QtGui.QMenu('&Extensions', self)
 
-        action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", self.table_inputs_technosphere)
-        action_add_to_multi_lca.triggered.connect(lambda: self.add_to_multi_lca(self.table_inputs_technosphere.selectedItems()))
-        self.table_inputs_technosphere.addAction(action_add_to_multi_lca)
+        addMP = QtGui.QAction(QtGui.QIcon('icons/metaprocess/metaprocess.png'), '&Meta-Process Editor', self)
+        addMP.setShortcut('Ctrl+E')
+        addMP.setStatusTip('Start Meta-Process Editor')
+        addMP.triggered.connect(self.set_up_widgets_meta_process)
 
-        action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", self.table_downstream_activities)
-        action_add_to_multi_lca.triggered.connect(lambda: self.add_to_multi_lca(self.table_downstream_activities.selectedItems()))
-        self.table_downstream_activities.addAction(action_add_to_multi_lca)
+        extensions_menu.addAction(addMP)
 
-        # Connections
-        self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
-        self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
+        # HELP
+        help_menu = QtGui.QMenu('&Help', self)
+        help_menu.addAction(self.icon, '&About Activity Browser', self.about)
+        help_menu.addAction('&About Qt', self.about_qt)
 
-        self.tab_widget_LEFT.addTab(widget_technosphere, 'Technosphere')
-
-    def set_up_widget_databases(self):
-        button_add_db = QtGui.QPushButton('New Database')
-        button_refresh = QtGui.QPushButton('Refresh')
-        # Layout buttons
-        buttons_layout = QtGui.QHBoxLayout()
-        buttons_layout.setAlignment(QtCore.Qt.AlignLeft)
-        buttons_layout.addWidget(button_add_db)
-        buttons_layout.addWidget(button_refresh)
-        # Table
-        self.table_databases = QtGui.QTableWidget()
-        # Overall Layout
-        VL_database_tab = QtGui.QVBoxLayout()
-        VL_database_tab.addWidget(self.table_databases)
-        VL_database_tab.addLayout(buttons_layout)
-        widget_databases = QtGui.QWidget()
-        widget_databases.setLayout(VL_database_tab)
-        # self.add_dock(self.table_databases, 'Databases', QtCore.Qt.LeftDockWidgetArea)
-
-        # Context menus
-        self.table_databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-
-        self.action_delete_database = QtGui.QAction("delete database", None)
-        self.action_delete_database.triggered.connect(self.delete_database)
-        self.table_databases.addAction(self.action_delete_database)
-
-        # Connections
-        self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
-        button_add_db.clicked.connect(self.new_database)
-        button_refresh.clicked.connect(self.listDatabases)
-
-        self.tab_widget_RIGHT.addTab(widget_databases, 'Databases')
-
-    def set_up_widget_search(self):
-        self.label_multi_purpose = QtGui.QLabel()
-        self.table_search = QtGui.QTableWidget()
-        # Layout
-        vl = QtGui.QVBoxLayout()
-        vl.addWidget(self.label_multi_purpose)
-        vl.addWidget(self.table_search)
-        # dock
-        self.widget_search = QtGui.QWidget()
-        self.widget_search.setLayout(vl)
-        # self.add_dock(widget, 'Search', QtCore.Qt.RightDockWidgetArea)
-
-        # CONTEXT MENUS
-        self.table_search.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-
-        self.action_delete_activity = QtGui.QAction("delete activity", None)
-        self.action_delete_activity.triggered.connect(self.delete_activity)
-        self.table_search.addAction(self.action_delete_activity)
-
-        # self.action_add_to_multi_lca_from_search = QtGui.QAction("add to Multi-LCA", None)
-        # self.action_add_to_multi_lca_from_search.triggered.connect(
-        #     lambda: self.add_to_multi_lca(self.table_search.selectedItems()))
-        # self.table_search.addAction(self.action_add_to_multi_lca_from_search)
-
-        # self.table_search.action_add_to_multi_lca = QtGui.QAction("add to Multi-LCA", None)
-        # self.table_search.action_add_to_multi_lca.triggered.connect(self.add_to_multi_lca1)
-        # self.table_search.addAction(self.table_search.action_add_to_multi_lca)
-
-        action_add_to_multi_lca = QtGui.QAction(QtGui.QIcon("icons/key.png"), "add to Multi-LCA", self.table_search)
-        action_add_to_multi_lca.triggered.connect(lambda: self.add_to_multi_lca(self.table_search.selectedItems()))
-        self.table_search.addAction(action_add_to_multi_lca)
-
-        # Connections
-        self.table_search.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
-
-        self.tab_widget_RIGHT.addTab(self.widget_search, 'Search')
-
-    def set_up_widget_biosphere(self):
-        self.table_inputs_biosphere = QtGui.QTableWidget()
-        # self.add_dock(self.table_inputs_biosphere, 'Biosphere', QtCore.Qt.RightDockWidgetArea)
-
-        self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, 'Biosphere')
+        # ::: MENU BAR :::
+        self.menubar = QtGui.QMenuBar()
+        # self.menubar = self.menuBar()
+        self.menubar.addMenu(extensions_menu)
+        self.menubar.addMenu(help_menu)
+        self.setMenuBar(self.menubar)
 
     def set_up_toolbar(self):
         # free icons from http://www.flaticon.com/search/history
@@ -598,18 +434,120 @@ class MainWindow(QtGui.QMainWindow):
         self.line_edit_search.returnPressed.connect(self.search_results)
         self.line_edit_search_1.returnPressed.connect(self.search_results)
 
-        # button_test.clicked.connect(self.setupMP)
+    def set_up_widget_technosphere(self):
+        # LABELS
+        # dynamic
+        self.label_current_activity_product = QtGui.QLabel("Product")
+        self.label_current_activity_product.setFont(self.styles.font_big)
+        self.label_current_activity_product.setStyleSheet("QLabel { color : blue; }")
+        self.label_current_activity = QtGui.QLabel("Activity Name")
+        self.label_current_activity.setFont(self.styles.font_big)
+        self.label_current_database = QtGui.QLabel("Database")
+        # static
+        label_inputs = QtGui.QLabel("Technosphere Inputs")
+        label_current_activity = QtGui.QLabel("Current Activity")
+        # label_current_activity.setFont(self.styles.font_bold)
+        label_downstream_activities = QtGui.QLabel("Downstream Activities")
+
+        # Tables
+        self.table_inputs_technosphere = QtGui.QTableWidget()
+        self.table_current_activity = QtGui.QTableWidget()
+        self.table_downstream_activities = QtGui.QTableWidget()
+        self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.table_current_activity.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+        # Current Activity
+        # VL_activity_info = QtGui.QVBoxLayout()
+        # VL_activity_info.setAlignment(QtCore.Qt.AlignLeft)
+        # VL_activity_info.addWidget(self.label_current_activity_product)
+        # VL_activity_info.addWidget(self.label_current_activity)
+        # VL_activity_info.addWidget(self.label_current_database)
+        # frame = QtGui.QFrame()
+        # frame.setLayout(VL_activity_info)
+        # Layout
+        VL_technosphere = QtGui.QVBoxLayout()
+        VL_technosphere.addWidget(label_inputs)
+        VL_technosphere.addWidget(self.table_inputs_technosphere)
+        VL_technosphere.addWidget(label_current_activity)
+        VL_technosphere.addWidget(self.table_current_activity)
+        # VL_technosphere.addWidget(frame)
+        VL_technosphere.addWidget(label_downstream_activities)
+        VL_technosphere.addWidget(self.table_downstream_activities)
+        widget_technosphere = QtGui.QWidget()
+        widget_technosphere.setLayout(VL_technosphere)
+        # dock
+        # self.add_dock(widget_technosphere, 'Technosphere', QtCore.Qt.RightDockWidgetArea)
+
+        # Connections
+        self.table_inputs_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
+        self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
+
+        self.tab_widget_LEFT.addTab(widget_technosphere, 'Technosphere')
+
+    def set_up_widget_databases(self):
+        button_add_db = QtGui.QPushButton('New Database')
+        button_refresh = QtGui.QPushButton('Refresh')
+        # Layout buttons
+        buttons_layout = QtGui.QHBoxLayout()
+        buttons_layout.setAlignment(QtCore.Qt.AlignLeft)
+        buttons_layout.addWidget(button_add_db)
+        buttons_layout.addWidget(button_refresh)
+        # Table
+        self.table_databases = QtGui.QTableWidget()
+        # Overall Layout
+        VL_database_tab = QtGui.QVBoxLayout()
+        VL_database_tab.addWidget(self.table_databases)
+        VL_database_tab.addLayout(buttons_layout)
+        widget_databases = QtGui.QWidget()
+        widget_databases.setLayout(VL_database_tab)
+        # self.add_dock(self.table_databases, 'Databases', QtCore.Qt.LeftDockWidgetArea)
+
+        # Context menus
+        self.table_databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+        self.action_delete_database = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "delete database", None)
+        self.action_delete_database.triggered.connect(self.delete_database)
+        self.table_databases.addAction(self.action_delete_database)
+
+        # Connections
+        self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
+        button_add_db.clicked.connect(self.new_database)
+        button_refresh.clicked.connect(self.listDatabases)
+
+        self.tab_widget_RIGHT.addTab(widget_databases, 'Databases')
+
+    def set_up_widget_search(self):
+        self.label_multi_purpose = QtGui.QLabel()
+        self.table_search = QtGui.QTableWidget()
+        self.table_search.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        # Layout
+        vl = QtGui.QVBoxLayout()
+        vl.addWidget(self.label_multi_purpose)
+        vl.addWidget(self.table_search)
+        # dock
+        self.widget_search = QtGui.QWidget()
+        self.widget_search.setLayout(vl)
+        # self.add_dock(widget, 'Search', QtCore.Qt.RightDockWidgetArea)
+
+        # CONTEXT MENUS
+        self.action_delete_activity = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "delete activity", None)
+        self.action_delete_activity.triggered.connect(self.delete_activity)
+        self.table_search.addAction(self.action_delete_activity)
+
+        # Connections
+        self.table_search.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
+
+        self.tab_widget_RIGHT.addTab(self.widget_search, 'Search')
+
+    def set_up_widget_biosphere(self):
+        self.table_inputs_biosphere = QtGui.QTableWidget()
+        self.table_inputs_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        # self.add_dock(self.table_inputs_biosphere, 'Biosphere', QtCore.Qt.RightDockWidgetArea)
+
+        self.tab_widget_RIGHT.addTab(self.table_inputs_biosphere, 'Biosphere')
 
     def set_up_widget_LCIA(self):
-        # TODO this should be split into user interface and update method
-        # TODO: create a table that can be filled with methods
-        # - one should be able to select e.g. ReCiPe and then get all of its submethods.
-        # - the LCA results widget should then also contain a table with Results for all methods
-        # - this should be exportable (copy whole table)
-
-        # CPU count
-        self.cpu_count = multiprocessing.cpu_count()
-
         # Labels
         self.label_LCIAW_functional_unit = QtGui.QLabel("Functional Unit:")
         label_lcia_method = QtGui.QLabel("LCIA method:")
@@ -637,6 +575,7 @@ class MainWindow(QtGui.QMainWindow):
         self.figure_mc = plt.figure()
         self.canvas_mc = FigureCanvas(self.figure_mc)
         self.toolbar_mc = NavigationToolbar(self.canvas_mc, self.matplotlib_figure_mc)
+
         # set the layout
         plt_layout = QtGui.QVBoxLayout()
         plt_layout.addWidget(self.toolbar_mc)
@@ -650,26 +589,17 @@ class MainWindow(QtGui.QMainWindow):
         HL_buttons_lcia.addWidget(self.button_calc_monte_carlo)
         HL_buttons_lcia.addWidget(self.line_edit_monte_carlo_iterations)
 
-        self.HL_functional_unit = QtGui.QHBoxLayout()
-        self.HL_functional_unit.setAlignment(QtCore.Qt.AlignLeft)
-        self.HL_functional_unit.addWidget(self.label_LCIAW_functional_unit)
-        self.HL_functional_unit.addWidget(self.table_current_activity_lcia)
-
-        self.HL_LCIA = QtGui.QHBoxLayout()
-        self.HL_LCIA.setAlignment(QtCore.Qt.AlignLeft)
-        self.HL_LCIA.addWidget(label_lcia_method)
-        self.HL_LCIA.addWidget(self.button_clear_lcia_methods)
-        # self.HL_LCIA.addWidget(self.button_clear_lcia_methods)
-        # self.HL_LCIA.addWidget(self.button_calc_lcia)
-        # self.HL_LCIA.addWidget(self.button_calc_monte_carlo)
-
+        HL_LCIA = QtGui.QHBoxLayout()
+        HL_LCIA.setAlignment(QtCore.Qt.AlignLeft)
+        HL_LCIA.addWidget(label_lcia_method)
+        HL_LCIA.addWidget(self.button_clear_lcia_methods)
 
         # VL
         self.VL_LCIA_widget = QtGui.QVBoxLayout()
         self.VL_LCIA_widget.addLayout(HL_buttons_lcia)
         self.VL_LCIA_widget.addWidget(self.label_LCIAW_functional_unit)
         self.VL_LCIA_widget.addWidget(self.table_current_activity_lcia)
-        self.VL_LCIA_widget.addLayout(self.HL_LCIA)
+        self.VL_LCIA_widget.addLayout(HL_LCIA)
         self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part0)
         self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part1)
         self.VL_LCIA_widget.addWidget(self.combo_lcia_method_part2)
@@ -744,6 +674,8 @@ class MainWindow(QtGui.QMainWindow):
         self.table_AE_activity = QtGui.QTableWidget()
         self.table_AE_technosphere = QtGui.QTableWidget()
         self.table_AE_biosphere = QtGui.QTableWidget()
+        self.table_AE_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.table_AE_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         # Dropdown
         self.combo_databases = QtGui.QComboBox(self)
         self.update_read_and_write_database_list()
@@ -772,67 +704,46 @@ class MainWindow(QtGui.QMainWindow):
         # Connections
         self.table_AE_technosphere.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
         self.table_AE_activity.itemChanged.connect(self.change_values_activity)
-        self.table_AE_technosphere.itemChanged.connect(self.change_values_technosphere)
-        self.table_AE_biosphere.itemChanged.connect(self.change_values_biosphere)
+        self.table_AE_technosphere.itemChanged.connect(
+            lambda: self.change_exchange_values(self.table_AE_technosphere.currentItem()))
+        self.table_AE_biosphere.itemChanged.connect(
+            lambda: self.change_exchange_values(self.table_AE_biosphere.currentItem()))
         self.button_save.clicked.connect(self.save_edited_activity)
         self.button_replace.clicked.connect(self.replace_edited_activity)
 
         # CONTEXT MENUS
-        # Technosphere Inputs
-        self.action_add_technosphere_exchange = QtGui.QAction("--> edited activity", None)
-        self.action_add_technosphere_exchange.triggered.connect(self.add_technosphere_exchange)
-        self.table_inputs_technosphere.addAction(self.action_add_technosphere_exchange)
-        # Downstream Activities
-        self.action_add_downstream_exchange = QtGui.QAction("--> edited activity", None)
-        self.action_add_downstream_exchange.triggered.connect(self.add_downstream_exchange)
-        self.table_downstream_activities.addAction(self.action_add_downstream_exchange)
-        # Multi-Purpose Table
-        self.action_add_multipurpose_exchange = QtGui.QAction("--> edited activity", None)
-        self.action_add_multipurpose_exchange.triggered.connect(self.add_multipurpose_exchange)
-        self.table_search.addAction(self.action_add_multipurpose_exchange)
-        # Biosphere Table
-        self.table_inputs_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_add_biosphere_exchange = QtGui.QAction("--> edited activity", None)
-        self.action_add_biosphere_exchange.triggered.connect(self.add_biosphere_exchange)
-        self.table_inputs_biosphere.addAction(self.action_add_biosphere_exchange)
-        # AE Technosphere Table
-        self.table_AE_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_remove_exchange_tech = QtGui.QAction("delete", None)
-        self.action_remove_exchange_tech.triggered.connect(self.remove_exchange_from_technosphere)
-        self.table_AE_technosphere.addAction(self.action_remove_exchange_tech)
-        # AE Biosphere Table
-        self.table_AE_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_remove_exchange_bio = QtGui.QAction("delete", None)
-        self.action_remove_exchange_bio.triggered.connect(self.remove_exchange_from_biosphere)
-        self.table_AE_biosphere.addAction(self.action_remove_exchange_bio)
+        tables = [
+            self.table_inputs_technosphere,
+            self.table_inputs_biosphere,
+            self.table_downstream_activities,
+            self.table_search
+        ]
+        # action add exchanges
+        for table in tables:
+            action = QtGui.QAction(QtGui.QIcon(style.icons.context.to_edited_activity), "to edited activity", table)
+            action.triggered[()].connect(lambda table=table: self.add_exchange_to_edited_activity(table.selectedItems()))
+            table.addAction(action)
+
+        # action remove exchanges
+        for table in [self.table_AE_technosphere, self.table_AE_biosphere]:
+            action = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "remove", table)
+            action.triggered[()].connect(lambda table=table: self.remove_exchange_from_edited_activity(table.selectedItems()))
+            table.addAction(action)
 
         self.tab_widget_RIGHT.addTab(self.widget_AE, 'Activity Editor')
 
-    def set_up_context_menus(self):
-        # CONTEXT MENUS
-        # self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-
-    def set_up_menu_bar(self):
-        # EXTENSIONS
-        extensions_menu = QtGui.QMenu('&Extensions', self)
-
-        addMP = QtGui.QAction(QtGui.QIcon('icons/metaprocess.png'), '&Meta-Process Editor', self)
-        addMP.setShortcut('Ctrl+E')
-        addMP.setStatusTip('Start Meta-Process Editor')
-        addMP.triggered.connect(self.set_up_widgets_meta_process)
-
-        extensions_menu.addAction(addMP)
-
-        # HELP
-        help_menu = QtGui.QMenu('&Help', self)
-        help_menu.addAction(self.icon, '&About Activity Browser', self.about)
-        help_menu.addAction('&About Qt', self.about_qt)
-
-        # ::: MENU BAR :::
-        menubar = self.menuBar()
-        menubar.addMenu(extensions_menu)
-        menubar.addMenu(help_menu)
+    def set_up_additional_context_menus(self):
+        # action add activities to Multi-LCA
+        tables = [
+            self.table_inputs_technosphere,
+            self.table_current_activity,
+            self.table_downstream_activities,
+            self.table_search
+        ]
+        for table in tables:
+            action = QtGui.QAction(QtGui.QIcon(style.icons.context.to_multi_lca), "to Multi-LCA", table)
+            action.triggered[()].connect(lambda table=table: self.add_to_multi_lca(table.selectedItems()))
+            table.addAction(action)
 
     def about(self):
         text="""
@@ -915,44 +826,36 @@ the author's written consent."""
             # print self.dock_info
 
             # CONTEXT MENUS
-            # Technosphere Inputs
-            self.action_addParentToMP = QtGui.QAction("--> Meta-Process", None)
-            self.action_addParentToMP.triggered.connect(self.add_Parent_to_chain)
-            self.table_inputs_technosphere.addAction(self.action_addParentToMP)
-            # Downstream Activities
-            self.action_addChildToMP = QtGui.QAction("--> Meta-Process", None)
-            self.action_addChildToMP.triggered.connect(self.add_Child_to_chain)
-            self.table_downstream_activities.addAction(self.action_addChildToMP)
-            # Multi-Purpose Table
-            self.action_addToMP = QtGui.QAction("--> Meta-Process", None)
-            self.action_addToMP.triggered.connect(self.add_to_chain)
-            self.table_search.addAction(self.action_addToMP)
+            tables = [
+                self.table_current_activity,
+                self.table_inputs_technosphere,
+                self.table_downstream_activities,
+                self.table_search
+            ]
+            for table in tables:
+                action = QtGui.QAction(QtGui.QIcon(style.icons.mp.metaprocess), "to Meta-Process", table)
+                action.triggered[()].connect(lambda table=table: self.add_to_chain(table.selectedItems()))
+                table.addAction(action)
+
             # CONNECTIONS BETWEEN WIDGETS
             self.signal_add_to_chain.connect(self.MP_Widget.addToChain)
             self.MP_Widget.signal_MyQTableWidgetItem.connect(self.gotoDoubleClickActivity)
             self.MP_Widget.signal_status_bar_message.connect(self.statusBarMessage)
+
             # MENU BAR
-            # Actions
-            exportMPDatabaseAsJSONFile = QtGui.QAction('Export DB to file', self)
-            exportMPDatabaseAsJSONFile.setStatusTip('Export the working MP database as JSON to a .py file')
-            self.connect(exportMPDatabaseAsJSONFile, QtCore.SIGNAL('triggered()'), self.MP_Widget.export_as_JSON)
-            # Add actions
-            menubar = self.menuBar()
-            mp_menu = menubar.addMenu('MP')
-            mp_menu.addAction(exportMPDatabaseAsJSONFile)
+            # # Actions
+            # exportMPDatabaseAsJSONFile = QtGui.QAction('Export DB to file', self)
+            # exportMPDatabaseAsJSONFile.setStatusTip('Export the working MP database as JSON to a .py file')
+            # self.connect(exportMPDatabaseAsJSONFile, QtCore.SIGNAL('triggered()'), self.MP_Widget.export_as_JSON)
+            # # Add actions
+            # # menubar = self.menuBar()
+            #
+            # mp_menu = self.menubar.addMenu('MP')
+            # mp_menu.addAction(exportMPDatabaseAsJSONFile)
 
-    def add_Child_to_chain(self):
-        for item in self.table_downstream_activities.selectedItems():
+    def add_to_chain(self, items):
+        for item in items:
             self.signal_add_to_chain.emit(item)
-        # self.signal_add_to_chain.emit(self.table_downstream_activities.currentItem())
-
-    def add_Parent_to_chain(self):
-        for item in self.table_inputs_technosphere.selectedItems():
-            self.signal_add_to_chain.emit(item)
-        # self.signal_add_to_chain.emit(self.table_inputs_technosphere.currentItem())
-
-    def add_to_chain(self):
-        self.signal_add_to_chain.emit(self.table_search.currentItem())
 
     # NAVIGATION
 
@@ -1277,28 +1180,14 @@ the author's written consent."""
         else:
             self.statusBar().showMessage("Load an activity first.")
 
-    def add_technosphere_exchange(self):
-        self.lcaData.add_exchange(self.table_inputs_technosphere.currentItem().activity_or_database_key)
+    def add_exchange_to_edited_activity(self, items):
+        for item in items:
+            self.lcaData.add_exchange(item.activity_or_database_key)
         self.update_AE_tables()
 
-    def add_downstream_exchange(self):
-        self.lcaData.add_exchange(self.table_downstream_activities.currentItem().activity_or_database_key)
-        self.update_AE_tables()
-
-    def add_multipurpose_exchange(self):
-        self.lcaData.add_exchange(self.table_search.currentItem().activity_or_database_key)
-        self.update_AE_tables()
-
-    def add_biosphere_exchange(self):
-        self.lcaData.add_exchange(self.table_inputs_biosphere.currentItem().activity_or_database_key)
-        self.update_AE_tables()
-
-    def remove_exchange_from_technosphere(self):
-        self.lcaData.remove_exchange(self.table_AE_technosphere.currentItem().activity_or_database_key)
-        self.update_AE_tables()
-
-    def remove_exchange_from_biosphere(self):
-        self.lcaData.remove_exchange(self.table_AE_biosphere.currentItem().activity_or_database_key)
+    def remove_exchange_from_edited_activity(self, items):
+        for item in items:
+            self.lcaData.remove_exchange(item.activity_or_database_key)
         self.update_AE_tables()
 
     def change_values_activity(self):
@@ -1308,15 +1197,7 @@ the author's written consent."""
         self.lcaData.change_activity_value(str(item.text()), type=header)
         self.update_AE_tables()
 
-    def change_values_technosphere(self):
-        item = self.table_AE_technosphere.currentItem()
-        print "Changed value: " + str(item.text())
-        self.lcaData.change_exchange_value(item.activity_or_database_key, str(item.text()), "amount")
-        self.update_AE_tables()
-
-    def change_values_biosphere(self):
-        item = self.table_AE_biosphere.currentItem()
-        print "Changed value: " + str(item.text())
+    def change_exchange_values(self, item):
         self.lcaData.change_exchange_value(item.activity_or_database_key, str(item.text()), "amount")
         self.update_AE_tables()
 
@@ -1399,6 +1280,62 @@ the author's written consent."""
         else:
             for name in db_for_saving:
                 self.combo_databases.addItem(name)
+
+    # CURRENTLY UNUSED CODE
+
+    def add_dock(self, widget, dockName, area, tab_pos=None):
+        dock = QtGui.QDockWidget(dockName)
+        dock.setWidget(widget)
+        dock.setFeatures(QtGui.QDockWidget.DockWidgetClosable |
+                         QtGui.QDockWidget.DockWidgetMovable |
+                         QtGui.QDockWidget.DockWidgetFloatable)
+        self.addDockWidget(area, dock)
+        self.map_dock_name.update({dock: dockName})
+        self.map_name_dock.update({dockName: dock})
+        self.dock_info.update()
+        self.dock_info.update({
+            dockName: {
+                'area': area,
+                'tab position': tab_pos,
+            }
+        })
+
+    def position_docks_at_start(self):
+        """
+        Set areas and tab positions. Override with information from settings file.
+        """
+        # Update self.dock_info based on settings file
+        for area, dock_names in browser_settings.dock_positions_at_start.items():
+            for index, dock_name in enumerate(dock_names):
+                self.dock_info[dock_name].update({
+                    'area': area,
+                    'tab position': index,
+                })
+
+        # assign all docks to areas
+        for name, info in self.dock_info.items():
+            self.areas.setdefault(info['area'], []).append(name)
+        # print areas
+
+        # order dock names in areas
+        for area, dock_names in self.areas.items():
+            # remove names from settings file from dock_names
+            preset_names = browser_settings.dock_positions_at_start[area]
+            for name in preset_names:
+                dock_names.remove(name)
+            self.areas[area] = preset_names + dock_names
+
+    def update_dock_positions(self):
+        # place docks in areas
+        for name, dock in self.map_name_dock.items():
+            area = self.dock_info[name]['area']
+            self.addDockWidget(area, dock)
+        # tabify docks
+        for area, dock_names in self.areas.items():
+            if len(dock_names) > 1:
+                for index in range(0, len(dock_names) - 1):
+                    self.tabifyDockWidget(self.map_name_dock[dock_names[index]],
+                                          self.map_name_dock[dock_names[index + 1]])
 
 def main():
     app = QtGui.QApplication(sys.argv)

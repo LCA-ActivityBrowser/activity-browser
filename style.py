@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 # COLORS
 # table current activity (RGB)
 colors_table_current_activity = {
@@ -23,3 +24,30 @@ QTableWidget {
     margin:0px;
     }
 """
+
+
+class IconsContextMenu():
+    to_multi_lca = 'icons/context/add.png'
+    to_edited_activity = 'icons/context/to_edited_activity.png'
+    delete = 'icons/context/delete.png'
+
+class IconsMetaProcess():
+    new = 'icons/metaprocess/new_metaprocess.png'
+    save_mp = 'icons/metaprocess/save_metaprocess.png'
+    load_db = 'icons/metaprocess/open_database.png'
+    add_db = 'icons/metaprocess/add_database.png'
+    save_db = 'icons/metaprocess/save_database.png'
+    close_db = 'icons/metaprocess/close_database.png'
+    graph_mp = 'icons/metaprocess/graph_metaprocess.png'
+    graph_lmp = 'icons/metaprocess/graph_linkedmetaprocess.png'
+
+    # Context Menus
+    metaprocess = 'icons/metaprocess/metaprocess.png'
+    cut = 'icons/metaprocess/cut.png'
+    duplicate = 'icons/metaprocess/duplicate.png'
+
+class MyIcons():
+    context = IconsContextMenu()
+    mp = IconsMetaProcess()
+
+icons = MyIcons()
