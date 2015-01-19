@@ -11,7 +11,7 @@ read_only_databases = \
      "ecoinvent 3.01 cutoff", "ecoinvent 3.01 consequential", "ecoinvent 3.1 default",
      "ecoinvent 3.1 cutoff", "ecoinvent 3.1 consequential", "biosphere", "biosphere3"]
 
-default_LCIA_method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+default_LCIA_method = (u'IPCC 2013', u'climate change', u'GWP 100a')
 
 # Initial positions of docks: (area in main window, position if tabbed)
 # NOT YET USED

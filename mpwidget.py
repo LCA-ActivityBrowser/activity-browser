@@ -519,7 +519,7 @@ class MPWidget(QtGui.QWidget):
 # TODO: check if demand propagates all the way through mp.lca
     # TODO: get method from combobox
     def compare_pathway_lcas(self):
-        method = (u'IPCC 2007', u'climate change', u'GWP 100a')
+        method = (u'IPCC 2013', u'climate change', u'GWP 100a')
         demand = {str(self.combo_functional_unit.currentText()): 1.0}
         self.path_data = self.lmp.lca_alternatives(method, demand)
         self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score

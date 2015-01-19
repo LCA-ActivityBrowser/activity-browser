@@ -138,7 +138,7 @@ class Checks(object):
 
 class BrowserStandardTasks(object):
 
-    LCIA_METHOD = (u'IPCC 2007', u'climate change', u'GWP 100a')
+    LCIA_METHOD = (u'IPCC 2013', u'climate change', u'GWP 100a')
 
     def __init__(self):
         self.currentActivity = None
@@ -398,7 +398,7 @@ class BrowserStandardTasks(object):
 
 # LCA
 
-    def lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a')):
+    def lcia(self, key=None, amount=1.0, method=(u'IPCC 2013', u'climate change', u'GWP 100a')):
         # TODO add factorization / redo lci...
         if not key:
             key = self.currentActivity
@@ -419,7 +419,7 @@ class BrowserStandardTasks(object):
         self.LCIA_calculations.update({uuid_: lcia_data})
         return uuid_
 
-    def monte_carlo_lcia(self, key=None, amount=1.0, method=(u'IPCC 2007', u'climate change', u'GWP 100a'),
+    def monte_carlo_lcia(self, key=None, amount=1.0, method=(u'IPCC 2013', u'climate change', u'GWP 100a'),
                 iterations=500, cpu_count=1, uuid_=None):
         if not key:
             key = self.currentActivity
