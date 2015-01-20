@@ -950,6 +950,7 @@ the author's written consent."""
         keys = ["name", "activities", "dependencies"]
         self.table_databases = self.helper.update_table(self.table_databases, data, keys)
         self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_databases))
+        self.update_read_and_write_database_list()
 
     def gotoDoubleClickDatabase(self, item):
         print "DOUBLECLICK on: ", item.text()

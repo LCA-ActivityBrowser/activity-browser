@@ -63,7 +63,7 @@ class MPWidget(QtGui.QWidget):
 
         # Save Meta-Process Database
         action_save_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.save_db), 'Save Meta-Process database', self)
-        action_save_database.triggered.connect(self.saveMPDatabase)
+        action_save_database.triggered.connect(self.saveAsMPDatabase)
 
         # Close Meta-Process Database
         action_close_database = QtGui.QAction(QtGui.QIcon(style.icons.mp.close_db), 'Close Meta-Process database', self)
