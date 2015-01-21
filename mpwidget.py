@@ -103,9 +103,9 @@ class MPWidget(QtGui.QWidget):
         # TREEWIDGETS
         self.tree_widget_cuts = QtGui.QTreeWidget()
         # TABLES
-        self.table_MP_chain = QtGui.QTableWidget()
-        self.table_MP_outputs = QtGui.QTableWidget()
-        self.table_MP_database = QtGui.QTableWidget()
+        self.table_MP_chain = MyQTableWidget()
+        self.table_MP_outputs = MyQTableWidget()
+        self.table_MP_database = MyQTableWidget()
         # Checkboxes
         self.checkbox_output_based_scaling = QtGui.QCheckBox('Output based scaling (default)')
         self.checkbox_output_based_scaling.setChecked(True)
@@ -173,7 +173,7 @@ class MPWidget(QtGui.QWidget):
         self.combo_functional_unit = QtGui.QComboBox(self)
         self.combo_functional_unit.setMinimumWidth(200)
         # Tables
-        self.table_PP_comparison = QtGui.QTableWidget()
+        self.table_PP_comparison = MyQTableWidget()
 
         # MATPLOTLIB FIGURE
         self.matplotlib_figure = QtGui.QWidget()
@@ -284,10 +284,10 @@ class MPWidget(QtGui.QWidget):
             numbers = [len(mp_data['outputs']), len(set(mp_data['chain'])), len(set(mp_data['cuts']))]
             data.append({
                 'name': mp_data['name'],
-                'out/chain/cuts': "/".join(map(str, numbers)),
+                'out/chain/cuts': ", ".join(map(str, numbers)),
                 'outputs': ", ".join([o[1] for o in mp_data['outputs']]),
                 'chain': "//".join([self.MPC.getActivityData(o)['name'] for o in mp_data['chain']]),
-                'cuts': ", ".join([o[2] for o in mp_data['cuts']]),
+                'cuts': ", ".join(set([o[2] for o in mp_data['cuts']])),
             })
         keys = ['name', 'out/chain/cuts', 'outputs', 'cuts', 'chain']
         self.table_MP_database = self.helper.update_table(self.table_MP_database, data, keys)

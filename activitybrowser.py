@@ -63,9 +63,9 @@ class WidgetMultiLCA(QtGui.QWidget):
         buttons_layout.addWidget(self.button_save_methods)
 
         # Tables
-        self.table_activities = QtGui.QTableWidget()
-        self.table_all_methods = QtGui.QTableWidget()
-        self.table_selected_methods = QtGui.QTableWidget()
+        self.table_activities = MyQTableWidget()
+        self.table_all_methods = MyQTableWidget()
+        self.table_selected_methods = MyQTableWidget()
         # Layout Tables
         VL_table_all_methods = QtGui.QVBoxLayout()
         VL_table_all_methods.addWidget(QtGui.QLabel('Available LCIA Methods (add to selection via right-click):'))
@@ -258,6 +258,7 @@ class MainWindow(QtGui.QMainWindow):
     signal_add_to_chain = QtCore.pyqtSignal(MyQTableWidgetItem)
     signal_MyQTableWidgetItem = QtCore.pyqtSignal(MyQTableWidgetItem)
     signal_MyQTableWidgetItemsList = QtCore.pyqtSignal(list)
+    signal_selected_text_for_clipboard = QtCore.pyqtSignal(str)
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -275,6 +276,7 @@ class MainWindow(QtGui.QMainWindow):
         self.icon = QtGui.QIcon('icons/pony/pony%s.png' % str(randint(1, 7)))
         # self.icon = QtGui.QIcon('icons/activitybrowser.png')
         self.setWindowIcon(self.icon)
+        self.clip = QtGui.QApplication.clipboard()
 
         # MAIN LAYOUT
         # H-LAYOUT -- SPLITTER -- TWO TABWIDGETS
@@ -311,7 +313,6 @@ class MainWindow(QtGui.QMainWindow):
         self.set_up_statusbar()
         self.set_up_standard_widgets()
 
-
         # # layout docks
         # self.setDockOptions(QtGui.QMainWindow.AllowNestedDocks
         #                     | QtGui.QMainWindow.AllowTabbedDocks
@@ -346,6 +347,31 @@ class MainWindow(QtGui.QMainWindow):
         self.widget_multi_lca.signal_status_bar_message.connect(self.statusBarMessage)
 
         self.set_up_additional_context_menus()
+
+        # enable COPY from tables
+        tables = [
+            self.table_databases,
+            self.table_inputs_technosphere,
+            self.table_current_activity,
+            self.table_downstream_activities,
+            self.table_search,
+            self.table_inputs_biosphere,
+            self.table_current_activity_lcia,
+            self.table_AE_biosphere,
+            self.table_AE_technosphere,
+            self.table_AE_activity,
+            self.table_lcia_results,
+            self.table_previous_calcs,
+            self.table_top_emissions,
+            self.table_top_processes,
+        ]
+        tables_multi_lca = [
+            self.widget_multi_lca.table_all_methods,
+            self.widget_multi_lca.table_selected_methods,
+            self.widget_multi_lca.table_activities,
+        ]
+        for table in tables + tables_multi_lca:
+            table.signal_copy_selected_text.connect(self.set_clipboard_text)
 
     def set_up_menu_bar(self):
         # EXTENSIONS
@@ -462,9 +488,9 @@ class MainWindow(QtGui.QMainWindow):
         label_downstream_activities = QtGui.QLabel("Downstream Activities")
 
         # Tables
-        self.table_inputs_technosphere = QtGui.QTableWidget()
-        self.table_current_activity = QtGui.QTableWidget()
-        self.table_downstream_activities = QtGui.QTableWidget()
+        self.table_inputs_technosphere = MyQTableWidget()
+        self.table_current_activity = MyQTableWidget()
+        self.table_downstream_activities = MyQTableWidget()
         self.table_inputs_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.table_current_activity.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.table_downstream_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -506,7 +532,7 @@ class MainWindow(QtGui.QMainWindow):
         buttons_layout.addWidget(button_add_db)
         buttons_layout.addWidget(button_refresh)
         # Table
-        self.table_databases = QtGui.QTableWidget()
+        self.table_databases = MyQTableWidget()
         # Overall Layout
         VL_database_tab = QtGui.QVBoxLayout()
         VL_database_tab.addWidget(self.table_databases)
@@ -531,7 +557,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def set_up_widget_search(self):
         self.label_multi_purpose = QtGui.QLabel()
-        self.table_search = QtGui.QTableWidget()
+        self.table_search = MyQTableWidget()
         self.table_search.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         # Layout
         vl = QtGui.QVBoxLayout()
@@ -553,7 +579,7 @@ class MainWindow(QtGui.QMainWindow):
         self.tab_widget_RIGHT.addTab(self.widget_search, 'Search')
 
     def set_up_widget_biosphere(self):
-        self.table_inputs_biosphere = QtGui.QTableWidget()
+        self.table_inputs_biosphere = MyQTableWidget()
         self.table_inputs_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         # self.add_dock(self.table_inputs_biosphere, 'Biosphere', QtCore.Qt.RightDockWidgetArea)
 
@@ -576,8 +602,8 @@ class MainWindow(QtGui.QMainWindow):
         self.combo_lcia_method_part1 = QtGui.QComboBox(self)
         self.combo_lcia_method_part2 = QtGui.QComboBox(self)
         # Tables
-        self.table_current_activity_lcia = QtGui.QTableWidget()
-        self.table_previous_calcs = QtGui.QTableWidget()
+        self.table_current_activity_lcia = MyQTableWidget()
+        self.table_previous_calcs = MyQTableWidget()
 
         # set default LCIA method
         self.update_lcia_method(selection=browser_settings.default_LCIA_method)
@@ -650,9 +676,9 @@ class MainWindow(QtGui.QMainWindow):
         label_top_processes = QtGui.QLabel("Top Processes")
         label_top_emissions = QtGui.QLabel("Top Emissions")
         # Tables
-        self.table_lcia_results = QtGui.QTableWidget()
-        self.table_top_processes = QtGui.QTableWidget()
-        self.table_top_emissions = QtGui.QTableWidget()
+        self.table_lcia_results = MyQTableWidget()
+        self.table_top_processes = MyQTableWidget()
+        self.table_top_emissions = MyQTableWidget()
         # VL
         VL_widget_LCIA_Results = QtGui.QVBoxLayout()
         VL_widget_LCIA_Results.addWidget(self.label_LCAR_product)
@@ -683,9 +709,9 @@ class MainWindow(QtGui.QMainWindow):
         self.button_save = QtGui.QPushButton("Save New Activity")
         self.button_replace = QtGui.QPushButton("Replace Existing")
         # TABLES
-        self.table_AE_activity = QtGui.QTableWidget()
-        self.table_AE_technosphere = QtGui.QTableWidget()
-        self.table_AE_biosphere = QtGui.QTableWidget()
+        self.table_AE_activity = MyQTableWidget()
+        self.table_AE_technosphere = MyQTableWidget()
+        self.table_AE_biosphere = MyQTableWidget()
         self.table_AE_technosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.table_AE_biosphere.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         # Dropdown
@@ -798,6 +824,11 @@ the author's written consent."""
     def add_to_multi_lca(self, selectedItems):
         self.signal_MyQTableWidgetItemsList.emit(selectedItems)
 
+    @QtCore.pyqtSlot(str)
+    def set_clipboard_text(self, clipboard_text):
+        print "Received:\n", clipboard_text
+        self.clip.setText(clipboard_text)
+
     # META-PROCESS STUFF
 
     def set_up_widgets_meta_process(self):
@@ -853,6 +884,16 @@ the author's written consent."""
             self.signal_add_to_chain.connect(self.MP_Widget.addToChain)
             self.MP_Widget.signal_MyQTableWidgetItem.connect(self.gotoDoubleClickActivity)
             self.MP_Widget.signal_status_bar_message.connect(self.statusBarMessage)
+
+            # copy
+            tables_mp = [
+                self.MP_Widget.table_MP_database,
+                self.MP_Widget.table_MP_chain,
+                self.MP_Widget.table_MP_outputs,
+                self.MP_Widget.table_PP_comparison
+            ]
+            for table in tables_mp:
+                table.signal_copy_selected_text.connect(self.set_clipboard_text)
 
             # MENU BAR
             # # Actions
