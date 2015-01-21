@@ -272,7 +272,6 @@ class MainWindow(QtGui.QMainWindow):
 
         # Main Window
         self.setWindowTitle("Activity Browser")
-        self.statusBar().showMessage("Welcome")
         self.icon = QtGui.QIcon('icons/pony/pony%s.png' % str(randint(1, 7)))
         # self.icon = QtGui.QIcon('icons/activitybrowser.png')
         self.setWindowIcon(self.icon)
@@ -307,9 +306,11 @@ class MainWindow(QtGui.QMainWindow):
 
         # EXCEPT FOR THIS BLOCK:
         # set up standard widgets in docks
-        self.set_up_toolbar()
-        self.set_up_standard_widgets()
         self.set_up_menu_bar()
+        self.set_up_toolbar()
+        self.set_up_statusbar()
+        self.set_up_standard_widgets()
+
 
         # # layout docks
         # self.setDockOptions(QtGui.QMainWindow.AllowNestedDocks
@@ -433,6 +434,17 @@ class MainWindow(QtGui.QMainWindow):
         # Connections
         self.line_edit_search.returnPressed.connect(self.search_results)
         self.line_edit_search_1.returnPressed.connect(self.search_results)
+
+    def set_up_statusbar(self):
+        self.statusbar = QtGui.QStatusBar()
+        self.setStatusBar(self.statusbar)
+
+        self.status_message = QtGui.QLabel('Welcome')
+        self.status_database = QtGui.QLabel('Database')
+
+        self.statusbar.addWidget(self.status_message, 1)
+        self.statusbar.addWidget(self.status_database, 0)
+        # self.status_message.setText("Welcome")
 
     def set_up_widget_technosphere(self):
         # LABELS
@@ -780,7 +792,7 @@ the author's written consent."""
         :param message:
         :return:
         """
-        self.statusBar().showMessage(message)
+        self.status_message.setText(message)
 
     # SIGNAL-SLOT METHODS
     def add_to_multi_lca(self, selectedItems):
@@ -868,7 +880,7 @@ the author's written consent."""
     def load_new_current_activity(self, key=None, mode=None):
 
         if not self.lcaData.db:
-            self.statusBar().showMessage("Load a database first")
+            self.status_message.setText("Load a database first")
         else:
             if not mode:
                 self.lcaData.setNewCurrentActivity(key, record=True)
@@ -888,6 +900,9 @@ the author's written consent."""
             self.table_inputs_technosphere = self.helper.update_table(self.table_inputs_technosphere, self.lcaData.get_exchanges(type="technosphere"), keys)
             self.table_inputs_biosphere = self.helper.update_table(self.table_inputs_biosphere, self.lcaData.get_exchanges(type="biosphere"), self.get_table_headers(type="biosphere"))
             self.table_downstream_activities = self.helper.update_table(self.table_downstream_activities, self.lcaData.get_downstream_exchanges(), keys)
+
+            # self.status_database.setText(ad['database'])
+            self.status_database.setText(self.lcaData.db.name)
 
     def format_table_current_activity(self, table, keys, ad, edit_keys=None):
         table = self.helper.update_table(table, [ad], keys, bold=True, edit_keys=edit_keys)
@@ -916,13 +931,13 @@ the author's written consent."""
         if self.lcaData.backward_options:
             self.load_new_current_activity(mode='backward')
         else:
-            self.statusBar().showMessage("Cannot go further back.")
+            self.status_message.setText("Cannot go further back.")
 
     def goForward(self):
         if self.lcaData.forward_options:
             self.load_new_current_activity(mode='forward')
         else:
-            self.statusBar().showMessage("Cannot go forward.")
+            self.status_message.setText("Cannot go forward.")
 
     def get_table_headers(self, type="technosphere"):
         if self.lcaData.database_version == 2:
@@ -956,20 +971,21 @@ the author's written consent."""
         print "DOUBLECLICK on: ", item.text()
         if item.key_type != "activity":
             tic = time.clock()
-            self.statusBar().showMessage("Loading... "+item.activity_or_database_key)
+            self.status_message.setText("Loading... "+item.activity_or_database_key)
             print "Loading Database:", item.activity_or_database_key
             self.lcaData.loadDatabase(item.activity_or_database_key)
-            self.statusBar().showMessage(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
+            self.status_message.setText(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
+        self.status_database.setText(self.lcaData.db.name)
 
     def new_database(self):
         name, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
             'Please enter a database name:')
         if ok:
             if name in self.lcaData.list_databases():
-                self.statusBar().showMessage('The name you have specified already exists. Please choose another name.')
+                self.status_message.setText('The name you have specified already exists. Please choose another name.')
             else:
                 self.lcaData.add_database(str(name), data={})
-                self.statusBar().showMessage("Created new database: %s" % name)
+                self.status_message.setText("Created new database: %s" % name)
                 self.listDatabases()
 
     def delete_database(self):
@@ -980,17 +996,17 @@ the author's written consent."""
         if reply:
             try:
                 self.lcaData.delete_database(item.activity_or_database_key)
-                self.statusBar().showMessage("Deleted "+item.activity_or_database_key)
+                self.status_message.setText("Deleted "+item.activity_or_database_key)
                 self.listDatabases()
             except:
-                self.statusBar().showMessage("An error must have occured. Could not delete database.")
+                self.status_message.setText("An error must have occured. Could not delete database.")
 
     # SEARCH
 
     def search_results(self):
         searchString1 = str(self.line_edit_search.text())
         searchString2 = str(self.line_edit_search_1.text())
-        self.statusBar().showMessage("Searched for "+' + '.join(filter(None, [searchString1, searchString2])))
+        self.status_message.setText("Searched for "+' + '.join(filter(None, [searchString1, searchString2])))
         if self.lcaData.db:
             data = self.lcaData.multi_search_activities(searchString1, searchString2)
             keys = self.get_table_headers(type="search")
@@ -999,7 +1015,7 @@ the author's written consent."""
             self.label_multi_purpose.setText(QtCore.QString(label_text))
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         else:
-            self.statusBar().showMessage("Load a database first")
+            self.status_message.setText("Load a database first")
 
     def search_by_key(self):
         searchString = str(self.line_edit_search.text())
@@ -1015,9 +1031,9 @@ the author's written consent."""
                 self.label_multi_purpose.setText(QtCore.QString(label_text))
                 self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_search))
         except AttributeError:
-            self.statusBar().showMessage("Load a database first")
+            self.status_message.setText("Load a database first")
         except:
-            self.statusBar().showMessage("Cannot find activity key for this.")
+            self.status_message.setText("Cannot find activity key for this.")
 
     # LCIA and LCA Results
 
@@ -1050,9 +1066,9 @@ the author's written consent."""
     def calculate_lcia(self, monte_carlo=False):
         method = self.lcaData.LCIA_METHOD
         if not self.lcaData.currentActivity:
-            self.statusBar().showMessage("Load an activity first.")
+            self.status_message.setText("Load an activity first.")
         elif not method:
-            self.statusBar().showMessage("Select an LCIA method first.")
+            self.status_message.setText("Select an LCIA method first.")
         else:
             item = self.helper.get_table_item(self.table_current_activity_lcia, 0, 'amount')
             if self.helper.is_float(item.text()):
@@ -1071,7 +1087,7 @@ the author's written consent."""
             if monte_carlo:
                 self.lcaData.monte_carlo_lcia(key=None, amount=amount, method=method,
                                               iterations=self.mc_iterations, cpu_count=self.cpu_count, uuid_=uuid_)
-            self.statusBar().showMessage("Calculated LCIA score in {:.2f} seconds.".format(time.clock()-tic))
+            self.status_message.setText("Calculated LCIA score in {:.2f} seconds.".format(time.clock()-tic))
             # Update Table Previous LCA calculations
             keys = ['product', 'name', 'location', 'database', 'functional unit', 'unit', 'method']
             data = []
@@ -1179,7 +1195,7 @@ the author's written consent."""
             self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.widget_AE))
             self.update_read_and_write_database_list()
         else:
-            self.statusBar().showMessage("Load an activity first.")
+            self.status_message.setText("Load an activity first.")
 
     def add_exchange_to_edited_activity(self, items):
         for item in items:
@@ -1225,14 +1241,14 @@ the author's written consent."""
         print "Production exchange: " + str(prod_exc_data)
         self.lcaData.save_activity_to_database(key, values, prod_exc_data)
         if overwrite:
-            self.statusBar().showMessage("Replaced existing activity.")
+            self.status_message.setText("Replaced existing activity.")
         else:
-            self.statusBar().showMessage("Saved as new activity.")
+            self.status_message.setText("Saved as new activity.")
 
     def replace_edited_activity(self):
         key = self.lcaData.editActivity_key
         if key[0] in browser_settings.read_only_databases:
-            self.statusBar().showMessage('Cannot save to protected database "'+str(key[0])+'". See settings file.')
+            self.status_message.setText('Cannot save to protected database "'+str(key[0])+'". See settings file.')
         else:
             self.save_edited_activity(overwrite=True)
 
@@ -1244,11 +1260,11 @@ the author's written consent."""
                         mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
             if reply == QtGui.QMessageBox.Yes:
                 self.lcaData.delete_activity(key)
-                self.statusBar().showMessage("Deleted activity: "+str(key))
+                self.status_message.setText("Deleted activity: "+str(key))
             else:
-                self.statusBar().showMessage("Yeah... better safe than sorry.")
+                self.status_message.setText("Yeah... better safe than sorry.")
         else:
-            self.statusBar().showMessage("Not allowed to delete from: "+str(key[0]))
+            self.status_message.setText("Not allowed to delete from: "+str(key[0]))
 
     def update_AE_tables(self):
         keys = ['product', 'name', 'amount', 'unit', 'location']
@@ -1276,7 +1292,7 @@ the author's written consent."""
         db_for_saving = [db['name'] for db in self.lcaData.getDatabases()
                          if db['name'] not in browser_settings.read_only_databases]
         if not db_for_saving:
-            self.statusBar().showMessage('No database found that is not read-only. '
+            self.status_message.setText('No database found that is not read-only. '
                                          'Please add a database that can be saved to.')
         else:
             for name in db_for_saving:
