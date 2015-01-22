@@ -219,7 +219,7 @@ class LinkedMetaProcessSystem(object):
         map_products_number = dict(zip(self.get_product_names(mp_list), itertools.count()))
         for mp in mp_list:
             for product, amount in mp.pp:
-                matrix[map_products_number[product], map_processes_number[mp.name]] = amount
+                matrix[map_products_number[product], map_processes_number[mp.name]] += amount
         return matrix, map_processes_number, map_products_number
 
     # ALTERNATIVE PATHWAYS
@@ -311,7 +311,6 @@ class LinkedMetaProcessSystem(object):
             scaling_vector = np.linalg.solve(matrix, demand_vector).tolist()
         except np.linalg.linalg.LinAlgError:
             print "Singular matrix. Cannot solve."
-            return False
         except:
             print "Could not solve matrix"
         scaling_dict = dict([(name, scaling_vector[index]) for name, index in map_processes.items()])

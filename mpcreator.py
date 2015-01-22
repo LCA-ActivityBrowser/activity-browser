@@ -4,16 +4,17 @@
 from metaprocess import MetaProcess
 from browser_utils import *
 import json
+from copy import deepcopy
 
 
 class MetaProcessCreator(BrowserStandardTasks):
     def __init__(self):
         self.mp_data = {'name': 'New Meta-Process', 'outputs': [], 'chain': [], 'cuts': []}
         self.newMetaProcess(self.mp_data)
-        self.name_map = {}  # remembers key: "name" information during a session
+        self.name_map = {}  # remembers key: "name" information during a session; TODO: replace through name map in LMP
 
     def update_mp(self):
-        self.mp = MetaProcess(**self.mp_data)
+        self.mp = MetaProcess(**deepcopy(self.mp_data))
         self.mp_data = self.mp.mp_data
         self.apply_name_map()
         # TODO: add custom information if available in name_map

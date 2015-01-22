@@ -16,6 +16,7 @@ import operator
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
+import time
 
 
 class MPWidget(QtGui.QWidget):
@@ -517,11 +518,12 @@ class MPWidget(QtGui.QWidget):
         self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
 # TODO: check if demand propagates all the way through mp.lca
-    # TODO: get method from combobox
     def compare_pathway_lcas(self):
-        method = (u'IPCC 2013', u'climate change', u'GWP 100a')
+        method = self.lcaData.LCIA_METHOD
         demand = {str(self.combo_functional_unit.currentText()): 1.0}
+        tic = time.clock()
         self.path_data = self.lmp.lca_alternatives(method, demand)
+        self.signal_status_bar_message.emit('Calculated LCA for all pathways in {:.2f} seconds.'.format(time.clock()-tic))
         self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score
         self.update_PP_comparison_table(data=self.path_data, keys=['LCA score', 'path'])
         self.plot_figure('products')
@@ -776,37 +778,14 @@ class MPWidget(QtGui.QWidget):
         try:
             filename = 'pp-matrix.xlsx'
             filepath = os.path.join(os.getcwd(), "MetaProcessDatabases", filename)
-            export_matrix_to_excel(products, processes, matrix, filepath)
-        except:
-            print "An error has occured saving the PP-Matrix as .xlsx file."
+            export_matrix_to_excel(data['products'], data['processes'], data['matrix'], filepath)
+        except IOError:
+            self.signal_status_bar_message.emit('Could not save to file.')
+
+        # JSON
         # filename = os.path.join(os.getcwd(), "MetaProcessDatabases", "pp-matrix.json")
         # with open(filename, 'w') as outfile:
         #     json.dump(data, outfile, indent=2)
-
-    # def export_matrix_to_excel(self, row_names, col_names, matrix, filepath='export.xlsx', sheetname='Export'):
-    #     workbook = xlsxwriter.Workbook(filepath)
-    #     ws = workbook.add_worksheet(sheetname)
-    #     # formatting
-    #     # border
-    #     format_border = workbook.add_format()
-    #     format_border.set_border(1)
-    #     format_border.set_font_size(9)
-    #     # border + text wrap
-    #     format_border_text_wrap = workbook.add_format()
-    #     format_border_text_wrap.set_text_wrap()
-    #     format_border_text_wrap.set_border(1)
-    #     format_border_text_wrap.set_font_size(9)
-    #     # set column width
-    #     ws.set_column(0, 1, width=15, cell_format=None)
-    #     ws.set_column(1, 50, width=9, cell_format=None)
-    #     # write data
-    #     for i, p in enumerate(col_names):  # process names
-    #         ws.write(0, i+1, p, format_border_text_wrap)
-    #     for i, p in enumerate(row_names):  # product names
-    #         ws.write(i+1, 0, p, format_border)
-    #     for i, row in enumerate(range(matrix.shape[0])):  # matrix
-    #         ws.write_row(i+1, 1, matrix[i, :], format_border)
-    #     workbook.close()
 
     def export_as_JSON(self):
         outdata = []
