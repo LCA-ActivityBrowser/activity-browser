@@ -359,15 +359,16 @@ class BrowserStandardTasks(object):
                 objs = [self.getActivityData(key) for key in self.database.keys()]
             elif searchString1 and searchString2:
                 objs = [self.getActivityData(key) for key in self.database.keys()
-                        if (searchString1 in self.database[key].get('name', '')
-                            or searchString1 in self.database[key].get('reference product', ''))
-                        and (searchString2 in self.database[key].get('name', '')
-                             or searchString2 in self.database[key].get('reference product', ''))]
+                        if (searchString1.lower() in self.database[key].get('name', '').lower()
+                            or searchString1.lower() in self.database[key].get('reference product', '').lower())
+                        and (searchString2.lower() in self.database[key].get('name', '').lower()
+                             or searchString2.lower() in self.database[key].get('reference product', '').lower())]
             else:
                 searchstring = searchString1 or searchString2
+                searchstring = searchstring.lower()
                 objs = [self.getActivityData(key) for key in self.database.keys()
-                        if searchstring in self.database[key].get('name', '')
-                        or searchstring in self.database[key].get('reference product', '')]
+                        if searchstring in self.database[key].get('name', '').lower()
+                        or searchstring in self.database[key].get('reference product', '').lower()]
             objs.sort(key=lambda x: x['name'])
             return objs
 
