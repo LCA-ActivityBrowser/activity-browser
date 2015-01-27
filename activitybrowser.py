@@ -701,7 +701,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def setup_widget_activity_editor(self):
         # Labels
-        self.label_ae_activity = QtGui.QLabel("Activity")
+        self.label_ae_activity = QtGui.QLabel("Edited Activity")
         self.label_ae_database = QtGui.QLabel("Select database")
         self.label_ae_tech_in = QtGui.QLabel("Technosphere Inputs")
         self.label_ae_bio_in = QtGui.QLabel("Biosphere Inputs")
