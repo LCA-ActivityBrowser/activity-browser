@@ -253,7 +253,7 @@ class MPWidget(QtGui.QWidget):
             elif mode == "append":
                 self.lmp.load_from_file(filename, append=True)
             self.signal_status_bar_message.emit("Loaded MP Database successfully.")
-            self.updateTableMPDatabase()
+            self.update_MP_database_data()
 
     def addMPDatabase(self):
         self.loadMPDatabase(mode="append")
@@ -264,7 +264,7 @@ class MPWidget(QtGui.QWidget):
                     msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
             self.lmp = LinkedMetaProcessSystem()
-            self.updateTableMPDatabase()
+            self.update_MP_database_data()
             self.signal_status_bar_message.emit("Closed MP Database.")
 
     def saveMPDatabase(self, filename=None):
@@ -318,7 +318,7 @@ class MPWidget(QtGui.QWidget):
                     self.lmp.remove_mp([mp_name])  # first remove mp that is to be replaced
             if add:
                 self.lmp.add_mp([self.MPC.mp_data])
-                self.update_widget_MP_data()
+                self.update_MP_database_data()
                 self.signal_status_bar_message.emit("Added MP to working database (not saved).")
 
 # TODO: remove; doesn't seem necessary anymore
@@ -422,11 +422,16 @@ class MPWidget(QtGui.QWidget):
 
     def update_widget_MP_data(self):
         self.line_edit_MP_name.setText(self.MPC.mp.name)
-        self.updateTableMPDatabase()
         self.update_MP_table_widget_outputs()
         self.update_MP_table_widget_chain()
         self.update_MP_tree_widget_cuts()
         self.update_checkbox_output_based_scaling()
+
+    def update_MP_database_data(self):
+        self.updateTableMPDatabase()
+        self.combo_functional_unit.clear()
+        for product in self.lmp.products:
+            self.combo_functional_unit.addItem(product)
 
     def update_MP_table_widget_outputs(self):
         keys = ['custom name', 'quantity', 'unit', 'product', 'name', 'location', 'database']
@@ -513,9 +518,14 @@ class MPWidget(QtGui.QWidget):
 
     def show_all_pathways(self):
         functional_unit = str(self.combo_functional_unit.currentText())
-        data = [{'path': p} for p in self.lmp.all_pathways(functional_unit)]
-        keys = ['path']
-        self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
+        all_pathways = self.lmp.all_pathways(functional_unit)
+        if self.lmp.has_multi_output_processes or self.lmp.has_loops:
+            self.signal_status_bar_message.emit('Cannot determine pathways as system contains loops ('
+                +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
+        else:
+            data = [{'path': p} for p in all_pathways]
+            keys = ['path']
+            self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
 # TODO: check if demand propagates all the way through mp.lca
     def compare_pathway_lcas(self):
@@ -523,11 +533,17 @@ class MPWidget(QtGui.QWidget):
         demand = {str(self.combo_functional_unit.currentText()): 1.0}
         tic = time.clock()
         self.path_data = self.lmp.lca_alternatives(method, demand)
-        self.signal_status_bar_message.emit('Calculated LCA for all pathways in {:.2f} seconds.'.format(time.clock()-tic))
-        self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score
-        self.update_PP_comparison_table(data=self.path_data, keys=['LCA score', 'path'])
-        self.plot_figure('products')
+        if not self.path_data:
+            self.signal_status_bar_message.emit('Cannot calculate LCA of alternatives as system contains loops ('
+                +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
+        else:
+            self.signal_status_bar_message.emit('Calculated LCA for all pathways in {:.2f} seconds.'.format(time.clock()-tic))
+            self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score
+            self.update_PP_comparison_table(data=self.path_data, keys=['LCA score', 'path'])
+            self.plot_figure('products')
 
+    # TODO: filter out products / processes that are not part of the graph
+    # for a given functional unit so that they are not displayed
     def plot_figure(self, type):
         ''' plot matplotlib figure for LCA alternatives '''
         # get figure data
@@ -632,9 +648,6 @@ class MPWidget(QtGui.QWidget):
 
     def pp_graph(self):
         self.save_pp_matrix()
-        self.combo_functional_unit.clear()
-        for product in self.lmp.products:
-            self.combo_functional_unit.addItem(product)
 
         if self.current_d3_layout == "graph" or self.current_d3_layout == "dagre":
             template_data = {
@@ -642,8 +655,8 @@ class MPWidget(QtGui.QWidget):
                 'width': self.webview.geometry().width(),
                 'data': json.dumps(self.get_pp_graph(), indent=1)
             }
-            print "\nPP-GRAPH DATA:"
-            print self.get_pp_graph()
+            # print "\nPP-GRAPH DATA:"
+            # print self.get_pp_graph()
 
         elif self.current_d3_layout == "tree":
             template_data = {
@@ -761,8 +774,8 @@ class MPWidget(QtGui.QWidget):
         print processes
         print "PRODUCTS"
         print products
-        print "MATRIX"
-        print matrix
+        # print "MATRIX"
+        # print matrix
 
         # export pp-matrix data to pickle file
         # order processes/products by number in dictionary

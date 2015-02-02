@@ -45,6 +45,7 @@ class MetaProcess(object):
         # a bit of convenience for users
         self.output_names = [o[1] for o in self.outputs]
         self.cut_names = [c[2] for c in self.cuts]
+        self.is_multi_output = len(self.outputs) > 1
 
     def remove_cuts_from_chain(self, chain, cuts):
         """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.
@@ -135,12 +136,12 @@ class MetaProcess(object):
         # add outputs that were not specified
         for sa in self.scaling_activities:
             if sa not in [o[0] for o in outputs]:
-                print "PSS WARNING: Adding an output that was not specified: " + str(sa)
+                print "MP: Adding an output that was not specified: " + str(sa)
                 padded_outputs.append((sa, "Unspecified Output", 1.0))
         # remove outputs that were specified, but are *not* outputs
         for o in outputs:
             if o[0] not in self.scaling_activities:
-                print "PSS WARNING: Removing a specified output that is *not* actually an output: " + str(o[0])
+                print "MP: Removing a specified output that is *not* actually an output: " + str(o[0])
                 padded_outputs.remove(o)
         return padded_outputs
 
@@ -167,8 +168,9 @@ class MetaProcess(object):
         for m in range(M):
             key = reverse_mapping[m]
             if key in self.scaling_activities and not self.output_based_scaling:
-                print "Did not apply output based scaling: scaling activity set to 1.0, " \
-                      "which may not relate to manually defined output product quantities."
+                print '\nDid not apply output based scaling to:', self.name
+                print "(This means that the scaling activity set to 1.0, while the output can be anything. " \
+                      "It is up to the user to check that output quantities makes sense.)"
                 diagonal_value = 1.0
             else:
                 try:
@@ -176,10 +178,11 @@ class MetaProcess(object):
                     # amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
                     diagonal_value = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
                 except IndexError:
-                    print "WARNING: Amount could not be determined. Perhaps this is a multi-output activity. " \
-                          "Results may be wrong."
+                    print "\nNo production exchange (output) found. Output is set to 1.0 for:", self.name
+                    print "--> This may be an ecoinvent 2.2 multi-output activity. " \
+                          "Manual control is necessary to insure correctness."
                     diagonal_value = 1.0
-            matrix[m,m] = diagonal_value
+            matrix[m, m] = diagonal_value
         # Non-diagonal values
         # Only add edges that are within our system, but allow multiple links to same product (simply add them)
         for in_, out_, a in [x for x in edges if x[0] in chain and x[1] in chain]:

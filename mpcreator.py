@@ -17,7 +17,6 @@ class MetaProcessCreator(BrowserStandardTasks):
         self.mp = MetaProcess(**deepcopy(self.mp_data))
         self.mp_data = self.mp.mp_data
         self.apply_name_map()
-        # TODO: add custom information if available in name_map
         print "\nMP DATA:"
         print self.mp.mp_data
 
@@ -205,7 +204,7 @@ class MetaProcessCreator(BrowserStandardTasks):
 
         def format_output(number, unit, product=''):
             if number:
-                return " ".join(["{:.2g}".format(number), unit, product])
+                return "\n ".join(["{:.2g}".format(number), unit, product])
             else:
                 return ''
 

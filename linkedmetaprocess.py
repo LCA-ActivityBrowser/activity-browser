@@ -27,6 +27,8 @@ class LinkedMetaProcessSystem(object):
         self.map_number_products = dict()
         self.name_map = {}  # {activity key: output name}
         self.raw_data = []
+        self.has_multi_output_processes = False
+        self.has_loops = False
         if mp_list:
             self.update(mp_list)
 
@@ -56,6 +58,21 @@ class LinkedMetaProcessSystem(object):
         self.map_number_products = {v: k for k, v in self.map_products_number.items()}
         self.update_name_map()
         self.raw_data = [mp.mp_data for mp in self.mp_list]
+        # multi-output
+        self.has_multi_output_processes = False
+        for mp in self.mp_list:
+            if mp.is_multi_output:
+                self.has_multi_output_processes = True
+        # check for loops
+        G = nx.DiGraph()
+        G.add_edges_from(self.edges())
+        if [c for c in nx.simple_cycles(G)]:
+            self.has_loops = True
+        else:
+            self.has_loops = False
+
+        print '\nMeta-process system with', len(self.products), 'products and', len(self.processes), 'processes.'
+        print 'Loops:', self.has_loops, ', Multi-output processes:', self.has_multi_output_processes
 
     def update_name_map(self):
         """
@@ -246,16 +263,25 @@ class LinkedMetaProcessSystem(object):
         First all theoretical unique pathways are identified, then the
         theoretical pathways are reduced to actually different pathways
         by eliminating processes that are not actually part of those supply chains.
-        Note: A better approach could be a graph traversal algorithm
+
+        Conditions: no loops, no multi-output
+
+        Note: A more efficient and clean approach could be a graph traversal algorithm
         to find all paths (see and/or graphs in future).
+
         :param functional_unit:
         :return:
         """
+        if self.has_multi_output_processes or self.has_loops:
+            print 'Cannot determine pathways as system contains ' \
+                  'loops (', self.has_loops, ') / multi-output processes (', self.has_multi_output_processes, ').'
+            return
         ancestor_processes, ancestor_products = self.upstream_products_processes(functional_unit)
         product_processes = self.product_process_dict(process_names=ancestor_processes, product_names=ancestor_products)
         # get all combinations of meta-processes
         # some are merely theoretical, i.e. contain processes that are not actually part of the supply chain
         unique_pathways = list(itertools.product(*product_processes.values()))
+        print "UNIQUE PATHWAYS:", len(unique_pathways)
 
         # now we need to eliminate those combinations that don't make sense (if any)
         # each process within a unique path must have a simple path connection to the functional unit
@@ -282,6 +308,7 @@ class LinkedMetaProcessSystem(object):
                     path.remove(process)
                     path = tuple(path)
             unique_pathways_cleaned.append(path)
+        print "UNIQUE PATHWAYS (after cleaning):", len(set(unique_pathways_cleaned))
 
         return list(set(unique_pathways_cleaned))
 
@@ -300,29 +327,24 @@ class LinkedMetaProcessSystem(object):
         try:
             # TODO: define conditions that must be met (e.g. square, single-output); Processes can still have multiple outputs (system expansion)
             assert matrix.shape[0] == matrix.shape[1]  # matrix needs to be square to be invertable!
-        except AssertionError:
-            print "Matrix must be square! Current shape:", matrix.shape[0], matrix.shape[1]
-        # demand vector
-        demand_vector = np.zeros((len(matrix),))
-        for name, amount in demand.items():
-            demand_vector[map_products[name]] = amount
-        # scaling vector
-        try:
+            # demand vector
+            demand_vector = np.zeros((len(matrix),))
+            for name, amount in demand.items():
+                demand_vector[map_products[name]] = amount
+            # scaling vector
             scaling_vector = np.linalg.solve(matrix, demand_vector).tolist()
-        except np.linalg.linalg.LinAlgError:
-            print "Singular matrix. Cannot solve."
-        except:
-            print "Could not solve matrix"
-        scaling_dict = dict([(name, scaling_vector[index]) for name, index in map_processes.items()])
-        # # foreground product demand (can be different from scaling vector if diagonal values are not 1)
-        # foreground_demand = {}
-        # for name, amount in scaling_dict.items():
-        #     number_in_matrix = map_processes[name]
-        #     product = [name for name, number in map_products.items() if number == number_in_matrix][0]
-        #     foreground_demand.update({
-        #         product: amount*matrix[number_in_matrix, number_in_matrix]
-        #     })
-        return scaling_dict  # foreground_demand
+            scaling_dict = dict([(name, scaling_vector[index]) for name, index in map_processes.items()])
+            # # foreground product demand (can be different from scaling vector if diagonal values are not 1)
+            # foreground_demand = {}
+            # for name, amount in scaling_dict.items():
+            #     number_in_matrix = map_processes[name]
+            #     product = [name for name, number in map_products.items() if number == number_in_matrix][0]
+            #     foreground_demand.update({
+            #         product: amount*matrix[number_in_matrix, number_in_matrix]
+            #     })
+            return scaling_dict  # , foreground_demand
+        except AssertionError:
+            print "Product-Process Matrix must be square! Currently", matrix.shape[0], 'products and', matrix.shape[1], 'processes.'
 
     def lca_processes(self, method, process_names=None, factorize=False):
         """
@@ -336,6 +358,8 @@ class LinkedMetaProcessSystem(object):
 
     def lca_linked_processes(self, method, process_names, demand):
         scaling_dict = self.scaling_vector_foreground_demand(process_names, demand)
+        if not scaling_dict:
+            return
         lca_scores = self.lca_processes(method, process_names)
         # multiply scaling vector with process LCA scores
         path_lca_score = 0.0
@@ -367,8 +391,12 @@ class LinkedMetaProcessSystem(object):
         :param demand:
         :return:
         """
-        # assume that only one product is demanded for now (functional unit)
-        path_lca_data = []
-        for path in self.all_pathways(demand.keys()[0]):
-            path_lca_data.append(self.lca_linked_processes(method, path, demand))
-        return path_lca_data
+        if self.has_multi_output_processes:
+            print '\nCannot calculate LCAs for alternatives as system contains ' \
+                  'loops (', self.has_loops, ') / multi-output processes (', self.has_multi_output_processes, ').'
+        else:
+            # assume that only one product is demanded for now (functional unit)
+            path_lca_data = []
+            for path in self.all_pathways(demand.keys()[0]):
+                path_lca_data.append(self.lca_linked_processes(method, path, demand))
+            return path_lca_data
