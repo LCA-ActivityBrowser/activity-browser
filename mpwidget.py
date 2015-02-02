@@ -520,6 +520,7 @@ class MPWidget(QtGui.QWidget):
         functional_unit = str(self.combo_functional_unit.currentText())
         all_pathways = self.lmp.all_pathways(functional_unit)
         if self.lmp.has_multi_output_processes or self.lmp.has_loops:
+        # if self.lmp.has_loops:
             self.signal_status_bar_message.emit('Cannot determine pathways as system contains loops ('
                 +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
         else:
@@ -527,7 +528,7 @@ class MPWidget(QtGui.QWidget):
             keys = ['path']
             self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
-# TODO: check if demand propagates all the way through mp.lca
+    # TODO: check if demand propagates all the way through mp.lca
     def compare_pathway_lcas(self):
         method = self.lcaData.LCIA_METHOD
         demand = {str(self.combo_functional_unit.currentText()): 1.0}

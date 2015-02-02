@@ -273,6 +273,7 @@ class LinkedMetaProcessSystem(object):
         :return:
         """
         if self.has_multi_output_processes or self.has_loops:
+        # if self.has_loops:
             print 'Cannot determine pathways as system contains ' \
                   'loops (', self.has_loops, ') / multi-output processes (', self.has_multi_output_processes, ').'
             return
@@ -291,6 +292,7 @@ class LinkedMetaProcessSystem(object):
         G = nx.DiGraph()
         G.add_edges_from(self.edges())
         for path in unique_pathways:
+            path = list(set(path))
             process_part_of_path = {}
             for process in path:
                 process_part_of_path.update({process: False})
@@ -304,13 +306,16 @@ class LinkedMetaProcessSystem(object):
             for process, part_of_path in process_part_of_path.items():
                 if not part_of_path:
                     # print process, path
-                    path = list(path)
                     path.remove(process)
-                    path = tuple(path)
-            unique_pathways_cleaned.append(path)
-        print "UNIQUE PATHWAYS (after cleaning):", len(set(unique_pathways_cleaned))
+            path = sorted(path, key=lambda item: (int(item.partition(' ')[0])
+                               if item[0].isdigit() else float('inf'), item))
+            unique_pathways_cleaned.append(tuple(path))
 
-        return list(set(unique_pathways_cleaned))
+        # convert to set (to remove identical pathways)
+        unique_pathways_cleaned = set(unique_pathways_cleaned)
+        print "UNIQUE PATHWAYS (after cleaning):", len(unique_pathways_cleaned)
+
+        return unique_pathways_cleaned
 
     # LCA
 
