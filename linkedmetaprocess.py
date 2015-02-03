@@ -11,18 +11,21 @@ import os
 
 class LinkedMetaProcessSystem(object):
     """
-    A linked meta-procses system holds several interlinked meta-processes. It has methods for:
-    - loading / saving linked meta-process systems
-    - returning information, e.g. product and process names, the product-process matrix
-    - determining all alternatives to produce a given functional unit
-    - calculating LCA results for individual meta-processes
-    - calculating LCA results for a demand from the linked meta-process system (possibly for all alternatives)
+    A linked meta-process system holds several interlinked meta-processes. It has methods for:
 
-    Meta-processes cannot contain:
-    - 2 processes with the same name
-    - identical names for products and processes (recommendation is to capitalize process names)
+    * loading / saving linked meta-process systems
+    * returning information, e.g. product and process names, the product-process matrix
+    * determining all alternatives to produce a given functional unit
+    * calculating LCA results for individual meta-processes
+    * calculating LCA results for a demand from the linked meta-process system (possibly for all alternatives)
+
+    Meta-processes **cannot** contain:
+
+    * 2 processes with the same name
+    * identical names for products and processes (recommendation is to capitalize process names)
 
     Args:
+
     * *mp_list* (``[MetaProcess]``): A list of meta-processes
     """
 
