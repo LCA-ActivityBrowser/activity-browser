@@ -174,7 +174,7 @@ class LinkedMetaProcessSystem(object):
         else:
             # if name list find corresponding meta-processes
             if not isinstance(mp_list[0], MetaProcess):
-                return [self.map_name_mp.get(name, None) for name in mp_list]
+                return [self.map_name_mp.get(name, None) for name in mp_list if name in self.processes]
             else:
                 return mp_list
 
@@ -258,64 +258,49 @@ class LinkedMetaProcessSystem(object):
 
     def all_pathways(self, functional_unit):
         """
-        Returns a list of tuples. Each tuple contains the meta-processes
-        that make up a unique pathway to produce the functional unit.
-        First all theoretical unique pathways are identified, then the
-        theoretical pathways are reduced to actually different pathways
-        by eliminating processes that are not actually part of those supply chains.
-
-        Conditions: no loops, no multi-output
-
-        Note: A more efficient and clean approach could be a graph traversal algorithm
-        to find all paths (see and/or graphs in future).
-
+        Returns a list of lists. Each sublist contains one path made up of products and processes.
+        The input Graph may not contain cycles. It may contain multi-output processes.
         :param functional_unit:
         :return:
         """
-        if self.has_multi_output_processes or self.has_loops:
-        # if self.has_loops:
-            print 'Cannot determine pathways as system contains ' \
-                  'loops (', self.has_loops, ') / multi-output processes (', self.has_multi_output_processes, ').'
-            return
-        ancestor_processes, ancestor_products = self.upstream_products_processes(functional_unit)
-        product_processes = self.product_process_dict(process_names=ancestor_processes, product_names=ancestor_products)
-        # get all combinations of meta-processes
-        # some are merely theoretical, i.e. contain processes that are not actually part of the supply chain
-        unique_pathways = list(itertools.product(*product_processes.values()))
-        print "UNIQUE PATHWAYS:", len(unique_pathways)
+        def dfs(current_node, visited, parents, direction_up=True):
+            # print current_node
+            if direction_up:
+                visited += [current_node]
+            if current_node in self.products:
+                # go up to all processes if none has been visited previously, else go down
+                upstream_processes = G.predecessors(current_node)
+                if upstream_processes and not [process for process in upstream_processes if process in visited]:
+                    parents += [current_node]
+                    for process in upstream_processes:
+                        dfs(process, visited[:], parents[:])  # needs a real copy due to mutable / immutable
+                else:  # GO DOWN or finish
+                    if parents:
+                        downstream_process = parents.pop()
+                        dfs(downstream_process, visited, parents, direction_up=False)
+                    else:
+                        results.append(visited)
+                        # print 'Finished'
+            else:  # node = process; upstream = product
+                # go to one upstream product, if there is one unvisited, else go down
+                upstream_products = G.predecessors(current_node)
+                unvisited = [product for product in upstream_products if product not in visited]
+                #print 'unvisited:', unvisited
+                if unvisited:  # GO UP
+                    parents += [current_node]
+                    dfs(unvisited[0], visited, parents)
+                else:  # GO DOWN or finish
+                    if parents:
+                        downstream_product = parents.pop()
+                        dfs(downstream_product, visited, parents, direction_up=False)
+                    else:
+                        print 'Finished @ process, this should not happen if a product was demanded.'
+            return results
 
-        # now we need to eliminate those combinations that don't make sense (if any)
-        # each process within a unique path must have a simple path connection to the functional unit
-        # otherwise it is not actually part of the supply chain; the code below checks for this
-        # and assigns the value True to each process where this holds true
-        unique_pathways_cleaned = []
+        results = []
         G = nx.DiGraph()
         G.add_edges_from(self.edges())
-        for path in unique_pathways:
-            path = list(set(path))
-            process_part_of_path = {}
-            for process in path:
-                process_part_of_path.update({process: False})
-                simple_paths = nx.all_simple_paths(G, process, functional_unit)
-                for simple_path in simple_paths:
-                    simple_path = [sp for sp in simple_path if sp in self.processes]
-                    if [s in path for s in simple_path].count(True) == len(simple_path):
-                        process_part_of_path[process] = True
-
-            # remove process(es) from unique paths if they are not part of it
-            for process, part_of_path in process_part_of_path.items():
-                if not part_of_path:
-                    # print process, path
-                    path.remove(process)
-            path = sorted(path, key=lambda item: (int(item.partition(' ')[0])
-                               if item[0].isdigit() else float('inf'), item))
-            unique_pathways_cleaned.append(tuple(path))
-
-        # convert to set (to remove identical pathways)
-        unique_pathways_cleaned = set(unique_pathways_cleaned)
-        print "UNIQUE PATHWAYS (after cleaning):", len(unique_pathways_cleaned)
-
-        return unique_pathways_cleaned
+        return dfs(functional_unit, [], [])
 
     # LCA
 

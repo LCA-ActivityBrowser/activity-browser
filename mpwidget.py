@@ -519,8 +519,8 @@ class MPWidget(QtGui.QWidget):
     def show_all_pathways(self):
         functional_unit = str(self.combo_functional_unit.currentText())
         all_pathways = self.lmp.all_pathways(functional_unit)
-        if self.lmp.has_multi_output_processes or self.lmp.has_loops:
-        # if self.lmp.has_loops:
+        # if self.lmp.has_multi_output_processes or self.lmp.has_loops:
+        if self.lmp.has_loops:
             self.signal_status_bar_message.emit('Cannot determine pathways as system contains loops ('
                 +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
         else:
