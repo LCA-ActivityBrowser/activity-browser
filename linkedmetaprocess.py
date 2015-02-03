@@ -11,7 +11,7 @@ import os
 
 class LinkedMetaProcessSystem(object):
     """
-    A class for doing stuff with linked meta-procseses.
+    A linked meta-procses system
     Can not:
     - contain 2 processes with the same name
     Args:
@@ -40,16 +40,19 @@ class LinkedMetaProcessSystem(object):
         :return:
         """
         names = set()
+        product_names, process_names = set(), set()
         for mp in mp_list:
-            try:
-                assert isinstance(mp, MetaProcess)
-            except AssertionError:
+            if not isinstance(mp, MetaProcess):
                 raise ValueError(u"Input must be of MetaProcesses type.")
             try:
-                assert mp.name not in names  # check if process names are unique
-                names.add(mp.name)
+                assert mp.name not in process_names  # check if process names are unique
+                process_names.add(mp.name)
+                product_names.update(self.get_product_names([mp]))
             except AssertionError:
                 raise ValueError(u'Meta-Process names must be unique.')
+        for product in product_names:
+            if product in process_names:
+                raise ValueError(u'Product and Process names cannot be identical.')
         self.mp_list = mp_list
         self.map_name_mp = dict([(mp.name, mp) for mp in self.mp_list])
         self.map_processes_number = dict(zip(self.processes, itertools.count()))
@@ -195,6 +198,7 @@ class LinkedMetaProcessSystem(object):
             ] for y in self.get_processes(mp_list)])))
 
     def get_output_names(self, mp_list=None):
+        """ Returns output names for a list of meta-processes."""
         return sorted(list(set([name for mp in self.get_processes(mp_list) for name in mp.output_names])))
 
     def get_cut_names(self, mp_list=None):

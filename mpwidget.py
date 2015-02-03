@@ -321,7 +321,7 @@ class MPWidget(QtGui.QWidget):
                 self.update_MP_database_data()
                 self.signal_status_bar_message.emit("Added MP to working database (not saved).")
 
-# TODO: remove; doesn't seem necessary anymore
+    # TODO: remove; doesn't seem necessary anymore
     def deleteMPfromDatabase(self):
         if self.MPC.mp_data['chain']:
             self.lmp.remove_mp([self.MPC.mp_data['name']])
@@ -520,13 +520,13 @@ class MPWidget(QtGui.QWidget):
         functional_unit = str(self.combo_functional_unit.currentText())
         all_pathways = self.lmp.all_pathways(functional_unit)
         # if self.lmp.has_multi_output_processes or self.lmp.has_loops:
-        if self.lmp.has_loops:
-            self.signal_status_bar_message.emit('Cannot determine pathways as system contains loops ('
-                +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
-        else:
-            data = [{'path': p} for p in all_pathways]
-            keys = ['path']
-            self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
+        # if self.lmp.has_loops:
+        self.signal_status_bar_message.emit('Cannot determine pathways as system contains loops ('
+            +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
+        # else:
+        data = [{'path': p} for p in all_pathways]
+        keys = ['path']
+        self.table_PP_comparison = self.helper.update_table(self.table_PP_comparison, data, keys)
 
     # TODO: check if demand propagates all the way through mp.lca
     def compare_pathway_lcas(self):
