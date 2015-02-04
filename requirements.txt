@@ -1,1 +1,16 @@
-brightway2
+bw2analyzer>=0.5.2
+bw2calc>=0.15.1
+bw2data>=1.0
+bw2ui>=0.15
+colorama
+docopt
+flask
+lxml
+nose
+numpy
+progressbar-ipython
+requests
+scipy
+stats_arrays>=0.2.4
+unicodecsv
+voluptuous

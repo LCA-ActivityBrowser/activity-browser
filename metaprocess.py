@@ -8,19 +8,20 @@ import uuid
 
 
 class MetaProcess(object):
-    """A description of a simplified supply chain, which has the following characteristics:
+    """A description of one or several processes from a life cycle inventory database.
+     It has the following characteristics:
 
-    * It produces one or more outputs (products)
+    * It produces one or several output products
     * It has at least one process from an inventory database
-    * It can have links back into the inventory process that are cut; these links can then be replaced at another point with alternative supply chains.
-    * It has one scaling activity, which determines the amounts of the various inputs and outputs
+    * It has one or several scaling activities that are linked to the output of the system. They are calculated automatically based on the product output (exception: if output_based_scaling=False, see below).
+    * Inputs may be cut-off. Cut-offs are remembered and can be used in a linked meta-process to recombine meta-processes to form supply chains (or several, alternative supply chains).
 
     Args:
-        * *name* (``str``): Name of the new process
-        * *outputs* (``[(key, str, optional float)]``): A list of products produced by the simplified process. Format is ``(key into inventory database, product name, optional amount of product produced)``.
+        * *name* (``str``): Name of the meta-process
+        * *outputs* (``[(key, str, optional float)]``): A list of products produced by the meta-process. Format is ``(key into inventory database, product name, optional amount of product produced)``.
         * *chain* (``[key]``): A list of inventory processes in the supply chain (not necessarily in order).
-        * *cuts* (``[(key, key, str)]``): A set of linkages in the supply chain that should be cut. These will appear as **negative** products (i.e. inputs) in the process-product table. Format is (input key, output key, product name).
-        * *scaling activity* (key, optional): The reference activities for the supply chain. **Required** for circular supply chains; in simple supply chains, the scaling activity is calculated automatically.
+        * *cuts* (``[(parent_key, child_key, str, float)]``): A set of linkages in the supply chain that should be cut. These will appear as **negative** products (i.e. inputs) in the process-product table. The float amount is determined automatically. Format is (input key, output key, product name, amount).
+        * *output_based_scaling* (``bool``): True: scaling activities are scaled by the user defined product outputs. False: the scaling activities are set to 1.0 and the user can define any output. This may not reflect reality or original purpose of the inventory processes.
 
     """
     # TODO: introduce UUID for meta-processes?
