@@ -1,6 +1,6 @@
 .. _introduction-metaprocesses:
 
-Meta Process modeling for LCA
+Meta-Process modeling for LCA
 =============================
 
 The Meta-Process Concept enables:
