@@ -19,7 +19,7 @@ class LinkedMetaProcessSystem(object):
     * calculating LCA results for individual meta-processes
     * calculating LCA results for a demand from the linked meta-process system (possibly for all alternatives)
 
-    Meta-processes **cannot** contain:
+    Meta-processes *cannot* contain:
 
     * 2 processes with the same name
     * identical names for products and processes (recommendation is to capitalize process names)

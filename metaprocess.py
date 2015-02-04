@@ -29,7 +29,7 @@ class MetaProcess(object):
     # INTERNAL METHODS FOR CONSTRUCTING META-PROCESSES
 
     def __init__(self, name, outputs, chain, cuts, output_based_scaling=True, **kwargs):
-        self.key = None  # created when PSS saved to a DB
+        self.key = None  # created when MP saved to a DB
         self.name = name
         self.cuts = cuts
         self.output_based_scaling = output_based_scaling
@@ -49,13 +49,11 @@ class MetaProcess(object):
         self.is_multi_output = len(self.outputs) > 1
 
     def remove_cuts_from_chain(self, chain, cuts):
-        """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results.
-
-        """
+        """Remove chain items if they are the parent of a cut. Otherwise this leads to unintended LCIA results."""
         for cut in cuts:
             if cut[0] in chain:
                 chain.remove(cut[0])
-                print "PSS WARNING: Cut removed from chain: " + str(cut[0])
+                print "MP WARNING: Cut removed from chain: " + str(cut[0])
         return set(chain)
 
     def getFilteredDatabase(self, depending_databases, chain):

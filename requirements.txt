@@ -11,6 +11,6 @@ numpy
 progressbar-ipython
 requests
 scipy
-stats_arrays>=0.2.4
+stats_arrays
 unicodecsv
 voluptuous
