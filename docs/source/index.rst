@@ -37,8 +37,8 @@ See installation.
 
 Contact
 -------
+`Bernhard Steubing <steubing@ifu.baug.ethz.ch>`_
 
-_Bernhard Steubing <steubing@ifu.baug.ethz.ch>
 
 License
 -------

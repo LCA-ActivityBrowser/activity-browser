@@ -154,7 +154,7 @@ class LinkedMetaProcessSystem(object):
     def add_mp(self, mp_list, rename=False):
         """
         Adds meta-processes to the linked meta-process system.
-        *mp_list* can contain meta-processes or the original data format used to initialize meta-processes.
+        *mp_list* can contain meta-process objects or the original data format used to initialize meta-processes.
         """
         new_mp_list = []
         for mp in mp_list:
@@ -170,9 +170,7 @@ class LinkedMetaProcessSystem(object):
     def remove_mp(self, mp_list):
         """
         Remove meta-processes from the linked meta-process system.
-        mp_list can contain meta-processes or names of existing meta-processes.
-        :param mp_list:
-        :return:
+        *mp_list* can contain meta-process objects or names of existing meta-processes.
         """
         for mp in mp_list:
             if not isinstance(mp, MetaProcess):
@@ -185,9 +183,7 @@ class LinkedMetaProcessSystem(object):
     def get_processes(self, mp_list=None):
         """
         returns a list of meta-processes
-        mp_list can either be a list of names or a list of meta-processes
-        :param mp_list:
-        :return:
+        *mp_list* can contain meta-process objects or names of existing meta-processes.
         """
         # if empty list return all meta-processes
         if not mp_list:
@@ -202,15 +198,14 @@ class LinkedMetaProcessSystem(object):
     def get_process_names(self, mp_list=None):
         """
         Input: a list of meta-processes. Output: a list of process names.
-        :param mp_list:
-        :return:
+        *mp_list* can contain meta-process objects or names of existing meta-processes.
         """
         return sorted([mp.name for mp in self.get_processes(mp_list)])
 
     def get_product_names(self, mp_list=None):
         """
         Input: a list of meta-processes. Output: a list of product names.
-        :return:
+        *mp_list* can contain meta-process objects or names of existing meta-processes.
         """
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
             ] for y in self.get_processes(mp_list)])))
@@ -228,7 +223,7 @@ class LinkedMetaProcessSystem(object):
         returns dict, where products are keys and meta-processes producing these products are list values
         if process/product names are provided, these are used as filters
         equally, if mp_list is provided, it can be used as a filter
-        otherwise all processes/products are considered
+        otherwise all processes/products are considered.
         """
         if not process_names:
             process_names = self.processes
@@ -246,8 +241,7 @@ class LinkedMetaProcessSystem(object):
     def edges(self, mp_list=None):
         """
         Returns an edge list for all edges within the linked meta-process system.
-        :param mp_list:
-        :return:
+        *mp_list* can contain meta-process objects or names of existing meta-processes.
         """
         edges = []
         for mp in self.get_processes(mp_list):
@@ -261,8 +255,7 @@ class LinkedMetaProcessSystem(object):
         """
         Returns the product-process matrix as well as two dictionaries
         that hold row/col values for each product/process.
-        :param mp_list: can be used to limit the scope to the contained processes
-        :return:
+        *mp_list* can be used to limit the scope to the contained processes
         """
         mp_list = self.get_processes(mp_list)
         matrix = np.zeros((len(self.get_product_names(mp_list)), len(mp_list)))
@@ -278,8 +271,6 @@ class LinkedMetaProcessSystem(object):
     def upstream_products_processes(self, product):
         """
         Returns all upstream products and processes related to a certain product (functional unit)
-        :param product:
-        :return:
         """
         G = nx.DiGraph()
         G.add_edges_from(self.edges())
@@ -295,8 +286,7 @@ class LinkedMetaProcessSystem(object):
         Returns all alternative pathways to produce a given functional unit. Data output is a list of lists.
         Each sublist contains one path made up of products and processes.
         The input Graph may not contain cycles. It may contain multi-output processes.
-        :param functional_unit: the output for which alternatives are sought
-        :return:
+        *functional_unit*: the output for which alternatives are sought
         """
         def dfs(current_node, visited, parents, direction_up=True):
             # print current_node
@@ -343,9 +333,11 @@ class LinkedMetaProcessSystem(object):
         """
         Returns a scaling dictionary for a given demand and matrix defined by a list of processes (or names).
         Keys: process names. Values: scaling vector values.
-        :param process_names: meta-processes or names
-        :param demand: key-value pairs of product name / amount
-        :return:
+
+        Args:
+
+        * *mp_list*: meta-process objects or names
+        * *demand* (``{dict}``): keys: product names, values: amount
         """
         # matrix
         matrix, map_processes, map_products = self.get_pp_matrix(mp_list)
@@ -381,20 +373,23 @@ class LinkedMetaProcessSystem(object):
     def lca_linked_processes(self, method, process_names, demand):
         """
         Performs LCA for a given demand from a linked meta-process system.
-        Returns a dictionary with the following keys:
-        path: involved process names
-        demand: product demand
-        scaling vector: result of the demand
-        LCIA method:
-        process contribution:
-        relative process contribution:
-        LCIA score:
+        Works only for square matrices (see scaling_vector_foreground_demand).
 
-        Works only for square matrices (see scaling_vector_foreground_demand)
-        :param method: LCIA method
-        :param process_names: selection of processes from the linked meta-process system (that yields a square matrix)
-        :param demand: product demand
-        :return:
+        Returns a dictionary with the following keys:
+
+        * *path*: involved process names
+        * *demand*: product demand
+        * *scaling vector*: result of the demand
+        * *LCIA method*: method used
+        * *process contribution*: contribution of each process
+        * *relative process contribution*: relative contribution
+        * *LCIA score*: LCA result
+
+        Args:
+
+        * *method*: LCIA method
+        * *process_names*: selection of processes from the linked meta-process system (that yields a square matrix)
+        * *demand* (``{dict}``): keys: product names, values: amount
         """
         scaling_dict = self.scaling_vector_foreground_demand(process_names, demand)
         if not scaling_dict:
@@ -425,9 +420,11 @@ class LinkedMetaProcessSystem(object):
         """
         Calculation of LCA results for all alternatives in a linked meta-process system that yield a certain demand.
         Results are stored in a list of dictionaries as described in 'lca_linked_processes'.
-        :param method:
-        :param demand:
-        :return:
+
+        Args:
+
+        * *method*: LCIA method
+        * *demand* (``{dict}``): keys: product names, values: amount
         """
         if self.has_multi_output_processes:
             print '\nCannot calculate LCAs for alternatives as system contains ' \
