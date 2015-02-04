@@ -1,12 +1,10 @@
 """
 
-Data format for Meta-Processes
-It is used to define and store meta-processes.
+Data Format of Meta-Processes
+*****************************
 
-All other properties are calculated based on this data,
-e.g. scaling of edges, LCA results, etc. using the methods
-of the MetaProcess class.
-
+Meta-Processes can be specified in the format shown below. It is used to define and store meta-processes.
+All other properties are calculated based on this data, e.g. scaling of edges, LCA results, etc. using the methods of the MetaProcess class.
 """
 
 data_format = {
@@ -15,17 +13,22 @@ data_format = {
             (key, 'custom_name', 'custom_amount'),
         ],
         'chain': [
-            (parent_key, child_key),
+            (key),
         ],
         'cuts': [
             (parent_key, child_key, 'custom_name', amount),
         ],
-        'output_based_scaling': True,  # optional, by default True
-        # If False, the scaling activity will be set to 1.0 independently of the outputs.
-        # This can be useful for multi-output activities, if
-        # a) product outputs are not defined in the dataset (as in brightway2 for ecoinvent multi-output activities).
-        # b) if 
-        # where product outputs are not imported in brightway2. If set False, scaling activities are scaled with 1.0
-        # independently of the product output, which needs to be defined and checked manually.
-        # This allows to model multiple outputs that do not add up to 1 (e.g. 0.46 MJ heat and 0.08 kWh electricity).
+        'output_based_scaling': True,
 }
+
+"""
+**Notes:**
+
+*Keys*:
+Keys are a tuple composed of two elements, where the first refers to the database and the second to the activity, thus ('database name', 'meta-process name or uuid')
+
+*Output-based scaling*:
+The default value is *True*. If set to *False*, the scaling activities will be scaled to 1.0 no matter how the product outputs are defined by the user.This can be used to
+a) to create artificial outputs that are not part of the original dataset (the user needs to see whether that makes sense)
+b) when ecoinvent 2.2 multi-output activities, as imported in brightway2, are used, as these don't include the output products, which need to be manually defined.
+"""

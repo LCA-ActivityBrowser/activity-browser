@@ -6,7 +6,6 @@ import itertools
 import numpy as np
 import networkx as nx  # TODO: get rid of this dependency
 import pickle
-import os
 
 
 class LinkedMetaProcessSystem(object):
@@ -107,16 +106,12 @@ class LinkedMetaProcessSystem(object):
 
     @ property
     def processes(self):
-        """
-        returns all process names
-        """
+        """Returns all process names."""
         return sorted([mp.name for mp in self.mp_list])
 
     @ property
     def products(self):
-        """
-        returns all product names
-        """
+        """Returns all product names."""
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
             ] for y in self.mp_list])))
 
@@ -144,16 +139,14 @@ class LinkedMetaProcessSystem(object):
             self.update(mp_list)
 
     def save_to_file(self, filepath):
-        """
-        Saves data for each meta-process in the meta-process data format using pickle and
-        updates the linked meta process system.
-        """
+        """Saves data for each meta-process in the meta-process data format using pickle and updates the linked meta process system."""
         with open(filepath, 'w') as outfile:
             pickle.dump(self.raw_data, outfile)
 
     def add_mp(self, mp_list, rename=False):
         """
         Adds meta-processes to the linked meta-process system.
+
         *mp_list* can contain meta-process objects or the original data format used to initialize meta-processes.
         """
         new_mp_list = []
@@ -170,7 +163,8 @@ class LinkedMetaProcessSystem(object):
     def remove_mp(self, mp_list):
         """
         Remove meta-processes from the linked meta-process system.
-        *mp_list* can contain meta-process objects or names of existing meta-processes.
+
+        *mp_list* can be a list of meta-process objects or meta-process names.
         """
         for mp in mp_list:
             if not isinstance(mp, MetaProcess):
@@ -182,8 +176,9 @@ class LinkedMetaProcessSystem(object):
 
     def get_processes(self, mp_list=None):
         """
-        returns a list of meta-processes
-        *mp_list* can contain meta-process objects or names of existing meta-processes.
+        Returns a list of meta-processes.
+
+        *mp_list* can be a list of meta-process objects or meta-process names.
         """
         # if empty list return all meta-processes
         if not mp_list:
@@ -196,16 +191,13 @@ class LinkedMetaProcessSystem(object):
                 return mp_list
 
     def get_process_names(self, mp_list=None):
-        """
-        Input: a list of meta-processes. Output: a list of process names.
-        *mp_list* can contain meta-process objects or names of existing meta-processes.
-        """
+        """Returns a the names of a list of meta-processes."""
         return sorted([mp.name for mp in self.get_processes(mp_list)])
 
     def get_product_names(self, mp_list=None):
-        """
-        Input: a list of meta-processes. Output: a list of product names.
-        *mp_list* can contain meta-process objects or names of existing meta-processes.
+        """Returns the output and input product names of a list of meta-processes.
+
+        *mp_list* can be a list of meta-process objects or meta-process names.
         """
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
             ] for y in self.get_processes(mp_list)])))
@@ -220,10 +212,8 @@ class LinkedMetaProcessSystem(object):
 
     def product_process_dict(self, mp_list=None, process_names=None, product_names=None):
         """
-        returns dict, where products are keys and meta-processes producing these products are list values
-        if process/product names are provided, these are used as filters
-        equally, if mp_list is provided, it can be used as a filter
-        otherwise all processes/products are considered.
+        Returns a dictionary that maps meta-processes to produced products (key: product, value: meta-process).
+        Optional arguments ``mp_list``, ``process_names``, ``product_names`` can used as filters.
         """
         if not process_names:
             process_names = self.processes
@@ -241,7 +231,8 @@ class LinkedMetaProcessSystem(object):
     def edges(self, mp_list=None):
         """
         Returns an edge list for all edges within the linked meta-process system.
-        *mp_list* can contain meta-process objects or names of existing meta-processes.
+
+        *mp_list* can be a list of meta-process objects or meta-process names.
         """
         edges = []
         for mp in self.get_processes(mp_list):
@@ -255,6 +246,7 @@ class LinkedMetaProcessSystem(object):
         """
         Returns the product-process matrix as well as two dictionaries
         that hold row/col values for each product/process.
+
         *mp_list* can be used to limit the scope to the contained processes
         """
         mp_list = self.get_processes(mp_list)
@@ -269,9 +261,7 @@ class LinkedMetaProcessSystem(object):
     # ALTERNATIVE PATHWAYS
 
     def upstream_products_processes(self, product):
-        """
-        Returns all upstream products and processes related to a certain product (functional unit)
-        """
+        """Returns all upstream products and processes related to a certain product (functional unit)."""
         G = nx.DiGraph()
         G.add_edges_from(self.edges())
         product_ancestors = nx.ancestors(G, product)  # set
@@ -286,7 +276,10 @@ class LinkedMetaProcessSystem(object):
         Returns all alternative pathways to produce a given functional unit. Data output is a list of lists.
         Each sublist contains one path made up of products and processes.
         The input Graph may not contain cycles. It may contain multi-output processes.
-        *functional_unit*: the output for which alternatives are sought
+
+        Args:
+
+        * *functional_unit*: output product
         """
         def dfs(current_node, visited, parents, direction_up=True):
             # print current_node
@@ -364,8 +357,7 @@ class LinkedMetaProcessSystem(object):
             print "Product-Process Matrix must be square! Currently", matrix.shape[0], 'products and', matrix.shape[1], 'processes.'
 
     def lca_processes(self, method, process_names=None, factorize=False):
-        """
-        returns dict where: keys = meta-process name, value = LCA score
+        """Returns a dictionary where *keys* = meta-process name, *value* = LCA score
         """
         return dict([(mp.name, mp.lca(method, factorize=factorize))
                      for mp in self.get_processes(process_names)])

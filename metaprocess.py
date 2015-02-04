@@ -107,16 +107,16 @@ class MetaProcess(object):
         return list(heads), isSimple
 
     def pad_outputs(self, outputs):
-        """If not present, add to outputs default
-        - name
-        - amount (1)
+        """If not given, adds default values to outputs:
+
+        * output name: "Unspecified Output"
+        * amount: 1.0
 
         Args:
             * *outputs* (list): outputs
 
         Returns:
             Padded outputs
-
         """
         padded_outputs = []
         for i, output in enumerate(outputs):  # add default name and quantity if necessary
@@ -200,7 +200,7 @@ class MetaProcess(object):
         return mapping, demand, matrix, np.linalg.solve(matrix, demand).tolist()
 
     def get_edge_lists(self):
-        """Get lists of external and internal edges with original flow values or scaled to the meta-process"""
+        """Get lists of external and internal edges with original flow values or scaled to the meta-process."""
         self.external_edges = \
             [x for x in self.edges if (x[0] not in self.chain and x[:2] not in set([y[:2] for y in self.cuts]))]
         self.internal_edges = \
@@ -216,9 +216,7 @@ class MetaProcess(object):
             [(x[0], x[1], x[2] * self.supply_vector[self.mapping[x[1]]]) for x in self.internal_edges_with_cuts]
 
     def pad_cuts(self):
-        """
-        Make sure that each cut includes the amount that is cut. This is retrieved from self.internal_scaled_edges_with_cuts
-        """
+        """Makes sure that each cut includes the amount that is cut. This is retrieved from self.internal_scaled_edges_with_cuts."""
         for i, c in enumerate(self.cuts):
             for e in self.internal_scaled_edges_with_cuts:
                 if c[:2] == e[:2]:
@@ -231,6 +229,7 @@ class MetaProcess(object):
 
     @property
     def mp_data(self):
+        """Returns a dictionary of meta-process data as specified in the data format."""
         mp_data_dict = {
             'name': self.name,
             'outputs': self.outputs,
@@ -241,11 +240,12 @@ class MetaProcess(object):
         return mp_data_dict
 
     def get_product_inputs_and_outputs(self):
+        """Returns a list of product inputs and outputs."""
         return [(cut[2], -cut[3]) for cut in self.cuts] + [(output[1], output[2]) for output in self.outputs]
 
     @property
     def pp(self):
-        """Shortcut, as full method uses no global state"""
+        """Property shortcut for returning a list of product intputs and outputs."""
         return self.get_product_inputs_and_outputs()
 
     # LCA
@@ -259,6 +259,7 @@ class MetaProcess(object):
         return demand
 
     def lca(self, method, amount=1.0, factorize=False):
+        """Calculates LCA results for a given LCIA method and amount. Returns the LCA score."""
         if not self.scaling_activities:
             raise ValueError("No scaling activity")
         if hasattr(self, "calculated_lca"):
@@ -290,9 +291,10 @@ class MetaProcess(object):
 
         Args:
             * *db_name* (str): Name of Database
-            * *unit* (str, optional): Unit of the simplified process.
-            * *location* (str, optional): Location of the simplified process.
-            * *categories* (list, optional): Category/ies of the scaling activity.
+            * *unit* (str, optional): Unit of the simplified process
+            * *location* (str, optional): Location of the simplified process
+            * *categories* (list, optional): Category/ies of the scaling activity
+            * *save_aggregated_inventory* (bool, optional): Saves in output minus input style by default (True), otherwise aggregated inventory of all inventories linked within the meta-process
 
         """
         db = Database(db_name)
