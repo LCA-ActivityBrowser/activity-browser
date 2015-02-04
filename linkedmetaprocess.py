@@ -48,13 +48,11 @@ class LinkedMetaProcessSystem(object):
         Updates the linked meta-process system every time processes
         are added, modified, or deleted.
         Errors are thrown in case of:
-        - identical names for products and processes
-        - identical names of different meta-processes
-        - if the input is not of type MetaProcess()
-        :param mp_list:
-        :return:
+
+        * identical names for products and processes
+        * identical names of different meta-processes
+        * if the input is not of type MetaProcess()
         """
-        names = set()
         product_names, process_names = set(), set()
         for mp in mp_list:
             if not isinstance(mp, MetaProcess):
@@ -110,14 +108,14 @@ class LinkedMetaProcessSystem(object):
     @ property
     def processes(self):
         """
-        :return: returns all process names
+        returns all process names
         """
         return sorted([mp.name for mp in self.mp_list])
 
     @ property
     def products(self):
         """
-        :return: returns all product names
+        returns all product names
         """
         return sorted(set(itertools.chain(*[[x[0] for x in y.pp
             ] for y in self.mp_list])))
@@ -128,8 +126,11 @@ class LinkedMetaProcessSystem(object):
         """
         Loads a meta-process database, makes a MetaProcess object from each meta-process and
         adds them to the linked meta-process system.
-        :param filepath: file path
-        :param append: adds loaded meta-processes to the existing database if True
+
+        Args:
+
+        * filepath: file path
+        * append: adds loaded meta-processes to the existing database if True
         """
         try:
             with open(filepath, 'r') as infile:
@@ -146,8 +147,6 @@ class LinkedMetaProcessSystem(object):
         """
         Saves data for each meta-process in the meta-process data format using pickle and
         updates the linked meta process system.
-        :param mp_list:
-        :return:
         """
         with open(filepath, 'w') as outfile:
             pickle.dump(self.raw_data, outfile)
