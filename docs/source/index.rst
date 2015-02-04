@@ -6,7 +6,15 @@
 Meta Processes documentation
 ==========================================
 
-General documentation
+Features
+--------
+
+- Introduces a meta-layer for modeling life cycle inventories
+- Efficient modeling of alternative life cycles
+- Efficient coupling of LCA and optimization
+
+
+Documentation
 ---------------------
 
 .. toctree::
@@ -25,17 +33,6 @@ Class reference
    metaprocess
    linkedmetaprocess
 
-Features
---------
-
-- Introduces a meta-layer for modeling life cycle inventories
-- Efficient modeling of alternative life cycles
-- Efficient coupling of LCA and optimization
-
-Installation
-------------
-
-See installation.
 
 Contact
 -------
