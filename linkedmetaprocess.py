@@ -337,7 +337,7 @@ class LinkedMetaProcessSystem(object):
         Args:
 
         * *mp_list*: meta-process objects or names
-        * *demand* (``{dict}``): keys: product names, values: amount
+        * *demand* (dict): keys: product names, values: amount
         """
         # matrix
         matrix, map_processes, map_products = self.get_pp_matrix(mp_list)
@@ -389,7 +389,7 @@ class LinkedMetaProcessSystem(object):
 
         * *method*: LCIA method
         * *process_names*: selection of processes from the linked meta-process system (that yields a square matrix)
-        * *demand* (``{dict}``): keys: product names, values: amount
+        * *demand* (dict): keys: product names, values: amount
         """
         scaling_dict = self.scaling_vector_foreground_demand(process_names, demand)
         if not scaling_dict:
@@ -424,7 +424,7 @@ class LinkedMetaProcessSystem(object):
         Args:
 
         * *method*: LCIA method
-        * *demand* (``{dict}``): keys: product names, values: amount
+        * *demand* (dict): keys: product names, values: amount
         """
         if self.has_multi_output_processes:
             print '\nCannot calculate LCAs for alternatives as system contains ' \

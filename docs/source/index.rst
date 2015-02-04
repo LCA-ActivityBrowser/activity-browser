@@ -6,7 +6,8 @@
 Meta Processes documentation
 ==========================================
 
-General documentation:
+General documentation
+---------------------
 
 .. toctree::
    :maxdepth: 2
@@ -15,7 +16,8 @@ General documentation:
    installation
    dataformat
 
-Class reference:
+Class reference
+---------------
 
 .. toctree::
    :maxdepth: 2
