@@ -785,28 +785,32 @@ class MainWindow(QtGui.QMainWindow):
 
     def about(self):
         text="""
-Activity Browser
+Activity Browser - A free LCA software ready for your own extensions.
 
-Copyright 2015 Bernhard Steubing, ETH Zurich
-
+Copyright (c) 2015, Bernhard Steubing and ETH Zurich
 Contact: steubing@ifu.baug.ethz.ch
 
-The Activity Browser is an LCA software based on
-brightway2: http://brightwaylca.org/
+Uses brightway2: http://brightwaylca.org/
 
-The Activity Browser may *not* be used or modified
-without prior consent of the author. Copies of
-the software may *not* be distributed without
-the author's written consent."""
+LICENSE:
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
         # QtGui.QMessageBox.about(self, "About", text)
 
         msgBox = QtGui.QMessageBox()
+        msgBox.setMinimumSize(QtCore.QSize(400, 400))
+
         msgBox.setWindowTitle('About the Activity Browser')
         pixmap = self.icon.pixmap(QtCore.QSize(150, 150))
         msgBox.setIconPixmap(pixmap)
         msgBox.setWindowIcon(self.icon)
         msgBox.setText(text)
+        msgBox.setFixedSize(QtCore.QSize(400, 400))
         msgBox.exec_()
 
     def about_qt(self):

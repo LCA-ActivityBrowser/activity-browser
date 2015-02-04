@@ -42,7 +42,7 @@ Contact
 License
 -------
 
-The project is licensed under the BSD license.
+The project is licensed under the GNU General Public License.
 
 
 Indices and tables
