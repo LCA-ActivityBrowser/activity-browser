@@ -19,8 +19,10 @@ import os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-APP_DIR = os.path.normpath(os.path.join(os.getcwd(), '../..'))
-sys.path.insert(0, APP_DIR)
+sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('..'))
+# APP_DIR = os.path.normpath(os.path.join(os.getcwd(), '../..'))
+# sys.path.insert(0, APP_DIR)
 
 # -- General configuration ------------------------------------------------
 
