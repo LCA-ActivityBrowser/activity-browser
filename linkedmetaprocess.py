@@ -93,7 +93,7 @@ class LinkedMetaProcessSystem(object):
     def update_name_map(self):
         """
         Updates the name map, which maps product names (outputs or cuts) to activity keys.
-        This is used in the Activity Browser to assign a product name to already known activity keys. automatically.
+        This is used in the Activity Browser to automatically assign a product name to already known activity keys.
         """
         for mp in self.mp_list:
             for output in mp.outputs:
@@ -154,9 +154,7 @@ class LinkedMetaProcessSystem(object):
     def add_mp(self, mp_list, rename=False):
         """
         Adds meta-processes to the linked meta-process system.
-        mp_list can contain meta-processes or the original data format used to initialize meta-processes.
-        :param mp_list:
-        :return:
+        *mp_list* can contain meta-processes or the original data format used to initialize meta-processes.
         """
         new_mp_list = []
         for mp in mp_list:

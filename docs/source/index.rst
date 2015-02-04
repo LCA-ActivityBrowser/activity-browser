@@ -6,16 +6,44 @@
 Meta Processes documentation
 ==========================================
 
-TODO: DESCRIPTION
-
-Contents:
+General documentation:
 
 .. toctree::
    :maxdepth: 2
 
+   introduction
    installation
+   dataformat
+
+Class reference:
+
+.. toctree::
+   :maxdepth: 2
+
    metaprocess
    linkedmetaprocess
+
+Features
+--------
+
+- Introduces a meta-layer for modeling life cycle inventories
+- Efficient modeling of alternative life cycles
+- Efficient coupling of LCA and optimization
+
+Installation
+------------
+
+See installation.
+
+Contact
+-------
+
+_Bernhard Steubing <steubing@ifu.baug.ethz.ch>
+
+License
+-------
+
+The project is licensed under the BSD license.
 
 
 Indices and tables
