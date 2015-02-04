@@ -128,8 +128,8 @@ class LinkedMetaProcessSystem(object):
         """
         Loads a meta-process database, makes a MetaProcess object from each meta-process and
         adds them to the linked meta-process system.
-        :param filepath:
-        :return:
+        :param filepath: file path
+        :param append: adds loaded meta-processes to the existing database if True
         """
         try:
             with open(filepath, 'r') as infile:
