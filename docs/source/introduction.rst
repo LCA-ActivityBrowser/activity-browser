@@ -3,7 +3,6 @@
 Introduction to Meta-Processes
 ******************************
 
-
 Meta-Processes
 --------------
 
@@ -25,8 +24,8 @@ Meta-Processes can have:
 	* multiple inputs; product inputs involve a cut-off
 
 
-Linked Meta-Process Systems
----------------------------
+System of Linked Meta-Processes
+-------------------------------
 
 .. image:: images/lmp.png
     :align: center
