@@ -28,9 +28,9 @@ Meta-Processes *can* have:
 System of Linked Meta-Processes
 -------------------------------
 
-.. image:: images/mp.png
+.. image:: images/lmp.png
     :align: center
 
- Linked Meta-Process Systems are created by combining meta-processes based on their product inputs and outputs. As shown in the example, the product based linking allows to efficiently specify alternative supply chains.
+Linked Meta-Process Systems are created by combining meta-processes based on their product inputs and outputs. As shown in the example, the product based linking allows to efficiently specify alternative supply chains.
 
- A detailed description of the math behind meta-processes, its application scope and examples are provided in the following paper (not yet available). 
+A detailed description of the math behind meta-processes, its application scope and examples are provided in the following paper (not yet available). 
