@@ -37,7 +37,7 @@ Documentation
 
    installation
    introduction-metaprocesses
-   class_reference
+   metaprocess_class_reference
 
 .. Class reference
 .. ---------------
