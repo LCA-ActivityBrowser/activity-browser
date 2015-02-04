@@ -1,20 +1,14 @@
 .. _introduction-metaprocesses:
 
-*****************************
-Meta Processes Extension
-*******************************
+Meta Process modeling for LCA
+=============================
 
-=======
-Test
-====
+The Meta-Process Concept enables:
 
-Features
---------
-
-- Introduces a meta-layer for modeling life cycle inventories
-- Efficient modeling of alternative life cycles
-- Efficient coupling of LCA and optimization
-
+- modeling inventories at a meta-level, e.g. life cycle stages 
+- linking meta-processes to represent complete, possibly new life cycles
+- efficient modeling of alternative life cycles
+- efficient coupling of LCA and optimization
 
 Meta-Processes
 --------------

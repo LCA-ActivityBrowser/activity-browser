@@ -26,12 +26,7 @@ Core features currently involve:
 Extensions
 ----------
 
-A tool for modeling life cycles based on a :ref:`Meta-Process Concept <introduction-metaprocesses>`, which enables:
-
-- modeling inventories at a meta-level, e.g. life cycle stages 
-- linking meta-processes to represent complete, possibly new life cycles
-- efficient modeling of alternative life cycles
-- efficient coupling of LCA and optimization
+A tool for modeling life cycles based on a :ref:`Meta-Process Concept <introduction-metaprocesses>`.
 
 
 Documentation
