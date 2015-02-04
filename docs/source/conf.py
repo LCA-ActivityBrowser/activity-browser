@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Meta Processes documentation build configuration file, created by
+# Activity Browser documentation build configuration file, created by
 # sphinx-quickstart on Tue Feb 03 16:33:15 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Meta Processes'
+project = u'Activity Browser'
 copyright = u'2015, Bernhard Steubing'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -182,7 +182,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'MetaProcessesdoc'
+htmlhelp_basename = 'ActivityBrowserdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -202,7 +202,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'MetaProcesses.tex', u'Meta Processes Documentation',
+  ('index', 'ActivityBrowser.tex', u'Activity Browser Documentation',
    u'Bernhard Steubing', 'manual'),
 ]
 
@@ -232,7 +232,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'metaprocesses', u'Meta Processes Documentation',
+    ('index', 'ActivityBrowser', u'Activity Browser Documentation',
      [u'Bernhard Steubing'], 1)
 ]
 
@@ -246,8 +246,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'MetaProcesses', u'Meta Processes Documentation',
-   u'Bernhard Steubing', 'MetaProcesses', 'One line description of project.',
+  ('index', 'ActivityBrowser', u'Activity Browser Documentation',
+   u'Bernhard Steubing', 'ActivityBrowser', 'One line description of project.',
    'Miscellaneous'),
 ]
 

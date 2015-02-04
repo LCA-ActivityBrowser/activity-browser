@@ -26,7 +26,7 @@ Core features currently involve:
 Extensions
 ----------
 
-A tool for modeling life cycles based on a :ref:`Meta-Processes Concept <_introduction-metaprocesses>`, which enables:
+A tool for modeling life cycles based on a :ref:`Meta-Processes Concept <introduction-metaprocesses>`, which enables:
 
 - modeling inventories at a meta-level, e.g. life cycle stages 
 - linking meta-processes to represent complete, possibly new life cycles
@@ -42,6 +42,7 @@ Documentation
 
    installation
    introduction-metaprocesses
+   class_reference
 
 .. Class reference
 .. ---------------
