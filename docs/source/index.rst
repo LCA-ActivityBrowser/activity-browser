@@ -26,11 +26,12 @@ Core features currently involve:
 Extensions
 ----------
 
-A tool for using :ref:`Meta-Processes <_introduction_metaprocesses>` to model life cycles in a novel way, enabling the efficient:
+A tool for modeling life cycles based on a :ref:`Meta-Processes Concept <_introduction-metaprocesses>`, which enables:
 
-- modeling and linking of life cycle stages into complete life cycles
-- modeling of alternative life cycles
-- coupling of LCA and optimization
+- modeling inventories at a meta-level, e.g. life cycle stages 
+- linking meta-processes to represent complete, possibly new life cycles
+- efficient modeling of alternative life cycles
+- efficient coupling of LCA and optimization
 
 
 Documentation
@@ -40,16 +41,16 @@ Documentation
    :maxdepth: 1
 
    installation
-   introduction_metaprocesses
+   introduction-metaprocesses
 
-Class reference
----------------
+.. Class reference
+.. ---------------
 
-.. toctree::
-   :maxdepth: 2
+.. .. toctree::
+..    :maxdepth: 2
 
-   metaprocess
-   linkedmetaprocess
+..    metaprocess
+..    linkedmetaprocess
 
 
 Contact

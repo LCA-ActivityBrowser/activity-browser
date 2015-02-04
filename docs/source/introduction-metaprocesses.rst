@@ -1,4 +1,4 @@
-.. _introduction_metaprocesses:
+.. _introduction-metaprocesses:
 
 Meta Processes modeling for LCA
 *******************************
