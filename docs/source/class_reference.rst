@@ -1,7 +1,10 @@
 .. _class_reference:
 
+Meta-Process class reference
+****************************
+
 Meta-Process 
-************
+------------
 
 .. automodule:: metaprocess
 
@@ -9,7 +12,7 @@ Meta-Process
     :members:
 
 Linked Meta-Process 
-*******************
+-------------------
 
 
 .. automodule:: linkedmetaprocess
