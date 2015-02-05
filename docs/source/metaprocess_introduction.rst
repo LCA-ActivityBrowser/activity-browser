@@ -1,9 +1,9 @@
-.. _introduction-metaprocesses:
+.. _metaprocess_introduction:
 
-Meta-Process modeling for LCA
-=============================
+Meta-Process Concept
+====================
 
-The Meta-Process Concept enables:
+Using Meta-Processes to model life cycle inventories enables:
 
 - modeling inventories at a meta-level, e.g. life cycle stages 
 - linking meta-processes to represent complete, possibly new life cycles
