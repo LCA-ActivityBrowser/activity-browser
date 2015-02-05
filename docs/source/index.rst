@@ -18,6 +18,7 @@ Features
 
 Core features currently involve:
 
+- a graphical user interface (GUI) to brightway2
 - fast browser-inspired navigation through inventory databases 
 - creating and modifying inventories and databases
 - fast LCA calculations (even multi-inventory-multi-method)
@@ -26,7 +27,7 @@ Core features currently involve:
 Extensions
 ----------
 
-A tool for modeling life cycles based on a :ref:`Meta-Process Concept <introduction-metaprocesses>`.
+A tool for modeling life cycles based on a :ref:`Meta-Process Concept <metaprocess_introduction>`.
 
 
 Documentation
@@ -36,7 +37,7 @@ Documentation
    :maxdepth: 1
 
    installation
-   introduction-metaprocesses
+   metaprocess_introduction
    metaprocess_class_reference
 
 .. Class reference
