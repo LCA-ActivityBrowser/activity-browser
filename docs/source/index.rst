@@ -7,8 +7,8 @@
 Activity Browser
 ================
 
-The activity browser is a free `LCA <http://en.wikipedia.org/wiki/Life-cycle_assessment>`_ software.
-It relies on `brightway2 <http://brightwaylca.org/>`_ for much of its functionality (e.g. LCA calculations and database management). It extends brightway2 through a graphical user interface (GUI) increasing the efficiency of certain tasks.
+The Activity Browser is a free `LCA <http://en.wikipedia.org/wiki/Life-cycle_assessment>`_ software.
+It builds upon `brightway2 <http://brightwaylca.org/>`_ for much of its functionality (e.g. LCA calculations). It extends brightway2 through a graphical user interface (GUI) increasing the efficiency of certain tasks.
 
 As it is open source, you can add your own extensions.
 
@@ -49,15 +49,15 @@ Documentation
 ..    linkedmetaprocess
 
 
-Contact
--------
-`Bernhard Steubing <steubing@ifu.baug.ethz.ch>`_
-
-
 License
 -------
 
 The project is licensed under the GNU General Public License.
+
+
+Contact
+-------
+`Bernhard Steubing <steubing@ifu.baug.ethz.ch>`_
 
 
 Indices and tables

@@ -1,4 +1,4 @@
-.. _class_reference:
+.. _metaprocess_class_reference:
 
 Meta-Process class reference
 ============================
