@@ -1014,11 +1014,11 @@ You should have received a copy of the GNU General Public License along with thi
     def gotoDoubleClickDatabase(self, item):
         print "DOUBLECLICK on: ", item.text()
         if item.key_type != "activity":
-            tic = time.clock()
             self.status_message.setText("Loading... "+item.activity_or_database_key)
             print "Loading Database:", item.activity_or_database_key
+            tic = time.clock()
             self.lcaData.loadDatabase(item.activity_or_database_key)
-            self.status_message.setText(str("Database loaded: {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
+            self.status_message.setText(str("Loaded {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
         self.status_database.setText(self.lcaData.db.name)
 
     def new_database(self):
