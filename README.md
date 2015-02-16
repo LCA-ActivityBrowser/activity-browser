@@ -1,4 +1,4 @@
-# Activity Browser - A free LCA software ready for your own extensions. #
+# Activity Browser - A free and extendable LCA software. #
 
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich
 
