@@ -38,16 +38,14 @@ Documentation
 
    installation
    metaprocess_introduction
+
+Class reference
+---------------
+
+.. toctree::
+   :maxdepth: 2
+
    metaprocess
-
-.. Class reference
-.. ---------------
-
-.. .. toctree::
-..    :maxdepth: 2
-
-..    metaprocess
-..    linkedmetaprocess
 
 
 License
