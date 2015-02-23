@@ -39,11 +39,12 @@ Documentation
    installation
    metaprocess_introduction
 
+
 Class reference
 ---------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    metaprocess
 
