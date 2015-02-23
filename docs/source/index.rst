@@ -44,9 +44,9 @@ Class reference
 ---------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   metaprocess
+   class_reference
 
 
 License
