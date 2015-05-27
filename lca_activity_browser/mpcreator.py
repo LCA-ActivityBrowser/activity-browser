@@ -1,10 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+from eight import *
 
-from metaprocess import MetaProcess
-from browser_utils import *
-import json
+from .browser_utils import *
+from .metaprocess import MetaProcess
 from copy import deepcopy
+import json
 
 
 class MetaProcessCreator(BrowserStandardTasks):
@@ -17,8 +18,8 @@ class MetaProcessCreator(BrowserStandardTasks):
         self.mp = MetaProcess(**deepcopy(self.mp_data))
         self.mp_data = self.mp.mp_data
         self.apply_name_map()
-        print "\nMP DATA:"
-        print self.mp.mp_data
+        print("\nMP DATA:")
+        print(self.mp.mp_data)
 
     def apply_name_map(self):
         # name map is applied only if a default name is present
@@ -61,36 +62,36 @@ class MetaProcessCreator(BrowserStandardTasks):
     def delete_from_chain(self, key):
         if not self.mp.internal_edges_with_cuts:  # top processes (no edges yet)
             self.mp_data['chain'].remove(key)
-            print "Removed key from chain: " + str(key)
+            print("Removed key from chain: " + str(key))
             self.update_mp()
         else:  # there are already edges
             parents, children, value = zip(*self.mp.internal_edges_with_cuts)
             if key in children:
-                print "\nCannot remove activity as as other activities still link to it."
+                print("\nCannot remove activity as as other activities still link to it.")
             elif key in parents:  # delete from chain
                 self.mp_data['chain'].remove(key)
-                print "Removed key from chain: " + str(key)
+                print("Removed key from chain: " + str(key))
                 self.update_mp()
             else:
-                print "WARNING: Key not in chain. Key: " + self.getActivityData(key)['name']
+                print("WARNING: Key not in chain. Key: " + self.getActivityData(key)['name'])
 
     def add_cut(self, from_key):
         # TODO: add custom information if available in name_map
         if not self.mp.internal_edges_with_cuts:
-            print "Nothing to cut from."
+            print("Nothing to cut from.")
         else:
             parents, children, value = zip(*self.mp.internal_edges_with_cuts)
             if from_key in children:
-                print "Cannot add cut. Activity is linked to by another activity."
+                print("Cannot add cut. Activity is linked to by another activity.")
             else:
                 new_cuts = [(from_key, pcv[1], "Unspecified Input", pcv[2]) for pcv in self.mp.internal_scaled_edges_with_cuts if from_key == pcv[0]]
                 self.mp_data['cuts'] = list(set(self.mp_data['cuts'] + new_cuts))
-                print "cutting: " + str(new_cuts)
+                print("cutting: " + str(new_cuts))
                 self.update_mp()
 
     def delete_cut(self, from_key):
-        print "FROM KEY...."
-        print from_key
+        print("FROM KEY....")
+        print(from_key)
         for cut in self.mp_data['cuts']:
             if from_key == cut[0]:
                 self.mp_data['cuts'].remove(cut)
@@ -104,7 +105,7 @@ class MetaProcessCreator(BrowserStandardTasks):
 
     def set_output_based_scaling(self, bool):
         self.mp_data['output_based_scaling'] = bool
-        print "Set output based scaling to: " + str(bool)
+        print("Set output based scaling to: " + str(bool))
         self.update_mp()
 
     def set_output_name(self, key, new_name, old_name, amount, update=True):
@@ -167,7 +168,7 @@ class MetaProcessCreator(BrowserStandardTasks):
                 output_amount = [edge[2] for edge in self.mp.internal_scaled_edges_with_cuts
                               if node == edge[0] and child == edge[1]]
                 if len(output_amount) > 1:
-                    print "WARNING, several outputs were found."
+                    print("WARNING, several outputs were found.")
                 elif output_amount:
                     d['output'] = " ".join(["{:10.2g}".format(output_amount[0]), self.getActivityData(node)['unit']])
             parents = get_parents(node)
@@ -293,9 +294,9 @@ class MetaProcessCreator(BrowserStandardTasks):
 
     def printEdgesToConsole(self, edges_data, message=None):
         if message:
-            print message
+            print(message)
         for i, pc in enumerate(edges_data):
             if self.custom_data['name'] in pc:
-                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+pc[1]
+                print(str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+pc[1])
             else:
-                print str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+self.getActivityData(pc[1])['name']
+                print(str(i)+". "+self.getActivityData(pc[0])['name']+" --> "+self.getActivityData(pc[1])['name'])

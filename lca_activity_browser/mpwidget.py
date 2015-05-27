@@ -1,22 +1,23 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+from eight import *
 
-from PyQt4 import QtCore, QtGui, QtWebKit
-# from PySide import QtCore, QtGui, QtWebKit
-from browser_utils import *
+from .browser_utils import *
+from .linkedmetaprocess import LinkedMetaProcessSystem
+from .mpcreator import MetaProcessCreator
 from jinja2 import Template
-import json
-import pickle
-import xlsxwriter
-import os
-from mpcreator import MetaProcessCreator
-from linkedmetaprocess import LinkedMetaProcessSystem
-import numpy as np
-import operator
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+from PyQt4 import QtCore, QtGui, QtWebKit
+# from PySide import QtCore, QtGui, QtWebKit
+import json
 import matplotlib.pyplot as plt
+import numpy as np
+import operator
+import os
+import pickle
 import time
+import xlsxwriter
 
 
 class MPWidget(QtGui.QWidget):
@@ -247,7 +248,7 @@ class MPWidget(QtGui.QWidget):
         file_types = "Pickle (*.pickle);;All (*.*)"
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '.\MetaProcessDatabases', file_types)
         if filename:
-            print "Load mode: " + str(mode)
+            print("Load mode: " + str(mode))
             if mode == "load new" or not mode:  # if called via connect: mode = False
                 self.lmp.load_from_file(filename)
             elif mode == "append":
@@ -331,7 +332,7 @@ class MPWidget(QtGui.QWidget):
     def delete_selected_MP(self):
         processes_to_delete = [str(item.text()) for item in self.table_MP_database.selectedItems()]
         self.lmp.remove_mp(processes_to_delete)
-        print "Deleted from working MP database:", processes_to_delete
+        print("Deleted from working MP database:", processes_to_delete)
         self.updateTableMPDatabase()
         self.signal_status_bar_message.emit("Deleted selected items.")
 
@@ -343,13 +344,13 @@ class MPWidget(QtGui.QWidget):
 
     def addOutput(self):
         item = self.table_MP_outputs.currentItem()
-        print "\nDuplicating output: " + str(item.activity_or_database_key) + " " + item.text()
+        print("\nDuplicating output: " + str(item.activity_or_database_key) + " " + item.text())
         self.MPC.add_output(item.activity_or_database_key)
         self.showGraph()
 
     def removeOutput(self):
         item = self.table_MP_outputs.currentItem()
-        print "\nRemoving output: " + str(item.activity_or_database_key) + " " + item.text()
+        print("\nRemoving output: " + str(item.activity_or_database_key) + " " + item.text())
         key = item.activity_or_database_key
         row = self.table_MP_outputs.currentRow()
         name = str(self.table_MP_outputs.item(row, 0).text())
@@ -362,20 +363,20 @@ class MPWidget(QtGui.QWidget):
         self.showGraph()
 
     def removeChainItem(self):
-        print "\nCONTEXT MENU: "+self.action_remove_chain_item.text()
+        print("\nCONTEXT MENU: "+self.action_remove_chain_item.text())
         item = self.table_MP_chain.currentItem()
         self.MPC.delete_from_chain(item.activity_or_database_key)
         self.showGraph()
 
     def addCut(self):
-        print "\nCONTEXT MENU: "+self.action_addCut.text()
+        print("\nCONTEXT MENU: "+self.action_addCut.text())
         for item in self.table_MP_chain.selectedItems():
         # item = self.table_MP_chain.currentItem()
             self.MPC.add_cut(item.activity_or_database_key)
         self.showGraph()
 
     def deleteCut(self):
-        print "\nCONTEXT MENU: "+self.action_removeCut.text()
+        print("\nCONTEXT MENU: "+self.action_removeCut.text())
         item = self.tree_widget_cuts.itemFromIndex(self.tree_widget_cuts.currentIndex())
         if item.activity_or_database_key:
             self.MPC.delete_cut(item.activity_or_database_key)
@@ -401,13 +402,13 @@ class MPWidget(QtGui.QWidget):
         name = str(self.table_MP_outputs.item(row, 0).text())
         amount = str(self.table_MP_outputs.item(row, 1).text())
         if item.column() == 0:  # name
-            print "\nChanging output NAME to: " + text
+            print("\nChanging output NAME to: " + text)
             self.MPC.set_output_name(key, text, self.text_before_edit, float(amount))
         elif item.column() == 1 and self.helper.is_float(text):  # quantity
-            print "\nChanging output QUANTITY to: " + text
+            print("\nChanging output QUANTITY to: " + text)
             self.MPC.set_output_quantity(key, float(text), name, float(self.text_before_edit))
         else:  # ignore!
-            print "\nYou don't want to do this, do you?"
+            print("\nYou don't want to do this, do you?")
         self.showGraph()
 
     def save_text_before_edit(self):
@@ -627,7 +628,7 @@ class MPWidget(QtGui.QWidget):
                 'data': json.dumps(self.MPC.getGraphData(), indent=1)
             }
             self.set_webview(template_data, self.current_d3_layout)
-            print json.dumps(self.MPC.getGraphData(), indent=1)
+            print(json.dumps(self.MPC.getGraphData(), indent=1))
         elif self.current_d3_layout == "dagre":
             template_data = self.MPC.get_dagre_data()
             self.set_webview(template_data, self.current_d3_layout)
@@ -728,9 +729,9 @@ class MPWidget(QtGui.QWidget):
             self.set_webview(template_data, "dagre_path")
 
     def get_pp_path_graph(self, path):
-        print "PATH:", path
+        print("PATH:", path)
         path_data = [pd for pd in self.path_data if path == pd['path']][0]
-        print path_data
+        print(path_data)
 
         graph_data = []
         for mp in self.lmp.mp_list:
@@ -770,11 +771,11 @@ class MPWidget(QtGui.QWidget):
     def save_pp_matrix(self):
         matrix, processes, products = self.lmp.get_pp_matrix()  # self.get_process_products_as_array()
 
-        print "\nPP-MATRIX:"
-        print "PROCESSES:"
-        print processes
-        print "PRODUCTS"
-        print products
+        print("\nPP-MATRIX:")
+        print("PROCESSES:")
+        print(processes)
+        print("PRODUCTS")
+        print(products)
         # print "MATRIX"
         # print matrix
 

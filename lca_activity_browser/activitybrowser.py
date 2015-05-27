@@ -1,25 +1,32 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+from eight import *
 
 from PyQt4 import QtCore, QtGui, QtWebKit
 # from PySide import QtCore, QtGui, QtWebKit
+
 import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
-from browser_utils import *
-import browser_settings
-import style
-from mpwidget import MPWidget
-import time
+# reload(sys)
+# sys.setdefaultencoding("utf-8")
+
+from .browser_settings import (
+    read_only_databases,
+    default_LCIA_method,
+    dock_positions_at_start,
+)
+from .browser_utils import *
+from .mpwidget import MPWidget
 from ast import literal_eval
-import uuid
-import pprint
-import multiprocessing
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
-import matplotlib.pyplot as plt
-import pickle
 from random import randint
+from .style import icons, stylesheet_current_activity
+import matplotlib.pyplot as plt
+import multiprocessing
+import pickle
+import pprint
+import time
+import uuid
 
 
 class WidgetMultiLCA(QtGui.QWidget):
@@ -100,17 +107,17 @@ class WidgetMultiLCA(QtGui.QWidget):
         # CONTEXT MENUS
         # Table ALL Methods
         self.table_all_methods.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_add_methods = QtGui.QAction(QtGui.QIcon(style.icons.context.to_multi_lca), "Add selection", None)
+        self.action_add_methods = QtGui.QAction(QtGui.QIcon(icons.context.to_multi_lca), "Add selection", None)
         self.action_add_methods.triggered.connect(self.add_selected_methods)
         self.table_all_methods.addAction(self.action_add_methods)
         # Table SELECTED Methods
         self.table_selected_methods.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_remove_methods = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Remove selection", None)
+        self.action_remove_methods = QtGui.QAction(QtGui.QIcon(icons.context.delete), "Remove selection", None)
         self.action_remove_methods.triggered.connect(self.remove_selected_methods)
         self.table_selected_methods.addAction(self.action_remove_methods)
         # Table ACTIVITIES
         self.table_activities.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.action_remove_activities = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "Remove selection", None)
+        self.action_remove_activities = QtGui.QAction(QtGui.QIcon(icons.context.delete), "Remove selection", None)
         self.action_remove_activities.triggered.connect(self.remove_selected_activities)
         self.table_activities.addAction(self.action_remove_activities)
 
@@ -166,10 +173,10 @@ class WidgetMultiLCA(QtGui.QWidget):
         self.update_table_activities()
 
     def remove_selected_activities(self):
-        print "Activities: "
-        print self.selected_activities
+        print("Activities: ")
+        print(self.selected_activities)
         for item in self.table_activities.selectedItems():
-            print "removing: " + str(item.activity_or_database_key)
+            print("removing: " + str(item.activity_or_database_key))
             self.selected_activities.remove(item.activity_or_database_key)
         self.update_table_activities()
 
@@ -232,9 +239,9 @@ class WidgetMultiLCA(QtGui.QWidget):
                 'methods': methods,
                 'activities': activities,
             })
-            print activities
-            print methods
-            print lca_scores
+            print(activities)
+            print(methods)
+            print(lca_scores)
             self.signal_status_bar_message.emit('Done in {:.2f} seconds.'.format(time.clock()-tic))
 
     def save_results(self):
@@ -544,7 +551,7 @@ class MainWindow(QtGui.QMainWindow):
         # Context menus
         self.table_databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
-        self.action_delete_database = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "delete database", None)
+        self.action_delete_database = QtGui.QAction(QtGui.QIcon(icons.context.delete), "delete database", None)
         self.action_delete_database.triggered.connect(self.delete_database)
         self.table_databases.addAction(self.action_delete_database)
 
@@ -569,7 +576,7 @@ class MainWindow(QtGui.QMainWindow):
         # self.add_dock(widget, 'Search', QtCore.Qt.RightDockWidgetArea)
 
         # CONTEXT MENUS
-        self.action_delete_activity = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "delete activity", None)
+        self.action_delete_activity = QtGui.QAction(QtGui.QIcon(icons.context.delete), "delete activity", None)
         self.action_delete_activity.triggered.connect(self.delete_activity)
         self.table_search.addAction(self.action_delete_activity)
 
@@ -606,7 +613,7 @@ class MainWindow(QtGui.QMainWindow):
         self.table_previous_calcs = MyQTableWidget()
 
         # set default LCIA method
-        self.update_lcia_method(selection=browser_settings.default_LCIA_method)
+        self.update_lcia_method(selection=default_LCIA_method)
 
         # MATPLOTLIB FIGURE Monte Carlo
         self.matplotlib_figure_mc = QtGui.QWidget()
@@ -758,13 +765,13 @@ class MainWindow(QtGui.QMainWindow):
         ]
         # action add exchanges
         for table in tables:
-            action = QtGui.QAction(QtGui.QIcon(style.icons.context.to_edited_activity), "to edited activity", table)
+            action = QtGui.QAction(QtGui.QIcon(icons.context.to_edited_activity), "to edited activity", table)
             action.triggered[()].connect(lambda table=table: self.add_exchange_to_edited_activity(table.selectedItems()))
             table.addAction(action)
 
         # action remove exchanges
         for table in [self.table_AE_technosphere, self.table_AE_biosphere]:
-            action = QtGui.QAction(QtGui.QIcon(style.icons.context.delete), "remove", table)
+            action = QtGui.QAction(QtGui.QIcon(icons.context.delete), "remove", table)
             action.triggered[()].connect(lambda table=table: self.remove_exchange_from_edited_activity(table.selectedItems()))
             table.addAction(action)
 
@@ -779,7 +786,7 @@ class MainWindow(QtGui.QMainWindow):
             self.table_search
         ]
         for table in tables:
-            action = QtGui.QAction(QtGui.QIcon(style.icons.context.to_multi_lca), "to Multi-LCA", table)
+            action = QtGui.QAction(QtGui.QIcon(icons.context.to_multi_lca), "to Multi-LCA", table)
             action.triggered[()].connect(lambda table=table: self.add_to_multi_lca(table.selectedItems()))
             table.addAction(action)
 
@@ -829,14 +836,14 @@ You should have received a copy of the GNU General Public License along with thi
 
     @QtCore.pyqtSlot(str)
     def set_clipboard_text(self, clipboard_text):
-        print "Received:\n", clipboard_text
+        print("Received:\n", clipboard_text)
         self.clip.setText(clipboard_text)
 
     # META-PROCESS STUFF
 
     def set_up_widgets_meta_process(self):
         if hasattr(self, 'MP_Widget'):
-            print "MP WIDGET ALREADY LOADED"
+            print("MP WIDGET ALREADY LOADED")
         else:
             self.MP_Widget = MPWidget()
             self.tab_widget_LEFT.addTab(self.MP_Widget.MPdataWidget, "MP")
@@ -879,7 +886,7 @@ You should have received a copy of the GNU General Public License along with thi
                 self.table_search
             ]
             for table in tables:
-                action = QtGui.QAction(QtGui.QIcon(style.icons.mp.metaprocess), "to Meta-Process", table)
+                action = QtGui.QAction(QtGui.QIcon(icons.mp.metaprocess), "to Meta-Process", table)
                 action.triggered[()].connect(lambda table=table: self.add_to_chain(table.selectedItems()))
                 table.addAction(action)
 
@@ -916,9 +923,9 @@ You should have received a copy of the GNU General Public License along with thi
     # NAVIGATION
 
     def gotoDoubleClickActivity(self, item):
-        print "DOUBLECLICK on: ", item.text()
+        print("DOUBLECLICK on: ", item.text())
         if item.key_type == "activity":
-            print "Loading Activity:", item.activity_or_database_key
+            print("Loading Activity:", item.activity_or_database_key)
             self.load_new_current_activity(item.activity_or_database_key)
 
     def load_new_current_activity(self, key=None, mode=None):
@@ -959,7 +966,7 @@ You should have received a copy of the GNU General Public License along with thi
         table.horizontalHeader().hide()
         table.verticalHeader().hide()
 
-        table.setStyleSheet(style.stylesheet_current_activity)
+        table.setStyleSheet(stylesheet_current_activity)
 
         return table
 
@@ -1012,10 +1019,10 @@ You should have received a copy of the GNU General Public License along with thi
         self.update_read_and_write_database_list()
 
     def gotoDoubleClickDatabase(self, item):
-        print "DOUBLECLICK on: ", item.text()
+        print("DOUBLECLICK on: ", item.text())
         if item.key_type != "activity":
             self.status_message.setText("Loading... "+item.activity_or_database_key)
-            print "Loading Database:", item.activity_or_database_key
+            print("Loading Database:", item.activity_or_database_key)
             tic = time.clock()
             self.lcaData.loadDatabase(item.activity_or_database_key)
             self.status_message.setText(str("Loaded {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
@@ -1065,10 +1072,10 @@ You should have received a copy of the GNU General Public License along with thi
         searchString = str(self.line_edit_search.text())
         try:
             if searchString != '':
-                print "\nSearched for:", searchString
+                print("\nSearched for:", searchString)
                 data = [self.lcaData.getActivityData(literal_eval(searchString))]
-                print "Data: "
-                print data
+                print("Data: ")
+                print(data)
                 keys = self.get_table_headers(type="search")
                 self.table_search = self.helper.update_table(self.table_search, data, keys)
                 label_text = str(len(data)) + " activities found."
@@ -1095,7 +1102,7 @@ You should have received a copy of the GNU General Public License along with thi
     def update_lcia_method(self, current_index=0, selection=None):
         if not selection:
             selection = (str(self.combo_lcia_method_part0.currentText()), str(self.combo_lcia_method_part1.currentText()), str(self.combo_lcia_method_part2.currentText()))
-            print "LCIA method combobox selection: "+str(selection)
+            print("LCIA method combobox selection: "+str(selection))
         methods, parts = self.lcaData.get_selectable_LCIA_methods(selection)
         # set new available choices
         comboboxes = [self.combo_lcia_method_part0, self.combo_lcia_method_part1, self.combo_lcia_method_part2]
@@ -1117,7 +1124,7 @@ You should have received a copy of the GNU General Public License along with thi
             item = self.helper.get_table_item(self.table_current_activity_lcia, 0, 'amount')
             if self.helper.is_float(item.text()):
                 amount = float(item.text())
-                print "amount of functional unit: ", amount
+                print("amount of functional unit: ", amount)
             else:
                 amount = 1.0
             tic = time.clock()
@@ -1149,10 +1156,10 @@ You should have received a copy of the GNU General Public License along with thi
     def load_previous_LCA_results(self, item):
         # print "DOUBLECLICK on: ", item.text()
         if item.uuid_:
-            print "Loading LCA Results for:", str(item.text())
+            print("Loading LCA Results for:", str(item.text()))
             self.update_LCA_results(item.uuid_)
         else:
-            print "Error: Item does not have a UUID"
+            print("Error: Item does not have a UUID")
 
     def update_LCA_results(self, uuid_):
         lcia_data = self.lcaData.LCIA_calculations[uuid_]
@@ -1253,7 +1260,7 @@ You should have received a copy of the GNU General Public License along with thi
 
     def change_values_activity(self):
         item = self.table_AE_activity.currentItem()
-        print "Changed value: " + str(item.text())
+        print("Changed value: " + str(item.text()))
         header = str(self.table_AE_activity.horizontalHeaderItem(self.table_AE_activity.currentColumn()).text())
         self.lcaData.change_activity_value(str(item.text()), type=header)
         self.update_AE_tables()
@@ -1279,10 +1286,10 @@ You should have received a copy of the GNU General Public License along with thi
             "type": "production",
             "unit": str(self.table_AE_activity.item(0, 3).text()),
         }
-        print "\nSaving\nKey: " + str(key)
-        print "Values:"
+        print("\nSaving\nKey: " + str(key))
+        print("Values:")
         pprint.pprint(values)
-        print "Production exchange: " + str(prod_exc_data)
+        print("Production exchange: " + str(prod_exc_data))
         self.lcaData.save_activity_to_database(key, values, prod_exc_data)
         if overwrite:
             self.status_message.setText("Replaced existing activity.")
@@ -1291,14 +1298,14 @@ You should have received a copy of the GNU General Public License along with thi
 
     def replace_edited_activity(self):
         key = self.lcaData.editActivity_key
-        if key[0] in browser_settings.read_only_databases:
+        if key[0] in read_only_databases:
             self.status_message.setText('Cannot save to protected database "'+str(key[0])+'". See settings file.')
         else:
             self.save_edited_activity(overwrite=True)
 
     def delete_activity(self):
         key = self.table_search.currentItem().activity_or_database_key
-        if key[0] not in browser_settings.read_only_databases:
+        if key[0] not in read_only_databases:
             mgs = "Delete this activity?"
             reply = QtGui.QMessageBox.question(self, 'Message',
                         mgs, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
@@ -1334,7 +1341,7 @@ You should have received a copy of the GNU General Public License along with thi
 
     def update_read_and_write_database_list(self):
         db_for_saving = [db['name'] for db in self.lcaData.getDatabases()
-                         if db['name'] not in browser_settings.read_only_databases]
+                         if db['name'] not in read_only_databases]
         if not db_for_saving:
             self.status_message.setText('No database found that is not read-only. '
                                          'Please add a database that can be saved to.')
@@ -1366,7 +1373,7 @@ You should have received a copy of the GNU General Public License along with thi
         Set areas and tab positions. Override with information from settings file.
         """
         # Update self.dock_info based on settings file
-        for area, dock_names in browser_settings.dock_positions_at_start.items():
+        for area, dock_names in dock_positions_at_start.items():
             for index, dock_name in enumerate(dock_names):
                 self.dock_info[dock_name].update({
                     'area': area,
@@ -1381,7 +1388,7 @@ You should have received a copy of the GNU General Public License along with thi
         # order dock names in areas
         for area, dock_names in self.areas.items():
             # remove names from settings file from dock_names
-            preset_names = browser_settings.dock_positions_at_start[area]
+            preset_names = dock_positions_at_start[area]
             for name in preset_names:
                 dock_names.remove(name)
             self.areas[area] = preset_names + dock_names
@@ -1398,7 +1405,7 @@ You should have received a copy of the GNU General Public License along with thi
                     self.tabifyDockWidget(self.map_name_dock[dock_names[index]],
                                           self.map_name_dock[dock_names[index + 1]])
 
-def main():
+def run_activity_browser():
     app = QtGui.QApplication(sys.argv)
     mw = MainWindow()
 
@@ -1411,6 +1418,3 @@ def main():
     mw.showMaximized()
 
     sys.exit(app.exec_())
-
-if __name__ == "__main__":
-    main()

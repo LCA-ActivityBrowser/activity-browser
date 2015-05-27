@@ -1,5 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+from eight import *
+
 from brightway2 import *
 from bw2data.utils import recursive_str_to_unicode
 import itertools
@@ -53,7 +55,7 @@ class MetaProcess(object):
         for cut in cuts:
             if cut[0] in chain:
                 chain.remove(cut[0])
-                print "MP WARNING: Cut removed from chain: " + str(cut[0])
+                print("MP WARNING: Cut removed from chain: " + str(cut[0]))
         return set(chain)
 
     def getFilteredDatabase(self, depending_databases, chain):
@@ -129,18 +131,18 @@ class MetaProcess(object):
             except IndexError:
                 output_quantity = 1.0
             except ValueError:
-                print "ValueError in output quantity. Set to 1.0"
+                print("ValueError in output quantity. Set to 1.0")
                 output_quantity = 1.0
             padded_outputs.append((output[0], output_name, output_quantity))
         # add outputs that were not specified
         for sa in self.scaling_activities:
             if sa not in [o[0] for o in outputs]:
-                print "MP: Adding an output that was not specified: " + str(sa)
+                print("MP: Adding an output that was not specified: " + str(sa))
                 padded_outputs.append((sa, "Unspecified Output", 1.0))
         # remove outputs that were specified, but are *not* outputs
         for o in outputs:
             if o[0] not in self.scaling_activities:
-                print "MP: Removing a specified output that is *not* actually an output: " + str(o[0])
+                print("MP: Removing a specified output that is *not* actually an output: " + str(o[0]))
                 padded_outputs.remove(o)
         return padded_outputs
 
@@ -167,9 +169,9 @@ class MetaProcess(object):
         for m in range(M):
             key = reverse_mapping[m]
             if key in self.scaling_activities and not self.output_based_scaling:
-                print '\nDid not apply output based scaling to:', self.name
-                print "(This means that the scaling activity set to 1.0, while the output can be anything. " \
-                      "It is up to the user to check that output quantities makes sense.)"
+                print('\nDid not apply output based scaling to:', self.name)
+                print("(This means that the scaling activity set to 1.0, while the output can be anything. "
+                      "It is up to the user to check that output quantities makes sense.)")
                 diagonal_value = 1.0
             else:
                 try:
@@ -177,9 +179,9 @@ class MetaProcess(object):
                     # amount does not work for ecoinvent 2.2 multioutput as co-products are not in exchanges
                     diagonal_value = [exc.get('amount', '') for exc in ds['exchanges'] if exc['type'] == "production"][0]
                 except IndexError:
-                    print "\nNo production exchange (output) found. Output is set to 1.0 for:", self.name
-                    print "--> This may be an ecoinvent 2.2 multi-output activity. " \
-                          "Manual control is necessary to insure correctness."
+                    print("\nNo production exchange (output) found. Output is set to 1.0 for:", self.name)
+                    print("--> This may be an ecoinvent 2.2 multi-output activity. "
+                          "Manual control is necessary to insure correctness.")
                     diagonal_value = 1.0
             matrix[m, m] = diagonal_value
         # Non-diagonal values
@@ -223,7 +225,7 @@ class MetaProcess(object):
                     try:
                         self.cuts[i] = (c[0], c[1], c[2], e[2])
                     except IndexError:
-                        print "Problem with cut data: " + str(c)
+                        print("Problem with cut data: " + str(c))
 
     # METHODS THAT RETURN META-PROCESS DATA
 

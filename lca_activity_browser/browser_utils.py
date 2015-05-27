@@ -1,17 +1,19 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+from eight import *
 
-from PyQt4 import QtGui, QtCore
-import brightway2 as bw2
+from .style import colors_table_current_activity
 from bw2analyzer import ContributionAnalysis
 from bw2analyzer import SerializedLCAReport
 from bw2data.utils import recursive_str_to_unicode
+from copy import deepcopy
+from PyQt4 import QtGui, QtCore
+import brightway2 as bw2
+import multiprocessing
 import numpy as np
 import uuid
-from copy import deepcopy
-import multiprocessing
 import xlsxwriter
-import style
+
 
 class MyQTableWidget(QtGui.QTableWidget):
     signal_copy_selected_text = QtCore.pyqtSignal(str)
@@ -44,7 +46,7 @@ class MyQTableWidget(QtGui.QTableWidget):
                             s += "\t"
                     s = s[:-1] + "\n" #eliminate last '\t'
                 # self.clip.setText(s)
-                print "Sent:\n", s
+                print("Sent:\n", s)
                 self.signal_copy_selected_text.emit(s)
 
 class MyQTableWidgetItem(QtGui.QTableWidgetItem):
@@ -107,7 +109,7 @@ class HelperMethods(object):
                     if edit_keys and keys[j] in edit_keys:
                         mqtwi.setFlags(mqtwi.flags() | QtCore.Qt.ItemIsEditable)
                     # Color
-                    mqtwi.setTextColor(QtGui.QColor(*style.colors_table_current_activity.get(
+                    mqtwi.setTextColor(QtGui.QColor(*colors_table_current_activity.get(
                         keys[j], (0, 0, 0))))
                     # Font
                     if bold:
@@ -206,12 +208,12 @@ class BrowserStandardTasks(object):
     def setNewCurrentActivity(self, key=None, record=True):
         # need to load new database in case the new activity is in another db...
         if not self.db:
-            print "Need to load a database first"
+            print("Need to load a database first")
             return
         if key is None or key == "":
             key = self.db.random()
-            print "random activity key"
-        print "\nNew current activity: ", bw2.Database(key[0]).load()[key].get('name', '')
+            print("random activity key")
+        print("\nNew current activity: ", bw2.Database(key[0]).load()[key].get('name', ''))
         last_activity = self.currentActivity
         self.currentActivity = key
         self.updateEcoinventVersion()
@@ -426,7 +428,7 @@ class BrowserStandardTasks(object):
         # set LCIA method if possible
         if len(methods) == 1:
             BrowserStandardTasks.LCIA_METHOD = methods[0]
-            print "LCIA method set to "+str(methods[0])
+            print("LCIA method set to "+str(methods[0]))
         else:
             BrowserStandardTasks.LCIA_METHOD = None
         return methods, method_parts
@@ -567,7 +569,7 @@ class BrowserStandardTasks(object):
                                 or key in bw2.Database('biosphere3').load().keys()
                                 else "technosphere",
         }
-        print "\nAdding Exchange: " + str(exchange)
+        print("\nAdding Exchange: " + str(exchange))
         self.editActivity_values['exchanges'].append(exchange)
 
     def remove_exchange(self, key):
@@ -589,7 +591,7 @@ class BrowserStandardTasks(object):
                 if e['type'] == "production":
                     e['amount'] = float(value)
         else:
-            print "Unkown type: " + str(type)
+            print("Unkown type: " + str(type))
 
     def change_exchange_value(self, key, value, type="amount"):
         for exc in self.editActivity_values['exchanges']:
@@ -615,7 +617,7 @@ class BrowserStandardTasks(object):
         data[key] = values
         db.write(recursive_str_to_unicode(data))
         db.process()
-        print "saved %s to %s. (key: %s)" % (bw2.Database(key[0]).load()[key]['name'], db_name, str(key))
+        print("saved %s to %s. (key: %s)" % (bw2.Database(key[0]).load()[key]['name'], db_name, str(key)))
 
     def delete_activity(self, key):
         db_name = key[0]
@@ -624,7 +626,7 @@ class BrowserStandardTasks(object):
         del data[key]
         db.write(recursive_str_to_unicode(data))
         db.process()
-        print "deleted activity: %s" % (str(key))
+        print("deleted activity: %s" % (str(key)))
 
 # MODULE FUNCTIONS
 

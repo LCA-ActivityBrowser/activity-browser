@@ -5,3 +5,4 @@ docs/_build
 *.pyc
 *~
 MANIFEST
+lca_activity_browser.egg-info

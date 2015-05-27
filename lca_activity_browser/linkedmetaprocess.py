@@ -1,10 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+from eight import *
 
-from metaprocess import MetaProcess
+from .metaprocess import MetaProcess
 import itertools
-import numpy as np
 import networkx as nx  # TODO: get rid of this dependency
+import numpy as np
 import pickle
 
 
@@ -86,8 +87,8 @@ class LinkedMetaProcessSystem(object):
         else:
             self.has_loops = False
 
-        print '\nMeta-process system with', len(self.products), 'products and', len(self.processes), 'processes.'
-        print 'Loops:', self.has_loops, ', Multi-output processes:', self.has_multi_output_processes
+        print('\nMeta-process system with', len(self.products), 'products and', len(self.processes), 'processes.')
+        print('Loops:', self.has_loops, ', Multi-output processes:', self.has_multi_output_processes)
 
     def update_name_map(self):
         """
@@ -312,7 +313,7 @@ class LinkedMetaProcessSystem(object):
                         downstream_product = parents.pop()
                         dfs(downstream_product, visited, parents, direction_up=False)
                     else:
-                        print 'Finished @ process, this should not happen if a product was demanded.'
+                        print('Finished @ process, this should not happen if a product was demanded.')
             return results
 
         results = []
@@ -354,7 +355,7 @@ class LinkedMetaProcessSystem(object):
             #     })
             return scaling_dict  # , foreground_demand
         except AssertionError:
-            print "Product-Process Matrix must be square! Currently", matrix.shape[0], 'products and', matrix.shape[1], 'processes.'
+            print("Product-Process Matrix must be square! Currently", matrix.shape[0], 'products and', matrix.shape[1], 'processes.')
 
     def lca_processes(self, method, process_names=None, factorize=False):
         """Returns a dictionary where *keys* = meta-process name, *value* = LCA score
@@ -419,8 +420,8 @@ class LinkedMetaProcessSystem(object):
         * *demand* (dict): keys: product names, values: amount
         """
         if self.has_multi_output_processes:
-            print '\nCannot calculate LCAs for alternatives as system contains ' \
-                  'loops (', self.has_loops, ') / multi-output processes (', self.has_multi_output_processes, ').'
+            print('\nCannot calculate LCAs for alternatives as system contains '
+                  'loops (', self.has_loops, ') / multi-output processes (', self.has_multi_output_processes, ').')
         else:
             # assume that only one product is demanded for now (functional unit)
             path_lca_data = []

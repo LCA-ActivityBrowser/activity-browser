@@ -1,5 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+from eight import *
 
 """
 This file contains various settings used in the Activity Browser and its extensions.
