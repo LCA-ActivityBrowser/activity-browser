@@ -3,6 +3,9 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 
+from random import randint
+import os
+
 # COLORS
 # table current activity (RGB)
 colors_table_current_activity = {
@@ -26,29 +29,37 @@ QTableWidget {
     }
 """
 
+def _(path):
+    return os.path.join(os.path.dirname(__file__), path)
 
-class IconsContextMenu():
-    to_multi_lca = 'icons/context/add.png'
-    to_edited_activity = 'icons/context/to_edited_activity.png'
-    delete = 'icons/context/delete.png'
 
-class IconsMetaProcess():
-    new = 'icons/metaprocess/new_metaprocess.png'
-    save_mp = 'icons/metaprocess/save_metaprocess.png'
-    load_db = 'icons/metaprocess/open_database.png'
-    add_db = 'icons/metaprocess/add_database.png'
-    save_db = 'icons/metaprocess/save_database.png'
-    close_db = 'icons/metaprocess/close_database.png'
-    graph_mp = 'icons/metaprocess/graph_metaprocess.png'
-    graph_lmp = 'icons/metaprocess/graph_linkedmetaprocess.png'
+class IconsContextMenu(object):
+    to_multi_lca = _('icons/context/add.png')
+    to_edited_activity = _('icons/context/to_edited_activity.png')
+    delete = _('icons/context/delete.png')
+
+
+class IconsMetaProcess(object):
+    new = _('icons/metaprocess/new_metaprocess.png')
+    save_mp = _('icons/metaprocess/save_metaprocess.png')
+    load_db = _('icons/metaprocess/open_database.png')
+    add_db = _('icons/metaprocess/add_database.png')
+    save_db = _('icons/metaprocess/save_database.png')
+    close_db = _('icons/metaprocess/close_database.png')
+    graph_mp = _('icons/metaprocess/graph_metaprocess.png')
+    graph_lmp = _('icons/metaprocess/graph_linkedmetaprocess.png')
 
     # Context Menus
-    metaprocess = 'icons/metaprocess/metaprocess.png'
-    cut = 'icons/metaprocess/cut.png'
-    duplicate = 'icons/metaprocess/duplicate.png'
+    metaprocess = _('icons/metaprocess/metaprocess.png')
+    cut = _('icons/metaprocess/cut.png')
+    duplicate = _('icons/metaprocess/duplicate.png')
 
-class MyIcons():
+
+class MyIcons(object):
     context = IconsContextMenu()
     mp = IconsMetaProcess()
+
+    def main(self):
+        return _('icons/pony/pony%s.png' % randint(1, 7))
 
 icons = MyIcons()

@@ -19,7 +19,6 @@ from .mpwidget import MPWidget
 from ast import literal_eval
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
-from random import randint
 from .style import icons, stylesheet_current_activity
 import brightway2 as bw2
 import matplotlib.pyplot as plt
@@ -281,8 +280,9 @@ class MainWindow(QtGui.QMainWindow):
 
         # Main Window
         self.setWindowTitle("Activity Browser")
-        self.icon = QtGui.QIcon('icons/pony/pony%s.png' % str(randint(1, 7)))
-        # self.icon = QtGui.QIcon('icons/activitybrowser.png')
+        print("Icon path:")
+        print(icons.main())
+        self.icon = QtGui.QIcon(icons.main())
         self.setWindowIcon(self.icon)
         self.clip = QtGui.QApplication.clipboard()
 
