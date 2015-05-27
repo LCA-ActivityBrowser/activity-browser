@@ -21,6 +21,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from random import randint
 from .style import icons, stylesheet_current_activity
+import brightway2 as bw2
 import matplotlib.pyplot as plt
 import multiprocessing
 import pickle
@@ -334,10 +335,12 @@ class MainWindow(QtGui.QMainWindow):
 
         # at program start
         self.listDatabases()
+        self.listProjects()
 
     # Setup of UIs, connections...
 
     def set_up_standard_widgets(self):
+        self.set_up_widget_projects()
         self.set_up_widget_databases()
         self.set_up_widget_technosphere()
         self.set_up_widget_biosphere()
@@ -357,6 +360,7 @@ class MainWindow(QtGui.QMainWindow):
 
         # enable COPY from tables
         tables = [
+            self.table_projects,
             self.table_databases,
             self.table_inputs_technosphere,
             self.table_current_activity,
@@ -529,6 +533,34 @@ class MainWindow(QtGui.QMainWindow):
         self.table_downstream_activities.itemDoubleClicked.connect(self.gotoDoubleClickActivity)
 
         self.tab_widget_LEFT.addTab(widget_technosphere, 'Technosphere')
+
+    def set_up_widget_projects(self):
+        button_add_project = QtGui.QPushButton('New Project')
+        # Layout buttons
+        buttons_layout = QtGui.QHBoxLayout()
+        buttons_layout.setAlignment(QtCore.Qt.AlignLeft)
+        buttons_layout.addWidget(button_add_project)
+        # Table
+        self.table_projects = MyQTableWidget()
+        # Overall Layout
+        VL_projects_tab = QtGui.QVBoxLayout()
+        VL_projects_tab.addWidget(self.table_projects)
+        VL_projects_tab.addLayout(buttons_layout)
+        widget_projects = QtGui.QWidget()
+        widget_projects.setLayout(VL_projects_tab)
+
+        # Context menus
+        # self.table_projects.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+        # self.action_delete_database = QtGui.QAction(QtGui.QIcon(icons.context.delete), "delete database", None)
+        # self.action_delete_database.triggered.connect(self.delete_database)
+        # self.table_databases.addAction(self.action_delete_database)
+
+        # Connections
+        self.table_projects.itemDoubleClicked.connect(self.gotoDoubleClickProject)
+        button_add_project.clicked.connect(self.new_project)
+
+        self.tab_widget_RIGHT.addTab(widget_projects, 'Projects')
 
     def set_up_widget_databases(self):
         button_add_db = QtGui.QPushButton('New Database')
@@ -1018,15 +1050,31 @@ You should have received a copy of the GNU General Public License along with thi
         self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_databases))
         self.update_read_and_write_database_list()
 
+    def listProjects(self):
+        self.table_projects = self.helper.update_table(self.table_projects, [{'name': x.name} for x in bw2.projects], ['name'])
+        self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_projects))
+
+    def gotoDoubleClickProject(self, item):
+        # bw2.projects.project = item.text()
+        print("DOUBLECLICK on: ", item.text())
+        # if item.key_type != "activity":
+        #     self.status_message.setText("Loading... "+item.activity_or_database_key)
+        #     print("Loading Database:", item.activity_or_database_key)
+        #     tic = time.clock()
+        #     self.lcaData.loadDatabase(item.activity_or_database_key)
+        #     self.status_message.setText(str("Loaded {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
+        # self.status_database.setText(self.lcaData.db.name)
+
     def gotoDoubleClickDatabase(self, item):
         print("DOUBLECLICK on: ", item.text())
-        if item.key_type != "activity":
-            self.status_message.setText("Loading... "+item.activity_or_database_key)
-            print("Loading Database:", item.activity_or_database_key)
-            tic = time.clock()
-            self.lcaData.loadDatabase(item.activity_or_database_key)
-            self.status_message.setText(str("Loaded {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
-        self.status_database.setText(self.lcaData.db.name)
+        print(type(item))
+        # if item.key_type != "activity":
+        #     self.status_message.setText("Loading... "+item.activity_or_database_key)
+        #     print("Loading Database:", item.activity_or_database_key)
+        #     tic = time.clock()
+        #     self.lcaData.loadDatabase(item.activity_or_database_key)
+        #     self.status_message.setText(str("Loaded {0} in {1:.2f} seconds.").format(item.activity_or_database_key, (time.clock()-tic)))
+        # self.status_database.setText(self.lcaData.db.name)
 
     def new_database(self):
         name, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
@@ -1038,6 +1086,13 @@ You should have received a copy of the GNU General Public License along with thi
                 self.lcaData.add_database(str(name), data={})
                 self.status_message.setText("Created new database: %s" % name)
                 self.listDatabases()
+
+    def new_project(self):
+        name, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
+            'Please enter a project name:')
+        if ok:
+            bw2.projects.project = name
+            self.listDatabases()
 
     def delete_database(self):
         item = self.table_databases.currentItem()
