@@ -21,7 +21,7 @@
   .node.substituted rect {
     stroke: #ff5063;
     /*stroke: #9d5b99;*/
-    stroke-width: 4px;
+    stroke-width: 3px;
   }
 
   .node.activity rect {
@@ -87,7 +87,7 @@
 
 </head>
 <body>
-<h1>{{ title }}</h1>
+<h2>{{ title }}</h2>
 
 <svg width=0 height=0>
   <defs>
@@ -138,11 +138,22 @@ graphdata.forEach(function(d) {
       target = stateKeys[d.target];
       // output = stateKeys[d.output];
   if (!source) {
-    source = stateKeys[d.source] = { label: d.source, edges: [], class: d.class, output: d.source_out, product: d.source_product, 
+    source = stateKeys[d.source] = { 
+      label: d.source, 
+      edges: [], 
+      class: d.class, 
+      output: d.source_out, 
+      product: d.source_product, 
       pop: d.part_of_path };
   };
   if (!target) {
-    target = stateKeys[d.target] = { label: d.target, edges: [], class: "chain", output: d.target_out, product: d.target_product };
+    target = stateKeys[d.target] = { 
+      label: d.target, 
+      edges: [], 
+      class: "chain", 
+      output: d.target_out, 
+      product: d.target_product, 
+    };
   };
   if (d.class === "output") {
     stateKeys[d.source].class = "activity";
@@ -257,7 +268,7 @@ labels
 dagre.layout()
   .nodeSep(10)
   .edgeSep(10)
-  .rankSep(20)
+  .rankSep(12)
   .nodes(states)
   .edges(graphdata)
   .debugLevel(1)
