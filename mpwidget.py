@@ -7,7 +7,6 @@ from browser_utils import *
 from jinja2 import Template
 import json
 import pickle
-import xlsxwriter
 import os
 from mpcreator import MetaProcessCreator
 from linkedmetaprocess import LinkedMetaProcessSystem
@@ -521,8 +520,8 @@ class MPWidget(QtGui.QWidget):
         all_pathways = self.lmp.all_pathways(functional_unit)
         # if self.lmp.has_multi_output_processes or self.lmp.has_loops:
         # if self.lmp.has_loops:
-        self.signal_status_bar_message.emit('Cannot determine pathways as system contains loops ('
-            +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
+        # self.signal_status_bar_message.emit('Cannot determine pathways as system contains loops ('
+        #     +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
         # else:
         data = [{'path': p} for p in all_pathways]
         keys = ['path']
@@ -535,8 +534,8 @@ class MPWidget(QtGui.QWidget):
         tic = time.clock()
         self.path_data = self.lmp.lca_alternatives(method, demand)
         if not self.path_data:
-            self.signal_status_bar_message.emit('Cannot calculate LCA of alternatives as system contains loops ('
-                +str(self.lmp.has_loops)+') / multi-output processes ('+str(self.lmp.has_multi_output_processes)+').')
+            self.signal_status_bar_message.emit(
+                'Cannot calculate LCA of alternatives as system contains multi-output processes.')
         else:
             self.signal_status_bar_message.emit('Calculated LCA for all pathways in {:.2f} seconds.'.format(time.clock()-tic))
             self.path_data = sorted(self.path_data, key=lambda k: k['LCA score'], reverse=True)  # sort by highest score
@@ -671,17 +670,21 @@ class MPWidget(QtGui.QWidget):
         graph_data = []
         for mp in self.lmp.mp_list:
             for input in mp.cuts:
+                # location = self.lcaData.getActivityData(input[0])['location']
                 graph_data.append({
                     'source': input[2],
                     'target': mp.name,
+                    # 'target': mp.name + '[' + location + ']',
                     'type': 'suit',
                     'class': 'chain',  # this gets overwritten with "activity" in dagre_graph.html
                     'product_in': input[3],
                     # 'lca_score': "0.555",
                 })
             for output in mp.outputs:
+                # location = self.lcaData.getActivityData(output[0])['location']
                 graph_data.append({
                     'source': mp.name,
+                    # 'source': mp.name + '[' + location + ']',
                     'target': output[1],
                     'type': 'suit',
                     'class': 'output',

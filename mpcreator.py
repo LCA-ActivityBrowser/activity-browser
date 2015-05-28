@@ -215,7 +215,7 @@ class MetaProcessCreator(BrowserStandardTasks):
             value_source = sum([o[2] for o in mp.outputs if o[0] == outp])
             outp_ad = self.getActivityData(outp)
             graph.append({
-                'source': self.getActivityData(outp)['name'],
+                'source': outp_ad['name'] + ' [' + outp_ad['location'] + ']',
                 'target': name,
                 'source_in': '',
                 'source_out': format_output(value_source, outp_ad['unit']),
@@ -230,8 +230,8 @@ class MetaProcessCreator(BrowserStandardTasks):
             inp_ad = self.getActivityData(inp)
             outp_ad = self.getActivityData(outp)
             graph.append({
-                'source': inp_ad['name'],
-                'target': outp_ad['name'],
+                'source': inp_ad['name'] + ' [' + inp_ad['location'] + ']',
+                'target': outp_ad['name'] + ' [' + outp_ad['location'] + ']',
                 'source_product': inp_ad['product'],
                 'target_product': outp_ad['product'],
                 'source_in': '',
@@ -243,7 +243,7 @@ class MetaProcessCreator(BrowserStandardTasks):
             if not [x for x in graph if x['source'] == name and x['target'] == outp_ad['name']]:
                 graph.append({
                     'source': name,
-                    'target': outp_ad['name'],
+                    'target': outp_ad['name'] + ' [' + outp_ad['location'] + ']',
                     'class': 'substituted'
                 })
         # chain
@@ -253,15 +253,15 @@ class MetaProcessCreator(BrowserStandardTasks):
             outp_ad = self.getActivityData(outp)
             if inp in mp.chain and outp in mp.chain:  # TODO: check necessary?
                 graph.append({
-                    'source': inp_ad['name'],
-                    'target': outp_ad['name'],
+                    'source': inp_ad['name'] + ' [' + inp_ad['location'] + ']',
+                    'target': outp_ad['name'] + ' [' + outp_ad['location'] + ']',
                     'source_product': inp_ad['product'],
                     'target_product': outp_ad['product'],
                     'source_in': '',
                     'source_out': format_output(value, inp_ad['unit']),
                     'target_in': '',
                     'target_out': format_output(value_output, outp_ad['unit']),
-                    'class': 'chain'
+                    'class': 'chain',
                 })
 
         dagre_data = {
