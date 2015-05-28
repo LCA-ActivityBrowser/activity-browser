@@ -44,6 +44,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'activity-browser = lca_activity_browser.bin.activity_browser:run_activity_browser',
+            'activity-browser2 = lca_activity_browser.bin.activity_browser:run_activity_browser2',
         ]
     },
     classifiers=[

@@ -1,4 +1,2 @@
 from ..activitybrowser import run_activity_browser
-
-if __name__ == "__main__":
-    run_activity_browser()
+from ..app.main_window import run_activity_browser as run_activity_browser2
