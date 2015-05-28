@@ -19,7 +19,7 @@ from .mpwidget import MPWidget
 from ast import literal_eval
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
-from .style import icons, stylesheet_current_activity
+from .style import icons, stylesheet_current_activity, _ as translate_icon_path
 import brightway2 as bw2
 import matplotlib.pyplot as plt
 import multiprocessing
@@ -280,8 +280,6 @@ class MainWindow(QtGui.QMainWindow):
 
         # Main Window
         self.setWindowTitle("Activity Browser")
-        print("Icon path:")
-        print(icons.main())
         self.icon = QtGui.QIcon(icons.main())
         self.setWindowIcon(self.icon)
         self.clip = QtGui.QApplication.clipboard()
@@ -388,7 +386,7 @@ class MainWindow(QtGui.QMainWindow):
         # EXTENSIONS
         extensions_menu = QtGui.QMenu('&Extensions', self)
 
-        addMP = QtGui.QAction(QtGui.QIcon('icons/metaprocess/metaprocess.png'), '&Meta-Process Editor', self)
+        addMP = QtGui.QAction(QtGui.QIcon(icons.metaprocess), '&Meta-Process Editor', self)
         addMP.setShortcut('Ctrl+E')
         addMP.setStatusTip('Start Meta-Process Editor')
         addMP.triggered.connect(self.set_up_widgets_meta_process)
@@ -417,39 +415,39 @@ class MainWindow(QtGui.QMainWindow):
         self.line_edit_search_1.setMaximumSize(QtCore.QSize(150, 25))
 
         # Search
-        action_search = QtGui.QAction(QtGui.QIcon('icons/search.png'), 'Search activites (blank: all activities)', self)
+        action_search = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/search.png')), 'Search activites (blank: all activities)', self)
         # action_search.setShortcut('Ctrl+Q')
         # action_search.setToolTip('Search activites (blank: all activities)')
         action_search.triggered.connect(self.search_results)
 
         # Key
-        action_key = QtGui.QAction(QtGui.QIcon('icons/key.png'), 'Search by key', self)
+        action_key = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/key.png')), 'Search by key', self)
         action_key.triggered.connect(self.search_by_key)
 
         # Random activity
-        action_random_activity = QtGui.QAction(QtGui.QIcon('icons/random_activity.png'), 'Load a random activity', self)
+        action_random_activity = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/random_activity.png')), 'Load a random activity', self)
         action_random_activity.triggered.connect(lambda: self.load_new_current_activity())
 
         # History
-        action_history = QtGui.QAction(QtGui.QIcon('icons/history.png'), 'Previously visited activities', self)
+        action_history = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/history.png')), 'Previously visited activities', self)
         action_history.triggered.connect(self.showHistory)
 
         # Backward
-        action_backward = QtGui.QAction(QtGui.QIcon('icons/backward.png'), 'Go backward', self)
+        action_backward = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/backward.png')), 'Go backward', self)
         action_backward.setShortcut('Alt+left')
         action_backward.triggered.connect(self.goBackward)
 
         # Forward
-        action_forward = QtGui.QAction(QtGui.QIcon('icons/forward.png'), 'Go forward', self)
+        action_forward = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/forward.png')), 'Go forward', self)
         action_forward.setShortcut('Alt+right')
         action_forward.triggered.connect(self.goForward)
 
         # Edit
-        action_edit = QtGui.QAction(QtGui.QIcon('icons/edit.png'), 'Edit activity', self)
+        action_edit = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/edit.png')), 'Edit activity', self)
         action_edit.triggered.connect(self.edit_activity)
 
         # Calculate
-        action_calculate = QtGui.QAction(QtGui.QIcon('icons/calculate.png'),
+        action_calculate = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/calculate.png')),
                                        'Calculate LCA (with settings in LCIA tab)', self)
         action_calculate.triggered.connect(self.calculate_lcia)
 

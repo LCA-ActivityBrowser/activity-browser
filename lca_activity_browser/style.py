@@ -58,6 +58,7 @@ class IconsMetaProcess(object):
 class MyIcons(object):
     context = IconsContextMenu()
     mp = IconsMetaProcess()
+    metaprocess = _('icons/metaprocess/metaprocess.png')
 
     def main(self):
         return _('icons/pony/pony%s.png' % randint(1, 7))

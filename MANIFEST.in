@@ -1,0 +1,6 @@
+include *.txt
+include README.md
+recursive-include lca_activity_browser *.py
+recursive-include lca_activity_browser *.html
+recursive-include lca_activity_browser *.png
+recursive-include lca_activity_browser *.js
