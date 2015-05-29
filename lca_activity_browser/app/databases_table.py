@@ -48,3 +48,8 @@ class DatabasesTableWidget(QtGui.QWidget):
         self.view = DatabasesTableView(self)
         self.view.setModel(self.model)
         self.view.setColumnWidth(0, 250)
+
+    def reset(self):
+        self.model.revert()
+        # self.view.resizeColumnsToContents()
+        # self.view.resizeRowsToContents()

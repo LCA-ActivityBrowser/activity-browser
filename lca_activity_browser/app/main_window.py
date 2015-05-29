@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from PyQt4 import QtCore, QtGui, QtWebKit
+from . import Container
 from .icons import icons
 from .menu_bar import MenuBar
 from .toolbar import Toolbar
@@ -10,11 +11,6 @@ from .statusbar import Statusbar
 from .databases_table import DatabasesTableWidget
 from .projects_table import ProjectsTableWidget
 import sys
-
-
-class Container(object):
-    """Generic class that contains data attributes"""
-    pass
 
 
 class MainWindow(QtGui.QMainWindow):

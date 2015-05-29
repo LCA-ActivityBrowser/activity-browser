@@ -2,6 +2,12 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
+
+class Container(object):
+    """Generic class that contains data attributes"""
+    pass
+
+
 from PyQt4 import QtGui
 from .application import Application
 import sys

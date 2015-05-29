@@ -20,3 +20,6 @@ class Application(object):
         self.main_window.table_projects.view.doubleClicked.connect(
             self.controller.select_project
         )
+        self.main_window.table_databases.view.doubleClicked.connect(
+            self.controller.select_database
+        )
