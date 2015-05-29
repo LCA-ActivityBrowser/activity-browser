@@ -12,20 +12,29 @@ class Controller(object):
         self.window = window
         self.current = Container()
         self.current.database = None
+        if "default" in projects:
+            self.select_project("default")
 
-    def select_project(self, item):
-        name = item.data()
+    def select_project(self, name):
         projects.project = name
         self.window.statusbar.center("Project: {}".format(name))
         self.window.statusbar.right("Database: None")
         self.current.database = None
         self.window.table_databases.reset()
-        self.window.select_tab(
-            self.window.databases_tab_container,
-            "right"
-        )
 
     def select_database(self, item):
-        name = item.data()
+        if isinstance(item, str):
+            name = item
+        else:
+            name = item.data()
         self.current.database = Database(name)
         self.window.statusbar.right("Database: {}".format(name))
+
+    def add_database(self):
+        name = self.window.dialog(
+            "Create new database",
+            "Name of new database:" + " " * 25
+        )
+        Database(name).register()
+        self.window.table_databases.reset()
+        self.select_database(name)

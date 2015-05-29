@@ -9,7 +9,7 @@ from .menu_bar import MenuBar
 from .toolbar import Toolbar
 from .statusbar import Statusbar
 from .databases_table import DatabasesTableWidget
-from .projects_table import ProjectsTableWidget
+from .projects import ProjectListWidget
 import sys
 
 
@@ -72,28 +72,41 @@ class MainWindow(QtGui.QMainWindow):
         panel = QtGui.QTabWidget()
         panel.setMovable(True)
 
-        self.databases_tab_container = self.build_databases_tab()
-        panel.addTab(self.databases_tab_container, 'Databases')
-
-        self.projects_tab_container = self.build_projects_tab()
-        panel.addTab(self.projects_tab_container, 'Projects')
+        self.inventory_tab_container = self.build_inventory_tab()
+        panel.addTab(self.inventory_tab_container, 'Inventory')
 
         return panel
 
-    def build_databases_tab(self):
+    def dialog(self, title, label):
+        value, ok = QtGui.QInputDialog.getText(self, title, label)
+        if ok:
+            return value
+
+    def build_inventory_tab(self):
         # Databases table
         self.table_databases = DatabasesTableWidget()
+        self.table_databases.setMinimumHeight(100)
+        self.projects_list_widget = ProjectListWidget()
 
-        # Buttons along bottom, left-justified
+        projects_list_layout = QtGui.QHBoxLayout()
+        self.buttons.new_project = QtGui.QPushButton('Create New Project')
+        projects_list_layout.setAlignment(QtCore.Qt.AlignLeft)
+        projects_list_layout.addWidget(QtGui.QLabel('Projects:'))
+        projects_list_layout.addWidget(self.projects_list_widget)
+        projects_list_layout.addWidget(self.buttons.new_project)
+
         self.buttons.new_database = QtGui.QPushButton('Create New Database')
-        button_layout = QtGui.QHBoxLayout()
-        button_layout.setAlignment(QtCore.Qt.AlignLeft)
-        button_layout.addWidget(self.buttons.new_database)
+
+        databases_table_layout = QtGui.QHBoxLayout()
+        databases_table_layout.addWidget(QtGui.QLabel('Databases:'))
+        databases_table_layout.addWidget(self.table_databases)
+        databases_table_layout.addWidget(self.buttons.new_database)
+        databases_table_layout.setAlignment(QtCore.Qt.AlignTop)
 
         # Overall Layout
         tab_container = QtGui.QVBoxLayout()
-        tab_container.addWidget(self.table_databases)
-        tab_container.addLayout(button_layout)
+        tab_container.addLayout(projects_list_layout)
+        tab_container.addLayout(databases_table_layout)
 
         containing_widget = QtGui.QWidget()
         containing_widget.setLayout(tab_container)
@@ -109,23 +122,5 @@ class MainWindow(QtGui.QMainWindow):
         # self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
         # button_add_db.clicked.connect(self.new_database)
         # button_refresh.clicked.connect(self.listDatabases)
-
-        return containing_widget
-
-    def resize(self):
-        # Doesn't work - happens before data is inserted?
-        # http://stackoverflow.com/questions/3175665/set-minimum-column-width-to-header-width-in-pyqt4-qtablewidget
-        self.table_databases.view.resizeColumnsToContents()
-        # self.view.resizeRowsToContents()
-
-    def build_projects_tab(self):
-        self.table_projects = ProjectsTableWidget()
-
-        # Overall Layout
-        tab_container = QtGui.QVBoxLayout()
-        tab_container.addWidget(self.table_projects)
-
-        containing_widget = QtGui.QWidget()
-        containing_widget.setLayout(tab_container)
 
         return containing_widget

@@ -17,9 +17,12 @@ class Application(object):
         self.main_window.showMaximized()
 
     def connect_signals(self):
-        self.main_window.table_projects.view.doubleClicked.connect(
+        self.main_window.projects_list_widget.currentIndexChanged['QString'].connect(
             self.controller.select_project
         )
         self.main_window.table_databases.view.doubleClicked.connect(
             self.controller.select_database
+        )
+        self.main_window.buttons.new_database.clicked.connect(
+            self.controller.add_database
         )
