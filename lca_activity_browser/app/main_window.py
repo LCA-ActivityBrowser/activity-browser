@@ -7,12 +7,21 @@ from .icons import icons
 from .menu_bar import MenuBar
 from .toolbar import Toolbar
 from .statusbar import Statusbar
+from .databases_table import DatabasesTableWidget
+from .projects_table import ProjectsTableWidget
 import sys
 
 
+class Container(object):
+    """Generic class that contains data attributes"""
+    pass
+
+
 class MainWindow(QtGui.QMainWindow):
-    def __init__(self, parent=None):
-        super(MainWindow, self).__init__(parent)
+    def __init__(self):
+        super(MainWindow, self).__init__(None)
+
+        self.buttons = Container()
 
         # Window title
         self.setWindowTitle("Activity Browser")
@@ -34,7 +43,7 @@ class MainWindow(QtGui.QMainWindow):
         self.main_horizontal_box = QtGui.QHBoxLayout()
 
         self.left_panel = QtGui.QTabWidget()
-        self.right_panel = QtGui.QTabWidget()
+        self.right_panel = self.build_right_panel()
         self.left_panel.setMovable(True)
         self.right_panel.setMovable(True)
 
@@ -50,20 +59,77 @@ class MainWindow(QtGui.QMainWindow):
         self.central_widget.setLayout(self.vertical_container)
         self.setCentralWidget(self.central_widget)
 
-        # # EXCEPT FOR THIS BLOCK:
-        # # set up standard widgets in docks
+        # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
         self.toolbar = Toolbar(self)
         self.statusbar = Statusbar(self)
-        # self.set_up_standard_widgets()
 
-        # # at program start
-        # self.listDatabases()
-        # self.listProjects()
+    def add_tab_to_panel(self, obj, label, side):
+        panel = self.left_panel if side == 'left' else self.right_panel
+        panel.addTab(obj, label)
 
+    def select_tab(self, obj, side):
+        panel = self.left_panel if side == 'left' else self.right_panel
+        panel.setCurrentIndex(panel.indexOf(obj))
 
-def run_activity_browser():
-    app = QtGui.QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.showMaximized()
-    sys.exit(app.exec_())
+    def build_right_panel(self):
+        panel = QtGui.QTabWidget()
+        panel.setMovable(True)
+
+        self.databases_tab_container = self.build_databases_tab()
+        panel.addTab(self.databases_tab_container, 'Databases')
+
+        self.projects_tab_container = self.build_projects_tab()
+        panel.addTab(self.projects_tab_container, 'Projects')
+
+        return panel
+
+    def build_databases_tab(self):
+        # Databases table
+        self.table_databases = DatabasesTableWidget()
+
+        # Buttons along bottom, left-justified
+        self.buttons.new_database = QtGui.QPushButton('Create New Database')
+        button_layout = QtGui.QHBoxLayout()
+        button_layout.setAlignment(QtCore.Qt.AlignLeft)
+        button_layout.addWidget(self.buttons.new_database)
+
+        # Overall Layout
+        tab_container = QtGui.QVBoxLayout()
+        tab_container.addWidget(self.table_databases)
+        tab_container.addLayout(button_layout)
+
+        containing_widget = QtGui.QWidget()
+        containing_widget.setLayout(tab_container)
+
+        # Context menus (shown on right click)
+        self.table_databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+        # self.action_delete_database = QtGui.QAction(QtGui.QIcon(icons.context.delete), "delete database", None)
+        # self.action_delete_database.triggered.connect(self.delete_database)
+        # self.table_databases.addAction(self.action_delete_database)
+
+        # Connections
+        # self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
+        # button_add_db.clicked.connect(self.new_database)
+        # button_refresh.clicked.connect(self.listDatabases)
+
+        return containing_widget
+
+    def resize(self):
+        # Doesn't work - happens before data is inserted?
+        # http://stackoverflow.com/questions/3175665/set-minimum-column-width-to-header-width-in-pyqt4-qtablewidget
+        self.table_databases.view.resizeColumnsToContents()
+        # self.view.resizeRowsToContents()
+
+    def build_projects_tab(self):
+        self.table_projects = ProjectsTableWidget()
+
+        # Overall Layout
+        tab_container = QtGui.QVBoxLayout()
+        tab_container.addWidget(self.table_projects)
+
+        containing_widget = QtGui.QWidget()
+        containing_widget.setLayout(tab_container)
+
+        return containing_widget
