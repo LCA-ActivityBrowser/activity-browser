@@ -13,7 +13,7 @@ class Statusbar(object):
 
         self.status_message_left = QtGui.QLabel('Welcome')
         self.status_message_right = QtGui.QLabel('Database')
-        self.status_message_center = QtGui.QLabel('Center?')
+        self.status_message_center = QtGui.QLabel('Project: Default')
 
         self.statusbar.addWidget(self.status_message_left, 1)
         self.statusbar.addWidget(self.status_message_center, 2)
