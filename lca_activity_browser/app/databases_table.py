@@ -9,6 +9,13 @@ import arrow
 import itertools
 
 
+class DatabaseItem(QtGui.QTableWidgetItem):
+    def __init__(self, *args, db_name=None):
+        super(DatabaseItem, self).__init__(*args)
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.db_name = db_name
+
+
 class DatabasesTableWidget(QtGui.QTableWidget):
     def __init__(self):
         super(DatabasesTableWidget, self).__init__()
@@ -19,17 +26,24 @@ class DatabasesTableWidget(QtGui.QTableWidget):
     def sync(self):
         self.setRowCount(len(databases))
         for row, name in enumerate(natural_sort(databases)):
-            self.setItem(row, 0, QtGui.QTableWidgetItem(name))
+            self.setItem(row, 0, DatabaseItem(name, db_name=name))
             depends = databases[name].get('depends', [])
-            self.setItem(row, 1, QtGui.QTableWidgetItem("; ".join(depends)))
+            self.setItem(row, 1, DatabaseItem("; ".join(depends), db_name=name))
             dt = databases[name].get('modified', '')
             if dt:
                 dt = arrow.get(dt).humanize()
-            self.setItem(row, 2, QtGui.QTableWidgetItem(dt))
+            self.setItem(row, 2, DatabaseItem(dt, db_name=name))
 
         # self.resizeColumnsToContents()
         # self.resizeRowsToContents()
         # http://stackoverflow.com/questions/8947977/how-do-i-get-rid-of-this-whitespace-in-my-qtablewidget
+
+
+class ActivityItem(QtGui.QTableWidgetItem):
+    def __init__(self, *args, key=None):
+        super(ActivityItem, self).__init__(*args)
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.key = key
 
 
 class ActivitiesTableWidget(QtGui.QTableWidget):
@@ -51,5 +65,5 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.setRowCount(self.COUNT)
         data = itertools.islice(database, 0, self.COUNT)
         for row, ds in enumerate(data):
-            for col, key in self.COLUMNS.items():
-                self.setItem(row, col, QtGui.QTableWidgetItem(ds.get(key, '')))
+            for col, value in self.COLUMNS.items():
+                self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))

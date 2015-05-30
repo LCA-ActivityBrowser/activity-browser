@@ -27,10 +27,13 @@ class Controller(object):
         if isinstance(item, str):
             name = item
         else:
-            name = item.data()
+            name = item.db_name
         self.current.database = Database(name)
         self.window.statusbar.right("Database: {}".format(name))
         self.window.add_activity_table(self.current.database)
+
+    def select_activity(self, item):
+        print(item.key)
 
     def add_database(self):
         name = self.window.dialog(
@@ -38,5 +41,5 @@ class Controller(object):
             "Name of new database:" + " " * 25
         )
         Database(name).register()
-        self.window.table_databases.reset()
+        self.window.table_databases.sync()
         self.select_database(name)

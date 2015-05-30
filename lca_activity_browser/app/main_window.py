@@ -11,7 +11,7 @@ from .statusbar import Statusbar
 from .databases_table import DatabasesTableWidget, ActivitiesTableWidget
 from .gui import horizontal_line, header
 from .projects import ProjectListWidget
-import sys
+from .graphics import Canvas
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -40,10 +40,8 @@ class MainWindow(QtGui.QMainWindow):
 
         self.main_horizontal_box = QtGui.QHBoxLayout()
 
-        self.left_panel = QtGui.QTabWidget()
+        self.left_panel = self.build_left_panel()
         self.right_panel = self.build_right_panel()
-        self.left_panel.setMovable(True)
-        self.right_panel.setMovable(True)
 
         self.splitter_horizontal = QtGui.QSplitter(QtCore.Qt.Horizontal)
         self.splitter_horizontal.addWidget(self.left_panel)
@@ -79,10 +77,33 @@ class MainWindow(QtGui.QMainWindow):
 
         return panel
 
+    def build_left_panel(self):
+        panel = QtGui.QTabWidget()
+        panel.setMovable(True)
+
+        self.activity_tab_container = self.build_activity_tab()
+        panel.addTab(self.activity_tab_container, 'Activity')
+
+        return panel
+
     def dialog(self, title, label):
         value, ok = QtGui.QInputDialog.getText(self, title, label)
         if ok:
             return value
+
+    def build_activity_tab(self):
+        self.labels.no_activity = QtGui.QLabel('No activity selected yet')
+        self.labels.no_consumption = QtGui.QLabel("No activities consume the reference product of this activity.")
+        self.labels.no_consumption.hide()
+
+        activity_container = QtGui.QVBoxLayout()
+        activity_container.addWidget(self.labels.no_activity)
+        activity_container.addWidget(self.labels.no_consumption)
+        activity_container.addWidget(Canvas())
+
+        containing_widget = QtGui.QWidget()
+        containing_widget.setLayout(activity_container)
+        return containing_widget
 
     def build_inventory_tab(self):
         self.projects_list_widget = ProjectListWidget()

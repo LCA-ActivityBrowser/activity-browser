@@ -20,8 +20,11 @@ class Application(object):
         self.main_window.projects_list_widget.currentIndexChanged['QString'].connect(
             self.controller.select_project
         )
-        self.main_window.table_databases.doubleClicked.connect(
+        self.main_window.table_databases.itemDoubleClicked.connect(
             self.controller.select_database
+        )
+        self.main_window.activities_table.itemDoubleClicked.connect(
+            self.controller.select_activity
         )
         self.main_window.buttons.new_database.clicked.connect(
             self.controller.add_database
