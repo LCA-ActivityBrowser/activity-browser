@@ -3,7 +3,6 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from brightway2 import *
-from bw2data.utils import natural_sort
 from numbers import Number
 from PyQt4 import QtCore, QtGui
 

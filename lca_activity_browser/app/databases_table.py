@@ -58,6 +58,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
     def __init__(self):
         super(ActivitiesTableWidget, self).__init__()
         self.setVisible(False)
+        self.setDragEnabled(True)
         self.setColumnCount(4)
         self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
 

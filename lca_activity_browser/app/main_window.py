@@ -7,6 +7,7 @@ from .databases_table import DatabasesTableWidget, ActivitiesTableWidget
 from .graphics import Canvas
 from .gui import horizontal_line, header
 from .icons import icons
+from .calculation_setups import CSActivityTableWidget
 from .menu_bar import MenuBar
 from .methods import MethodsTableWidget, CFsTableWidget
 from .projects import ProjectListWidget
@@ -88,8 +89,10 @@ class MainWindow(QtGui.QMainWindow):
 
         self.activity_tab_container = self.build_activity_tab()
         self.cfs_tab_container = self.build_cfs_tab()
+        self.cs_tab_container = self.build_calculation_setup_tab()
         panel.addTab(self.activity_tab_container, 'Activity')
         panel.addTab(self.cfs_tab_container, 'LCIA CFs')
+        panel.addTab(self.cs_tab_container, 'LCA Calculations')
 
         return panel
 
@@ -123,6 +126,16 @@ class MainWindow(QtGui.QMainWindow):
         containing_widget = QtGui.QWidget()
         containing_widget.setLayout(activity_container)
         return containing_widget
+
+    def build_calculation_setup_tab(self):
+        self.calculation_setups_table = CSActivityTableWidget()
+        container = QtGui.QVBoxLayout()
+        container.addWidget(header('Functional Units (activities and amounts):'))
+        container.addWidget(horizontal_line())
+        container.addWidget(self.calculation_setups_table)
+        widget = QtGui.QWidget()
+        widget.setLayout(container)
+        return widget
 
     def build_methods_tab(self):
         self.methods_table = MethodsTableWidget()
@@ -167,12 +180,15 @@ class MainWindow(QtGui.QMainWindow):
         projects_list_layout.setAlignment(QtCore.Qt.AlignLeft)
         projects_list_layout.addWidget(QtGui.QLabel('Current Project:'))
         projects_list_layout.addWidget(self.projects_list_widget)
-        projects_list_layout.addWidget(self.buttons.new_project)
-        projects_list_layout.addWidget(self.buttons.copy_project)
-        projects_list_layout.addWidget(self.buttons.delete_project)
+
+        projects_button_line = QtGui.QHBoxLayout()
+        projects_button_line.addWidget(header('Projects:'))
+        projects_button_line.addWidget(self.buttons.new_project)
+        projects_button_line.addWidget(self.buttons.copy_project)
+        projects_button_line.addWidget(self.buttons.delete_project)
 
         project_container = QtGui.QVBoxLayout()
-        project_container.addWidget(header('Projects:'))
+        project_container.addLayout(projects_button_line)
         project_container.addWidget(horizontal_line())
         project_container.addLayout(projects_list_layout)
 
