@@ -6,7 +6,7 @@ from PyQt4 import QtCore, QtGui, QtWebKit
 
 bold_font = QtGui.QFont()
 bold_font.setBold(True)
-bold_font.setPointSize(12)
+bold_font.setPointSize(16)
 
 
 def horizontal_line():

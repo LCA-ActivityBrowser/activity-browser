@@ -21,6 +21,7 @@ class Controller(object):
         self.window.statusbar.right("Database: None")
         self.current.database = None
         self.window.table_databases.sync()
+        self.window.hide_activity_table()
 
     def select_database(self, item):
         if isinstance(item, str):
@@ -29,6 +30,7 @@ class Controller(object):
             name = item.data()
         self.current.database = Database(name)
         self.window.statusbar.right("Database: {}".format(name))
+        self.window.add_activity_table(self.current.database)
 
     def add_database(self):
         name = self.window.dialog(
