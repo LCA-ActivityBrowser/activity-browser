@@ -9,7 +9,7 @@ from .menu_bar import MenuBar
 from .toolbar import Toolbar
 from .statusbar import Statusbar
 from .databases_table import DatabasesTableWidget
-from .gui import horizontal_line
+from .gui import horizontal_line, header
 from .projects import ProjectListWidget
 import sys
 
@@ -93,6 +93,7 @@ class MainWindow(QtGui.QMainWindow):
         projects_list_layout = QtGui.QHBoxLayout()
         projects_list_layout.setAlignment(QtCore.Qt.AlignLeft)
         projects_list_layout.addWidget(QtGui.QLabel('Projects:'))
+        projects_list_layout.addWidget(header('Boldie'))
         projects_list_layout.addWidget(self.projects_list_widget)
         projects_list_layout.addWidget(self.buttons.new_project)
 
