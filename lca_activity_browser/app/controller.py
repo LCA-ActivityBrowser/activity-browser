@@ -17,15 +17,17 @@ class Controller(object):
         else:
             self.select_project(next(iter(projects)).name)
 
-    def select_project(self, name):
-        if not name or name == projects.project:
+    def select_project(self, name, force=False):
+        if not name:
+            return
+        if name == projects.project and not force:
             return
         projects.project = name
         self.window.statusbar.center("Project: {}".format(name))
         self.window.statusbar.right("Database: None")
         self.current.database = None
-        self.window.table_databases.sync()
-        self.window.hide_activity_table()
+        self.window.tables.databases.sync()
+        self.window.hide_right_inventory_tables()
         self.window.hide_cfs_table()
         index = sorted([project.name for project in projects]).index(projects.project)
         self.window.projects_list_widget.setCurrentIndex(index)
@@ -37,10 +39,15 @@ class Controller(object):
             self.window.default_data_button_layout_widget.hide()
             self.window.databases_table_layout_widget.show()
 
+    def select_calculation_setup(self, name):
+        self.current.calculation_setup = name
+        self.window.tables.calculation_setups.show()
+        self.window.calculation_setups_list.select(name)
+
     def install_default_data(self):
         create_default_biosphere3()
         self.window.default_data_button_layout_widget.hide()
-        self.window.table_databases.sync()
+        self.window.tables.databases.sync()
         self.window.databases_table_layout_widget.show()
 
     def select_database(self, item):
@@ -50,10 +57,11 @@ class Controller(object):
             name = item.db_name
         self.current.database = Database(name)
         self.window.statusbar.right("Database: {}".format(name))
-        self.window.add_activity_table(self.current.database)
+        self.window.add_right_inventory_tables(self.current.database)
 
     def select_activity(self, item):
-        pass
+        self.window.graphics.lobby1.hide()
+        self.window.graphics.lobby2.hide()
 
     def add_database(self):
         name = self.window.dialog(
@@ -61,8 +69,21 @@ class Controller(object):
             "Name of new database:" + " " * 25
         )
         Database(name).register()
-        self.window.table_databases.sync()
+        self.window.tables.databases.sync()
         self.select_database(name)
+
+    def delete_database(self, *args):
+        name = self.window.tables.databases.currentItem().db_name
+        print(name)
+        ok = self.window.confirm((
+            "Are you sure you want to delete database '{}'? "
+            "It has {} activity datasets").format(
+            name,
+            len(Database(name))
+        ))
+        if ok:
+            del databases[name]
+            self.select_project(projects.project, force=True)
 
     def new_project(self):
         name = self.window.dialog(
@@ -73,6 +94,16 @@ class Controller(object):
             projects.project = name
             self.window.projects_list_widget._model.reset()
             self.select_project(name)
+
+    def new_calculation_setup(self):
+        name = self.window.dialog(
+            "Create new calculation setup",
+            "Name of new calculation setup:" + " " * 10
+        )
+        if name:
+            calculation_setups[name] = {}
+            self.window.calculation_setups_list._model.reset()
+            self.select_calculation_setup(name)
 
     def delete_project(self):
         ok = self.window.confirm((

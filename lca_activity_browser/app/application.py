@@ -20,13 +20,13 @@ class Application(object):
         self.main_window.projects_list_widget.currentIndexChanged['QString'].connect(
             self.controller.select_project
         )
-        self.main_window.table_databases.itemDoubleClicked.connect(
+        self.main_window.tables.databases.itemDoubleClicked.connect(
             self.controller.select_database
         )
-        self.main_window.methods_table.itemDoubleClicked.connect(
+        self.main_window.tables.methods.itemDoubleClicked.connect(
             self.controller.select_method
         )
-        self.main_window.activities_table.itemDoubleClicked.connect(
+        self.main_window.tables.activities.itemDoubleClicked.connect(
             self.controller.select_activity
         )
         self.main_window.buttons.new_database.clicked.connect(
@@ -40,4 +40,10 @@ class Application(object):
         )
         self.main_window.buttons.add_default_data.clicked.connect(
             self.controller.install_default_data
+        )
+        self.main_window.buttons.new_calculation_setup.clicked.connect(
+            self.controller.new_calculation_setup
+        )
+        self.main_window.actions.delete_database.triggered.connect(
+            self.controller.delete_database
         )

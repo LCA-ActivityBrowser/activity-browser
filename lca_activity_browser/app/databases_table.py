@@ -47,7 +47,7 @@ class ActivityItem(QtGui.QTableWidgetItem):
 
 
 class ActivitiesTableWidget(QtGui.QTableWidget):
-    COUNT = 40
+    COUNT = 100
     COLUMNS = {
         0: "name",
         1: "reference product",
@@ -64,7 +64,33 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
 
     def sync(self, database):
         self.setRowCount(self.COUNT)
+        database.order_by = 'name'
+        database.filters = {'type': 'process'}
         data = itertools.islice(database, 0, self.COUNT)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
                 self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
+
+
+class FlowsTableWidget(QtGui.QTableWidget):
+    COUNT = 100
+    COLUMNS = {
+        0: "name",
+        2: "unit"
+    }
+
+    def __init__(self):
+        super(FlowsTableWidget, self).__init__()
+        self.setVisible(False)
+        self.setColumnCount(3)
+        self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])
+
+    def sync(self, database):
+        self.setRowCount(self.COUNT)
+        database.order_by = 'name'
+        database.filters = {'type': 'emission'}
+        data = itertools.islice(database, 0, self.COUNT)
+        for row, ds in enumerate(data):
+            for col, value in self.COLUMNS.items():
+                self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
+            self.setItem(row, 1, ActivityItem(", ".join(ds.get('categories', [])), key=ds.key))

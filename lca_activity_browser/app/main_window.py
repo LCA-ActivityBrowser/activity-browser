@@ -3,11 +3,18 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from . import Container
-from .databases_table import DatabasesTableWidget, ActivitiesTableWidget
+from .calculation_setups import (
+    CSActivityTableWidget,
+    CSListWidget,
+)
+from .databases_table import (
+    ActivitiesTableWidget,
+    DatabasesTableWidget,
+    FlowsTableWidget,
+)
 from .graphics import Canvas
 from .gui import horizontal_line, header
 from .icons import icons
-from .calculation_setups import CSActivityTableWidget
 from .menu_bar import MenuBar
 from .methods import MethodsTableWidget, CFsTableWidget
 from .projects import ProjectListWidget
@@ -24,6 +31,9 @@ class MainWindow(QtGui.QMainWindow):
 
         self.buttons = Container()
         self.labels = Container()
+        self.graphics = Container()
+        self.tables = Container()
+        self.actions = Container()
 
         # Window title
         self.setWindowTitle("Activity Browser")
@@ -117,39 +127,58 @@ class MainWindow(QtGui.QMainWindow):
         self.labels.no_consumption = QtGui.QLabel("No activities consume the reference product of this activity.")
         self.labels.no_consumption.hide()
 
+        self.graphics.lobby1 = Canvas()
+        self.graphics.lobby2 = Canvas()
+
         activity_container = QtGui.QVBoxLayout()
         activity_container.setAlignment(QtCore.Qt.AlignTop)
         activity_container.addWidget(self.labels.no_activity)
         activity_container.addWidget(self.labels.no_consumption)
-        activity_container.addWidget(Canvas())
+        activity_container.addWidget(self.graphics.lobby1)
+        activity_container.addWidget(self.graphics.lobby2)
 
         containing_widget = QtGui.QWidget()
         containing_widget.setLayout(activity_container)
         return containing_widget
 
     def build_calculation_setup_tab(self):
-        self.calculation_setups_table = CSActivityTableWidget()
+        self.tables.calculation_setups = CSActivityTableWidget()
+        self.calculation_setups_list = CSListWidget()
+
+        self.buttons.new_calculation_setup = QtGui.QPushButton('New calculation setup')
+        self.buttons.rename_calculation_setup = QtGui.QPushButton('Rename this setup')
+        self.buttons.delete_calculation_setup = QtGui.QPushButton('Delete this setup')
+
+        name_row = QtGui.QHBoxLayout()
+        name_row.addWidget(header('Calculation Setups:'))
+        name_row.addWidget(self.calculation_setups_list)
+        name_row.addWidget(self.buttons.new_calculation_setup)
+        name_row.addWidget(self.buttons.rename_calculation_setup)
+        name_row.addWidget(self.buttons.delete_calculation_setup)
+
         container = QtGui.QVBoxLayout()
-        container.addWidget(header('Functional Units (activities and amounts):'))
+        container.addLayout(name_row)
         container.addWidget(horizontal_line())
-        container.addWidget(self.calculation_setups_table)
+        container.addWidget(header('Products and amounts:'))
+        container.addWidget(self.tables.calculation_setups)
+
         widget = QtGui.QWidget()
         widget.setLayout(container)
         return widget
 
     def build_methods_tab(self):
-        self.methods_table = MethodsTableWidget()
+        self.tables.methods = MethodsTableWidget()
         container = QtGui.QVBoxLayout()
         container.addWidget(header('LCIA Methods:'))
         container.addWidget(horizontal_line())
-        container.addWidget(self.methods_table)
+        container.addWidget(self.tables.methods)
         widget = QtGui.QWidget()
         widget.setLayout(container)
         return widget
 
     def build_cfs_tab(self):
         # Not visible when instantiated
-        self.cfs_table = CFsTableWidget()
+        self.tables.cfs = CFsTableWidget()
 
         self.labels.no_method = QtGui.QLabel(self.DEFAULT_NO_METHOD)
 
@@ -157,7 +186,7 @@ class MainWindow(QtGui.QMainWindow):
         container.addWidget(header('Characterization Factors:'))
         container.addWidget(horizontal_line())
         container.addWidget(self.labels.no_method)
-        container.addWidget(self.cfs_table)
+        container.addWidget(self.tables.cfs)
         container.setAlignment(QtCore.Qt.AlignTop)
         widget = QtGui.QWidget()
         widget.setLayout(container)
@@ -165,9 +194,11 @@ class MainWindow(QtGui.QMainWindow):
 
     def build_inventory_tab(self):
         self.projects_list_widget = ProjectListWidget()
-        self.table_databases = DatabasesTableWidget()
+        self.tables.databases = DatabasesTableWidget()
+
         # Not visible when instantiated
-        self.activities_table = ActivitiesTableWidget()
+        self.tables.activities = ActivitiesTableWidget()
+        self.tables.flows = FlowsTableWidget()
 
         self.buttons.add_default_data = QtGui.QPushButton('Add Default Data (Biosphere flows, LCIA methods)')
         self.buttons.new_project = QtGui.QPushButton('Create New Project')
@@ -194,7 +225,7 @@ class MainWindow(QtGui.QMainWindow):
 
         databases_table_layout = QtGui.QHBoxLayout()
         databases_table_layout.addWidget(QtGui.QLabel('Databases:'))
-        databases_table_layout.addWidget(self.table_databases)
+        databases_table_layout.addWidget(self.tables.databases)
         databases_table_layout.addWidget(self.buttons.new_database)
         databases_table_layout.setAlignment(QtCore.Qt.AlignTop)
 
@@ -226,7 +257,11 @@ class MainWindow(QtGui.QMainWindow):
         activities_container.addWidget(header('Activities:'))
         activities_container.addWidget(horizontal_line())
         activities_container.addWidget(self.labels.no_database)
-        activities_container.addWidget(self.activities_table)
+        activities_container.addWidget(self.tables.activities)
+        activities_container.addWidget(header('Biosphere Flows:'))
+        activities_container.addWidget(horizontal_line())
+        activities_container.addWidget(self.labels.no_database)
+        activities_container.addWidget(self.tables.flows)
 
         # Overall Layout
         tab_container = QtGui.QVBoxLayout()
@@ -239,32 +274,39 @@ class MainWindow(QtGui.QMainWindow):
         containing_widget.setLayout(tab_container)
 
         # Context menus (shown on right click)
-        self.table_databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.tables.databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
-        # self.action_delete_database = QtGui.QAction(QtGui.QIcon(icons.context.delete), "delete database", None)
-        # self.action_delete_database.triggered.connect(self.delete_database)
-        # self.table_databases.addAction(self.action_delete_database)
+        self.actions.delete_database = QtGui.QAction(
+            QtGui.QIcon(icons.delete), "Delete database", None
+        )
+        self.tables.databases.addAction(self.actions.delete_database)
 
         return containing_widget
 
-    def add_activity_table(self, database):
+    def add_right_inventory_tables(self, database):
         self.labels.no_database.hide()
-        self.activities_table.sync(database)
-        self.activities_table.show()
+        self.tables.activities.clear()
+        self.tables.activities.sync(database)
+        self.tables.flows.clear()
+        self.tables.flows.sync(database)
+        self.tables.activities.show()
+        self.tables.flows.show()
 
-    def hide_activity_table(self):
-        self.activities_table.hide()
-        self.activities_table.clear()
+    def hide_right_inventory_tables(self):
+        self.tables.flows.hide()
+        self.tables.flows.clear()
+        self.tables.activities.hide()
+        self.tables.activities.clear()
         self.labels.no_database.show()
 
     def add_cfs_table(self, method):
         self.labels.no_method.setText(
             "Method: " + ";".join(method)
         )
-        self.cfs_table.sync(method)
-        self.cfs_table.show()
+        self.tables.cfs.sync(method)
+        self.tables.cfs.show()
 
     def hide_cfs_table(self):
-        self.cfs_table.hide()
-        self.cfs_table.clear()
+        self.tables.cfs.hide()
+        self.tables.cfs.clear()
         self.labels.no_method.setText(self.DEFAULT_NO_METHOD)
