@@ -9,6 +9,7 @@ from .menu_bar import MenuBar
 from .toolbar import Toolbar
 from .statusbar import Statusbar
 from .databases_table import DatabasesTableWidget
+from .gui import horizontal_line
 from .projects import ProjectListWidget
 import sys
 
@@ -83,19 +84,17 @@ class MainWindow(QtGui.QMainWindow):
             return value
 
     def build_inventory_tab(self):
-        # Databases table
-        self.table_databases = DatabasesTableWidget()
-        self.table_databases.setMinimumHeight(100)
         self.projects_list_widget = ProjectListWidget()
+        self.table_databases = DatabasesTableWidget()
+
+        self.buttons.new_project = QtGui.QPushButton('Create New Project')
+        self.buttons.new_database = QtGui.QPushButton('Create New Database')
 
         projects_list_layout = QtGui.QHBoxLayout()
-        self.buttons.new_project = QtGui.QPushButton('Create New Project')
         projects_list_layout.setAlignment(QtCore.Qt.AlignLeft)
         projects_list_layout.addWidget(QtGui.QLabel('Projects:'))
         projects_list_layout.addWidget(self.projects_list_widget)
         projects_list_layout.addWidget(self.buttons.new_project)
-
-        self.buttons.new_database = QtGui.QPushButton('Create New Database')
 
         databases_table_layout = QtGui.QHBoxLayout()
         databases_table_layout.addWidget(QtGui.QLabel('Databases:'))
@@ -106,7 +105,9 @@ class MainWindow(QtGui.QMainWindow):
         # Overall Layout
         tab_container = QtGui.QVBoxLayout()
         tab_container.addLayout(projects_list_layout)
+        tab_container.addWidget(horizontal_line())
         tab_container.addLayout(databases_table_layout)
+        tab_container.addStretch(1)
 
         containing_widget = QtGui.QWidget()
         containing_widget.setLayout(tab_container)

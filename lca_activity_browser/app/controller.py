@@ -20,7 +20,7 @@ class Controller(object):
         self.window.statusbar.center("Project: {}".format(name))
         self.window.statusbar.right("Database: None")
         self.current.database = None
-        self.window.table_databases.reset()
+        self.window.table_databases.sync()
 
     def select_database(self, item):
         if isinstance(item, str):

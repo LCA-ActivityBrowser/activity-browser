@@ -31,6 +31,7 @@ setup(
     author_email="steubing.bernhard@gmail.com",
     license=open('LICENSE.txt').read(),
     install_requires=[
+        "arrow",
         "brightway2",
         "eight",
         "jinja2",
