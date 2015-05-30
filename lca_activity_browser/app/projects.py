@@ -19,6 +19,7 @@ class ProjectListModel(QtCore.QAbstractListModel):
 class ProjectListWidget(QtGui.QComboBox):
     def __init__(self):
         super(ProjectListWidget, self).__init__()
-        self.setModel(ProjectListModel())
+        self._model = ProjectListModel()
+        self.setModel(self._model)
         default_index = sorted([project.name for project in projects]).index("default")
         self.setCurrentIndex(default_index)

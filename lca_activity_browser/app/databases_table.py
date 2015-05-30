@@ -20,7 +20,7 @@ class DatabasesTableWidget(QtGui.QTableWidget):
     def __init__(self):
         super(DatabasesTableWidget, self).__init__()
         self.setColumnCount(3)
-        self.setHorizontalHeaderLabels(["Name", "Depends", "Modified"])
+        self.setHorizontalHeaderLabels(["Name", "Depends", "Last modified"])
         self.sync()
 
     def sync(self):

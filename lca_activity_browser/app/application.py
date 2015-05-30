@@ -23,9 +23,21 @@ class Application(object):
         self.main_window.table_databases.itemDoubleClicked.connect(
             self.controller.select_database
         )
+        self.main_window.methods_table.itemDoubleClicked.connect(
+            self.controller.select_method
+        )
         self.main_window.activities_table.itemDoubleClicked.connect(
             self.controller.select_activity
         )
         self.main_window.buttons.new_database.clicked.connect(
             self.controller.add_database
+        )
+        self.main_window.buttons.new_project.clicked.connect(
+            self.controller.new_project
+        )
+        self.main_window.buttons.delete_project.clicked.connect(
+            self.controller.delete_project
+        )
+        self.main_window.buttons.add_default_data.clicked.connect(
+            self.controller.install_default_data
         )
