@@ -31,7 +31,7 @@ class Canvas(FigureCanvasQTAgg):
     def do_figure(self):
         sns.set(style="dark")
         x, y = np.random.randn(2, 50)
-        cmap = sns.cubehelix_palette(start=3., light=1, as_cmap=True)
+        cmap = sns.cubehelix_palette(start=10., light=1, as_cmap=True)
         sns.kdeplot(x, y, cmap=cmap, shade=True, cut=5, ax=self.axes)
         self.axes.set_xlim(-3, 3)
         self.axes.set_ylim(-3, 3)
