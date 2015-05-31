@@ -97,7 +97,6 @@ class InventoryTab(QtGui.QWidget):
         tab_container.addLayout(activities_container)
         tab_container.addStretch(1)
 
-
         # Context menus (shown on right click)
         self.window.tables.databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
@@ -116,7 +115,16 @@ class InventoryTab(QtGui.QWidget):
         )
 
     def change_project(self, name):
+        index = sorted([project.name for project in projects]).index(projects.project)
+        self.window.projects_list_widget.setCurrentIndex(index)
         self.window.tables.databases.sync()
+
+        self.window.tables.flows.hide()
+        self.window.tables.flows.clear()
+        self.window.tables.activities.hide()
+        self.window.tables.activities.clear()
+        self.window.labels.no_database.show()
+
         if not len(databases):
             self.window.default_data_button_layout_widget.show()
             self.window.databases_table_layout_widget.hide()

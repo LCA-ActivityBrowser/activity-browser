@@ -7,6 +7,6 @@ from PyQt4 import QtCore
 
 class Signals(QtCore.QObject):
     project_changed = QtCore.pyqtSignal(str)
-
+    method_selected = QtCore.pyqtSignal(tuple)
 
 signals = Signals()

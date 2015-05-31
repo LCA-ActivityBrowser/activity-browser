@@ -5,6 +5,7 @@ from eight import *
 from brightway2 import *
 from numbers import Number
 from PyQt4 import QtCore, QtGui
+from .signals import signals
 
 
 class MethodItem(QtGui.QTableWidgetItem):
@@ -21,8 +22,12 @@ class MethodsTableWidget(QtGui.QTableWidget):
         self.setDragEnabled(True)
         self.setHorizontalHeaderLabels(["Name", "Unit", "# CFs"])
         self.sync()
+        self.itemDoubleClicked.connect(
+            lambda x: signals.method_selected.emit(x.method)
+        )
 
     def sync(self):
+        self.clear()
         self.setRowCount(len(methods))
         for row, method in enumerate(sorted(methods, key=lambda x: ("".join(x)).lower())):
             data = methods[method]

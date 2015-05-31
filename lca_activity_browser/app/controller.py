@@ -25,11 +25,6 @@ class Controller(object):
         projects.project = name
         self.current.database = None
         signals.project_changed.emit(name)
-        self.window.tables.databases.sync()
-        self.window.hide_right_inventory_tables()
-        self.window.hide_cfs_table()
-        index = sorted([project.name for project in projects]).index(projects.project)
-        self.window.projects_list_widget.setCurrentIndex(index)
 
     def select_calculation_setup(self, name):
         self.current.calculation_setup = name
@@ -109,12 +104,6 @@ class Controller(object):
             projects.delete_project(projects.project)
             self.window.projects_list_widget._model.reset()
             self.select_project(projects.project)
-
-    def select_method(self, item):
-        method = item.method
-        self.current.method = method
-        self.window.add_cfs_table(method)
-        self.window.select_tab(self.window.cfs_tab_container, "left")
 
     def handle_calculation_setup_activity_table_change(self, row, col):
         if col == 1:
