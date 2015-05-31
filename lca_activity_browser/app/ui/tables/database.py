@@ -9,6 +9,9 @@ from PyQt4 import QtCore, QtGui
 import arrow
 
 
+from ...signals import signals
+
+
 class DatabaseItem(QtGui.QTableWidgetItem):
     def __init__(self, *args, db_name=None):
         super(DatabaseItem, self).__init__(*args)
@@ -23,6 +26,7 @@ class DatabasesTableWidget(QtGui.QTableWidget):
         self.sync()
 
         self.itemDoubleClicked.connect(self.select_database)
+        signals.databases_changed.connect(self.sync)
 
     def sync(self):
         self.clear()

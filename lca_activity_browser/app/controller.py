@@ -11,57 +11,58 @@ class Controller(object):
     def __init__(self, window):
         self.window = window
         self.current = Container()
-        self.current.database = None
-        if "default" in projects:
-            self.select_project("default")
-        else:
-            self.select_project(next(iter(projects)).name)
+        self.select_project(self.get_default_project_name())
 
-    def select_project(self, name, force=False):
-        if not name:
-            return
-        if name == projects.project and not force:
-            return
+    def get_default_project_name(self):
+        if "default" in projects:
+            return "default"
+        else:
+            return next(iter(projects)).name
+
+    def select_project(self, name):
         projects.project = name
-        self.current.database = None
         signals.project_selected.emit(name)
 
-    def select_calculation_setup(self, name):
-        self.current.calculation_setup = name
-        self.window.tables.calculation_setups.show()
-        self.window.calculation_setups_list.select(name)
+    def new_project(self):
+        name = self.window.dialog(
+            "Create new project",
+            "Name of new project:" + " " * 25
+        )
+        if name and name not in projects:
+            projects.project = name
+            signals.project_selected.emit(name)
+
+    def delete_project(self):
+        if len(projects) == 1:
+            self.window.info("Can't delete last project")
+            return
+        ok = self.window.confirm((
+            "Are you sure you want to delete project '{}'? It has {} databases"
+            " and {} LCI methods").format(
+            projects.project,
+            len(databases),
+            len(methods)
+        ))
+        if ok:
+            projects.delete_project(projects.project)
+            signals.project_selected.emit(self.get_default_project_name())
 
     def install_default_data(self):
         create_default_biosphere3()
-        self.window.default_data_button_layout_widget.hide()
-        self.window.tables.databases.sync()
-        self.window.databases_table_layout_widget.show()
-
-    # def select_database(self, item):
-    #     if isinstance(item, str):
-    #         name = item
-    #     else:
-    #         name = item.db_name
-    #     self.current.database = Database(name)
-    #     self.window.statusbar.right("Database: {}".format(name))
-    #     self.window.add_right_inventory_tables(self.current.database)
-
-    def select_activity(self, item):
-        self.window.graphics.lobby1.hide()
-        self.window.graphics.lobby2.hide()
+        signals.databases_changed.emit()
 
     def add_database(self):
         name = self.window.dialog(
             "Create new database",
             "Name of new database:" + " " * 25
         )
-        Database(name).register()
-        self.window.tables.databases.sync()
-        self.select_database(name)
+        if name:
+            Database(name).register()
+            signals.databases_changed.emit()
+            signals.database_selected.emit(name)
 
     def delete_database(self, *args):
-        name = self.window.tables.databases.currentItem().db_name
-        print(name)
+        name = self.window.right_panel.inventory_tab.databases.currentItem().db_name
         ok = self.window.confirm((
             "Are you sure you want to delete database '{}'? "
             "It has {} activity datasets").format(
@@ -70,17 +71,17 @@ class Controller(object):
         ))
         if ok:
             del databases[name]
-            self.select_project(projects.project, force=True)
+            signals.databases_changed.emit()
 
-    def new_project(self):
-        name = self.window.dialog(
-            "Create new project",
-            "Name of new project:" + " " * 25
-        )
-        if name:
-            projects.project = name
-            self.window.projects_list_widget._model.reset()
-            self.select_project(name)
+
+    def select_calculation_setup(self, name):
+        self.current.calculation_setup = name
+        self.window.tables.calculation_setups.show()
+        self.window.calculation_setups_list.select(name)
+
+    def select_activity(self, item):
+        self.window.graphics.lobby1.hide()
+        self.window.graphics.lobby2.hide()
 
     def new_calculation_setup(self):
         name = self.window.dialog(
@@ -92,19 +93,6 @@ class Controller(object):
             signals.calculation_setup_selected.emit(name)
             self.window.calculation_setups_list._model.reset()
             self.select_calculation_setup(name)
-
-    def delete_project(self):
-        ok = self.window.confirm((
-            "Are you sure you want to delete project '{}'? It has {} databases"
-            " and {} LCI methods").format(
-            projects.project,
-            len(databases),
-            len(methods)
-        ))
-        if ok:
-            projects.delete_project(projects.project)
-            self.window.projects_list_widget._model.reset()
-            self.select_project(projects.project)
 
     def handle_calculation_setup_activity_table_change(self, row, col):
         if col == 1:

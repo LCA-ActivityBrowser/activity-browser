@@ -26,11 +26,11 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
 
     def __init__(self):
         super(ActivitiesTableWidget, self).__init__()
-        self.setVisible(False)
         self.setDragEnabled(True)
         self.setColumnCount(4)
 
         signals.database_selected.connect(self.sync)
+        self.itemDoubleClicked.connect(self.select_activity)
 
     def sync(self, name):
         self.clear()
@@ -43,3 +43,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
                 self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
+
+    def select_activity(self, item):
+        print("Select activity:", item.key)
+        signals.activity_selected.emit(item.key)

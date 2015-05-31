@@ -17,15 +17,13 @@ class ActivityDetailsTab(QtGui.QWidget):
         self.no_consumption_label = QtGui.QLabel("No activities consume the reference product of this activity.")
         self.no_consumption_label.hide()
 
-        self.chart1 = Canvas()
-        self.chart2 = Canvas()
+        self.chart = Canvas()
 
         activity_container = QtGui.QVBoxLayout()
         activity_container.setAlignment(QtCore.Qt.AlignTop)
         activity_container.addWidget(self.no_activity_label)
         activity_container.addWidget(self.no_consumption_label)
-        activity_container.addWidget(self.chart1)
-        activity_container.addWidget(self.chart2)
+        activity_container.addWidget(self.chart)
         self.setLayout(activity_container)
 
         signals.project_selected.connect(self.get_focus)

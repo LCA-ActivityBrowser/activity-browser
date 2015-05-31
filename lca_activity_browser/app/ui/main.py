@@ -89,6 +89,14 @@ class MainWindow(QtGui.QMainWindow):
         if ok:
             return value
 
+    def info(self, label):
+        QtGui.QMessageBox.information(
+            self,
+            "Information",
+            label,
+            QtGui.QMessageBox.Ok,
+        )
+
     def confirm(self, label):
         response = QtGui.QMessageBox.question(
             self,

@@ -32,7 +32,13 @@ class InventoryTab(QtGui.QWidget):
         self.copy_project_button = QtGui.QPushButton('Copy Current Project')
         self.delete_project_button = QtGui.QPushButton('Delete Current Project')
         self.new_database_button = QtGui.QPushButton('Create New Database')
-        self.no_database_label = QtGui.QLabel('No database selected yet')
+
+        no_database_layout = QtGui.QVBoxLayout()
+        no_database_layout.addWidget(header("No database selected"))
+        no_database_layout.addWidget(QtGui.QLabel('This section will be filled when a database is selected (double clicked)'))
+        no_database_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.no_database_container = QtGui.QWidget()
+        self.no_database_container.setLayout(no_database_layout)
 
         projects_list_layout = QtGui.QHBoxLayout()
         projects_list_layout.setAlignment(QtCore.Qt.AlignLeft)
@@ -48,42 +54,53 @@ class InventoryTab(QtGui.QWidget):
 
         project_container = QtGui.QVBoxLayout()
         project_container.addLayout(projects_button_line)
-        project_container.addWidget(horizontal_line())
         project_container.addLayout(projects_list_layout)
 
         databases_table_layout = QtGui.QHBoxLayout()
-        databases_table_layout.addWidget(QtGui.QLabel('Databases:'))
         databases_table_layout.addWidget(self.databases)
-        databases_table_layout.addWidget(self.new_database_button)
         databases_table_layout.setAlignment(QtCore.Qt.AlignTop)
 
-        databases_table_layout_widget = QtGui.QWidget()
-        databases_table_layout_widget.setLayout(databases_table_layout)
+        self.databases_table_layout_widget = QtGui.QWidget()
+        self.databases_table_layout_widget.setLayout(databases_table_layout)
 
         default_data_button_layout = QtGui.QHBoxLayout()
         default_data_button_layout.addWidget(self.add_default_data_button)
 
-        default_data_button_layout_widget = QtGui.QWidget()
-        default_data_button_layout_widget.hide()
-        default_data_button_layout_widget.setLayout(
+        self.default_data_button_layout_widget = QtGui.QWidget()
+        self.default_data_button_layout_widget.hide()
+        self.default_data_button_layout_widget.setLayout(
             default_data_button_layout
         )
 
+        database_header = QtGui.QHBoxLayout()
+        database_header.setAlignment(QtCore.Qt.AlignLeft)
+        database_header.addWidget(header('Databases:'))
+        database_header.addWidget(self.new_database_button)
+
         database_container = QtGui.QVBoxLayout()
-        database_container.addWidget(header('Databases:'))
         database_container.addWidget(horizontal_line())
-        database_container.addWidget(databases_table_layout_widget)
-        database_container.addWidget(default_data_button_layout_widget)
+        database_container.addLayout(database_header)
+        database_container.addWidget(
+            self.databases_table_layout_widget
+        )
+        database_container.addWidget(
+            self.default_data_button_layout_widget
+        )
+
+        inventory_layout = QtGui.QVBoxLayout()
+        inventory_layout.addWidget(header('Activities:'))
+        inventory_layout.addWidget(horizontal_line())
+        inventory_layout.addWidget(self.activities)
+        inventory_layout.addWidget(header('Biosphere Flows:'))
+        inventory_layout.addWidget(horizontal_line())
+        inventory_layout.addWidget(self.flows)
+
+        self.inventory_container = QtGui.QWidget()
+        self.inventory_container.setLayout(inventory_layout)
 
         activities_container = QtGui.QVBoxLayout()
-        activities_container.addWidget(header('Activities:'))
-        activities_container.addWidget(horizontal_line())
-        activities_container.addWidget(self.no_database_label)
-        activities_container.addWidget(self.activities)
-        activities_container.addWidget(header('Biosphere Flows:'))
-        activities_container.addWidget(horizontal_line())
-        activities_container.addWidget(self.no_database_label)
-        activities_container.addWidget(self.flows)
+        activities_container.addWidget(self.no_database_container)
+        activities_container.addWidget(self.inventory_container)
 
         # Overall Layout
         tab_container = QtGui.QVBoxLayout()
@@ -110,17 +127,21 @@ class InventoryTab(QtGui.QWidget):
         self.projects_list_widget.currentIndexChanged['QString'].connect(
             controller.select_project
         )
+        self.new_project_button.clicked.connect(controller.new_project)
+        self.delete_project_button.clicked.connect(controller.delete_project)
+        self.new_database_button.clicked.connect(controller.add_database)
+        self.delete_database_action.triggered.connect(controller.delete_database)
+        self.add_default_data_button.clicked.connect(controller.install_default_data)
 
     def change_project(self, name):
         index = sorted([project.name for project in projects]).index(projects.project)
         self.projects_list_widget.setCurrentIndex(index)
         self.databases.sync()
 
-        self.flows.hide()
         self.flows.clear()
-        self.activities.hide()
         self.activities.clear()
-        self.no_database_label.show()
+        self.no_database_container.show()
+        self.inventory_container.hide()
 
         if not len(databases):
             self.default_data_button_layout_widget.show()
@@ -130,6 +151,5 @@ class InventoryTab(QtGui.QWidget):
             self.databases_table_layout_widget.show()
 
     def change_database(self, name):
-        self.no_database_label.hide()
-        self.activities.show()
-        self.flows.show()
+        self.no_database_container.hide()
+        self.inventory_container.show()

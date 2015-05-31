@@ -19,7 +19,6 @@ class FlowsTableWidget(QtGui.QTableWidget):
 
     def __init__(self):
         super(FlowsTableWidget, self).__init__()
-        self.setVisible(False)
         self.setColumnCount(3)
         self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])
 
