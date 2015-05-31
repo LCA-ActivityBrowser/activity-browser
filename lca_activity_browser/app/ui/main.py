@@ -12,11 +12,9 @@ from . import horizontal_line, header
 from .icons import icons
 from .panels import LeftPanel, RightPanel
 from .menu_bar import MenuBar
-from ..methods import MethodsTableWidget, CFsTableWidget
-from ..projects import ProjectListWidget
 from .statusbar import Statusbar
 from .toolbar import Toolbar
-from PyQt4 import QtCore, QtGui, QtWebKit
+from PyQt4 import QtCore, QtGui
 from .tabs import (
     ActivityDetailsTab,
     CFsTab,
@@ -31,11 +29,7 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__(None)
 
-        self.buttons = Container()
-        self.labels = Container()
         self.graphics = Container()
-        self.tables = Container()
-        self.actions = Container()
 
         # Window title
         self.setWindowTitle("Activity Browser")

@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from .. import horizontal_line, header
-from ...methods import CFsTableWidget, MethodsTableWidget
+from ..tables import CFsTableWidget, MethodsTableWidget
 from ...signals import signals
 from PyQt4 import QtCore, QtGui
 
@@ -13,6 +13,7 @@ class CFsTab(QtGui.QWidget):
 
     def __init__(self, parent):
         super(CFsTab, self).__init__(parent)
+        self.panel = parent
         # Not visible when instantiated
         self.cf_table = CFsTableWidget()
         self.no_method_label = QtGui.QLabel(self.NO_METHOD)
@@ -34,7 +35,7 @@ class CFsTab(QtGui.QWidget):
         )
         self.cf_table.sync(method)
         self.cf_table.show()
-        self.parent.parent.select_tab(self, "left")
+        self.panel.select_tab(self)
 
     def hide_cfs_table(self):
         self.cf_table.hide()

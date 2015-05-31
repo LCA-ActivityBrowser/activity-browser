@@ -6,9 +6,9 @@ from ..tables import (
     ActivitiesTableWidget,
     DatabasesTableWidget,
     FlowsTableWidget,
+    ProjectListWidget,
 )
 from .. import horizontal_line, header
-from ...projects import ProjectListWidget
 from ...signals import signals
 from ..icons import icons
 from brightway2 import *

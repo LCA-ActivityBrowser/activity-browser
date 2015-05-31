@@ -5,7 +5,7 @@ from eight import *
 from .. import horizontal_line, header
 from ...signals import signals
 from PyQt4 import QtCore, QtGui
-from ...graphics import Canvas
+from ..graphics import Canvas
 
 
 class ActivityDetailsTab(QtGui.QWidget):

@@ -5,7 +5,7 @@ from eight import *
 from brightway2 import *
 from numbers import Number
 from PyQt4 import QtCore, QtGui
-from .signals import signals
+from ...signals import signals
 
 
 class MethodItem(QtGui.QTableWidgetItem):

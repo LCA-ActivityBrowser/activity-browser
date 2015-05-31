@@ -79,10 +79,6 @@ class Controller(object):
         self.window.tables.calculation_setups.show()
         self.window.calculation_setups_list.select(name)
 
-    def select_activity(self, item):
-        self.window.graphics.lobby1.hide()
-        self.window.graphics.lobby2.hide()
-
     def new_calculation_setup(self):
         name = self.window.dialog(
             "Create new calculation setup",
