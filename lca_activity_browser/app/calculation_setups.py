@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from .databases_table import ActivitiesTableWidget
+from .methods import MethodsTableWidget
 from brightway2 import *
 from PyQt4 import QtCore, QtGui
 
@@ -14,6 +15,8 @@ class CSListModel(QtCore.QAbstractListModel):
     def data(self, index, *args):
         row = index.row()
         names = sorted(calculation_setups.keys())
+        if row >= len(names):
+            return QtCore.QVariant
         return names[row]
 
 
@@ -74,4 +77,40 @@ class CSActivityTableWidget(QtGui.QTableWidget):
             self.setItem(new_row, 1, CSAmount("1.0", key=key))
             self.setItem(new_row, 2, CSActivityItem(act.get('unit', 'Unknown')))
 
+        event.accept()
+
+
+class CSMethodItem(QtGui.QTableWidgetItem):
+    def __init__(self, *args, method=None):
+        super(CSMethodItem, self).__init__(*args)
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.method = method
+
+
+class CSMethodsTableWidget(QtGui.QTableWidget):
+    def __init__(self):
+        super(CSMethodsTableWidget, self).__init__()
+        self.setColumnCount(1)
+        if not len(calculation_setups):
+            self.setVisible(False)
+        self.setSortingEnabled(True)
+        self.setAcceptDrops(True)
+        self.setHorizontalHeaderLabels(["Name"])
+
+    def dragEnterEvent(self, event):
+        if isinstance(event.source(), MethodsTableWidget):
+            event.accept()
+
+    def dropEvent(self, event):
+        new_methods = [item.method for item in event.source().selectedItems()]
+        if self.rowCount():
+            existing = {self.item(index, 0).method for index in range(self.rowCount())}
+        else:
+            existing = {}
+        for obj in new_methods:
+            if obj in existing:
+                continue
+            new_row = self.rowCount()
+            self.insertRow(new_row)
+            self.setItem(new_row, 0, CSMethodItem(", ".join(obj), method=obj))
         event.accept()

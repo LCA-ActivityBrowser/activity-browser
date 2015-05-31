@@ -4,7 +4,7 @@ from eight import *
 
 from brightway2 import *
 from . import Container
-
+from .signals import signals
 
 
 class Controller(object):
@@ -23,21 +23,13 @@ class Controller(object):
         if name == projects.project and not force:
             return
         projects.project = name
-        self.window.statusbar.center("Project: {}".format(name))
-        self.window.statusbar.right("Database: None")
         self.current.database = None
+        signals.project_changed.emit(name)
         self.window.tables.databases.sync()
         self.window.hide_right_inventory_tables()
         self.window.hide_cfs_table()
         index = sorted([project.name for project in projects]).index(projects.project)
         self.window.projects_list_widget.setCurrentIndex(index)
-
-        if not len(databases):
-            self.window.default_data_button_layout_widget.show()
-            self.window.databases_table_layout_widget.hide()
-        else:
-            self.window.default_data_button_layout_widget.hide()
-            self.window.databases_table_layout_widget.show()
 
     def select_calculation_setup(self, name):
         self.current.calculation_setup = name
@@ -123,3 +115,14 @@ class Controller(object):
         self.current.method = method
         self.window.add_cfs_table(method)
         self.window.select_tab(self.window.cfs_tab_container, "left")
+
+    def handle_calculation_setup_activity_table_change(self, row, col):
+        if col == 1:
+            self.write_current_calculation_setup()
+
+    def handle_calculation_setup_method_table_change(self, row, col):
+        self.write_current_calculation_setup()
+
+    def write_current_calculation_setup(self):
+        """Iterate over activity and methods tables, and write calculation setup to ``calculation_setups``."""
+        print("Called sync_current_calculation_setup")

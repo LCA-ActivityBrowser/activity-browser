@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from PyQt4 import QtCore, QtGui, QtWebKit
-from .main_window import MainWindow
+from .ui.main import MainWindow
 from .controller import Controller
 
 
@@ -17,9 +17,7 @@ class Application(object):
         self.main_window.showMaximized()
 
     def connect_signals(self):
-        self.main_window.projects_list_widget.currentIndexChanged['QString'].connect(
-            self.controller.select_project
-        )
+        self.main_window.inventory_tab.connect_signals(self.controller)
         self.main_window.tables.databases.itemDoubleClicked.connect(
             self.controller.select_database
         )
@@ -46,4 +44,10 @@ class Application(object):
         )
         self.main_window.actions.delete_database.triggered.connect(
             self.controller.delete_database
+        )
+        self.main_window.tables.calculation_setups_activities.cellChanged.connect(
+            self.controller.handle_calculation_setup_activity_table_change
+        )
+        self.main_window.tables.calculation_setups_methods.cellChanged.connect(
+            self.controller.handle_calculation_setup_method_table_change
         )

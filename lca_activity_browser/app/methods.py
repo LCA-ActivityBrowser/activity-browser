@@ -18,6 +18,7 @@ class MethodsTableWidget(QtGui.QTableWidget):
     def __init__(self):
         super(MethodsTableWidget, self).__init__()
         self.setColumnCount(3)
+        self.setDragEnabled(True)
         self.setHorizontalHeaderLabels(["Name", "Unit", "# CFs"])
         self.sync()
 

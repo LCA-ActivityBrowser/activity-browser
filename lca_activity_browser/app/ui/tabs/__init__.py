@@ -1,0 +1,1 @@
+from .inventory import InventoryTab

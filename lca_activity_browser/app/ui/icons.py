@@ -10,6 +10,7 @@ def create_path(folder, filename):
     return os.path.join(
         os.path.dirname(__file__),
         '..',
+        '..',
         'icons',
         folder,
         filename

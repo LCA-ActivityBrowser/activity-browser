@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from PyQt4 import QtGui
+from ..signals import signals
 
 
 class Statusbar(object):
@@ -19,6 +20,8 @@ class Statusbar(object):
         self.statusbar.addWidget(self.status_message_center, 2)
         self.statusbar.addWidget(self.status_message_right, 0)
 
+        signals.project_changed.connect(self.set_project)
+
     def left(self, message):
         self.status_message_left.setText(message)
 
@@ -27,3 +30,7 @@ class Statusbar(object):
 
     def right(self, message):
         self.status_message_right.setText(message)
+
+    def set_project(self, name):
+        self.center("Project: {}".format(name))
+        self.right("Database: None")

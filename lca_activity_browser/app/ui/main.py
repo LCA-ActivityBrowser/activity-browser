@@ -2,25 +2,27 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from . import Container
-from .calculation_setups import (
+from .. import Container
+from ..calculation_setups import (
     CSActivityTableWidget,
     CSListWidget,
+    CSMethodsTableWidget,
 )
-from .databases_table import (
+from ..databases_table import (
     ActivitiesTableWidget,
     DatabasesTableWidget,
     FlowsTableWidget,
 )
-from .graphics import Canvas
-from .gui import horizontal_line, header
+from ..graphics import Canvas
+from . import horizontal_line, header
 from .icons import icons
 from .menu_bar import MenuBar
-from .methods import MethodsTableWidget, CFsTableWidget
-from .projects import ProjectListWidget
+from ..methods import MethodsTableWidget, CFsTableWidget
+from ..projects import ProjectListWidget
 from .statusbar import Statusbar
 from .toolbar import Toolbar
 from PyQt4 import QtCore, QtGui, QtWebKit
+from .tabs import InventoryTab
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -86,9 +88,9 @@ class MainWindow(QtGui.QMainWindow):
         panel = QtGui.QTabWidget()
         panel.setMovable(True)
 
-        self.inventory_tab_container = self.build_inventory_tab()
+        self.inventory_tab = InventoryTab(self)
         self.methods_tab_container = self.build_methods_tab()
-        panel.addTab(self.inventory_tab_container, 'Inventory')
+        panel.addTab(self.inventory_tab, 'Inventory')
         panel.addTab(self.methods_tab_container, 'Impact Assessment')
 
         return panel
@@ -121,7 +123,6 @@ class MainWindow(QtGui.QMainWindow):
         )
         return response == QtGui.QMessageBox.Yes
 
-
     def build_activity_tab(self):
         self.labels.no_activity = QtGui.QLabel('No activity selected yet')
         self.labels.no_consumption = QtGui.QLabel("No activities consume the reference product of this activity.")
@@ -142,7 +143,8 @@ class MainWindow(QtGui.QMainWindow):
         return containing_widget
 
     def build_calculation_setup_tab(self):
-        self.tables.calculation_setups = CSActivityTableWidget()
+        self.tables.calculation_setups_activities = CSActivityTableWidget()
+        self.tables.calculation_setups_methods = CSMethodsTableWidget()
         self.calculation_setups_list = CSListWidget()
 
         self.buttons.new_calculation_setup = QtGui.QPushButton('New calculation setup')
@@ -160,7 +162,10 @@ class MainWindow(QtGui.QMainWindow):
         container.addLayout(name_row)
         container.addWidget(horizontal_line())
         container.addWidget(header('Products and amounts:'))
-        container.addWidget(self.tables.calculation_setups)
+        container.addWidget(self.tables.calculation_setups_activities)
+        container.addWidget(horizontal_line())
+        container.addWidget(header('LCIA Methods:'))
+        container.addWidget(self.tables.calculation_setups_methods)
 
         widget = QtGui.QWidget()
         widget.setLayout(container)
@@ -191,97 +196,6 @@ class MainWindow(QtGui.QMainWindow):
         widget = QtGui.QWidget()
         widget.setLayout(container)
         return widget
-
-    def build_inventory_tab(self):
-        self.projects_list_widget = ProjectListWidget()
-        self.tables.databases = DatabasesTableWidget()
-
-        # Not visible when instantiated
-        self.tables.activities = ActivitiesTableWidget()
-        self.tables.flows = FlowsTableWidget()
-
-        self.buttons.add_default_data = QtGui.QPushButton('Add Default Data (Biosphere flows, LCIA methods)')
-        self.buttons.new_project = QtGui.QPushButton('Create New Project')
-        self.buttons.copy_project = QtGui.QPushButton('Copy Current Project')
-        self.buttons.delete_project = QtGui.QPushButton('Delete Current Project')
-        self.buttons.new_database = QtGui.QPushButton('Create New Database')
-        self.labels.no_database = QtGui.QLabel('No database selected yet')
-
-        projects_list_layout = QtGui.QHBoxLayout()
-        projects_list_layout.setAlignment(QtCore.Qt.AlignLeft)
-        projects_list_layout.addWidget(QtGui.QLabel('Current Project:'))
-        projects_list_layout.addWidget(self.projects_list_widget)
-
-        projects_button_line = QtGui.QHBoxLayout()
-        projects_button_line.addWidget(header('Projects:'))
-        projects_button_line.addWidget(self.buttons.new_project)
-        projects_button_line.addWidget(self.buttons.copy_project)
-        projects_button_line.addWidget(self.buttons.delete_project)
-
-        project_container = QtGui.QVBoxLayout()
-        project_container.addLayout(projects_button_line)
-        project_container.addWidget(horizontal_line())
-        project_container.addLayout(projects_list_layout)
-
-        databases_table_layout = QtGui.QHBoxLayout()
-        databases_table_layout.addWidget(QtGui.QLabel('Databases:'))
-        databases_table_layout.addWidget(self.tables.databases)
-        databases_table_layout.addWidget(self.buttons.new_database)
-        databases_table_layout.setAlignment(QtCore.Qt.AlignTop)
-
-        self.databases_table_layout_widget = QtGui.QWidget()
-        self.databases_table_layout_widget.setLayout(
-            databases_table_layout
-        )
-
-        default_data_button_layout = QtGui.QHBoxLayout()
-        default_data_button_layout.addWidget(self.buttons.add_default_data)
-
-        self.default_data_button_layout_widget = QtGui.QWidget()
-        self.default_data_button_layout_widget.hide()
-        self.default_data_button_layout_widget.setLayout(
-            default_data_button_layout
-        )
-
-        database_container = QtGui.QVBoxLayout()
-        database_container.addWidget(header('Databases:'))
-        database_container.addWidget(horizontal_line())
-        database_container.addWidget(
-            self.databases_table_layout_widget
-        )
-        database_container.addWidget(
-            self.default_data_button_layout_widget
-        )
-
-        activities_container = QtGui.QVBoxLayout()
-        activities_container.addWidget(header('Activities:'))
-        activities_container.addWidget(horizontal_line())
-        activities_container.addWidget(self.labels.no_database)
-        activities_container.addWidget(self.tables.activities)
-        activities_container.addWidget(header('Biosphere Flows:'))
-        activities_container.addWidget(horizontal_line())
-        activities_container.addWidget(self.labels.no_database)
-        activities_container.addWidget(self.tables.flows)
-
-        # Overall Layout
-        tab_container = QtGui.QVBoxLayout()
-        tab_container.addLayout(project_container)
-        tab_container.addLayout(database_container)
-        tab_container.addLayout(activities_container)
-        tab_container.addStretch(1)
-
-        containing_widget = QtGui.QWidget()
-        containing_widget.setLayout(tab_container)
-
-        # Context menus (shown on right click)
-        self.tables.databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-
-        self.actions.delete_database = QtGui.QAction(
-            QtGui.QIcon(icons.delete), "Delete database", None
-        )
-        self.tables.databases.addAction(self.actions.delete_database)
-
-        return containing_widget
 
     def add_right_inventory_tables(self, database):
         self.labels.no_database.hide()
