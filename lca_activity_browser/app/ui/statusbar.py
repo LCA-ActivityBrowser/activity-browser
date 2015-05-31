@@ -20,7 +20,8 @@ class Statusbar(object):
         self.statusbar.addWidget(self.status_message_center, 2)
         self.statusbar.addWidget(self.status_message_right, 0)
 
-        signals.project_changed.connect(self.set_project)
+        signals.project_selected.connect(self.set_project)
+        signals.database_selected.connect(self.set_database)
 
     def left(self, message):
         self.status_message_left.setText(message)
@@ -34,3 +35,6 @@ class Statusbar(object):
     def set_project(self, name):
         self.center("Project: {}".format(name))
         self.right("Database: None")
+
+    def set_database(self, name):
+        self.right("Database: {}".format(name))

@@ -17,33 +17,34 @@ class Application(object):
         self.main_window.showMaximized()
 
     def connect_signals(self):
-        self.main_window.inventory_tab.connect_signals(self.controller)
+        self.main_window.right_panel.inventory_tab.connect_signals(self.controller)
+        self.main_window.left_panel.cs_tab.connect_signals(self.controller)
 
         # CFs table -> Add cfs table
-        self.main_window.tables.databases.itemDoubleClicked.connect(
-            self.controller.select_database
-        )
-        self.main_window.tables.activities.itemDoubleClicked.connect(
-            self.controller.select_activity
-        )
-        self.main_window.buttons.new_database.clicked.connect(
-            self.controller.add_database
-        )
-        self.main_window.buttons.new_project.clicked.connect(
-            self.controller.new_project
-        )
-        self.main_window.buttons.delete_project.clicked.connect(
-            self.controller.delete_project
-        )
-        self.main_window.buttons.add_default_data.clicked.connect(
-            self.controller.install_default_data
-        )
+        # self.main_window.right_panel.inventory_tab.databases.itemDoubleClicked.connect(
+        #     self.controller.select_database
+        # )
+        # self.main_window.tables.activities.itemDoubleClicked.connect(
+        #     self.controller.select_activity
+        # )
+        # self.main_window.buttons.new_database.clicked.connect(
+        #     self.controller.add_database
+        # )
+        # self.main_window.buttons.new_project.clicked.connect(
+        #     self.controller.new_project
+        # )
+        # self.main_window.buttons.delete_project.clicked.connect(
+        #     self.controller.delete_project
+        # )
+        # self.main_window.buttons.add_default_data.clicked.connect(
+        #     self.controller.install_default_data
+        # )
         # self.main_window.buttons.new_calculation_setup.clicked.connect(
         #     self.controller.new_calculation_setup
         # )
-        self.main_window.actions.delete_database.triggered.connect(
-            self.controller.delete_database
-        )
+        # self.main_window.actions.delete_database.triggered.connect(
+        #     self.controller.delete_database
+        # )
         # self.main_window.tables.calculation_setups_activities.cellChanged.connect(
         #     self.controller.handle_calculation_setup_activity_table_change
         # )

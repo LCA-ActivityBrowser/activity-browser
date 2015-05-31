@@ -6,7 +6,9 @@ from PyQt4 import QtCore
 
 
 class Signals(QtCore.QObject):
-    project_changed = QtCore.pyqtSignal(str)
+    project_selected = QtCore.pyqtSignal(str)
+    database_selected = QtCore.pyqtSignal(str)
     method_selected = QtCore.pyqtSignal(tuple)
+    calculation_setup_selected = QtCore.pyqtSignal(str)
 
 signals = Signals()

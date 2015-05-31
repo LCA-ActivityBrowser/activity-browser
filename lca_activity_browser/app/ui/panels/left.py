@@ -21,3 +21,6 @@ class LeftPanel(QtGui.QTabWidget):
         self.addTab(self.activity_tab, 'Activity')
         self.addTab(self.cfs_tab, 'LCIA CFs')
         self.addTab(self.cs_tab, 'LCA Calculations')
+
+    def select_tab(self, obj):
+        self.setCurrentIndex(self.indexOf(obj))

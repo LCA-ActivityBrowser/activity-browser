@@ -13,7 +13,6 @@ class CFsTab(QtGui.QWidget):
 
     def __init__(self, parent):
         super(CFsTab, self).__init__(parent)
-        self.window = parent
         # Not visible when instantiated
         self.cf_table = CFsTableWidget()
         self.no_method_label = QtGui.QLabel(self.NO_METHOD)
@@ -24,7 +23,7 @@ class CFsTab(QtGui.QWidget):
         container.addWidget(self.cf_table)
         container.setAlignment(QtCore.Qt.AlignTop)
 
-        signals.project_changed.connect(self.hide_cfs_table)
+        signals.project_selected.connect(self.hide_cfs_table)
         signals.method_selected.connect(self.add_cfs_table)
 
         self.setLayout(container)
@@ -35,7 +34,7 @@ class CFsTab(QtGui.QWidget):
         )
         self.cf_table.sync(method)
         self.cf_table.show()
-        self.window.select_tab(self, "left")
+        self.parent.parent.select_tab(self, "left")
 
     def hide_cfs_table(self):
         self.cf_table.hide()
@@ -46,7 +45,6 @@ class CFsTab(QtGui.QWidget):
 class MethodsTab(QtGui.QWidget):
     def __init__(self, parent):
         super(MethodsTab, self).__init__(parent)
-        self.window = parent
 
         self.table = MethodsTableWidget()
 
@@ -56,7 +54,7 @@ class MethodsTab(QtGui.QWidget):
         container.addWidget(self.table)
         self.setLayout(container)
 
-        signals.project_changed.connect(self.flush_table)
+        signals.project_selected.connect(self.flush_table)
 
     def flush_table(self, name):
         self.table.sync()

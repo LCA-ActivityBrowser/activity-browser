@@ -24,7 +24,7 @@ class Controller(object):
             return
         projects.project = name
         self.current.database = None
-        signals.project_changed.emit(name)
+        signals.project_selected.emit(name)
 
     def select_calculation_setup(self, name):
         self.current.calculation_setup = name
@@ -37,14 +37,14 @@ class Controller(object):
         self.window.tables.databases.sync()
         self.window.databases_table_layout_widget.show()
 
-    def select_database(self, item):
-        if isinstance(item, str):
-            name = item
-        else:
-            name = item.db_name
-        self.current.database = Database(name)
-        self.window.statusbar.right("Database: {}".format(name))
-        self.window.add_right_inventory_tables(self.current.database)
+    # def select_database(self, item):
+    #     if isinstance(item, str):
+    #         name = item
+    #     else:
+    #         name = item.db_name
+    #     self.current.database = Database(name)
+    #     self.window.statusbar.right("Database: {}".format(name))
+    #     self.window.add_right_inventory_tables(self.current.database)
 
     def select_activity(self, item):
         self.window.graphics.lobby1.hide()
@@ -89,6 +89,7 @@ class Controller(object):
         )
         if name:
             calculation_setups[name] = {}
+            signals.calculation_setup_selected.emit(name)
             self.window.calculation_setups_list._model.reset()
             self.select_calculation_setup(name)
 

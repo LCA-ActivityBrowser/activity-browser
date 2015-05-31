@@ -40,3 +40,8 @@ class CalculationSetupTab(QtGui.QWidget):
         container.addWidget(self.methods_table)
 
         self.setLayout(container)
+
+    def connect_signals(self, controller):
+        """Signals that alter data and need access to Controller"""
+        self.new_cs_button.clicked.connect(controller.new_calculation_setup)
+

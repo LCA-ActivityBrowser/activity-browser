@@ -8,14 +8,9 @@ from ..calculation_setups import (
     CSListWidget,
     CSMethodsTableWidget,
 )
-from ..databases_table import (
-    ActivitiesTableWidget,
-    DatabasesTableWidget,
-    FlowsTableWidget,
-)
 from . import horizontal_line, header
 from .icons import icons
-from .panels import LeftPanel
+from .panels import LeftPanel, RightPanel
 from .menu_bar import MenuBar
 from ..methods import MethodsTableWidget, CFsTableWidget
 from ..projects import ProjectListWidget
@@ -62,7 +57,7 @@ class MainWindow(QtGui.QMainWindow):
         self.main_horizontal_box = QtGui.QHBoxLayout()
 
         self.left_panel = LeftPanel(self)
-        self.right_panel = self.build_right_panel()
+        self.right_panel = RightPanel(self)
 
         self.splitter_horizontal = QtGui.QSplitter(QtCore.Qt.Horizontal)
         self.splitter_horizontal.addWidget(self.left_panel)
@@ -89,17 +84,6 @@ class MainWindow(QtGui.QMainWindow):
         panel = self.left_panel if side == 'left' else self.right_panel
         panel.setCurrentIndex(panel.indexOf(obj))
 
-    def build_right_panel(self):
-        panel = QtGui.QTabWidget()
-        panel.setMovable(True)
-
-        self.inventory_tab = InventoryTab(self)
-        self.methods_tab = MethodsTab(self)
-        panel.addTab(self.inventory_tab, 'Inventory')
-        panel.addTab(self.methods_tab, 'Impact Assessment')
-
-        return panel
-
     def dialog(self, title, label):
         value, ok = QtGui.QInputDialog.getText(self, title, label)
         if ok:
@@ -114,12 +98,3 @@ class MainWindow(QtGui.QMainWindow):
             QtGui.QMessageBox.No
         )
         return response == QtGui.QMessageBox.Yes
-
-    def add_right_inventory_tables(self, database):
-        self.labels.no_database.hide()
-        self.tables.activities.clear()
-        self.tables.activities.sync(database)
-        self.tables.flows.clear()
-        self.tables.flows.sync(database)
-        self.tables.activities.show()
-        self.tables.flows.show()

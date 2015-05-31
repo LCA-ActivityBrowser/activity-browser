@@ -2,7 +2,7 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from .databases_table import ActivitiesTableWidget
+from .ui.tables import ActivitiesTableWidget
 from .methods import MethodsTableWidget
 from brightway2 import *
 from PyQt4 import QtCore, QtGui

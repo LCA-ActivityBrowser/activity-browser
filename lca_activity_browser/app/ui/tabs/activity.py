@@ -28,7 +28,7 @@ class ActivityDetailsTab(QtGui.QWidget):
         activity_container.addWidget(self.chart2)
         self.setLayout(activity_container)
 
-        signals.project_changed.connect(self.get_focus)
+        signals.project_selected.connect(self.get_focus)
 
     def get_focus(self, name):
-        self.window.select_tab(self, "left")
+        self.window.select_tab(self)
