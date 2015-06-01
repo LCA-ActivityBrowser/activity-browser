@@ -29,20 +29,25 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.setDragEnabled(True)
         self.setColumnCount(4)
 
-        signals.database_selected.connect(self.sync)
+        # Done by tab widget ``MaybeActivitiesTable`` because
+        # need to ensure order to get correct row count
+        # signals.database_selected.connect(self.sync)
         self.itemDoubleClicked.connect(self.select_activity)
 
     def sync(self, name):
         self.clear()
-        self.setRowCount(self.COUNT)
-        self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
         database = Database(name)
         database.order_by = 'name'
         database.filters = {'type': 'process'}
+        self.setRowCount(min(len(database), self.COUNT))
+        self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
         data = itertools.islice(database, 0, self.COUNT)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
                 self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
+
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
 
     def select_activity(self, item):
         print("Select activity:", item.key)

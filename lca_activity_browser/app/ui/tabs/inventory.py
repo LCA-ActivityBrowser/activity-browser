@@ -15,6 +15,50 @@ from brightway2 import *
 from PyQt4 import QtCore, QtGui
 
 
+class MaybeTable(QtGui.QWidget):
+    def __init__(self, parent):
+        super(MaybeTable, self).__init__(parent)
+        self.table = self.TABLE()
+
+        self.no_activities = QtGui.QLabel(self.NO)
+
+        inventory_layout = QtGui.QVBoxLayout()
+        inventory_layout.addWidget(header(self.HEADER))
+        inventory_layout.addWidget(horizontal_line())
+        inventory_layout.addWidget(self.table)
+
+        self.yes_activities = QtGui.QWidget(self)
+        self.yes_activities.setLayout(inventory_layout)
+
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(self.no_activities)
+        layout.addWidget(self.yes_activities)
+        self.setLayout(layout)
+
+        signals.database_selected.connect(self.choose)
+
+    def choose(self, name):
+        self.table.sync(name)
+        if self.table.rowCount():
+            self.no_activities.hide()
+            self.yes_activities.show()
+        else:
+            self.no_activities.show()
+            self.yes_activities.hide()
+
+
+class MaybeActivitiesTable(MaybeTable):
+    NO = 'This database has no technosphere activities'
+    TABLE = ActivitiesTableWidget
+    HEADER = 'Activities:'
+
+
+class MaybeFlowsTable(MaybeTable):
+    NO = 'This database has no biosphere flows'
+    TABLE = FlowsTableWidget
+    HEADER = 'Biosphere flows:'
+
+
 class InventoryTab(QtGui.QWidget):
     def __init__(self, parent):
         super(InventoryTab, self).__init__(parent)
@@ -24,7 +68,6 @@ class InventoryTab(QtGui.QWidget):
         self.databases = DatabasesTableWidget()
 
         # Not visible when instantiated
-        self.activities = ActivitiesTableWidget()
         self.flows = FlowsTableWidget()
 
         self.add_default_data_button = QtGui.QPushButton('Add Default Data (Biosphere flows, LCIA methods)')
@@ -88,12 +131,8 @@ class InventoryTab(QtGui.QWidget):
         )
 
         inventory_layout = QtGui.QVBoxLayout()
-        inventory_layout.addWidget(header('Activities:'))
-        inventory_layout.addWidget(horizontal_line())
-        inventory_layout.addWidget(self.activities)
-        inventory_layout.addWidget(header('Biosphere Flows:'))
-        inventory_layout.addWidget(horizontal_line())
-        inventory_layout.addWidget(self.flows)
+        inventory_layout.addWidget(MaybeActivitiesTable(self))
+        inventory_layout.addWidget(MaybeFlowsTable(self))
 
         self.inventory_container = QtGui.QWidget()
         self.inventory_container.setLayout(inventory_layout)
@@ -138,8 +177,6 @@ class InventoryTab(QtGui.QWidget):
         self.projects_list_widget.setCurrentIndex(index)
         self.databases.sync()
 
-        self.flows.clear()
-        self.activities.clear()
         self.no_database_container.show()
         self.inventory_container.hide()
 

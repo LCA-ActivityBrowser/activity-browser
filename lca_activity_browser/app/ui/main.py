@@ -3,11 +3,6 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from .. import Container
-from ..calculation_setups import (
-    CSActivityTableWidget,
-    CSListWidget,
-    CSMethodsTableWidget,
-)
 from . import horizontal_line, header
 from .icons import icons
 from .panels import LeftPanel, RightPanel

@@ -2,7 +2,8 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from .ui.tables import ActivitiesTableWidget, MethodsTableWidget
+from .ia import MethodsTableWidget
+from .activity import ActivitiesTableWidget
 from brightway2 import *
 from PyQt4 import QtCore, QtGui
 

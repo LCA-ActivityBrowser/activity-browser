@@ -2,7 +2,7 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from ...calculation_setups import (
+from ..tables import (
     CSActivityTableWidget,
     CSListWidget,
     CSMethodsTableWidget,

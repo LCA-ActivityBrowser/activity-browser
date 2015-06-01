@@ -25,14 +25,17 @@ class FlowsTableWidget(QtGui.QTableWidget):
         signals.database_selected.connect(self.sync)
 
     def sync(self, name):
-        self.clear()
-        self.setRowCount(self.COUNT)
-        self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])
         database = Database(name)
         database.order_by = 'name'
         database.filters = {'type': 'emission'}
+        self.clear()
+        self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])
+        self.setRowCount(min(len(database), self.COUNT))
         data = itertools.islice(database, 0, self.COUNT)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
                 self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
             self.setItem(row, 1, ActivityItem(", ".join(ds.get('categories', [])), key=ds.key))
+
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
