@@ -2,8 +2,11 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from PyQt4 import QtCore, QtGui, QtWebKit
+from ..signals import signals
 from .icons import icons
+from .tables import ProjectListWidget
+from brightway2 import projects
+from PyQt4 import QtCore, QtGui, QtWebKit
 
 
 class Toolbar(object):
@@ -14,16 +17,29 @@ class Toolbar(object):
         # First is a search box, then a bunch of actions
 
         self.search_box = self.get_search_box()
-        self.key_search_action = self.get_key_search()
+        # self.key_search_action = self.get_key_search()
+
+        self.new_project_button = QtGui.QPushButton('New')
+        self.copy_project_button = QtGui.QPushButton('Copy')
+        self.delete_project_button = QtGui.QPushButton('Delete')
+        self.projects_list_widget = ProjectListWidget()
 
         self.toolbar = QtGui.QToolBar('Toolbar')
         self.toolbar.addWidget(self.search_box)
+
+        spacer = QtGui.QWidget()
+        spacer.setSizePolicy(
+            QtGui.QSizePolicy.Expanding,
+            QtGui.QSizePolicy.Expanding
+        )
+        self.toolbar.addWidget(spacer)
         self.toolbar.addSeparator()
-        ACTIONS = [
-            self.key_search_action,
-        ]
-        for action in ACTIONS:
-            self.toolbar.addAction(action)
+
+        # ACTIONS = [
+        #     self.key_search_action,
+        # ]
+        # for action in ACTIONS:
+        #     self.toolbar.addAction(action)
 
         # self.toolbar.addAction(action_key)
         # self.toolbar.addAction(action_random_activity)
@@ -32,7 +48,28 @@ class Toolbar(object):
         # self.toolbar.addAction(action_forward)
         # self.toolbar.addAction(action_edit)
         # self.toolbar.addAction(action_calculate)
+
+        self.toolbar.addWidget(QtGui.QLabel('Current Project:'))
+        self.toolbar.addWidget(self.projects_list_widget)
+        self.toolbar.addWidget(self.new_project_button)
+        self.toolbar.addWidget(self.copy_project_button)
+        self.toolbar.addWidget(self.delete_project_button)
+
+
         self.window.addToolBar(self.toolbar)
+
+        signals.project_selected.connect(self.change_project)
+
+    def connect_signals(self, controller):
+        self.projects_list_widget.currentIndexChanged['QString'].connect(
+            controller.select_project
+        )
+        self.new_project_button.clicked.connect(controller.new_project)
+        self.delete_project_button.clicked.connect(controller.delete_project)
+
+    def change_project(self, name):
+        index = sorted([project.name for project in projects]).index(projects.project)
+        self.projects_list_widget.setCurrentIndex(index)
 
     def get_search_box(self):
         search_box = QtGui.QLineEdit()

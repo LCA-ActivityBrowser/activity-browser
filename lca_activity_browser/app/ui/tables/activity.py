@@ -32,7 +32,9 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         # Done by tab widget ``MaybeActivitiesTable`` because
         # need to ensure order to get correct row count
         # signals.database_selected.connect(self.sync)
-        self.itemDoubleClicked.connect(self.select_activity)
+        self.itemDoubleClicked.connect(
+            lambda x: signals.activity_selected.emit(x.key)
+        )
 
     def sync(self, name):
         self.clear()
@@ -48,7 +50,3 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-
-    def select_activity(self, item):
-        print("Select activity:", item.key)
-        signals.activity_selected.emit(item.key)

@@ -6,5 +6,7 @@ from .calculation_setups import (
     CSMethodsTableWidget,
 )
 from .database import DatabasesTableWidget
+from .exchange import ExchangeTableWidget
+from .history import ActivitiesHistoryWidget
 from .ia import CFsTableWidget, MethodsTableWidget
 from .projects import ProjectListWidget

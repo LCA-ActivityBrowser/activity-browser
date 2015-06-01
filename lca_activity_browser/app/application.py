@@ -20,3 +20,4 @@ class Application(object):
     def connect_signals(self):
         self.main_window.right_panel.inventory_tab.connect_signals(self.controller)
         self.main_window.left_panel.cs_tab.connect_signals(self.controller)
+        self.main_window.toolbar.connect_signals(self.controller)

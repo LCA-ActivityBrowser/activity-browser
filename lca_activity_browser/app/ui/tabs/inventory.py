@@ -64,16 +64,12 @@ class InventoryTab(QtGui.QWidget):
         super(InventoryTab, self).__init__(parent)
         self.window = parent
 
-        self.projects_list_widget = ProjectListWidget()
         self.databases = DatabasesTableWidget()
 
         # Not visible when instantiated
         self.flows = FlowsTableWidget()
 
         self.add_default_data_button = QtGui.QPushButton('Add Default Data (Biosphere flows, LCIA methods)')
-        self.new_project_button = QtGui.QPushButton('Create New Project')
-        self.copy_project_button = QtGui.QPushButton('Copy Current Project')
-        self.delete_project_button = QtGui.QPushButton('Delete Current Project')
         self.new_database_button = QtGui.QPushButton('Create New Database')
 
         no_database_layout = QtGui.QVBoxLayout()
@@ -82,22 +78,6 @@ class InventoryTab(QtGui.QWidget):
         no_database_layout.setAlignment(QtCore.Qt.AlignTop)
         self.no_database_container = QtGui.QWidget()
         self.no_database_container.setLayout(no_database_layout)
-
-        projects_list_layout = QtGui.QHBoxLayout()
-        projects_list_layout.setAlignment(QtCore.Qt.AlignLeft)
-        projects_list_layout.addWidget(QtGui.QLabel('Current Project:'))
-        projects_list_layout.addWidget(self.
-            projects_list_widget)
-
-        projects_button_line = QtGui.QHBoxLayout()
-        projects_button_line.addWidget(header('Projects:'))
-        projects_button_line.addWidget(self.new_project_button)
-        projects_button_line.addWidget(self.copy_project_button)
-        projects_button_line.addWidget(self.delete_project_button)
-
-        project_container = QtGui.QVBoxLayout()
-        project_container.addLayout(projects_button_line)
-        project_container.addLayout(projects_list_layout)
 
         databases_table_layout = QtGui.QHBoxLayout()
         databases_table_layout.addWidget(self.databases)
@@ -143,7 +123,6 @@ class InventoryTab(QtGui.QWidget):
 
         # Overall Layout
         tab_container = QtGui.QVBoxLayout()
-        tab_container.addLayout(project_container)
         tab_container.addLayout(database_container)
         tab_container.addLayout(activities_container)
         tab_container.addStretch(1)
@@ -163,18 +142,11 @@ class InventoryTab(QtGui.QWidget):
 
     def connect_signals(self, controller):
         """Signals that alter data and need access to Controller"""
-        self.projects_list_widget.currentIndexChanged['QString'].connect(
-            controller.select_project
-        )
-        self.new_project_button.clicked.connect(controller.new_project)
-        self.delete_project_button.clicked.connect(controller.delete_project)
         self.new_database_button.clicked.connect(controller.add_database)
         self.delete_database_action.triggered.connect(controller.delete_database)
         self.add_default_data_button.clicked.connect(controller.install_default_data)
 
     def change_project(self, name):
-        index = sorted([project.name for project in projects]).index(projects.project)
-        self.projects_list_widget.setCurrentIndex(index)
         self.databases.sync()
 
         self.no_database_container.show()
