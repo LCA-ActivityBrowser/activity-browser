@@ -2,7 +2,7 @@ from .activity import ActivitiesTableWidget
 from .biosphere import FlowsTableWidget
 from .calculation_setups import (
     CSActivityTableWidget,
-    CSListWidget,
+    CSList,
     CSMethodsTableWidget,
 )
 from .database import DatabasesTableWidget

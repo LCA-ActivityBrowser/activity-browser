@@ -13,6 +13,10 @@ class Controller(object):
         self.current = Container()
         self.select_project(self.get_default_project_name())
 
+        signals.calculation_setup_changed.connect(
+            self.write_current_calculation_setup
+        )
+
     def get_default_project_name(self):
         if "default" in projects:
             return "default"
@@ -73,30 +77,36 @@ class Controller(object):
             del databases[name]
             signals.databases_changed.emit()
 
-
-    def select_calculation_setup(self, name):
-        self.current.calculation_setup = name
-        self.window.tables.calculation_setups.show()
-        self.window.calculation_setups_list.select(name)
-
     def new_calculation_setup(self):
         name = self.window.dialog(
             "Create new calculation setup",
             "Name of new calculation setup:" + " " * 10
         )
         if name:
-            calculation_setups[name] = {}
+            calculation_setups[name] = {'inv': [], 'ia': []}
             signals.calculation_setup_selected.emit(name)
-            self.window.calculation_setups_list._model.reset()
-            self.select_calculation_setup(name)
 
-    def handle_calculation_setup_activity_table_change(self, row, col):
-        if col == 1:
-            self.write_current_calculation_setup()
+    def delete_calculation_setup(self):
+        name = self.window.left_panel.cs_tab.list_widget.name
+        del calculation_setups[name]
+        self.window.left_panel.cs_tab.set_default_calculation_setup()
 
-    def handle_calculation_setup_method_table_change(self, row, col):
-        self.write_current_calculation_setup()
+    def rename_calculation_setup(self):
+        current = self.window.left_panel.cs_tab.list_widget.name
+        new_name = self.window.dialog(
+            "Rename '{}'".format(current),
+            "New name of this calculation setup:" + " " * 10
+        )
+        if new_name:
+            calculation_setups[new_name] = calculation_setups[current]
+            del calculation_setups[current]
+            signals.calculation_setup_selected.emit(new_name)
 
     def write_current_calculation_setup(self):
         """Iterate over activity and methods tables, and write calculation setup to ``calculation_setups``."""
-        print("Called sync_current_calculation_setup")
+        current = self.window.left_panel.cs_tab.list_widget.name
+        calculation_setups[current] = {
+            'inv': self.window.left_panel.cs_tab.activities_table.to_python(),
+            'ia': self.window.left_panel.cs_tab.methods_table.to_python()
+        }
+

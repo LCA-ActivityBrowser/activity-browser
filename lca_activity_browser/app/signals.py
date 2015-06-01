@@ -12,5 +12,6 @@ class Signals(QtCore.QObject):
     method_selected = QtCore.pyqtSignal(tuple)
     activity_selected = QtCore.pyqtSignal(tuple)
     calculation_setup_selected = QtCore.pyqtSignal(str)
+    calculation_setup_changed = QtCore.pyqtSignal()
 
 signals = Signals()
