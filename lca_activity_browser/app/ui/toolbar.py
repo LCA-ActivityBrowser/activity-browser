@@ -16,7 +16,7 @@ class Toolbar(object):
         # Toolbar elements are layed out left to right.
         # First is a search box, then a bunch of actions
 
-        self.search_box = self.get_search_box()
+        # self.search_box = self.get_search_box()
         # self.key_search_action = self.get_key_search()
 
         self.new_project_button = QtGui.QPushButton('New')
@@ -25,7 +25,8 @@ class Toolbar(object):
         self.projects_list_widget = ProjectListWidget()
 
         self.toolbar = QtGui.QToolBar('Toolbar')
-        self.toolbar.addWidget(self.search_box)
+        # self.toolbar.addWidget(self.search_box)
+        self.toolbar.addWidget(QtGui.QLabel('Brightway2 Activity Browser'))
 
         spacer = QtGui.QWidget()
         spacer.setSizePolicy(
