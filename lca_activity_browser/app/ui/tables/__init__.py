@@ -10,3 +10,4 @@ from .exchange import ExchangeTableWidget
 from .history import ActivitiesHistoryWidget
 from .ia import CFsTableWidget, MethodsTableWidget
 from .projects import ProjectListWidget
+from .lca_results import LCAResultsTable

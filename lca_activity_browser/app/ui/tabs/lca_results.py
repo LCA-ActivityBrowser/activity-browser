@@ -8,6 +8,7 @@ from PyQt4 import QtGui, QtCore
 from bw2calc.multi_lca import MultiLCA
 from ...signals import signals
 from ..graphics import CorrelationPlot
+from ..tables import LCAResultsTable
 
 
 class LCAResultsTab(QtGui.QWidget):
@@ -31,12 +32,29 @@ class LCAResultsTab(QtGui.QWidget):
         if self.visible:
             self.tab.removeTab(4)
             self.visible = False
-            self.corr_chart.deleteLater()
+            self.clear_layout()
+
+    def clear_layout(self):
+        for index in range(self.layout.count(), 0, -1):
+            widget = self.layout.itemAt(index).widget()
+            if widget:
+                widget.deleteLater()
 
     def calculate(self, name):
         self.lca = MultiLCA(name)
-        labels = [str(x + 1) for x in range(len(self.lca.activities))]
         normalized_results = self.lca.results / self.lca.results.max(axis=0)
-        self.corr_chart = CorrelationPlot(self, normalized_results.T, labels)
-        self.layout.addWidget(self.corr_chart)
+        labels = [str(x + 1) for x in range(len(self.lca.activities))]
+        corr_chart = CorrelationPlot(self, normalized_results.T, labels)
+
+        results_table = LCAResultsTable(self)
+        results_table.sync(self.lca)
+
+        self.layout.addWidget(header("LCA score correlation:"))
+        self.layout.addWidget(horizontal_line())
+        self.layout.addWidget(corr_chart)
+
+        self.layout.addWidget(header("LCA scores:"))
+        self.layout.addWidget(horizontal_line())
+        self.layout.addWidget(results_table)
+
         self.add_tab()
