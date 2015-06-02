@@ -54,3 +54,23 @@ class DefaultGraph(FigureCanvasQTAgg):
 
         self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         self.updateGeometry()
+
+
+class CorrelationPlot(FigureCanvasQTAgg):
+    def __init__(self, parent, data, labels, width=6, height=6, dpi=100):
+        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        axes = figure.add_subplot(111)
+
+        super(CorrelationPlot, self).__init__(figure)
+        self.setParent(parent)
+
+        sns.set(style="darkgrid")
+
+
+        cmap = sns.diverging_palette(220, 10, as_cmap=True)
+        sns.corrplot(data, names=labels, annot=True, sig_stars=False,
+             diag_names=True, cmap=cmap, ax=axes)
+
+        # If uncommented, fills widget
+        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.updateGeometry()

@@ -84,9 +84,10 @@ class CalculationSetupTab(QtGui.QWidget):
         self.methods_table = CSMethodsTableWidget()
         self.list_widget = CSList()
 
-        self.new_cs_button = QtGui.QPushButton('New calculation setup')
-        self.rename_cs_button = QtGui.QPushButton('Rename this setup')
-        self.delete_cs_button = QtGui.QPushButton('Delete this setup')
+        self.new_cs_button = QtGui.QPushButton('New')
+        self.rename_cs_button = QtGui.QPushButton('Rename')
+        self.delete_cs_button = QtGui.QPushButton('Delete')
+        self.calculate_button = QtGui.QPushButton('Calculate')
 
         name_row = QtGui.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -94,6 +95,7 @@ class CalculationSetupTab(QtGui.QWidget):
         name_row.addWidget(self.new_cs_button)
         name_row.addWidget(self.rename_cs_button)
         name_row.addWidget(self.delete_cs_button)
+        name_row.addWidget(self.calculate_button)
 
         container = QtGui.QVBoxLayout()
         container.addLayout(name_row)
@@ -109,6 +111,10 @@ class CalculationSetupTab(QtGui.QWidget):
 
         signals.project_selected.connect(self.set_default_calculation_setup)
         signals.calculation_setup_selected.connect(self.show_details)
+        self.calculate_button.clicked.connect(self.start_calculation)
+
+    def start_calculation(self):
+        signals.lca_calculation.emit(self.list_widget.name)
 
     def set_default_calculation_setup(self):
         if not len(calculation_setups):

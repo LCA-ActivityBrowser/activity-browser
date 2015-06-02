@@ -6,6 +6,7 @@ from .. import horizontal_line, header
 from ..tables import ActivitiesHistoryWidget
 from ..tabs import (
     InventoryTab,
+    LCAResultsTab,
     MethodsTab,
 )
 from PyQt4 import QtGui, QtCore
@@ -19,6 +20,7 @@ class RightPanel(QtGui.QTabWidget):
         self.history_tab = self.get_history_tab()
         self.inventory_tab = InventoryTab(self)
         self.methods_tab = MethodsTab(self)
+        self.lca_results_tab = LCAResultsTab(self)
         self.addTab(self.inventory_tab, 'Inventory')
         self.addTab(self.methods_tab, 'Impact Assessment')
         self.addTab(self.history_tab, 'History')
@@ -34,3 +36,5 @@ class RightPanel(QtGui.QTabWidget):
         tab.setLayout(layout)
         return tab
 
+    def select_tab(self, obj):
+        self.setCurrentIndex(self.indexOf(obj))

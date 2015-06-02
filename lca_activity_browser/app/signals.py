@@ -6,12 +6,14 @@ from PyQt4 import QtCore
 
 
 class Signals(QtCore.QObject):
-    project_selected = QtCore.pyqtSignal(str)
+    activity_selected = QtCore.pyqtSignal(tuple)
+    calculation_setup_changed = QtCore.pyqtSignal()
+    calculation_setup_selected = QtCore.pyqtSignal(str)
     database_selected = QtCore.pyqtSignal(str)
     databases_changed = QtCore.pyqtSignal()
+    lca_calculation = QtCore.pyqtSignal(str)
     method_selected = QtCore.pyqtSignal(tuple)
-    activity_selected = QtCore.pyqtSignal(tuple)
-    calculation_setup_selected = QtCore.pyqtSignal(str)
-    calculation_setup_changed = QtCore.pyqtSignal()
+    project_selected = QtCore.pyqtSignal(str)
+
 
 signals = Signals()
