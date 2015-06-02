@@ -26,7 +26,7 @@ class MaybeTable(QtGui.QWidget):
         inventory_layout = QtGui.QVBoxLayout()
         if self.searchable:
             self.search_box = QtGui.QLineEdit()
-            self.search_box.setPlaceholderText("Filter activities")
+            self.search_box.setPlaceholderText("Filter activities by search string")
             reset_search_buton = QtGui.QPushButton("Reset")
 
             search_layout = QtGui.QHBoxLayout()

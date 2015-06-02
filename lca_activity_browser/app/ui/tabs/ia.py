@@ -48,14 +48,27 @@ class MethodsTab(QtGui.QWidget):
         super(MethodsTab, self).__init__(parent)
 
         self.table = MethodsTableWidget()
+        self.search_box = QtGui.QLineEdit()
+        self.search_box.setPlaceholderText("Filter LCIA methods")
+        reset_search_buton = QtGui.QPushButton("Reset")
+
+        search_layout = QtGui.QHBoxLayout()
+        search_layout.setAlignment(QtCore.Qt.AlignLeft)
+        search_layout.addWidget(header('LCIA Methods:'))
+        search_layout.addWidget(self.search_box)
+        search_layout.addWidget(reset_search_buton)
+
+        search_layout_container = QtGui.QWidget()
+        search_layout_container.setLayout(search_layout)
 
         container = QtGui.QVBoxLayout()
-        container.addWidget(header('LCIA Methods:'))
+        container.addWidget(search_layout_container)
         container.addWidget(horizontal_line())
         container.addWidget(self.table)
         self.setLayout(container)
 
-        signals.project_selected.connect(self.flush_table)
-
-    def flush_table(self, name):
-        self.table.sync()
+        signals.project_selected.connect(lambda x: self.table.sync())
+        reset_search_buton.clicked.connect(self.table.sync)
+        reset_search_buton.clicked.connect(self.search_box.clear)
+        self.search_box.returnPressed.connect(lambda : self.table.sync(query=self.search_box.text()))
+        signals.project_selected.connect(self.search_box.clear)

@@ -26,12 +26,23 @@ class MethodsTableWidget(QtGui.QTableWidget):
             lambda x: signals.method_selected.emit(x.method)
         )
 
-    def sync(self):
+    def sync(self, query=None):
         self.clear()
-        self.setRowCount(len(methods))
-        for row, method in enumerate(sorted(methods, key=lambda x: ("".join(x)).lower())):
+        self.setHorizontalHeaderLabels(["Name", "Unit", "# CFs"])
+
+        sorted_names = sorted([(", ".join(method), method) for method in methods])
+
+        if query:
+            sorted_names = [
+                obj for obj in sorted_names
+                if query.lower() in obj[0].lower()
+            ]
+
+        self.setRowCount(len(sorted_names))
+        for row, method_obj in enumerate(sorted_names):
+            name, method = method_obj
             data = methods[method]
-            self.setItem(row, 0, MethodItem(", ".join(method), method=method))
+            self.setItem(row, 0, MethodItem(name, method=method))
             self.setItem(row, 1, MethodItem(data.get('unit', "Unknown"), method=method))
             self.setItem(row, 2, MethodItem(data.get('num_cfs', 'Unknown'), method=method))
 
