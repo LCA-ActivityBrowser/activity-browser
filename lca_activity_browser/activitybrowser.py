@@ -585,6 +585,10 @@ class MainWindow(QtGui.QMainWindow):
         self.action_delete_database.triggered.connect(self.delete_database)
         self.table_databases.addAction(self.action_delete_database)
 
+        self.action_copy_database = QtGui.QAction(QtGui.QIcon(icons.context.duplicate), "copy database", None)
+        self.action_copy_database.triggered.connect(self.copy_database)
+        self.table_databases.addAction(self.action_copy_database)
+
         # Connections
         self.table_databases.itemDoubleClicked.connect(self.gotoDoubleClickDatabase)
         button_add_db.clicked.connect(self.new_database)

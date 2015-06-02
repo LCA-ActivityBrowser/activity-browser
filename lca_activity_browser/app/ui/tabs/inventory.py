@@ -161,6 +161,11 @@ class InventoryTab(QtGui.QWidget):
         )
         self.databases.addAction(self.delete_database_action)
 
+        self.copy_database_action = QtGui.QAction(
+            QtGui.QIcon(icons.duplicate), "Copy database", None
+        )
+        self.databases.addAction(self.copy_database_action)
+
         signals.project_selected.connect(self.change_project)
         signals.database_selected.connect(self.change_database)
 
@@ -170,6 +175,7 @@ class InventoryTab(QtGui.QWidget):
         """Signals that alter data and need access to Controller"""
         self.new_database_button.clicked.connect(controller.add_database)
         self.delete_database_action.triggered.connect(controller.delete_database)
+        self.copy_database_action.triggered.connect(controller.copy_database)
         self.add_default_data_button.clicked.connect(controller.install_default_data)
 
     def change_project(self, name):
