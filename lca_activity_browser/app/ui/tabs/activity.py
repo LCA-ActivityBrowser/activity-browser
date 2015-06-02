@@ -4,7 +4,7 @@ from eight import *
 
 from .. import horizontal_line, header
 from ...signals import signals
-from ..graphics import Canvas
+from ..graphics import DefaultGraph
 from ..tables import ExchangeTableWidget
 from brightway2 import *
 from PyQt4 import QtCore, QtGui
@@ -15,15 +15,15 @@ class ActivityDetailsTab(QtGui.QWidget):
         super(ActivityDetailsTab, self).__init__(parent)
         self.window = parent
 
-        no_activity_label = QtGui.QLabel('No activity selected yet')
+        # no_activity_label = QtGui.QLabel('No activity selected yet')
         # self.no_consumption_label = QtGui.QLabel("No activities consume the reference product of this activity.")
         # self.no_consumption_label.hide()
 
-        chart = Canvas()
+        chart = DefaultGraph(self)
         self.details_widget = self.get_details_widget()
 
         placemat_layout = QtGui.QVBoxLayout()
-        placemat_layout.addWidget(no_activity_label)
+        # placemat_layout.addWidget(no_activity_label)
         placemat_layout.addWidget(chart)
 
         self.placemat = QtGui.QWidget(self)
