@@ -17,6 +17,7 @@ class LCAResultsTable(QtGui.QTableWidget):
     def sync(self, lca):
         self.clear()
 
+        self.setSortingEnabled(True)
         self.setColumnCount(len(lca.methods))
         self.setRowCount(len(lca.activities))
         col_labels = ["-".join(x) for x in lca.methods]

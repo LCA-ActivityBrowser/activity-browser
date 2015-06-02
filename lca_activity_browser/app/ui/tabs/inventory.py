@@ -14,8 +14,9 @@ from ..icons import icons
 from brightway2 import *
 from PyQt4 import QtCore, QtGui
 
-
 class MaybeTable(QtGui.QWidget):
+    searchable = False
+
     def __init__(self, parent):
         super(MaybeTable, self).__init__(parent)
         self.table = self.TABLE()
@@ -23,7 +24,28 @@ class MaybeTable(QtGui.QWidget):
         self.no_activities = QtGui.QLabel(self.NO)
 
         inventory_layout = QtGui.QVBoxLayout()
-        inventory_layout.addWidget(header(self.HEADER))
+        if self.searchable:
+            self.search_box = QtGui.QLineEdit()
+            self.search_box.setPlaceholderText("Filter activities")
+            reset_search_buton = QtGui.QPushButton("Reset")
+
+            search_layout = QtGui.QHBoxLayout()
+            search_layout.setAlignment(QtCore.Qt.AlignLeft)
+            search_layout.addWidget(header(self.HEADER))
+            search_layout.addWidget(self.search_box)
+            search_layout.addWidget(reset_search_buton)
+
+            search_layout_container = QtGui.QWidget()
+            search_layout_container.setLayout(search_layout)
+            inventory_layout.addWidget(search_layout_container)
+
+            reset_search_buton.clicked.connect(self.table.reset_search)
+            reset_search_buton.clicked.connect(self.search_box.clear)
+            self.search_box.returnPressed.connect(self.set_search_term)
+            signals.project_selected.connect(self.search_box.clear)
+        else:
+            inventory_layout.addWidget(header(self.HEADER))
+
         inventory_layout.addWidget(horizontal_line())
         inventory_layout.addWidget(self.table)
 
@@ -36,6 +58,9 @@ class MaybeTable(QtGui.QWidget):
         self.setLayout(layout)
 
         signals.database_selected.connect(self.choose)
+
+    def set_search_term(self):
+        self.table.search(self.search_box.text())
 
     def choose(self, name):
         self.table.sync(name)
@@ -51,6 +76,7 @@ class MaybeActivitiesTable(MaybeTable):
     NO = 'This database has no technosphere activities'
     TABLE = ActivitiesTableWidget
     HEADER = 'Activities:'
+    searchable = True
 
 
 class MaybeFlowsTable(MaybeTable):
