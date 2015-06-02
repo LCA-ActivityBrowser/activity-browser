@@ -66,10 +66,9 @@ class CorrelationPlot(FigureCanvasQTAgg):
 
         sns.set(style="darkgrid")
 
-
         cmap = sns.diverging_palette(220, 10, as_cmap=True)
         sns.corrplot(data, names=labels, annot=True, sig_stars=False,
-             diag_names=True, cmap=cmap, ax=axes)
+             diag_names=True, cmap=cmap, ax=axes, cbar=True)
 
         # If uncommented, fills widget
         self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
