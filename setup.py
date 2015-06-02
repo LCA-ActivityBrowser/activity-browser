@@ -44,8 +44,8 @@ setup(
     description=('GUI for LCA software and metaprocesses'),
     entry_points = {
         'console_scripts': [
-            'activity-browser = lca_activity_browser.bin.activity_browser:run_activity_browser',
-            'activity-browser2 = lca_activity_browser.app:run_activity_browser',
+            'activity-browser-old = lca_activity_browser.bin.activity_browser:run_activity_browser',
+            'activity-browser = lca_activity_browser.app:run_activity_browser',
         ]
     },
     classifiers=[
