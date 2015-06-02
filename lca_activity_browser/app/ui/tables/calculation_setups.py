@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from ...signals import signals
+from ..icons import icons
 from .activity import ActivitiesTableWidget
 from .ia import MethodsTableWidget
 from brightway2 import *
@@ -58,6 +59,13 @@ class CSActivityTableWidget(QtGui.QTableWidget):
         self.cellChanged.connect(self.filter_amount_change)
         signals.calculation_setup_selected.connect(self.sync)
 
+        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.delete_row_action = QtGui.QAction(
+            QtGui.QIcon(icons.delete), "Remove row", None
+        )
+        self.addAction(self.delete_row_action)
+        self.delete_row_action.triggered.connect(self.delete_rows)
+
     def sync(self, name):
         self.clear()
         self.setRowCount(0)
@@ -73,6 +81,17 @@ class CSActivityTableWidget(QtGui.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+    def delete_rows(self, *args):
+        to_delete = []
+        for range_obj in self.selectedRanges():
+            bottom = range_obj.bottomRow()
+            top = range_obj.topRow()
+            to_delete.extend(list(range(top, bottom + 1)))
+        to_delete.sort(reverse=True)
+        for row in to_delete:
+            self.removeRow(row)
+        signals.calculation_setup_changed.emit()
 
     def dragEnterEvent(self, event):
         if isinstance(event.source(), ActivitiesTableWidget):
@@ -122,6 +141,13 @@ class CSMethodsTableWidget(QtGui.QTableWidget):
 
         signals.calculation_setup_selected.connect(self.sync)
 
+        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.delete_row_action = QtGui.QAction(
+            QtGui.QIcon(icons.delete), "Remove row", None
+        )
+        self.addAction(self.delete_row_action)
+        self.delete_row_action.triggered.connect(self.delete_rows)
+
     def sync(self, name):
         self.clear()
         self.setRowCount(0)
@@ -157,6 +183,17 @@ class CSMethodsTableWidget(QtGui.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+    def delete_rows(self, *args):
+        to_delete = []
+        for range_obj in self.selectedRanges():
+            bottom = range_obj.bottomRow()
+            top = range_obj.topRow()
+            to_delete.extend(list(range(top, bottom + 1)))
+        to_delete.sort(reverse=True)
+        for row in to_delete:
+            self.removeRow(row)
+        signals.calculation_setup_changed.emit()
 
     def to_python(self):
         return [self.item(row, 0).method for row in range(self.rowCount())]
