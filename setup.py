@@ -37,6 +37,7 @@ setup(
         "jinja2",
         "matplotlib",
         "networkx",
+        "requests-oauthlib",
         # "PyQt4",  # BW3TODO: How to specify?
     ],
     url="https://bitbucket.org/bsteubing/activity-browser",

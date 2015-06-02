@@ -36,9 +36,11 @@ class LCAResultsTab(QtGui.QWidget):
 
     def clear_layout(self):
         for index in range(self.layout.count(), 0, -1):
-            widget = self.layout.itemAt(index).widget()
-            if widget:
-                widget.deleteLater()
+            # TODO: Buggy?
+            try:
+                widget = self.layout.itemAt(index).widget().deleteLater()
+            except AttributeError:
+                pass
 
     def calculate(self, name):
         self.lca = MultiLCA(name)

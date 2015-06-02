@@ -7,6 +7,24 @@ from .icons import icons
 from .tables import ProjectListWidget
 from brightway2 import projects
 from PyQt4 import QtCore, QtGui, QtWebKit
+from requests_oauthlib import OAuth1Session
+import requests
+
+
+def create_issue(content):
+    issues = OAuth1Session(
+        '4DBX8xKMvaUShgUHW9',
+        client_secret='Lzman2V4v52YqMHazNNrpstHSLGgyhWH'
+    )
+    data = {
+        'title': 'New issue reported from app',
+        'content': content,
+        'status': 'new',
+        'priority': 'trivial',
+        'kind': 'bug'
+    }
+    URL = "https://bitbucket.org/api/1.0/repositories/cmutel/bw2qtui/issues/"
+    issues.post(URL, data=data)
 
 
 class Toolbar(object):
@@ -19,6 +37,10 @@ class Toolbar(object):
         # self.search_box = self.get_search_box()
         # self.key_search_action = self.get_key_search()
 
+        new_issue_button = QtGui.QPushButton('Report Bug')
+        new_issue_button.setStyleSheet('QPushButton {color: red;}')
+        # button.setText('Report Bug')
+
         self.new_project_button = QtGui.QPushButton('New')
         self.copy_project_button = QtGui.QPushButton('Copy')
         self.delete_project_button = QtGui.QPushButton('Delete')
@@ -27,6 +49,7 @@ class Toolbar(object):
         self.toolbar = QtGui.QToolBar('Toolbar')
         # self.toolbar.addWidget(self.search_box)
         self.toolbar.addWidget(QtGui.QLabel('Brightway2 Activity Browser'))
+        self.toolbar.addWidget(new_issue_button)
 
         spacer = QtGui.QWidget()
         spacer.setSizePolicy(
@@ -60,6 +83,15 @@ class Toolbar(object):
         self.window.addToolBar(self.toolbar)
 
         signals.project_selected.connect(self.change_project)
+        new_issue_button.clicked.connect(self.create_issue_dialog)
+
+    def create_issue_dialog(self):
+        text = self.window.dialog(
+            'Report new bug',
+            'Please describe the buggy behaviour. Existing bugs can be viewed at `https://bitbucket.org/cmutel/bw2qtui/issues?status=new&status=open`'
+        )
+        if text:
+            create_issue(text)
 
     def connect_signals(self, controller):
         self.projects_list_widget.currentIndexChanged['QString'].connect(
