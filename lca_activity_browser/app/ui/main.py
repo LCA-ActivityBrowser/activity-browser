@@ -16,6 +16,11 @@ from .tabs import (
     InventoryTab,
     MethodsTab,
 )
+import sip
+
+# Hopefully will end crashes when quitting on OS X
+# See http://pyqt.sourceforge.net/Docs/PyQt5/pyqt4_differences.html
+sip.setdestroyonexit(False)
 
 
 class MainWindow(QtGui.QMainWindow):
