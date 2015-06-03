@@ -36,6 +36,15 @@ class Controller(object):
             projects.current = name
             signals.project_selected.emit(name)
 
+    def copy_project(self):
+        name = self.window.dialog(
+            "Copy current project",
+            "Copy current project ({}) to new name:".format(projects.current) + " " * 10
+        )
+        if name and name not in projects:
+            projects.copy_project(name, switch=True)
+            signals.project_selected.emit(name)
+
     def delete_project(self):
         if len(projects) == 1:
             self.window.info("Can't delete last project")

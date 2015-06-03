@@ -99,6 +99,7 @@ class Toolbar(object):
         )
         self.new_project_button.clicked.connect(controller.new_project)
         self.delete_project_button.clicked.connect(controller.delete_project)
+        self.copy_project_button.clicked.connect(controller.copy_project)
 
     def change_project(self, name):
         index = sorted([project.name for project in projects]).index(projects.current)
