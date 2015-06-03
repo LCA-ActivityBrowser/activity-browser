@@ -61,7 +61,11 @@ class Controller(object):
             signals.project_selected.emit(self.get_default_project_name())
 
     def install_default_data(self):
-        bw2setup()
+        create_default_biosphere3()
+        if not len(methods):
+            create_default_lcia_methods()
+        if not len(migrations):
+            create_core_migrations()
         signals.project_selected.emit(projects.current)
 
     def add_database(self):
