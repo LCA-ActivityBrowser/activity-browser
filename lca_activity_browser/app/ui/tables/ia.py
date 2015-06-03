@@ -15,11 +15,25 @@ class MethodItem(QtGui.QTableWidgetItem):
         self.method = method
 
 
+class Number(QtGui.QTableWidgetItem):
+    def __init__(self, *args, method=None, number=None):
+        super(Number, self).__init__(*args)
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.number = number
+        self.method = method
+
+    def __lt__(self, other):
+        if isinstance(other, Number):
+            return self.number < other.number
+        return super(Number, self).__lt__(other)
+
+
 class MethodsTableWidget(QtGui.QTableWidget):
     def __init__(self):
         super(MethodsTableWidget, self).__init__()
         self.setColumnCount(3)
         self.setDragEnabled(True)
+        self.setSortingEnabled(True)
         self.setHorizontalHeaderLabels(["Name", "Unit", "# CFs"])
         self.sync()
         self.itemDoubleClicked.connect(
@@ -44,7 +58,8 @@ class MethodsTableWidget(QtGui.QTableWidget):
             data = methods[method]
             self.setItem(row, 0, MethodItem(name, method=method))
             self.setItem(row, 1, MethodItem(data.get('unit', "Unknown"), method=method))
-            self.setItem(row, 2, MethodItem(data.get('num_cfs', 'Unknown'), method=method))
+            num_cfs = data.get('num_cfs', 0)
+            self.setItem(row, 2, Number(str(num_cfs), method=method, number=num_cfs))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
