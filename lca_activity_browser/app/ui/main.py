@@ -61,14 +61,25 @@ class MainWindow(QtGui.QMainWindow):
         self.vertical_container = QtGui.QVBoxLayout()
         self.vertical_container.addLayout(self.main_horizontal_box)
 
-        self.central_widget = QtGui.QWidget()
-        self.central_widget.setLayout(self.vertical_container)
-        self.setCentralWidget(self.central_widget)
+        self.main_widget = QtGui.QWidget()
+        self.main_widget.setLayout(self.vertical_container)
 
         # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
         self.toolbar = Toolbar(self)
         self.statusbar = Statusbar(self)
+
+        # Debug/working... stack
+        working_layout = QtGui.QVBoxLayout()
+        working_layout.addWidget(header("Working..."))
+
+        self.working_widget = QtGui.QWidget()
+        self.working_widget.setLayout(working_layout)
+
+        self.stacked = QtGui.QStackedWidget()
+        self.stacked.addWidget(self.main_widget)
+        self.stacked.addWidget(self.working_widget)
+        self.setCentralWidget(self.stacked)
 
     def add_tab_to_panel(self, obj, label, side):
         panel = self.left_panel if side == 'left' else self.right_panel

@@ -27,6 +27,23 @@ def create_issue(content):
     issues.post(URL, data=data)
 
 
+class StackButton(QtGui.QPushButton):
+    def __init__(self, *args, window=None):
+        super(StackButton, self).__init__(*args)
+        self.state = 1
+        self.window = window
+
+    def switch_state(self):
+        if self.state == 0:
+            self.state = 1
+            self.window.stacked.setCurrentWidget(self.window.main_widget)
+            self.setText("Debug window")
+        else:
+            self.state = 0
+            self.window.stacked.setCurrentWidget(self.window.working_widget)
+            self.setText("Main window")
+
+
 class Toolbar(object):
     def __init__(self, window):
         self.window = window
@@ -41,6 +58,13 @@ class Toolbar(object):
         new_issue_button.setStyleSheet('QPushButton {color: red;}')
         # button.setText('Report Bug')
 
+        switch_stack_button = StackButton(
+            QtGui.QIcon(icons.switch),
+            'Debug window',
+            window=self.window
+        )
+        switch_stack_button.clicked.connect(switch_stack_button.switch_state)
+
         self.new_project_button = QtGui.QPushButton(QtGui.QIcon(icons.add), 'New')
         self.copy_project_button = QtGui.QPushButton(QtGui.QIcon(icons.copy), 'Copy')
         self.delete_project_button = QtGui.QPushButton(QtGui.QIcon(icons.delete), 'Delete')
@@ -50,6 +74,7 @@ class Toolbar(object):
         # self.toolbar.addWidget(self.search_box)
         self.toolbar.addWidget(QtGui.QLabel('Brightway2 Activity Browser'))
         self.toolbar.addWidget(new_issue_button)
+        self.toolbar.addWidget(switch_stack_button)
 
         spacer = QtGui.QWidget()
         spacer.setSizePolicy(

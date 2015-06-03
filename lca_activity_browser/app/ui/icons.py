@@ -41,6 +41,7 @@ class Icons(object):
     debug = create_path('main', 'debug.png')
     key = create_path('main', 'key.png')
     search = create_path('main', 'search.png')
+    switch = create_path('main', 'switch-state.png')
 
     @property
     def pony(self):
