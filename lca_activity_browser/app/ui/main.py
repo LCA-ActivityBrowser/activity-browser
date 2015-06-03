@@ -77,7 +77,7 @@ class MainWindow(QtGui.QMainWindow):
         sys.stderr = StdRedirector(self.log, sys.stderr, "blue")
 
         working_layout = QtGui.QVBoxLayout()
-        working_layout.addWidget(header("Working..."))
+        working_layout.addWidget(header("Program output:"))
         working_layout.addWidget(self.log)
 
         self.working_widget = QtGui.QWidget()

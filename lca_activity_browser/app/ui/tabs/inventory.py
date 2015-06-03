@@ -21,12 +21,12 @@ class MaybeTable(QtGui.QWidget):
         super(MaybeTable, self).__init__(parent)
         self.table = self.TABLE()
 
-        self.no_activities = QtGui.QLabel(self.NO)
+        self.no_objects = QtGui.QLabel(self.NO)
 
         inventory_layout = QtGui.QVBoxLayout()
         if self.searchable:
             self.search_box = QtGui.QLineEdit()
-            self.search_box.setPlaceholderText("Filter activities by search string")
+            self.search_box.setPlaceholderText("Filter by search string")
             reset_search_buton = QtGui.QPushButton("Reset")
 
             search_layout = QtGui.QHBoxLayout()
@@ -49,12 +49,12 @@ class MaybeTable(QtGui.QWidget):
         inventory_layout.addWidget(horizontal_line())
         inventory_layout.addWidget(self.table)
 
-        self.yes_activities = QtGui.QWidget(self)
-        self.yes_activities.setLayout(inventory_layout)
+        self.yes_objects = QtGui.QWidget(self)
+        self.yes_objects.setLayout(inventory_layout)
 
         layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.no_activities)
-        layout.addWidget(self.yes_activities)
+        layout.addWidget(self.no_objects)
+        layout.addWidget(self.yes_objects)
         self.setLayout(layout)
 
         signals.database_selected.connect(self.choose)
@@ -65,11 +65,11 @@ class MaybeTable(QtGui.QWidget):
     def choose(self, name):
         self.table.sync(name)
         if self.table.rowCount():
-            self.no_activities.hide()
-            self.yes_activities.show()
+            self.no_objects.hide()
+            self.yes_objects.show()
         else:
-            self.no_activities.show()
-            self.yes_activities.hide()
+            self.no_objects.show()
+            self.yes_objects.hide()
 
 
 class MaybeActivitiesTable(MaybeTable):
@@ -83,6 +83,7 @@ class MaybeFlowsTable(MaybeTable):
     NO = 'This database has no biosphere flows'
     TABLE = FlowsTableWidget
     HEADER = 'Biosphere flows:'
+    searchable = True
 
 
 class InventoryTab(QtGui.QWidget):

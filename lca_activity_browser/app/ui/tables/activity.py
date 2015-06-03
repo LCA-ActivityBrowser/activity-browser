@@ -55,7 +55,6 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.sync(self.database.name)
 
     def search(self, search_term):
-        print("Searching for", search_term)
         self.clear()
         search_result = self.database.search(search_term, limit=self.COUNT, **self.database.filters)
         self.setRowCount(len(search_result))
