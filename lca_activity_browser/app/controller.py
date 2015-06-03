@@ -93,7 +93,7 @@ class Controller(object):
         ))
         if ok:
             del databases[name]
-            signals.databases_changed.emit()
+            signals.project_selected.emit(projects.current)
 
     def new_calculation_setup(self):
         name = self.window.dialog(
