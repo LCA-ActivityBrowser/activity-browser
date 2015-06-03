@@ -1057,7 +1057,7 @@ You should have received a copy of the GNU General Public License along with thi
         self.tab_widget_RIGHT.setCurrentIndex(self.tab_widget_RIGHT.indexOf(self.table_projects))
 
     def gotoDoubleClickProject(self, item):
-        # bw2.projects.project = item.text()
+        # bw2.projects.current = item.text()
         print("DOUBLECLICK on: ", item.text())
         # if item.key_type != "activity":
         #     self.status_message.setText("Loading... "+item.activity_or_database_key)
@@ -1093,7 +1093,7 @@ You should have received a copy of the GNU General Public License along with thi
         name, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
             'Please enter a project name:')
         if ok:
-            bw2.projects.project = name
+            bw2.projects.current = name
             self.listDatabases()
 
     def delete_database(self):

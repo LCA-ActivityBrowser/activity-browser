@@ -18,26 +18,29 @@ def create_path(folder, filename):
 
 
 class Icons(object):
-    # free icons from http://www.flaticon.com/search/history
-    to_multi_lca = create_path('context', 'add.png')
-    to_edited_activity = create_path('context', 'to_edited_activity.png')
+    # Icons from href="http://www.flaticon.com/
+    # By http://www.flaticon.com/authors/freepik and others
+    # And are licensed by CC BY 3.0
     delete = create_path('context', 'delete.png')
+    copy = create_path('context', 'copy.png')
+    add = create_path('context', 'add.png')
 
-    new = create_path('metaprocess', 'new_metaprocess.png')
-    save_mp = create_path('metaprocess', 'save_metaprocess.png')
-    load_db = create_path('metaprocess', 'open_database.png')
     add_db = create_path('metaprocess', 'add_database.png')
-    save_db = create_path('metaprocess', 'save_database.png')
     close_db = create_path('metaprocess', 'close_database.png')
-    graph_mp = create_path('metaprocess', 'graph_metaprocess.png')
-    graph_lmp = create_path('metaprocess', 'graph_linkedmetaprocess.png')
-    metaprocess = create_path('metaprocess', 'metaprocess.png')
     cut = create_path('metaprocess', 'cut.png')
     duplicate = create_path('metaprocess', 'duplicate.png')
+    graph_lmp = create_path('metaprocess', 'graph_linkedmetaprocess.png')
+    graph_mp = create_path('metaprocess', 'graph_metaprocess.png')
+    load_db = create_path('metaprocess', 'open_database.png')
     metaprocess = create_path('metaprocess', 'metaprocess.png')
+    metaprocess = create_path('metaprocess', 'metaprocess.png')
+    new = create_path('metaprocess', 'new_metaprocess.png')
+    save_db = create_path('metaprocess', 'save_database.png')
+    save_mp = create_path('metaprocess', 'save_metaprocess.png')
 
-    search = create_path('main', 'search.png')
+    debug = create_path('main', 'debug.png')
     key = create_path('main', 'key.png')
+    search = create_path('main', 'search.png')
 
     @property
     def pony(self):

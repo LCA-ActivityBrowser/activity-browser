@@ -37,13 +37,13 @@ class Toolbar(object):
         # self.search_box = self.get_search_box()
         # self.key_search_action = self.get_key_search()
 
-        new_issue_button = QtGui.QPushButton('Report Bug')
+        new_issue_button = QtGui.QPushButton(QtGui.QIcon(icons.debug), 'Report Bug')
         new_issue_button.setStyleSheet('QPushButton {color: red;}')
         # button.setText('Report Bug')
 
-        self.new_project_button = QtGui.QPushButton('New')
-        self.copy_project_button = QtGui.QPushButton('Copy')
-        self.delete_project_button = QtGui.QPushButton('Delete')
+        self.new_project_button = QtGui.QPushButton(QtGui.QIcon(icons.add), 'New')
+        self.copy_project_button = QtGui.QPushButton(QtGui.QIcon(icons.copy), 'Copy')
+        self.delete_project_button = QtGui.QPushButton(QtGui.QIcon(icons.delete), 'Delete')
         self.projects_list_widget = ProjectListWidget()
 
         self.toolbar = QtGui.QToolBar('Toolbar')
@@ -101,7 +101,7 @@ class Toolbar(object):
         self.delete_project_button.clicked.connect(controller.delete_project)
 
     def change_project(self, name):
-        index = sorted([project.name for project in projects]).index(projects.project)
+        index = sorted([project.name for project in projects]).index(projects.current)
         self.projects_list_widget.setCurrentIndex(index)
 
     def get_search_box(self):

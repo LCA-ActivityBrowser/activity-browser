@@ -24,7 +24,7 @@ class Controller(object):
             return next(iter(projects)).name
 
     def select_project(self, name):
-        projects.project = name
+        projects.current = name
         signals.project_selected.emit(name)
 
     def new_project(self):
@@ -33,7 +33,7 @@ class Controller(object):
             "Name of new project:" + " " * 25
         )
         if name and name not in projects:
-            projects.project = name
+            projects.current = name
             signals.project_selected.emit(name)
 
     def delete_project(self):
@@ -43,17 +43,17 @@ class Controller(object):
         ok = self.window.confirm((
             "Are you sure you want to delete project '{}'? It has {} databases"
             " and {} LCI methods").format(
-            projects.project,
+            projects.current,
             len(databases),
             len(methods)
         ))
         if ok:
-            projects.delete_project(projects.project)
+            projects.delete_project(projects.current)
             signals.project_selected.emit(self.get_default_project_name())
 
     def install_default_data(self):
-        create_default_biosphere3()
-        signals.databases_changed.emit()
+        bw2setup()
+        signals.project_selected.emit(projects.current)
 
     def add_database(self):
         name = self.window.dialog(
