@@ -38,6 +38,7 @@ setup(
         "matplotlib",
         "networkx",
         "requests-oauthlib",
+        "seaborn",
         # "PyQt4",  # BW3TODO: How to specify?
     ],
     url="https://bitbucket.org/bsteubing/activity-browser",
