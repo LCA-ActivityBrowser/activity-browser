@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from ...signals import signals
+from ..icons import icons
 from brightway2 import Database
 from PyQt4 import QtCore, QtGui
 import itertools
@@ -29,12 +30,26 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.setDragEnabled(True)
         self.setColumnCount(4)
 
+        self.controller = None
+
         # Done by tab widget ``MaybeActivitiesTable`` because
         # need to ensure order to get correct row count
         # signals.database_selected.connect(self.sync)
         self.itemDoubleClicked.connect(
             lambda x: signals.activity_selected.emit(x.key)
         )
+
+        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.add_activity_action = QtGui.QAction(
+            QtGui.QIcon(icons.add), "Add new activity", None
+        )
+        self.copy_activity_action = QtGui.QAction(
+            QtGui.QIcon(icons.copy), "Copy activity", None
+        )
+        self.addAction(self.add_activity_action)
+        self.addAction(self.copy_activity_action)
+        # self.add_activity_action.triggered.connect(self.delete_rows)
+        self.copy_activity_action.triggered.connect(self.copy_activity)
 
     def sync(self, name):
         self.clear()
@@ -66,3 +81,13 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
+    def set_controller(self, controller):
+        self.controller = controller
+
+    def copy_activity(self, *args):
+        if not self.controller:
+            return
+        print("Copy activity (in table)")
+        print(self.currentItem())
+        print(self.currentItem().key)
+        self.controller.copy_activity(self.currentItem().key)

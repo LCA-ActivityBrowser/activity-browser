@@ -35,14 +35,20 @@ class LCAResultsTab(QtGui.QWidget):
             self.clear_layout()
 
     def clear_layout(self):
-        for index in range(self.layout.count(), 0, -1):
+        print("Entering clear layout")
+        print("Total:", self.layout.count())
+        for index in range(self.layout.count(), 0, -1):  # QT is 1-indexed
             # TODO: Buggy?
             try:
+                # print("Now at:", index)
+                # print("Item:", self.layout.itemAt(index))
+                # print("Widget:", self.layout.itemAt(index).widget())
                 widget = self.layout.itemAt(index).widget().deleteLater()
             except AttributeError:
                 pass
 
     def calculate(self, name):
+        self.clear_layout()
         self.lca = MultiLCA(name)
         normalized_results = self.lca.results / self.lca.results.max(axis=0)
         labels = [str(x + 1) for x in range(len(self.lca.activities))]

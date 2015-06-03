@@ -132,3 +132,5 @@ class Controller(object):
             'ia': self.window.left_panel.cs_tab.methods_table.to_python()
         }
 
+    def copy_activity(self, key):
+        print(get_activity(key))

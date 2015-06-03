@@ -93,8 +93,8 @@ class InventoryTab(QtGui.QWidget):
 
         self.databases = DatabasesTableWidget()
 
-        # Not visible when instantiated
-        self.flows = FlowsTableWidget()
+        self.activities_table = MaybeActivitiesTable(self)
+        self.flows_table = MaybeFlowsTable(self)
 
         self.add_default_data_button = QtGui.QPushButton('Add Default Data (Biosphere flows, LCIA methods)')
         self.new_database_button = QtGui.QPushButton('Create New Database')
@@ -138,8 +138,8 @@ class InventoryTab(QtGui.QWidget):
         )
 
         inventory_layout = QtGui.QVBoxLayout()
-        inventory_layout.addWidget(MaybeActivitiesTable(self))
-        inventory_layout.addWidget(MaybeFlowsTable(self))
+        inventory_layout.addWidget(self.activities_table)
+        inventory_layout.addWidget(self.flows_table)
 
         self.inventory_container = QtGui.QWidget()
         self.inventory_container.setLayout(inventory_layout)
@@ -178,6 +178,7 @@ class InventoryTab(QtGui.QWidget):
         self.delete_database_action.triggered.connect(controller.delete_database)
         self.copy_database_action.triggered.connect(controller.copy_database)
         self.add_default_data_button.clicked.connect(controller.install_default_data)
+        self.activities_table.table.set_controller(controller)
 
     def change_project(self, name):
         self.databases.sync()
