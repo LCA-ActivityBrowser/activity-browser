@@ -2,21 +2,23 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from .. import Container
 from . import horizontal_line, header
+from .. import Container
 from .icons import icons
-from .panels import LeftPanel, RightPanel
 from .menu_bar import MenuBar
+from .panels import LeftPanel, RightPanel
 from .statusbar import Statusbar
-from .toolbar import Toolbar
-from PyQt4 import QtCore, QtGui
 from .tabs import (
     ActivityDetailsTab,
     CFsTab,
     InventoryTab,
     MethodsTab,
 )
+from .toolbar import Toolbar
+from .utils import StdRedirector
+from PyQt4 import QtCore, QtGui
 import sip
+import sys
 
 # Hopefully will end crashes when quitting on OS X
 # See http://pyqt.sourceforge.net/Docs/PyQt5/pyqt4_differences.html
@@ -70,8 +72,13 @@ class MainWindow(QtGui.QMainWindow):
         self.statusbar = Statusbar(self)
 
         # Debug/working... stack
+        self.log = QtGui.QTextEdit(self)
+        sys.stdout = StdRedirector(self.log, sys.stdout, None)
+        sys.stderr = StdRedirector(self.log, sys.stderr, "blue")
+
         working_layout = QtGui.QVBoxLayout()
         working_layout.addWidget(header("Working..."))
+        working_layout.addWidget(self.log)
 
         self.working_widget = QtGui.QWidget()
         self.working_widget.setLayout(working_layout)
