@@ -178,7 +178,6 @@ class InventoryTab(QtGui.QWidget):
         self.delete_database_action.triggered.connect(controller.delete_database)
         self.copy_database_action.triggered.connect(controller.copy_database)
         self.add_default_data_button.clicked.connect(controller.install_default_data)
-        self.activities_table.table.set_controller(controller)
 
     def change_project(self, name):
         self.databases.sync()

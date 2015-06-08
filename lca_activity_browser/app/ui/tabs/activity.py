@@ -8,6 +8,7 @@ from ..graphics import DefaultGraph
 from ..tables import ExchangeTableWidget
 from brightway2 import *
 from PyQt4 import QtCore, QtGui
+import functools
 
 
 class ActivityDetailsTab(QtGui.QWidget):
@@ -36,9 +37,21 @@ class ActivityDetailsTab(QtGui.QWidget):
 
         self.setLayout(container)
 
+        self.products_table_state = "shown"
+
         signals.project_selected.connect(lambda x: self.window.select_tab(self))
         signals.project_selected.connect(self.toggle_hidden)
         signals.activity_selected.connect(self.populate)
+
+    def toggle_products_table(self):
+        if self.products_table_state == "shown":
+            self.products_table_state = "hidden"
+            self.products_button.setText("hide")
+            self.production.hide()
+        else:
+            self.products_table_state = "shown"
+            self.production.show()
+            self.products_button.setText("show")
 
     def get_details_widget(self):
         self.production = ExchangeTableWidget(self, production=True)
@@ -47,7 +60,17 @@ class ActivityDetailsTab(QtGui.QWidget):
         self.upstream = ExchangeTableWidget(self)
 
         layout = QtGui.QVBoxLayout()
-        layout.addWidget(header('Products:'))
+
+        self.products_button = QtGui.QPushButton("Hide")
+        self.products_button.clicked.connect(self.toggle_products_table)
+
+        inside_widget = QtGui.QWidget()
+        inside_layout = QtGui.QHBoxLayout()
+        inside_layout.addWidget(header('Products:'))
+        inside_layout.addWidget(self.products_button)
+        inside_widget.setLayout(inside_layout)
+
+        layout.addWidget(inside_widget)
         layout.addWidget(horizontal_line())
         layout.addWidget(self.production)
 

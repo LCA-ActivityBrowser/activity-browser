@@ -49,7 +49,9 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.addAction(self.add_activity_action)
         self.addAction(self.copy_activity_action)
         # self.add_activity_action.triggered.connect(self.delete_rows)
-        self.copy_activity_action.triggered.connect(self.copy_activity)
+        self.copy_activity_action.triggered.connect(
+            lambda x: signals.copy_activity.emit(self.currentItem().key)
+        )
 
     def sync(self, name):
         self.clear()
@@ -80,14 +82,3 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-
-    def set_controller(self, controller):
-        self.controller = controller
-
-    def copy_activity(self, *args):
-        if not self.controller:
-            return
-        print("Copy activity (in table)")
-        print(self.currentItem())
-        print(self.currentItem().key)
-        self.controller.copy_activity(self.currentItem().key)

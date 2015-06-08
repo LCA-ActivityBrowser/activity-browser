@@ -14,6 +14,6 @@ class Signals(QtCore.QObject):
     lca_calculation = QtCore.pyqtSignal(str)
     method_selected = QtCore.pyqtSignal(tuple)
     project_selected = QtCore.pyqtSignal(str)
-
+    copy_activity = QtCore.pyqtSignal(tuple)
 
 signals = Signals()

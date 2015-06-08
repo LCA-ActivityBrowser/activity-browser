@@ -5,6 +5,8 @@ from eight import *
 from brightway2 import *
 from . import Container
 from .signals import signals
+from .ui.widgets import ActivityDataGrid
+import sys
 
 
 class Controller(object):
@@ -16,6 +18,7 @@ class Controller(object):
         signals.calculation_setup_changed.connect(
             self.write_current_calculation_setup
         )
+        signals.copy_activity.connect(self.copy_activity)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -133,4 +136,5 @@ class Controller(object):
         }
 
     def copy_activity(self, key):
-        print(get_activity(key))
+        act = get_activity(key)
+        self.window.right_panel.addTab(ActivityDataGrid(activity=act), 'Foo')
