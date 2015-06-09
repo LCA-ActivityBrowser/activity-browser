@@ -22,6 +22,7 @@ class Amount(QtGui.QTableWidgetItem):
         super(Amount, self).__init__(*args)
         # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
         self.exchange = exchange
+        self.previous = self.text()
 
 
 class ReadOnly(QtGui.QTableWidgetItem):
@@ -47,6 +48,7 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         self.column_labels = self.COLUMN_LABELS[(biosphere, production)]
         self.setColumnCount(len(self.column_labels))
         self.qs, self.upstream, self.database = None, False, None
+        self.ignore_changes = False
 
         self.delete_exchange_action = QtGui.QAction(
             QtGui.QIcon(icons.delete), "Delete exchange(s)", None
@@ -54,6 +56,7 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         self.addAction(self.delete_exchange_action)
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
 
+        self.cellChanged.connect(self.filter_amount_change)
         self.cellDoubleClicked.connect(self.filter_clicks)
         signals.database_changed.connect(self.filter_database_changed)
 
@@ -85,6 +88,22 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         if self.database == database:
             self.sync()
 
+    def filter_amount_change(self, row, col):
+        if not col == 2 or self.ignore_changes:
+            return
+        try:
+            item = self.item(row, col)
+            if item.text() == item.previous:
+                return
+            else:
+                item.previous = item.text()
+            value = float(item.text())
+            exchange = item.exchange
+            signals.exchange_amount_modified.emit(exchange, value)
+        except:
+            # TODO: Handle error here...
+            pass
+
     def filter_clicks(self, row, col):
         if self.biosphere or self.production or col != 0:
             return
@@ -104,6 +123,7 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         self.sync(limit)
 
     def sync(self, limit=100):
+        self.ignore_changes = True
         self.clear()
         self.setRowCount(min(len(self.qs), limit))
         self.setHorizontalHeaderLabels(self.column_labels)
@@ -172,3 +192,4 @@ class ExchangeTableWidget(QtGui.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        self.ignore_changes = False

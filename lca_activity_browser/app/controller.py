@@ -26,6 +26,7 @@ class Controller(object):
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
+        signals.exchange_amount_modified.connect(self.modify_exchange_amount)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -167,7 +168,6 @@ class Controller(object):
         signals.open_activity_tab.emit("right", new_act.key)
 
     def modify_activity(self, key, field, value):
-        # print("Calling modify_activity:", key, field, value)
         activity = get_activity(key)
         activity[field] = value
         activity.save()
@@ -213,3 +213,7 @@ class Controller(object):
         for db in db_changed:
             signals.database_changed.emit(db)
 
+    def modify_exchange_amount(self, exchange, value):
+        exchange['amount'] = value
+        exchange.save()
+        signals.database_changed.emit(exchange['output'][0])
