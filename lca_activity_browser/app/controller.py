@@ -18,6 +18,7 @@ class Controller(object):
             self.write_current_calculation_setup
         )
         signals.copy_activity.connect(self.copy_activity)
+        signals.activity_modified.connect(self.modify_activity)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -138,3 +139,9 @@ class Controller(object):
         act = get_activity(key)
         new_act = act.copy("Copy of " + act['name'])
         signals.open_activity_tab.emit("right", new_act.key)
+
+    def modify_activity(self, key, field, value):
+        print("Calling modify_activity:", key, field, value)
+        activity = get_activity(key)
+        activity[field] = value
+        activity.save()

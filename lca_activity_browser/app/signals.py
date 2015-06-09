@@ -7,6 +7,8 @@ from PyQt4 import QtCore
 
 class Signals(QtCore.QObject):
     activity_selected = QtCore.pyqtSignal(tuple)
+    # Activity key, field, new value
+    activity_modified = QtCore.pyqtSignal(tuple, str, object)
     calculation_setup_changed = QtCore.pyqtSignal()
     calculation_setup_selected = QtCore.pyqtSignal(str)
     database_selected = QtCore.pyqtSignal(str)
