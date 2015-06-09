@@ -25,6 +25,7 @@ class Controller(object):
         signals.new_activity.connect(self.new_activity)
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
+        signals.exchanges_add.connect(self.add_exchanges)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -187,6 +188,22 @@ class Controller(object):
                 exc.save()
         for db in db_changed:
             signals.database_changed.emit(db)
+
+    def add_exchanges(self, from_keys, to_key):
+        activity = get_activity(to_key)
+        for key in from_keys:
+            from_act = get_activity(key)
+            exc = activity.new_exchange(input=key, amount=1)
+            if key == to_key:
+                exc['type'] = 'production'
+            elif from_act.get('type', 'process') == 'process':
+                exc['type'] = 'technosphere'
+            elif from_act.get('type') == 'emission':
+                exc['type'] = 'biosphere'
+            else:
+                exc['type'] = 'unknown'
+            exc.save()
+        signals.database_changed.emit(to_key[0])
 
     def delete_exchanges(self, exchanges):
         db_changed = set()

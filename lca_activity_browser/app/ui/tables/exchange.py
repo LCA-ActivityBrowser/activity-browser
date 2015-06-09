@@ -5,6 +5,7 @@ from eight import *
 from ...signals import signals
 from ..icons import icons
 from .activity import ActivityItem, ActivitiesTableWidget
+from .biosphere import FlowsTableWidget
 from PyQt4 import QtCore, QtGui
 
 
@@ -63,15 +64,17 @@ class ExchangeTableWidget(QtGui.QTableWidget):
 
     def dragEnterEvent(self, event):
         acceptable = (
-            FlowsTableWidget
+            ActivitiesTableWidget,
+            ExchangeTableWidget,
+            FlowsTableWidget,
         )
-        if isinstance(event.source(), (ExchangeTableWidget, ActivitiesTableWidget)):
+        if isinstance(event.source(), acceptable):
             event.accept()
 
     def dropEvent(self, event):
         items = event.source().selectedItems()
         if isinstance(items[0], ActivityItem):
-            signals.exchanges_add([x.key for x in items], self.qs._key)
+            signals.exchanges_add.emit([x.key for x in items], self.qs._key)
         else:
             signals.exchanges_output_modified.emit(
                 [x.exchange for x in items], self.qs._key
