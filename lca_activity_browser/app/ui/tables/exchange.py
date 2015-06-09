@@ -3,10 +3,10 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from ...signals import signals
+from ..icons import icons
+from .activity import ActivityItem, ActivitiesTableWidget
 from PyQt4 import QtCore, QtGui
 
-
-Item = QtGui.QTableWidgetItem
 
 class Reference(QtGui.QTableWidgetItem):
     def __init__(self, *args, exchange=None, direction="down"):
@@ -40,23 +40,42 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         super(ExchangeTableWidget, self).__init__()
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
+        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.biosphere = biosphere
         self.production = production
         self.column_labels = self.COLUMN_LABELS[(biosphere, production)]
         self.setColumnCount(len(self.column_labels))
-
         self.qs, self.upstream, self.database = None, False, None
+
+        self.delete_exchange_action = QtGui.QAction(
+            QtGui.QIcon(icons.delete), "Delete exchange(s)", None
+        )
+        self.addAction(self.delete_exchange_action)
+        self.delete_exchange_action.triggered.connect(self.delete_exchanges)
 
         self.cellDoubleClicked.connect(self.filter_clicks)
         signals.database_changed.connect(self.filter_database_changed)
 
+    def delete_exchanges(self, event):
+        signals.exchanges_deleted.emit(
+            [x.exchange for x in self.selectedItems()]
+        )
+
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), ExchangeTableWidget):
+        acceptable = (
+            FlowsTableWidget
+        )
+        if isinstance(event.source(), (ExchangeTableWidget, ActivitiesTableWidget)):
             event.accept()
 
     def dropEvent(self, event):
-        exchanges = [item.exchange for item in event.source().selectedItems()]
-        signals.exchanges_output_modified.emit(exchanges, self.qs._key)
+        items = event.source().selectedItems()
+        if isinstance(items[0], ActivityItem):
+            signals.exchanges_add([x.key for x in items], self.qs._key)
+        else:
+            signals.exchanges_output_modified.emit(
+                [x.exchange for x in items], self.qs._key
+            )
         event.accept()
 
     def filter_database_changed(self, database):

@@ -24,6 +24,7 @@ class Controller(object):
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
+        signals.exchanges_deleted.connect(self.delete_exchanges)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -186,3 +187,12 @@ class Controller(object):
                 exc.save()
         for db in db_changed:
             signals.database_changed.emit(db)
+
+    def delete_exchanges(self, exchanges):
+        db_changed = set()
+        for exc in exchanges:
+            db_changed.add(exc['output'][0])
+            exc._document.delete_instance()
+        for db in db_changed:
+            signals.database_changed.emit(db)
+
