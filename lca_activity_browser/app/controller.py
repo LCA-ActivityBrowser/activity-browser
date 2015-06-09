@@ -136,4 +136,5 @@ class Controller(object):
 
     def copy_activity(self, key):
         act = get_activity(key)
-        # self.window.right_panel.addTab(ActivityDataGrid(activity=act), 'Foo')
+        new_act = act.copy("Copy of " + act['name'])
+        signals.open_activity_tab.emit("right", new_act.key)
