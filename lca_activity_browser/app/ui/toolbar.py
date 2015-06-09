@@ -23,7 +23,7 @@ def create_issue(content):
         'priority': 'trivial',
         'kind': 'bug'
     }
-    URL = "https://bitbucket.org/api/1.0/repositories/cmutel/bw2qtui/issues/"
+    URL = "https://bitbucket.org/api/1.0/repositories/cmutel/activity-browser/issues/"
     issues.post(URL, data=data)
 
 
@@ -113,7 +113,7 @@ class Toolbar(object):
     def create_issue_dialog(self):
         text = self.window.dialog(
             'Report new bug',
-            'Please describe the buggy behaviour. Existing bugs can be viewed at `https://bitbucket.org/cmutel/bw2qtui/issues?status=new&status=open`'
+            'Please describe the buggy behaviour. Existing bugs can be viewed at `https://bitbucket.org/cmutel/activity-browser/issues?status=new&status=open`'
         )
         if text:
             create_issue(text)
