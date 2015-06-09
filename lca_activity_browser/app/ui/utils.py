@@ -19,9 +19,10 @@ class StdRedirector(object):
         self.color = color
 
     def write(self, text):
+        # TODO: Doesn't seem to have any effect
         if self.color:
             original = self.edit_widget.textColor()
-            self.edit_widget.setTextColor(self.color)
+            self.edit_widget.setTextColor(QtGui.QColor(self.color))
 
         self.edit_widget.moveCursor(QtGui.QTextCursor.End)
         self.edit_widget.insertPlainText(text )
@@ -31,3 +32,7 @@ class StdRedirector(object):
 
         if self.out:
             self.out.write(text)
+
+
+def get_name(obj):
+    return ','.join(obj.get('name', '').split(',')[:3])[:22]
