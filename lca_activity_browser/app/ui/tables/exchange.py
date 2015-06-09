@@ -72,7 +72,10 @@ class ExchangeTableWidget(QtGui.QTableWidget):
             if item.direction == "down"
             else item.exchange.output.key
         )
-        signals.open_activity_tab.emit("left", item.key)
+        if self.upstream:
+            signals.open_activity_tab.emit("left", item.exchange['output'])
+        else:
+            signals.open_activity_tab.emit("left", item.exchange['input'])
 
     def set_queryset(self, database, qs, limit=100, upstream=False):
         self.database, self.qs, self.upstream = database, qs, upstream
