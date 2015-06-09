@@ -15,5 +15,6 @@ class Signals(QtCore.QObject):
     method_selected = QtCore.pyqtSignal(tuple)
     project_selected = QtCore.pyqtSignal(str)
     copy_activity = QtCore.pyqtSignal(tuple)
+    open_activity_tab = QtCore.pyqtSignal(str, tuple)
 
 signals = Signals()

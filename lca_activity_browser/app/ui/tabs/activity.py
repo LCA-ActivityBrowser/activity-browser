@@ -6,6 +6,7 @@ from .. import horizontal_line, header
 from ...signals import signals
 from ..graphics import DefaultGraph
 from ..tables import ExchangeTableWidget
+from ..widgets import ActivityDataGrid
 from brightway2 import *
 from PyQt4 import QtCore, QtGui
 import functools
@@ -64,26 +65,26 @@ class ActivityDetailsTab(QtGui.QWidget):
         self.products_button = QtGui.QPushButton("Hide")
         self.products_button.clicked.connect(self.toggle_products_table)
 
+        self.metadata = ActivityDataGrid()
+        layout.addWidget(self.metadata)
+
         inside_widget = QtGui.QWidget()
         inside_layout = QtGui.QHBoxLayout()
         inside_layout.addWidget(header('Products:'))
         inside_layout.addWidget(self.products_button)
+        inside_layout.addStretch(1)
         inside_widget.setLayout(inside_layout)
 
         layout.addWidget(inside_widget)
-        layout.addWidget(horizontal_line())
         layout.addWidget(self.production)
 
         layout.addWidget(header('Inputs:'))
-        layout.addWidget(horizontal_line())
         layout.addWidget(self.inputs)
 
         layout.addWidget(header('Biosphere flows:'))
-        layout.addWidget(horizontal_line())
         layout.addWidget(self.flows)
 
         layout.addWidget(header('Upstream:'))
-        layout.addWidget(horizontal_line())
         layout.addWidget(self.upstream)
 
         widget = QtGui.QWidget(self)
@@ -97,6 +98,7 @@ class ActivityDetailsTab(QtGui.QWidget):
         self.inputs.set_queryset(activity.technosphere())
         self.flows.set_queryset(activity.biosphere())
         self.upstream.set_queryset(activity.upstream(), upstream=True)
+        self.metadata.populate(activity)
 
         self.placemat.hide()
         self.details_widget.show()

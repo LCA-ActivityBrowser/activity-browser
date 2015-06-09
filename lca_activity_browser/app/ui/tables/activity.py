@@ -25,12 +25,10 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         3: "unit",
     }
 
-    def __init__(self):
-        super(ActivitiesTableWidget, self).__init__()
+    def __init__(self, parent=None):
+        super(ActivitiesTableWidget, self).__init__(parent)
         self.setDragEnabled(True)
         self.setColumnCount(4)
-
-        self.controller = None
 
         # Done by tab widget ``MaybeActivitiesTable`` because
         # need to ensure order to get correct row count
@@ -46,11 +44,29 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.copy_activity_action = QtGui.QAction(
             QtGui.QIcon(icons.copy), "Copy activity", None
         )
+        self.open_right_tab_action = QtGui.QAction(
+            QtGui.QIcon(icons.right), "Open in new right tab", None
+        )
+        self.open_left_tab_action = QtGui.QAction(
+            QtGui.QIcon(icons.left), "Open in new left tab", None
+        )
         self.addAction(self.add_activity_action)
         self.addAction(self.copy_activity_action)
+        self.addAction(self.open_left_tab_action)
+        self.addAction(self.open_right_tab_action)
         # self.add_activity_action.triggered.connect(self.delete_rows)
         self.copy_activity_action.triggered.connect(
             lambda x: signals.copy_activity.emit(self.currentItem().key)
+        )
+        self.open_right_tab_action.triggered.connect(
+            lambda x: signals.open_activity_tab.emit(
+                "right", self.currentItem().key
+            )
+        )
+        self.open_left_tab_action.triggered.connect(
+            lambda x: signals.open_activity_tab.emit(
+                "left", self.currentItem().key
+            )
         )
 
     def sync(self, name):

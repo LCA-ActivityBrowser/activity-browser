@@ -15,7 +15,7 @@ class ActivityDataGrid(QtGui.QWidget):
         self.setLayout(self.grid)
 
         if activity:
-            self.populate_fields()
+            self.populate()
 
     def get_grid(self):
         grid = QtGui.QGridLayout()
@@ -43,7 +43,9 @@ class ActivityDataGrid(QtGui.QWidget):
 
         return grid
 
-    def populate_fields(self):
+    def populate(self, activity=None):
+        if activity:
+            self.activity = activity
         self.name_box.setText(self.activity['name'])
         self.comment_box.setPlainText(self.activity.get('comment', ''))
         self.location_box.setText(self.activity.get('location', ''))

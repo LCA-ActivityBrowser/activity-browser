@@ -19,7 +19,9 @@ def create_path(folder, filename):
 
 class Icons(object):
     # Icons from href="http://www.flaticon.com/
-    # By http://www.flaticon.com/authors/freepik and others
+    # By http://www.flaticon.com/authors/freepik,
+    # http://www.flaticon.com/authors/rami-mcmin,
+    # and others
     # And are licensed by CC BY 3.0
     delete = create_path('context', 'delete.png')
     copy = create_path('context', 'copy.png')
@@ -39,6 +41,10 @@ class Icons(object):
     save_mp = create_path('metaprocess', 'save_metaprocess.png')
 
     debug = create_path('main', 'debug.png')
+    forward = create_path('main', 'forward.png')
+    right = create_path('main', 'right.png')
+    left = create_path('main', 'left.png')
+    backward = create_path('main', 'backward.png')
     key = create_path('main', 'key.png')
     search = create_path('main', 'search.png')
     switch = create_path('main', 'switch-state.png')

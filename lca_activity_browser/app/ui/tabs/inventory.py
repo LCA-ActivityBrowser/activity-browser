@@ -14,6 +14,7 @@ from ..icons import icons
 from brightway2 import *
 from PyQt4 import QtCore, QtGui
 
+
 class MaybeTable(QtGui.QWidget):
     searchable = False
 
@@ -46,7 +47,6 @@ class MaybeTable(QtGui.QWidget):
         else:
             inventory_layout.addWidget(header(self.HEADER))
 
-        inventory_layout.addWidget(horizontal_line())
         inventory_layout.addWidget(self.table)
 
         self.yes_objects = QtGui.QWidget(self)
@@ -128,7 +128,6 @@ class InventoryTab(QtGui.QWidget):
         database_header.addWidget(self.new_database_button)
 
         database_container = QtGui.QVBoxLayout()
-        database_container.addWidget(horizontal_line())
         database_container.addLayout(database_header)
         database_container.addWidget(
             self.databases_table_layout_widget
