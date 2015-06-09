@@ -2,39 +2,32 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
+from .panel import Panel
 from .. import horizontal_line, header
+from ...signals import signals
 from ..tables import ActivitiesHistoryWidget
 from ..tabs import (
+    ActivityDetailsTab,
+    HistoryTab,
     InventoryTab,
     LCAResultsTab,
     MethodsTab,
 )
+from ..utils import get_name
+from brightway2 import *
 from PyQt4 import QtGui, QtCore
 
 
-class RightPanel(QtGui.QTabWidget):
-    def __init__(self, parent):
-        super(RightPanel, self).__init__(parent)
-        self.setMovable(True)
+class RightPanel(Panel):
+    side = "right"
 
-        self.history_tab = self.get_history_tab()
+    def __init__(self, *args):
+        super(RightPanel, self).__init__(*args)
+
+        self.history_tab = HistoryTab(self)
         self.inventory_tab = InventoryTab(self)
         self.methods_tab = MethodsTab(self)
         self.lca_results_tab = LCAResultsTab(self)
         self.addTab(self.inventory_tab, 'Inventory')
         self.addTab(self.methods_tab, 'Impact Assessment')
         self.addTab(self.history_tab, 'History')
-
-    def get_history_tab(self):
-        layout = QtGui.QVBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        layout.addWidget(header("Activity selection history:"))
-        layout.addWidget(horizontal_line())
-        layout.addWidget(ActivitiesHistoryWidget(self))
-
-        tab = QtGui.QWidget(self)
-        tab.setLayout(layout)
-        return tab
-
-    def select_tab(self, obj):
-        self.setCurrentIndex(self.indexOf(obj))

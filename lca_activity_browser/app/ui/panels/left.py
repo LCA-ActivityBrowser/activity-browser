@@ -8,13 +8,14 @@ from ..tabs import (
     CFsTab,
 )
 from ...signals import signals
-from PyQt4 import QtGui
+from .panel import Panel
 
 
-class LeftPanel(QtGui.QTabWidget):
-    def __init__(self, parent):
-        super(LeftPanel, self).__init__(parent)
-        self.setMovable(True)
+class LeftPanel(Panel):
+    side = "left"
+
+    def __init__(self, *args):
+        super(LeftPanel, self).__init__(*args)
 
         self.activity_details_tab = ActivityDetailsTab(self)
         self.cfs_tab = CFsTab(self)
@@ -24,6 +25,3 @@ class LeftPanel(QtGui.QTabWidget):
         self.addTab(self.cs_tab, 'LCA Calculations')
 
         signals.activity_selected.connect(lambda x: self.select_tab(self.activity_details_tab))
-
-    def select_tab(self, obj):
-        self.setCurrentIndex(self.indexOf(obj))
