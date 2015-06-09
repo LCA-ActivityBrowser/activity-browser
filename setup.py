@@ -23,6 +23,7 @@ setup(
         "icons/context/*.png",
         "icons/pony/*.png",
         "icons/metaprocess/*.png",
+        "icons/main/*.png",
         "HTML/*.html",
         "HTML/dagre/*.js",
         "HTML/d3/*.js",
