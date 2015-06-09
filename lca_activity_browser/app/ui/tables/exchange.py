@@ -56,7 +56,7 @@ class ExchangeTableWidget(QtGui.QTableWidget):
 
     def dropEvent(self, event):
         exchanges = [item.exchange for item in event.source().selectedItems()]
-        signals.exchange_output_modified.emit(exchanges, self.qs._key)
+        signals.exchanges_output_modified.emit(exchanges, self.qs._key)
         event.accept()
 
     def filter_database_changed(self, database):
@@ -72,7 +72,7 @@ class ExchangeTableWidget(QtGui.QTableWidget):
             if item.direction == "down"
             else item.exchange.output.key
         )
-        signals.activity_selected.emit(key)
+        signals.open_activity_tab.emit("left", item.key)
 
     def set_queryset(self, database, qs, limit=100, upstream=False):
         self.database, self.qs, self.upstream = database, qs, upstream

@@ -23,7 +23,7 @@ class Controller(object):
         signals.copy_activity.connect(self.copy_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
-        signals.exchange_output_modified.connect(self.modify_exchanges_output)
+        signals.exchanges_output_modified.connect(self.modify_exchanges_output)
 
     def get_default_project_name(self):
         if "default" in projects:

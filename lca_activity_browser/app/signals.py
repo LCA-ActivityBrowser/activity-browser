@@ -13,7 +13,8 @@ class Signals(QtCore.QObject):
     copy_activity = QtCore.pyqtSignal(tuple)
     open_activity_tab = QtCore.pyqtSignal(str, tuple)
 
-    exchange_output_modified = QtCore.pyqtSignal(list, tuple)
+    exchanges_output_modified = QtCore.pyqtSignal(list, tuple)
+    exchanges_deleted = QtCore.pyqtSignal(list)
 
     calculation_setup_changed = QtCore.pyqtSignal()
     calculation_setup_selected = QtCore.pyqtSignal(str)
