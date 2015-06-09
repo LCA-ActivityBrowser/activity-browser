@@ -34,7 +34,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         # need to ensure order to get correct row count
         # signals.database_selected.connect(self.sync)
         self.itemDoubleClicked.connect(
-            lambda x: signals.activity_selected.emit(x.key)
+            lambda x: signals.open_activity_tab.emit("left", x.key)
         )
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)

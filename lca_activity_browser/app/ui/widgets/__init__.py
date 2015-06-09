@@ -1,1 +1,1 @@
-from .activity import ActivityDataGrid, ActivityDialog
+from .activity import ActivityDataGrid

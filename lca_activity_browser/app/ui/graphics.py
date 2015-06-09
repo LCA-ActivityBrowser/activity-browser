@@ -50,7 +50,7 @@ class DefaultGraph(FigureCanvasQTAgg):
             axes.set_xticks([])
             axes.set_yticks([])
 
-        fig.suptitle("No activity has been selected", y=0.5, fontsize=30, backgroundcolor=(1, 1, 1, 0.5))
+        fig.suptitle("Activity Browser", y=0.5, fontsize=30, backgroundcolor=(1, 1, 1, 0.5))
 
         self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         self.updateGeometry()

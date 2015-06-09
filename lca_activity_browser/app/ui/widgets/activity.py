@@ -50,6 +50,3 @@ class ActivityDataGrid(QtGui.QWidget):
         self.comment_box.setPlainText(self.activity.get('comment', ''))
         self.location_box.setText(self.activity.get('location', ''))
         self.unit_box.setText(self.activity.get('unit', ''))
-
-
-ActivityDialog = None

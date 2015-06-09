@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from PyQt4 import QtGui
+import uuid
 
 
 class StdRedirector(object):
@@ -33,6 +34,13 @@ class StdRedirector(object):
         if self.out:
             self.out.write(text)
 
+    def flush(self, *args, **kwargs):
+        pass
+
 
 def get_name(obj):
     return ','.join(obj.get('name', '').split(',')[:3])[:22]
+
+
+def new_id():
+    return uuid.uuid4().hex

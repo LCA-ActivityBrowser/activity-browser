@@ -5,7 +5,6 @@ from eight import *
 from brightway2 import *
 from . import Container
 from .signals import signals
-from .ui.widgets import ActivityDataGrid
 import sys
 
 
@@ -137,4 +136,4 @@ class Controller(object):
 
     def copy_activity(self, key):
         act = get_activity(key)
-        self.window.right_panel.addTab(ActivityDataGrid(activity=act), 'Foo')
+        # self.window.right_panel.addTab(ActivityDataGrid(activity=act), 'Foo')
