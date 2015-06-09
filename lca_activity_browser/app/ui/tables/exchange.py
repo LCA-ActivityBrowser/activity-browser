@@ -38,12 +38,30 @@ class ExchangeTableWidget(QtGui.QTableWidget):
 
     def __init__(self, parent, biosphere=False, production=False):
         super(ExchangeTableWidget, self).__init__()
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
         self.biosphere = biosphere
         self.production = production
         self.column_labels = self.COLUMN_LABELS[(biosphere, production)]
         self.setColumnCount(len(self.column_labels))
 
+        self.qs, self.upstream, self.database = None, False, None
+
         self.cellDoubleClicked.connect(self.filter_clicks)
+        signals.database_changed.connect(self.filter_database_changed)
+
+    def dragEnterEvent(self, event):
+        if isinstance(event.source(), ExchangeTableWidget):
+            event.accept()
+
+    def dropEvent(self, event):
+        exchanges = [item.exchange for item in event.source().selectedItems()]
+        signals.exchange_output_modified.emit(exchanges, self.qs._key)
+        event.accept()
+
+    def filter_database_changed(self, database):
+        if self.database == database:
+            self.sync()
 
     def filter_clicks(self, row, col):
         if self.biosphere or self.production or col != 0:
@@ -56,14 +74,22 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         )
         signals.activity_selected.emit(key)
 
-    def set_queryset(self, qs, limit=100, upstream=False):
+    def set_queryset(self, database, qs, limit=100, upstream=False):
+        self.database, self.qs, self.upstream = database, qs, upstream
+        self.sync(limit)
+
+    def sync(self, limit=100):
         self.clear()
-        self.setRowCount(min(len(qs), limit))
+        self.setRowCount(min(len(self.qs), limit))
         self.setHorizontalHeaderLabels(self.column_labels)
 
-        for row, exc in enumerate(qs):
-            obj = exc.output if upstream else exc.input
-            direction = "up" if upstream else "down"
+        if self.upstream:
+            self.setDragEnabled(False)
+            self.setAcceptDrops(False)
+
+        for row, exc in enumerate(self.qs):
+            obj = exc.output if self.upstream else exc.input
+            direction = "up" if self.upstream else "down"
             if row == limit:
                 break
 

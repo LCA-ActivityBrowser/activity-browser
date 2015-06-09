@@ -82,8 +82,8 @@ class ActivityDetailsTab(QtGui.QWidget):
     def populate(self, key):
         self.activity = get_activity(key)
 
-        self.production.set_queryset(self.activity.production())
-        self.inputs.set_queryset(self.activity.technosphere())
-        self.flows.set_queryset(self.activity.biosphere())
-        self.upstream.set_queryset(self.activity.upstream(), upstream=True)
+        self.production.set_queryset(key[0], self.activity.production())
+        self.inputs.set_queryset(key[0], self.activity.technosphere())
+        self.flows.set_queryset(key[0], self.activity.biosphere())
+        self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
         self.metadata.populate(self.activity)

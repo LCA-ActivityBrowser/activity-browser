@@ -3,9 +3,12 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from brightway2 import *
+from bw2data.backends.peewee import Exchange
 from . import Container
 from .signals import signals
+import copy
 import sys
+import uuid
 
 
 class Controller(object):
@@ -19,6 +22,8 @@ class Controller(object):
         )
         signals.copy_activity.connect(self.copy_activity)
         signals.activity_modified.connect(self.modify_activity)
+        signals.new_activity.connect(self.new_activity)
+        signals.exchange_output_modified.connect(self.modify_exchanges_output)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -135,13 +140,49 @@ class Controller(object):
             'ia': self.window.left_panel.cs_tab.methods_table.to_python()
         }
 
+    def new_activity(self, database_name):
+        name = self.window.dialog(
+            "Create new technosphere activity",
+            "Name of new technosphere activity:" + " " * 10
+        )
+        if name:
+            new_act = Database(database_name).new_activity(
+                code=uuid.uuid4().hex,
+                name=name,
+                unit="unit"
+            )
+            new_act.save()
+            production_exchange = new_act.new_exchange(amount=1, type="production")
+            production_exchange.input = new_act
+            production_exchange.save()
+            signals.open_activity_tab.emit("right", new_act.key)
+            signals.database_changed.emit(database_name)
+
     def copy_activity(self, key):
         act = get_activity(key)
         new_act = act.copy("Copy of " + act['name'])
+        signals.database_changed.emit(act['database'])
         signals.open_activity_tab.emit("right", new_act.key)
 
     def modify_activity(self, key, field, value):
-        print("Calling modify_activity:", key, field, value)
+        # print("Calling modify_activity:", key, field, value)
         activity = get_activity(key)
         activity[field] = value
         activity.save()
+        signals.database_changed.emit(key[0])
+
+    def modify_exchanges_output(self, exchanges, key):
+        db_changed = {key[0]}
+        for exc in exchanges:
+            db_changed.add(exc['output'][0])
+            if exc['type'] == 'production':
+                new_exc = Exchange()
+                new_exc._data = copy.deepcopy(exc._data)
+                new_exc['type'] = 'technosphere'
+                new_exc['output'] = key
+                new_exc.save()
+            else:
+                exc['output'] = key
+                exc.save()
+        for db in db_changed:
+            signals.database_changed.emit(db)

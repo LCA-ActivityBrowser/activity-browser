@@ -54,7 +54,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.addAction(self.copy_activity_action)
         self.addAction(self.open_left_tab_action)
         self.addAction(self.open_right_tab_action)
-        # self.add_activity_action.triggered.connect(self.delete_rows)
+        self.add_activity_action.triggered.connect(lambda: signals.new_activity.emit(self.database.name))
         self.copy_activity_action.triggered.connect(
             lambda x: signals.copy_activity.emit(self.currentItem().key)
         )
@@ -68,6 +68,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
                 "left", self.currentItem().key
             )
         )
+        signals.database_changed.connect(self.filter_database_changed)
 
     def sync(self, name):
         self.clear()
@@ -83,6 +84,11 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+    def filter_database_changed(self, database_name):
+        if not hasattr(self, "database") or self.database.name != database_name:
+            return
+        self.sync(self.database.name)
 
     def reset_search(self):
         self.sync(self.database.name)
