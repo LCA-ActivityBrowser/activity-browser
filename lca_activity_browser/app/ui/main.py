@@ -109,6 +109,9 @@ class MainWindow(QtGui.QMainWindow):
             QtGui.QMessageBox.Ok,
         )
 
+    def warning(self, title, text):
+        QtGui.QMessageBox.warning(self, title, text)
+
     def confirm(self, label):
         response = QtGui.QMessageBox.question(
             self,

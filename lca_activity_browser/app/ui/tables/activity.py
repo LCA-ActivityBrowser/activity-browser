@@ -44,6 +44,9 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.copy_activity_action = QtGui.QAction(
             QtGui.QIcon(icons.copy), "Copy activity", None
         )
+        self.delete_activity_action = QtGui.QAction(
+            QtGui.QIcon(icons.delete), "Delete activity", None
+        )
         self.open_right_tab_action = QtGui.QAction(
             QtGui.QIcon(icons.right), "Open in new right tab", None
         )
@@ -52,11 +55,15 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         )
         self.addAction(self.add_activity_action)
         self.addAction(self.copy_activity_action)
+        self.addAction(self.delete_activity_action)
         self.addAction(self.open_left_tab_action)
         self.addAction(self.open_right_tab_action)
         self.add_activity_action.triggered.connect(lambda: signals.new_activity.emit(self.database.name))
         self.copy_activity_action.triggered.connect(
             lambda x: signals.copy_activity.emit(self.currentItem().key)
+        )
+        self.delete_activity_action.triggered.connect(
+            lambda x: signals.delete_activity.emit(self.currentItem().key)
         )
         self.open_right_tab_action.triggered.connect(
             lambda x: signals.open_activity_tab.emit(

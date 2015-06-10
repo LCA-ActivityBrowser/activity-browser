@@ -27,6 +27,7 @@ class Controller(object):
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
+        signals.delete_activity.connect(self.delete_activity)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -161,9 +162,35 @@ class Controller(object):
             signals.open_activity_tab.emit("right", new_act.key)
             signals.database_changed.emit(database_name)
 
+    def delete_activity(self, key):
+        act = get_activity(key)
+        database = act['database']
+        nu = len(act.upstream())
+        if nu:
+            text = "activities consume" if nu > 1 else "activity consumes"
+            self.window.warning(
+                "Can't delete activity",
+                """Can't delete {}.
+{} upstream {} its reference product.
+Upstream exchanges must be modified or deleted.""".format(act, nu, text)
+            )
+        else:
+            act.delete()
+            signals.database_changed.emit(act['database'])
+
     def copy_activity(self, key):
         act = get_activity(key)
         new_act = act.copy("Copy of " + act['name'])
+        # Update production exchanges
+        for exc in new_act.production():
+            if exc.input.key == key:
+                exc.input = new_act
+                exc.save()
+        # Update 'products'
+        for product in new_act.get('products', []):
+            if product['input'] == key:
+                product['input'] = new_act.key
+        new_act.save()
         signals.database_changed.emit(act['database'])
         signals.open_activity_tab.emit("right", new_act.key)
 
