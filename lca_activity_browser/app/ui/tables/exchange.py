@@ -42,6 +42,7 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         super(ExchangeTableWidget, self).__init__()
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
+        self.setSortingEnabled(True)
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.biosphere = biosphere
         self.production = production
