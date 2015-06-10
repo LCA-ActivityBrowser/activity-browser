@@ -188,7 +188,7 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
                 exc.save()
         # Update 'products'
         for product in new_act.get('products', []):
-            if product['input'] == key:
+            if product.get('input') == key:
                 product['input'] = new_act.key
         new_act.save()
         signals.database_changed.emit(act['database'])
