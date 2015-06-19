@@ -6,6 +6,8 @@ from PyQt4 import QtCore
 
 
 class Signals(QtCore.QObject):
+    action_taken = QtCore.pyqtSignal(str)
+
     new_activity = QtCore.pyqtSignal(str)
     activity_selected = QtCore.pyqtSignal(tuple)
     # Activity key, field, new value
