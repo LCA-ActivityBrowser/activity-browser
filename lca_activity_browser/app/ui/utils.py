@@ -2,11 +2,12 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
+from io import StringIO
 from PyQt4 import QtGui
 import uuid
 
 
-class StdRedirector(object):
+class StdRedirector(StringIO):
     # From http://stackoverflow.com/questions/17132994/pyside-and-python-logging/17145093#17145093
     def __init__(self, widget, out=None, color=None):
         """(edit, out=None, color=None) -> can write stdout, stderr to a
