@@ -13,7 +13,7 @@ from ...signals import signals
 
 
 class DatabaseItem(QtGui.QTableWidgetItem):
-    def __init__(self, *args, db_name=None):
+    def __init__(self, db_name, *args):
         super(DatabaseItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.db_name = db_name
@@ -33,13 +33,13 @@ class DatabasesTableWidget(QtGui.QTableWidget):
         self.setRowCount(len(databases))
         self.setHorizontalHeaderLabels(["Name", "Depends", "Last modified"])
         for row, name in enumerate(natural_sort(databases)):
-            self.setItem(row, 0, DatabaseItem(name, db_name=name))
+            self.setItem(row, 0, DatabaseItem(name, name))
             depends = databases[name].get('depends', [])
-            self.setItem(row, 1, DatabaseItem("; ".join(depends), db_name=name))
+            self.setItem(row, 1, DatabaseItem(name, "; ".join(depends)))
             dt = databases[name].get('modified', '')
             if dt:
                 dt = arrow.get(dt).humanize()
-            self.setItem(row, 2, DatabaseItem(dt, db_name=name))
+            self.setItem(row, 2, DatabaseItem(name, dt))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

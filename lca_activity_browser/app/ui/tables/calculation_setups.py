@@ -30,15 +30,16 @@ class CSList(QtGui.QComboBox):
     def name(self):
         return self.itemText(self.currentIndex())
 
+
 class CSActivityItem(QtGui.QTableWidgetItem):
-    def __init__(self, *args, key=None):
+    def __init__(self, key, *args):
         super(CSActivityItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
 
 
 class CSAmount(QtGui.QTableWidgetItem):
-    def __init__(self, *args, key=None):
+    def __init__(self, key, *args):
         super(CSAmount, self).__init__(*args)
         self.key = key
 
@@ -75,9 +76,9 @@ class CSActivityTableWidget(QtGui.QTableWidget):
             act = get_activity(key)
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, CSActivityItem(act['name'], key=key))
-            self.setItem(new_row, 1, CSAmount(amount, key=key))
-            self.setItem(new_row, 2, CSActivityItem(act.get('unit', 'Unknown')))
+            self.setItem(new_row, 0, CSActivityItem(key, act['name']))
+            self.setItem(new_row, 1, CSAmount(key, amount))
+            self.setItem(new_row, 2, CSActivityItem(None, act.get('unit', 'Unknown')))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -106,9 +107,9 @@ class CSActivityTableWidget(QtGui.QTableWidget):
 
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, CSActivityItem(act['name'], key=key))
-            self.setItem(new_row, 1, CSAmount("1.0", key=key))
-            self.setItem(new_row, 2, CSActivityItem(act.get('unit', 'Unknown')))
+            self.setItem(new_row, 0, CSActivityItem(key, act['name']))
+            self.setItem(new_row, 1, CSAmount(key, "1.0"))
+            self.setItem(new_row, 2, CSActivityItem(None, act.get('unit', 'Unknown')))
 
         event.accept()
 
@@ -126,7 +127,7 @@ class CSActivityTableWidget(QtGui.QTableWidget):
 
 
 class CSMethodItem(QtGui.QTableWidgetItem):
-    def __init__(self, *args, method=None):
+    def __init__(self, method, *args):
         super(CSMethodItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.method = method
@@ -156,7 +157,7 @@ class CSMethodsTableWidget(QtGui.QTableWidget):
         for obj in calculation_setups[name]['ia']:
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, CSMethodItem(", ".join(obj), method=obj))
+            self.setItem(new_row, 0, CSMethodItem(obj, ", ".join(obj)))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -176,7 +177,7 @@ class CSMethodsTableWidget(QtGui.QTableWidget):
                 continue
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, CSMethodItem(", ".join(obj), method=obj))
+            self.setItem(new_row, 0, CSMethodItem(obj, ", ".join(obj)))
         event.accept()
 
         signals.calculation_setup_changed.emit()

@@ -10,7 +10,7 @@ import itertools
 
 
 class ActivityItem(QtGui.QTableWidgetItem):
-    def __init__(self, *args, key=None):
+    def __init__(self, key, *args):
         super(ActivityItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
@@ -87,7 +87,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         data = itertools.islice(self.database, 0, self.COUNT)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
+                self.setItem(row, col, ActivityItem(ds.key, ds.get(value, '')))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -110,7 +110,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
         for row, ds in enumerate(search_result):
             for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
+                self.setItem(row, col, ActivityItem(ds.key, ds.get(value, '')))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

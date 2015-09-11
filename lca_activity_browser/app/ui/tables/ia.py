@@ -2,21 +2,21 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from brightway2 import *
-from numbers import Number
-from PyQt4 import QtCore, QtGui
 from ...signals import signals
+from brightway2 import *
+from PyQt4 import QtCore, QtGui
+import numbers
 
 
 class MethodItem(QtGui.QTableWidgetItem):
-    def __init__(self, *args, method=None):
+    def __init__(self, method, *args):
         super(MethodItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.method = method
 
 
 class Number(QtGui.QTableWidgetItem):
-    def __init__(self, *args, method=None, number=None):
+    def __init__(self, method, number, *args):
         super(Number, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.number = number
@@ -56,17 +56,17 @@ class MethodsTableWidget(QtGui.QTableWidget):
         for row, method_obj in enumerate(sorted_names):
             name, method = method_obj
             data = methods[method]
-            self.setItem(row, 0, MethodItem(name, method=method))
-            self.setItem(row, 1, MethodItem(data.get('unit', "Unknown"), method=method))
+            self.setItem(row, 0, MethodItem(method, name))
+            self.setItem(row, 1, MethodItem(method, data.get('unit', "Unknown")))
             num_cfs = data.get('num_cfs', 0)
-            self.setItem(row, 2, Number(str(num_cfs), method=method, number=num_cfs))
+            self.setItem(row, 2, Number(method, num_cfs, str(num_cfs)))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
 
 class CFItem(QtGui.QTableWidgetItem):
-    def __init__(self, *args, key=None):
+    def __init__(self, key, *args):
         super(CFItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
@@ -94,15 +94,15 @@ class CFsTableWidget(QtGui.QTableWidget):
         for row, obj in enumerate(data):
             key, amount = obj[:2]
             flow = get_activity(key)
-            if isinstance(amount, Number):
+            if isinstance(amount, numbers.Number):
                 uncertain = "False"
             else:
                 uncertain = "True"
                 amount = amount['amount']
-            self.setItem(row, 0, CFItem(flow['name'], key=key))
-            self.setItem(row, 1, CFItem("{:.6g}".format(amount), key=key))
-            self.setItem(row, 2, CFItem(flow.get('unit', 'Unknown'), key=key))
-            self.setItem(row, 3, CFItem(uncertain, key=key))
+            self.setItem(row, 0, CFItem(key, flow['name']))
+            self.setItem(row, 1, CFItem(key, "{:.6g}".format(amount)))
+            self.setItem(row, 2, CFItem(key, flow.get('unit', 'Unknown')))
+            self.setItem(row, 3, CFItem(key, uncertain))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

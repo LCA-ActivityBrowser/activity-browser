@@ -10,7 +10,7 @@ from PyQt4 import QtCore, QtGui
 
 
 class Reference(QtGui.QTableWidgetItem):
-    def __init__(self, *args, exchange=None, direction="down"):
+    def __init__(self, exchange, direction, *args):
         super(Reference, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.exchange = exchange
@@ -18,7 +18,7 @@ class Reference(QtGui.QTableWidgetItem):
 
 
 class Amount(QtGui.QTableWidgetItem):
-    def __init__(self, *args, exchange=None):
+    def __init__(self, exchange, *args):
         super(Amount, self).__init__(*args)
         # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
         self.exchange = exchange
@@ -143,9 +143,9 @@ class ExchangeTableWidget(QtGui.QTableWidget):
                 row,
                 0,
                 Reference(
-                    obj['name'],
                     exchange=exc,
-                    direction=direction
+                    direction=direction,
+                    obj['name'],
                 )
             )
             if self.production:
@@ -153,8 +153,8 @@ class ExchangeTableWidget(QtGui.QTableWidget):
                     row,
                     1,
                     Amount(
+                        exchange=exc,
                         "{:.4g}".format(exc['amount']),
-                        exchange=exc
                     )
                 )
                 self.setItem(
@@ -171,17 +171,17 @@ class ExchangeTableWidget(QtGui.QTableWidget):
                         row,
                         1,
                         Reference(
-                            obj.get('reference product') or obj["name"],
                             exchange=exc,
-                            direction=direction
+                            direction=direction,
+                            obj.get('reference product') or obj["name"],
                         )
                     )
                 self.setItem(
                     row,
                     2,
                     Amount(
+                        exchange=exc,
                         "{:.4g}".format(exc['amount']),
-                        exchange=exc
                     )
                 )
                 self.setItem(

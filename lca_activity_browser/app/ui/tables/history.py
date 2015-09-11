@@ -8,7 +8,7 @@ from PyQt4 import QtCore, QtGui
 
 
 class Item(QtGui.QTableWidgetItem):
-    def __init__(self, *args, key=None):
+    def __init__(self, key, *args):
         super(Item, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
@@ -45,7 +45,7 @@ class ActivitiesHistoryWidget(QtGui.QTableWidget):
         ds = get_activity(key)
         self.insertRow(0)
         for col, value in self.COLUMNS.items():
-            self.setItem(0, col, Item(ds.get(value, ''), key=key))
+            self.setItem(0, col, Item(key, ds.get(value, '')))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

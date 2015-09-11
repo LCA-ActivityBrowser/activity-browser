@@ -28,7 +28,7 @@ def create_issue(content):
 
 
 class StackButton(QtGui.QPushButton):
-    def __init__(self, *args, window=None):
+    def __init__(self, window, *args):
         super(StackButton, self).__init__(*args)
         self.state = 1
         self.window = window
@@ -59,9 +59,9 @@ class Toolbar(object):
         # button.setText('Report Bug')
 
         switch_stack_button = StackButton(
+            self.window,
             QtGui.QIcon(icons.switch),
             'Debug window',
-            window=self.window
         )
         switch_stack_button.clicked.connect(switch_stack_button.switch_state)
 

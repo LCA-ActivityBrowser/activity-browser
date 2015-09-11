@@ -35,8 +35,8 @@ class FlowsTableWidget(QtGui.QTableWidget):
         data = itertools.islice(self.database, 0, self.COUNT)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
-            self.setItem(row, 1, ActivityItem(", ".join(ds.get('categories', [])), key=ds.key))
+                self.setItem(row, col, ActivityItem(ds.key, ds.get(value, '')))
+            self.setItem(row, 1, ActivityItem(ds.key, ", ".join(ds.get('categories', []))))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -51,8 +51,8 @@ class FlowsTableWidget(QtGui.QTableWidget):
         self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])
         for row, ds in enumerate(search_result):
             for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ActivityItem(ds.get(value, ''), key=ds.key))
-            self.setItem(row, 1, ActivityItem(", ".join(ds.get('categories', [])), key=ds.key))
+                self.setItem(row, col, ActivityItem(ds.key, ds.get(value, '')))
+            self.setItem(row, 1, ActivityItem(ds.key, ", ".join(ds.get('categories', []))))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
