@@ -33,9 +33,12 @@ class ReadOnly(QtGui.QTableWidgetItem):
 
 class ExchangeTableWidget(QtGui.QTableWidget):
     COLUMN_LABELS = {
-        (False, False): ["Activity", "Product", "Amount", "Uncertain", "Unit"],
-        (True, False): ["Name", "Categories", "Amount", "Uncertain", "Unit"],
-        (False, True): ["Product", "Amount", "Uncertain", "Unit"],
+        # Normal technosphere
+        (False, False): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
+        # Biosphere
+        (True, False): ["Name", "Amount", "Unit", "Database", "Categories", "Uncertain"],
+        # Production
+        (False, True): ["Product", "Amount", "Unit", "Uncertain"],
     }
 
     def __init__(self, parent, biosphere=False, production=False):
@@ -139,57 +142,91 @@ class ExchangeTableWidget(QtGui.QTableWidget):
             if row == limit:
                 break
 
-            self.setItem(
-                row,
-                0,
-                Reference(
-                    exchange=exc,
-                    direction=direction,
-                    obj['name'],
+            if self.production:  # "Product", "Amount", "Unit", "Uncertain"
+                self.setItem(
+                    row,
+                    0,
+                    Reference(
+                        exc,
+                        direction,
+                        obj['name'],
+                    )
                 )
-            )
-            if self.production:
                 self.setItem(
                     row,
                     1,
                     Amount(
-                        exchange=exc,
+                        exc,
                         "{:.4g}".format(exc['amount']),
                     )
                 )
-                self.setItem(
-                    row,
-                    2,
-                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
-                )
-                self.setItem(row, 3, ReadOnly(obj.get('unit', 'Unknown')))
-            else:
-                if self.biosphere:
-                    self.setItem(row, 1, ReadOnly(" - ".join(obj.get('categories', []))))
-                else:
-                    self.setItem(
-                        row,
-                        1,
-                        Reference(
-                            exchange=exc,
-                            direction=direction,
-                            obj.get('reference product') or obj["name"],
-                        )
-                    )
-                self.setItem(
-                    row,
-                    2,
-                    Amount(
-                        exchange=exc,
-                        "{:.4g}".format(exc['amount']),
-                    )
-                )
+                self.setItem(row, 2, ReadOnly(obj.get('unit', 'Unknown')))
                 self.setItem(
                     row,
                     3,
                     ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
                 )
-                self.setItem(row, 4, ReadOnly(obj.get('unit', 'Unknown')))
+            elif self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
+                self.setItem(
+                    row,
+                    0,
+                    Reference(
+                        exc,
+                        direction,
+                        obj['name'],
+                    )
+                )
+                self.setItem(
+                    row,
+                    1,
+                    Amount(
+                        exc,
+                        "{:.4g}".format(exc['amount']),
+                    )
+                )
+                self.setItem(row, 2, ReadOnly(obj.get('unit', 'Unknown')))
+                self.setItem(row, 3, ReadOnly(obj['database']))
+                self.setItem(row, 4, ReadOnly(" - ".join(obj.get('categories', []))))
+                self.setItem(
+                    row,
+                    5,
+                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
+                )
+            else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
+                self.setItem(
+                    row,
+                    0,
+                    Reference(
+                        exc,
+                        direction,
+                        obj['name'],
+                    )
+                )
+                self.setItem(
+                    row,
+                    1,
+                    Reference(
+                        exc,
+                        direction,
+                        obj.get('reference product') or obj["name"],
+                    )
+                )
+                self.setItem(
+                    row,
+                    2,
+                    Amount(
+                        exc,
+                        "{:.4g}".format(exc['amount']),
+                    )
+                )
+                self.setItem(row, 3, ReadOnly(obj['database']))
+                self.setItem(row, 4, ReadOnly(obj.get('location', 'Unknown')))
+                self.setItem(row, 5, ReadOnly(obj.get('unit', 'Unknown')))
+                self.setItem(
+                    row,
+                    6,
+                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
+                )
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
