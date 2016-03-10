@@ -105,7 +105,7 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         signals.action_taken.emit(
             "Activity table search term: {}".format(search_term)
         )
-        search_result = self.database.search(search_term, limit=self.COUNT, **self.database.filters)
+        search_result = self.database.search(search_term, limit=self.COUNT)
         self.setRowCount(len(search_result))
         self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
         for row, ds in enumerate(search_result):

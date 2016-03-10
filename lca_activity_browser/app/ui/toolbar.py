@@ -49,14 +49,9 @@ class Toolbar(object):
         self.window = window
 
         # Toolbar elements are layed out left to right.
-        # First is a search box, then a bunch of actions
-
-        # self.search_box = self.get_search_box()
-        # self.key_search_action = self.get_key_search()
 
         new_issue_button = QtGui.QPushButton(QtGui.QIcon(icons.debug), 'Report Bug')
         new_issue_button.setStyleSheet('QPushButton {color: red;}')
-        # button.setText('Report Bug')
 
         switch_stack_button = StackButton(
             self.window,
@@ -64,6 +59,13 @@ class Toolbar(object):
             'Debug window',
         )
         switch_stack_button.clicked.connect(switch_stack_button.switch_state)
+
+        self.project_name_label = QtGui.QLabel('Project: default')
+        self.project_read_only = QtGui.QLabel('Substititue me')
+        self.project_read_only.setStyleSheet('QLabel {color: red;}')
+        if projects.read_only:
+            print("Setting RO text")
+            self.project_read_only.setText('Read Only Project')
 
         self.new_project_button = QtGui.QPushButton(QtGui.QIcon(icons.add), 'New')
         self.copy_project_button = QtGui.QPushButton(QtGui.QIcon(icons.copy), 'Copy')
@@ -75,6 +77,8 @@ class Toolbar(object):
         self.toolbar.addWidget(QtGui.QLabel('Brightway2 Activity Browser'))
         self.toolbar.addWidget(new_issue_button)
         self.toolbar.addWidget(switch_stack_button)
+        self.toolbar.addWidget(self.project_name_label)
+        self.toolbar.addWidget(self.project_read_only)
 
         spacer = QtGui.QWidget()
         spacer.setSizePolicy(
@@ -129,6 +133,12 @@ class Toolbar(object):
     def change_project(self, name):
         index = sorted([project.name for project in projects]).index(projects.current)
         self.projects_list_widget.setCurrentIndex(index)
+
+        self.project_name_label.setText('Project: {}'.format(projects.current))
+        self.project_read_only.setText('')
+        if projects.read_only:
+            self.project_read_only.setText('Read Only Project')
+            self.window.warning("Read Only Project", """Read Only Project.\nAnother Python process is working with this project, no writes are allowed.\nCheck to make sure no other Python interpreters are running, and then re-select this project.""")
 
     def get_search_box(self):
         search_box = QtGui.QLineEdit()
