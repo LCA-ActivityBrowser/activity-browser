@@ -8,6 +8,8 @@ bold_font = QtGui.QFont()
 bold_font.setBold(True)
 bold_font.setPointSize(16)
 
+activity_cache = {}
+
 
 def horizontal_line():
     line = QtGui.QFrame()

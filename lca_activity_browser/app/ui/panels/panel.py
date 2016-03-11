@@ -2,6 +2,7 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
+from .. import activity_cache
 from ...signals import signals
 from ..tabs import ActivityDetailsTab
 from ..utils import get_name
@@ -23,14 +24,21 @@ class Panel(QtGui.QTabWidget):
 
     def open_new_activity_tab(self, side, key):
         if side == self.side:
-            new_tab = ActivityDetailsTab(self)
-            new_tab.populate(key)
-            self.addTab(new_tab, get_name(get_activity(key)))
-            self.select_tab(new_tab)
+            if key in activity_cache:
+                self.select_tab(activity_cache[key])
+            else:
+                new_tab = ActivityDetailsTab(self)
+                new_tab.populate(key)
+                activity_cache[key] = new_tab
+                self.addTab(new_tab, get_name(get_activity(key)))
+                self.select_tab(new_tab)
 
     def close_tab(self, index):
         if index >= 3:
             # TODO: Should look up by tab class, not index, as tabs are movable
             widget = self.widget(index)
+            if isinstance(widget, ActivityDetailsTab):
+                assert widget.activity in activity_cache
+                del activity_cache[widget.activity]
             widget.deleteLater()
             self.removeTab(index)
