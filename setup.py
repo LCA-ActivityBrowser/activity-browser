@@ -40,7 +40,7 @@ setup(
         "networkx",
         "requests-oauthlib",
         "seaborn",
-        "PyQt5",
+        # "PyQt5",
     ],
     url="https://bitbucket.org/bsteubing/activity-browser",
     long_description=open('README.md').read(),
