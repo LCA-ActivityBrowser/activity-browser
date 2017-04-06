@@ -134,8 +134,10 @@ class Controller(object):
             "New name of this calculation setup:" + " " * 10
         )
         if new_name:
-            calculation_setups[new_name] = calculation_setups[current]
+            calculation_setups[new_name] = calculation_setups[current].copy()
+            print("Current setups:", list(calculation_setups.keys()))
             del calculation_setups[current]
+            print("After deletion of {}:".format(current), list(calculation_setups.keys()))
             signals.calculation_setup_selected.emit(new_name)
 
     def write_current_calculation_setup(self):
