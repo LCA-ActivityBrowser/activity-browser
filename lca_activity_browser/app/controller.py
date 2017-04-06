@@ -7,7 +7,6 @@ from bw2data.backends.peewee import Exchange
 from . import Container
 from .signals import signals
 import copy
-import psutil
 import sys
 import uuid
 
@@ -29,7 +28,6 @@ class Controller(object):
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         signals.delete_activity.connect(self.delete_activity)
-        signals.action_taken.connect(self.print_open_files)
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -248,7 +246,3 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
         exchange['amount'] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
-
-    def print_open_files(self, description):
-        proc = psutil.Process()
-        print("Number of open files:", len(proc.open_files()))
