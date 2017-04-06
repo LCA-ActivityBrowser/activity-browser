@@ -26,7 +26,6 @@ class ActivityDetailsTab(QtGui.QWidget):
         self.setLayout(container)
 
         if activity:
-            self.key = activity
             self.populate(activity)
 
     def toggle_visible(self, table):

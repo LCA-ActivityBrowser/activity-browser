@@ -18,9 +18,18 @@ class Panel(QtGui.QTabWidget):
         self.tabCloseRequested.connect(self.close_tab)
 
         signals.open_activity_tab.connect(self.open_new_activity_tab)
+        signals.activity_modified.connect(self.update_activity_name)
 
     def select_tab(self, obj):
         self.setCurrentIndex(self.indexOf(obj))
+
+    def update_activity_name(self, key, field, value):
+        if key in activity_cache and field == 'name':
+            try:
+                index = self.indexOf(activity_cache[key])
+                self.setTabText(index, value)
+            except:
+                raise
 
     def open_new_activity_tab(self, side, key):
         if side == self.side:
