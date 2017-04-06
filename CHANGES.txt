@@ -1,0 +1,16 @@
+Changelog
+*********
+
+2.0 (2015-XX-XX)
+================
+
+Rewrite to make code cleaner and better organized. 
+
+- Compatible with Brightway2 2.0.
+- Clear separation of models (from bw2data), views, and controllers.
+- Extensive use of signals to effect UI changes
+
+1.0 (2015-XX-XX)
+================
+
+First version.
