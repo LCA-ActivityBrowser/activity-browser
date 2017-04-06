@@ -29,7 +29,7 @@ class Panel(QtGui.QTabWidget):
                 index = self.indexOf(activity_cache[key])
                 self.setTabText(index, value)
             except:
-                raise
+                pass
 
     def open_new_activity_tab(self, side, key):
         if side == self.side:

@@ -44,12 +44,12 @@ class StackButton(QtGui.QPushButton):
             self.setText("Main window")
 
 
-class Toolbar(object):
+class Toolbar(QtGui.QToolBar):
     def __init__(self, window):
+        super(Toolbar, self).__init__()
         self.window = window
 
         # Toolbar elements are layed out left to right.
-
         new_issue_button = QtGui.QPushButton(QtGui.QIcon(icons.debug), 'Report Bug')
         new_issue_button.setStyleSheet('QPushButton {color: red;}')
 
@@ -72,44 +72,28 @@ class Toolbar(object):
         self.delete_project_button = QtGui.QPushButton(QtGui.QIcon(icons.delete), 'Delete')
         self.projects_list_widget = ProjectListWidget()
 
-        self.toolbar = QtGui.QToolBar('Toolbar')
-        # self.toolbar.addWidget(self.search_box)
-        self.toolbar.addWidget(QtGui.QLabel('Brightway2 Activity Browser'))
-        self.toolbar.addWidget(new_issue_button)
-        self.toolbar.addWidget(switch_stack_button)
-        self.toolbar.addWidget(self.project_name_label)
-        self.toolbar.addWidget(self.project_read_only)
+        self.addWidget(QtGui.QLabel('Brightway2 Activity Browser'))
+        self.addWidget(new_issue_button)
+        self.addWidget(switch_stack_button)
+        self.addWidget(self.project_name_label)
+        self.addWidget(self.project_read_only)
 
         spacer = QtGui.QWidget()
         spacer.setSizePolicy(
             QtGui.QSizePolicy.Expanding,
             QtGui.QSizePolicy.Expanding
         )
-        self.toolbar.addWidget(spacer)
-        self.toolbar.addSeparator()
+        self.addWidget(spacer)
+        self.addSeparator()
 
-        # ACTIONS = [
-        #     self.key_search_action,
-        # ]
-        # for action in ACTIONS:
-        #     self.toolbar.addAction(action)
-
-        # self.toolbar.addAction(action_key)
-        # self.toolbar.addAction(action_random_activity)
-        # self.toolbar.addAction(action_history)
-        # self.toolbar.addAction(action_backward)
-        # self.toolbar.addAction(action_forward)
-        # self.toolbar.addAction(action_edit)
-        # self.toolbar.addAction(action_calculate)
-
-        self.toolbar.addWidget(QtGui.QLabel('Current Project:'))
-        self.toolbar.addWidget(self.projects_list_widget)
-        self.toolbar.addWidget(self.new_project_button)
-        self.toolbar.addWidget(self.copy_project_button)
-        self.toolbar.addWidget(self.delete_project_button)
+        self.addWidget(QtGui.QLabel('Current Project:'))
+        self.addWidget(self.projects_list_widget)
+        self.addWidget(self.new_project_button)
+        self.addWidget(self.copy_project_button)
+        self.addWidget(self.delete_project_button)
 
 
-        self.window.addToolBar(self.toolbar)
+        self.window.addToolBar(self)
 
         signals.project_selected.connect(self.change_project)
         new_issue_button.clicked.connect(self.create_issue_dialog)
@@ -140,54 +124,23 @@ class Toolbar(object):
             self.project_read_only.setText('Read Only Project')
             self.window.warning("Read Only Project", """Read Only Project.\nAnother Python process is working with this project, no writes are allowed.\nCheck to make sure no other Python interpreters are running, and then re-select this project.""")
 
-    def get_search_box(self):
-        search_box = QtGui.QLineEdit()
-        search_box.setMaximumSize(QtCore.QSize(150, 25))
+    # def get_search_box(self):
+    #     search_box = QtGui.QLineEdit()
+    #     search_box.setMaximumSize(QtCore.QSize(150, 25))
 
-        # Search
-        search_action = QtGui.QAction(
-            QtGui.QIcon(icons.search),
-            'Search activites (see help for search syntax)',
-            self.window
-        )
-        # search_action.triggered.connect(self.search_results)
-        # search_box.returnPressed.connect(self.search_results)
+    #     # Search
+    #     search_action = QtGui.QAction(
+    #         QtGui.QIcon(icons.search),
+    #         'Search activites (see help for search syntax)',
+    #         self.window
+    #     )
+    #     return search_box
 
-        return search_box
-
-    def get_key_search(self):
-        key_search_action = QtGui.QAction(
-            QtGui.QIcon(icons.key),
-            'Search by key',
-            self.window
-        )
-        # key_search_action.triggered.connect(self.search_by_key)
-        return key_search_action
-
-
-        # # Random activity
-        # action_random_activity = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/random_activity.png')), 'Load a random activity', self)
-        # action_random_activity.triggered.connect(lambda: self.load_new_current_activity())
-
-        # # History
-        # action_history = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/history.png')), 'Previously visited activities', self)
-        # action_history.triggered.connect(self.showHistory)
-
-        # # Backward
-        # action_backward = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/backward.png')), 'Go backward', self)
-        # action_backward.setShortcut('Alt+left')
-        # action_backward.triggered.connect(self.goBackward)
-
-        # # Forward
-        # action_forward = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/forward.png')), 'Go forward', self)
-        # action_forward.setShortcut('Alt+right')
-        # action_forward.triggered.connect(self.goForward)
-
-        # # Edit
-        # action_edit = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/edit.png')), 'Edit activity', self)
-        # action_edit.triggered.connect(self.edit_activity)
-
-        # # Calculate
-        # action_calculate = QtGui.QAction(QtGui.QIcon(translate_icon_path('icons/calculate.png')),
-        #                                'Calculate LCA (with settings in LCIA tab)', self)
-        # action_calculate.triggered.connect(self.calculate_lcia)
+    # def get_key_search(self):
+    #     key_search_action = QtGui.QAction(
+    #         QtGui.QIcon(icons.key),
+    #         'Search by key',
+    #         self.window
+    #     )
+    #     # key_search_action.triggered.connect(self.search_by_key)
+    #     return key_search_action
