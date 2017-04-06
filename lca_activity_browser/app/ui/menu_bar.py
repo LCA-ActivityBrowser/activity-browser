@@ -14,20 +14,20 @@ class MenuBar(object):
         self.menubar.addMenu(self.get_help_menu())
         window.setMenuBar(self.menubar)
 
-    def add_metaprocess_menu_item(self):
-        add_metaprocess = QtGui.QAction(QtGui.QIcon(icons.metaprocess), '&Meta-Process Editor', self.window)
-        add_metaprocess.setShortcut('Ctrl+E')
-        add_metaprocess.setStatusTip('Start Meta-Process Editor')
+    # def add_metaprocess_menu_item(self):
+    #     add_metaprocess = QtGui.QAction(QtGui.QIcon(icons.metaprocess), '&Meta-Process Editor', self.window)
+    #     add_metaprocess.setShortcut('Ctrl+E')
+    #     add_metaprocess.setStatusTip('Start Meta-Process Editor')
 
-        # add_metaprocess.triggered.connect(self.set_up_widgets_meta_process)
+    #     # add_metaprocess.triggered.connect(self.set_up_widgets_meta_process)
 
-        return add_metaprocess
+    #     return add_metaprocess
 
     def get_extensions_menu(self):
         extensions_menu = QtGui.QMenu('&Extensions', self.window)
-        extensions_menu.addAction(
-            self.add_metaprocess_menu_item()
-        )
+        # extensions_menu.addAction(
+        #     self.add_metaprocess_menu_item()
+        # )
         return extensions_menu
 
     def get_help_menu(self):
@@ -44,12 +44,11 @@ class MenuBar(object):
 
     def about(self):
         text="""
-Activity Browser - A free and extendable LCA software.
+Activity Browser - a graphical interface for Brightway2.
 
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich
-Contact: steubing@ifu.baug.ethz.ch
-
-Uses brightway2: http://brightwaylca.org/
+Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut
+Contact: cmutel@gmail.com
 
 LICENSE:
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
