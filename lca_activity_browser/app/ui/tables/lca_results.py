@@ -3,17 +3,17 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from brightway2 import get_activity
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
 
 
-class ReadOnly(QtGui.QTableWidgetItem):
+class ReadOnly(QtWidgets.QTableWidgetItem):
     def __init__(self, *args):
         super(ReadOnly, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 
-class LCAResultsTable(QtGui.QTableWidget):
+class LCAResultsTable(QtWidgets.QTableWidget):
     def sync(self, lca):
         self.clear()
 

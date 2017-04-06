@@ -7,10 +7,10 @@ from ..icons import icons
 from .activity import ActivitiesTableWidget
 from .ia import MethodsTableWidget
 from brightway2 import *
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class CSList(QtGui.QComboBox):
+class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):
         super(CSList, self).__init__(parent)
         # Runs even if selection doesn't change
@@ -31,20 +31,20 @@ class CSList(QtGui.QComboBox):
         return self.itemText(self.currentIndex())
 
 
-class CSActivityItem(QtGui.QTableWidgetItem):
+class CSActivityItem(QtWidgets.QTableWidgetItem):
     def __init__(self, key, *args):
         super(CSActivityItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
 
 
-class CSAmount(QtGui.QTableWidgetItem):
+class CSAmount(QtWidgets.QTableWidgetItem):
     def __init__(self, key, *args):
         super(CSAmount, self).__init__(*args)
         self.key = key
 
 
-class CSActivityTableWidget(QtGui.QTableWidget):
+class CSActivityTableWidget(QtWidgets.QTableWidget):
     COLUMNS = {
         0: "name",
         1: "amount",
@@ -61,7 +61,7 @@ class CSActivityTableWidget(QtGui.QTableWidget):
         signals.calculation_setup_selected.connect(self.sync)
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.delete_row_action = QtGui.QAction(
+        self.delete_row_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Remove row", None
         )
         self.addAction(self.delete_row_action)
@@ -126,14 +126,14 @@ class CSActivityTableWidget(QtGui.QTableWidget):
             signals.calculation_setup_changed.emit()
 
 
-class CSMethodItem(QtGui.QTableWidgetItem):
+class CSMethodItem(QtWidgets.QTableWidgetItem):
     def __init__(self, method, *args):
         super(CSMethodItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.method = method
 
 
-class CSMethodsTableWidget(QtGui.QTableWidget):
+class CSMethodsTableWidget(QtWidgets.QTableWidget):
     def __init__(self):
         super(CSMethodsTableWidget, self).__init__()
         self.setColumnCount(1)
@@ -143,7 +143,7 @@ class CSMethodsTableWidget(QtGui.QTableWidget):
         signals.calculation_setup_selected.connect(self.sync)
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.delete_row_action = QtGui.QAction(
+        self.delete_row_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Remove row", None
         )
         self.addAction(self.delete_row_action)

@@ -7,10 +7,10 @@ from ...signals import signals
 from ..tabs import ActivityDetailsTab
 from ..utils import get_name
 from brightway2 import *
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 
-class Panel(QtGui.QTabWidget):
+class Panel(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
         super(Panel, self).__init__(parent)
         self.setMovable(True)

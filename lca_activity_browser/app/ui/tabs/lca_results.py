@@ -4,20 +4,20 @@ from eight import *
 
 from .. import horizontal_line, header
 # from ..tables import ActivitiesHistoryWidget
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
 from bw2calc.multi_lca import MultiLCA
 from ...signals import signals
 from ..graphics import CorrelationPlot
 from ..tables import LCAResultsTable
 
 
-class LCAResultsTab(QtGui.QWidget):
+class LCAResultsTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(LCAResultsTab, self).__init__(parent)
         self.tab = parent
         self.visible = False
 
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
         signals.project_selected.connect(self.remove_tab)

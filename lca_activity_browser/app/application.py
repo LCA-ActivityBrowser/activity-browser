@@ -5,7 +5,6 @@ from eight import *
 from brightway2 import *
 from .controller import Controller
 from .ui.main import MainWindow
-from PyQt4 import QtCore, QtGui, QtWebKit
 
 
 class Application(object):

@@ -2,7 +2,7 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from bw2data import projects
 
 
@@ -16,7 +16,7 @@ class ProjectListModel(QtCore.QAbstractListModel):
         return names[row]
 
 
-class ProjectListWidget(QtGui.QComboBox):
+class ProjectListWidget(QtWidgets.QComboBox):
     def __init__(self):
         super(ProjectListWidget, self).__init__()
         self._model = ProjectListModel()

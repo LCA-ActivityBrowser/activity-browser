@@ -15,7 +15,7 @@ from ..tabs import (
 )
 from ..utils import get_name
 from brightway2 import *
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
 
 
 class RightPanel(Panel):

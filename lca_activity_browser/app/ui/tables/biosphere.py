@@ -6,11 +6,11 @@ from ...signals import signals
 from .activity import ActivityItem
 from brightway2 import databases, Database
 from bw2data.utils import natural_sort
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
 
 
-class FlowsTableWidget(QtGui.QTableWidget):
+class FlowsTableWidget(QtWidgets.QTableWidget):
     COUNT = 100
     COLUMNS = {
         0: "name",

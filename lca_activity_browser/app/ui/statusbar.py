@@ -2,19 +2,19 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 from ..signals import signals
 
 
 class Statusbar(object):
     def __init__(self, window):
         self.window = window
-        self.statusbar = QtGui.QStatusBar()
+        self.statusbar = QtWidgets.QStatusBar()
         self.window.setStatusBar(self.statusbar)
 
-        self.status_message_left = QtGui.QLabel('Welcome')
-        self.status_message_right = QtGui.QLabel('Database')
-        self.status_message_center = QtGui.QLabel('Project: Default')
+        self.status_message_left = QtWidgets.QLabel('Welcome')
+        self.status_message_right = QtWidgets.QLabel('Database')
+        self.status_message_center = QtWidgets.QLabel('Project: Default')
 
         self.statusbar.addWidget(self.status_message_left, 1)
         self.statusbar.addWidget(self.status_message_center, 2)

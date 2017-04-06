@@ -8,14 +8,14 @@ class Container(object):
     pass
 
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 from .application import Application
 import sys
 import traceback
 
 
 def run_activity_browser():
-    qapp = QtGui.QApplication(sys.argv)
+    qapp = QtWidgets.QApplication(sys.argv)
     application = Application()
     application.show()
 

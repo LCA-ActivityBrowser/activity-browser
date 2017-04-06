@@ -4,17 +4,17 @@ from eight import *
 
 from ...signals import signals
 from brightway2 import *
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Item(QtGui.QTableWidgetItem):
+class Item(QtWidgets.QTableWidgetItem):
     def __init__(self, key, *args):
         super(Item, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
 
 
-class ActivitiesHistoryWidget(QtGui.QTableWidget):
+class ActivitiesHistoryWidget(QtWidgets.QTableWidget):
     COUNT = 40
     COLUMNS = {
         0: "name",

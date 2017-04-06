@@ -4,18 +4,18 @@ from eight import *
 
 from ...signals import signals
 from brightway2 import *
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import numbers
 
 
-class MethodItem(QtGui.QTableWidgetItem):
+class MethodItem(QtWidgets.QTableWidgetItem):
     def __init__(self, method, *args):
         super(MethodItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.method = method
 
 
-class Number(QtGui.QTableWidgetItem):
+class Number(QtWidgets.QTableWidgetItem):
     def __init__(self, method, number, *args):
         super(Number, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
@@ -28,7 +28,7 @@ class Number(QtGui.QTableWidgetItem):
         return super(Number, self).__lt__(other)
 
 
-class MethodsTableWidget(QtGui.QTableWidget):
+class MethodsTableWidget(QtWidgets.QTableWidget):
     def __init__(self):
         super(MethodsTableWidget, self).__init__()
         self.setColumnCount(3)
@@ -65,14 +65,14 @@ class MethodsTableWidget(QtGui.QTableWidget):
         self.resizeRowsToContents()
 
 
-class CFItem(QtGui.QTableWidgetItem):
+class CFItem(QtWidgets.QTableWidgetItem):
     def __init__(self, key, *args):
         super(CFItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
 
 
-class CFsTableWidget(QtGui.QTableWidget):
+class CFsTableWidget(QtWidgets.QTableWidget):
     COLUMNS = {
         0: "name",
         1: "amount",

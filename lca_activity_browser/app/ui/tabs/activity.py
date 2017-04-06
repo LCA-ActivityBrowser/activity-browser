@@ -8,18 +8,18 @@ from ..graphics import DefaultGraph
 from ..tables import ExchangeTableWidget
 from ..widgets import ActivityDataGrid
 from brightway2 import *
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import functools
 
 
-class ActivityDetailsTab(QtGui.QWidget):
+class ActivityDetailsTab(QtWidgets.QWidget):
     def __init__(self, parent=None, activity=None):
         super(ActivityDetailsTab, self).__init__(parent)
         self.parent = parent
 
         self.details_widget = self.get_details_widget()
 
-        container = QtGui.QVBoxLayout()
+        container = QtWidgets.QVBoxLayout()
         container.setAlignment(QtCore.Qt.AlignTop)
         container.addWidget(self.details_widget)
 
@@ -49,7 +49,7 @@ class ActivityDetailsTab(QtGui.QWidget):
         self.flows.state = "shown"
         self.upstream.state = "shown"
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         self.metadata = ActivityDataGrid()
         layout.addWidget(self.metadata)
 
@@ -62,11 +62,11 @@ class ActivityDetailsTab(QtGui.QWidget):
 
         for table, label in tables:
             table.state = "shown"
-            table.toggle_button = QtGui.QPushButton("Hide")
+            table.toggle_button = QtWidgets.QPushButton("Hide")
             table.toggle_button.clicked.connect(functools.partial(self.toggle_visible, table=table))
 
-            inside_widget = QtGui.QWidget()
-            inside_layout = QtGui.QHBoxLayout()
+            inside_widget = QtWidgets.QWidget()
+            inside_layout = QtWidgets.QHBoxLayout()
             inside_layout.addWidget(header(label))
             inside_layout.addWidget(table.toggle_button)
             inside_layout.addStretch(1)
@@ -75,7 +75,7 @@ class ActivityDetailsTab(QtGui.QWidget):
             layout.addWidget(inside_widget)
             layout.addWidget(table)
 
-        widget = QtGui.QWidget(self)
+        widget = QtWidgets.QWidget(self)
         widget.setLayout(layout)
         return widget
 

@@ -2,20 +2,20 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from PyQt4 import QtCore, QtGui, QtWebKit
+from PyQt5 import QtCore, QtGui, QtWidgets
 from .icons import icons
 
 
 class MenuBar(object):
     def __init__(self, window):
         self.window = window
-        self.menubar = QtGui.QMenuBar()
+        self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.get_extensions_menu())
         self.menubar.addMenu(self.get_help_menu())
         window.setMenuBar(self.menubar)
 
     # def add_metaprocess_menu_item(self):
-    #     add_metaprocess = QtGui.QAction(QtGui.QIcon(icons.metaprocess), '&Meta-Process Editor', self.window)
+    #     add_metaprocess = QtWidgets.QAction(QtGui.QIcon(icons.metaprocess), '&Meta-Process Editor', self.window)
     #     add_metaprocess.setShortcut('Ctrl+E')
     #     add_metaprocess.setStatusTip('Start Meta-Process Editor')
 
@@ -24,21 +24,21 @@ class MenuBar(object):
     #     return add_metaprocess
 
     def get_extensions_menu(self):
-        extensions_menu = QtGui.QMenu('&Extensions', self.window)
+        extensions_menu = QtWidgets.QMenu('&Extensions', self.window)
         # extensions_menu.addAction(
         #     self.add_metaprocess_menu_item()
         # )
         return extensions_menu
 
     def get_help_menu(self):
-        help_menu = QtGui.QMenu('&Help', self.window)
+        help_menu = QtWidgets.QMenu('&Help', self.window)
         help_menu.addAction(
             self.window.icon,
             '&About Activity Browser',
             self.about)
         help_menu.addAction(
             '&About Qt',
-            lambda x: QtGui.QMessageBox.aboutQt(self.window)
+            lambda x: QtWidgets.QMessageBox.aboutQt(self.window)
         )
         return help_menu
 
@@ -56,7 +56,7 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>."""
-        msgBox = QtGui.QMessageBox()
+        msgBox = QtWidgets.QMessageBox()
         # msgBox.setMinimumSize(QtCore.QSize(400, 400))
         msgBox.setWindowTitle('About the Activity Browser')
         pixmap = self.window.icon.pixmap(QtCore.QSize(150, 150))

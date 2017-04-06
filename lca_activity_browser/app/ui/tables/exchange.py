@@ -6,10 +6,10 @@ from ...signals import signals
 from ..icons import icons
 from .activity import ActivityItem, ActivitiesTableWidget
 from .biosphere import FlowsTableWidget
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Reference(QtGui.QTableWidgetItem):
+class Reference(QtWidgets.QTableWidgetItem):
     def __init__(self, exchange, direction, *args):
         super(Reference, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
@@ -17,7 +17,7 @@ class Reference(QtGui.QTableWidgetItem):
         self.direction = direction
 
 
-class Amount(QtGui.QTableWidgetItem):
+class Amount(QtWidgets.QTableWidgetItem):
     def __init__(self, exchange, *args):
         super(Amount, self).__init__(*args)
         # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
@@ -25,13 +25,13 @@ class Amount(QtGui.QTableWidgetItem):
         self.previous = self.text()
 
 
-class ReadOnly(QtGui.QTableWidgetItem):
+class ReadOnly(QtWidgets.QTableWidgetItem):
     def __init__(self, *args):
         super(ReadOnly, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 
-class ExchangeTableWidget(QtGui.QTableWidget):
+class ExchangeTableWidget(QtWidgets.QTableWidget):
     COLUMN_LABELS = {
         # Normal technosphere
         (False, False): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
@@ -54,7 +54,7 @@ class ExchangeTableWidget(QtGui.QTableWidget):
         self.qs, self.upstream, self.database = None, False, None
         self.ignore_changes = False
 
-        self.delete_exchange_action = QtGui.QAction(
+        self.delete_exchange_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete exchange(s)", None
         )
         self.addAction(self.delete_exchange_action)

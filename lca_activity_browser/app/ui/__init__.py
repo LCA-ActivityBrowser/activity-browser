@@ -2,7 +2,7 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from PyQt4 import QtCore, QtGui, QtWebKit
+from PyQt5 import QtGui, QtWidgets
 
 bold_font = QtGui.QFont()
 bold_font.setBold(True)
@@ -12,12 +12,12 @@ activity_cache = {}
 
 
 def horizontal_line():
-    line = QtGui.QFrame()
-    line.setFrameShape(QtGui.QFrame.HLine)
-    line.setFrameShadow(QtGui.QFrame.Sunken)
+    line = QtWidgets.QFrame()
+    line.setFrameShape(QtWidgets.QFrame.HLine)
+    line.setFrameShadow(QtWidgets.QFrame.Sunken)
     return line
 
 def header(label):
-    label = QtGui.QLabel(label)
+    label = QtWidgets.QLabel(label)
     label.setFont(bold_font)
     return label

@@ -5,21 +5,21 @@ from eight import *
 from ...signals import signals
 from bw2data import databases
 from bw2data.utils import natural_sort
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import arrow
 
 
 from ...signals import signals
 
 
-class DatabaseItem(QtGui.QTableWidgetItem):
+class DatabaseItem(QtWidgets.QTableWidgetItem):
     def __init__(self, db_name, *args):
         super(DatabaseItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.db_name = db_name
 
 
-class DatabasesTableWidget(QtGui.QTableWidget):
+class DatabasesTableWidget(QtWidgets.QTableWidget):
     def __init__(self):
         super(DatabasesTableWidget, self).__init__()
         self.setColumnCount(3)

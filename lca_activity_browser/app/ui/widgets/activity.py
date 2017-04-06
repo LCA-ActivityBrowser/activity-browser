@@ -4,10 +4,10 @@ from eight import *
 
 from ...signals import signals
 from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class ActivityDataGrid(QtGui.QWidget):
+class ActivityDataGrid(QtWidgets.QWidget):
     def __init__(self, parent=None, activity=None):
         super(ActivityDataGrid, self).__init__(parent)
         self.activity = activity
@@ -19,14 +19,14 @@ class ActivityDataGrid(QtGui.QWidget):
             self.populate()
 
     def get_grid(self):
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setSpacing(10)
 
-        grid.addWidget(QtGui.QLabel('Database'), 1, 1)
-        self.database = QtGui.QLabel('')
+        grid.addWidget(QtWidgets.QLabel('Database'), 1, 1)
+        self.database = QtWidgets.QLabel('')
         grid.addWidget(self.database, 1, 2, 1, 3)
 
-        grid.addWidget(QtGui.QLabel('Name'), 2, 1)
+        grid.addWidget(QtWidgets.QLabel('Name'), 2, 1)
         self.name_box = SignalledLineEdit(
             key=getattr(self.activity, "key", None),
             field="name",
@@ -35,7 +35,7 @@ class ActivityDataGrid(QtGui.QWidget):
         self.name_box.setPlaceholderText("Activity name")
         grid.addWidget(self.name_box, 2, 2, 1, 3)
 
-        grid.addWidget(QtGui.QLabel('Comment'), 3, 1, 2, 1)
+        grid.addWidget(QtWidgets.QLabel('Comment'), 3, 1, 2, 1)
         self.comment_box = SignalledPlainTextEdit(
             key=getattr(self.activity, "key", None),
             field="comment",
@@ -43,7 +43,7 @@ class ActivityDataGrid(QtGui.QWidget):
         )
         grid.addWidget(self.comment_box, 3, 2, 2, 3)
 
-        grid.addWidget(QtGui.QLabel('Location'), 4, 1)
+        grid.addWidget(QtWidgets.QLabel('Location'), 4, 1)
         self.location_box = SignalledLineEdit(
             key=getattr(self.activity, "key", None),
             field="location",
@@ -52,7 +52,7 @@ class ActivityDataGrid(QtGui.QWidget):
         self.location_box.setPlaceholderText("ISO 2-letter code or custom name")
         grid.addWidget(self.location_box, 4, 2, 1, 3)
 
-        grid.addWidget(QtGui.QLabel('Unit'), 5, 1)
+        grid.addWidget(QtWidgets.QLabel('Unit'), 5, 1)
         self.unit_box = SignalledLineEdit(
             key=getattr(self.activity, "key", None),
             field="unit",

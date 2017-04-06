@@ -10,7 +10,7 @@ from ..tables import (
 )
 from .. import horizontal_line, header
 from ...signals import signals
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 """
 Lifecycle of a calculation setup
@@ -76,7 +76,7 @@ The currently selected calculation setup is retrieved by getting the currently s
 
 """
 
-class CalculationSetupTab(QtGui.QWidget):
+class CalculationSetupTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(CalculationSetupTab, self).__init__(parent)
 
@@ -84,12 +84,12 @@ class CalculationSetupTab(QtGui.QWidget):
         self.methods_table = CSMethodsTableWidget()
         self.list_widget = CSList()
 
-        self.new_cs_button = QtGui.QPushButton('New')
-        self.rename_cs_button = QtGui.QPushButton('Rename')
-        self.delete_cs_button = QtGui.QPushButton('Delete')
-        self.calculate_button = QtGui.QPushButton('Calculate')
+        self.new_cs_button = QtWidgets.QPushButton('New')
+        self.rename_cs_button = QtWidgets.QPushButton('Rename')
+        self.delete_cs_button = QtWidgets.QPushButton('Delete')
+        self.calculate_button = QtWidgets.QPushButton('Calculate')
 
-        name_row = QtGui.QHBoxLayout()
+        name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
         name_row.addWidget(self.list_widget)
         name_row.addWidget(self.new_cs_button)
@@ -97,7 +97,7 @@ class CalculationSetupTab(QtGui.QWidget):
         name_row.addWidget(self.delete_cs_button)
         name_row.addWidget(self.calculate_button)
 
-        container = QtGui.QVBoxLayout()
+        container = QtWidgets.QVBoxLayout()
         container.addLayout(name_row)
 
         container.addWidget(horizontal_line())

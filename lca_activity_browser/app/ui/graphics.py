@@ -2,11 +2,11 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from PyQt4 import QtCore, QtGui
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
 import seaborn as sns
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -24,9 +24,6 @@ class Canvas(FigureCanvasQTAgg):
 
         super(Canvas, self).__init__(fig)
         self.setParent(parent)
-        # If uncommented, fills widget
-        # self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        # self.updateGeometry()
 
     def do_figure(self):
         raise NotImplementedError
@@ -52,7 +49,7 @@ class DefaultGraph(FigureCanvasQTAgg):
 
         fig.suptitle("Activity Browser", y=0.5, fontsize=30, backgroundcolor=(1, 1, 1, 0.5))
 
-        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.updateGeometry()
 
 
@@ -71,5 +68,5 @@ class CorrelationPlot(FigureCanvasQTAgg):
              diag_names=True, cmap=cmap, ax=axes, cbar=True)
 
         # If uncommented, fills widget
-        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.updateGeometry()

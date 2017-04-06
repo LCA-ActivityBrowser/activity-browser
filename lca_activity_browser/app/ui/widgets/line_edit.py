@@ -3,11 +3,11 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from ...signals import signals
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class SignalledLineEdit(QtGui.QLineEdit):
-    """Adapted from http://stackoverflow.com/questions/12182133/pyqt4-combine-textchanged-and-editingfinished-for-qlineedit"""
+class SignalledLineEdit(QtWidgets.QLineEdit):
+    """Adapted from http://stackoverflow.com/questions/12182133/PyQt5-combine-textchanged-and-editingfinished-for-qlineedit"""
     def __init__(self, key, field, contents='', parent=None):
         super(SignalledLineEdit, self).__init__(contents, parent)
         self.editingFinished.connect(self._editing_finished)
@@ -28,7 +28,7 @@ class SignalledLineEdit(QtGui.QLineEdit):
             signals.activity_modified.emit(self._key, self._field, after)
 
 
-class SignalledPlainTextEdit(QtGui.QPlainTextEdit):
+class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
     """Adapted from https://john.nachtimwald.com/2009/08/19/better-qplaintextedit-with-line-numbers/"""
     def __init__(self, key, field, contents='', parent=None):
         super(SignalledPlainTextEdit, self).__init__(contents, parent)
@@ -39,7 +39,7 @@ class SignalledPlainTextEdit(QtGui.QPlainTextEdit):
         self._field = field
 
     def highlight(self):
-        selection = QtGui.QTextEdit.ExtraSelection()
+        selection = QtWidgets.QTextEdit.ExtraSelection()
         selection.format.setBackground(self.palette().alternateBase())
         selection.format.setProperty(QtGui.QTextFormat.FullWidthSelection, True)
         selection.cursor = self.textCursor()

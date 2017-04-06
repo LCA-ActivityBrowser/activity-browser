@@ -2,7 +2,7 @@
 from __future__ import print_function, unicode_literals
 from eight import *
 
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 
 class Signals(QtCore.QObject):

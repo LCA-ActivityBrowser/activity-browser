@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from io import StringIO
-from PyQt4 import QtGui
+from PyQt5 import QtGui
 import uuid
 
 

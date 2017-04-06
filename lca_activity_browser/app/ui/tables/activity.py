@@ -5,18 +5,18 @@ from eight import *
 from ...signals import signals
 from ..icons import icons
 from brightway2 import Database
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
 
 
-class ActivityItem(QtGui.QTableWidgetItem):
+class ActivityItem(QtWidgets.QTableWidgetItem):
     def __init__(self, key, *args):
         super(ActivityItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
 
 
-class ActivitiesTableWidget(QtGui.QTableWidget):
+class ActivitiesTableWidget(QtWidgets.QTableWidget):
     COUNT = 100
     COLUMNS = {
         0: "name",
@@ -38,19 +38,19 @@ class ActivitiesTableWidget(QtGui.QTableWidget):
         )
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.add_activity_action = QtGui.QAction(
+        self.add_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add), "Add new activity", None
         )
-        self.copy_activity_action = QtGui.QAction(
+        self.copy_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.copy), "Copy activity", None
         )
-        self.delete_activity_action = QtGui.QAction(
+        self.delete_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete activity", None
         )
-        self.open_right_tab_action = QtGui.QAction(
+        self.open_right_tab_action = QtWidgets.QAction(
             QtGui.QIcon(icons.right), "Open in new right tab", None
         )
-        self.open_left_tab_action = QtGui.QAction(
+        self.open_left_tab_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open in new left tab", None
         )
         self.addAction(self.add_activity_action)
