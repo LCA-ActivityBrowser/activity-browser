@@ -47,7 +47,6 @@ setup(
     description=('GUI for LCA software and metaprocesses'),
     entry_points = {
         'console_scripts': [
-            'activity-browser-old = lca_activity_browser.bin.activity_browser:run_activity_browser',
             'activity-browser = lca_activity_browser.app:run_activity_browser',
         ]
     },
@@ -64,6 +63,8 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Visualization',
