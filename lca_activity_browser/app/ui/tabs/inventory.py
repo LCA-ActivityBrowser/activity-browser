@@ -166,6 +166,16 @@ class InventoryTab(QtGui.QWidget):
         )
         self.databases.addAction(self.copy_database_action)
 
+        self.add_activity_action = QtGui.QAction(
+            QtGui.QIcon(icons.add), "Add new activity", None
+        )
+        self.databases.addAction(self.add_activity_action)
+        self.add_activity_action.triggered.connect(
+            lambda x: signals.new_activity.emit(
+                self.databases.currentItem().db_name
+            )
+        )
+
         signals.project_selected.connect(self.change_project)
         signals.database_selected.connect(self.change_database)
 
