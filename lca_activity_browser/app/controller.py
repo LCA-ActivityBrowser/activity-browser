@@ -38,7 +38,7 @@ class Controller(object):
             return next(iter(projects)).name
 
     def select_project(self, name):
-        projects.current = name
+        projects.set_current(name)
         signals.project_selected.emit(name)
 
     def new_project(self):
@@ -47,7 +47,7 @@ class Controller(object):
             "Name of new project:" + " " * 25
         )
         if name and name not in projects:
-            projects.current = name
+            projects.set_current(name)
             signals.project_selected.emit(name)
 
     def copy_project(self):
