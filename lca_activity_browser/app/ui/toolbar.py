@@ -4,7 +4,6 @@ from eight import *
 
 from ..signals import signals
 from .icons import icons
-from .tables import ProjectListWidget
 from brightway2 import projects
 from PyQt5 import QtCore, QtGui, QtWidgets
 from requests_oauthlib import OAuth1Session
@@ -61,16 +60,16 @@ class Toolbar(QtWidgets.QToolBar):
         switch_stack_button.clicked.connect(switch_stack_button.switch_state)
 
         self.project_name_label = QtWidgets.QLabel('Project: default')
-        self.project_read_only = QtWidgets.QLabel('Substititue me')
+        self.project_read_only = QtWidgets.QLabel('Read only')
         self.project_read_only.setStyleSheet('QLabel {color: red;}')
         if projects.read_only:
             print("Setting RO text")
             self.project_read_only.setText('Read Only Project')
 
+        self.change_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.load_db), 'Change')
         self.new_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.add), 'New')
-        self.copy_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.copy), 'Copy')
-        self.delete_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.delete), 'Delete')
-        self.projects_list_widget = ProjectListWidget()
+        self.copy_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.copy), 'Copy current')
+        self.delete_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.delete), 'Delete current')
 
         self.addWidget(QtWidgets.QLabel('Brightway2 Activity Browser'))
         self.addWidget(new_issue_button)
@@ -86,8 +85,8 @@ class Toolbar(QtWidgets.QToolBar):
         self.addWidget(spacer)
         self.addSeparator()
 
-        self.addWidget(QtWidgets.QLabel('Current Project:'))
-        self.addWidget(self.projects_list_widget)
+        self.addWidget(QtWidgets.QLabel('Projects:'))
+        self.addWidget(self.change_project_button)
         self.addWidget(self.new_project_button)
         self.addWidget(self.copy_project_button)
         self.addWidget(self.delete_project_button)
@@ -95,7 +94,6 @@ class Toolbar(QtWidgets.QToolBar):
 
         self.window.addToolBar(self)
 
-        signals.project_selected.connect(self.change_project)
         new_issue_button.clicked.connect(self.create_issue_dialog)
 
     def create_issue_dialog(self):
@@ -107,18 +105,15 @@ class Toolbar(QtWidgets.QToolBar):
             create_issue(text)
 
     def connect_signals(self, controller):
-        self.projects_list_widget.currentIndexChanged['QString'].connect(
-            controller.select_project
-        )
+        self.change_project_button.clicked.connect(controller.change_project)
         self.new_project_button.clicked.connect(controller.new_project)
         self.delete_project_button.clicked.connect(controller.delete_project)
         self.copy_project_button.clicked.connect(controller.copy_project)
 
-    def change_project(self, name):
-        index = sorted([project.name for project in projects]).index(projects.current)
-        self.projects_list_widget.setCurrentIndex(index)
+        signals.project_selected.connect(self.set_project_label)
 
-        self.project_name_label.setText('Project: {}'.format(projects.current))
+    def set_project_label(self, name):
+        self.project_name_label.setText('Project: {}'.format(name))
         self.project_read_only.setText('')
         if projects.read_only:
             self.project_read_only.setText('Read Only Project')

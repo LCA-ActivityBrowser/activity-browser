@@ -6,7 +6,6 @@ from ..tables import (
     ActivitiesTableWidget,
     DatabasesTableWidget,
     FlowsTableWidget,
-    ProjectListWidget,
 )
 from .. import horizontal_line, header
 from ...signals import signals

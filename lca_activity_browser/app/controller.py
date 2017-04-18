@@ -4,6 +4,7 @@ from eight import *
 
 from brightway2 import *
 from bw2data.backends.peewee import Exchange
+from PyQt5 import QtWidgets
 from . import Container
 from .signals import signals
 import copy
@@ -15,8 +16,7 @@ class Controller(object):
     def __init__(self, window):
         self.window = window
         self.current = Container()
-        self.select_project(self.get_default_project_name())
-
+        signals.project_selected.emit(self.get_default_project_name())
         signals.calculation_setup_changed.connect(
             self.write_current_calculation_setup
         )
@@ -35,9 +35,19 @@ class Controller(object):
         else:
             return next(iter(projects)).name
 
-    def select_project(self, name):
-        projects.set_current(name)
-        signals.project_selected.emit(name)
+    def change_project(self):
+        name, ok = QtWidgets.QInputDialog.getItem(
+            self.window,
+            "Choose project",
+            "Name:",
+            sorted([x.name for x in projects]),
+            0,
+            False
+        )
+        if ok:
+            if name != projects.current:
+                projects.set_current(name)
+                signals.project_selected.emit(name)
 
     def new_project(self):
         name = self.window.dialog(
@@ -47,6 +57,9 @@ class Controller(object):
         if name and name not in projects:
             projects.set_current(name)
             signals.project_selected.emit(name)
+        elif name in projects:
+            # TODO feedback that project already exists
+            pass
 
     def copy_project(self):
         name = self.window.dialog(
