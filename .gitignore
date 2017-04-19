@@ -7,3 +7,4 @@ docs/_build
 MANIFEST
 lca_activity_browser.egg-info
 target
+*.swp
