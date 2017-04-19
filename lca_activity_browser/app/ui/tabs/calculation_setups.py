@@ -19,7 +19,7 @@ Lifecycle of a calculation setup
 Data format
 -----------
 
-{name: {'inv': [(key, amount)], 'ia': [method]}}
+{name: {'inv': [{key: amount}], 'ia': [method]}}
 
 Responsibilities
 ----------------
