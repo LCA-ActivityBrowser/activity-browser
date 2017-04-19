@@ -68,6 +68,7 @@ class CSActivityTableWidget(QtWidgets.QTableWidget):
         self.delete_row_action.triggered.connect(self.delete_rows)
 
     def sync(self, name):
+        self.cellChanged.disconnect(self.filter_amount_change)
         self.clear()
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(["Activity name", "Amount", "Unit"])
@@ -83,6 +84,7 @@ class CSActivityTableWidget(QtWidgets.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        self.cellChanged.connect(self.filter_amount_change)
 
     def delete_rows(self, *args):
         to_delete = []

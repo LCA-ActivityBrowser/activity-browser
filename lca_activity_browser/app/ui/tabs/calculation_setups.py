@@ -86,9 +86,7 @@ class CalculationSetupTab(QtWidgets.QWidget):
 
         self.new_cs_button = QtWidgets.QPushButton('New')
         self.rename_cs_button = QtWidgets.QPushButton('Rename')
-        self.rename_cs_button.setEnabled(False) # doesn't work, disabled for the moment
         self.delete_cs_button = QtWidgets.QPushButton('Delete')
-        self.delete_cs_button.setEnabled(False) # doesn't work, disabled for the moment
         self.calculate_button = QtWidgets.QPushButton('Calculate')
 
         name_row = QtWidgets.QHBoxLayout()
