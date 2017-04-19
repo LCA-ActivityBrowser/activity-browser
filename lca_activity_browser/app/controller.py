@@ -154,10 +154,11 @@ class Controller(object):
     def write_current_calculation_setup(self):
         """Iterate over activity and methods tables, and write calculation setup to ``calculation_setups``."""
         current = self.window.left_panel.cs_tab.list_widget.name
-        calculation_setups[current] = {
-            'inv': self.window.left_panel.cs_tab.activities_table.to_python(),
-            'ia': self.window.left_panel.cs_tab.methods_table.to_python()
-        }
+        if current:
+            calculation_setups[current] = {
+                'inv': self.window.left_panel.cs_tab.activities_table.to_python(),
+                'ia': self.window.left_panel.cs_tab.methods_table.to_python()
+            }
 
     def new_activity(self, database_name):
         name = self.window.dialog(
