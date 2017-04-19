@@ -51,7 +51,7 @@ class LCAResultsTab(QtWidgets.QWidget):
         self.clear_layout()
         self.lca = MultiLCA(name)
         normalized_results = self.lca.results / self.lca.results.max(axis=0)
-        labels = [str(x + 1) for x in range(len(self.lca.activities))]
+        labels = [str(x + 1) for x in range(len(self.lca.func_units))]
         corr_chart = CorrelationPlot(self, normalized_results.T, labels)
 
         results_table = LCAResultsTable(self)
