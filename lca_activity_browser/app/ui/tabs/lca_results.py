@@ -37,12 +37,8 @@ class LCAResultsTab(QtWidgets.QWidget):
     def clear_layout(self):
         print("Entering clear layout")
         print("Total:", self.layout.count())
-        for index in range(self.layout.count(), 0, -1):  # QT is 1-indexed
-            # TODO: Buggy?
+        for index in range(self.layout.count()):
             try:
-                # print("Now at:", index)
-                # print("Item:", self.layout.itemAt(index))
-                # print("Widget:", self.layout.itemAt(index).widget())
                 widget = self.layout.itemAt(index).widget().deleteLater()
             except AttributeError:
                 pass
