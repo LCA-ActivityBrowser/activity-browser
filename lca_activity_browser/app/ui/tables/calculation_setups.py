@@ -72,13 +72,14 @@ class CSActivityTableWidget(QtWidgets.QTableWidget):
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(["Activity name", "Amount", "Unit"])
 
-        for key, amount in calculation_setups[name]['inv']:
-            act = get_activity(key)
-            new_row = self.rowCount()
-            self.insertRow(new_row)
-            self.setItem(new_row, 0, CSActivityItem(key, act['name']))
-            self.setItem(new_row, 1, CSAmount(key, amount))
-            self.setItem(new_row, 2, CSActivityItem(None, act.get('unit', 'Unknown')))
+        for demand in calculation_setups[name]['inv']:
+            for key, amount in demand.items():
+                act = get_activity(key)
+                new_row = self.rowCount()
+                self.insertRow(new_row)
+                self.setItem(new_row, 0, CSActivityItem(key, act['name']))
+                self.setItem(new_row, 1, CSAmount(key, amount))
+                self.setItem(new_row, 2, CSActivityItem(None, act.get('unit', 'Unknown')))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -119,7 +120,7 @@ class CSActivityTableWidget(QtWidgets.QTableWidget):
         self.resizeRowsToContents()
 
     def to_python(self):
-        return [(self.item(row, 0).key, self.item(row, 1).text()) for row in range(self.rowCount())]
+        return [{self.item(row, 0).key: float(self.item(row, 1).text())} for row in range(self.rowCount())]
 
     def filter_amount_change(self, row, col):
         if col == 1:
