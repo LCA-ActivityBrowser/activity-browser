@@ -19,13 +19,13 @@ class LCAResultsTable(QtWidgets.QTableWidget):
 
         self.setSortingEnabled(True)
         self.setColumnCount(len(lca.methods))
-        self.setRowCount(len(lca.activities))
+        self.setRowCount(len(lca.func_units))
         col_labels = ["-".join(x) for x in lca.methods]
-        row_labels = [str(get_activity(key)) for key, amount in lca.activities]
+        row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
         self.setHorizontalHeaderLabels(col_labels)
         self.setVerticalHeaderLabels(row_labels)
 
-        for row in range(len(lca.activities)):
+        for row in range(len(lca.func_units)):
             for col in range(len(lca.methods)):
                 self.setItem(row, col, ReadOnly("{:.4g}".format(lca.results[row, col])))
 

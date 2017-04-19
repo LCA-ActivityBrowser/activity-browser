@@ -6,6 +6,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
 import seaborn as sns
+from seaborn.linearmodels import corrplot
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
@@ -64,7 +65,7 @@ class CorrelationPlot(FigureCanvasQTAgg):
         sns.set(style="darkgrid")
 
         cmap = sns.diverging_palette(220, 10, as_cmap=True)
-        sns.corrplot(data, names=labels, annot=True, sig_stars=False,
+        corrplot(data, names=labels, annot=True, sig_stars=False,
              diag_names=True, cmap=cmap, ax=axes, cbar=True)
 
         # If uncommented, fills widget
