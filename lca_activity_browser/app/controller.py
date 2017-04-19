@@ -36,12 +36,13 @@ class Controller(object):
             return next(iter(projects)).name
 
     def change_project(self):
+        project_names = sorted([x.name for x in projects])
         name, ok = QtWidgets.QInputDialog.getItem(
             self.window,
             "Choose project",
             "Name:",
-            sorted([x.name for x in projects]),
-            0,
+            project_names,
+            project_names.index(projects.current),
             False
         )
         if ok:
