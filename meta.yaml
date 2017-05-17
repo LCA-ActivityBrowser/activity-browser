@@ -1,0 +1,32 @@
+package:
+  name: activity-browser
+  version: "2.1.dev"
+
+source:
+  git_rev: origin/master
+  git_url: https://github.com/haasad/activity-browser.git
+
+build:
+  noarch: python
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record record.txt
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+    - brightway2
+    - pyqt
+    - matplotlib
+    - seaborn
+    - arrow
+    - requests-oauthlib
+
+about:
+  home: https://github.com/haasad/activity-browser
+  license: GPL3+
+  license_family: GPL3
+  license_file: LICENSE.txt
+  summary: GUI for brightway2
