@@ -10,4 +10,5 @@ requests-oauthlib
 scipy
 stats_arrays
 voluptuous
-networkx
+seaborn
+arrow
