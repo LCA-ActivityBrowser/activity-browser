@@ -8,3 +8,5 @@ MANIFEST
 lca_activity_browser.egg-info
 target
 *.swp
+Makefile
+run_activity_browser.py
