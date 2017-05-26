@@ -36,6 +36,9 @@ class ActivitiesTableWidget(QtWidgets.QTableWidget):
         self.itemDoubleClicked.connect(
             lambda x: signals.open_activity_tab.emit("left", x.key)
         )
+        self.itemDoubleClicked.connect(
+            lambda x: signals.activity_selected.emit(x.key)
+        )
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.add_activity_action = QtWidgets.QAction(
