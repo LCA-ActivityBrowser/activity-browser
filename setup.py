@@ -27,7 +27,7 @@ setup(
     author="Adrian Haas",
     author_email="haasad@student.ethz.ch",
     license=open('LICENSE.txt').read(),
-    install_requires=[],
+    install_requires=['brightway2', 'pyqt5', 'requests-oauthlib', 'seaborn', 'arrow'],
     url="https://github.com/haasad/activity-browser",
     long_description=open('README.md').read(),
     description=('Brightway2 GUI'),
