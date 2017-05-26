@@ -48,10 +48,7 @@ class Icons(object):
     key = create_path('main', 'key.png')
     search = create_path('main', 'search.png')
     switch = create_path('main', 'switch-state.png')
+    ab = create_path('main', 'activitybrowser.png')
 
-    @property
-    def pony(self):
-        return create_path('pony', 'pony%s.png' % randint(1, 7))
-
-
+    
 icons = Icons()

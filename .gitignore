@@ -10,3 +10,4 @@ target
 *.swp
 Makefile
 run_activity_browser.py
+.DS_Store

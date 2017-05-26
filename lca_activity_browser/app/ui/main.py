@@ -32,7 +32,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Activity Browser")
 
         # Small icon in main window titlebar
-        self.icon = QtGui.QIcon(icons.pony)
+        self.icon = QtGui.QIcon(icons.ab)
         self.setWindowIcon(self.icon)
 
         # Clipboard
