@@ -34,7 +34,7 @@ class ActivitiesTableWidget(QtWidgets.QTableWidget):
         # need to ensure order to get correct row count
         # signals.database_selected.connect(self.sync)
         self.itemDoubleClicked.connect(
-            lambda x: signals.open_activity_tab.emit("left", x.key)
+            lambda x: signals.open_activity_tab.emit("activities", x.key)
         )
         self.itemDoubleClicked.connect(
             lambda x: signals.activity_selected.emit(x.key)
@@ -50,17 +50,13 @@ class ActivitiesTableWidget(QtWidgets.QTableWidget):
         self.delete_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete activity", None
         )
-        self.open_right_tab_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.right), "Open in new right tab", None
-        )
         self.open_left_tab_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.left), "Open in new left tab", None
+            QtGui.QIcon(icons.left), "Open in new tab", None
         )
         self.addAction(self.add_activity_action)
         self.addAction(self.copy_activity_action)
         self.addAction(self.delete_activity_action)
         self.addAction(self.open_left_tab_action)
-        self.addAction(self.open_right_tab_action)
         self.add_activity_action.triggered.connect(lambda: signals.new_activity.emit(self.database.name))
         self.copy_activity_action.triggered.connect(
             lambda x: signals.copy_activity.emit(self.currentItem().key)
@@ -68,14 +64,9 @@ class ActivitiesTableWidget(QtWidgets.QTableWidget):
         self.delete_activity_action.triggered.connect(
             lambda x: signals.delete_activity.emit(self.currentItem().key)
         )
-        self.open_right_tab_action.triggered.connect(
-            lambda x: signals.open_activity_tab.emit(
-                "right", self.currentItem().key
-            )
-        )
         self.open_left_tab_action.triggered.connect(
             lambda x: signals.open_activity_tab.emit(
-                "left", self.currentItem().key
+                "activities", self.currentItem().key
             )
         )
         signals.database_changed.connect(self.filter_database_changed)

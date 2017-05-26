@@ -12,6 +12,7 @@ class Signals(QtCore.QObject):
     activity_modified = QtCore.pyqtSignal(tuple, str, object)
     copy_activity = QtCore.pyqtSignal(tuple)
     open_activity_tab = QtCore.pyqtSignal(str, tuple)
+    activity_tabs_changed = QtCore.pyqtSignal()
     delete_activity = QtCore.pyqtSignal(tuple)
 
     exchanges_output_modified = QtCore.pyqtSignal(list, tuple)
