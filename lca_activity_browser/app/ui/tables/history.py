@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from ...signals import signals
+from ..icons import icons
 from brightway2 import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -29,18 +30,33 @@ class ActivitiesHistoryWidget(QtWidgets.QTableWidget):
         self.setColumnCount(4)
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
-
+        
+        self.itemDoubleClicked.connect(
+            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+        )
         self.itemDoubleClicked.connect(
             lambda x: signals.activity_selected.emit(x.key)
+        )
+        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.open_left_tab_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.left), "Open in new tab", None
+        )
+        self.addAction(self.open_left_tab_action)
+        self.open_left_tab_action.triggered.connect(
+            lambda x: signals.open_activity_tab.emit(
+                "activities", self.currentItem().key
+            )
         )
 
         signals.activity_selected.connect(self.add_activity)
         signals.project_selected.connect(self.clear_history)
 
+
     def add_activity(self, key):
         for row in range(self.rowCount()):
             if self.item(row, 0).key == key:
                 self.removeRow(row)
+                break # otherwise iterating over object that has changed
 
         ds = get_activity(key)
         self.insertRow(0)
