@@ -10,6 +10,7 @@ from ..tables import (
 )
 from .. import horizontal_line, header
 from ...signals import signals
+from ..network import SankeyWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 """
@@ -88,6 +89,7 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.rename_cs_button = QtWidgets.QPushButton('Rename')
         self.delete_cs_button = QtWidgets.QPushButton('Delete')
         self.calculate_button = QtWidgets.QPushButton('Calculate')
+        self.sankey_pb = QtWidgets.QPushButton('Sankey')
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -95,11 +97,16 @@ class CalculationSetupTab(QtWidgets.QWidget):
         name_row.addWidget(self.new_cs_button)
         name_row.addWidget(self.rename_cs_button)
         name_row.addWidget(self.delete_cs_button)
-        name_row.addWidget(self.calculate_button)
+        name_row.addStretch(1)
+        
+        calc_row = QtWidgets.QHBoxLayout()
+        calc_row.addWidget(self.calculate_button)
+        calc_row.addWidget(self.sankey_pb)
+        calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
         container.addLayout(name_row)
-
+        container.addLayout(calc_row)
         container.addWidget(horizontal_line())
         container.addWidget(header('Products and amounts:'))
         container.addWidget(self.activities_table)
@@ -112,6 +119,7 @@ class CalculationSetupTab(QtWidgets.QWidget):
         signals.project_selected.connect(self.set_default_calculation_setup)
         signals.calculation_setup_selected.connect(self.show_details)
         self.calculate_button.clicked.connect(self.start_calculation)
+        self.sankey_pb.clicked.connect(self.open_sankey)
 
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)
@@ -144,3 +152,5 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.delete_cs_button.clicked.connect(controller.delete_calculation_setup)
         self.rename_cs_button.clicked.connect(controller.rename_calculation_setup)
 
+    def open_sankey(self):
+        self.sankey = SankeyWindow(self)
