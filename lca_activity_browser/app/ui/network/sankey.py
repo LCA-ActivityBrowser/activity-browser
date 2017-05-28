@@ -90,28 +90,30 @@ class SankeyWidget(QtWidgets.QWidget):
         method = self.methods[self.method_cb.currentIndex()]
         color_attr = self.color_attr_cb.currentText()
         cutoff = self.cutoff_sb.value()
-        self.sankey = SankeyBuilder(self.lca, demand, method, cutoff, color_attr)
+        #self.sankey = SankeyBuilder(self.lca, demand, method, cutoff, color_attr)
+        self.sankey = SankeyGraphTraversal(demand, method, cutoff, color_attr)
         self.view.load(self.url)
 
     def expand_sankey(self, target_key):
-        target = bw.get_activity(target_key)
-        self.sankey.expand(target)
+        #target = bw.get_activity(target_key)
+        self.sankey.expand(target_key)
         self.bridge.lca_calc_finished.emit(self.sankey.json_data)
-        
 
     def send_json(self):
         self.bridge.sankey_ready.emit(self.sankey.json_data)
 
 
 class Bridge(QtCore.QObject):
-    link_clicked = QtCore.pyqtSignal(tuple)
+    #link_clicked = QtCore.pyqtSignal(tuple)
+    link_clicked = QtCore.pyqtSignal(int)
     lca_calc_finished = QtCore.pyqtSignal(str)
     viewer_waiting = QtCore.pyqtSignal()
     sankey_ready = QtCore.pyqtSignal(str)
 
     @QtCore.pyqtSlot(str)
     def link_selected(self, link):
-        target_key = tuple(link.split('-')[1].split(','))
+        #target_key = tuple(link.split('-')[1].split(','))
+        target_key = int(link.split('-')[-2])
         self.link_clicked.emit(target_key)
         
     @QtCore.pyqtSlot()
@@ -119,12 +121,53 @@ class Bridge(QtCore.QObject):
         self.viewer_waiting.emit()
        
 
+class SankeyGraphTraversal:
+    def __init__(self, demand, method, cutoff=0.005, color_attr='flow'):
+        demand = {k:float(v) for k,v in demand.items()}
+        self.gt = bw.GraphTraversal().calculate(demand, method, cutoff, max_calc=500)
+        self.color_attr = 'flow'
+        self.nodes = []
+        self.lca = self.gt['lca']
+        self.edges = self.gt['edges']
+        self.expanded_nodes = set()
+        self.expand(-1)
+
+    def expand(self, ind):
+        if ind in self.expanded_nodes:
+            self.expanded_nodes.remove(ind)
+            while True:
+                displayed_edges = [e for e in self.edges if e['to'] in self.expanded_nodes]
+                dangling = {e['to'] for e in displayed_edges}.difference({e['from'] for e in displayed_edges})
+                dangling.remove(-1)
+                if not dangling:
+                    break
+                self.expanded_nodes = self.expanded_nodes.difference(dangling)
+        else:
+            self.expanded_nodes.add(ind)
+        displayed_edges = [e for e in self.edges if e['to'] in self.expanded_nodes]
+        self.links = [{'source': e['to'], 
+                       'target': e['from'], 
+                       'value': e['impact'],
+                       'color': 'grey'} for e in displayed_edges]
+        #self.colors()
+        sankey_dict = {'links':self.links}
+        self.json_data = json.dumps(sankey_dict)
+        
+    def colors(self):
+        values = sorted({bw.get_activity(k['id']).get(self.color_attr) for k in self.nodes})
+        color_dict = {k:viridis_r_hex(v) for k,v in zip(values, np.linspace(0,1,len(values)))}
+        for link in self.links:
+            link['color'] = color_dict[bw.get_activity(link['target']).get(self.color_attr)]
+
+
+
 class SankeyBuilder:
     def __init__(self, lca, demand, method, cutoff=0.005, color_attr='flow'):
         self.lca = lca
         self.lca.switch_method(method)
         self.lca.redo_lcia(demand)
         self.root_score = self.lca.score
+        self.root_supply = self.lca.supply_array.copy()
         self.cutoff = cutoff
         self.color_attr = color_attr
 
@@ -133,15 +176,15 @@ class SankeyBuilder:
 
         self.nodes = [{'id':act.key, 'title':act.get('name')}]
         self.links = []
-        self.amount_dict = collections.defaultdict(int)
-        self.amount_dict[act.key] += float(list(demand.values())[0])
-
         self.expand(act)
+
+    def amount(self, key):
+        ind = self.lca.activity_dict[key]
+        return self.root_supply[ind]
 
     def expand(self, act):
         for e in act.technosphere():
-            multiplier = self.amount_dict[act.key]
-            self.lca.redo_lcia(demand={e.input:e.amount*multiplier})
+            self.lca.redo_lcia(demand={e.input:self.amount(e.input.key)})
             if self.lca.score/self.root_score > self.cutoff:
                 self.nodes.append({'id':e.input.key,
                                     'title':e.input.get('name')})
@@ -149,7 +192,6 @@ class SankeyBuilder:
                                    'target':e.input.key,
                                    'value':self.lca.score,
                                    'color':'grey'})
-                self.amount_dict[e.input.key] += e.amount* multiplier
                 
         self.colors()
         sankey_dict = {'links':self.links, 'nodes':self.nodes}
