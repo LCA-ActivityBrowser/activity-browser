@@ -121,7 +121,7 @@ class SankeyGraphTraversal:
     def __init__(self, demand, method, cutoff=0.005, color_attr='flow'):
         demand = {k:float(v) for k,v in demand.items()}
         self.gt = bw.GraphTraversal().calculate(demand, method, cutoff, max_calc=500)
-        self.color_attr = 'flow'
+        self.color_attr = color_attr
         self.nodes = []
         self.lca = self.gt['lca']
         self.reverse_activity_dict = {v:k for k,v in self.lca.activity_dict.items()}
@@ -129,6 +129,8 @@ class SankeyGraphTraversal:
         self.root_score = self.gt['nodes'][-1]['cum']
         self.expanded_nodes = set()
         self.expand(-1)
+        if len(self.links)==1:
+            self.expand(self.links[0]['target'])
 
     def expand(self, ind):
         if ind in self.expanded_nodes:
