@@ -126,6 +126,7 @@ class SankeyGraphTraversal:
         self.lca = self.gt['lca']
         self.reverse_activity_dict = {v:k for k,v in self.lca.activity_dict.items()}
         self.edges = self.gt['edges']
+        self.root_score = self.gt['nodes'][-1]['cum']
         self.expanded_nodes = set()
         self.expand(-1)
 
@@ -162,14 +163,20 @@ class SankeyGraphTraversal:
         producer = self.get_bw_activity_by_index(edge['from'])
         consumer = self.get_bw_activity_by_index(edge['to'])
         impact = edge['impact']
-        tooltip_text = 'Consuming activity: {}<br>Producing activity: {}<br>Reference product: {}<br>Score: <b>{}</b>'.format(
-            str(consumer), str(producer), producer.get('reference product', ''), impact)
+        tooltip_text = \
+            '<b>{}</b> Consuming activity: {} | {}<br>'.format(
+                edge['to'], consumer['name'], consumer['location'])+\
+            '<b>{}</b> Producing activity: {} | {}<br>'.format(
+                edge['from'], producer['name'], producer['location'])+\
+            'Flow: {} {} of {}<br>'.format(
+                edge['amount'], producer.get('unit',''), producer.get('reference product',''))+\
+            'Score: <b>{}</b><br>'.format(str(impact))+\
+            'Contribution: <b>{}%</b>'.format(np.round(impact/self.root_score*100,3))
         return tooltip_text
-        
             
     def get_bw_activity_by_index(self, ind):
         if ind == -1:
-            return 'Functional Unit'
+            return {'name':'Functional Unit', 'location':''}
         key = self.reverse_activity_dict[ind]
         return bw.get_activity(key)
         
