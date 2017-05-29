@@ -142,7 +142,7 @@ class SankeyGraphTraversal:
                        'color': 'grey'} for e in displayed_edges]
         self.nodes_set = {li['source'] for li in self.links}.union(
             {li['target'] for li in self.links})
-        self.nodes = [{'id':n} for n in self.nodes_set]
+        self.nodes = [{'id':n, 'style': 'process'} for n in self.nodes_set]
         self.colors()
         sankey_dict = {'links':self.links, 'nodes':self.nodes}
         self.json_data = json.dumps(sankey_dict)
