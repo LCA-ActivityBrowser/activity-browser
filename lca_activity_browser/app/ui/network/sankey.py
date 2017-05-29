@@ -139,7 +139,7 @@ class SankeyGraphTraversal:
         self.links = [{'source': e['to'], 
                        'target': e['from'], 
                        'value': e['impact'],
-                       'color': 'grey'} for e in displayed_edges]
+                       'tooltip': self.tooltip(e)} for e in displayed_edges]
         self.nodes_set = {li['source'] for li in self.links}.union(
             {li['target'] for li in self.links})
         self.nodes = [{'id':n, 'style': 'process'} for n in self.nodes_set]
@@ -157,8 +157,19 @@ class SankeyGraphTraversal:
             if not dangling:
                 break
             self.expanded_nodes = self.expanded_nodes.difference(dangling)
+
+    def tooltip(self, edge):
+        producer = self.get_bw_activity_by_index(edge['from'])
+        consumer = self.get_bw_activity_by_index(edge['to'])
+        impact = edge['impact']
+        tooltip_text = 'Consuming activity: {}<br>Producing activity: {}<br>Reference product: {}<br>Score: <b>{}</b>'.format(
+            str(consumer), str(producer), producer.get('reference product', ''), impact)
+        return tooltip_text
+        
             
     def get_bw_activity_by_index(self, ind):
+        if ind == -1:
+            return 'Functional Unit'
         key = self.reverse_activity_dict[ind]
         return bw.get_activity(key)
         
