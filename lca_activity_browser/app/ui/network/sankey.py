@@ -90,12 +90,10 @@ class SankeyWidget(QtWidgets.QWidget):
         method = self.methods[self.method_cb.currentIndex()]
         color_attr = self.color_attr_cb.currentText()
         cutoff = self.cutoff_sb.value()
-        #self.sankey = SankeyBuilder(self.lca, demand, method, cutoff, color_attr)
         self.sankey = SankeyGraphTraversal(demand, method, cutoff, color_attr)
         self.view.load(self.url)
 
     def expand_sankey(self, target_key):
-        #target = bw.get_activity(target_key)
         self.sankey.expand(target_key)
         self.bridge.lca_calc_finished.emit(self.sankey.json_data)
 
@@ -104,7 +102,6 @@ class SankeyWidget(QtWidgets.QWidget):
 
 
 class Bridge(QtCore.QObject):
-    #link_clicked = QtCore.pyqtSignal(tuple)
     link_clicked = QtCore.pyqtSignal(int)
     lca_calc_finished = QtCore.pyqtSignal(str)
     viewer_waiting = QtCore.pyqtSignal()
@@ -112,7 +109,6 @@ class Bridge(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def link_selected(self, link):
-        #target_key = tuple(link.split('-')[1].split(','))
         target_key = int(link.split('-')[-2])
         self.link_clicked.emit(target_key)
         
@@ -128,6 +124,7 @@ class SankeyGraphTraversal:
         self.color_attr = 'flow'
         self.nodes = []
         self.lca = self.gt['lca']
+        self.reverse_activity_dict = {v:k for k,v in self.lca.activity_dict.items()}
         self.edges = self.gt['edges']
         self.expanded_nodes = set()
         self.expand(-1)
@@ -135,13 +132,7 @@ class SankeyGraphTraversal:
     def expand(self, ind):
         if ind in self.expanded_nodes:
             self.expanded_nodes.remove(ind)
-            while True:
-                displayed_edges = [e for e in self.edges if e['to'] in self.expanded_nodes]
-                dangling = {e['to'] for e in displayed_edges}.difference({e['from'] for e in displayed_edges})
-                dangling.remove(-1)
-                if not dangling:
-                    break
-                self.expanded_nodes = self.expanded_nodes.difference(dangling)
+            self.remove_dangling_nodes()
         else:
             self.expanded_nodes.add(ind)
         displayed_edges = [e for e in self.edges if e['to'] in self.expanded_nodes]
@@ -149,72 +140,38 @@ class SankeyGraphTraversal:
                        'target': e['from'], 
                        'value': e['impact'],
                        'color': 'grey'} for e in displayed_edges]
-        #self.colors()
-        sankey_dict = {'links':self.links}
-        self.json_data = json.dumps(sankey_dict)
-        
-    def colors(self):
-        values = sorted({bw.get_activity(k['id']).get(self.color_attr) for k in self.nodes})
-        color_dict = {k:viridis_r_hex(v) for k,v in zip(values, np.linspace(0,1,len(values)))}
-        for link in self.links:
-            link['color'] = color_dict[bw.get_activity(link['target']).get(self.color_attr)]
-
-
-
-class SankeyBuilder:
-    def __init__(self, lca, demand, method, cutoff=0.005, color_attr='flow'):
-        self.lca = lca
-        self.lca.switch_method(method)
-        self.lca.redo_lcia(demand)
-        self.root_score = self.lca.score
-        self.root_supply = self.lca.supply_array.copy()
-        self.cutoff = cutoff
-        self.color_attr = color_attr
-
-        assert len(list(demand.keys()))==1, 'demand with several func_units not possible'
-        act = list(demand.keys())[0]
-
-        self.nodes = [{'id':act.key, 'title':act.get('name')}]
-        self.links = []
-        self.expand(act)
-
-    def amount(self, key):
-        ind = self.lca.activity_dict[key]
-        return self.root_supply[ind]
-
-    def expand(self, act):
-        for e in act.technosphere():
-            self.lca.redo_lcia(demand={e.input:self.amount(e.input.key)})
-            if self.lca.score/self.root_score > self.cutoff:
-                self.nodes.append({'id':e.input.key,
-                                    'title':e.input.get('name')})
-                self.links.append({'source':act.key,
-                                   'target':e.input.key,
-                                   'value':self.lca.score,
-                                   'color':'grey'})
-                
+        self.nodes_set = {li['source'] for li in self.links}.union(
+            {li['target'] for li in self.links})
+        self.nodes = [{'id':n} for n in self.nodes_set]
         self.colors()
         sankey_dict = {'links':self.links, 'nodes':self.nodes}
         self.json_data = json.dumps(sankey_dict)
-        
+
+    def remove_dangling_nodes(self):
+        while True:
+            displayed_edges = [e for e in self.edges if e['to'] in self.expanded_nodes]
+            to = {e['to'] for e in displayed_edges}
+            from_ = {e['from'] for e in displayed_edges}
+            dangling = to.difference(from_)
+            dangling.remove(-1)
+            if not dangling:
+                break
+            self.expanded_nodes = self.expanded_nodes.difference(dangling)
+            
+    def get_bw_activity_by_index(self, ind):
+        key = self.reverse_activity_dict[ind]
+        return bw.get_activity(key)
         
     def colors(self):
-        values = sorted({bw.get_activity(k['id']).get(self.color_attr) for k in self.nodes})
-        color_dict = {k:viridis_r_hex(v) for k,v in zip(values, np.linspace(0,1,len(values)))}
+        options = sorted(
+            {self.get_bw_activity_by_index(n).get(self.color_attr) for 
+             n in self.nodes_set.difference({-1})})
+        color_dict = {o:self.viridis_r_hex(v) for o,v in zip(options, np.linspace(0,1,len(options)))}
         for link in self.links:
-            link['color'] = color_dict[bw.get_activity(link['target']).get(self.color_attr)]
+            link['color'] = color_dict[self.get_bw_activity_by_index(link['target']).get(self.color_attr)]
 
-
-def viridis_r_hex(v):
-    return "#{0:02x}{1:02x}{2:02x}".format(*plt.cm.viridis_r(v, bytes=True)[:-1])
-        
-
-
-
-
-
-
-    
-
+    @staticmethod
+    def viridis_r_hex(v):
+        return "#{0:02x}{1:02x}{2:02x}".format(*plt.cm.viridis_r(v, bytes=True)[:-1])
         
 
