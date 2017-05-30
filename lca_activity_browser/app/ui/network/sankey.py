@@ -2,10 +2,12 @@
 import os
 import json
 import collections
+from concurrent.futures import ThreadPoolExecutor
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 import numpy as np
 import brightway2 as bw
 import matplotlib.pyplot as plt
+from .signals import sankeysignals
 
 class SankeyWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
@@ -84,14 +86,26 @@ class SankeyWidget(QtWidgets.QWidget):
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
         self.color_attr_cb.currentIndexChanged.connect(self.new_sankey)
         self.cutoff_sb.valueChanged.connect(self.new_sankey)
+        
+        # connections
+        sankeysignals.calculating_gt.connect(self.busy_indicator)
+        sankeysignals.initial_sankey_ready.connect(self.draw_sankey)
                 
     def new_sankey(self):
+        sankeysignals.calculating_gt.emit()
         demand = self.func_units[self.func_unit_cb.currentIndex()]
         method = self.methods[self.method_cb.currentIndex()]
         color_attr = self.color_attr_cb.currentText()
         cutoff = self.cutoff_sb.value()
         self.sankey = SankeyGraphTraversal(demand, method, cutoff, color_attr)
+        #self.view.load(self.url)
+
+    def draw_sankey(self):
         self.view.load(self.url)
+
+    def busy_indicator(self):
+        """to be replaced with d3 busy animation or similar"""
+        self.view.setHtml('busy')
 
     def expand_sankey(self, target_key):
         self.sankey.expand(target_key)
@@ -115,22 +129,55 @@ class Bridge(QtCore.QObject):
     @QtCore.pyqtSlot()
     def viewer_ready(self):
         self.viewer_waiting.emit()
+
        
+def calculate_graph_traversal(demand, method, cutoff=0.005, max_calc=500):
+    return bw.GraphTraversal().calculate(demand, method, cutoff, max_calc)
+
+       
+class GraphTraversalThread(QtCore.QThread):
+    def __init__(self, demand, method, cutoff, max_calc):
+        super().__init__()
+        self.demand = demand
+        self.method = method
+        self.cutoff = cutoff
+        self.max_calc = max_calc
+        
+    def __del__(self):
+        """https://joplaete.wordpress.com/2010/07/21/threading-with-pyqt4/"""
+        self.wait()
+        
+    def run(self):
+        with ThreadPoolExecutor(1) as pool:
+            future = pool.submit(calculate_graph_traversal, self.demand,
+                                 self.method, self.cutoff, self.max_calc)
+            future.add_done_callback(self.send_result)
+            
+    def send_result(self, future):
+        res = future.result()
+        sankeysignals.gt_ready.emit(res)
+    
 
 class SankeyGraphTraversal:
     def __init__(self, demand, method, cutoff=0.005, color_attr='flow'):
         demand = {k:float(v) for k,v in demand.items()}
-        self.gt = bw.GraphTraversal().calculate(demand, method, cutoff, max_calc=500)
+        #self.gt = bw.GraphTraversal().calculate(demand, method, cutoff, max_calc=500)
+        self.graph_thread = GraphTraversalThread(demand, method, cutoff, max_calc=500)
         self.color_attr = color_attr
+        sankeysignals.gt_ready.connect(self.init_graph)
+        self.graph_thread.start()
+        
+    def init_graph(self, gt):
         self.nodes = []
-        self.lca = self.gt['lca']
-        self.reverse_activity_dict = {v:k for k,v in self.lca.activity_dict.items()}
-        self.edges = self.gt['edges']
-        self.root_score = self.gt['nodes'][-1]['cum']
+        self.reverse_activity_dict = {v:k for k,v in gt['lca'].activity_dict.items()}
+        self.edges = gt['edges']
+        self.root_score = gt['nodes'][-1]['cum']
         self.expanded_nodes = set()
         self.expand(-1)
         if len(self.links)==1:
             self.expand(self.links[0]['target'])
+        sankeysignals.initial_sankey_ready.emit()
+
 
     def expand(self, ind):
         if ind in self.expanded_nodes:
