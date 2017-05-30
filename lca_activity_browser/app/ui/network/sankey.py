@@ -65,9 +65,9 @@ class SankeyWidget(QtWidgets.QWidget):
         self.channel.registerObject('bridge', self.bridge)
         self.view = QtWebEngineWidgets.QWebEngineView()
         self.view.page().setWebChannel(self.channel)
-        self.url = QtCore.QUrl('file://' +  os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), 'activity-browser-sankey.html'))
-
+        html = os.path.join(os.path.abspath(os.path.dirname(__file__)), 
+                            'activity-browser-sankey.html')
+        self.url = QtCore.QUrl.fromLocalFile(html)
         self.vlay = QtWidgets.QVBoxLayout()
         self.vlay.addLayout(self.hlay)
         self.vlay.addWidget(self.view)
