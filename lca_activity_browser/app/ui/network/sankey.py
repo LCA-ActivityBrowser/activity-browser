@@ -70,6 +70,10 @@ class SankeyWidget(QtWidgets.QWidget):
         html = os.path.join(os.path.abspath(os.path.dirname(__file__)), 
                             'activity-browser-sankey.html')
         self.url = QtCore.QUrl.fromLocalFile(html)
+        wait_html = os.path.join(os.path.abspath(os.path.dirname(__file__)), 
+                                 'spinner.html')
+        self.wait_url = QtCore.QUrl.fromLocalFile(wait_html)
+        self.view.load(self.wait_url)
         self.vlay = QtWidgets.QVBoxLayout()
         self.vlay.addLayout(self.hlay)
         self.vlay.addWidget(self.view)
@@ -98,14 +102,12 @@ class SankeyWidget(QtWidgets.QWidget):
         color_attr = self.color_attr_cb.currentText()
         cutoff = self.cutoff_sb.value()
         self.sankey = SankeyGraphTraversal(demand, method, cutoff, color_attr)
-        #self.view.load(self.url)
 
     def draw_sankey(self):
         self.view.load(self.url)
 
     def busy_indicator(self):
-        """to be replaced with d3 busy animation or similar"""
-        self.view.setHtml('busy')
+        self.view.load(self.wait_url)
 
     def expand_sankey(self, target_key):
         self.sankey.expand(target_key)
