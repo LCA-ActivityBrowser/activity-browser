@@ -131,41 +131,28 @@ class Bridge(QtCore.QObject):
         self.viewer_waiting.emit()
 
        
-def calculate_graph_traversal(demand, method, cutoff=0.005, max_calc=500):
-    return bw.GraphTraversal().calculate(demand, method, cutoff, max_calc)
-
-       
 class GraphTraversalThread(QtCore.QThread):
-    def __init__(self, demand, method, cutoff, max_calc):
-        super().__init__()
+    def update_params(self, demand, method, cutoff, max_calc):
         self.demand = demand
         self.method = method
         self.cutoff = cutoff
         self.max_calc = max_calc
         
-    def __del__(self):
-        """https://joplaete.wordpress.com/2010/07/21/threading-with-pyqt4/"""
-        self.wait()
-        
     def run(self):
-        with ThreadPoolExecutor(1) as pool:
-            future = pool.submit(calculate_graph_traversal, self.demand,
-                                 self.method, self.cutoff, self.max_calc)
-            future.add_done_callback(self.send_result)
-            
-    def send_result(self, future):
-        res = future.result()
+        res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
         sankeysignals.gt_ready.emit(res)
-    
+
+
+gt_worker_thread = GraphTraversalThread()
+
 
 class SankeyGraphTraversal:
     def __init__(self, demand, method, cutoff=0.005, color_attr='flow'):
         demand = {k:float(v) for k,v in demand.items()}
-        #self.gt = bw.GraphTraversal().calculate(demand, method, cutoff, max_calc=500)
-        self.graph_thread = GraphTraversalThread(demand, method, cutoff, max_calc=500)
+        gt_worker_thread.update_params(demand, method, cutoff, max_calc=500)
         self.color_attr = color_attr
         sankeysignals.gt_ready.connect(self.init_graph)
-        self.graph_thread.start()
+        gt_worker_thread.start()
         
     def init_graph(self, gt):
         self.nodes = []
