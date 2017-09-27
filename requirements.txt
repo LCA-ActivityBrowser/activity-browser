@@ -1,5 +1,5 @@
 brightway2
-pyqt5
+pyqt
 requests-oauthlib
 seaborn
 arrow
