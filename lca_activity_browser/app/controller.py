@@ -8,9 +8,10 @@ from PyQt5 import QtWidgets
 from . import Container
 from .signals import signals
 import copy
-import sys
 import uuid
-
+from bw2data.project import ProjectDataset, create_database
+import os
+from . import settings
 
 class Controller(object):
     def __init__(self, window):
@@ -20,6 +21,13 @@ class Controller(object):
         signals.calculation_setup_changed.connect(
             self.write_current_calculation_setup
         )
+        self.connect_signals()
+        if settings.BW2_DIR:
+            print('Brightway2 data directory: {}'.format(projects._base_data_dir))
+            self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
+            print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
+
+    def connect_signals(self):
         signals.copy_activity.connect(self.copy_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
@@ -28,6 +36,19 @@ class Controller(object):
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         signals.delete_activity.connect(self.delete_activity)
+
+    def switch_brightway2_dir_path(self, dirpath):
+        assert os.path.isdir(dirpath)
+        projects._base_data_dir = dirpath
+        projects._base_logs_dir = os.path.join(dirpath, "logs")
+        if not os.path.isdir(projects._base_logs_dir):
+            os.mkdir(projects._base_logs_dir)
+        projects.db.close()
+        projects.db = create_database(
+            os.path.join(projects._base_data_dir, "projects.db"),
+            [ProjectDataset]
+        )
+        projects.set_current("default")
 
     def get_default_project_name(self):
         if "default" in projects:
