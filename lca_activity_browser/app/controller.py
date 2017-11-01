@@ -45,17 +45,21 @@ class Controller(object):
         signals.delete_activity.connect(self.delete_activity)
 
     def switch_brightway2_dir_path(self, dirpath):
-        assert os.path.isdir(dirpath)
-        projects._base_data_dir = dirpath
-        projects._base_logs_dir = os.path.join(dirpath, "logs")
-        if not os.path.isdir(projects._base_logs_dir):
-            os.mkdir(projects._base_logs_dir)
-        projects.db.close()
-        projects.db = create_database(
-            os.path.join(projects._base_data_dir, "projects.db"),
-            [ProjectDataset]
-        )
-        projects.set_current("default")
+        try:
+            assert os.path.isdir(dirpath)
+            projects._base_data_dir = dirpath
+            projects._base_logs_dir = os.path.join(dirpath, "logs")
+            if not os.path.isdir(projects._base_logs_dir):
+                os.mkdir(projects._base_logs_dir)
+            projects.db.close()
+            projects.db = create_database(
+                os.path.join(projects._base_data_dir, "projects.db"),
+                [ProjectDataset]
+            )
+            projects.set_current("default")
+        except AssertionError:
+            print('Could not access BW_DIR as specified in settings.py')
+
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -289,3 +293,4 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
         exchange['amount'] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
+

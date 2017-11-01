@@ -4,10 +4,17 @@ from eight import *
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from matplotlib import cm
 import numpy as np
 import seaborn as sns
 # from seaborn.linearmodels import corrplot
-from PyQt5 import QtCore, QtGui, QtWidgets
+
+import pandas as pd
+# import seaborn.apionly as sns
+import matplotlib.pyplot as plt
+
+from PyQt5 import QtWidgets
+from ..bw2extensions.commontasks import format_activity_label
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -64,10 +71,106 @@ class CorrelationPlot(FigureCanvasQTAgg):
 
         sns.set(style="darkgrid")
 
-        cmap = sns.diverging_palette(220, 10, as_cmap=True)
+        corr = data
+        # cmap = sns.diverging_palette(220, 10, as_cmap=True)
         # corrplot(data, names=labels, annot=True, sig_stars=False,
         #      diag_names=True, cmap=cmap, ax=axes, cbar=True)
 
+        df = pd.DataFrame(data=data, columns=labels)
+        corr = df.corr()
+        # Generate a mask for the upper triangle
+        mask = np.zeros_like(corr, dtype=np.bool)
+        mask[np.triu_indices_from(mask)] = True
+        # Draw the heatmap with the mask and correct aspect ratio
+        vmax = np.abs(corr.values[~mask]).max()
+        # vmax = np.abs(corr).max()
+        sns.heatmap(corr, mask=mask, cmap=plt.cm.PuOr, vmin=-vmax, vmax=vmax,
+                    square=True, linecolor="lightgray", linewidths=1, ax=axes)
+        for i in range(len(corr)):
+            axes.text(i + 0.5, i + 0.5, corr.columns[i],
+                    ha="center", va="center", rotation=0)
+            for j in range(i + 1, len(corr)):
+                s = "{:.3f}".format(corr.values[i, j])
+                axes.text(j + 0.5, i + 0.5, s,
+                        ha="center", va="center")
+        axes.axis("off")
         # If uncommented, fills widget
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.updateGeometry()
+        self.setMinimumSize(self.size())
+
+
+class LCAResultsPlot(FigureCanvasQTAgg):
+    def __init__(self, parent, mlca, width=6, height=6, dpi=100):
+        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        axes = figure.add_subplot(111)
+
+        super(LCAResultsPlot, self).__init__(figure)
+        self.setParent(parent)
+        activity_names = [format_activity_label(next (iter (f.keys()))) for f in mlca.func_units]
+        # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
+        cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
+        hm = sns.heatmap(
+            # mlca.results / np.average(mlca.results, axis=0), # Normalize to get relative results
+            mlca.results,
+            annot=True,
+            linewidths=.05,
+            cmap=cmap,
+            xticklabels = ["\n".join(x) for x in mlca.methods],
+            yticklabels = activity_names,
+            ax=axes,
+            square=False,
+        )
+        hm.tick_params(labelsize=8)
+
+        self.setMinimumSize(self.size())
+        # sns.set_context("notebook")
+
+class LCAProcessContributionPlot(FigureCanvasQTAgg):
+    def __init__(self, parent, mlca, width=6, height=6, dpi=100):
+        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        axes = figure.add_subplot(121)
+
+        super(LCAProcessContributionPlot, self).__init__(figure)
+        self.setParent(parent)
+
+        method = 0  # TODO let user choose the LCIA method
+        tc = mlca.top_process_contributions(method=method, limit=5, relative=True)
+        df_tc = pd.DataFrame(tc)
+        df_tc.columns = [format_activity_label(a) for a in tc.keys()]
+        df_tc.index = [format_activity_label(a, style='pl') for a in df_tc.index]
+        plot = df_tc.T.plot.barh(
+            stacked=True,
+            figsize=(6, 6),
+            cmap=cm.nipy_spectral_r,
+            ax=axes
+        )
+        plot.tick_params(labelsize=8)
+        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.rc('legend', **{'fontsize': 8})
+        self.setMinimumSize(self.size())
+
+
+class LCAElementaryFlowContributionPlot(FigureCanvasQTAgg):
+    def __init__(self, parent, mlca, width=6, height=6, dpi=100):
+        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        axes = figure.add_subplot(121)
+
+        super(LCAElementaryFlowContributionPlot, self).__init__(figure)
+        self.setParent(parent)
+
+        method = 0  # TODO let user choose the LCIA method
+        tc = mlca.top_elementary_flow_contributions(method=method, limit=5, relative=True)
+        df_tc = pd.DataFrame(tc)
+        df_tc.columns = [format_activity_label(a) for a in tc.keys()]
+        df_tc.index = [format_activity_label(a, style='bio') for a in df_tc.index]
+        plot = df_tc.T.plot.barh(
+            stacked=True,
+            figsize=(6, 6),
+            cmap=cm.nipy_spectral_r,
+            ax=axes
+        )
+        plot.tick_params(labelsize=8)
+        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.rc('legend', **{'fontsize': 8})
+        self.setMinimumSize(self.size())

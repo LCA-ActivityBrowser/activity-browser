@@ -3,62 +3,109 @@ from __future__ import print_function, unicode_literals
 from eight import *
 
 from .. import horizontal_line, header
-# from ..tables import ActivitiesHistoryWidget
 from PyQt5 import QtGui, QtCore, QtWidgets
-from bw2calc.multi_lca import MultiLCA
+# from bw2calc.multi_lca import MultiLCA
+from ...bw2extensions.multilca import MLCA
 from ...signals import signals
-from ..graphics import CorrelationPlot
+from ..graphics import \
+    CorrelationPlot, \
+    LCAResultsPlot, \
+    LCAProcessContributionPlot, \
+    LCAElementaryFlowContributionPlot
 from ..tables import LCAResultsTable
 
 
 class LCAResultsTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(LCAResultsTab, self).__init__(parent)
-        self.tab = parent
+        self.panel = parent  # e.g. right panel
         self.visible = False
+
+        self.scroll_area = QtWidgets.QScrollArea()
+        self.scroll_widget = QtWidgets.QWidget()
+        self.scroll_widget_layout = QtWidgets.QVBoxLayout()
+
+        self.scroll_widget.setLayout(self.scroll_widget_layout)
+        self.scroll_area.setWidget(self.scroll_widget)
+        self.scroll_area.setWidgetResizable(True)
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
+        self.connect_signals()
+
+    def connect_signals(self):
         signals.project_selected.connect(self.remove_tab)
         signals.lca_calculation.connect(self.calculate)
 
     def add_tab(self):
-        self.tab.addTab(self, "LCA Results")
-        self.tab.select_tab(self)
+        self.panel.addTab(self, "LCA Results")
+        print('Adding Tab:')
+        print(type(self.panel))
+        print(type(self.panel.addTab(self, "LCA Results")))
+        self.panel.select_tab(self)
         self.visible = True
+        self.layout.addWidget(self.scroll_area)
+        # self.scrollable_layout.addWidget(self.scroll)
 
     def remove_tab(self):
         if self.visible:
-            self.tab.removeTab(4)
+            self.panel.removeTab(4)
             self.visible = False
             self.clear_layout()
 
     def clear_layout(self):
         print("Entering clear layout")
-        print("Total:", self.layout.count())
-        for index in range(self.layout.count()):
+        print("Total:", self.scroll_widget_layout.count())
+        for index in range(self.scroll_widget_layout.count()):
             try:
-                widget = self.layout.itemAt(index).widget().deleteLater()
+                widget = self.scroll_widget_layout.itemAt(index).widget().deleteLater()
             except AttributeError:
                 pass
 
     def calculate(self, name):
+        # LCA Results Analysis: (ideas to implement)
+        # - LCA score: Barchart (choice LCIA method)
+        # - Contribution Analysis (choice process, LCIA method;
+        #   THEN BY process, product, geography, ISIC sector)
+        #   ALSO: Type of graph: Barchart, Treemap, Piechart, Worldmap (for geo)
+        #   CUTOFF
+        # - Uncertainties: Monte Carlo, Latin-Hypercube
+
         self.clear_layout()
-        self.lca = MultiLCA(name)
-        normalized_results = self.lca.results / self.lca.results.max(axis=0)
-        labels = [str(x + 1) for x in range(len(self.lca.func_units))]
+
+        # Multi-LCA calculation
+        self.mlca = MLCA(name)
+        normalized_results = self.mlca.results / self.mlca.results.max(axis=0)
+        # plots
+        lca_results_plot = LCAResultsPlot(self, self.mlca)
+        process_contribution_plot = LCAProcessContributionPlot(self, self.mlca)
+        elementary_flow_contribution_plot = LCAElementaryFlowContributionPlot(self, self.mlca)
+        labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
         corr_chart = CorrelationPlot(self, normalized_results.T, labels)
+        # LCA results table
+        results_table = LCAResultsTable()
+        results_table.sync(self.mlca)
 
-        results_table = LCAResultsTable(self)
-        results_table.sync(self.lca)
+        # Display the information in the scroll widget
+        self.scroll_widget_layout.addWidget(header("LCA Scores:"))
+        self.scroll_widget_layout.addWidget(horizontal_line())
+        self.scroll_widget_layout.addWidget(lca_results_plot)
 
-        self.layout.addWidget(header("LCA score correlation:"))
-        self.layout.addWidget(horizontal_line())
-        self.layout.addWidget(corr_chart)
+        self.scroll_widget_layout.addWidget(header("Process Contributions:"))
+        self.scroll_widget_layout.addWidget(horizontal_line())
+        self.scroll_widget_layout.addWidget(process_contribution_plot)
 
-        self.layout.addWidget(header("LCA scores:"))
-        self.layout.addWidget(horizontal_line())
-        self.layout.addWidget(results_table)
+        self.scroll_widget_layout.addWidget(header("Elementary Flow Contributions:"))
+        self.scroll_widget_layout.addWidget(horizontal_line())
+        self.scroll_widget_layout.addWidget(elementary_flow_contribution_plot)
+
+        self.scroll_widget_layout.addWidget(header("LCA Scores Correlation:"))
+        self.scroll_widget_layout.addWidget(horizontal_line())
+        self.scroll_widget_layout.addWidget(corr_chart)
+
+        self.scroll_widget_layout.addWidget(header("LCA Scores:"))
+        self.scroll_widget_layout.addWidget(horizontal_line())
+        self.scroll_widget_layout.addWidget(results_table)
 
         self.add_tab()

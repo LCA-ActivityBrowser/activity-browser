@@ -9,9 +9,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import arrow
 
 
-from ...signals import signals
-
-
 class DatabaseItem(QtWidgets.QTableWidgetItem):
     def __init__(self, db_name, *args):
         super(DatabaseItem, self).__init__(*args)

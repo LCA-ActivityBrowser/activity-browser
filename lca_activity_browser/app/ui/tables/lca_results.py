@@ -31,3 +31,7 @@ class LCAResultsTable(QtWidgets.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        # self.setMinimumHeight(self.maximumHeight())
+        # self.setMinimumHeight(500)
+        # self.setMinimumHeight(self.frameGeometry().height())
+        self.setMinimumHeight(self.sizeHint().height())
