@@ -16,8 +16,9 @@ class SankeyWindow(QtWidgets.QMainWindow):
         self.sankeywidget = SankeyWidget(self)
         self.setCentralWidget(self.sankeywidget)
         self.show()
-        screen = QtWidgets.QDesktopWidget().screenGeometry()
-        self.setGeometry(10, 10, screen.width() -20, screen.height() -20)
+        self.showMaximized()
+        # screen = QtWidgets.QDesktopWidget().screenGeometry()
+        # self.setGeometry(10, 10, screen.width() -20, screen.height() -20)
         self.setWindowTitle('Sankey Diagram Contribution Analysis')
 
 

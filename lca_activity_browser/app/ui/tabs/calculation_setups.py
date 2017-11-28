@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, unicode_literals
-from eight import *
+# from __future__ import print_function, unicode_literals
+# from eight import *
 
 from brightway2 import calculation_setups
 from ..tables import (
@@ -89,7 +89,7 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.rename_cs_button = QtWidgets.QPushButton('Rename')
         self.delete_cs_button = QtWidgets.QPushButton('Delete')
         self.calculate_button = QtWidgets.QPushButton('Calculate')
-        self.sankey_pb = QtWidgets.QPushButton('Sankey')
+        self.sankey_button = QtWidgets.QPushButton('Sankey')
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -101,7 +101,7 @@ class CalculationSetupTab(QtWidgets.QWidget):
         
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
-        calc_row.addWidget(self.sankey_pb)
+        calc_row.addWidget(self.sankey_button)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
@@ -115,11 +115,21 @@ class CalculationSetupTab(QtWidgets.QWidget):
         container.addWidget(self.methods_table)
 
         self.setLayout(container)
+        self.connect_signals()
 
+    def connect_signals(self, controller=None):
         signals.project_selected.connect(self.set_default_calculation_setup)
         signals.calculation_setup_selected.connect(self.show_details)
         self.calculate_button.clicked.connect(self.start_calculation)
-        self.sankey_pb.clicked.connect(self.open_sankey)
+        self.sankey_button.clicked.connect(self.open_sankey)
+
+    # def connect_signals(self, controller):
+        if controller:
+            """Signals that alter data and need access to Controller"""
+            self.new_cs_button.clicked.connect(controller.new_calculation_setup)
+            self.delete_cs_button.clicked.connect(controller.delete_calculation_setup)
+            self.rename_cs_button.clicked.connect(controller.rename_calculation_setup)
+
 
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)
@@ -145,12 +155,6 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.list_widget.show()
         self.activities_table.show()
         self.methods_table.show()
-
-    def connect_signals(self, controller):
-        """Signals that alter data and need access to Controller"""
-        self.new_cs_button.clicked.connect(controller.new_calculation_setup)
-        self.delete_cs_button.clicked.connect(controller.delete_calculation_setup)
-        self.rename_cs_button.clicked.connect(controller.rename_calculation_setup)
 
     def open_sankey(self):
         self.sankey = SankeyWindow(self)

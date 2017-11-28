@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, unicode_literals
-from eight import *
+# from __future__ import print_function, unicode_literals
+# from eight import *
 
 from . import horizontal_line, header
 from .. import Container
@@ -16,7 +16,7 @@ from .tabs import (
 )
 from .toolbar import Toolbar
 from .utils import StdRedirector
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets, Qt
 import sys
 
 
@@ -30,6 +30,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Window title
         self.setWindowTitle("Activity Browser")
+
+        # Background Color
+        # self.setAutoFillBackground(True)
+        # p = self.palette()
+        # p.setColor(self.backgroundRole(), QtGui.QColor(148, 143, 143, 127))
+        # self.setPalette(p)
 
         # Small icon in main window titlebar
         self.icon = QtGui.QIcon(icons.ab)
