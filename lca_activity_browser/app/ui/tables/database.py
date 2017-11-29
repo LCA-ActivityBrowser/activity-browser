@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, unicode_literals
-from eight import *
+# from __future__ import print_function, unicode_literals
+# from eight import *
 
 from ...signals import signals
 from bw2data import databases
 from bw2data.utils import natural_sort
 from PyQt5 import QtCore, QtGui, QtWidgets
 import arrow
-
-
-from ...signals import signals
 
 
 class DatabaseItem(QtWidgets.QTableWidgetItem):

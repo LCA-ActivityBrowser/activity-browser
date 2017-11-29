@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, unicode_literals
-from eight import *
+# from __future__ import print_function, unicode_literals
+# from eight import *
 
 from brightway2 import *
 from bw2data.backends.peewee import Exchange
@@ -8,8 +8,13 @@ from PyQt5 import QtWidgets
 from . import Container
 from .signals import signals
 import copy
-import sys
 import uuid
+from bw2data.project import ProjectDataset, create_database
+import os
+try:
+    from . import settings
+except ImportError:
+    settings = None
 
 
 class Controller(object):
@@ -20,6 +25,21 @@ class Controller(object):
         signals.calculation_setup_changed.connect(
             self.write_current_calculation_setup
         )
+        self.connect_signals()
+        # switch directly to custom bw2 directory and project, if specified in settings
+        if settings:
+            if settings.BW2_DIR:
+                print('Brightway2 data directory: {}'.format(projects._base_data_dir))
+                self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
+                print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
+            if settings.PROJECT_NAME:
+                if settings.PROJECT_NAME in [x.name for x in projects]:
+                    projects.set_current(settings.PROJECT_NAME)
+                    signals.project_selected.emit(settings.PROJECT_NAME)
+                else:
+                    print('Project indicated in settings.py not found.')
+
+    def connect_signals(self):
         signals.copy_activity.connect(self.copy_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
@@ -28,6 +48,23 @@ class Controller(object):
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         signals.delete_activity.connect(self.delete_activity)
+
+    def switch_brightway2_dir_path(self, dirpath):
+        try:
+            assert os.path.isdir(dirpath)
+            projects._base_data_dir = dirpath
+            projects._base_logs_dir = os.path.join(dirpath, "logs")
+            if not os.path.isdir(projects._base_logs_dir):
+                os.mkdir(projects._base_logs_dir)
+            projects.db.close()
+            projects.db = create_database(
+                os.path.join(projects._base_data_dir, "projects.db"),
+                [ProjectDataset]
+            )
+            projects.set_current("default")
+        except AssertionError:
+            print('Could not access BW_DIR as specified in settings.py')
+
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -261,3 +298,4 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
         exchange['amount'] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
+

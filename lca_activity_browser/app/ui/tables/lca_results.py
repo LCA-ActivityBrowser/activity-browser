@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, unicode_literals
-from eight import *
+# from __future__ import print_function, unicode_literals
+# from eight import *
 
 from brightway2 import get_activity
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -31,3 +31,7 @@ class LCAResultsTable(QtWidgets.QTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        # self.setMinimumHeight(self.maximumHeight())
+        # self.setMinimumHeight(500)
+        # self.setMinimumHeight(self.frameGeometry().height())
+        self.setMinimumHeight(self.sizeHint().height())
