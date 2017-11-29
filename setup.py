@@ -16,22 +16,24 @@ for dirpath, dirnames, filenames in os.walk('lca_activity_browser'):
 
 setup(
     name='lca_activity_browser',
-    version="2.1.dev",
+    version="2.2.0",
     packages=packages,
     package_data={'lca_activity_browser': [
         "icons/context/*.png",
-        "icons/pony/*.png",
         "icons/metaprocess/*.png",
         "icons/main/*.png"
+        "app/ui/network/*.js",
+        "app/ui/network/*.html"
     ]},
     author="Adrian Haas",
     author_email="haasad@student.ethz.ch",
     license=open('LICENSE.txt').read(),
-    install_requires=['brightway2', 'pyqt5', 'requests-oauthlib', 'seaborn', 'arrow'],
+    install_requires=['brightway2', 'pyqt5', 'requests-oauthlib',
+                      'seaborn', 'arrow', 'pandas'],
     url="https://github.com/haasad/activity-browser",
     long_description=open('README.md').read(),
     description=('Brightway2 GUI'),
-    entry_points = {
+    entry_points={
         'console_scripts': [
             'activity-browser = lca_activity_browser.app:run_activity_browser',
         ]
