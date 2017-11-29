@@ -18,18 +18,12 @@ setup(
     name='activity-browser',
     version="2.2.0",
     packages=packages,
-    package_dir={'activity-browser': 'lca_activity_browser'}
+    package_dir={'activity-browser': 'lca_activity_browser'},
     package_data={
         'activity-browser': [
             'icons/context/*.png'
-        ],
-        'activity-browser': [
             'icons/metaprocess/*.png'
-        ],
-        'activity-browser': [
             'icons/main/*.png'
-        ],
-        'activity-browser': [
             'app/ui/network/*.js',
             'app/ui/network/*.html'
         ]
