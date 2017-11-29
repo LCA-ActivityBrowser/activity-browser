@@ -15,16 +15,24 @@ for dirpath, dirnames, filenames in os.walk('lca_activity_browser'):
         packages.append(pkg)
 
 setup(
-    name='lca_activity_browser',
+    name='activity-browser',
     version="2.2.0",
     packages=packages,
-    package_data={'lca_activity_browser': [
-        "icons/context/*.png",
-        "icons/metaprocess/*.png",
-        "icons/main/*.png"
-        "app/ui/network/*.js",
-        "app/ui/network/*.html"
-    ]},
+    package_data={
+        'activity-browser/icons/context': [
+            'lca_activity_browser/icons/context/*.png'
+        ],
+        'activity-browser/icons/metaprocess': [
+            'lca_activity_browser/icons/metaprocess/*.png'
+        ],
+        'activity-browser/icons/main': [
+            'lca_activity_browser/icons/main/*.png'
+        ],
+        'activity-browser/app/ui/network': [
+            'lca_activity_browser/app/ui/network/*.js',
+            'lca_activity_browser/app/ui/network/*.html'
+        ]
+    },
     author="Adrian Haas",
     author_email="haasad@student.ethz.ch",
     license=open('LICENSE.txt').read(),
