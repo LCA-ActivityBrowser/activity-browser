@@ -19,16 +19,6 @@ setup(
     version="2.2.0",
     packages=packages,
     include_package_data=True,
-#    package_dir={'activity-browser': 'lca_activity_browser'},
-#    package_data={
-#        'activity-browser': [
-#            'icons/context/*.png'
-#            'icons/metaprocess/*.png'
-#            'icons/main/*.png'
-#            'app/ui/network/*.js',
-#            'app/ui/network/*.html'
-#        ]
-#    },
     author="Adrian Haas",
     author_email="haasad@student.ethz.ch",
     license=open('LICENSE.txt').read(),
