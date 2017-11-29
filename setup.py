@@ -18,7 +18,7 @@ setup(
     name='activity-browser',
     version="2.2.0",
     packages=packages,
-    package_data={
+    data_files={
         'activity-browser/icons/context': [
             'lca_activity_browser/icons/context/*.png'
         ],
