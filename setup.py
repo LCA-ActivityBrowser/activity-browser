@@ -16,7 +16,7 @@ for dirpath, dirnames, filenames in os.walk('lca_activity_browser'):
 
 setup(
     name='activity-browser',
-    version="2.2.0",
+    version="2.2.1",
     packages=packages,
     include_package_data=True,
     author="Adrian Haas",
