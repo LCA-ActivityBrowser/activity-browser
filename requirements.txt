@@ -3,3 +3,4 @@ pyqt
 requests-oauthlib
 seaborn
 arrow
+pandas

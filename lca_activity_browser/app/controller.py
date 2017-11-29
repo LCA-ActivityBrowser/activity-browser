@@ -11,7 +11,11 @@ import copy
 import uuid
 from bw2data.project import ProjectDataset, create_database
 import os
-from . import settings
+try:
+    from . import settings
+except ImportError:
+    settings = None
+
 
 class Controller(object):
     def __init__(self, window):
@@ -23,16 +27,17 @@ class Controller(object):
         )
         self.connect_signals()
         # switch directly to custom bw2 directory and project, if specified in settings
-        if settings.BW2_DIR:
-            print('Brightway2 data directory: {}'.format(projects._base_data_dir))
-            self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-            print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
-        if settings.PROJECT_NAME:
-            if settings.PROJECT_NAME in [x.name for x in projects]:
-                projects.set_current(settings.PROJECT_NAME)
-                signals.project_selected.emit(settings.PROJECT_NAME)
-            else:
-                print('Project indicated in settings.py not found.')
+        if settings:
+            if settings.BW2_DIR:
+                print('Brightway2 data directory: {}'.format(projects._base_data_dir))
+                self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
+                print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
+            if settings.PROJECT_NAME:
+                if settings.PROJECT_NAME in [x.name for x in projects]:
+                    projects.set_current(settings.PROJECT_NAME)
+                    signals.project_selected.emit(settings.PROJECT_NAME)
+                else:
+                    print('Project indicated in settings.py not found.')
 
     def connect_signals(self):
         signals.copy_activity.connect(self.copy_activity)
