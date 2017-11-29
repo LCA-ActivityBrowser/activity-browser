@@ -18,19 +18,20 @@ setup(
     name='activity-browser',
     version="2.2.0",
     packages=packages,
-    data_files={
-        'activity-browser/icons/context': [
-            'lca_activity_browser/icons/context/*.png'
+    package_dir={'activity-browser': 'lca_activity_browser'}
+    package_data={
+        'activity-browser': [
+            'icons/context/*.png'
         ],
-        'activity-browser/icons/metaprocess': [
-            'lca_activity_browser/icons/metaprocess/*.png'
+        'activity-browser': [
+            'icons/metaprocess/*.png'
         ],
-        'activity-browser/icons/main': [
-            'lca_activity_browser/icons/main/*.png'
+        'activity-browser': [
+            'icons/main/*.png'
         ],
-        'activity-browser/app/ui/network': [
-            'lca_activity_browser/app/ui/network/*.js',
-            'lca_activity_browser/app/ui/network/*.html'
+        'activity-browser': [
+            'app/ui/network/*.js',
+            'app/ui/network/*.html'
         ]
     },
     author="Adrian Haas",
