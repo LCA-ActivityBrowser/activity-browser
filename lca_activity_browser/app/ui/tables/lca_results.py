@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from brightway2 import get_activity
-from PyQt5 import QtCore, QtGui, QtWidgets
-import itertools
+from PyQt5 import QtCore, QtWidgets
 
 
 class ReadOnly(QtWidgets.QTableWidgetItem):

@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from brightway2 import calculation_setups
 from ..tables import (
     CSActivityTableWidget,
@@ -11,7 +8,7 @@ from ..tables import (
 from .. import horizontal_line, header
 from ...signals import signals
 from ..network import SankeyWindow
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 
 """
 Lifecycle of a calculation setup
@@ -77,6 +74,7 @@ The currently selected calculation setup is retrieved by getting the currently s
 
 """
 
+
 class CalculationSetupTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(CalculationSetupTab, self).__init__(parent)
@@ -98,7 +96,7 @@ class CalculationSetupTab(QtWidgets.QWidget):
         name_row.addWidget(self.rename_cs_button)
         name_row.addWidget(self.delete_cs_button)
         name_row.addStretch(1)
-        
+
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
         calc_row.addWidget(self.sankey_button)
@@ -121,14 +119,11 @@ class CalculationSetupTab(QtWidgets.QWidget):
         signals.calculation_setup_selected.connect(self.show_details)
         self.calculate_button.clicked.connect(self.start_calculation)
         self.sankey_button.clicked.connect(self.open_sankey)
-
-    # def connect_signals(self, controller):
         if controller:
             """Signals that alter data and need access to Controller"""
             self.new_cs_button.clicked.connect(controller.new_calculation_setup)
             self.delete_cs_button.clicked.connect(controller.delete_calculation_setup)
             self.rename_cs_button.clicked.connect(controller.rename_calculation_setup)
-
 
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)

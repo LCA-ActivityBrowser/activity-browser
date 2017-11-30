@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from ..graphics import DefaultGraph
 from ..tabs import (
     CalculationSetupTab,
@@ -10,6 +7,7 @@ from ..tabs import (
 from ...signals import signals
 from .panel import Panel, ActivitiesPanel
 from .. import activity_cache
+
 
 class LeftPanel(Panel):
     side = "left"
@@ -24,11 +22,11 @@ class LeftPanel(Panel):
         self.addTab(self.chart_tab, 'Splash screen')
         self.addTab(self.cfs_tab, 'LCIA CFs')
         self.addTab(self.cs_tab, 'LCA Calculations')
-        
+
         signals.activity_tabs_changed.connect(self.update_activity_panel)
 
     def update_activity_panel(self):
-        if len(activity_cache):        
+        if len(activity_cache):
             self.addTab(self.act_panel, 'Activities')
             self.select_tab(self.act_panel)
         else:

@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from ...signals import signals
-from brightway2 import *
-from PyQt5 import QtCore, QtGui, QtWidgets
+import brightway2 as bw
+from PyQt5 import QtCore, QtWidgets
 import numbers
 
 
@@ -44,7 +41,7 @@ class MethodsTableWidget(QtWidgets.QTableWidget):
         self.clear()
         self.setHorizontalHeaderLabels(["Name", "Unit", "# CFs"])
 
-        sorted_names = sorted([(", ".join(method), method) for method in methods])
+        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
 
         if query:
             sorted_names = [
@@ -55,7 +52,7 @@ class MethodsTableWidget(QtWidgets.QTableWidget):
         self.setRowCount(len(sorted_names))
         for row, method_obj in enumerate(sorted_names):
             name, method = method_obj
-            data = methods[method]
+            data = bw.methods[method]
             self.setItem(row, 0, MethodItem(method, name))
             self.setItem(row, 1, MethodItem(method, data.get('unit', "Unknown")))
             num_cfs = data.get('num_cfs', 0)
@@ -88,12 +85,12 @@ class CFsTableWidget(QtWidgets.QTableWidget):
         self.setHorizontalHeaderLabels(["Name", "Amount", "Unit", "Uncertain"])
 
     def sync(self, method):
-        method = Method(method)
+        method = bw.Method(method)
         data = method.load()
         self.setRowCount(len(data))
         for row, obj in enumerate(data):
             key, amount = obj[:2]
-            flow = get_activity(key)
+            flow = bw.get_activity(key)
             if isinstance(amount, numbers.Number):
                 uncertain = "False"
             else:

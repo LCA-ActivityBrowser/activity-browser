@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from ...signals import signals
 from .activity import ActivityItem
-from brightway2 import databases, Database
-from bw2data.utils import natural_sort
-from PyQt5 import QtCore, QtGui, QtWidgets
+import brightway2 as bw
+from PyQt5 import QtWidgets
 import itertools
 
 
@@ -27,7 +23,7 @@ class FlowsTableWidget(QtWidgets.QTableWidget):
 
     def sync(self, name):
         self.clear()
-        self.database = Database(name)
+        self.database = bw.Database(name)
         self.database.order_by = 'name'
         self.database.filters = {'type': 'emission'}
         self.setRowCount(min(len(self.database), self.COUNT))

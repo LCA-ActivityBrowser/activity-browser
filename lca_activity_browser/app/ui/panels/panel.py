@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from .. import activity_cache
 from ...signals import signals
 from ..tabs import ActivityDetailsTab
 from ..utils import get_name
-from brightway2 import *
-from PyQt5 import QtGui, QtWidgets
+import brightway2 as bw
+from PyQt5 import QtWidgets
+
 
 class Panel(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
@@ -21,7 +19,7 @@ class Panel(QtWidgets.QTabWidget):
 class ActivitiesPanel(Panel):
     def __init__(self, parent=None):
         super(Panel, self).__init__(parent)
-        self.side='activities'
+        self.side = 'activities'
         self.setMovable(True)
         self.setTabsClosable(True)
         self.tabCloseRequested.connect(self.close_tab)
@@ -45,7 +43,7 @@ class ActivitiesPanel(Panel):
                 new_tab = ActivityDetailsTab(self)
                 new_tab.populate(key)
                 activity_cache[key] = new_tab
-                self.addTab(new_tab, get_name(get_activity(key)))
+                self.addTab(new_tab, get_name(bw.get_activity(key)))
                 self.select_tab(new_tab)
             signals.activity_tabs_changed.emit()
 

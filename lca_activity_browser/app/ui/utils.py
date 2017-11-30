@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from io import StringIO
 from PyQt5 import QtGui
 import uuid
@@ -27,7 +24,7 @@ class StdRedirector(StringIO):
             self.edit_widget.setTextColor(QtGui.QColor(self.color))
 
         self.edit_widget.moveCursor(QtGui.QTextCursor.End)
-        self.edit_widget.insertPlainText(text )
+        self.edit_widget.insertPlainText(text)
 
         if self.color:
             self.edit_widget.setTextColor(original)

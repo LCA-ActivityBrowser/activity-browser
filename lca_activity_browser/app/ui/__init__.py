@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from PyQt5 import QtGui, QtWidgets
 
 bold_font = QtGui.QFont()
@@ -16,6 +13,7 @@ def horizontal_line():
     line.setFrameShape(QtWidgets.QFrame.HLine)
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
     return line
+
 
 def header(label):
     label = QtWidgets.QLabel(label)
