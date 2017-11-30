@@ -1,4 +1,8 @@
-# Activity Browser - a graphical interface for Brightway2
+[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/version.svg)](https://anaconda.org/haasad/activity-browser) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser)
+
+# Activity Browser - a GUI for Brightway2
+
+<img src="https://user-images.githubusercontent.com/11636405/33426133-156c61ce-d5c1-11e7-8017-2a5763a5b265.png" width="300"/><img src="https://user-images.githubusercontent.com/11636405/33426139-1d1ca7a8-d5c1-11e7-819b-c4ceb2da310a.png" width="300"/><img src="https://user-images.githubusercontent.com/11636405/33426144-1fe288e0-d5c1-11e7-825f-9aedd64071b0.png" width="300"/>
 
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut
