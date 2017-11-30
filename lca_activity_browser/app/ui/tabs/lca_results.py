@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from .. import horizontal_line, header
-from PyQt5 import QtGui, QtCore, QtWidgets
-# from bw2calc.multi_lca import MultiLCA
+from PyQt5 import QtWidgets
 from ...bw2extensions.multilca import MLCA
 from ...signals import signals
 from ..graphics import \
@@ -46,7 +42,6 @@ class LCAResultsTab(QtWidgets.QWidget):
         self.panel.select_tab(self)
         self.visible = True
         self.layout.addWidget(self.scroll_area)
-        # self.scrollable_layout.addWidget(self.scroll)
 
     def remove_tab(self):
         if self.visible:

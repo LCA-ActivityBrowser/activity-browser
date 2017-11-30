@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 import brightway2 as bw
-
 
 
 def format_activity_label(act, style='pnl'):

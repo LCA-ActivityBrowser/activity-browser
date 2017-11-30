@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
-from random import randint
 import os
 
 
@@ -50,5 +46,5 @@ class Icons(object):
     switch = create_path('main', 'switch-state.png')
     ab = create_path('main', 'activitybrowser.png')
 
-    
+
 icons = Icons()

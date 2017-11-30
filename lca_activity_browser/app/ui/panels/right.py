@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from .panel import Panel
-from .. import horizontal_line, header, activity_cache
-from ...signals import signals
-from ..tables import ActivitiesHistoryWidget
+from .. import activity_cache
 from ..tabs import (
     ActivityDetailsTab,
     HistoryTab,
@@ -13,9 +8,6 @@ from ..tabs import (
     LCAResultsTab,
     MethodsTab,
 )
-from ..utils import get_name
-from brightway2 import *
-from PyQt5 import QtGui, QtCore
 
 
 class RightPanel(Panel):
