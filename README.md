@@ -2,17 +2,9 @@
 
 # Activity Browser - a GUI for Brightway2
 
-<img src="https://user-images.githubusercontent.com/11636405/33426133-156c61ce-d5c1-11e7-8017-2a5763a5b265.png" width="300"/><img src="https://user-images.githubusercontent.com/11636405/33426139-1d1ca7a8-d5c1-11e7-819b-c4ceb2da310a.png" width="300"/><img src="https://user-images.githubusercontent.com/11636405/33426144-1fe288e0-d5c1-11e7-825f-9aedd64071b0.png" width="300"/>
+<img src="https://user-images.githubusercontent.com/11636405/33426133-156c61ce-d5c1-11e7-8017-2a5763a5b265.png" width="250"/><img src="https://user-images.githubusercontent.com/11636405/33426139-1d1ca7a8-d5c1-11e7-819b-c4ceb2da310a.png" width="250"/><img src="https://user-images.githubusercontent.com/11636405/33426144-1fe288e0-d5c1-11e7-825f-9aedd64071b0.png" width="250"/>
 
-Copyright (c) 2015, Bernhard Steubing and ETH Zurich
-Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut
-Copyright (c) 2017, Adrian Haas and ETH Zurich
-
-Licensed under the GNU General Public License.
-
-- Note that this is a *hard* fork of Bernhard Steubing's work, and does not preserve compatibility.
-- This is a fork of Chris Mutel's version of the activity-browser on [bitbucket](https://bitbucket.org/cmutel/activity-browser)
-- The original repo was converted from mercurial to git using [fast-export](https://github.com/frej/fast-export)  
+The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle assessment framework.
 
 ## Installation
 
@@ -47,3 +39,11 @@ First activate the environment where the activity browser is installed:
 - Unix: `source activate ab`
 
 Then simply run `activity-browser` and the application will open.
+
+## Info
+
+- Note that this is a *hard* fork of Bernhard Steubing's work, and does not preserve compatibility.
+- This is a fork of Chris Mutel's version of the activity-browser on [bitbucket](https://bitbucket.org/cmutel/activity-browser)
+- The original repo was converted from mercurial to git using [fast-export](https://github.com/frej/fast-export)  
+
+
