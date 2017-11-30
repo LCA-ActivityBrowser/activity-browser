@@ -46,4 +46,14 @@ Then simply run `activity-browser` and the application will open.
 - This is a fork of Chris Mutel's version of the activity-browser on [bitbucket](https://bitbucket.org/cmutel/activity-browser)
 - The original repo was converted from mercurial to git using [fast-export](https://github.com/frej/fast-export)  
 
+## Additional Resources
 
+__Activity Browser__:
+- https://bitbucket.org/bsteubing/activity-browser  (first version)
+- http://activity-browser.readthedocs.io/en/latest/index.html  (documentation modular LCA)
+- https://link.springer.com/article/10.1007/s11367-015-1015-3  (paper modular LCA / streamlining scenario analysis)
+
+__Brightway2__:
+- https://bitbucket.org/cmutel/brightway2
+- https://brightwaylca.org/
+- https://github.com/PoutineAndRosti/Brightway-Seminar-2017  (good starting point for learning bw)
