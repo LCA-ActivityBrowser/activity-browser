@@ -4,7 +4,7 @@
 
 from brightway2 import *
 from bw2data.backends.peewee import Exchange
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 from . import Container
 from .signals import signals
 import copy
@@ -28,11 +28,11 @@ class Controller(object):
         self.connect_signals()
         # switch directly to custom bw2 directory and project, if specified in settings
         if settings:
-            if settings.BW2_DIR:
+            if hasattr(settings, "BW2_DIR"):
                 print('Brightway2 data directory: {}'.format(projects._base_data_dir))
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
                 print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
-            if settings.PROJECT_NAME:
+            if hasattr(settings, "PROJECT_NAME"):
                 if settings.PROJECT_NAME in [x.name for x in projects]:
                     projects.set_current(settings.PROJECT_NAME)
                     signals.project_selected.emit(settings.PROJECT_NAME)
@@ -48,13 +48,50 @@ class Controller(object):
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         signals.delete_activity.connect(self.delete_activity)
+        signals.delete_activity.connect(self.delete_activity)
+        signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
+        signals.import_database.connect(self.import_database_dialog)
+
+
+    def import_database_dialog(self):
+        name = self.window.dialog(
+            "Import an EcoSpold2 database",
+            "Choose a database name:" + " " * 25
+        )
+        path = QtWidgets.QFileDialog().getExistingDirectory(None, "Select folder containing EcoSpold2 datasets")
+        print(name, path)
+        self.import_database(path, name)
+
+    def import_database(self, path, name):
+        try:
+            assert os.path.isdir(path)
+            assert isinstance(name, str)
+            print(isinstance(name, str), os.path.isdir(path))
+            print('Dirpath and name ok. Trying to import ecospold2 files.')
+            # THIS CAUSES MULTIPLE WINDOWS TO OPEN...
+            # new_database = SingleOutputEcospold2Importer(
+            #     path,
+            #     name
+            # )
+            # new_database.apply_strategies()
+            # new_database.statistics()
+        except AssertionError:
+            print('Either dirpath or name error.')
+
+    def select_bw2_dir_path(self):
+        folder_path = QtWidgets.QFileDialog().getExistingDirectory(None, "Select a brightway2 database folder")
+        # TODO: in case of a directory that does not contain an existing brightway2 database,
+        # ask if a new db should be set up
+        print(folder_path)
+        self.switch_brightway2_dir_path(folder_path)
+        return folder_path
 
     def switch_brightway2_dir_path(self, dirpath):
         try:
             assert os.path.isdir(dirpath)
             projects._base_data_dir = dirpath
             projects._base_logs_dir = os.path.join(dirpath, "logs")
-            if not os.path.isdir(projects._base_logs_dir):
+            if not os.path.isdir(projects._base_logs_dir):  # create folder if it does not yet exist
                 os.mkdir(projects._base_logs_dir)
             projects.db.close()
             projects.db = create_database(
@@ -62,9 +99,11 @@ class Controller(object):
                 [ProjectDataset]
             )
             projects.set_current("default")
+            signals.project_selected.emit(self.get_default_project_name())
+            # TODO: message to Statusbar
+            print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
-
 
     def get_default_project_name(self):
         if "default" in projects:
@@ -299,3 +338,17 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
 
+
+# class DatabaseImportThread(QtCore.QThread):
+#     def update_params(self, demand, method, cutoff, max_calc):
+#         self.demand = demand
+#         self.method = method
+#         self.cutoff = cutoff
+#         self.max_calc = max_calc
+#
+#     def run(self):
+#         res = bw.DatabaseImportThread().calculate(self.demand, self.method, self.cutoff, self.max_calc)
+#         sankeysignals.gt_ready.emit(res)
+
+
+# gt_worker_thread = GraphTraversalThread()

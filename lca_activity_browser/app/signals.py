@@ -6,8 +6,15 @@ from PyQt5 import QtCore
 
 
 class Signals(QtCore.QObject):
+
+    # General Settings
+    switch_bw2_dir_path = QtCore.pyqtSignal()
+
+
+
     new_activity = QtCore.pyqtSignal(str)
     activity_selected = QtCore.pyqtSignal(tuple)
+
     # Activity key, field, new value
     activity_modified = QtCore.pyqtSignal(tuple, str, object)
     copy_activity = QtCore.pyqtSignal(tuple)
@@ -23,6 +30,8 @@ class Signals(QtCore.QObject):
     calculation_setup_changed = QtCore.pyqtSignal()
     calculation_setup_selected = QtCore.pyqtSignal(str)
 
+    # Database operations
+    import_database = QtCore.pyqtSignal()
     database_selected = QtCore.pyqtSignal(str)
     databases_changed = QtCore.pyqtSignal()
     database_changed = QtCore.pyqtSignal(str)
