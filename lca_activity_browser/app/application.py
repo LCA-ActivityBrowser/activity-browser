@@ -12,7 +12,6 @@ class Application(object):
         self.connect_signals()
 
     def show(self):
-        self.main_window.show()
         self.main_window.showMaximized()
         
     def connect_signals(self):

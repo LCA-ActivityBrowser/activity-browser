@@ -115,7 +115,6 @@ class CalculationSetupTab(QtWidgets.QWidget):
         container.addWidget(self.methods_table)
 
         self.setLayout(container)
-        self.connect_signals()
 
     def connect_signals(self, controller=None):
         signals.project_selected.connect(self.set_default_calculation_setup)
