@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from ...signals import signals
 from ..icons import icons
 from brightway2 import Database
@@ -57,7 +54,8 @@ class ActivitiesTableWidget(QtWidgets.QTableWidget):
         self.addAction(self.copy_activity_action)
         self.addAction(self.delete_activity_action)
         self.addAction(self.open_left_tab_action)
-        self.add_activity_action.triggered.connect(lambda: signals.new_activity.emit(self.database.name))
+        self.add_activity_action.triggered.connect(
+            lambda: signals.new_activity.emit(self.database.name))
         self.copy_activity_action.triggered.connect(
             lambda x: signals.copy_activity.emit(self.currentItem().key)
         )

@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
-from .. import horizontal_line, header
-from ...signals import signals
-from ..graphics import DefaultGraph
+from .. import header
 from ..tables import ExchangeTableWidget
 from ..widgets import ActivityDataGrid
-from brightway2 import *
-from PyQt5 import QtCore, QtGui, QtWidgets
+import brightway2 as bw
+from PyQt5 import QtCore, QtWidgets
 import functools
 
 
@@ -80,7 +75,7 @@ class ActivityDetailsTab(QtWidgets.QWidget):
         return widget
 
     def populate(self, key):
-        self.activity = get_activity(key)
+        self.activity = bw.get_activity(key)
 
         self.production.set_queryset(key[0], self.activity.production())
         self.inputs.set_queryset(key[0], self.activity.technosphere())

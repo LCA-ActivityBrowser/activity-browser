@@ -1,22 +1,13 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
-from . import horizontal_line, header
-from .. import Container
+from . import header
+from ..controller import Container
 from .icons import icons
 from .menu_bar import MenuBar
 from .panels import LeftPanel, RightPanel
 from .statusbar import Statusbar
-from .tabs import (
-    ActivityDetailsTab,
-    CFsTab,
-    InventoryTab,
-    MethodsTab,
-)
 from .toolbar import Toolbar
 from .utils import StdRedirector
-from PyQt5 import QtCore, QtGui, QtWidgets, Qt
+from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
 

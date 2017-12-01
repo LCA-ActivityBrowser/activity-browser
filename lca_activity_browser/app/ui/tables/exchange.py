@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from ...signals import signals
 from ..icons import icons
 from .activity import ActivityItem, ActivitiesTableWidget
@@ -34,7 +31,8 @@ class ReadOnly(QtWidgets.QTableWidgetItem):
 class ExchangeTableWidget(QtWidgets.QTableWidget):
     COLUMN_LABELS = {
         # Normal technosphere
-        (False, False): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
+        (False, False): ["Activity", "Product", "Amount", "Database",
+                         "Location", "Unit", "Uncertain"],
         # Biosphere
         (True, False): ["Name", "Amount", "Unit", "Database", "Categories", "Uncertain"],
         # Production

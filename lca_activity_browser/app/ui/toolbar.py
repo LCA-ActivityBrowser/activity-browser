@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from ..signals import signals
 from .icons import icons
 from brightway2 import projects
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 from requests_oauthlib import OAuth1Session
-import requests
 
 
 def create_issue(content):
@@ -90,7 +86,6 @@ class Toolbar(QtWidgets.QToolBar):
         self.addWidget(self.new_project_button)
         self.addWidget(self.copy_project_button)
         self.addWidget(self.delete_project_button)
-
 
         self.window.addToolBar(self)
 

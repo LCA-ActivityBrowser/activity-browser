@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from ...signals import signals
 from ..icons import icons
 from .activity import ActivitiesTableWidget
 from .ia import MethodsTableWidget
-from brightway2 import *
+import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
@@ -19,7 +16,7 @@ class CSList(QtWidgets.QComboBox):
 
     def sync(self, name):
         self.clear()
-        keys = sorted(calculation_setups)
+        keys = sorted(bw.calculation_setups)
         self.insertItems(0, keys)
         self.setCurrentIndex(keys.index(name))
 
@@ -73,9 +70,9 @@ class CSActivityTableWidget(QtWidgets.QTableWidget):
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(["Activity name", "Amount", "Unit"])
 
-        for func_unit in calculation_setups[name]['inv']:
+        for func_unit in bw.calculation_setups[name]['inv']:
             for key, amount in func_unit.items():
-                act = get_activity(key)
+                act = bw.get_activity(key)
                 new_row = self.rowCount()
                 self.insertRow(new_row)
                 self.setItem(new_row, 0, CSActivityItem(key, act['name']))
@@ -104,7 +101,7 @@ class CSActivityTableWidget(QtWidgets.QTableWidget):
     def dropEvent(self, event):
         new_keys = [item.key for item in event.source().selectedItems()]
         for key in new_keys:
-            act = get_activity(key)
+            act = bw.get_activity(key)
             if act['type'] != "process":
                 continue
 
@@ -157,7 +154,7 @@ class CSMethodsTableWidget(QtWidgets.QTableWidget):
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(["Name"])
 
-        for obj in calculation_setups[name]['ia']:
+        for obj in bw.calculation_setups[name]['ia']:
             new_row = self.rowCount()
             self.insertRow(new_row)
             self.setItem(new_row, 0, CSMethodItem(obj, ", ".join(obj)))

@@ -1,18 +1,11 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
+import numpy as np
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib import cm
-import numpy as np
-import seaborn as sns
-# from seaborn.linearmodels import corrplot
-
-import pandas as pd
-# import seaborn.apionly as sns
-import matplotlib.pyplot as plt
-
 from PyQt5 import QtWidgets
 from ..bw2extensions.commontasks import format_activity_label
 
@@ -24,13 +17,13 @@ class Canvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=4, height=4, dpi=100, start_axes=True):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         if start_axes:
-            self.axes = fig.add_subplot(111)
+            self.axes = self.fig.add_subplot(111)
             # We want the axes cleared every time plot() is called
             self.axes.hold(False)
 
         self.do_figure()
 
-        super(Canvas, self).__init__(fig)
+        super(Canvas, self).__init__(self.fig)
         self.setParent(parent)
 
     def do_figure(self):
@@ -88,11 +81,11 @@ class CorrelationPlot(FigureCanvasQTAgg):
                     square=True, linecolor="lightgray", linewidths=1, ax=axes)
         for i in range(len(corr)):
             axes.text(i + 0.5, i + 0.5, corr.columns[i],
-                    ha="center", va="center", rotation=0)
+                      ha="center", va="center", rotation=0)
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
                 axes.text(j + 0.5, i + 0.5, s,
-                        ha="center", va="center")
+                          ha="center", va="center")
         axes.axis("off")
         # If uncommented, fills widget
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -107,7 +100,7 @@ class LCAResultsPlot(FigureCanvasQTAgg):
 
         super(LCAResultsPlot, self).__init__(figure)
         self.setParent(parent)
-        activity_names = [format_activity_label(next (iter (f.keys()))) for f in mlca.func_units]
+        activity_names = [format_activity_label(next(iter(f.keys()))) for f in mlca.func_units]
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
         hm = sns.heatmap(
@@ -116,8 +109,8 @@ class LCAResultsPlot(FigureCanvasQTAgg):
             annot=True,
             linewidths=.05,
             cmap=cmap,
-            xticklabels = ["\n".join(x) for x in mlca.methods],
-            yticklabels = activity_names,
+            xticklabels=["\n".join(x) for x in mlca.methods],
+            yticklabels=activity_names,
             ax=axes,
             square=False,
         )
@@ -125,6 +118,7 @@ class LCAResultsPlot(FigureCanvasQTAgg):
 
         self.setMinimumSize(self.size())
         # sns.set_context("notebook")
+
 
 class LCAProcessContributionPlot(FigureCanvasQTAgg):
     def __init__(self, parent, mlca, width=6, height=6, dpi=100):

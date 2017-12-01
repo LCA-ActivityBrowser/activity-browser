@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
+import brightway2 as bw
 from ..tables import (
     ActivitiesTableWidget,
     DatabasesTableWidget,
     FlowsTableWidget,
 )
-from .. import horizontal_line, header
+from .. import header
 from ...signals import signals
 from ..icons import icons
-from brightway2 import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
@@ -95,12 +92,14 @@ class InventoryTab(QtWidgets.QWidget):
         self.activities_table = MaybeActivitiesTable(self)
         self.flows_table = MaybeFlowsTable(self)
 
-        self.add_default_data_button = QtWidgets.QPushButton('Add Default Data (Biosphere flows, LCIA methods)')
+        self.add_default_data_button = QtWidgets.QPushButton(
+            'Add Default Data (Biosphere flows, LCIA methods)')
         self.new_database_button = QtWidgets.QPushButton('Create New Database')
 
         no_database_layout = QtWidgets.QVBoxLayout()
         no_database_layout.addWidget(header("No database selected"))
-        no_database_layout.addWidget(QtWidgets.QLabel('This section will be filled when a database is selected (double clicked)'))
+        no_database_layout.addWidget(QtWidgets.QLabel(
+            'This section will be filled when a database is selected (double clicked)'))
         no_database_layout.setAlignment(QtCore.Qt.AlignTop)
         self.no_database_container = QtWidgets.QWidget()
         self.no_database_container.setLayout(no_database_layout)
@@ -193,7 +192,7 @@ class InventoryTab(QtWidgets.QWidget):
         self.no_database_container.show()
         self.inventory_container.hide()
 
-        if not len(databases):
+        if not len(bw.databases):
             self.default_data_button_layout_widget.show()
             self.databases_table_layout_widget.hide()
         else:

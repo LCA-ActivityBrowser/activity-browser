@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-from .icons import icons
-from ..signals import signals
+from PyQt5 import QtCore, QtWidgets
 
 
 class MenuBar(object):
@@ -15,15 +10,6 @@ class MenuBar(object):
         self.menubar.addMenu(self.setup_extensions_menu())
         self.menubar.addMenu(self.setup_help_menu())
         window.setMenuBar(self.menubar)
-
-    # def add_metaprocess_menu_item(self):
-    #     add_metaprocess = QtWidgets.QAction(QtGui.QIcon(icons.metaprocess), '&Meta-Process Editor', self.window)
-    #     add_metaprocess.setShortcut('Ctrl+E')
-    #     add_metaprocess.setStatusTip('Start Meta-Process Editor')
-
-    #     # add_metaprocess.triggered.connect(self.set_up_widgets_meta_process)
-
-    #     return add_metaprocess
 
     def setup_file_menu(self):
         menu = QtWidgets.QMenu('&File', self.window)
@@ -64,7 +50,7 @@ class MenuBar(object):
         return help_menu
 
     def about(self):
-        text="""
+        text = """
 Activity Browser - a graphical interface for Brightway2.
 
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich

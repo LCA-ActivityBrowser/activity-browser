@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from .. import horizontal_line, header
 from ..tables import ActivitiesHistoryWidget
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 
 class HistoryTab(QtWidgets.QWidget):

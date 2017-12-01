@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
-from brightway2 import *
+import brightway2 as bw
 from bw2data.backends.peewee import Exchange
-from PyQt5 import QtWidgets, QtCore
-from . import Container
+from PyQt5 import QtWidgets
 from .signals import signals
 import copy
 import uuid
@@ -15,6 +11,11 @@ try:
     from . import settings
 except ImportError:
     settings = None
+
+
+class Container(object):
+    """Generic class that contains data attributes"""
+    pass
 
 
 class Controller(object):
@@ -28,6 +29,7 @@ class Controller(object):
         self.connect_signals()
         # switch directly to custom bw2 directory and project, if specified in settings
         if settings:
+
             if hasattr(settings, "BW2_DIR"):
                 print('Brightway2 data directory: {}'.format(projects._base_data_dir))
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
@@ -102,28 +104,29 @@ class Controller(object):
             signals.project_selected.emit(self.get_default_project_name())
             # TODO: message to Statusbar
             print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
+
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
 
     def get_default_project_name(self):
-        if "default" in projects:
+        if "default" in bw.projects:
             return "default"
         else:
-            return next(iter(projects)).name
+            return next(iter(bw.projects)).name
 
     def change_project(self):
-        project_names = sorted([x.name for x in projects])
+        project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
             self.window,
             "Choose project",
             "Name:",
             project_names,
-            project_names.index(projects.current),
+            project_names.index(bw.projects.current),
             False
         )
         if ok:
-            if name != projects.current:
-                projects.set_current(name)
+            if name != bw.projects.current:
+                bw.projects.set_current(name)
                 signals.project_selected.emit(name)
 
     def new_project(self):
@@ -131,44 +134,44 @@ class Controller(object):
             "Create new project",
             "Name of new project:" + " " * 25
         )
-        if name and name not in projects:
-            projects.set_current(name)
+        if name and name not in bw.projects:
+            bw.projects.set_current(name)
             signals.project_selected.emit(name)
-        elif name in projects:
+        elif name in bw.projects:
             # TODO feedback that project already exists
             pass
 
     def copy_project(self):
         name = self.window.dialog(
             "Copy current project",
-            "Copy current project ({}) to new name:".format(projects.current) + " " * 10
+            "Copy current project ({}) to new name:".format(bw.projects.current) + " " * 10
         )
-        if name and name not in projects:
-            projects.copy_project(name, switch=True)
+        if name and name not in bw.projects:
+            bw.projects.copy_project(name, switch=True)
             signals.project_selected.emit(name)
 
     def delete_project(self):
-        if len(projects) == 1:
+        if len(bw.projects) == 1:
             self.window.info("Can't delete last project")
             return
         ok = self.window.confirm((
             "Are you sure you want to delete project '{}'? It has {} databases"
             " and {} LCI methods").format(
-            projects.current,
-            len(databases),
-            len(methods)
+            bw.projects.current,
+            len(bw.databases),
+            len(bw.methods)
         ))
         if ok:
-            projects.delete_project(projects.current)
+            bw.projects.delete_project(bw.projects.current)
             signals.project_selected.emit(self.get_default_project_name())
 
     def install_default_data(self):
-        create_default_biosphere3()
-        if not len(methods):
-            create_default_lcia_methods()
-        if not len(migrations):
-            create_core_migrations()
-        signals.project_selected.emit(projects.current)
+        bw.create_default_biosphere3()
+        if not len(bw.methods):
+            bw.create_default_lcia_methods()
+        if not len(bw.migrations):
+            bw.create_core_migrations()
+        signals.project_selected.emit(bw.projects.current)
 
     def add_database(self):
         name = self.window.dialog(
@@ -176,7 +179,7 @@ class Controller(object):
             "Name of new database:" + " " * 25
         )
         if name:
-            Database(name).register()
+            bw.Database(name).register()
             signals.databases_changed.emit()
             signals.database_selected.emit(name)
 
@@ -186,7 +189,7 @@ class Controller(object):
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if new_name:
-            Database(name).copy(new_name)
+            bw.Database(name).copy(new_name)
             signals.databases_changed.emit()
 
     def delete_database(self, *args):
@@ -195,11 +198,11 @@ class Controller(object):
             "Are you sure you want to delete database '{}'? "
             "It has {} activity datasets").format(
             name,
-            len(Database(name))
+            len(bw.Database(name))
         ))
         if ok:
-            del databases[name]
-            signals.project_selected.emit(projects.current)
+            del bw.databases[name]
+            signals.project_selected.emit(bw.projects.current)
 
     def new_calculation_setup(self):
         name = self.window.dialog(
@@ -207,12 +210,12 @@ class Controller(object):
             "Name of new calculation setup:" + " " * 10
         )
         if name:
-            calculation_setups[name] = {'inv': [], 'ia': []}
+            bw.calculation_setups[name] = {'inv': [], 'ia': []}
             signals.calculation_setup_selected.emit(name)
 
     def delete_calculation_setup(self):
         name = self.window.left_panel.cs_tab.list_widget.name
-        del calculation_setups[name]
+        del bw.calculation_setups[name]
         self.window.left_panel.cs_tab.set_default_calculation_setup()
 
     def rename_calculation_setup(self):
@@ -222,17 +225,18 @@ class Controller(object):
             "New name of this calculation setup:" + " " * 10
         )
         if new_name:
-            calculation_setups[new_name] = calculation_setups[current].copy()
-            print("Current setups:", list(calculation_setups.keys()))
-            del calculation_setups[current]
-            print("After deletion of {}:".format(current), list(calculation_setups.keys()))
+            bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
+            print("Current setups:", list(bw.calculation_setups.keys()))
+            del bw.calculation_setups[current]
+            print("After deletion of {}:".format(current), list(bw.calculation_setups.keys()))
             signals.calculation_setup_selected.emit(new_name)
 
     def write_current_calculation_setup(self):
-        """Iterate over activity and methods tables, and write calculation setup to ``calculation_setups``."""
+        """Iterate over activity and methods tables, and write
+        calculation setup to ``calculation_setups``."""
         current = self.window.left_panel.cs_tab.list_widget.name
         if current:
-            calculation_setups[current] = {
+            bw.calculation_setups[current] = {
                 'inv': self.window.left_panel.cs_tab.activities_table.to_python(),
                 'ia': self.window.left_panel.cs_tab.methods_table.to_python()
             }
@@ -243,7 +247,7 @@ class Controller(object):
             "Name of new technosphere activity:" + " " * 10
         )
         if name:
-            new_act = Database(database_name).new_activity(
+            new_act = bw.Database(database_name).new_activity(
                 code=uuid.uuid4().hex,
                 name=name,
                 unit="unit"
@@ -256,8 +260,8 @@ class Controller(object):
             signals.database_changed.emit(database_name)
 
     def delete_activity(self, key):
-        act = get_activity(key)
-        database = act['database']
+        act = bw.get_activity(key)
+        bw.database = act['database']
         nu = len(act.upstream())
         if nu:
             text = "activities consume" if nu > 1 else "activity consumes"
@@ -272,7 +276,7 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             signals.database_changed.emit(act['database'])
 
     def copy_activity(self, key):
-        act = get_activity(key)
+        act = bw.get_activity(key)
         new_act = act.copy("Copy of " + act['name'])
         # Update production exchanges
         for exc in new_act.production():
@@ -288,7 +292,7 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
         signals.open_activity_tab.emit("right", new_act.key)
 
     def modify_activity(self, key, field, value):
-        activity = get_activity(key)
+        activity = bw.get_activity(key)
         activity[field] = value
         activity.save()
         signals.database_changed.emit(key[0])
@@ -310,9 +314,9 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             signals.database_changed.emit(db)
 
     def add_exchanges(self, from_keys, to_key):
-        activity = get_activity(to_key)
+        activity = bw.get_activity(to_key)
         for key in from_keys:
-            from_act = get_activity(key)
+            from_act = bw.get_activity(key)
             exc = activity.new_exchange(input=key, amount=1)
             if key == to_key:
                 exc['type'] = 'production'
@@ -337,18 +341,3 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
         exchange['amount'] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
-
-
-# class DatabaseImportThread(QtCore.QThread):
-#     def update_params(self, demand, method, cutoff, max_calc):
-#         self.demand = demand
-#         self.method = method
-#         self.cutoff = cutoff
-#         self.max_calc = max_calc
-#
-#     def run(self):
-#         res = bw.DatabaseImportThread().calculate(self.demand, self.method, self.cutoff, self.max_calc)
-#         sankeysignals.gt_ready.emit(res)
-
-
-# gt_worker_thread = GraphTraversalThread()

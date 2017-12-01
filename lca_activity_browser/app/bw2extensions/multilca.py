@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 import numpy as np
 import brightway2 as bw
 
@@ -44,11 +41,12 @@ class MLCA(object):
         self.results = np.zeros((len(self.func_units), len(self.methods)))
 
         # contribution matrices
-        self.process_contributions = np.zeros \
-            ((len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
-        self.elementary_flow_contributions = np.zeros \
-            ((len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
-        self.rev_activity_dict, self.rev_product_dict, self.rev_biosphere_dict = self.lca.reverse_dict()
+        self.process_contributions = np.zeros(
+            (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
+        self.elementary_flow_contributions = np.zeros(
+            (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
+        (self.rev_activity_dict, self.rev_product_dict,
+         self.rev_biosphere_dict) = self.lca.reverse_dict()
 
         for method in self.methods:
             self.lca.switch_method(method)
@@ -61,8 +59,8 @@ class MLCA(object):
                 self.lca.lcia_calculation()
                 self.results[row, col] = self.lca.score
                 self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
-                self.elementary_flow_contributions[row, col] = np.array \
-                    (self.lca.characterized_inventory.sum(axis=1)).ravel()
+                self.elementary_flow_contributions[row, col] = np.array(
+                    self.lca.characterized_inventory.sum(axis=1)).ravel()
 
     @property
     def all(self):
@@ -77,12 +75,13 @@ class MLCA(object):
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
-            top_contribution = ca.sort_array(contribution_array[col,:], limit=limit)
+            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit)
             cont_per_fu = {}
-            cont_per_fu.update({'Rest': contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
+            cont_per_fu.update(
+                {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
                 cont_per_fu.update({self.rev_activity_dict[index]: value})
-            topcontribution_dict.update({next (iter (fu.keys())): cont_per_fu})
+            topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
         return topcontribution_dict
 
     def top_elementary_flow_contributions(self, method=0, limit=5, relative=True):
@@ -92,10 +91,11 @@ class MLCA(object):
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
-            top_contribution = ca.sort_array(contribution_array[col,:], limit=limit)
+            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit)
             cont_per_fu = {}
-            cont_per_fu.update({'Rest': contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
+            cont_per_fu.update(
+                {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
                 cont_per_fu.update({self.rev_biosphere_dict[index]: value})
-            topcontribution_dict.update({next (iter (fu.keys())): cont_per_fu})
+            topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
         return topcontribution_dict

@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-# from __future__ import print_function, unicode_literals
-# from eight import *
-
 from .. import horizontal_line, header
 from ..tables import CFsTableWidget, MethodsTableWidget
 from ...signals import signals
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 
 class CFsTab(QtWidgets.QWidget):
@@ -70,5 +67,5 @@ class MethodsTab(QtWidgets.QWidget):
         signals.project_selected.connect(lambda x: self.table.sync())
         reset_search_buton.clicked.connect(self.table.sync)
         reset_search_buton.clicked.connect(self.search_box.clear)
-        self.search_box.returnPressed.connect(lambda : self.table.sync(query=self.search_box.text()))
+        self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         signals.project_selected.connect(self.search_box.clear)
