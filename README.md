@@ -43,7 +43,7 @@ First activate the environment where the activity browser is installed:
 Then simply run `activity-browser` and the application will open.
 
 ## Development Version
-[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/version.svg)](https://anaconda.org/haasad/activity-browser-dev)[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser-dev)
+[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/version.svg)](https://anaconda.org/haasad/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser-dev)
 
 The most recent version of the master branch is automatically uploaded and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
