@@ -1,0 +1,37 @@
+{% set version = "2.2.1.dev" %}
+
+package:
+  name: activity-browser-dev
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  number: 1
+  script: python setup.py install --single-version-externally-managed --record record.txt
+  entry_points:
+    - activity-browser = lca_activity_browser.app:run_activity_browser 
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+    - brightway2
+    - matplotlib
+    - seaborn
+    - arrow
+    - requests-oauthlib
+    - pandas
+    - pyqt # [osx]
+    - pyqt >=5.9 # [not osx]
+
+about:
+  home: https://github.com/LCA-ActivityBrowser/activity-browser
+  license: GPL3+
+  license_family: GPL3
+  license_file: LICENSE.txt
+  summary: GUI for brightway2
