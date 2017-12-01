@@ -42,7 +42,18 @@ First activate the environment where the activity browser is installed:
 
 Then simply run `activity-browser` and the application will open.
 
+## Development Version
+
+The most recent version of the master branch is automatically uploaded and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
+
+Install the development version like this:
+```
+conda create --yes --name ab_dev activity-browser-dev
+```
+
+
 ## Info
+
 
 - Note that this is a *hard* fork of Bernhard Steubing's work, and does not preserve compatibility.
 - This is a fork of Chris Mutel's version of the activity-browser on [bitbucket](https://bitbucket.org/cmutel/activity-browser)
