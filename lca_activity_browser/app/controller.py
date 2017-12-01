@@ -31,12 +31,12 @@ class Controller(object):
         if settings:
 
             if hasattr(settings, "BW2_DIR"):
-                print('Brightway2 data directory: {}'.format(projects._base_data_dir))
+                print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-                print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
+                print('Switched to {} as Brightway2 data directory.'.format(bw.projects._base_data_dir))
             if hasattr(settings, "PROJECT_NAME"):
-                if settings.PROJECT_NAME in [x.name for x in projects]:
-                    projects.set_current(settings.PROJECT_NAME)
+                if settings.PROJECT_NAME in [x.name for x in bw.projects]:
+                    bw.projects.set_current(settings.PROJECT_NAME)
                     signals.project_selected.emit(settings.PROJECT_NAME)
                 else:
                     print('Project indicated in settings.py not found.')
@@ -91,19 +91,19 @@ class Controller(object):
     def switch_brightway2_dir_path(self, dirpath):
         try:
             assert os.path.isdir(dirpath)
-            projects._base_data_dir = dirpath
-            projects._base_logs_dir = os.path.join(dirpath, "logs")
-            if not os.path.isdir(projects._base_logs_dir):  # create folder if it does not yet exist
-                os.mkdir(projects._base_logs_dir)
-            projects.db.close()
-            projects.db = create_database(
-                os.path.join(projects._base_data_dir, "projects.db"),
+            bw.projects._base_data_dir = dirpath
+            bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
+            if not os.path.isdir(bw.projects._base_logs_dir):  # create folder if it does not yet exist
+                os.mkdir(bw.projects._base_logs_dir)
+            bw.projects.db.close()
+            bw.projects.db = create_database(
+                os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
-            projects.set_current("default")
+            bw.projects.set_current("default")
             signals.project_selected.emit(self.get_default_project_name())
             # TODO: message to Statusbar
-            print('Switched to {} as Brightway2 data directory.'.format(projects._base_data_dir))
+            print('Switched to {} as Brightway2 data directory.'.format(bw.projects._base_data_dir))
 
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')

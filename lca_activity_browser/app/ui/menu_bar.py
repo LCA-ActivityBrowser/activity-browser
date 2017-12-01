@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
-
+from ..signals import signals
 
 class MenuBar(object):
     def __init__(self, window):
