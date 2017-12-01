@@ -49,5 +49,5 @@ script:
 
 notifications:
   email:
-    on_success: never # default: change
-    on_failure: never # default: always
+    on_success: always # default: change
+    on_failure: always # default: always
