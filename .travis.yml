@@ -44,7 +44,7 @@ install:
   - conda install --use-local activity-browser
 
 script:
-  activity-browser
+  activity-browser & sleep 30 ; kill $!
   
 
 notifications:
