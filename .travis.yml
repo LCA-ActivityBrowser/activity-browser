@@ -1,11 +1,12 @@
 language: python
 python:
-  - "3.6"
 
 matrix:
   include:
-    - language: generic-covered
-      python: "3.6"
+    - python: "3.6"
+      os: linux
+
+    - python: "3.6"
       os: osx
       env: pyver=3.6 pydist=macpython
 
