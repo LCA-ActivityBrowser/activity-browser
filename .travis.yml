@@ -42,7 +42,7 @@ install:
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION;
     fi
   - source activate test-environment
-  - conda install --use-local activity-browser
+  - conda install --use-local activity-browser-dev
 
 script:
   #xvfb-run -a activity-browser
@@ -53,7 +53,10 @@ after_success:
       if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then 
         echo "upload should happen here";
       else
-        echo "not master branch, no upload";
+        conda install anaconda-client;
+        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
+        anaconda -t $CONDA_TOKEN upload --force *.tar.bz2;
+        echo "uploaded to conda channel";
      fi
    else
     echo "no upload from osx";
