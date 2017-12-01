@@ -6,23 +6,43 @@ class MenuBar(object):
     def __init__(self, window):
         self.window = window
         self.menubar = QtWidgets.QMenuBar()
-        self.menubar.addMenu(self.get_extensions_menu())
-        self.menubar.addMenu(self.get_help_menu())
+        self.menubar.addMenu(self.setup_file_menu())
+        self.menubar.addMenu(self.setup_extensions_menu())
+        self.menubar.addMenu(self.setup_help_menu())
         window.setMenuBar(self.menubar)
 
-    def get_extensions_menu(self):
+    def setup_file_menu(self):
+        menu = QtWidgets.QMenu('&File', self.window)
+        # Switch BW2 directory
+        # switch_bw2_dir = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Database directory...', self.window)
+        # # switch_bw2_dir.setShortcut('Ctrl+Q')
+        # switch_bw2_dir.setStatusTip('Change database directory')
+        # switch_bw2_dir.triggered.connect(signals.switch_bw2_dir_path.emit)
+        # menu.addAction(switch_bw2_dir)
+        menu.addAction(
+            '&Database directory...',
+            signals.switch_bw2_dir_path.emit
+        )
+        menu.addAction(
+            '&Import database...',
+            signals.import_database.emit
+        )
+        return menu
+
+    def setup_extensions_menu(self):
         extensions_menu = QtWidgets.QMenu('&Extensions', self.window)
         # extensions_menu.addAction(
         #     self.add_metaprocess_menu_item()
         # )
         return extensions_menu
 
-    def get_help_menu(self):
+    def setup_help_menu(self):
         help_menu = QtWidgets.QMenu('&Help', self.window)
         help_menu.addAction(
             self.window.icon,
             '&About Activity Browser',
             self.about)
+
         help_menu.addAction(
             '&About Qt',
             lambda x: QtWidgets.QMessageBox.aboutQt(self.window)
