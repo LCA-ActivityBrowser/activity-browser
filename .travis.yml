@@ -1,5 +1,4 @@
 language: python
-python:
 
 matrix:
   include:
@@ -44,8 +43,11 @@ install:
   - source activate test-environment
   - conda install --use-local activity-browser
 
+  # x display
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install -y xorg-x11-server-Xvfb gtk2-devel;fi
+
 script:
-  activity-browser & sleep 30 ; kill $!
+  xvfb-run activity-browser
   
 
 notifications:
