@@ -48,6 +48,17 @@ script:
   #xvfb-run -a activity-browser
   - "python run-ab-travis.py"
   
+after_success:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then 
+        echo "upload should happen here";
+      else
+        echo "not master branch, no upload";
+     fi
+   else
+    echo "no upload from osx";
+   fi
+        
 
 notifications:
   email:
