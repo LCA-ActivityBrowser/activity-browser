@@ -1,4 +1,4 @@
-language: generic-covered
+language: python
 
 matrix:
   include:
@@ -6,6 +6,7 @@ matrix:
       os: linux
 
     - python: "3.6"
+      language: generic-covered
       os: osx
       env: pyver=3.6 pydist=macpython
 
@@ -49,7 +50,8 @@ before_script:
   - sleep 5 # give xvfb some time to start
 
 script:
-  xvfb-run -a activity-browser
+  #xvfb-run -a activity-browser
+  - "python run-ab-travis.py"
   
 
 notifications:
