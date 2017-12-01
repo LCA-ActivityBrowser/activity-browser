@@ -43,8 +43,10 @@ install:
   - source activate test-environment
   - conda install --use-local activity-browser
 
-  # x display
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install -y xorg-x11-server-Xvfb gtk2-devel;fi
+before_script:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - sleep 3 # give xvfb some time to start
 
 script:
   xvfb-run activity-browser
