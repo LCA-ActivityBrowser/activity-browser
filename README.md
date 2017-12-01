@@ -50,10 +50,14 @@ Install the development version like this:
 ```
 conda create --yes --name ab_dev activity-browser-dev
 ```
-
+Or update like this if you already have a dev environment:
+```
+activate ab_dev # win
+source activate ab_dev # linux, osx
+conda update activity-browser-dev
+```
 
 ## Info
-
 
 - Note that this is a *hard* fork of Bernhard Steubing's work, and does not preserve compatibility.
 - This is a fork of Chris Mutel's version of the activity-browser on [bitbucket](https://bitbucket.org/cmutel/activity-browser)
