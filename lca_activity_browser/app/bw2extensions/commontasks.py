@@ -28,5 +28,8 @@ def format_activity_label(act, style='pnl'):
                                a['location'],
                                ])
     except:
-        return str(act)
+        if isinstance(act, tuple):
+            return str(''.join(act))
+        else:
+            return str(act)
     return label

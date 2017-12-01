@@ -78,7 +78,7 @@ class MLCA(object):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit)
             cont_per_fu = {}
             cont_per_fu.update(
-                {'Rest': contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
+                {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
                 cont_per_fu.update({self.rev_activity_dict[index]: value})
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
@@ -94,7 +94,7 @@ class MLCA(object):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit)
             cont_per_fu = {}
             cont_per_fu.update(
-                {'Rest': contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
+                {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
                 cont_per_fu.update({self.rev_biosphere_dict[index]: value})
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})

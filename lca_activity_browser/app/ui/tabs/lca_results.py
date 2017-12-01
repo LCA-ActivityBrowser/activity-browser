@@ -71,13 +71,15 @@ class LCAResultsTab(QtWidgets.QWidget):
 
         # Multi-LCA calculation
         self.mlca = MLCA(name)
+        single_lca = len(self.mlca.func_units) == 1
         normalized_results = self.mlca.results / self.mlca.results.max(axis=0)
         # plots
         lca_results_plot = LCAResultsPlot(self, self.mlca)
         process_contribution_plot = LCAProcessContributionPlot(self, self.mlca)
         elementary_flow_contribution_plot = LCAElementaryFlowContributionPlot(self, self.mlca)
         labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
-        corr_chart = CorrelationPlot(self, normalized_results.T, labels)
+        if not single_lca:
+            corr_chart = CorrelationPlot(self, normalized_results.T, labels)
         # LCA results table
         results_table = LCAResultsTable()
         results_table.sync(self.mlca)
@@ -95,9 +97,10 @@ class LCAResultsTab(QtWidgets.QWidget):
         self.scroll_widget_layout.addWidget(horizontal_line())
         self.scroll_widget_layout.addWidget(elementary_flow_contribution_plot)
 
-        self.scroll_widget_layout.addWidget(header("LCA Scores Correlation:"))
-        self.scroll_widget_layout.addWidget(horizontal_line())
-        self.scroll_widget_layout.addWidget(corr_chart)
+        if not single_lca:
+            self.scroll_widget_layout.addWidget(header("LCA Scores Correlation:"))
+            self.scroll_widget_layout.addWidget(horizontal_line())
+            self.scroll_widget_layout.addWidget(corr_chart)
 
         self.scroll_widget_layout.addWidget(header("LCA Scores:"))
         self.scroll_widget_layout.addWidget(horizontal_line())
