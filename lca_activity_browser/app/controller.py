@@ -3,6 +3,7 @@ import brightway2 as bw
 from bw2data.backends.peewee import Exchange
 from PyQt5 import QtWidgets
 from .signals import signals
+from .ui.db_importer import DatabaseImportDialog
 import copy
 import uuid
 from bw2data.project import ProjectDataset, create_database
@@ -33,7 +34,8 @@ class Controller(object):
             if hasattr(settings, "BW2_DIR"):
                 print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-                print('Switched to {} as Brightway2 data directory.'.format(bw.projects._base_data_dir))
+                print('Switched to {} as Brightway2 data directory.'.format(
+                    bw.projects._base_data_dir))
             if hasattr(settings, "PROJECT_NAME"):
                 if settings.PROJECT_NAME in [x.name for x in bw.projects]:
                     bw.projects.set_current(settings.PROJECT_NAME)
@@ -54,15 +56,17 @@ class Controller(object):
         signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
         signals.import_database.connect(self.import_database_dialog)
 
-
     def import_database_dialog(self):
-        name = self.window.dialog(
-            "Import an EcoSpold2 database",
-            "Choose a database name:" + " " * 25
-        )
-        path = QtWidgets.QFileDialog().getExistingDirectory(None, "Select folder containing EcoSpold2 datasets")
-        print(name, path)
-        self.import_database(path, name)
+        print('import window should open now')
+        self.db_dialog = DatabaseImportDialog()
+        # name = self.window.dialog(
+        #     "Import an EcoSpold2 database",
+        #     "Choose a database name:" + " " * 25
+        # )
+        # path = QtWidgets.QFileDialog().getExistingDirectory(
+        #     None, "Select folder containing EcoSpold2 datasets")
+        # print(name, path)
+        # self.import_database(path, name)
 
     def import_database(self, path, name):
         try:
@@ -81,7 +85,8 @@ class Controller(object):
             print('Either dirpath or name error.')
 
     def select_bw2_dir_path(self):
-        folder_path = QtWidgets.QFileDialog().getExistingDirectory(None, "Select a brightway2 database folder")
+        folder_path = QtWidgets.QFileDialog().getExistingDirectory(
+            None, "Select a brightway2 database folder")
         # TODO: in case of a directory that does not contain an existing brightway2 database,
         # ask if a new db should be set up
         print(folder_path)

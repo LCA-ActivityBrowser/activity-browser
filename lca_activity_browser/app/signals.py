@@ -7,8 +7,6 @@ class Signals(QtCore.QObject):
     # General Settings
     switch_bw2_dir_path = QtCore.pyqtSignal()
 
-
-
     new_activity = QtCore.pyqtSignal(str)
     activity_selected = QtCore.pyqtSignal(tuple)
 

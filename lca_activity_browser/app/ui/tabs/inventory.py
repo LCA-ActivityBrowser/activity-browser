@@ -95,6 +95,8 @@ class InventoryTab(QtWidgets.QWidget):
         self.add_default_data_button = QtWidgets.QPushButton(
             'Add Default Data (Biosphere flows, LCIA methods)')
         self.new_database_button = QtWidgets.QPushButton('Create New Database')
+        self.import_database_button = QtWidgets.QPushButton('Import Database')
+        self.import_database_button.clicked.connect(signals.import_database.emit)
 
         no_database_layout = QtWidgets.QVBoxLayout()
         no_database_layout.addWidget(header("No database selected"))
@@ -124,6 +126,7 @@ class InventoryTab(QtWidgets.QWidget):
         database_header.setAlignment(QtCore.Qt.AlignLeft)
         database_header.addWidget(header('Databases:'))
         database_header.addWidget(self.new_database_button)
+        database_header.addWidget(self.import_database_button)
 
         database_container = QtWidgets.QVBoxLayout()
         database_container.addLayout(database_header)
@@ -176,6 +179,7 @@ class InventoryTab(QtWidgets.QWidget):
 
         signals.project_selected.connect(self.change_project)
         signals.database_selected.connect(self.change_database)
+        
 
         self.setLayout(tab_container)
 
