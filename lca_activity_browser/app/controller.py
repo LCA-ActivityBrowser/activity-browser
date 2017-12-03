@@ -3,7 +3,7 @@ import brightway2 as bw
 from bw2data.backends.peewee import Exchange
 from PyQt5 import QtWidgets
 from .signals import signals
-from .ui.db_importer import DatabaseImportDialog
+from .ui.db_importer import DatabaseImportWizard
 import copy
 import uuid
 from bw2data.project import ProjectDataset, create_database
@@ -57,8 +57,7 @@ class Controller(object):
         signals.import_database.connect(self.import_database_dialog)
 
     def import_database_dialog(self):
-        print('import window should open now')
-        self.db_dialog = DatabaseImportDialog()
+        self.db_wizard = DatabaseImportWizard()
         # name = self.window.dialog(
         #     "Import an EcoSpold2 database",
         #     "Choose a database name:" + " " * 25
