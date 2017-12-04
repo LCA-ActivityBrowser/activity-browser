@@ -1,25 +1,24 @@
 # -*- coding: utf-8 -*-
+import json
+import requests
 from ..signals import signals
 from .icons import icons
 from brightway2 import projects
 from PyQt5 import QtGui, QtWidgets
-from requests_oauthlib import OAuth1Session
 
 
 def create_issue(content):
-    issues = OAuth1Session(
-        '4DBX8xKMvaUShgUHW9',
-        client_secret='Lzman2V4v52YqMHazNNrpstHSLGgyhWH'
-    )
+    abtoken = '01533fb30748a02f107ba1fc55a8ac2fb77b5ade'
+    auth = ('ActivityBrowser', abtoken)
     data = {
         'title': 'New issue reported from app',
-        'content': content,
-        'status': 'new',
-        'priority': 'trivial',
-        'kind': 'bug'
+        'body': content,
     }
-    URL = "https://bitbucket.org/api/1.0/repositories/cmutel/activity-browser/issues/"
-    issues.post(URL, data=data)
+    url = 'https://api.github.com/repos/LCA-ActivityBrowser/activity-browser/issues'
+    response = requests.post(url, data=json.dumps(data), auth=auth)
+    if response.status_code != 201:
+        print(response)
+        print(response.text)
 
 
 class StackButton(QtWidgets.QPushButton):
@@ -46,7 +45,7 @@ class Toolbar(QtWidgets.QToolBar):
 
         # Toolbar elements are layed out left to right.
         new_issue_button = QtWidgets.QPushButton(QtGui.QIcon(icons.debug), 'Report Bug')
-        new_issue_button.setStyleSheet('QPushButton {color: red;}')
+        # new_issue_button.setStyleSheet('QPushButton {color: red;}')
 
         switch_stack_button = StackButton(
             self.window,
@@ -94,10 +93,12 @@ class Toolbar(QtWidgets.QToolBar):
     def create_issue_dialog(self):
         text = self.window.dialog(
             'Report new bug',
-            'Please describe the buggy behaviour. Existing bugs can be viewed at `https://bitbucket.org/cmutel/activity-browser/issues?status=new&status=open`'
+            ('Please describe the buggy behaviour. View existing issues on ' +
+             '<a href="https://github.com/LCA-ActivityBrowser/activity-browser/issues">github</a>.')
         )
         if text:
-            create_issue(text)
+            content = text + '\n\nLog Output:\n```{}```'.format(self.window.log.toPlainText())
+            create_issue(content)
 
     def connect_signals(self, controller):
         self.change_project_button.clicked.connect(controller.change_project)
@@ -113,24 +114,3 @@ class Toolbar(QtWidgets.QToolBar):
         if projects.read_only:
             self.project_read_only.setText('Read Only Project')
             self.window.warning("Read Only Project", """Read Only Project.\nAnother Python process is working with this project, no writes are allowed.\nCheck to make sure no other Python interpreters are running, and then re-select this project.""")
-
-    # def get_search_box(self):
-    #     search_box = QtWidgets.QLineEdit()
-    #     search_box.setMaximumSize(QtCore.QSize(150, 25))
-
-    #     # Search
-    #     search_action = QtWidgets.QAction(
-    #         QtGui.QIcon(icons.search),
-    #         'Search activites (see help for search syntax)',
-    #         self.window
-    #     )
-    #     return search_box
-
-    # def get_key_search(self):
-    #     key_search_action = QtWidgets.QAction(
-    #         QtGui.QIcon(icons.key),
-    #         'Search by key',
-    #         self.window
-    #     )
-    #     # key_search_action.triggered.connect(self.search_by_key)
-    #     return key_search_action

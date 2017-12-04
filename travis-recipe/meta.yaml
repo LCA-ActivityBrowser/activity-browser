@@ -24,7 +24,6 @@ requirements:
     - matplotlib
     - seaborn
     - arrow
-    - requests-oauthlib
     - pandas
     - pyqt # [osx]
     - pyqt >=5.9 # [not osx]
