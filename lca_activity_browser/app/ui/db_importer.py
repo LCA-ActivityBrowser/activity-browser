@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
+import tempfile
+import bs4
+import requests
+import patoolib
 import brightway2 as bw
 from bw2io.extractors import Ecospold2DataExtractor
 from bw2io.importers.base_lci import LCIImporter
@@ -25,17 +30,42 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.db_name_page = DBNamePage(self)
         self.confirmation_page = ConfirmationPage(self)
         self.import_page = ImportPage(self)
-        self.addPage(self.import_type_page)
-        self.addPage(self.choose_dir_page)
-        self.addPage(self.db_name_page)
-        self.addPage(self.confirmation_page)
-        self.addPage(self.import_page)
+        self.archive_page = Choose7zArchivePage(self)
+        self.ecoinvent_login_page = EcoinventLoginPage(self)
+        self.ecoinvent_version_page = EcoinventVersionPage(self)
+        self.pages = [
+            self.import_type_page,
+            self.ecoinvent_login_page,
+            self.ecoinvent_version_page,
+            self.archive_page,
+            self.choose_dir_page,
+            self.db_name_page,
+            self.confirmation_page,
+            self.import_page,
+        ]
+        for page in self.pages:
+            self.addPage(page)
         self.show()
+
+    @property
+    def version(self):
+        return self.ecoinvent_version_page.version_combobox.currentText()
+
+    @property
+    def system_model(self):
+        return self.ecoinvent_version_page.system_model_combobox.currentText()
+
+    @property
+    def db_url(self):
+        url = 'https://v33.ecoquery.ecoinvent.org'
+        db_key = (self.version, self.system_model)
+        return url + self.ecoinvent_version_page.db_dict[db_key]
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.wizard = self.parent()
         options = ['ecoinvent homepage',
                    'local 7z-archive',
                    'local directory with ecospold2 files']
@@ -44,21 +74,30 @@ class ImportTypePage(QtWidgets.QWizardPage):
         box_layout = QtWidgets.QVBoxLayout()
         for i, button in enumerate(self.radio_buttons):
             box_layout.addWidget(button)
-            if i == 2:
+            if i == 0:
                 button.setChecked(True)
-            else:
-                button.setEnabled(False)
         self.option_box.setLayout(box_layout)
 
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.addWidget(self.option_box)
         self.setLayout(self.layout)
 
+    def nextId(self):
+        option_id = [b.isChecked() for b in self.radio_buttons].index(True)
+        if option_id == 2:
+            self.wizard.import_type = 'directory'
+            return self.wizard.pages.index(self.wizard.choose_dir_page)
+        elif option_id == 1:
+            self.wizard.import_type = 'archive'
+            return self.wizard.pages.index(self.wizard.archive_page)
+        else:
+            self.wizard.import_type = 'homepage'
+            return self.wizard.pages.index(self.wizard.ecoinvent_login_page)
+
 
 class ChooseDirPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
         self.path_edit = QtWidgets.QLineEdit()
         self.registerField('dirpath*', self.path_edit)
         self.browse_button = QtWidgets.QPushButton('Browse')
@@ -84,9 +123,69 @@ class ChooseDirPage(QtWidgets.QWizardPage):
             print('invalid path')
 
 
+class Choose7zArchivePage(QtWidgets.QWizardPage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.wizard = self.parent()
+        self.path_edit = QtWidgets.QLineEdit()
+        self.registerField('archivepath*', self.path_edit)
+        self.browse_button = QtWidgets.QPushButton('Browse')
+        self.browse_button.clicked.connect(self.get_archive)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel(
+            'Choose location of 7z archive:'))
+        layout.addWidget(self.path_edit)
+        browse_lay = QtWidgets.QHBoxLayout()
+        browse_lay.addWidget(self.browse_button)
+        browse_lay.addStretch(1)
+        layout.addLayout(browse_lay)
+        self.setLayout(layout)
+
+    def get_archive(self):
+        self.path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, 'Select 7z archive')
+        print(self.path)
+        if os.path.isfile(self.path):
+            self.path_edit.setText(self.path)
+        else:
+            # TODO warning to page
+            print('invalid path')
+
+    def initializePage(self):
+        warning = check_7z()
+        if warning:
+            QtWidgets.QMessageBox.warning(self, '7zip required!', warning)
+
+    def nextId(self):
+        return self.wizard.pages.index(self.wizard.db_name_page)
+
+
+def check_7z():
+    try:
+        patoolib.find_archive_program('7z', 'extract')
+    except patoolib.util.PatoolError as e:
+        warning = ('This step requires a working installation of the 7zip program. <br>' +
+                   'Please install 7zip on your system before continuing.<br>')
+        if sys.platform == 'win32':
+            warning += 'You can download it from <a href="http://www.7zip.org">www.7zip.org</a>.'
+        elif sys.platform == 'darwin':
+            warning += ('You can install 7zip with <a href="https://brew.sh">homebrew</a>.<br>' +
+                        'brew install p7zip')
+        elif sys.platform.startswith('linux'):
+            warning += ("Use your linux distribtion's package manager for the installation.<br>" +
+                        'eg: sudo apt install p7zip-full')
+        else:
+            warning += 'More infos here: <a href="http://www.7zip.org">www.7zip.org</a>'
+
+        return warning
+    return ''
+
+
 class DBNamePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.wizard = self.parent()
         self.name_edit = QtWidgets.QLineEdit()
         self.registerField('db_name*', self.name_edit)
 
@@ -95,16 +194,21 @@ class DBNamePage(QtWidgets.QWizardPage):
             'Name of the new database:'))
         layout.addWidget(self.name_edit)
         self.setLayout(layout)
-
         # TODO check that name doesn't exist yet
+
+    def initializePage(self):
+        if self.wizard.import_type == 'homepage':
+            version = self.wizard.version
+            sys_mod = self.wizard.system_model
+            self.name_edit.setText(sys_mod + version.replace('.', ''))
 
 
 class ConfirmationPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.wizard = self.parent()
         self.setCommitPage(True)
         self.setButtonText(2, 'Import Database')
-        self.wizard = self.parent()
         self.current_project_label = QtWidgets.QLabel('empty')
         self.db_name_label = QtWidgets.QLabel('empty')
         self.path_label = QtWidgets.QLabel('empty')
@@ -119,17 +223,27 @@ class ConfirmationPage(QtWidgets.QWizardPage):
             'Current Projcet: <b>{}</b>'.format(bw.projects.current))
         self.db_name_label.setText(
             'Name of the new database: <b>{}</b>'.format(self.field('db_name')))
-        self.path_label.setText(
-            'Path to directory with ecospold files:<br><b>{}</b>'.format(
-                self.field('dirpath')))
+        if self.wizard.import_type == 'directory':
+            self.path_label.setText(
+                'Path to directory with ecospold files:<br><b>{}</b>'.format(
+                    self.field('dirpath')))
+        elif self.wizard.import_type == 'archive':
+            self.path_label.setText(
+                'Path to 7z archive:<br><b>{}</b>'.format(
+                    self.field('archivepath')))
+        else:
+            self.path_label.setText(
+                'Ecoinvent version: <b>{}</b><br>Ecoinvent system model: <b>{}</b>'.format(
+                    self.wizard.version, self.wizard.system_model))
 
 
 class ImportPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFinalPage(True)
         self.wizard = self.parent()
         self.complete = False
-        extraction_label = QtWidgets.QLabel('Extracting XML data:')
+        extraction_label = QtWidgets.QLabel('Extracting XML data from ecospold files:')
         self.extraction_progressbar = QtWidgets.QProgressBar()
         strategy_label = QtWidgets.QLabel('Applying brightway2 strategies:')
         self.strategy_progressbar = QtWidgets.QProgressBar()
@@ -140,6 +254,21 @@ class ImportPage(QtWidgets.QWizardPage):
         self.finished_label = QtWidgets.QLabel('')
 
         layout = QtWidgets.QVBoxLayout()
+        self.download_label = QtWidgets.QLabel('Downloading data from ecoinvent homepage:')
+        self.download_label.setVisible(False)
+        self.download_progressbar = QtWidgets.QProgressBar()
+        self.download_progressbar.setMinimum(0)
+        self.download_progressbar.setMaximum(0)
+        self.download_progressbar.setVisible(False)
+        self.unarchive_label = QtWidgets.QLabel('Decompressing the 7z archive:')
+        self.unarchive_progressbar = QtWidgets.QProgressBar()
+        self.unarchive_progressbar.setMinimum(0)
+        self.unarchive_progressbar.setMaximum(0)
+        layout.addWidget(self.download_label)
+        layout.addWidget(self.download_progressbar)
+        layout.addWidget(self.unarchive_label)
+        layout.addWidget(self.unarchive_progressbar)
+
         layout.addWidget(extraction_label)
         layout.addWidget(self.extraction_progressbar)
         layout.addWidget(strategy_label)
@@ -160,13 +289,36 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.db_progress.connect(self.update_db_progress)
         import_signals.finalizing.connect(self.update_finalizing)
         import_signals.finished.connect(self.update_finished)
+        import_signals.unarchive_finished.connect(self.update_unarchive)
+        import_signals.download_complete.connect(self.update_download)
 
     def isComplete(self):
         return self.complete
 
     def initializePage(self):
-        print('starting import')
-        self.import_db()
+        if self.wizard.import_type == 'directory':
+            self.import_dir()
+            self.unarchive_label.hide()
+            self.unarchive_progressbar.hide()
+        elif self.wizard.import_type == 'archive':
+            self.tempdir = tempfile.TemporaryDirectory()
+            self.archivepath = self.field('archivepath')
+            self.unarchive()
+        else:
+            self.download_label.setVisible(True)
+            self.download_progressbar.setVisible(True)
+            self.unarchive_progressbar.setMaximum(1)
+            self.tempdir = tempfile.TemporaryDirectory()
+            self.archivepath = os.path.join(self.tempdir.name, 'db.7z')
+            import_signals.download_complete.connect(self.unarchive)
+            self.download_thread = DownloadThread(
+                session, self.wizard.db_url, self.tempdir.name)
+            self.download_thread.start()
+
+    def unarchive(self):
+        self.unarchive_thread = UnarchiveWorkerThread(self.archivepath, self.tempdir.name)
+        self.unarchive_thread.start()
+        import_signals.unarchive_finished.connect(self.import_dir)
 
     @QtCore.pyqtSlot(int, int)
     def update_extraction_progress(self, i, tot):
@@ -196,12 +348,52 @@ class ImportPage(QtWidgets.QWizardPage):
         self.complete = True
         self.completeChanged.emit()
         signals.databases_changed.emit()
+        if hasattr(self, 'tempdir'):
+            self.tempdir.cleanup()
 
-    def import_db(self):
+    def update_unarchive(self):
+        self.unarchive_progressbar.setMaximum(1)
+        self.unarchive_progressbar.setValue(1)
+
+    def update_download(self):
+        self.download_progressbar.setMaximum(1)
+        self.download_progressbar.setValue(1)
+        self.unarchive_progressbar.setMaximum(0)
+        self.unarchive_progressbar.setValue(0)
+
+    def import_dir(self):
         db_name = self.field('db_name')
-        dirpath = self.field('dirpath')
+        if self.wizard.import_type == 'directory':
+            dirpath = self.field('dirpath')
+        else:
+            dirpath = os.path.join(self.tempdir.name, 'datasets')
         self.worker_thread = ImportWorkerThread(dirpath, db_name)
         self.worker_thread.start()
+
+
+class DownloadThread(QtCore.QThread):
+    def __init__(self, session, db_url, tempdir):
+        super().__init__()
+        self.session = session
+        self.db_url = db_url
+        self.tempdir = tempdir
+
+    def run(self):
+        file_content = self.session.get(self.db_url).content
+        with open(os.path.join(self.tempdir, 'db.7z'), 'wb') as outfile:
+            outfile.write(file_content)
+        import_signals.download_complete.emit()
+
+
+class UnarchiveWorkerThread(QtCore.QThread):
+    def __init__(self, archivepath, tempdir):
+        super().__init__()
+        self.archivepath = archivepath
+        self.tempdir = tempdir
+
+    def run(self):
+        patoolib.extract_archive(self.archivepath, outdir=self.tempdir)
+        import_signals.unarchive_finished.emit()
 
 
 class ImportWorkerThread(QtCore.QThread):
@@ -213,10 +405,99 @@ class ImportWorkerThread(QtCore.QThread):
     def run(self):
         importer = ActivityBrowserImporter(self.dirpath, self.db_name)
         importer.apply_strategies()
-        print(importer.statistics())
         importer.write_database(backend='activitybrowser')
-        print('done')
         import_signals.finished.emit()
+
+
+class EcoinventLoginPage(QtWidgets.QWizardPage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.wizard = self.parent()
+        self.complete = False
+        self.description_label = QtWidgets.QLabel('Login to the ecoinvent homepage:')
+        self.username_edit = QtWidgets.QLineEdit()
+        self.username_edit.setPlaceholderText('ecoinvent username')
+        self.password_edit = QtWidgets.QLineEdit()
+        self.password_edit.setPlaceholderText('ecoinvent password'),
+        self.login_button = QtWidgets.QPushButton('login')
+        self.login_button.clicked.connect(self.login)
+        self.success_label = QtWidgets.QLabel('')
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.description_label)
+        layout.addWidget(self.username_edit)
+        layout.addWidget(self.password_edit)
+        hlay = QtWidgets.QHBoxLayout()
+        hlay.addWidget(self.login_button)
+        hlay.addStretch(1)
+        layout.addLayout(hlay)
+        layout.addWidget(self.success_label)
+        self.setLayout(layout)
+
+    @property
+    def username(self):
+        return self.username_edit.text()
+
+    @property
+    def password(self):
+        return self.password_edit.text()
+
+    def isComplete(self):
+        return self.complete
+
+    def login(self):
+        self.success_label.setText('Trying to login ...')
+        logon_url = 'https://v33.ecoquery.ecoinvent.org/Account/LogOn'
+        post_data = {'UserName': self.username,
+                     'Password': self.password,
+                     'IsEncrypted': 'false',
+                     'ReturnUrl': '/'}
+        session.post(logon_url, post_data)
+        if not len(session.cookies):
+            self.success_label.setText('Login failed!')
+            self.complete = False
+            self.completeChanged.emit()
+        else:
+            self.success_label.setText('Login successful!')
+            self.complete = True
+            self.completeChanged.emit()
+
+
+class EcoinventVersionPage(QtWidgets.QWizardPage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.wizard = self.parent()
+        self.description_label = QtWidgets.QLabel('Choose ecoinvent version and system model:')
+        self.version_combobox = QtWidgets.QComboBox()
+        self.system_model_combobox = QtWidgets.QComboBox()
+
+        layout = QtWidgets.QGridLayout()
+        layout.addWidget(self.description_label, 0, 0, 1, 3)
+        layout.addWidget(QtWidgets.QLabel('Version: '), 1, 0)
+        layout.addWidget(self.version_combobox, 1, 1, 1, 2)
+        layout.addWidget(QtWidgets.QLabel('System model: '), 2, 0)
+        layout.addWidget(self.system_model_combobox, 2, 1, 1, 2)
+        self.setLayout(layout)
+
+    def initializePage(self):
+        self.get_available_files()
+        self.versions = sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
+        self.system_models = sorted({k[1] for k in self.db_dict.keys()}, reverse=True)
+        self.version_combobox.addItems(self.versions)
+        self.system_model_combobox.addItems(self.system_models)
+
+    def get_available_files(self):
+        files_url = 'https://v33.ecoquery.ecoinvent.org/File/Files'
+        files_res = session.get(files_url)
+        soup = bs4.BeautifulSoup(files_res.text, 'html.parser')
+        file_list = [l for l in soup.find_all('a', href=True) if
+                     l['href'].startswith('/File/File?')]
+        link_dict = {f.contents[0]: f['href'] for f in file_list}
+        self.db_dict = {
+            tuple(k.replace('ecoinvent ', '').split('_')[:2:]): v for k, v in
+            link_dict.items() if k.endswith('.7z') and 'lc' not in k.lower()}
+
+    def nextId(self):
+        return self.wizard.pages.index(self.wizard.db_name_page)
 
 
 class ActivityBrowserExtractor(Ecospold2DataExtractor):
@@ -337,6 +618,10 @@ class ImportSignals(QtCore.QObject):
     db_progress = QtCore.pyqtSignal(int, int)
     finalizing = QtCore.pyqtSignal()
     finished = QtCore.pyqtSignal()
+    unarchive_finished = QtCore.pyqtSignal()
+    download_complete = QtCore.pyqtSignal()
 
 
 import_signals = ImportSignals()
+
+session = requests.Session()
