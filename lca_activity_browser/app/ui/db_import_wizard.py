@@ -640,7 +640,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         super().__init__()
         self.setWindowTitle('Biosphere and LCIA methods')
         self.setLabelText(
-            'Adding default biosphere and LCIA methods to project <b>{}</b>'.format(
+            'Adding default biosphere and LCIA methods to project <b>{}</b>:'.format(
                 bw.projects.current)
         )
         self.setMinimum(0)
