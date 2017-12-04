@@ -179,7 +179,6 @@ class InventoryTab(QtWidgets.QWidget):
 
         signals.project_selected.connect(self.change_project)
         signals.database_selected.connect(self.change_database)
-        
 
         self.setLayout(tab_container)
 
@@ -199,9 +198,11 @@ class InventoryTab(QtWidgets.QWidget):
         if not len(bw.databases):
             self.default_data_button_layout_widget.show()
             self.databases_table_layout_widget.hide()
+            self.import_database_button.setEnabled(False)
         else:
             self.default_data_button_layout_widget.hide()
             self.databases_table_layout_widget.show()
+            self.import_database_button.setEnabled(True)
 
     def change_database(self, name):
         self.no_database_container.hide()

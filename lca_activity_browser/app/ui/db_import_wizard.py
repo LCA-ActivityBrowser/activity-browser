@@ -145,7 +145,6 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
     def get_archive(self):
         self.path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Select 7z archive')
-        print(self.path)
         if os.path.isfile(self.path):
             self.path_edit.setText(self.path)
         else:
@@ -313,12 +312,14 @@ class ImportPage(QtWidgets.QWizardPage):
             import_signals.download_complete.connect(self.unarchive)
             self.download_thread = DownloadThread(
                 session, self.wizard.db_url, self.tempdir.name)
+            import_signals.download_complete.connect(self.download_thread.exit)
             self.download_thread.start()
 
     def unarchive(self):
         self.unarchive_thread = UnarchiveWorkerThread(self.archivepath, self.tempdir.name)
-        self.unarchive_thread.start()
+        import_signals.unarchive_finished.connect(self.unarchive_thread.exit)
         import_signals.unarchive_finished.connect(self.import_dir)
+        self.unarchive_thread.start()
 
     @QtCore.pyqtSlot(int, int)
     def update_extraction_progress(self, i, tot):
@@ -368,6 +369,7 @@ class ImportPage(QtWidgets.QWizardPage):
         else:
             dirpath = os.path.join(self.tempdir.name, 'datasets')
         self.worker_thread = ImportWorkerThread(dirpath, db_name)
+        import_signals.finished.connect(self.worker_thread.exit)
         self.worker_thread.start()
 
 
@@ -419,8 +421,11 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.username_edit.setPlaceholderText('ecoinvent username')
         self.password_edit = QtWidgets.QLineEdit()
         self.password_edit.setPlaceholderText('ecoinvent password'),
+        self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.login_button = QtWidgets.QPushButton('login')
         self.login_button.clicked.connect(self.login)
+        self.login_button.setCheckable(True)
+        self.password_edit.returnPressed.connect(self.login_button.click)
         self.success_label = QtWidgets.QLabel('')
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.description_label)
@@ -456,10 +461,12 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
             self.success_label.setText('Login failed!')
             self.complete = False
             self.completeChanged.emit()
+            self.login_button.setChecked(False)
         else:
             self.success_label.setText('Login successful!')
             self.complete = True
             self.completeChanged.emit()
+            self.login_button.setChecked(False)
 
 
 class EcoinventVersionPage(QtWidgets.QWizardPage):
@@ -620,8 +627,42 @@ class ImportSignals(QtCore.QObject):
     finished = QtCore.pyqtSignal()
     unarchive_finished = QtCore.pyqtSignal()
     download_complete = QtCore.pyqtSignal()
+    biosphere_finished = QtCore.pyqtSignal()
 
 
 import_signals = ImportSignals()
 
 session = requests.Session()
+
+
+class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Biosphere and LCIA methods')
+        self.setLabelText(
+            'Adding default biosphere and LCIA methods to project <b>{}</b>'.format(
+                bw.projects.current)
+        )
+        self.setMinimum(0)
+        self.setMaximum(0)
+        self.show()
+
+        self.biosphere_thread = DefaultBiosphereThread()
+        import_signals.biosphere_finished.connect(self.finished)
+        import_signals.biosphere_finished.connect(self.biosphere_thread.exit)
+        self.biosphere_thread.start()
+
+    def finished(self):
+        self.setMaximum(1)
+        self.setValue(1)
+
+
+class DefaultBiosphereThread(QtCore.QThread):
+    def run(self):
+        bw.create_default_biosphere3()
+        if not len(bw.methods):
+            bw.create_default_lcia_methods()
+        if not len(bw.migrations):
+            bw.create_core_migrations()
+        import_signals.biosphere_finished.emit()
+        signals.project_selected.emit(bw.projects.current)
