@@ -26,10 +26,10 @@ requirements:
     - arrow
     - requests-oauthlib
     - pandas
-    - pyqt # [osx]
-    - pyqt >=5.9 # [not osx]
     - patool
     - beautifulsoup4
+    - pyqt # [osx]
+    - pyqt >=5.9 # [not osx]
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
