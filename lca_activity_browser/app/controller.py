@@ -28,9 +28,9 @@ class Controller(object):
             self.write_current_calculation_setup
         )
         self.connect_signals()
+        self.db_wizard = None
         # switch directly to custom bw2 directory and project, if specified in settings
         if settings:
-
             if hasattr(settings, "BW2_DIR"):
                 print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
@@ -57,7 +57,11 @@ class Controller(object):
         signals.import_database.connect(self.import_database_wizard)
 
     def import_database_wizard(self):
-        self.db_wizard = DatabaseImportWizard()
+        if self.db_wizard is None:
+            self.db_wizard = DatabaseImportWizard()
+        else:
+            self.db_wizard.show()
+            self.db_wizard.activateWindow()
 
     def select_bw2_dir_path(self):
         folder_path = QtWidgets.QFileDialog().getExistingDirectory(
@@ -73,7 +77,8 @@ class Controller(object):
             assert os.path.isdir(dirpath)
             bw.projects._base_data_dir = dirpath
             bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
-            if not os.path.isdir(bw.projects._base_logs_dir):  # create folder if it does not yet exist
+            # create folder if it does not yet exist
+            if not os.path.isdir(bw.projects._base_logs_dir):
                 os.mkdir(bw.projects._base_logs_dir)
             bw.projects.db.close()
             bw.projects.db = create_database(

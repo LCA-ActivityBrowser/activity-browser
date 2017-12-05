@@ -47,6 +47,10 @@ class DatabaseImportWizard(QtWidgets.QWizard):
             self.addPage(page)
         self.show()
 
+        # with this line, finish behaves like cancel and the wizard can be reused
+        # db import is done when finish button becomes active
+        self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.reject)
+
     @property
     def version(self):
         return self.ecoinvent_version_page.version_combobox.currentText()
@@ -60,6 +64,14 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         url = 'https://v33.ecoquery.ecoinvent.org'
         db_key = (self.version, self.system_model)
         return url + self.ecoinvent_version_page.db_dict[db_key]
+
+    def closeEvent(self, event):
+        '''
+        close event now behaves similarly to cancel, because of self.reject
+        like this the db wizard can be reused, ie starts from the beginning
+        '''
+        self.reject()
+        event.accept()
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
@@ -114,13 +126,24 @@ class ChooseDirPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def get_directory(self):
-        self.path = QtWidgets.QFileDialog.getExistingDirectory(
+        path = QtWidgets.QFileDialog.getExistingDirectory(
             self, 'Select directory with ecospold2 files')
-        if os.path.isdir(self.path):
-            self.path_edit.setText(self.path)
+        self.path_edit.setText(path)
+
+    def validatePage(self):
+        dir_path = self.field('dirpath')
+        if not os.path.isdir(dir_path):
+            warning = 'Not a directory:<br>{}'.format(dir_path)
+            QtWidgets.QMessageBox.warning(self, 'Not a directory!', warning)
+            return False
         else:
-            # TODO warning to page
-            print('invalid path')
+            spold_files = [f for f in os.listdir(dir_path) if f.endswith('.spold')]
+            if not spold_files:
+                warning = 'No ecospold files found in this directory:<br>{}'.format(dir_path)
+                QtWidgets.QMessageBox.warning(self, 'No ecospold files!', warning)
+                return False
+            else:
+                return True
 
 
 class Choose7zArchivePage(QtWidgets.QWizardPage):
@@ -143,13 +166,25 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def get_archive(self):
-        self.path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Select 7z archive')
-        if os.path.isfile(self.path):
-            self.path_edit.setText(self.path)
+        if path:
+            self.path_edit.setText(path)
+
+    def validatePage(self):
+        path = self.field('archivepath')
+        if os.path.isfile(path):
+            if path.lower().endswith('.7z'):
+                return True
+            else:
+                warning = ('Unexpected filetype: <b>{}</b><br>Import might not work.' +
+                           'Continue anyway?').format(os.path.split(path)[-1])
+                answer = QtWidgets.QMessageBox.question(self, 'Not a 7zip archive!', warning)
+                return answer == QtWidgets.QMessageBox.Yes
         else:
-            # TODO warning to page
-            print('invalid path')
+            warning = 'File not found:<br>{}'.format(path)
+            QtWidgets.QMessageBox.warning(self, 'File not found!', warning)
+            return False
 
     def initializePage(self):
         warning = check_7z()
@@ -193,13 +228,22 @@ class DBNamePage(QtWidgets.QWizardPage):
             'Name of the new database:'))
         layout.addWidget(self.name_edit)
         self.setLayout(layout)
-        # TODO check that name doesn't exist yet
 
     def initializePage(self):
         if self.wizard.import_type == 'homepage':
             version = self.wizard.version
             sys_mod = self.wizard.system_model
             self.name_edit.setText(sys_mod + version.replace('.', ''))
+
+    def validatePage(self):
+        db_name = self.name_edit.text()
+        if db_name in bw.databases:
+            warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
+                db_name, bw.projects.current)
+            QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
+            return False
+        else:
+            return True
 
 
 class ConfirmationPage(QtWidgets.QWizardPage):
@@ -489,6 +533,8 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.get_available_files()
         self.versions = sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
         self.system_models = sorted({k[1] for k in self.db_dict.keys()}, reverse=True)
+        self.version_combobox.clear()
+        self.system_model_combobox.clear()
         self.version_combobox.addItems(self.versions)
         self.system_model_combobox.addItems(self.system_models)
 
