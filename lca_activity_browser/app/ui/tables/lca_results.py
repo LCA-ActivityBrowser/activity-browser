@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from . table import ActivityBrowserTableWidget
 from brightway2 import get_activity
 from PyQt5 import QtCore, QtWidgets
 
@@ -9,7 +10,7 @@ class ReadOnly(QtWidgets.QTableWidgetItem):
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 
-class LCAResultsTable(QtWidgets.QTableWidget):
+class LCAResultsTable(ActivityBrowserTableWidget):
     def sync(self, lca):
         self.clear()
 

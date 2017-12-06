@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
+from . table import ActivityBrowserTableWidget
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -12,7 +13,7 @@ class Item(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class ActivitiesHistoryWidget(QtWidgets.QTableWidget):
+class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
     COUNT = 40
     COLUMNS = {
         0: "name",

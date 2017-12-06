@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
+from . table import ActivityBrowserTableWidget
 from brightway2 import Database
 from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
@@ -13,8 +14,8 @@ class ActivityItem(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class ActivitiesTableWidget(QtWidgets.QTableWidget):
-    COUNT = 100
+class ActivitiesTableWidget(ActivityBrowserTableWidget):
+    COUNT = 500
     COLUMNS = {
         0: "name",
         1: "reference product",
