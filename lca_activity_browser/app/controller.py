@@ -30,11 +30,13 @@ class Controller(object):
         self.connect_signals()
         self.db_wizard = None
         # switch directly to custom bw2 directory and project, if specified in settings
+        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        print('Brightway2 active project: {}'.format(bw.projects.current))
+
         if settings:
             if hasattr(settings, "BW2_DIR"):
-                print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-                print('Switched to {} as Brightway2 data directory.'.format(
+                print('Switched to Brightway2 data directory: {}'.format(
                     bw.projects._base_data_dir))
             if hasattr(settings, "PROJECT_NAME"):
                 if settings.PROJECT_NAME in [x.name for x in bw.projects]:
