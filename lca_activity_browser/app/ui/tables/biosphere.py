@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
-from .activity import ActivityItem
 import brightway2 as bw
 from PyQt5 import QtWidgets
 import itertools
+from ...signals import signals
+from .activity import ActivityItem
+from . table import ActivityBrowserTableWidget
 
 
-class FlowsTableWidget(QtWidgets.QTableWidget):
+
+class FlowsTableWidget(ActivityBrowserTableWidget):
     COUNT = 100
     COLUMNS = {
         0: "name",

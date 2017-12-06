@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
+from . table import ActivityBrowserTableWidget
 from bw2data import databases
 from bw2data.utils import natural_sort
 from PyQt5 import QtCore, QtWidgets
@@ -13,7 +14,7 @@ class DatabaseItem(QtWidgets.QTableWidgetItem):
         self.db_name = db_name
 
 
-class DatabasesTableWidget(QtWidgets.QTableWidget):
+class DatabasesTableWidget(ActivityBrowserTableWidget):
     def __init__(self):
         super(DatabasesTableWidget, self).__init__()
         self.setColumnCount(3)

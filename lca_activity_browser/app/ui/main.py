@@ -7,6 +7,7 @@ from .panels import LeftPanel, RightPanel
 from .statusbar import Statusbar
 from .toolbar import Toolbar
 from .utils import StdRedirector
+from ..signals import signals
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
@@ -80,6 +81,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stacked.addWidget(self.working_widget)
         self.setCentralWidget(self.stacked)
 
+        self.connect_signals()
+
+    def connect_signals(self):
+        signals.copy_selection_to_clipboard.connect(self.set_clipboard_text)
+
     def add_tab_to_panel(self, obj, label, side):
         panel = self.left_panel if side == 'left' else self.right_panel
         panel.addTab(obj, label)
@@ -113,3 +119,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.No
         )
         return response == QtWidgets.QMessageBox.Yes
+
+    @QtCore.pyqtSlot(str)
+    def set_clipboard_text(self, clipboard_text):
+        self.clipboard.setText(clipboard_text)

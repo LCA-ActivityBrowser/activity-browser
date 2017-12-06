@@ -3,6 +3,7 @@ from ...signals import signals
 from ..icons import icons
 from .activity import ActivityItem, ActivitiesTableWidget
 from .biosphere import FlowsTableWidget
+from . table import ActivityBrowserTableWidget
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
@@ -28,7 +29,7 @@ class ReadOnly(QtWidgets.QTableWidgetItem):
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 
-class ExchangeTableWidget(QtWidgets.QTableWidget):
+class ExchangeTableWidget(ActivityBrowserTableWidget):
     COLUMN_LABELS = {
         # Normal technosphere
         (False, False): ["Activity", "Product", "Amount", "Database",

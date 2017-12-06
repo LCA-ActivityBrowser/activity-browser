@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
+from . table import ActivityBrowserTableWidget
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
 import numbers
@@ -25,7 +26,7 @@ class Number(QtWidgets.QTableWidgetItem):
         return super(Number, self).__lt__(other)
 
 
-class MethodsTableWidget(QtWidgets.QTableWidget):
+class MethodsTableWidget(ActivityBrowserTableWidget):
     def __init__(self):
         super(MethodsTableWidget, self).__init__()
         self.setColumnCount(3)
@@ -69,7 +70,7 @@ class CFItem(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class CFsTableWidget(QtWidgets.QTableWidget):
+class CFsTableWidget(ActivityBrowserTableWidget):
     COLUMNS = {
         0: "name",
         1: "amount",
