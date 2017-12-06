@@ -7,6 +7,7 @@ class Signals(QtCore.QObject):
     # General Settings
     switch_bw2_dir_path = QtCore.pyqtSignal()
 
+
     # Copy Text (Clipboard)
     copy_selection_to_clipboard = QtCore.pyqtSignal(str)
 

@@ -26,6 +26,8 @@ requirements:
     - arrow
     - requests-oauthlib
     - pandas
+    - patool
+    - beautifulsoup4
     - pyqt # [osx]
     - pyqt >=5.9 # [not osx]
 

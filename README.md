@@ -42,6 +42,15 @@ First activate the environment where the activity browser is installed:
 
 Then simply run `activity-browser` and the application will open.
 
+### Import an LCI database
+
+- In the `inventory`-tab there is a button called _"Add Default Data (Biosphere flows, LCIA methods)"_. Click this button to add the default data. This is equivalent to `brightway2.bw2setup()` in python.
+- After adding the default data, you can import a database with the _"Import Database"_-Button. Follow the instructions of the database import wizard. There are currently three types of imports possible:
+    - Directly from the ecoinvent homepage (ecoinvent login credentials required)
+    - From a 7zip archive
+    - From a directory with ecospold2 files (same as in brightway2)
+
+
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/version.svg)](https://anaconda.org/haasad/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser-dev)
 

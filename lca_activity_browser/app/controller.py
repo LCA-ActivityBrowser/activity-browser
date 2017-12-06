@@ -3,6 +3,7 @@ import brightway2 as bw
 from bw2data.backends.peewee import Exchange
 from PyQt5 import QtWidgets
 from .signals import signals
+from .ui.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
 import copy
 import uuid
 from bw2data.project import ProjectDataset, create_database
@@ -27,13 +28,14 @@ class Controller(object):
             self.write_current_calculation_setup
         )
         self.connect_signals()
+        self.db_wizard = None
         # switch directly to custom bw2 directory and project, if specified in settings
         if settings:
-
             if hasattr(settings, "BW2_DIR"):
                 print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-                print('Switched to {} as Brightway2 data directory.'.format(bw.projects._base_data_dir))
+                print('Switched to {} as Brightway2 data directory.'.format(
+                    bw.projects._base_data_dir))
             if hasattr(settings, "PROJECT_NAME"):
                 if settings.PROJECT_NAME in [x.name for x in bw.projects]:
                     bw.projects.set_current(settings.PROJECT_NAME)
@@ -52,36 +54,18 @@ class Controller(object):
         signals.delete_activity.connect(self.delete_activity)
         signals.delete_activity.connect(self.delete_activity)
         signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
-        signals.import_database.connect(self.import_database_dialog)
+        signals.import_database.connect(self.import_database_wizard)
 
-
-    def import_database_dialog(self):
-        name = self.window.dialog(
-            "Import an EcoSpold2 database",
-            "Choose a database name:" + " " * 25
-        )
-        path = QtWidgets.QFileDialog().getExistingDirectory(None, "Select folder containing EcoSpold2 datasets")
-        print(name, path)
-        self.import_database(path, name)
-
-    def import_database(self, path, name):
-        try:
-            assert os.path.isdir(path)
-            assert isinstance(name, str)
-            print(isinstance(name, str), os.path.isdir(path))
-            print('Dirpath and name ok. Trying to import ecospold2 files.')
-            # THIS CAUSES MULTIPLE WINDOWS TO OPEN...
-            # new_database = SingleOutputEcospold2Importer(
-            #     path,
-            #     name
-            # )
-            # new_database.apply_strategies()
-            # new_database.statistics()
-        except AssertionError:
-            print('Either dirpath or name error.')
+    def import_database_wizard(self):
+        if self.db_wizard is None:
+            self.db_wizard = DatabaseImportWizard()
+        else:
+            self.db_wizard.show()
+            self.db_wizard.activateWindow()
 
     def select_bw2_dir_path(self):
-        folder_path = QtWidgets.QFileDialog().getExistingDirectory(None, "Select a brightway2 database folder")
+        folder_path = QtWidgets.QFileDialog().getExistingDirectory(
+            None, "Select a brightway2 database folder")
         # TODO: in case of a directory that does not contain an existing brightway2 database,
         # ask if a new db should be set up
         print(folder_path)
@@ -93,7 +77,8 @@ class Controller(object):
             assert os.path.isdir(dirpath)
             bw.projects._base_data_dir = dirpath
             bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
-            if not os.path.isdir(bw.projects._base_logs_dir):  # create folder if it does not yet exist
+            # create folder if it does not yet exist
+            if not os.path.isdir(bw.projects._base_logs_dir):
                 os.mkdir(bw.projects._base_logs_dir)
             bw.projects.db.close()
             bw.projects.db = create_database(
@@ -166,12 +151,7 @@ class Controller(object):
             signals.project_selected.emit(self.get_default_project_name())
 
     def install_default_data(self):
-        bw.create_default_biosphere3()
-        if not len(bw.methods):
-            bw.create_default_lcia_methods()
-        if not len(bw.migrations):
-            bw.create_core_migrations()
-        signals.project_selected.emit(bw.projects.current)
+        self.default_biosphere_dialog = DefaultBiosphereDialog()
 
     def add_database(self):
         name = self.window.dialog(
