@@ -29,12 +29,12 @@ class MenuBar(object):
         )
         return menu
 
-    def setup_extensions_menu(self):
-        extensions_menu = QtWidgets.QMenu('&Extensions', self.window)
-        # extensions_menu.addAction(
-        #     self.add_metaprocess_menu_item()
-        # )
-        return extensions_menu
+    # def setup_extensions_menu(self):
+    #     extensions_menu = QtWidgets.QMenu('&Extensions', self.window)
+    #     # extensions_menu.addAction(
+    #     #     self.add_metaprocess_menu_item()
+    #     # )
+    #     return extensions_menu
 
     def setup_help_menu(self):
         help_menu = QtWidgets.QMenu('&Help', self.window)
