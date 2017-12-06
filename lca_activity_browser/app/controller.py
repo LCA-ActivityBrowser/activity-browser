@@ -40,17 +40,35 @@ class Controller(object):
                     print('Project indicated in settings.py not found.')
 
     def connect_signals(self):
+        # SLOTS
+        # Project
+        signals.new_project.connect(self.new_project)
+        signals.change_project.connect(self.change_project)
+        signals.copy_project.connect(self.copy_project)
+        signals.delete_project.connect(self.delete_project)
+        # Database
+        signals.add_database.connect(self.add_database)
+        signals.delete_database.connect(self.delete_database)
+        signals.copy_database.connect(self.copy_database)
+        signals.install_default_data.connect(self.install_default_data)
+        signals.import_database.connect(self.import_database_wizard)
+        # Activity
         signals.copy_activity.connect(self.copy_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
+        signals.delete_activity.connect(self.delete_activity)
+        # Exchange
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
-        signals.delete_activity.connect(self.delete_activity)
-        signals.delete_activity.connect(self.delete_activity)
+        # Calculation Setups
+        signals.new_calculation_setup.connect(self.new_calculation_setup)
+        signals.rename_calculation_setup.connect(self.rename_calculation_setup)
+        signals.delete_calculation_setup.connect(self.delete_calculation_setup)
+        # Other
         signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
-        signals.import_database.connect(self.import_database_wizard)
+
 
     def import_database_wizard(self):
         if self.db_wizard is None:
@@ -188,11 +206,13 @@ class Controller(object):
         if name:
             bw.calculation_setups[name] = {'inv': [], 'ia': []}
             signals.calculation_setup_selected.emit(name)
+            print("New calculation setup: {}".format(name))
 
     def delete_calculation_setup(self):
         name = self.window.left_panel.cs_tab.list_widget.name
         del bw.calculation_setups[name]
         self.window.left_panel.cs_tab.set_default_calculation_setup()
+        print("Deleted calculation setup: {}".format(name))
 
     def rename_calculation_setup(self):
         current = self.window.left_panel.cs_tab.list_widget.name

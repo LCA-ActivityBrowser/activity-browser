@@ -187,12 +187,14 @@ class InventoryTab(QtWidgets.QWidget):
 
         self.setLayout(tab_container)
 
-    def connect_signals(self, controller):
+        self.connect_signals()
+
+    def connect_signals(self):
         """Signals that alter data and need access to Controller"""
-        self.new_database_button.clicked.connect(controller.add_database)
-        self.delete_database_action.triggered.connect(controller.delete_database)
-        self.copy_database_action.triggered.connect(controller.copy_database)
-        self.add_default_data_button.clicked.connect(controller.install_default_data)
+        self.new_database_button.clicked.connect(signals.add_database.emit)
+        self.delete_database_action.triggered.connect(signals.delete_database.emit)
+        self.copy_database_action.triggered.connect(signals.copy_database.emit)
+        self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
 
     def change_project(self, name):
         self.databases.sync()

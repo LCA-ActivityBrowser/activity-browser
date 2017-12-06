@@ -91,6 +91,8 @@ class Toolbar(QtWidgets.QToolBar):
 
         new_issue_button.clicked.connect(self.create_issue_dialog)
 
+        self.connect_signals()
+
     def create_issue_dialog(self):
         text = self.window.dialog(
             'Report new bug',
@@ -99,11 +101,12 @@ class Toolbar(QtWidgets.QToolBar):
         if text:
             create_issue(text)
 
-    def connect_signals(self, controller):
-        self.change_project_button.clicked.connect(controller.change_project)
-        self.new_project_button.clicked.connect(controller.new_project)
-        self.delete_project_button.clicked.connect(controller.delete_project)
-        self.copy_project_button.clicked.connect(controller.copy_project)
+    def connect_signals(self):
+        # SIGNALS
+        self.change_project_button.clicked.connect(signals.change_project.emit)
+        self.new_project_button.clicked.connect(signals.new_project.emit)
+        self.delete_project_button.clicked.connect(signals.delete_project.emit)
+        self.copy_project_button.clicked.connect(signals.copy_project.emit)
 
         signals.project_selected.connect(self.set_project_label)
 
