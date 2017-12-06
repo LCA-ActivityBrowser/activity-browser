@@ -7,7 +7,7 @@ class MenuBar(object):
         self.window = window
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
-        self.menubar.addMenu(self.setup_extensions_menu())
+        # self.menubar.addMenu(self.setup_extensions_menu())
         self.menubar.addMenu(self.setup_help_menu())
         window.setMenuBar(self.menubar)
 
