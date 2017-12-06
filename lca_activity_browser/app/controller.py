@@ -14,15 +14,9 @@ from bw2data.project import ProjectDataset, create_database
 import os
 
 
-class Container(object):
-    """Generic class that contains data attributes"""
-    pass
-
-
 class Controller(object):
     def __init__(self, window):
         self.window = window
-        self.current = Container()
         signals.project_selected.emit(self.get_default_project_name())
         signals.calculation_setup_changed.connect(
             self.write_current_calculation_setup

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from . import header
-from ..controller import Container
 from .icons import icons
 from .menu_bar import MenuBar
 from .panels import LeftPanel, RightPanel
@@ -17,8 +16,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__(None)
-
-        self.graphics = Container()
 
         # Window title
         self.setWindowTitle("Activity Browser")
