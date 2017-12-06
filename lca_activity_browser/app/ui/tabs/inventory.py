@@ -3,7 +3,7 @@ import brightway2 as bw
 from ..tables import (
     ActivitiesTableWidget,
     DatabasesTableWidget,
-    FlowsTableWidget,
+    BiosphereFlowsTableWidget,
 )
 from .. import header
 from ...signals import signals
@@ -77,7 +77,7 @@ class MaybeActivitiesTable(MaybeTable):
 
 class MaybeFlowsTable(MaybeTable):
     NO = 'This database has no biosphere flows'
-    TABLE = FlowsTableWidget
+    TABLE = BiosphereFlowsTableWidget
     HEADER = 'Biosphere flows:'
     searchable = True
 
@@ -138,8 +138,13 @@ class InventoryTab(QtWidgets.QWidget):
         )
 
         inventory_layout = QtWidgets.QVBoxLayout()
+        # inventory_layout.addStretch(200)
         inventory_layout.addWidget(self.activities_table)
+        # inventory_layout.setStretch(0, 10)
+        # inventory_layout.addStretch(3)
         inventory_layout.addWidget(self.flows_table)
+        # inventory_layout.setStretch(1, 1)
+        # inventory_layout.addStretch(1)
 
         self.inventory_container = QtWidgets.QWidget()
         self.inventory_container.setLayout(inventory_layout)

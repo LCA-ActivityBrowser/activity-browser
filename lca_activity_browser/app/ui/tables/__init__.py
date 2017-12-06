@@ -1,5 +1,5 @@
 from .activity import ActivitiesTableWidget
-from .biosphere import FlowsTableWidget
+from .biosphere import BiosphereFlowsTableWidget
 from .calculation_setups import (
     CSActivityTableWidget,
     CSList,

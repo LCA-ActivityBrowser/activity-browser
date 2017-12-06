@@ -8,7 +8,7 @@ from . table import ActivityBrowserTableWidget
 
 
 
-class FlowsTableWidget(ActivityBrowserTableWidget):
+class BiosphereFlowsTableWidget(ActivityBrowserTableWidget):
     COUNT = 100
     COLUMNS = {
         0: "name",
@@ -16,7 +16,7 @@ class FlowsTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self):
-        super(FlowsTableWidget, self).__init__()
+        super(BiosphereFlowsTableWidget, self).__init__()
         self.setColumnCount(3)
         self.setDragEnabled(True)
         self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])
@@ -38,6 +38,9 @@ class FlowsTableWidget(ActivityBrowserTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        # sizePolicy = QtWidgets.QSizePolicy()
+        # sizePolicy.setVerticalStretch(20)
+        # self.setSizePolicy(sizePolicy)
 
     def reset_search(self):
         self.sync(self.database.name)

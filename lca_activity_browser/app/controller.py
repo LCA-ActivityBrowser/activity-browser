@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
-from bw2data.backends.peewee import Exchange
-from PyQt5 import QtWidgets
 from .signals import signals
 from .ui.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
-import copy
-import uuid
-from bw2data.project import ProjectDataset, create_database
-import os
 try:
     from . import settings
 except ImportError:
     settings = None
+import brightway2 as bw
+from bw2data.backends.peewee import Exchange
+from PyQt5 import QtWidgets
+import copy
+import uuid
+from bw2data.project import ProjectDataset, create_database
+import os
 
 
 class Container(object):
