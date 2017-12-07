@@ -81,7 +81,7 @@ class ExchangeTable(ABTableWidget):
 
     def dropEvent(self, event):
         items = event.source().selectedItems()
-        if isinstance(items[0], ActivityItem):
+        if isinstance(items[0], ABTableItem):
             signals.exchanges_add.emit([x.key for x in items], self.qs._key)
         else:
             signals.exchanges_output_modified.emit(
@@ -158,8 +158,5 @@ class ExchangeTable(ABTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-        # self.setMaximumHeight(
-        #         + table.rowHeight(2)
-        #         + table.autoScrollMargin()
-        #     )
+        self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1))  # make tables as small as possible
         self.ignore_changes = False
