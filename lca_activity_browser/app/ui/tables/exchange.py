@@ -1,47 +1,24 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from .activity import ActivityItem, ActivitiesTableWidget
-from .biosphere import BiosphereFlowsTableWidget
-from . table import ActivityBrowserTableWidget
+from .activity import ActivityItem, ActivitiesTable
+from .biosphere import BiosphereFlowsTable
+from .table import ABTableWidget, ABTableItem
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Reference(QtWidgets.QTableWidgetItem):
-    def __init__(self, exchange, direction, *args):
-        super(Reference, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.exchange = exchange
-        self.direction = direction
-
-
-class Amount(QtWidgets.QTableWidgetItem):
-    def __init__(self, exchange, *args):
-        super(Amount, self).__init__(*args)
-        # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
-        self.exchange = exchange
-        self.previous = self.text()
-
-
-class ReadOnly(QtWidgets.QTableWidgetItem):
-    def __init__(self, *args):
-        super(ReadOnly, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-
-
-class ExchangeTableWidget(ActivityBrowserTableWidget):
+class ExchangeTable(ABTableWidget):
     COLUMN_LABELS = {
+        # Production
+        (False, True): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
         # Normal technosphere
-        (False, False): ["Activity", "Product", "Amount", "Database",
-                         "Location", "Unit", "Uncertain"],
+        (False, False): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
         # Biosphere
         (True, False): ["Name", "Amount", "Unit", "Database", "Categories", "Uncertain"],
-        # Production
-        (False, True): ["Product", "Amount", "Unit", "Uncertain"],
     }
 
     def __init__(self, parent, biosphere=False, production=False):
-        super(ExchangeTableWidget, self).__init__()
+        super(ExchangeTable, self).__init__()
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
@@ -59,8 +36,13 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
         self.addAction(self.delete_exchange_action)
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
 
+        self.connect_signals()
+
+    def connect_signals(self):
+        # SIGNALS
         self.cellChanged.connect(self.filter_amount_change)
         self.cellDoubleClicked.connect(self.filter_clicks)
+        # SLOTS
         signals.database_changed.connect(self.filter_database_changed)
 
     def delete_exchanges(self, event):
@@ -70,9 +52,9 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
 
     def dragEnterEvent(self, event):
         acceptable = (
-            ActivitiesTableWidget,
-            ExchangeTableWidget,
-            BiosphereFlowsTableWidget,
+            ActivitiesTable,
+            ExchangeTable,
+            BiosphereFlowsTable,
         )
         if isinstance(event.source(), acceptable):
             event.accept()
@@ -82,6 +64,8 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
         if isinstance(items[0], ActivityItem):
             signals.exchanges_add.emit([x.key for x in items], self.qs._key)
         else:
+            print(items)
+            print(items.exchange)
             signals.exchanges_output_modified.emit(
                 [x.exchange for x in items], self.qs._key
             )
@@ -92,34 +76,34 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
             self.sync()
 
     def filter_amount_change(self, row, col):
-        if not col == 2 or self.ignore_changes:
-            return
         try:
             item = self.item(row, col)
-            if item.text() == item.previous:
+            if self.ignore_changes:
+                return
+            elif item.text() == item.previous:
                 return
             else:
+                value = float(item.text())
                 item.previous = item.text()
-            value = float(item.text())
-            exchange = item.exchange
-            signals.exchange_amount_modified.emit(exchange, value)
-        except:
-            # TODO: Handle error here...
-            pass
+                exchange = item.exchange
+                signals.exchange_amount_modified.emit(exchange, value)
+        except ValueError:
+            print('You can only enter numbers here.')
+            item.setText(item.previous)
 
     def filter_clicks(self, row, col):
-        if self.biosphere or self.production or col != 0:
-            return
+        print('Double clicked on row/col {} {}'.format(row, col))
         item = self.item(row, col)
-        key = (
-            item.exchange.input.key
-            if item.direction == "down"
-            else item.exchange.output.key
-        )
-        if self.upstream:
-            signals.open_activity_tab.emit("left", item.exchange['output'])
-        else:
-            signals.open_activity_tab.emit("left", item.exchange['input'])
+        if self.biosphere or self.production or item.editable:
+            return
+
+        if hasattr(item, "exchange"):
+            if self.upstream:
+                key = item.exchange['output']
+            else:
+                key = item.exchange['input']
+            signals.open_activity_tab.emit("activities", key)
+            signals.add_activity_to_history.emit(key)
 
     def set_queryset(self, database, qs, limit=100, upstream=False):
         self.database, self.qs, self.upstream = database, qs, upstream
@@ -141,92 +125,23 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
             if row == limit:
                 break
 
-            if self.production:  # "Product", "Amount", "Unit", "Uncertain"
-                self.setItem(
-                    row,
-                    0,
-                    Reference(
-                        exc,
-                        direction,
-                        obj['name'],
-                    )
-                )
-                self.setItem(
-                    row,
-                    1,
-                    Amount(
-                        exc,
-                        "{:.4g}".format(exc['amount']),
-                    )
-                )
-                self.setItem(row, 2, ReadOnly(obj.get('unit', 'Unknown')))
-                self.setItem(
-                    row,
-                    3,
-                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
-                )
-            elif self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
-                self.setItem(
-                    row,
-                    0,
-                    Reference(
-                        exc,
-                        direction,
-                        obj['name'],
-                    )
-                )
-                self.setItem(
-                    row,
-                    1,
-                    Amount(
-                        exc,
-                        "{:.4g}".format(exc['amount']),
-                    )
-                )
-                self.setItem(row, 2, ReadOnly(obj.get('unit', 'Unknown')))
-                self.setItem(row, 3, ReadOnly(obj['database']))
-                self.setItem(row, 4, ReadOnly(" - ".join(obj.get('categories', []))))
-                self.setItem(
-                    row,
-                    5,
-                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
-                )
+            if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
+                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
+                self.setItem(row, 1, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True))
+                self.setItem(row, 2, ABTableItem(obj.get('unit', 'Unknown')))
+                self.setItem(row, 3, ABTableItem(obj['database']))
+                self.setItem(row, 4, ABTableItem(" - ".join(obj.get('categories', []))))
+                self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
             else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
-                self.setItem(
-                    row,
-                    0,
-                    Reference(
-                        exc,
-                        direction,
-                        obj['name'],
-                    )
-                )
-                self.setItem(
-                    row,
-                    1,
-                    Reference(
-                        exc,
-                        direction,
-                        obj.get('reference product') or obj["name"],
-                    )
-                )
-                self.setItem(
-                    row,
-                    2,
-                    Amount(
-                        exc,
-                        "{:.4g}".format(exc['amount']),
-                    )
-                )
-                self.setItem(row, 3, ReadOnly(obj['database']))
-                self.setItem(row, 4, ReadOnly(obj.get('location', 'Unknown')))
-                self.setItem(row, 5, ReadOnly(obj.get('unit', 'Unknown')))
-                self.setItem(
-                    row,
-                    6,
-                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
-                )
+                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
+                self.setItem(row, 1, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc, direction=direction, ))
+                self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True,))
+                self.setItem(row, 3, ABTableItem(obj['database']))
+                self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown')))
+                self.setItem(row, 5, ABTableItem(obj.get('unit', 'Unknown')))
+                self.setItem(row, 6, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1))  # make tables as small as possible
         self.ignore_changes = False

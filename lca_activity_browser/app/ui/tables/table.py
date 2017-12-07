@@ -3,10 +3,29 @@ from ...signals import signals
 from PyQt5 import QtCore, QtWidgets
 
 
+class ABTableItem(QtWidgets.QTableWidgetItem):
+    def __init__(self, text, **kwargs):
+        super(ABTableItem, self).__init__(text)
+        # assign attributes, e.g. "database", "key", "exchange", "direction", "editable"
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        if hasattr(self, "editable"):
+            if self.editable:
+                self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+                self.previous = self.text()
+        else:
+            self.editable = False
+            self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
 
-class ActivityBrowserTableWidget(QtWidgets.QTableWidget):
+
+class ABTableWidget(QtWidgets.QTableWidget):
     def __init__(self, parent=None, *args):
-        super(ActivityBrowserTableWidget, self).__init__(parent)
+        super(ABTableWidget, self).__init__(parent)
+        # same in all tables:
+        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+    def sync(self):
+        self.clear()
 
     @QtCore.pyqtSlot()
     def keyPressEvent(self, e):

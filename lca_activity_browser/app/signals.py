@@ -29,7 +29,7 @@ class Signals(QtCore.QObject):
 
     # Activity (key, field, new value)
     new_activity = QtCore.pyqtSignal(str)
-    activity_selected = QtCore.pyqtSignal(tuple)
+    add_activity_to_history = QtCore.pyqtSignal(tuple)
 
     activity_modified = QtCore.pyqtSignal(tuple, str, object)
     copy_activity = QtCore.pyqtSignal(tuple)

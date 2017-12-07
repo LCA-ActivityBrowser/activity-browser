@@ -4,11 +4,11 @@ from PyQt5 import QtWidgets
 import itertools
 from ...signals import signals
 from .activity import ActivityItem
-from . table import ActivityBrowserTableWidget
+from . table import ABTableWidget
 
 
 
-class BiosphereFlowsTableWidget(ActivityBrowserTableWidget):
+class BiosphereFlowsTable(ABTableWidget):
     COUNT = 100
     COLUMNS = {
         0: "name",
@@ -16,7 +16,7 @@ class BiosphereFlowsTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self):
-        super(BiosphereFlowsTableWidget, self).__init__()
+        super(BiosphereFlowsTable, self).__init__()
         self.setColumnCount(3)
         self.setDragEnabled(True)
         self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])

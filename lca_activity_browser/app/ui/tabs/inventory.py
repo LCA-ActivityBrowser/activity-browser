@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from ..tables import (
-    ActivitiesTableWidget,
-    DatabasesTableWidget,
-    BiosphereFlowsTableWidget,
+    ActivitiesTable,
+    DatabasesTable,
+    BiosphereFlowsTable,
 )
 from .. import header
 from ...signals import signals
@@ -70,14 +70,14 @@ class MaybeTable(QtWidgets.QWidget):
 
 class MaybeActivitiesTable(MaybeTable):
     NO = 'This database has no technosphere activities'
-    TABLE = ActivitiesTableWidget
+    TABLE = ActivitiesTable
     HEADER = 'Activities:'
     searchable = True
 
 
 class MaybeFlowsTable(MaybeTable):
     NO = 'This database has no biosphere flows'
-    TABLE = BiosphereFlowsTableWidget
+    TABLE = BiosphereFlowsTable
     HEADER = 'Biosphere flows:'
     searchable = True
 
@@ -87,7 +87,7 @@ class InventoryTab(QtWidgets.QWidget):
         super(InventoryTab, self).__init__(parent)
         self.window = parent
 
-        self.databases = DatabasesTableWidget()
+        self.databases = DatabasesTable()
 
         self.activities_table = MaybeActivitiesTable(self)
         self.flows_table = MaybeFlowsTable(self)

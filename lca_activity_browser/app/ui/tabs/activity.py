@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .. import header
-from ..tables import ExchangeTableWidget
+from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
@@ -14,11 +14,11 @@ class ActivityDetailsTab(QtWidgets.QWidget):
 
         self.details_widget = self.get_details_widget()
 
-        container = QtWidgets.QVBoxLayout()
-        container.setAlignment(QtCore.Qt.AlignTop)
-        container.addWidget(self.details_widget)
+        vlayout = QtWidgets.QVBoxLayout()
+        vlayout.setAlignment(QtCore.Qt.AlignTop)
+        vlayout.addWidget(self.details_widget)
 
-        self.setLayout(container)
+        self.setLayout(vlayout)
 
         if activity:
             self.populate(activity)
@@ -34,10 +34,10 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             table.toggle_button.setText("Hide")
 
     def get_details_widget(self):
-        self.production = ExchangeTableWidget(self, production=True)
-        self.inputs = ExchangeTableWidget(self)
-        self.flows = ExchangeTableWidget(self, biosphere=True)
-        self.upstream = ExchangeTableWidget(self)
+        self.production = ExchangeTable(self, production=True)
+        self.inputs = ExchangeTable(self)
+        self.flows = ExchangeTable(self, biosphere=True)
+        self.upstream = ExchangeTable(self)
 
         layout = QtWidgets.QVBoxLayout()
         self.metadata = ActivityDataGrid()

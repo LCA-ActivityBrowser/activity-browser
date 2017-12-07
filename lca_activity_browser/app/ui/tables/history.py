@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from . table import ActivityBrowserTableWidget
+from . table import ABTableWidget
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Item(QtWidgets.QTableWidgetItem):
+class ActivityHistoryItem(QtWidgets.QTableWidgetItem):
     def __init__(self, key, *args):
-        super(Item, self).__init__(*args)
+        super(ActivityHistoryItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
 
 
-class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
+class ActivitiesHistoryTable(ABTableWidget):
     COUNT = 40
     COLUMNS = {
         0: "name",
@@ -23,7 +23,7 @@ class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self, *args):
-        super(ActivitiesHistoryWidget, self).__init__(*args)
+        super(ActivitiesHistoryTable, self).__init__(*args)
         self.setDragEnabled(True)
         self.setColumnCount(4)
         self.setRowCount(0)
@@ -33,7 +33,7 @@ class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
             lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
         )
         self.itemDoubleClicked.connect(
-            lambda x: signals.activity_selected.emit(x.key)
+            lambda x: signals.add_activity_to_history.emit(x.key)
         )
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.open_left_tab_action = QtWidgets.QAction(
@@ -46,7 +46,7 @@ class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
             )
         )
 
-        signals.activity_selected.connect(self.add_activity)
+        signals.add_activity_to_history.connect(self.add_activity)
         signals.project_selected.connect(self.clear_history)
 
     def add_activity(self, key):
@@ -58,7 +58,7 @@ class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
         ds = bw.get_activity(key)
         self.insertRow(0)
         for col, value in self.COLUMNS.items():
-            self.setItem(0, col, Item(key, ds.get(value, '')))
+            self.setItem(0, col, ActivityHistoryItem(key, ds.get(value, '')))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

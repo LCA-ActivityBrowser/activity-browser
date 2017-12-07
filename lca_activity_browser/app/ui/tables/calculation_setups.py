@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from .activity import ActivitiesTableWidget
-from .table import ActivityBrowserTableWidget
-from .ia import MethodsTableWidget
+from .activity import ActivitiesTable
+from .table import ABTableWidget
+from .ia import MethodsTable
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -42,7 +42,7 @@ class CSAmount(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class CSActivityTableWidget(ActivityBrowserTableWidget):
+class CSActivityTable(ABTableWidget):
     COLUMNS = {
         0: "name",
         1: "amount",
@@ -50,7 +50,7 @@ class CSActivityTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self):
-        super(CSActivityTableWidget, self).__init__()
+        super(CSActivityTable, self).__init__()
         self.setColumnCount(3)
         self.setSortingEnabled(True)
         self.setAcceptDrops(True)
@@ -64,6 +64,7 @@ class CSActivityTableWidget(ActivityBrowserTableWidget):
         )
         self.addAction(self.delete_row_action)
         self.delete_row_action.triggered.connect(self.delete_rows)
+
 
     def sync(self, name):
         self.cellChanged.disconnect(self.filter_amount_change)
@@ -96,7 +97,7 @@ class CSActivityTableWidget(ActivityBrowserTableWidget):
         signals.calculation_setup_changed.emit()
 
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), ActivitiesTableWidget):
+        if isinstance(event.source(), ActivitiesTable):
             event.accept()
 
     def dropEvent(self, event):
@@ -134,9 +135,9 @@ class CSMethodItem(QtWidgets.QTableWidgetItem):
         self.method = method
 
 
-class CSMethodsTableWidget(ActivityBrowserTableWidget):
+class CSMethodsTable(ABTableWidget):
     def __init__(self):
-        super(CSMethodsTableWidget, self).__init__()
+        super(CSMethodsTable, self).__init__()
         self.setColumnCount(1)
         self.setSortingEnabled(True)
         self.setAcceptDrops(True)
@@ -164,7 +165,7 @@ class CSMethodsTableWidget(ActivityBrowserTableWidget):
         self.resizeRowsToContents()
 
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), MethodsTableWidget):
+        if isinstance(event.source(), MethodsTable):
             event.accept()
 
     def dropEvent(self, event):

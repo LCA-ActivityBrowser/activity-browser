@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from . table import ActivityBrowserTableWidget
+from . table import ABTableWidget
 from brightway2 import Database
 from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
@@ -14,7 +14,7 @@ class ActivityItem(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class ActivitiesTableWidget(ActivityBrowserTableWidget):
+class ActivitiesTable(ABTableWidget):
     COUNT = 500
     COLUMNS = {
         0: "name",
@@ -24,7 +24,7 @@ class ActivitiesTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self, parent=None):
-        super(ActivitiesTableWidget, self).__init__(parent)
+        super(ActivitiesTable, self).__init__(parent)
         self.setDragEnabled(True)
         self.setColumnCount(4)
 
@@ -35,7 +35,7 @@ class ActivitiesTableWidget(ActivityBrowserTableWidget):
             lambda x: signals.open_activity_tab.emit("activities", x.key)
         )
         self.itemDoubleClicked.connect(
-            lambda x: signals.activity_selected.emit(x.key)
+            lambda x: signals.add_activity_to_history.emit(x.key)
         )
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -71,7 +71,7 @@ class ActivitiesTableWidget(ActivityBrowserTableWidget):
         signals.database_changed.connect(self.filter_database_changed)
 
     def sync(self, name):
-        self.clear()
+        super().sync()
         self.database = Database(name)
         self.database.order_by = 'name'
         self.database.filters = {'type': 'process'}
