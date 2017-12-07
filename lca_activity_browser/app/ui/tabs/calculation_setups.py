@@ -114,16 +114,20 @@ class CalculationSetupTab(QtWidgets.QWidget):
 
         self.setLayout(container)
 
-    def connect_signals(self, controller=None):
-        signals.project_selected.connect(self.set_default_calculation_setup)
-        signals.calculation_setup_selected.connect(self.show_details)
+        self.connect_signals()
+
+    def connect_signals(self):
+        # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
         self.sankey_button.clicked.connect(self.open_sankey)
-        if controller:
-            """Signals that alter data and need access to Controller"""
-            self.new_cs_button.clicked.connect(controller.new_calculation_setup)
-            self.delete_cs_button.clicked.connect(controller.delete_calculation_setup)
-            self.rename_cs_button.clicked.connect(controller.rename_calculation_setup)
+
+        self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
+        self.delete_cs_button.clicked.connect(signals.delete_calculation_setup.emit)
+        self.rename_cs_button.clicked.connect(signals.rename_calculation_setup.emit)
+
+        # Slots
+        signals.project_selected.connect(self.set_default_calculation_setup)
+        signals.calculation_setup_selected.connect(self.show_details)
 
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)

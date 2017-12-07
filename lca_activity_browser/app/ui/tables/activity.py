@@ -85,6 +85,15 @@ class ActivitiesTableWidget(ActivityBrowserTableWidget):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
+        # sizePolicy = QtWidgets.QSizePolicy()
+        # sizePolicy.setVerticalStretch(1)
+        # self.setSizePolicy(sizePolicy)
+        # self.setMaximumHeight(
+        #     # btable.horizontalHeader().height()
+        #     + 5*self.rowHeight(0)
+        #     + self.autoScrollMargin()
+        # )
+
     def filter_database_changed(self, database_name):
         if not hasattr(self, "database") or self.database.name != database_name:
             return

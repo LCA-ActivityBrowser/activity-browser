@@ -2,7 +2,7 @@
 from ...signals import signals
 from ..icons import icons
 from .activity import ActivityItem, ActivitiesTableWidget
-from .biosphere import FlowsTableWidget
+from .biosphere import BiosphereFlowsTableWidget
 from . table import ActivityBrowserTableWidget
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -72,7 +72,7 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
         acceptable = (
             ActivitiesTableWidget,
             ExchangeTableWidget,
-            FlowsTableWidget,
+            BiosphereFlowsTableWidget,
         )
         if isinstance(event.source(), acceptable):
             event.accept()
