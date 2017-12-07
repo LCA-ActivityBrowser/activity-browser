@@ -99,10 +99,11 @@ class ExchangeTable(ABTableWidget):
 
         if hasattr(item, "exchange"):
             if self.upstream:
-                signals.open_activity_tab.emit("activities", item.exchange['output'])
+                key = item.exchange['output']
             else:
-                signals.open_activity_tab.emit("activities", item.exchange['input'])
-                print(item.exchange['input'])
+                key = item.exchange['input']
+            signals.open_activity_tab.emit("activities", key)
+            signals.add_activity_to_history.emit(key)
 
     def set_queryset(self, database, qs, limit=100, upstream=False):
         self.database, self.qs, self.upstream = database, qs, upstream

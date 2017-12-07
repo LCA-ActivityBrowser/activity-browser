@@ -35,7 +35,7 @@ class ActivitiesTable(ABTableWidget):
             lambda x: signals.open_activity_tab.emit("activities", x.key)
         )
         self.itemDoubleClicked.connect(
-            lambda x: signals.activity_selected.emit(x.key)
+            lambda x: signals.add_activity_to_history.emit(x.key)
         )
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
