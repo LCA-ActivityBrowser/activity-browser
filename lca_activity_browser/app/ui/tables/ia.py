@@ -13,22 +13,22 @@ class MethodItem(QtWidgets.QTableWidgetItem):
         self.method = method
 
 
-class Number(QtWidgets.QTableWidgetItem):
+class NumberItem(QtWidgets.QTableWidgetItem):
     def __init__(self, method, number, *args):
-        super(Number, self).__init__(*args)
+        super(NumberItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.number = number
         self.method = method
 
     def __lt__(self, other):
-        if isinstance(other, Number):
+        if isinstance(other, NumberItem):
             return self.number < other.number
-        return super(Number, self).__lt__(other)
+        return super(NumberItem, self).__lt__(other)
 
 
-class MethodsTableWidget(ActivityBrowserTableWidget):
+class MethodsTable(ActivityBrowserTableWidget):
     def __init__(self):
-        super(MethodsTableWidget, self).__init__()
+        super(MethodsTable, self).__init__()
         self.setColumnCount(3)
         self.setDragEnabled(True)
         self.setSortingEnabled(True)
@@ -57,7 +57,7 @@ class MethodsTableWidget(ActivityBrowserTableWidget):
             self.setItem(row, 0, MethodItem(method, name))
             self.setItem(row, 1, MethodItem(method, data.get('unit', "Unknown")))
             num_cfs = data.get('num_cfs', 0)
-            self.setItem(row, 2, Number(method, num_cfs, str(num_cfs)))
+            self.setItem(row, 2, NumberItem(method, num_cfs, str(num_cfs)))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -70,7 +70,7 @@ class CFItem(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class CFsTableWidget(ActivityBrowserTableWidget):
+class CFTable(ActivityBrowserTableWidget):
     COLUMNS = {
         0: "name",
         1: "amount",
@@ -79,7 +79,7 @@ class CFsTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self):
-        super(CFsTableWidget, self).__init__()
+        super(CFTable, self).__init__()
         self.setVisible(False)
         self.setColumnCount(4)
         self.setSortingEnabled(True)

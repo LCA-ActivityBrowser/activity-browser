@@ -1,35 +1,35 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from .activity import ActivityItem, ActivitiesTableWidget
-from .biosphere import BiosphereFlowsTableWidget
+from .activity import ActivityItem, ActivitiesTable
+from .biosphere import BiosphereFlowsTable
 from . table import ActivityBrowserTableWidget
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Reference(QtWidgets.QTableWidgetItem):
+class ReferenceItem(QtWidgets.QTableWidgetItem):
     def __init__(self, exchange, direction, *args):
-        super(Reference, self).__init__(*args)
+        super(ReferenceItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.exchange = exchange
         self.direction = direction
 
 
-class Amount(QtWidgets.QTableWidgetItem):
+class AmountItem(QtWidgets.QTableWidgetItem):
     def __init__(self, exchange, *args):
-        super(Amount, self).__init__(*args)
+        super(AmountItem, self).__init__(*args)
         # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
         self.exchange = exchange
         self.previous = self.text()
 
 
-class ReadOnly(QtWidgets.QTableWidgetItem):
+class ReadOnlyItem(QtWidgets.QTableWidgetItem):
     def __init__(self, *args):
-        super(ReadOnly, self).__init__(*args)
+        super(ReadOnlyItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 
-class ExchangeTableWidget(ActivityBrowserTableWidget):
+class ExchangeTable(ActivityBrowserTableWidget):
     COLUMN_LABELS = {
         # Normal technosphere
         (False, False): ["Activity", "Product", "Amount", "Database",
@@ -41,7 +41,7 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self, parent, biosphere=False, production=False):
-        super(ExchangeTableWidget, self).__init__()
+        super(ExchangeTable, self).__init__()
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
@@ -59,9 +59,23 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
         self.addAction(self.delete_exchange_action)
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
 
+        if not biosphere and not production:
+            # self.itemDoubleClicked.connect(self.goto_activity)
+            self.itemDoubleClicked.connect(
+                lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+            )
+        self.connect_signals()
+
+    def connect_signals(self):
+        # SIGNALS
         self.cellChanged.connect(self.filter_amount_change)
         self.cellDoubleClicked.connect(self.filter_clicks)
+        # SLOTS
         signals.database_changed.connect(self.filter_database_changed)
+
+    # def goto_activity(self, item):
+    #     print(item)
+
 
     def delete_exchanges(self, event):
         signals.exchanges_deleted.emit(
@@ -70,9 +84,9 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
 
     def dragEnterEvent(self, event):
         acceptable = (
-            ActivitiesTableWidget,
-            ExchangeTableWidget,
-            BiosphereFlowsTableWidget,
+            ActivitiesTable,
+            ExchangeTable,
+            BiosphereFlowsTable,
         )
         if isinstance(event.source(), acceptable):
             event.accept()
@@ -145,7 +159,7 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
                 self.setItem(
                     row,
                     0,
-                    Reference(
+                    ReferenceItem(
                         exc,
                         direction,
                         obj['name'],
@@ -154,22 +168,22 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
                 self.setItem(
                     row,
                     1,
-                    Amount(
+                    AmountItem(
                         exc,
                         "{:.4g}".format(exc['amount']),
                     )
                 )
-                self.setItem(row, 2, ReadOnly(obj.get('unit', 'Unknown')))
+                self.setItem(row, 2, ReadOnlyItem(obj.get('unit', 'Unknown')))
                 self.setItem(
                     row,
                     3,
-                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
+                    ReadOnlyItem("True" if exc.get("uncertainty type", 0) > 1 else "False")
                 )
             elif self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
                 self.setItem(
                     row,
                     0,
-                    Reference(
+                    ReferenceItem(
                         exc,
                         direction,
                         obj['name'],
@@ -178,24 +192,24 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
                 self.setItem(
                     row,
                     1,
-                    Amount(
+                    AmountItem(
                         exc,
                         "{:.4g}".format(exc['amount']),
                     )
                 )
-                self.setItem(row, 2, ReadOnly(obj.get('unit', 'Unknown')))
-                self.setItem(row, 3, ReadOnly(obj['database']))
-                self.setItem(row, 4, ReadOnly(" - ".join(obj.get('categories', []))))
+                self.setItem(row, 2, ReadOnlyItem(obj.get('unit', 'Unknown')))
+                self.setItem(row, 3, ReadOnlyItem(obj['database']))
+                self.setItem(row, 4, ReadOnlyItem(" - ".join(obj.get('categories', []))))
                 self.setItem(
                     row,
                     5,
-                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
+                    ReadOnlyItem("True" if exc.get("uncertainty type", 0) > 1 else "False")
                 )
             else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
                 self.setItem(
                     row,
                     0,
-                    Reference(
+                    ReferenceItem(
                         exc,
                         direction,
                         obj['name'],
@@ -204,7 +218,7 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
                 self.setItem(
                     row,
                     1,
-                    Reference(
+                    ReferenceItem(
                         exc,
                         direction,
                         obj.get('reference product') or obj["name"],
@@ -213,18 +227,18 @@ class ExchangeTableWidget(ActivityBrowserTableWidget):
                 self.setItem(
                     row,
                     2,
-                    Amount(
+                    AmountItem(
                         exc,
                         "{:.4g}".format(exc['amount']),
                     )
                 )
-                self.setItem(row, 3, ReadOnly(obj['database']))
-                self.setItem(row, 4, ReadOnly(obj.get('location', 'Unknown')))
-                self.setItem(row, 5, ReadOnly(obj.get('unit', 'Unknown')))
+                self.setItem(row, 3, ReadOnlyItem(obj['database']))
+                self.setItem(row, 4, ReadOnlyItem(obj.get('location', 'Unknown')))
+                self.setItem(row, 5, ReadOnlyItem(obj.get('unit', 'Unknown')))
                 self.setItem(
                     row,
                     6,
-                    ReadOnly("True" if exc.get("uncertainty type", 0) > 1 else "False")
+                    ReadOnlyItem("True" if exc.get("uncertainty type", 0) > 1 else "False")
                 )
 
         self.resizeColumnsToContents()

@@ -14,7 +14,7 @@ class ActivityItem(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class ActivitiesTableWidget(ActivityBrowserTableWidget):
+class ActivitiesTable(ActivityBrowserTableWidget):
     COUNT = 500
     COLUMNS = {
         0: "name",
@@ -24,7 +24,7 @@ class ActivitiesTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self, parent=None):
-        super(ActivitiesTableWidget, self).__init__(parent)
+        super(ActivitiesTable, self).__init__(parent)
         self.setDragEnabled(True)
         self.setColumnCount(4)
 

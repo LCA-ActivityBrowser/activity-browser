@@ -4,9 +4,9 @@ from brightway2 import get_activity
 from PyQt5 import QtCore, QtWidgets
 
 
-class ReadOnly(QtWidgets.QTableWidgetItem):
+class ReadOnlyItem(QtWidgets.QTableWidgetItem):
     def __init__(self, *args):
-        super(ReadOnly, self).__init__(*args)
+        super(ReadOnlyItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 
@@ -24,7 +24,7 @@ class LCAResultsTable(ActivityBrowserTableWidget):
 
         for row in range(len(lca.func_units)):
             for col in range(len(lca.methods)):
-                self.setItem(row, col, ReadOnly("{:.4g}".format(lca.results[row, col])))
+                self.setItem(row, col, ReadOnlyItem("{:.4g}".format(lca.results[row, col])))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

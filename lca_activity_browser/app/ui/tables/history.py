@@ -6,14 +6,14 @@ import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Item(QtWidgets.QTableWidgetItem):
+class ActivityHistoryItem(QtWidgets.QTableWidgetItem):
     def __init__(self, key, *args):
-        super(Item, self).__init__(*args)
+        super(ActivityHistoryItem, self).__init__(*args)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
         self.key = key
 
 
-class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
+class ActivitiesHistoryTable(ActivityBrowserTableWidget):
     COUNT = 40
     COLUMNS = {
         0: "name",
@@ -23,7 +23,7 @@ class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self, *args):
-        super(ActivitiesHistoryWidget, self).__init__(*args)
+        super(ActivitiesHistoryTable, self).__init__(*args)
         self.setDragEnabled(True)
         self.setColumnCount(4)
         self.setRowCount(0)
@@ -58,7 +58,7 @@ class ActivitiesHistoryWidget(ActivityBrowserTableWidget):
         ds = bw.get_activity(key)
         self.insertRow(0)
         for col, value in self.COLUMNS.items():
-            self.setItem(0, col, Item(key, ds.get(value, '')))
+            self.setItem(0, col, ActivityHistoryItem(key, ds.get(value, '')))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

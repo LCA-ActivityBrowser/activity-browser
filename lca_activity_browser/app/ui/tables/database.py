@@ -14,9 +14,9 @@ class DatabaseItem(QtWidgets.QTableWidgetItem):
         self.db_name = db_name
 
 
-class DatabasesTableWidget(ActivityBrowserTableWidget):
+class DatabasesTable(ActivityBrowserTableWidget):
     def __init__(self):
-        super(DatabasesTableWidget, self).__init__()
+        super(DatabasesTable, self).__init__()
         self.setColumnCount(3)
         self.sync()
 

@@ -8,7 +8,7 @@ from . table import ActivityBrowserTableWidget
 
 
 
-class BiosphereFlowsTableWidget(ActivityBrowserTableWidget):
+class BiosphereFlowsTable(ActivityBrowserTableWidget):
     COUNT = 100
     COLUMNS = {
         0: "name",
@@ -16,7 +16,7 @@ class BiosphereFlowsTableWidget(ActivityBrowserTableWidget):
     }
 
     def __init__(self):
-        super(BiosphereFlowsTableWidget, self).__init__()
+        super(BiosphereFlowsTable, self).__init__()
         self.setColumnCount(3)
         self.setDragEnabled(True)
         self.setHorizontalHeaderLabels(["Name", "Categories", "Unit"])

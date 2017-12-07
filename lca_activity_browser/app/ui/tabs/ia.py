@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .. import horizontal_line, header
-from ..tables import CFsTableWidget, MethodsTableWidget
+from ..tables import CFTable, MethodsTable
 from ...signals import signals
 from PyQt5 import QtCore, QtWidgets
 
@@ -12,7 +12,7 @@ class CFsTab(QtWidgets.QWidget):
         super(CFsTab, self).__init__(parent)
         self.panel = parent
         # Not visible when instantiated
-        self.cf_table = CFsTableWidget()
+        self.cf_table = CFTable()
         self.no_method_label = QtWidgets.QLabel(self.NO_METHOD)
         container = QtWidgets.QVBoxLayout()
         container.addWidget(header('Characterization Factors:'))
@@ -44,7 +44,7 @@ class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(MethodsTab, self).__init__(parent)
 
-        self.table = MethodsTableWidget()
+        self.table = MethodsTable()
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Filter LCIA methods")
         reset_search_buton = QtWidgets.QPushButton("Reset")

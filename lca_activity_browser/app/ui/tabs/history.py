@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .. import horizontal_line, header
-from ..tables import ActivitiesHistoryWidget
+from ..tables import ActivitiesHistoryTable
 from PyQt5 import QtCore, QtWidgets
 
 
@@ -11,5 +11,5 @@ class HistoryTab(QtWidgets.QWidget):
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.layout.addWidget(header("Activity selection history:"))
         self.layout.addWidget(horizontal_line())
-        self.layout.addWidget(ActivitiesHistoryWidget(self))
+        self.layout.addWidget(ActivitiesHistoryTable(self))
         self.setLayout(self.layout)

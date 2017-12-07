@@ -1,12 +1,12 @@
-from .activity import ActivitiesTableWidget
-from .biosphere import BiosphereFlowsTableWidget
+from .activity import ActivitiesTable
+from .biosphere import BiosphereFlowsTable
 from .calculation_setups import (
-    CSActivityTableWidget,
+    CSActivityTable,
     CSList,
-    CSMethodsTableWidget,
+    CSMethodsTable,
 )
-from .database import DatabasesTableWidget
-from .exchange import ExchangeTableWidget
-from .history import ActivitiesHistoryWidget
-from .ia import CFsTableWidget, MethodsTableWidget
+from .database import DatabasesTable
+from .exchange import ExchangeTable
+from .history import ActivitiesHistoryTable
+from .ia import CFTable, MethodsTable
 from .lca_results import LCAResultsTable

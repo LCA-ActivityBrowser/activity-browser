@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from brightway2 import calculation_setups
 from ..tables import (
-    CSActivityTableWidget,
+    CSActivityTable,
     CSList,
-    CSMethodsTableWidget,
+    CSMethodsTable,
 )
 from .. import horizontal_line, header
 from ...signals import signals
@@ -79,8 +79,8 @@ class CalculationSetupTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(CalculationSetupTab, self).__init__(parent)
 
-        self.activities_table = CSActivityTableWidget()
-        self.methods_table = CSMethodsTableWidget()
+        self.activities_table = CSActivityTable()
+        self.methods_table = CSMethodsTable()
         self.list_widget = CSList()
 
         self.new_cs_button = QtWidgets.QPushButton('New')
