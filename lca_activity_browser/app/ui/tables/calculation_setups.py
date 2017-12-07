@@ -2,6 +2,7 @@
 from ...signals import signals
 from ..icons import icons
 from .activity import ActivitiesTableWidget
+from .table import ActivityBrowserTableWidget
 from .ia import MethodsTableWidget
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -41,7 +42,7 @@ class CSAmount(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class CSActivityTableWidget(QtWidgets.QTableWidget):
+class CSActivityTableWidget(ActivityBrowserTableWidget):
     COLUMNS = {
         0: "name",
         1: "amount",
@@ -133,7 +134,7 @@ class CSMethodItem(QtWidgets.QTableWidgetItem):
         self.method = method
 
 
-class CSMethodsTableWidget(QtWidgets.QTableWidget):
+class CSMethodsTableWidget(ActivityBrowserTableWidget):
     def __init__(self):
         super(CSMethodsTableWidget, self).__init__()
         self.setColumnCount(1)
