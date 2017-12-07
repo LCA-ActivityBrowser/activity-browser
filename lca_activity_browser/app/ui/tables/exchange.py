@@ -110,15 +110,17 @@ class ExchangeTable(ABTableWidget):
             item.setText(item.previous)
 
     def filter_clicks(self, row, col):
-        # print('Double clicked on row/col {} {}'.format(row, col))
-        if self.biosphere or self.production or col != 0:
-            return
+        print('Double clicked on row/col {} {}'.format(row, col))
         item = self.item(row, col)
-        if self.upstream:
-            signals.open_activity_tab.emit("activities", item.exchange['output'])
-        else:
-            signals.open_activity_tab.emit("activities", item.exchange['input'])
-            # print(item.exchange['input'])
+        if self.biosphere or self.production or item.editable:
+            return
+
+        if hasattr(item, "exchange"):
+            if self.upstream:
+                signals.open_activity_tab.emit("activities", item.exchange['output'])
+            else:
+                signals.open_activity_tab.emit("activities", item.exchange['input'])
+                print(item.exchange['input'])
 
     def set_queryset(self, database, qs, limit=100, upstream=False):
         self.database, self.qs, self.upstream = database, qs, upstream

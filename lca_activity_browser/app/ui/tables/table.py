@@ -6,15 +6,15 @@ from PyQt5 import QtCore, QtWidgets
 class ABTableItem(QtWidgets.QTableWidgetItem):
     def __init__(self, text, **kwargs):
         super(ABTableItem, self).__init__(text)
-        self.database = kwargs.get('database')
-        self.key = kwargs.get('key')
-        self.exchange = kwargs.get('exchange')
-        self.direction = kwargs.get('direction')
-        self.editable = kwargs.get('editable') or False
-        if self.editable:
-            self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
-            self.previous = self.text()
+        # assign attributes, e.g. "database", "key", "exchange", "direction", "editable"
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        if hasattr(self, "editable"):
+            if self.editable:
+                self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+                self.previous = self.text()
         else:
+            self.editable = False
             self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
 
 
