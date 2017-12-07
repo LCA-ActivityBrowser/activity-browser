@@ -17,10 +17,11 @@ class ActivityDataGrid(QtWidgets.QWidget):
     def get_grid(self):
         grid = QtWidgets.QGridLayout()
         grid.setSpacing(10)
+        right_side = 10
 
         grid.addWidget(QtWidgets.QLabel('Database'), 1, 1)
         self.database = QtWidgets.QLabel('')
-        grid.addWidget(self.database, 1, 2, 1, 3)
+        grid.addWidget(self.database, 1, 2, 1, right_side)
 
         grid.addWidget(QtWidgets.QLabel('Name'), 2, 1)
         self.name_box = SignalledLineEdit(
@@ -29,7 +30,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             parent=self,
         )
         self.name_box.setPlaceholderText("Activity name")
-        grid.addWidget(self.name_box, 2, 2, 1, 3)
+        grid.addWidget(self.name_box, 2, 2, 1, right_side)
 
         grid.addWidget(QtWidgets.QLabel('Comment'), 3, 1, 2, 1)
         self.comment_box = SignalledPlainTextEdit(
@@ -37,7 +38,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             field="comment",
             parent=self,
         )
-        grid.addWidget(self.comment_box, 3, 2, 2, 3)
+        grid.addWidget(self.comment_box, 3, 2, 2, right_side)
 
         grid.addWidget(QtWidgets.QLabel('Location'), 4, 1)
         self.location_box = SignalledLineEdit(
@@ -46,7 +47,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             parent=self,
         )
         self.location_box.setPlaceholderText("ISO 2-letter code or custom name")
-        grid.addWidget(self.location_box, 4, 2, 1, 3)
+        grid.addWidget(self.location_box, 4, 2, 1, right_side)
 
         grid.addWidget(QtWidgets.QLabel('Unit'), 5, 1)
         self.unit_box = SignalledLineEdit(

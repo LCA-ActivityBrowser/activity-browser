@@ -4,11 +4,11 @@ from PyQt5 import QtWidgets
 import itertools
 from ...signals import signals
 from .activity import ActivityItem
-from . table import ActivityBrowserTableWidget
+from . table import ABTableWidget
 
 
 
-class BiosphereFlowsTable(ActivityBrowserTableWidget):
+class BiosphereFlowsTable(ABTableWidget):
     COUNT = 100
     COLUMNS = {
         0: "name",

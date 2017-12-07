@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from . table import ActivityBrowserTableWidget
+from . table import ABTableWidget
 from brightway2 import Database
 from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
@@ -14,7 +14,7 @@ class ActivityItem(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class ActivitiesTable(ActivityBrowserTableWidget):
+class ActivitiesTable(ABTableWidget):
     COUNT = 500
     COLUMNS = {
         0: "name",
@@ -71,7 +71,7 @@ class ActivitiesTable(ActivityBrowserTableWidget):
         signals.database_changed.connect(self.filter_database_changed)
 
     def sync(self, name):
-        self.clear()
+        super().sync()
         self.database = Database(name)
         self.database.order_by = 'name'
         self.database.filters = {'type': 'process'}

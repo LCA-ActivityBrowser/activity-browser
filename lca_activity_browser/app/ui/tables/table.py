@@ -4,9 +4,24 @@ from PyQt5 import QtCore, QtWidgets
 
 
 
-class ActivityBrowserTableWidget(QtWidgets.QTableWidget):
+class ABTableWidgetItem(QtWidgets.QTableWidgetItem):
+    def __init__(self, parent=None):
+        super(ABTableWidgetItem, self).__init__(parent)
+        self.activity_or_database_key = None
+        self.key_type = None
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
+        self.uuid_ = None
+
+
+class ABTableWidget(QtWidgets.QTableWidget):
     def __init__(self, parent=None, *args):
-        super(ActivityBrowserTableWidget, self).__init__(parent)
+        super(ABTableWidget, self).__init__(parent)
+        # same in all tables:
+        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+    def sync(self):
+        self.clear()
+
 
     @QtCore.pyqtSlot()
     def keyPressEvent(self, e):

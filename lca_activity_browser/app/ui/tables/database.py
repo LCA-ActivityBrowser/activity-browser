@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
-from . table import ActivityBrowserTableWidget
+from . table import ABTableWidget
 from bw2data import databases
 from bw2data.utils import natural_sort
 from PyQt5 import QtCore, QtWidgets
@@ -14,7 +14,7 @@ class DatabaseItem(QtWidgets.QTableWidgetItem):
         self.db_name = db_name
 
 
-class DatabasesTable(ActivityBrowserTableWidget):
+class DatabasesTable(ABTableWidget):
     def __init__(self):
         super(DatabasesTable, self).__init__()
         self.setColumnCount(3)
@@ -24,7 +24,7 @@ class DatabasesTable(ActivityBrowserTableWidget):
         signals.databases_changed.connect(self.sync)
 
     def sync(self):
-        self.clear()
+        super().sync()
         self.setRowCount(len(databases))
         self.setHorizontalHeaderLabels(["Name", "Depends", "Last modified"])
         for row, name in enumerate(natural_sort(databases)):

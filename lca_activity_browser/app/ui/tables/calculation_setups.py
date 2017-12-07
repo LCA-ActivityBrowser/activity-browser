@@ -2,7 +2,7 @@
 from ...signals import signals
 from ..icons import icons
 from .activity import ActivitiesTable
-from .table import ActivityBrowserTableWidget
+from .table import ABTableWidget
 from .ia import MethodsTable
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -42,7 +42,7 @@ class CSAmount(QtWidgets.QTableWidgetItem):
         self.key = key
 
 
-class CSActivityTable(ActivityBrowserTableWidget):
+class CSActivityTable(ABTableWidget):
     COLUMNS = {
         0: "name",
         1: "amount",
@@ -64,6 +64,7 @@ class CSActivityTable(ActivityBrowserTableWidget):
         )
         self.addAction(self.delete_row_action)
         self.delete_row_action.triggered.connect(self.delete_rows)
+
 
     def sync(self, name):
         self.cellChanged.disconnect(self.filter_amount_change)
@@ -134,7 +135,7 @@ class CSMethodItem(QtWidgets.QTableWidgetItem):
         self.method = method
 
 
-class CSMethodsTable(ActivityBrowserTableWidget):
+class CSMethodsTable(ABTableWidget):
     def __init__(self):
         super(CSMethodsTable, self).__init__()
         self.setColumnCount(1)

@@ -14,11 +14,11 @@ class ActivityDetailsTab(QtWidgets.QWidget):
 
         self.details_widget = self.get_details_widget()
 
-        container = QtWidgets.QVBoxLayout()
-        container.setAlignment(QtCore.Qt.AlignTop)
-        container.addWidget(self.details_widget)
+        vlayout = QtWidgets.QVBoxLayout()
+        vlayout.setAlignment(QtCore.Qt.AlignTop)
+        vlayout.addWidget(self.details_widget)
 
-        self.setLayout(container)
+        self.setLayout(vlayout)
 
         if activity:
             self.populate(activity)
