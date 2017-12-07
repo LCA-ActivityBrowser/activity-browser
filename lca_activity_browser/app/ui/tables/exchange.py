@@ -1,31 +1,11 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from .activity import ActivitiesTable
+from .activity import ActivityItem, ActivitiesTable
 from .biosphere import BiosphereFlowsTable
 from .table import ABTableWidget, ABTableItem
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-
-# class ReadOnlyItem(QtWidgets.QTableWidgetItem):
-#     def __init__(self, exchange, direction, *args):
-#         super(ReadOnlyItem, self).__init__(*args)
-#         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-#         self.exchange = exchange
-#         self.direction = direction
-#
-#
-# class AmountItem(QtWidgets.QTableWidgetItem):
-#     def __init__(self, exchange, *args):
-#         super(AmountItem, self).__init__(*args)
-#         # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
-#         self.exchange = exchange
-#         self.previous = self.text()
-
-# class ReadOnlyItem(QtWidgets.QTableWidgetItem):
-#     def __init__(self, *args):
-#         super(ReadOnlyItem, self).__init__(*args)
-#         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 class ExchangeTable(ABTableWidget):
     COLUMN_LABELS = {
@@ -81,9 +61,11 @@ class ExchangeTable(ABTableWidget):
 
     def dropEvent(self, event):
         items = event.source().selectedItems()
-        if isinstance(items[0], ABTableItem):
+        if isinstance(items[0], ActivityItem):
             signals.exchanges_add.emit([x.key for x in items], self.qs._key)
         else:
+            print(items)
+            print(items.exchange)
             signals.exchanges_output_modified.emit(
                 [x.exchange for x in items], self.qs._key
             )
