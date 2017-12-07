@@ -39,11 +39,6 @@ class ActivityDetailsTab(QtWidgets.QWidget):
         self.flows = ExchangeTable(self, biosphere=True)
         self.upstream = ExchangeTable(self)
 
-        self.production.state = "shown"
-        self.inputs.state = "shown"
-        self.flows.state = "shown"
-        self.upstream.state = "hidden"
-
         layout = QtWidgets.QVBoxLayout()
         self.metadata = ActivityDataGrid()
         layout.addWidget(self.metadata)
