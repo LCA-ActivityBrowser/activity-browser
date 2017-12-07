@@ -28,8 +28,7 @@ requirements:
     - pandas
     - patool
     - beautifulsoup4
-    - pyqt # [osx]
-    - pyqt >=5.9 # [not osx]
+    - pyqt >=5.9
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
