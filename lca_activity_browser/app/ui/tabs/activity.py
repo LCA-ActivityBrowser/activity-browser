@@ -26,23 +26,18 @@ class ActivityDetailsTab(QtWidgets.QWidget):
     def toggle_visible(self, table):
         if table.state == "shown":
             table.state = "hidden"
-            table.toggle_button.setText("hide")
+            table.toggle_button.setText("Show")
             table.hide()
         else:
             table.state = "shown"
             table.show()
-            table.toggle_button.setText("show")
+            table.toggle_button.setText("Hide")
 
     def get_details_widget(self):
         self.production = ExchangeTableWidget(self, production=True)
         self.inputs = ExchangeTableWidget(self)
         self.flows = ExchangeTableWidget(self, biosphere=True)
         self.upstream = ExchangeTableWidget(self)
-
-        self.production.state = "shown"
-        self.inputs.state = "shown"
-        self.flows.state = "shown"
-        self.upstream.state = "shown"
 
         layout = QtWidgets.QVBoxLayout()
         self.metadata = ActivityDataGrid()
