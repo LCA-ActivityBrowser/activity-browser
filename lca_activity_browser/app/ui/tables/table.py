@@ -3,14 +3,19 @@ from ...signals import signals
 from PyQt5 import QtCore, QtWidgets
 
 
-
-class ABTableWidgetItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, parent=None):
-        super(ABTableWidgetItem, self).__init__(parent)
-        self.activity_or_database_key = None
-        self.key_type = None
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
-        self.uuid_ = None
+class ABTableItem(QtWidgets.QTableWidgetItem):
+    def __init__(self, text, **kwargs):
+        super(ABTableItem, self).__init__(text)
+        self.database = kwargs.get('database')
+        self.key = kwargs.get('key')
+        self.exchange = kwargs.get('exchange')
+        self.direction = kwargs.get('direction')
+        self.editable = kwargs.get('editable') or False
+        if self.editable:
+            self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+            self.previous = self.text()
+        else:
+            self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
 
 
 class ABTableWidget(QtWidgets.QTableWidget):
@@ -21,7 +26,6 @@ class ABTableWidget(QtWidgets.QTableWidget):
 
     def sync(self):
         self.clear()
-
 
     @QtCore.pyqtSlot()
     def keyPressEvent(self, e):

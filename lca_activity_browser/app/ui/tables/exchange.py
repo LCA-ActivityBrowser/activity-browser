@@ -1,36 +1,40 @@
 # -*- coding: utf-8 -*-
 from ...signals import signals
 from ..icons import icons
-from .activity import ActivityItem, ActivitiesTable
+from .activity import ActivitiesTable
 from .biosphere import BiosphereFlowsTable
-from . table import ABTableWidget
+from .table import ABTableWidget, ABTableItem
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class ReadOnlyItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, exchange, direction, *args):
-        super(ReadOnlyItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.exchange = exchange
-        self.direction = direction
+# class ReadOnlyItem(QtWidgets.QTableWidgetItem):
+#     def __init__(self, exchange, direction, *args):
+#         super(ReadOnlyItem, self).__init__(*args)
+#         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+#         self.exchange = exchange
+#         self.direction = direction
+#
+#
+# class AmountItem(QtWidgets.QTableWidgetItem):
+#     def __init__(self, exchange, *args):
+#         super(AmountItem, self).__init__(*args)
+#         # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
+#         self.exchange = exchange
+#         self.previous = self.text()
 
-
-class AmountItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, exchange, *args):
-        super(AmountItem, self).__init__(*args)
-        # self.setFlags(self.flags() & QtCore.Qt.ItemIsEditable)
-        self.exchange = exchange
-        self.previous = self.text()
-
+# class ReadOnlyItem(QtWidgets.QTableWidgetItem):
+#     def __init__(self, *args):
+#         super(ReadOnlyItem, self).__init__(*args)
+#         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 class ExchangeTable(ABTableWidget):
     COLUMN_LABELS = {
+        # Production
+        (False, True): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
         # Normal technosphere
         (False, False): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
         # Biosphere
         (True, False): ["Name", "Amount", "Unit", "Database", "Categories", "Uncertain"],
-        # Production
-        (False, True): ["Activity", "Product", "Amount", "Unit", "Uncertain"],
     }
 
     def __init__(self, parent, biosphere=False, production=False):
@@ -92,9 +96,9 @@ class ExchangeTable(ABTableWidget):
     def filter_amount_change(self, row, col):
         try:
             item = self.item(row, col)
-            if not isinstance(item, AmountItem) or self.ignore_changes:
+            if self.ignore_changes:
                 return
-            if item.text() == item.previous:
+            elif item.text() == item.previous:
                 return
             else:
                 value = float(item.text())
@@ -136,28 +140,26 @@ class ExchangeTable(ABTableWidget):
             if row == limit:
                 break
 
-            if self.production:  # "Product", "Amount", "Unit", "Uncertain"
-                self.setItem(row, 0, ReferenceItem(exc, direction, obj['name'],))
-                self.setItem(row, 1, ReferenceItem(exc, direction, obj.get('reference product') or obj["name"], ))
-                self.setItem(row, 2, AmountItem( exc, "{:.4g}".format(exc['amount']),))
-                self.setItem(row, 3, ReadOnlyItem(obj.get('unit', 'Unknown')))
-                self.setItem(row, 4, ReadOnlyItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
-            elif self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
-                self.setItem(row, 0, ReferenceItem(exc, direction, obj['name'],))
-                self.setItem(row, 1, AmountItem(exc, "{:.4g}".format(exc['amount']),))
-                self.setItem(row, 2, ReadOnlyItem(obj.get('unit', 'Unknown')))
-                self.setItem(row, 3, ReadOnlyItem(obj['database']))
-                self.setItem(row, 4, ReadOnlyItem(" - ".join(obj.get('categories', []))))
-                self.setItem(row, 5, ReadOnlyItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+            if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
+                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
+                self.setItem(row, 1, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True))
+                self.setItem(row, 2, ABTableItem(obj.get('unit', 'Unknown')))
+                self.setItem(row, 3, ABTableItem(obj['database']))
+                self.setItem(row, 4, ABTableItem(" - ".join(obj.get('categories', []))))
+                self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
             else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
-                self.setItem(row, 0, ReferenceItem(exc, direction, obj['name'],))
-                self.setItem(row, 1, ReferenceItem(exc, direction, obj.get('reference product') or obj["name"],))
-                self.setItem(row, 2, AmountItem(exc,"{:.4g}".format(exc['amount']),))
-                self.setItem(row, 3, ReadOnlyItem(obj['database']))
-                self.setItem(row, 4, ReadOnlyItem(obj.get('location', 'Unknown')))
-                self.setItem(row, 5, ReadOnlyItem(obj.get('unit', 'Unknown')))
-                self.setItem(row, 6, ReadOnlyItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
+                self.setItem(row, 1, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc, direction=direction, ))
+                self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True,))
+                self.setItem(row, 3, ABTableItem(obj['database']))
+                self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown')))
+                self.setItem(row, 5, ABTableItem(obj.get('unit', 'Unknown')))
+                self.setItem(row, 6, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        # self.setMaximumHeight(
+        #         + table.rowHeight(2)
+        #         + table.autoScrollMargin()
+        #     )
         self.ignore_changes = False
