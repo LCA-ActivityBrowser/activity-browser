@@ -61,12 +61,13 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             inside_layout = QtWidgets.QHBoxLayout()
             inside_layout.addWidget(header(label))
             inside_layout.addWidget(table.toggle_button)
-            inside_layout.addStretch(1)
+            inside_layout.addStretch()
             inside_widget.setLayout(inside_layout)
 
             layout.addWidget(inside_widget)
             layout.addWidget(table)
 
+        layout.addStretch()
         widget = QtWidgets.QWidget(self)
         widget.setLayout(layout)
         return widget
