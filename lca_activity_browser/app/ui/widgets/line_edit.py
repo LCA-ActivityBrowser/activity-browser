@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
 from PyQt5 import QtGui, QtWidgets
+
+from ...signals import signals
 
 
 class SignalledLineEdit(QtWidgets.QLineEdit):
@@ -49,3 +50,17 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
             self._before = after
             signals.activity_modified.emit(self._key, self._field, after)
         super(SignalledPlainTextEdit, self).focusOutEvent(event)
+
+    def adjust_size(self):
+        """ A way to reduce the height of the TextEdit. Could be implemented better.
+        Based on: https://stackoverflow.com/questions/9506586/qtextedit-resize-to-fit
+        """
+        font = self.document().defaultFont()  # or another font if you change it
+        fontMetrics = QtGui.QFontMetrics(font)  # a QFontMetrics based on our font
+        textSize = fontMetrics.size(0, self._before)
+        # textWidth = textSize.width() + 30  # constant may need to be tweaked
+        textHeight = textSize.height() + 30  # constant may need to be tweaked
+        self.setMaximumHeight(textHeight)
+        # print('TextEdit Width/Height: {}/{}'.format(self.width(), self.height()))
+        # print('Text Width/Height: {}/{}'.format(textWidth, textHeight))
+        # print('DocSize:', self.document().size())

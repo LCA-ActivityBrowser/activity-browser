@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
 from PyQt5 import QtCore, QtWidgets
+from ...signals import signals
 
 
 class ABTableItem(QtWidgets.QTableWidgetItem):
@@ -43,6 +43,5 @@ class ABTableWidget(QtWidgets.QTableWidget):
                     s = s[:-1] + "\n"  # eliminate last '\t'
                 signals.copy_selection_to_clipboard.emit(s)
 
-            elif e.key() == QtCore.Qt.Key_V: # paste
+            elif e.key() == QtCore.Qt.Key_V:  # paste
                 pass
-

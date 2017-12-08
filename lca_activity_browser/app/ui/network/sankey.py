@@ -2,10 +2,12 @@
 import os
 import json
 import collections
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+
 import numpy as np
 import brightway2 as bw
 import matplotlib.pyplot as plt
+from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+
 from .signals import sankeysignals
 from .worker_threads import gt_worker_thread
 

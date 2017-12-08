@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from .. import activity_cache
-from ...signals import signals
-from ..tabs import ActivityDetailsTab
-from ..utils import get_name
 import brightway2 as bw
 from PyQt5 import QtWidgets
+
+from .. import activity_cache
+from ..tabs import ActivityDetailsTab
+from ..utils import get_name
+from ...signals import signals
 
 
 class Panel(QtWidgets.QTabWidget):

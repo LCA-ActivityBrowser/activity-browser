@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
-from PyQt5 import QtWidgets
 import itertools
-from ...signals import signals
-from .activity import ActivityItem
-from . table import ABTableWidget
 
+import brightway2 as bw
+
+from . table import ABTableWidget
+from .activity import ActivityItem
+from ...signals import signals
 
 
 class BiosphereFlowsTable(ABTableWidget):

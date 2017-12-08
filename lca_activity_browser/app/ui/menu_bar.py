@@ -8,6 +8,7 @@ from .icons import icons
 from .utils import abt1
 from ..signals import signals
 
+
 class MenuBar(object):
     def __init__(self, window):
         self.window = window

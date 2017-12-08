@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import sys
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 from . import header
 from .icons import icons
 from .menu_bar import MenuBar
@@ -7,8 +11,6 @@ from .statusbar import Statusbar
 from .toolbar import Toolbar
 from .utils import StdRedirector
 from ..signals import signals
-from PyQt5 import QtCore, QtGui, QtWidgets
-import sys
 
 
 class MainWindow(QtWidgets.QMainWindow):

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+from PyQt5 import QtCore, QtWidgets
+
 from .. import horizontal_line, header
 from ..tables import CFTable, MethodsTable
 from ...signals import signals
-from PyQt5 import QtCore, QtWidgets
 
 
 class CFsTab(QtWidgets.QWidget):

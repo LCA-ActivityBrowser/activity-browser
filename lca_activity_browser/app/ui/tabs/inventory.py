@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+from .. import header
+from ..icons import icons
 from ..tables import (
     ActivitiesTable,
     DatabasesTable,
     BiosphereFlowsTable,
 )
-from .. import header
 from ...signals import signals
-from ..icons import icons
-from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class MaybeTable(QtWidgets.QWidget):

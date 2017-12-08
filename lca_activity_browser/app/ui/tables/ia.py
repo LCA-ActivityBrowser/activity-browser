@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
-from . table import ABTableWidget
+import numbers
+
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
-import numbers
+
+from . table import ABTableWidget
+from ...signals import signals
 
 
 class MethodItem(QtWidgets.QTableWidgetItem):

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-from io import StringIO
-from PyQt5 import QtGui
 import uuid
+from io import StringIO
+
+from PyQt5 import QtGui
 
 
 class StdRedirector(StringIO):

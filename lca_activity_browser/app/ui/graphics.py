@@ -5,8 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from matplotlib import cm
 from PyQt5 import QtWidgets
+
 from ..bw2extensions.commontasks import format_activity_label
 
 
@@ -136,7 +136,7 @@ class LCAProcessContributionPlot(FigureCanvasQTAgg):
         plot = df_tc.T.plot.barh(
             stacked=True,
             figsize=(6, 6),
-            cmap=cm.nipy_spectral_r,
+            cmap=plt.cm.nipy_spectral_r,
             ax=axes
         )
         plot.tick_params(labelsize=8)
@@ -161,7 +161,7 @@ class LCAElementaryFlowContributionPlot(FigureCanvasQTAgg):
         plot = df_tc.T.plot.barh(
             stacked=True,
             figsize=(6, 6),
-            cmap=cm.nipy_spectral_r,
+            cmap=plt.cm.nipy_spectral_r,
             ax=axes
         )
         plot.tick_params(labelsize=8)

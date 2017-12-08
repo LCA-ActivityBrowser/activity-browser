@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
-from . table import ABTableWidget
+import arrow
 from bw2data import databases
 from bw2data.utils import natural_sort
 from PyQt5 import QtCore, QtWidgets
-import arrow
+
+from .table import ABTableWidget
+from ...signals import signals
 
 
 class DatabaseItem(QtWidgets.QTableWidgetItem):
