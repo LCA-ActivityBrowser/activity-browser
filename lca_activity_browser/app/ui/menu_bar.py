@@ -113,12 +113,13 @@ You should have received a copy of the GNU General Public License along with thi
             print(response.text)
 
     def raise_issue_from_app(self):
-        text = self.window.dialog(
+        text, _ = QtWidgets.QInputDialog.getMultiLineText(
+            None,
             'Report new bug',
             ('Please describe the buggy behaviour. View existing issues on ' +
              '<a href="https://github.com/LCA-ActivityBrowser/activity-browser/issues">github</a>.'+
              '<br>If you have a github account, please consider raising the issue directly on github.'
-             )
+             ),
         )
         if text:
             content = text + '\n\nLog Output:\n```\n{}```'.format(self.window.log.toPlainText())
