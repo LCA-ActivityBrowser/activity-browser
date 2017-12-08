@@ -2,11 +2,6 @@
 import numpy as np
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
-try:
-    from bw2data import calculation_setups
-except ImportError:
-    calculation_setups = None
-
 
 ca = ContributionAnalysis()
 
@@ -24,11 +19,8 @@ class MLCA(object):
 
     """
     def __init__(self, cs_name):
-        if not calculation_setups:
-            raise ImportError
-        assert cs_name in calculation_setups
         try:
-            cs = calculation_setups[cs_name]
+            cs = bw.calculation_setups[cs_name]
         except KeyError:
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
