@@ -1,6 +1,7 @@
 brightway2
 pyqt
-requests-oauthlib
 seaborn
 arrow
 pandas
+beautifulsoup4
+patool
