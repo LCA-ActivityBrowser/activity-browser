@@ -125,6 +125,11 @@ class ExchangeTable(ABTableWidget):
             if row == limit:
                 break
 
+            if self.production:
+                editable = True
+            else:
+                editable = False
+
             if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
                 self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
                 self.setItem(row, 1, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True))
@@ -133,7 +138,7 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 4, ABTableItem(" - ".join(obj.get('categories', []))))
                 self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
             else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
-                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
+                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, editable=editable))
                 self.setItem(row, 1, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc, direction=direction, ))
                 self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True,))
                 self.setItem(row, 3, ABTableItem(obj['database']))
@@ -143,5 +148,9 @@ class ExchangeTable(ABTableWidget):
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-        self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1))  # make tables as small as possible
+        # make tables as small as possible
+        if self.rowCount() > 0:
+            self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+        else:
+            self.hide()
         self.ignore_changes = False
