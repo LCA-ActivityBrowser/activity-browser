@@ -34,7 +34,7 @@ install:
 
   # conda build
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      sed "s/  number:\ 1/  number:\ $(git rev-list --count HEAD)/g" ./travis-recipe/meta.yaml > /tmp/meta.yaml;
+      sed "s/  number:\ 1/  number:\ $(git rev-list --count master)/g" ./travis-recipe/meta.yaml > /tmp/meta.yaml;
       mv /tmp/meta.yaml ./travis-recipe/meta.yaml;
     fi
   - conda build ./travis-recipe
