@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
-from ..icons import icons
+import brightway2 as bw
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 from .activity import ActivitiesTable
 from .table import ABTableWidget
 from .ia import MethodsTable
-import brightway2 as bw
-from PyQt5 import QtCore, QtGui, QtWidgets
+from ..icons import icons
+from ...signals import signals
 
 
 class CSList(QtWidgets.QComboBox):

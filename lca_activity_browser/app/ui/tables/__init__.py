@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from .activity import ActivitiesTable
 from .biosphere import BiosphereFlowsTable
 from .calculation_setups import (

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import functools
+
+import brightway2 as bw
+from PyQt5 import QtCore, QtWidgets
+
 from .. import header
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid
-import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets
-import functools
 
 
 class ActivityDetailsTab(QtWidgets.QWidget):

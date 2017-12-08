@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
 from PyQt5 import QtGui, QtWidgets
+
+from ...signals import signals
 
 
 class SignalledLineEdit(QtWidgets.QLineEdit):

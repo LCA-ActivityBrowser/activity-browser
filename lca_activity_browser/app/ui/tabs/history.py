@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from PyQt5 import QtCore, QtWidgets
+
 from .. import horizontal_line, header
 from ..tables import ActivitiesHistoryTable
-from PyQt5 import QtCore, QtWidgets
 
 
 class HistoryTab(QtWidgets.QWidget):

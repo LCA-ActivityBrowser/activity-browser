@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
-from ..icons import icons
-from . table import ABTableWidget
+import itertools
+
 from brightway2 import Database
 from PyQt5 import QtCore, QtGui, QtWidgets
-import itertools
+
+from . table import ABTableWidget
+from ..icons import icons
+from ...signals import signals
 
 
 class ActivityItem(QtWidgets.QTableWidgetItem):

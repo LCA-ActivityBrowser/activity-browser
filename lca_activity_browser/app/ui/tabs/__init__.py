@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from .activity import ActivityDetailsTab
 from .calculation_setups import CalculationSetupTab
 from .history import HistoryTab

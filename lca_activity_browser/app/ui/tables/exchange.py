@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
-from ..icons import icons
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 from .activity import ActivityItem, ActivitiesTable
 from .biosphere import BiosphereFlowsTable
 from .table import ABTableWidget, ABTableItem
-from PyQt5 import QtCore, QtGui, QtWidgets
+from ..icons import icons
+from ...signals import signals
 
 
 class ExchangeTable(ABTableWidget):

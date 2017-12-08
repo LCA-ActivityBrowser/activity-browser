@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-from . table import ABTableWidget
 from brightway2 import get_activity
 from PyQt5 import QtCore, QtWidgets
+
+from . table import ABTableWidget
 
 
 class ReadOnlyItem(QtWidgets.QTableWidgetItem):
