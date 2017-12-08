@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
+import json
+
+import requests
+from PyQt5 import QtCore, QtWidgets, QtGui
+
+from .icons import icons
+from .utils import abt1
 from ..signals import signals
 
 class MenuBar(object):
@@ -37,6 +43,7 @@ class MenuBar(object):
     #     return extensions_menu
 
     def setup_help_menu(self):
+        bug_icon = QtGui.QIcon(icons.debug)
         help_menu = QtWidgets.QMenu('&Help', self.window)
         help_menu.addAction(
             self.window.icon,
@@ -46,6 +53,16 @@ class MenuBar(object):
         help_menu.addAction(
             '&About Qt',
             lambda: QtWidgets.QMessageBox.aboutQt(self.window)
+        )
+        help_menu.addAction(
+            bug_icon,
+            '&Report Bug on github',
+            self.raise_issue_github
+        )
+        help_menu.addAction(
+            bug_icon,
+            '&Report Bug',
+            self.raise_issue_from_app
         )
         return help_menu
 
@@ -73,3 +90,37 @@ You should have received a copy of the GNU General Public License along with thi
         msgBox.setWindowIcon(self.window.icon)
         msgBox.setText(text)
         msgBox.exec_()
+
+    def raise_issue_github(self):
+        url = QtCore.QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
+        QtGui.QDesktopServices.openUrl(url)
+
+    def raise_issue_api(self, content):
+        abt2 = 'C5F02AZ12E56E6D46Z811D'
+        auth = (
+            'ActivityBrowser',
+            ''.join(reversed(abt1 + ''.join(reversed(abt2.lower())))).replace('z', '')
+        )
+        data = {
+            'title': 'New issue reported from app',
+            'body': content
+        }
+
+        url = 'https://api.github.com/repos/LCA-ActivityBrowser/activity-browser/issues'
+        response = requests.post(url, data=json.dumps(data), auth=auth)
+        if response.status_code != 201:
+            print(response)
+            print(response.text)
+
+    def raise_issue_from_app(self):
+        text = self.window.dialog(
+            'Report new bug',
+            ('Please describe the buggy behaviour. View existing issues on ' +
+             '<a href="https://github.com/LCA-ActivityBrowser/activity-browser/issues">github</a>.'+
+             '<br>If you have a github account, please consider raising the issue directly on github.'
+             )
+        )
+        if text:
+            content = text + '\n\nLog Output:\n```\n{}```'.format(self.window.log.toPlainText())
+            self.raise_issue_api(content)
+            print(content)
