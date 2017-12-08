@@ -1,26 +1,9 @@
 # -*- coding: utf-8 -*-
 from brightway2 import projects
 from PyQt5 import QtGui, QtWidgets
-from requests_oauthlib import OAuth1Session
 
 from .icons import icons
 from ..signals import signals
-
-
-def create_issue(content):
-    issues = OAuth1Session(
-        '4DBX8xKMvaUShgUHW9',
-        client_secret='Lzman2V4v52YqMHazNNrpstHSLGgyhWH'
-    )
-    data = {
-        'title': 'New issue reported from app',
-        'content': content,
-        'status': 'new',
-        'priority': 'trivial',
-        'kind': 'bug'
-    }
-    URL = "https://bitbucket.org/api/1.0/repositories/cmutel/activity-browser/issues/"
-    issues.post(URL, data=data)
 
 
 class StackButton(QtWidgets.QPushButton):
@@ -46,9 +29,6 @@ class Toolbar(QtWidgets.QToolBar):
         self.window = window
 
         # Toolbar elements are layed out left to right.
-        new_issue_button = QtWidgets.QPushButton(QtGui.QIcon(icons.debug), 'Report Bug')
-        new_issue_button.setStyleSheet('QPushButton {color: red;}')
-
         switch_stack_button = StackButton(
             self.window,
             QtGui.QIcon(icons.switch),
@@ -69,7 +49,6 @@ class Toolbar(QtWidgets.QToolBar):
         self.delete_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.delete), 'Delete current')
 
         self.addWidget(QtWidgets.QLabel('Brightway2 Activity Browser'))
-        self.addWidget(new_issue_button)
         self.addWidget(switch_stack_button)
         self.addWidget(self.project_name_label)
         self.addWidget(self.project_read_only)
@@ -90,17 +69,7 @@ class Toolbar(QtWidgets.QToolBar):
 
         self.window.addToolBar(self)
 
-        new_issue_button.clicked.connect(self.create_issue_dialog)
-
         self.connect_signals()
-
-    def create_issue_dialog(self):
-        text = self.window.dialog(
-            'Report new bug',
-            'Please describe the buggy behaviour. Existing bugs can be viewed at `https://bitbucket.org/cmutel/activity-browser/issues?status=new&status=open`'
-        )
-        if text:
-            create_issue(text)
 
     def connect_signals(self):
         # SIGNALS
