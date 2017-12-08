@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from ..signals import signals
-from .icons import icons
 from brightway2 import projects
 from PyQt5 import QtGui, QtWidgets
 from requests_oauthlib import OAuth1Session
+
+from .icons import icons
+from ..signals import signals
 
 
 def create_issue(content):

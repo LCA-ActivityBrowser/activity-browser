@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-from ..graphics import DefaultGraph
-from ..tabs import (
-    CalculationSetupTab,
-    CFsTab,
-)
-from ...signals import signals
 from .panel import Panel, ActivitiesPanel
 from .. import activity_cache
+from ..graphics import DefaultGraph
+from ..tabs import CalculationSetupTab, CFsTab
+from ...signals import signals
 
 
 class LeftPanel(Panel):

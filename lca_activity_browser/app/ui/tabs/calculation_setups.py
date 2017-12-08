@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 from brightway2 import calculation_setups
+from PyQt5 import QtWidgets
+
+from .. import horizontal_line, header
+from ..network import SankeyWindow
 from ..tables import (
     CSActivityTable,
     CSList,
     CSMethodsTable,
 )
-from .. import horizontal_line, header
 from ...signals import signals
-from ..network import SankeyWindow
-from PyQt5 import QtWidgets
 
 """
 Lifecycle of a calculation setup

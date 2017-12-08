@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import brightway2 as bw
-
 from bw2analyzer import ContributionAnalysis
-ca = ContributionAnalysis()
-
 try:
     from bw2data import calculation_setups
 except ImportError:
     calculation_setups = None
+
+
+ca = ContributionAnalysis()
 
 
 class MLCA(object):

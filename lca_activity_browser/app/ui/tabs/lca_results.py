@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
-from .. import horizontal_line, header
 from PyQt5 import QtWidgets
+
+from .. import horizontal_line, header
+from ..tables import LCAResultsTable
+from ..graphics import (
+    CorrelationPlot,
+    LCAResultsPlot,
+    LCAProcessContributionPlot,
+    LCAElementaryFlowContributionPlot
+)
 from ...bw2extensions.multilca import MLCA
 from ...signals import signals
-from ..graphics import \
-    CorrelationPlot, \
-    LCAResultsPlot, \
-    LCAProcessContributionPlot, \
-    LCAElementaryFlowContributionPlot
-from ..tables import LCAResultsTable
 
 
 class LCAResultsTab(QtWidgets.QWidget):

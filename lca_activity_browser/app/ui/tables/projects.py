@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
 from bw2data import projects
+from PyQt5 import QtCore, QtWidgets
 
 
 class ProjectListModel(QtCore.QAbstractListModel):

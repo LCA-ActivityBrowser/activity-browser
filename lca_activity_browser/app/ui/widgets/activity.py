@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
 from PyQt5 import QtCore, QtWidgets
+
+from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
 
 
 class ActivityDataGrid(QtWidgets.QWidget):

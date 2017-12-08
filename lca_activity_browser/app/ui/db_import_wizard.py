@@ -2,6 +2,7 @@
 import os
 import sys
 import tempfile
+
 import bs4
 import requests
 import patoolib
@@ -18,6 +19,7 @@ from bw2data.backends.peewee.utils import (
 )
 from bw2data.errors import InvalidExchange, UntypedExchange
 from PyQt5 import QtWidgets, QtCore
+
 from ..signals import signals
 
 

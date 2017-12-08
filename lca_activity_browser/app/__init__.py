@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
-from .application import Application
 import sys
 import traceback
+
+from PyQt5 import QtWidgets
+
+from .application import Application
 
 
 def run_activity_browser():

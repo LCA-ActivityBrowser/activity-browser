@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from ...signals import signals
-from ..icons import icons
-from . table import ABTableWidget
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+from . table import ABTableWidget
+from ..icons import icons
+from ...signals import signals
 
 
 class ActivityHistoryItem(QtWidgets.QTableWidgetItem):
