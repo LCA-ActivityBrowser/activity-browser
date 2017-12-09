@@ -33,6 +33,7 @@ install:
   - conda config --append channels haasad
 
   # conda build
+  # use sed to dynamically change the build number for the upload to conda
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       echo $(date '+%Y%m%d%H%M');
       sed "s/  number:\ 1/  number:\ $(date '+%Y%m%d%H%M')/g" ./travis-recipe/meta.yaml > /tmp/meta.yaml;
