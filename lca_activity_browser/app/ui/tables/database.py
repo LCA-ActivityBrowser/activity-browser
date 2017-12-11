@@ -37,8 +37,7 @@ class DatabasesTable(ABTableWidget):
                 dt = arrow.get(dt).humanize()
             self.setItem(row, 2, DatabaseItem(name, dt))
 
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
+        super().resize_custom()
 
     def select_database(self, item):
         signals.database_selected.emit(item.db_name)

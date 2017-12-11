@@ -86,18 +86,24 @@ class MaybeFlowsTable(MaybeTable):
 class InventoryTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(InventoryTab, self).__init__(parent)
-        self.window = parent
+        # self.window = parent
 
-        self.databases = DatabasesTable()
-
+        # Tables
+        self.databases_table = DatabasesTable()
         self.activities_table = MaybeActivitiesTable(self)
         self.flows_table = MaybeFlowsTable(self)
 
+        # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
             'Add Default Data (Biosphere flows, LCIA methods)')
         self.new_database_button = QtWidgets.QPushButton('Create New Database')
         self.import_database_button = QtWidgets.QPushButton('Import Database')
         self.import_database_button.clicked.connect(signals.import_database.emit)
+
+        # Layout
+        # vlayout = QtWidgets.QVBoxLayout()
+
+
 
         no_database_layout = QtWidgets.QVBoxLayout()
         no_database_layout.addWidget(header("No database selected"))
@@ -108,7 +114,7 @@ class InventoryTab(QtWidgets.QWidget):
         self.no_database_container.setLayout(no_database_layout)
 
         databases_table_layout = QtWidgets.QHBoxLayout()
-        databases_table_layout.addWidget(self.databases)
+        databases_table_layout.addWidget(self.databases_table)
         databases_table_layout.setAlignment(QtCore.Qt.AlignTop)
 
         self.databases_table_layout_widget = QtWidgets.QWidget()
@@ -161,25 +167,25 @@ class InventoryTab(QtWidgets.QWidget):
         tab_container.addStretch(1)
 
         # Context menus (shown on right click)
-        self.databases.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.databases_table.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
         self.delete_database_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete database", None
         )
-        self.databases.addAction(self.delete_database_action)
+        self.databases_table.addAction(self.delete_database_action)
 
         self.copy_database_action = QtWidgets.QAction(
             QtGui.QIcon(icons.duplicate), "Copy database", None
         )
-        self.databases.addAction(self.copy_database_action)
+        self.databases_table.addAction(self.copy_database_action)
 
         self.add_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add), "Add new activity", None
         )
-        self.databases.addAction(self.add_activity_action)
+        self.databases_table.addAction(self.add_activity_action)
         self.add_activity_action.triggered.connect(
             lambda x: signals.new_activity.emit(
-                self.databases.currentItem().db_name
+                self.databases_table.currentItem().db_name
             )
         )
 
@@ -198,8 +204,7 @@ class InventoryTab(QtWidgets.QWidget):
         self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
 
     def change_project(self, name):
-        self.databases.sync()
-
+        self.databases_table.sync()
         self.no_database_container.show()
         self.inventory_container.hide()
 

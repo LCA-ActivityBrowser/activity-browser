@@ -27,6 +27,11 @@ class ABTableWidget(QtWidgets.QTableWidget):
     def sync(self):
         self.clear()
 
+    def resize_custom(self):
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+        self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+
     @QtCore.pyqtSlot()
     def keyPressEvent(self, e):
         if e.modifiers() and QtCore.Qt.ControlModifier:

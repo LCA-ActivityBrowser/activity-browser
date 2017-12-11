@@ -180,7 +180,8 @@ class Controller(object):
             signals.database_selected.emit(name)
 
     def copy_database(self, name):
-        name = self.window.right_panel.inventory_tab.databases.currentItem().db_name
+        # TODO: might be more flexible and robust to work with signals here
+        name = self.window.right_panel.inventory_tab.databases_table.currentItem().db_name
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
@@ -189,7 +190,7 @@ class Controller(object):
             signals.databases_changed.emit()
 
     def delete_database(self, *args):
-        name = self.window.right_panel.inventory_tab.databases.currentItem().db_name
+        name = self.window.right_panel.inventory_tab.databases_table.currentItem().db_name
         ok = self.window.confirm((
             "Are you sure you want to delete database '{}'? "
             "It has {} activity datasets").format(
