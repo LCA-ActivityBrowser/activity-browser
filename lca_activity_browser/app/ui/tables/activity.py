@@ -102,7 +102,7 @@ class ActivitiesTable(ABTableWidget):
         self.setHorizontalHeaderLabels(self.HEADERS)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key))
+                self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
 
         # self.setRowCount(min(len(self.database), self.MAX_LENGTH))
         # sizePolicy = QtWidgets.QSizePolicy()

@@ -11,11 +11,11 @@ from ...signals import signals
 class ExchangeTable(ABTableWidget):
     COLUMN_LABELS = {
         # Production
-        (False, True): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
+        (False, True): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain"],
         # Normal technosphere
-        (False, False): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"],
+        (False, False): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain"],
         # Biosphere
-        (True, False): ["Name", "Amount", "Unit", "Database", "Categories", "Uncertain"],
+        (True, False): ["Amount", "Unit", "Name", "Categories", "Database", "Uncertain"],
     }
 
     def __init__(self, parent, biosphere=False, production=False):
@@ -94,7 +94,7 @@ class ExchangeTable(ABTableWidget):
             item.setText(item.previous)
 
     def filter_clicks(self, row, col):
-        print('Double clicked on row/col {} {}'.format(row, col))
+        # print('Double clicked on row/col {} {}'.format(row, col))
         item = self.item(row, col)
         if self.biosphere or self.production or (item.flags() & QtCore.Qt.ItemIsEditable):
             return
@@ -130,23 +130,42 @@ class ExchangeTable(ABTableWidget):
             # if self.production:
             #     flags = []
             # else:
-            flags = [QtCore.Qt.ItemIsEditable]
+            edit_flag = [QtCore.Qt.ItemIsEditable]
+
+
+
+
+            self.setItem(row, 3, ABTableItem(obj['database']))
+            self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
 
             if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
-                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
-                self.setItem(row, 1, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=flags))
-                self.setItem(row, 2, ABTableItem(obj.get('unit', 'Unknown')))
-                self.setItem(row, 3, ABTableItem(obj['database']))
-                self.setItem(row, 4, ABTableItem(" - ".join(obj.get('categories', []))))
+                self.setItem(row, 0,
+                             ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag, color="amount"))
+                self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 2, ABTableItem(obj['name'], exchange=exc, direction=direction, color="name"))
+                self.setItem(row, 3, ABTableItem(" - ".join(obj.get('categories', [])), color="categories"))
+                self.setItem(row, 4, ABTableItem(obj['database'], color="database"))
                 self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+
             else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
-                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction))
-                self.setItem(row, 1, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc, direction=direction, ))
-                self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=flags,))
-                self.setItem(row, 3, ABTableItem(obj['database']))
-                self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown')))
-                self.setItem(row, 5, ABTableItem(obj.get('unit', 'Unknown')))
+                self.setItem(row, 0,
+                             ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag, color="amount"))
+                self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 2, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc,
+                                                 direction=direction, color="reference product"))
+                self.setItem(row, 3, ABTableItem(obj['name'], exchange=exc, direction=direction, color="name"))
+                self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown'), color="location"))
+                self.setItem(row, 5, ABTableItem(obj['database'], color="database"))
                 self.setItem(row, 6, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+
+                # self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, color="name"))
+                #
+                # self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc,
+                #                                  set_flags=edit_flag, color="amount"))
+                #
+                #
+                # self.setItem(row, 5, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
+
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

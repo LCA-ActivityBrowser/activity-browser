@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
+from ..style import style_item
 from ...signals import signals
 
 
@@ -24,14 +25,8 @@ class ABTableItem(QtWidgets.QTableWidgetItem):
         if self.flags() & QtCore.Qt.ItemIsUserCheckable:
             self.setCheckState(QtCore.Qt.Unchecked)
 
-        # if hasattr(self, "editable"):
-        #     pass
-        #     if self.editable:
-        #         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
-        #         self.previous = self.text()
-        # else:
-        #     self.editable = False
-        #     self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)  # existing flags, but not editable
+        if hasattr(self, "color"):
+            self.setForeground(style_item.brushes.get(self.color, (0,0,0)))
 
 
 class ABTableWidget(QtWidgets.QTableWidget):
@@ -55,9 +50,6 @@ class ABTableWidget(QtWidgets.QTableWidget):
             self.resizeRowsToContents()
             self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
         return wrapper
-
-    # def sync(self):
-    #     self.clear()
 
     @QtCore.pyqtSlot()
     def keyPressEvent(self, e):

@@ -64,9 +64,9 @@ class CSActivityTable(ABTableWidget):
                 act = bw.get_activity(key)
                 new_row = self.rowCount()
                 self.insertRow(new_row)
-                self.setItem(new_row, 0, ABTableItem(act['name'], key=key))
-                self.setItem(new_row, 1, ABTableItem(amount, key=key, editable=True))
-                self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key))
+                self.setItem(new_row, 0, ABTableItem(act['name'], key=key, color="name"))
+                self.setItem(new_row, 1, ABTableItem(amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount"))
+                self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key, color="unit"))
 
         self.cellChanged.connect(self.filter_amount_change)
 

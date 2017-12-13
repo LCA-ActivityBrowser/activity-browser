@@ -52,7 +52,7 @@ class ActivitiesHistoryTable(ABTableWidget):
         ds = bw.get_activity(key)
         self.insertRow(0)
         for col, value in self.COLUMNS.items():
-            self.setItem(0, col, ABTableItem(ds.get(value, ''), key=key))
+            self.setItem(0, col, ABTableItem(ds.get(value, ''), key=key, color=value))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

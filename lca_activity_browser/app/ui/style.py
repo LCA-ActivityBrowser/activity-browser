@@ -1,30 +1,43 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from PyQt5 import QtGui
 
+# COLORS values are RGB
 
-# COLORS
-# table current activity (RGB)
-# TABLE FORMATTING
 class TableStyle:
-    colors_table_current_activity = {
-        'product': (0, 0, 204),
-        'name': (0, 0, 0),
+        # STYLESHEETS
+        stylesheet_current_activity = """
+        QTableWidget {
+            border-radius: 5px;
+            background-color: rgb(224, 224, 224);
+            border:1px solid rgb(96, 96, 96);
+            margin:0px;
+            }
+        """
+
+class TableItemStyle:
+    COLOR_CODE = {
+        'product': (0, 132, 130),
+        'reference product': (0, 132, 130),
+        'name': (0, 2, 140),
+        'activity': (0, 72, 216),
         'amount': (0, 0, 0),
-        'unit': (51, 153, 255),
-        'location': (0, 102, 51),
+        # 'unit': (51, 153, 255),
+        'unit': (0, 0, 0),
+        'location': (72, 0, 140),
         'database': (96, 96, 96),
+        'categories': (0, 0, 0),
     }
 
-    # STYLESHEETS
-    stylesheet_current_activity = """
-    QTableWidget {
-        border-radius: 5px;
-        background-color: rgb(224, 224, 224);
-        border:1px solid rgb(96, 96, 96);
-        margin:0px;
-        }
-    """
+    def __init__(self):
+        self.brushes = {}
+        for key, values in self.COLOR_CODE.items():
+            self.brushes.update({
+                key: QtGui.QBrush(QtGui.QColor(*values))
+            })
 
+
+style_table = TableStyle()
+style_item = TableItemStyle()
 
 # class IconsContextMenu():
 #     to_multi_lca = 'icons/context/add.png'
