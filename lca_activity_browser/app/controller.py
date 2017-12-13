@@ -249,7 +249,8 @@ class Controller(object):
             new_act = bw.Database(database_name).new_activity(
                 code=uuid.uuid4().hex,
                 name=name,
-                unit="unit"
+                unit="unit",
+                type="process",
             )
             new_act.save()
             production_exchange = new_act.new_exchange(amount=1, type="production")

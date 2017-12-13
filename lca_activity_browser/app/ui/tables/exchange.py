@@ -111,9 +111,9 @@ class ExchangeTable(ABTableWidget):
         self.database, self.qs, self.upstream = database, qs, upstream
         self.sync(limit)
 
+    @ABTableWidget.decorated_sync
     def sync(self, limit=100):
         self.ignore_changes = True
-        self.clear()
         self.setRowCount(min(len(self.qs), limit))
         self.setHorizontalHeaderLabels(self.column_labels)
 
@@ -127,20 +127,14 @@ class ExchangeTable(ABTableWidget):
             if row == limit:
                 break
 
-            # if self.production:
-            #     flags = []
-            # else:
             edit_flag = [QtCore.Qt.ItemIsEditable]
-
-
-
 
             self.setItem(row, 3, ABTableItem(obj['database']))
             self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
 
             if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
-                self.setItem(row, 0,
-                             ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag, color="amount"))
+                self.setItem(row, 0, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag,
+                                                 color="amount"))
                 self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(obj['name'], exchange=exc, direction=direction, color="name"))
                 self.setItem(row, 3, ABTableItem(" - ".join(obj.get('categories', [])), color="categories"))
@@ -149,7 +143,8 @@ class ExchangeTable(ABTableWidget):
 
             else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
                 self.setItem(row, 0,
-                             ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag, color="amount"))
+                             ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag,
+                                         color="amount"))
                 self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc,
                                                  direction=direction, color="reference product"))
@@ -158,20 +153,4 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 5, ABTableItem(obj['database'], color="database"))
                 self.setItem(row, 6, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
 
-                # self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, color="name"))
-                #
-                # self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc,
-                #                                  set_flags=edit_flag, color="amount"))
-                #
-                #
-                # self.setItem(row, 5, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
-
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        # make tables as small as possible
-        if self.rowCount() > 0:
-            self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
-        else:
-            self.hide()
         self.ignore_changes = False

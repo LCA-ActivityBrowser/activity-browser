@@ -53,9 +53,10 @@ class CSActivityTable(ABTableWidget):
         self.addAction(self.delete_row_action)
         self.delete_row_action.triggered.connect(self.delete_rows)
 
-    @ABTableWidget.decorated_sync
+    # @ABTableWidget.decorated_sync
     def sync(self, name):
         self.cellChanged.disconnect(self.filter_amount_change)
+        self.clear()
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(["Activity name", "Amount", "Unit"])
 
@@ -68,6 +69,8 @@ class CSActivityTable(ABTableWidget):
                 self.setItem(new_row, 1, ABTableItem(amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount"))
                 self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key, color="unit"))
 
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
         self.cellChanged.connect(self.filter_amount_change)
 
     def delete_rows(self, *args):

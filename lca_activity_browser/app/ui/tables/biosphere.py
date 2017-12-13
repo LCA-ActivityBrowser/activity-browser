@@ -8,7 +8,7 @@ from ...signals import signals
 
 
 class BiosphereFlowsTable(ABTableWidget):
-    COUNT = 100
+    MAX_LENGTH = 100
     COLUMNS = {
         0: "name",
         2: "unit"
@@ -30,8 +30,8 @@ class BiosphereFlowsTable(ABTableWidget):
             self.database = bw.Database(name)
             self.database.order_by = 'name'
             self.database.filters = {'type': 'emission'}
-            self.setRowCount(min(len(self.database), self.COUNT))
-            data = itertools.islice(self.database, 0, self.COUNT)
+            self.setRowCount(min(len(self.database), self.MAX_LENGTH))
+            data = itertools.islice(self.database, 0, self.MAX_LENGTH)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
                 self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
@@ -45,6 +45,6 @@ class BiosphereFlowsTable(ABTableWidget):
         self.sync(self.database.name)
 
     def search(self, search_term):
-        search_result = self.database.search(search_term, limit=self.COUNT, **self.database.filters)
+        search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
         self.setRowCount(len(search_result))
         self.sync(self.database.name, search_result)

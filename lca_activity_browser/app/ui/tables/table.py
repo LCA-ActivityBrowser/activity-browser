@@ -7,6 +7,9 @@ from ...signals import signals
 class ABTableItem(QtWidgets.QTableWidgetItem):
     def __init__(self, text, **kwargs):
         super(ABTableItem, self).__init__(text)
+
+        self.previous = text  # for going back to this value if the new text does not make sense
+
         # assign attributes, e.g. "database", "key", "exchange", "direction", "editable"
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -48,7 +51,10 @@ class ABTableWidget(QtWidgets.QTableWidget):
             # after syncing
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
-            self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+            if self.rowCount() > 0:
+                self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+            else:
+                self.setMaximumHeight(50)
         return wrapper
 
     @QtCore.pyqtSlot()
