@@ -2,47 +2,27 @@
 import numbers
 
 import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets
 
-from . table import ABTableWidget
+from . table import ABTableWidget, ABTableItem
 from ...signals import signals
 
 
-class MethodItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, method, *args):
-        super(MethodItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.method = method
-
-
-class NumberItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, method, number, *args):
-        super(NumberItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.number = number
-        self.method = method
-
-    def __lt__(self, other):
-        if isinstance(other, NumberItem):
-            return self.number < other.number
-        return super(NumberItem, self).__lt__(other)
-
-
 class MethodsTable(ABTableWidget):
+    HEADERS = ["Name", "Unit", "# CFs"]
     def __init__(self):
         super(MethodsTable, self).__init__()
-        self.setColumnCount(3)
+        self.setColumnCount(len(self.HEADERS))
         self.setDragEnabled(True)
         self.setSortingEnabled(True)
-        self.setHorizontalHeaderLabels(["Name", "Unit", "# CFs"])
+        self.setHorizontalHeaderLabels(self.HEADERS)
         self.sync()
         self.itemDoubleClicked.connect(
             lambda x: signals.method_selected.emit(x.method)
         )
 
+    @ABTableWidget.decorated_sync
     def sync(self, query=None):
-        self.clear()
-        self.setHorizontalHeaderLabels(["Name", "Unit", "# CFs"])
+        self.setHorizontalHeaderLabels(self.HEADERS)
 
         sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
 
@@ -56,20 +36,10 @@ class MethodsTable(ABTableWidget):
         for row, method_obj in enumerate(sorted_names):
             name, method = method_obj
             data = bw.methods[method]
-            self.setItem(row, 0, MethodItem(method, name))
-            self.setItem(row, 1, MethodItem(method, data.get('unit', "Unknown")))
+            self.setItem(row, 0, ABTableItem(name, method=method))
+            self.setItem(row, 1, ABTableItem(data.get('unit', "Unknown"), method=method))
             num_cfs = data.get('num_cfs', 0)
-            self.setItem(row, 2, NumberItem(method, num_cfs, str(num_cfs)))
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
-
-class CFItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, key, *args):
-        super(CFItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.key = key
+            self.setItem(row, 2, ABTableItem(str(num_cfs), method=method, number=num_cfs, ))
 
 
 class CFTable(ABTableWidget):
@@ -79,15 +49,18 @@ class CFTable(ABTableWidget):
         2: "unit",
         3: "uncertain",
     }
+    HEADERS = ["Name", "Amount", "Unit", "Uncertain"]
 
     def __init__(self):
         super(CFTable, self).__init__()
         self.setVisible(False)
-        self.setColumnCount(4)
+        self.setColumnCount(len(self.HEADERS))
         self.setSortingEnabled(True)
-        self.setHorizontalHeaderLabels(["Name", "Amount", "Unit", "Uncertain"])
+        self.setHorizontalHeaderLabels(self.HEADERS)
 
+    @ABTableWidget.decorated_sync
     def sync(self, method):
+        self.setHorizontalHeaderLabels(self.HEADERS)
         method = bw.Method(method)
         data = method.load()
         self.setRowCount(len(data))
@@ -99,10 +72,7 @@ class CFTable(ABTableWidget):
             else:
                 uncertain = "True"
                 amount = amount['amount']
-            self.setItem(row, 0, CFItem(key, flow['name']))
-            self.setItem(row, 1, CFItem(key, "{:.6g}".format(amount)))
-            self.setItem(row, 2, CFItem(key, flow.get('unit', 'Unknown')))
-            self.setItem(row, 3, CFItem(key, uncertain))
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
+            self.setItem(row, 0, ABTableItem(flow['name'], key=key))
+            self.setItem(row, 1, ABTableItem("{:.6g}".format(amount), key=key))
+            self.setItem(row, 2, ABTableItem(flow.get('unit', 'Unknown'), key=key))
+            self.setItem(row, 3, ABTableItem(str(uncertain), key=key))

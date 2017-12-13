@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .activity import ActivitiesTable
+from .activity import ActivitiesTable   # ActivitiesTableNew
 from .biosphere import BiosphereFlowsTable
 from .calculation_setups import (
     CSActivityTable,

@@ -19,27 +19,26 @@ except ImportError:
 class Controller(object):
     def __init__(self, window):
         self.window = window
-        signals.project_selected.emit(self.get_default_project_name())
-        signals.calculation_setup_changed.connect(
-            self.write_current_calculation_setup
-        )
-        self.connect_signals()
-        self.db_wizard = None
-        # switch directly to custom bw2 directory and project, if specified in settings
-        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        print('Brightway2 active project: {}'.format(bw.projects.current))
 
+        # switch directly to custom bw2 directory and project, if specified in settings
+        # else use default bw2 path and project
+        current_project = self.get_default_project_name()
         if settings:
             if hasattr(settings, "BW2_DIR"):
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-                print('Switched to Brightway2 data directory: {}'.format(
-                    bw.projects._base_data_dir))
             if hasattr(settings, "PROJECT_NAME"):
                 if settings.PROJECT_NAME in [x.name for x in bw.projects]:
-                    bw.projects.set_current(settings.PROJECT_NAME)
-                    signals.project_selected.emit(settings.PROJECT_NAME)
+                    current_project = bw.projects.set_current(settings.PROJECT_NAME)
                 else:
                     print('Project indicated in settings.py not found.')
+
+        signals.project_selected.emit(current_project)
+
+        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        print('Brightway2 active project: {}'.format(bw.projects.current))
+
+        self.connect_signals()
+        self.db_wizard = None
 
     def connect_signals(self):
         # SLOTS
@@ -66,6 +65,7 @@ class Controller(object):
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
+        signals.calculation_setup_changed.connect(self.write_current_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
         signals.delete_calculation_setup.connect(self.delete_calculation_setup)
         # Other
@@ -104,7 +104,7 @@ class Controller(object):
             bw.projects.set_current("default")
             signals.project_selected.emit(self.get_default_project_name())
             # TODO: message to Statusbar
-            print('Switched to {} as Brightway2 data directory.'.format(bw.projects._base_data_dir))
+            print('Changed brightway2 data directory to: {}'.format(bw.projects._base_data_dir))
 
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')

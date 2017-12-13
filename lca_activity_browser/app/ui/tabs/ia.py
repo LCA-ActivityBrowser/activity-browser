@@ -48,25 +48,26 @@ class MethodsTab(QtWidgets.QWidget):
         self.table = MethodsTable()
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Filter LCIA methods")
-        reset_search_buton = QtWidgets.QPushButton("Reset")
-
+        reset_search_button = QtWidgets.QPushButton("Reset")
+        #
         search_layout = QtWidgets.QHBoxLayout()
         search_layout.setAlignment(QtCore.Qt.AlignLeft)
         search_layout.addWidget(header('LCIA Methods:'))
         search_layout.addWidget(self.search_box)
-        search_layout.addWidget(reset_search_buton)
-
+        search_layout.addWidget(reset_search_button)
+        #
         search_layout_container = QtWidgets.QWidget()
         search_layout_container.setLayout(search_layout)
-
+        #
         container = QtWidgets.QVBoxLayout()
         container.addWidget(search_layout_container)
         container.addWidget(horizontal_line())
         container.addWidget(self.table)
         self.setLayout(container)
-
-        signals.project_selected.connect(lambda x: self.table.sync())
-        reset_search_buton.clicked.connect(self.table.sync)
-        reset_search_buton.clicked.connect(self.search_box.clear)
-        self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
-        signals.project_selected.connect(self.search_box.clear)
+        #
+        # signals.project_selected.connect(lambda x: self.table.sync())
+        signals.project_selected.connect(self.table.sync)
+        # # reset_search_button.clicked.connect(self.table.sync)
+        # reset_search_button.clicked.connect(self.search_box.clear)
+        # # self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
+        # signals.project_selected.connect(self.search_box.clear)

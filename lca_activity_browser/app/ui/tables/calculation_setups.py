@@ -3,7 +3,7 @@ import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from .activity import ActivitiesTable
-from .table import ABTableWidget
+from .table import ABTableWidget, ABTableItem
 from .ia import MethodsTable
 from ..icons import icons
 from ...signals import signals
@@ -30,19 +30,6 @@ class CSList(QtWidgets.QComboBox):
         return self.itemText(self.currentIndex())
 
 
-class CSActivityItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, key, *args):
-        super(CSActivityItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.key = key
-
-
-class CSAmount(QtWidgets.QTableWidgetItem):
-    def __init__(self, key, *args):
-        super(CSAmount, self).__init__(*args)
-        self.key = key
-
-
 class CSActivityTable(ABTableWidget):
     COLUMNS = {
         0: "name",
@@ -66,10 +53,9 @@ class CSActivityTable(ABTableWidget):
         self.addAction(self.delete_row_action)
         self.delete_row_action.triggered.connect(self.delete_rows)
 
-
+    @ABTableWidget.decorated_sync
     def sync(self, name):
         self.cellChanged.disconnect(self.filter_amount_change)
-        self.clear()
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(["Activity name", "Amount", "Unit"])
 
@@ -78,12 +64,10 @@ class CSActivityTable(ABTableWidget):
                 act = bw.get_activity(key)
                 new_row = self.rowCount()
                 self.insertRow(new_row)
-                self.setItem(new_row, 0, CSActivityItem(key, act['name']))
-                self.setItem(new_row, 1, CSAmount(key, amount))
-                self.setItem(new_row, 2, CSActivityItem(None, act.get('unit', 'Unknown')))
+                self.setItem(new_row, 0, ABTableItem(act['name'], key=key))
+                self.setItem(new_row, 1, ABTableItem(amount, key=key, editable=True))
+                self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key))
 
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
         self.cellChanged.connect(self.filter_amount_change)
 
     def delete_rows(self, *args):
@@ -110,9 +94,9 @@ class CSActivityTable(ABTableWidget):
 
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, CSActivityItem(key, act['name']))
-            self.setItem(new_row, 1, CSAmount(key, "1.0"))
-            self.setItem(new_row, 2, CSActivityItem(None, act.get('unit', 'Unknown')))
+            self.setItem(new_row, 0, ABTableItem(act['name'], key=key))
+            self.setItem(new_row, 1, ABTableItem("1.0", key=key, editable=True))
+            self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key))
 
         event.accept()
 
@@ -127,13 +111,6 @@ class CSActivityTable(ABTableWidget):
     def filter_amount_change(self, row, col):
         if col == 1:
             signals.calculation_setup_changed.emit()
-
-
-class CSMethodItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, method, *args):
-        super(CSMethodItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.method = method
 
 
 class CSMethodsTable(ABTableWidget):
@@ -160,7 +137,7 @@ class CSMethodsTable(ABTableWidget):
         for obj in bw.calculation_setups[name]['ia']:
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, CSMethodItem(obj, ", ".join(obj)))
+            self.setItem(new_row, 0, ABTableItem(", ".join(obj), method=obj,))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -180,7 +157,7 @@ class CSMethodsTable(ABTableWidget):
                 continue
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, CSMethodItem(obj, ", ".join(obj)))
+            self.setItem(new_row, 0, ABTableItem(", ".join(obj), method=obj,))
         event.accept()
 
         signals.calculation_setup_changed.emit()

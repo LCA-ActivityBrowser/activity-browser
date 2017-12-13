@@ -15,6 +15,7 @@ class Signals(QtCore.QObject):
     new_project = QtCore.pyqtSignal()
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
+    project_selected = QtCore.pyqtSignal(str)
 
     # Database
     add_database = QtCore.pyqtSignal()
@@ -57,7 +58,7 @@ class Signals(QtCore.QObject):
     lca_calculation = QtCore.pyqtSignal(str)
 
     method_selected = QtCore.pyqtSignal(tuple)
-    project_selected = QtCore.pyqtSignal(str)
+
 
 
 signals = Signals()

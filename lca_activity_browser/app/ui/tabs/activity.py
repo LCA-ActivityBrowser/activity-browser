@@ -49,7 +49,7 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             (self.production, "Products:"),
             (self.inputs, "Technosphere Inputs:"),
             (self.flows, "Biosphere flows:"),
-            (self.upstream, "Upstream consumers:"),
+            (self.upstream, "Downstream consumers:"),
         ]
 
         for table, label in tables:

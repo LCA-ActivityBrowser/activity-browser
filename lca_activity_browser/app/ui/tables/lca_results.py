@@ -12,12 +12,12 @@ class ReadOnlyItem(QtWidgets.QTableWidgetItem):
 
 
 class LCAResultsTable(ABTableWidget):
-    def sync(self, lca):
-        self.clear()
 
-        self.setSortingEnabled(True)
+    @ABTableWidget.decorated_sync
+    def sync(self, lca):
         self.setColumnCount(len(lca.methods))
         self.setRowCount(len(lca.func_units))
+
         col_labels = ["-".join(x) for x in lca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
         self.setHorizontalHeaderLabels(col_labels)
@@ -27,9 +27,10 @@ class LCAResultsTable(ABTableWidget):
             for col in range(len(lca.methods)):
                 self.setItem(row, col, ReadOnlyItem("{:.4g}".format(lca.results[row, col])))
 
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
+        self.setMinimumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+        # self.resizeColumnsToContents()
+        # self.resizeRowsToContents()
         # self.setMinimumHeight(self.maximumHeight())
         # self.setMinimumHeight(500)
         # self.setMinimumHeight(self.frameGeometry().height())
-        self.setMinimumHeight(self.sizeHint().height())
+        # self.setMinimumHeight(self.sizeHint().height())

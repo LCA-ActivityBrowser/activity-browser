@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from .activity import ActivityItem, ActivitiesTable
+from .activity import ActivitiesTable
 from .biosphere import BiosphereFlowsTable
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
@@ -41,6 +41,7 @@ class ExchangeTable(ABTableWidget):
 
     def connect_signals(self):
         # SIGNALS
+        # TODO: these are not signals... check also in other places and make it consistent
         self.cellChanged.connect(self.filter_amount_change)
         self.cellDoubleClicked.connect(self.filter_clicks)
         # SLOTS
@@ -62,7 +63,7 @@ class ExchangeTable(ABTableWidget):
 
     def dropEvent(self, event):
         items = event.source().selectedItems()
-        if isinstance(items[0], ActivityItem):
+        if isinstance(items[0], ABTableItem):
             signals.exchanges_add.emit([x.key for x in items], self.qs._key)
         else:
             print(items)
@@ -95,7 +96,7 @@ class ExchangeTable(ABTableWidget):
     def filter_clicks(self, row, col):
         print('Double clicked on row/col {} {}'.format(row, col))
         item = self.item(row, col)
-        if self.biosphere or self.production or item.editable:
+        if self.biosphere or self.production or (item.flags() & QtCore.Qt.ItemIsEditable):
             return
 
         if hasattr(item, "exchange"):
@@ -126,22 +127,22 @@ class ExchangeTable(ABTableWidget):
             if row == limit:
                 break
 
-            if self.production:
-                editable = True
-            else:
-                editable = False
+            # if self.production:
+            #     flags = []
+            # else:
+            flags = [QtCore.Qt.ItemIsEditable]
 
             if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
                 self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, ))
-                self.setItem(row, 1, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True))
+                self.setItem(row, 1, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=flags))
                 self.setItem(row, 2, ABTableItem(obj.get('unit', 'Unknown')))
                 self.setItem(row, 3, ABTableItem(obj['database']))
                 self.setItem(row, 4, ABTableItem(" - ".join(obj.get('categories', []))))
                 self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
             else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
-                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction, editable=editable))
+                self.setItem(row, 0, ABTableItem(obj['name'], exchange=exc, direction=direction))
                 self.setItem(row, 1, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc, direction=direction, ))
-                self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, editable=True,))
+                self.setItem(row, 2, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=flags,))
                 self.setItem(row, 3, ABTableItem(obj['database']))
                 self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown')))
                 self.setItem(row, 5, ABTableItem(obj.get('unit', 'Unknown')))

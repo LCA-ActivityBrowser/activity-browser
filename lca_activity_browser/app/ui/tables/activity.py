@@ -4,31 +4,50 @@ import itertools
 from brightway2 import Database
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from . table import ABTableWidget
+from . table import ABTableWidget, ABStandardTable, ABTableItem
+from ..style import TableStyle
 from ..icons import icons
 from ...signals import signals
+from ...bw2extensions.commontasks import *
 
 
-class ActivityItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, key, *args):
-        super(ActivityItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.key = key
+class ActivitiesTableNew(ABStandardTable):
+    """ This is an alternative, more generic approach to filling activity tables
+    as we have several ones. Not yet convinved that this approach is better than the original one.
+    """
+    MAX_LENGTH = 10
+    HEADERS = ["Activity", "Reference product", "Location", "Unit"]
+
+    def __init__(self, parent=None):
+        super(ActivitiesTableNew, self).__init__(parent)
+
+    def sync(self, name):
+        self.database = Database(name)
+        self.database.order_by = 'name'
+        self.database.filters = {'type': 'process'}
+        self.setHorizontalHeaderLabels(self.HEADERS)
+        # self.setRowCount(min(len(self.database), self.COUNT))
+        self.setRowCount(len(self.database))
+
+        # data = get_activity_data(itertools.islice(self.database, 0, self.MAX_LENGTH))
+        data = get_activity_data(itertools.islice(self.database, 0, None))
+        super().update_table(data, self.HEADERS)
 
 
 class ActivitiesTable(ABTableWidget):
-    COUNT = 500
+    MAX_LENGTH = 500
     COLUMNS = {
         0: "name",
         1: "reference product",
         2: "location",
         3: "unit",
     }
+    HEADERS = ["Name", "Reference Product", "Location", "Unit"]
 
     def __init__(self, parent=None):
         super(ActivitiesTable, self).__init__(parent)
         self.setDragEnabled(True)
-        self.setColumnCount(4)
+        self.setColumnCount(len(self.HEADERS))
 
         # Done by tab widget ``MaybeActivitiesTable`` because
         # need to ensure order to get correct row count
@@ -72,29 +91,23 @@ class ActivitiesTable(ABTableWidget):
         )
         signals.database_changed.connect(self.filter_database_changed)
 
-    def sync(self, name):
-        super().sync()
-        self.database = Database(name)
-        self.database.order_by = 'name'
-        self.database.filters = {'type': 'process'}
-        self.setRowCount(min(len(self.database), self.COUNT))
-        self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
-        data = itertools.islice(self.database, 0, self.COUNT)
+    @ABTableWidget.decorated_sync
+    def sync(self, name, data=None):
+        if not data:
+            self.database = Database(name)
+            self.database.order_by = 'name'
+            self.database.filters = {'type': 'process'}
+            data = itertools.islice(self.database, 0, self.MAX_LENGTH)
+            self.setRowCount(min(len(self.database), self.MAX_LENGTH))
+        self.setHorizontalHeaderLabels(self.HEADERS)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ActivityItem(ds.key, ds.get(value, '')))
+                self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key))
 
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
+        # self.setRowCount(min(len(self.database), self.MAX_LENGTH))
         # sizePolicy = QtWidgets.QSizePolicy()
         # sizePolicy.setVerticalStretch(1)
         # self.setSizePolicy(sizePolicy)
-        # self.setMaximumHeight(
-        #     # btable.horizontalHeader().height()
-        #     + 5*self.rowHeight(0)
-        #     + self.autoScrollMargin()
-        # )
 
     def filter_database_changed(self, database_name):
         if not hasattr(self, "database") or self.database.name != database_name:
@@ -105,13 +118,6 @@ class ActivitiesTable(ABTableWidget):
         self.sync(self.database.name)
 
     def search(self, search_term):
-        self.clear()
-        search_result = self.database.search(search_term, limit=self.COUNT)
+        search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
         self.setRowCount(len(search_result))
-        self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
-        for row, ds in enumerate(search_result):
-            for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ActivityItem(ds.key, ds.get(value, '')))
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
+        self.sync(self.database.name, search_result)

@@ -6,6 +6,7 @@ from .. import header
 from ..icons import icons
 from ..tables import (
     ActivitiesTable,
+    # ActivitiesTableNew,
     DatabasesTable,
     BiosphereFlowsTable,
 )
@@ -147,6 +148,10 @@ class InventoryTab(QtWidgets.QWidget):
         inventory_layout = QtWidgets.QVBoxLayout()
         # inventory_layout.addStretch(200)
         inventory_layout.addWidget(self.activities_table)
+        # self.new_activities_table = ActivitiesTableNew()
+        # self.new_activities_table.sync("ecoinvent 3.4 cutoff")
+        # inventory_layout.addWidget(self.new_activities_table)
+
         # inventory_layout.setStretch(0, 10)
         # inventory_layout.addStretch(3)
         inventory_layout.addWidget(self.flows_table)
@@ -218,5 +223,6 @@ class InventoryTab(QtWidgets.QWidget):
             self.import_database_button.setEnabled(True)
 
     def change_database(self, name):
+        # self.new_activities_table.sync(name)
         self.no_database_container.hide()
         self.inventory_container.show()
