@@ -11,11 +11,12 @@ class MethodsTable(ABTableWidget):
     HEADERS = ["Name", "Unit", "# CFs"]
     def __init__(self):
         super(MethodsTable, self).__init__()
-        self.setColumnCount(len(self.HEADERS))
         self.setDragEnabled(True)
-        self.setSortingEnabled(True)
-        self.setHorizontalHeaderLabels(self.HEADERS)
+        self.setColumnCount(len(self.HEADERS))
+        self.connect_signals()
         self.sync()
+
+    def connect_signals(self):
         self.itemDoubleClicked.connect(
             lambda x: signals.method_selected.emit(x.method)
         )
@@ -55,8 +56,6 @@ class CFTable(ABTableWidget):
         super(CFTable, self).__init__()
         self.setVisible(False)
         self.setColumnCount(len(self.HEADERS))
-        self.setSortingEnabled(True)
-        self.setHorizontalHeaderLabels(self.HEADERS)
 
     @ABTableWidget.decorated_sync
     def sync(self, method):

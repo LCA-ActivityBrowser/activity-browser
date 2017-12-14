@@ -12,6 +12,7 @@ class ReadOnlyItem(QtWidgets.QTableWidgetItem):
 
 
 class LCAResultsTable(ABTableWidget):
+    """ Displays total LCA scores for multiple functional units and LCIA methods. """
 
     @ABTableWidget.decorated_sync
     def sync(self, lca):
@@ -27,10 +28,5 @@ class LCAResultsTable(ABTableWidget):
             for col in range(len(lca.methods)):
                 self.setItem(row, col, ReadOnlyItem("{:.4g}".format(lca.results[row, col])))
 
-        self.setMinimumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
-        # self.resizeColumnsToContents()
-        # self.resizeRowsToContents()
-        # self.setMinimumHeight(self.maximumHeight())
-        # self.setMinimumHeight(500)
-        # self.setMinimumHeight(self.frameGeometry().height())
-        # self.setMinimumHeight(self.sizeHint().height())
+        #ensure minimum height...
+        # self.setMinimumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())

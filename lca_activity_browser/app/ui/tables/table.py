@@ -37,6 +37,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
         super(ABTableWidget, self).__init__(parent)
         # same in all tables:
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.setSortingEnabled(True)
 
     @classmethod  # needs to be a classmethod for decorating subclass methods
     def decorated_sync(cls, sync):

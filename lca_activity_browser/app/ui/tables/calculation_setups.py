@@ -36,16 +36,16 @@ class CSActivityTable(ABTableWidget):
         1: "amount",
         2: "unit",
     }
+    HEADERS = ["Activity name", "Amount", "Unit"]
 
     def __init__(self):
         super(CSActivityTable, self).__init__()
-        self.setColumnCount(3)
-        self.setSortingEnabled(True)
+        self.setColumnCount(len(self.HEADERS))
         self.setAcceptDrops(True)
+        self.setup_context_menu()
+        self.connect_signals()
 
-        self.cellChanged.connect(self.filter_amount_change)
-        signals.calculation_setup_selected.connect(self.sync)
-
+    def setup_context_menu(self):
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.delete_row_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Remove row", None
@@ -53,12 +53,17 @@ class CSActivityTable(ABTableWidget):
         self.addAction(self.delete_row_action)
         self.delete_row_action.triggered.connect(self.delete_rows)
 
+    def connect_signals(self):
+        """ Connect signals to slots. """
+        self.cellChanged.connect(self.filter_amount_change)
+        signals.calculation_setup_selected.connect(self.sync)
+
     # @ABTableWidget.decorated_sync
     def sync(self, name):
         self.cellChanged.disconnect(self.filter_amount_change)
         self.clear()
         self.setRowCount(0)
-        self.setHorizontalHeaderLabels(["Activity name", "Amount", "Unit"])
+        self.setHorizontalHeaderLabels(self.HEADERS)
 
         for func_unit in bw.calculation_setups[name]['inv']:
             for key, amount in func_unit.items():
@@ -97,9 +102,9 @@ class CSActivityTable(ABTableWidget):
 
             new_row = self.rowCount()
             self.insertRow(new_row)
-            self.setItem(new_row, 0, ABTableItem(act['name'], key=key))
-            self.setItem(new_row, 1, ABTableItem("1.0", key=key, editable=True))
-            self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key))
+            self.setItem(new_row, 0, ABTableItem(act['name'], key=key, color="name"))
+            self.setItem(new_row, 1, ABTableItem("1.0", key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount"))
+            self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key, color="unit"))
 
         event.accept()
 
@@ -117,14 +122,13 @@ class CSActivityTable(ABTableWidget):
 
 
 class CSMethodsTable(ABTableWidget):
+    HEADERS = ["Name"]
     def __init__(self):
         super(CSMethodsTable, self).__init__()
-        self.setColumnCount(1)
-        self.setSortingEnabled(True)
+        self.setColumnCount(len(self.HEADERS))
         self.setAcceptDrops(True)
 
-        signals.calculation_setup_selected.connect(self.sync)
-
+    def setup_context_menu(self):
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.delete_row_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Remove row", None
@@ -132,10 +136,13 @@ class CSMethodsTable(ABTableWidget):
         self.addAction(self.delete_row_action)
         self.delete_row_action.triggered.connect(self.delete_rows)
 
+    def connect_signals(self):
+        signals.calculation_setup_selected.connect(self.sync)
+
     def sync(self, name):
         self.clear()
         self.setRowCount(0)
-        self.setHorizontalHeaderLabels(["Name"])
+        self.setHorizontalHeaderLabels(self.HEADERS)
 
         for obj in bw.calculation_setups[name]['ia']:
             new_row = self.rowCount()

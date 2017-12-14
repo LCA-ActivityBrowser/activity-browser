@@ -23,29 +23,26 @@ class ExchangeTable(ABTableWidget):
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.biosphere = biosphere
         self.production = production
         self.column_labels = self.COLUMN_LABELS[(biosphere, production)]
         self.setColumnCount(len(self.column_labels))
         self.qs, self.upstream, self.database = None, False, None
         self.ignore_changes = False
+        self.setup_context_menu()
+        self.connect_signals()
 
+    def setup_context_menu(self):
         self.delete_exchange_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete exchange(s)", None
         )
         self.addAction(self.delete_exchange_action)
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
 
-        self.connect_signals()
-
     def connect_signals(self):
-        # SIGNALS
-        # TODO: these are not signals... check also in other places and make it consistent
+        signals.database_changed.connect(self.filter_database_changed)
         self.cellChanged.connect(self.filter_amount_change)
         self.cellDoubleClicked.connect(self.filter_clicks)
-        # SLOTS
-        signals.database_changed.connect(self.filter_database_changed)
 
     def delete_exchanges(self, event):
         signals.exchanges_deleted.emit(
@@ -94,7 +91,6 @@ class ExchangeTable(ABTableWidget):
             item.setText(item.previous)
 
     def filter_clicks(self, row, col):
-        # print('Double clicked on row/col {} {}'.format(row, col))
         item = self.item(row, col)
         if self.biosphere or self.production or (item.flags() & QtCore.Qt.ItemIsEditable):
             return

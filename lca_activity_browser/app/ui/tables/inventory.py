@@ -13,14 +13,12 @@ class DatabasesTable(ABTableWidget):
     def __init__(self):
         super(DatabasesTable, self).__init__()
         self.setColumnCount(len(self.HEADERS))
-        self.sync()
         self.connect_signals()
+        self.sync()
 
     def connect_signals(self):
-        # SIGNAL
-        self.itemDoubleClicked.connect(self.select_database)
-        # SLOT
         signals.databases_changed.connect(self.sync)
+        self.itemDoubleClicked.connect(self.select_database)
 
     def select_database(self, item):
         signals.database_selected.emit(item.db_name)
@@ -53,8 +51,9 @@ class BiosphereFlowsTable(ABTableWidget):
         super(BiosphereFlowsTable, self).__init__()
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
-        self.setHorizontalHeaderLabels(self.HEADERS)
+        self.connect_signals()
 
+    def connect_signals(self):
         signals.database_selected.connect(self.sync)
 
     @ABTableWidget.decorated_sync
@@ -98,18 +97,10 @@ class ActivitiesTable(ABTableWidget):
         super(ActivitiesTable, self).__init__(parent)
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
+        self.setup_context_menu()
+        self.connect_signals()
 
-        # Done by tab widget ``MaybeActivitiesTable`` because
-        # need to ensure order to get correct row count
-        # signals.database_selected.connect(self.sync)
-        self.itemDoubleClicked.connect(
-            lambda x: signals.open_activity_tab.emit("activities", x.key)
-        )
-        self.itemDoubleClicked.connect(
-            lambda x: signals.add_activity_to_history.emit(x.key)
-        )
-
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+    def setup_context_menu(self):
         self.add_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add), "Add new activity", None
         )
@@ -127,7 +118,8 @@ class ActivitiesTable(ABTableWidget):
         self.addAction(self.delete_activity_action)
         self.addAction(self.open_left_tab_action)
         self.add_activity_action.triggered.connect(
-            lambda: signals.new_activity.emit(self.database.name))
+            lambda: signals.new_activity.emit(self.database.name)
+        )
         self.copy_activity_action.triggered.connect(
             lambda x: signals.copy_activity.emit(self.currentItem().key)
         )
@@ -135,9 +127,18 @@ class ActivitiesTable(ABTableWidget):
             lambda x: signals.delete_activity.emit(self.currentItem().key)
         )
         self.open_left_tab_action.triggered.connect(
-            lambda x: signals.open_activity_tab.emit(
-                "activities", self.currentItem().key
-            )
+            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+        )
+
+    def connect_signals(self):
+        # Done by tab widget ``MaybeActivitiesTable`` because
+        # need to ensure order to get correct row count
+        # signals.database_selected.connect(self.sync)
+        self.itemDoubleClicked.connect(
+            lambda x: signals.open_activity_tab.emit("activities", x.key)
+        )
+        self.itemDoubleClicked.connect(
+            lambda x: signals.add_activity_to_history.emit(x.key)
         )
         signals.database_changed.connect(self.filter_database_changed)
 
@@ -153,11 +154,6 @@ class ActivitiesTable(ABTableWidget):
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
                 self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
-
-        # self.setRowCount(min(len(self.database), self.MAX_LENGTH))
-        # sizePolicy = QtWidgets.QSizePolicy()
-        # sizePolicy.setVerticalStretch(1)
-        # self.setSizePolicy(sizePolicy)
 
     def filter_database_changed(self, database_name):
         if not hasattr(self, "database") or self.database.name != database_name:
@@ -187,11 +183,10 @@ class ActivitiesTableNew(ABStandardTable):
         self.database = bw.Database(name)
         self.database.order_by = 'name'
         self.database.filters = {'type': 'process'}
+
         self.setHorizontalHeaderLabels(self.HEADERS)
-        # self.setRowCount(min(len(self.database), self.COUNT))
         self.setRowCount(len(self.database))
 
-        # data = get_activity_data(itertools.islice(self.database, 0, self.MAX_LENGTH))
         data = get_activity_data(itertools.islice(self.database, 0, None))
         super().update_table(data, self.HEADERS)
 

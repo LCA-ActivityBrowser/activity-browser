@@ -8,27 +8,24 @@ from ...signals import signals
 
 
 class ActivitiesHistoryTable(ABTableWidget):
-    COUNT = 40
+    MAX_LENGTH = 40
     COLUMNS = {
         0: "name",
         1: "reference product",
         2: "location",
         3: "unit",
     }
+    HEADERS = ["Activity", "Reference Product", "Location", "Unit"]
 
     def __init__(self, *args):
         super(ActivitiesHistoryTable, self).__init__(*args)
         self.setDragEnabled(True)
-        self.setColumnCount(4)
         self.setRowCount(0)
-        self.setHorizontalHeaderLabels(["Activity", "Reference Product", "Location", "Unit"])
+        self.setColumnCount(len(self.HEADERS))
+        self.setup_context_menu()
+        self.connect_signals()
 
-        self.itemDoubleClicked.connect(
-            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
-        )
-        self.itemDoubleClicked.connect(
-            lambda x: signals.add_activity_to_history.emit(x.key)
-        )
+    def setup_context_menu(self):
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.open_left_tab_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open in new tab", None
@@ -40,6 +37,13 @@ class ActivitiesHistoryTable(ABTableWidget):
             )
         )
 
+    def connect_signals(self):
+        self.itemDoubleClicked.connect(
+            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+        )
+        self.itemDoubleClicked.connect(
+            lambda x: signals.add_activity_to_history.emit(x.key)
+        )
         signals.add_activity_to_history.connect(self.add_activity)
         signals.project_selected.connect(self.clear_history)
 
@@ -59,5 +63,5 @@ class ActivitiesHistoryTable(ABTableWidget):
 
     def clear_history(self):
         self.clear()
-        self.setHorizontalHeaderLabels(["Activity", "Reference Product", "Location", "Unit"])
+        self.setHorizontalHeaderLabels(self.HEADERS)
         self.setRowCount(0)
