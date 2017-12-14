@@ -1,123 +1,156 @@
 # -*- coding: utf-8 -*-
-import itertools
-
-from brightway2 import Database
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from . table import ABTableWidget, ABStandardTable, ABTableItem
-from ..style import TableStyle
+from .inventory import ActivitiesTable
+from .inventory import BiosphereFlowsTable
+from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
-from ...bw2extensions.commontasks import *
 
 
-class ActivitiesTableNew(ABStandardTable):
-    """ This is an alternative, more generic approach to filling activity tables
-    as we have several ones. Not yet convinved that this approach is better than the original one.
-    """
-    MAX_LENGTH = 10
-    HEADERS = ["Activity", "Reference product", "Location", "Unit"]
-
-    def __init__(self, parent=None):
-        super(ActivitiesTableNew, self).__init__(parent)
-
-    def sync(self, name):
-        self.database = Database(name)
-        self.database.order_by = 'name'
-        self.database.filters = {'type': 'process'}
-        self.setHorizontalHeaderLabels(self.HEADERS)
-        # self.setRowCount(min(len(self.database), self.COUNT))
-        self.setRowCount(len(self.database))
-
-        # data = get_activity_data(itertools.islice(self.database, 0, self.MAX_LENGTH))
-        data = get_activity_data(itertools.islice(self.database, 0, None))
-        super().update_table(data, self.HEADERS)
-
-
-class ActivitiesTable(ABTableWidget):
-    MAX_LENGTH = 500
-    COLUMNS = {
-        0: "name",
-        1: "reference product",
-        2: "location",
-        3: "unit",
+class ExchangeTable(ABTableWidget):
+    COLUMN_LABELS = {
+        # Production
+        (False, True): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain"],
+        # Normal technosphere
+        (False, False): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain"],
+        # Biosphere
+        (True, False): ["Amount", "Unit", "Name", "Categories", "Database", "Uncertain"],
     }
-    HEADERS = ["Name", "Reference Product", "Location", "Unit"]
 
-    def __init__(self, parent=None):
-        super(ActivitiesTable, self).__init__(parent)
+    def __init__(self, parent, biosphere=False, production=False):
+        super(ExchangeTable, self).__init__()
         self.setDragEnabled(True)
-        self.setColumnCount(len(self.HEADERS))
-
-        # Done by tab widget ``MaybeActivitiesTable`` because
-        # need to ensure order to get correct row count
-        # signals.database_selected.connect(self.sync)
-        self.itemDoubleClicked.connect(
-            lambda x: signals.open_activity_tab.emit("activities", x.key)
-        )
-        self.itemDoubleClicked.connect(
-            lambda x: signals.add_activity_to_history.emit(x.key)
-        )
-
+        self.setAcceptDrops(True)
+        self.setSortingEnabled(True)
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.add_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add), "Add new activity", None
+        self.biosphere = biosphere
+        self.production = production
+        self.column_labels = self.COLUMN_LABELS[(biosphere, production)]
+        self.setColumnCount(len(self.column_labels))
+        self.qs, self.upstream, self.database = None, False, None
+        self.ignore_changes = False
+
+        self.delete_exchange_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.delete), "Delete exchange(s)", None
         )
-        self.copy_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.copy), "Copy activity", None
-        )
-        self.delete_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.delete), "Delete activity", None
-        )
-        self.open_left_tab_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.left), "Open in new tab", None
-        )
-        self.addAction(self.add_activity_action)
-        self.addAction(self.copy_activity_action)
-        self.addAction(self.delete_activity_action)
-        self.addAction(self.open_left_tab_action)
-        self.add_activity_action.triggered.connect(
-            lambda: signals.new_activity.emit(self.database.name))
-        self.copy_activity_action.triggered.connect(
-            lambda x: signals.copy_activity.emit(self.currentItem().key)
-        )
-        self.delete_activity_action.triggered.connect(
-            lambda x: signals.delete_activity.emit(self.currentItem().key)
-        )
-        self.open_left_tab_action.triggered.connect(
-            lambda x: signals.open_activity_tab.emit(
-                "activities", self.currentItem().key
-            )
-        )
+        self.addAction(self.delete_exchange_action)
+        self.delete_exchange_action.triggered.connect(self.delete_exchanges)
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        # SIGNALS
+        # TODO: these are not signals... check also in other places and make it consistent
+        self.cellChanged.connect(self.filter_amount_change)
+        self.cellDoubleClicked.connect(self.filter_clicks)
+        # SLOTS
         signals.database_changed.connect(self.filter_database_changed)
 
-    @ABTableWidget.decorated_sync
-    def sync(self, name, data=None):
-        if not data:
-            self.database = Database(name)
-            self.database.order_by = 'name'
-            self.database.filters = {'type': 'process'}
-            data = itertools.islice(self.database, 0, self.MAX_LENGTH)
-            self.setRowCount(min(len(self.database), self.MAX_LENGTH))
-        self.setHorizontalHeaderLabels(self.HEADERS)
-        for row, ds in enumerate(data):
-            for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
+    def delete_exchanges(self, event):
+        signals.exchanges_deleted.emit(
+            [x.exchange for x in self.selectedItems()]
+        )
 
-        # self.setRowCount(min(len(self.database), self.MAX_LENGTH))
-        # sizePolicy = QtWidgets.QSizePolicy()
-        # sizePolicy.setVerticalStretch(1)
-        # self.setSizePolicy(sizePolicy)
+    def dragEnterEvent(self, event):
+        acceptable = (
+            ActivitiesTable,
+            ExchangeTable,
+            BiosphereFlowsTable,
+        )
+        if isinstance(event.source(), acceptable):
+            event.accept()
 
-    def filter_database_changed(self, database_name):
-        if not hasattr(self, "database") or self.database.name != database_name:
+    def dropEvent(self, event):
+        items = event.source().selectedItems()
+        if isinstance(items[0], ABTableItem):
+            signals.exchanges_add.emit([x.key for x in items], self.qs._key)
+        else:
+            print(items)
+            print(items.exchange)
+            signals.exchanges_output_modified.emit(
+                [x.exchange for x in items], self.qs._key
+            )
+        event.accept()
+
+    def filter_database_changed(self, database):
+        if self.database == database:
+            self.sync()
+
+    def filter_amount_change(self, row, col):
+        try:
+            item = self.item(row, col)
+            if self.ignore_changes:
+                return
+            elif item.text() == item.previous:
+                return
+            else:
+                value = float(item.text())
+                item.previous = item.text()
+                exchange = item.exchange
+                signals.exchange_amount_modified.emit(exchange, value)
+        except ValueError:
+            print('You can only enter numbers here.')
+            item.setText(item.previous)
+
+    def filter_clicks(self, row, col):
+        # print('Double clicked on row/col {} {}'.format(row, col))
+        item = self.item(row, col)
+        if self.biosphere or self.production or (item.flags() & QtCore.Qt.ItemIsEditable):
             return
-        self.sync(self.database.name)
 
-    def reset_search(self):
-        self.sync(self.database.name)
+        if hasattr(item, "exchange"):
+            if self.upstream:
+                key = item.exchange['output']
+            else:
+                key = item.exchange['input']
+            signals.open_activity_tab.emit("activities", key)
+            signals.add_activity_to_history.emit(key)
 
-    def search(self, search_term):
-        search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
-        self.setRowCount(len(search_result))
-        self.sync(self.database.name, search_result)
+    def set_queryset(self, database, qs, limit=100, upstream=False):
+        self.database, self.qs, self.upstream = database, qs, upstream
+        self.sync(limit)
+
+    @ABTableWidget.decorated_sync
+    def sync(self, limit=100):
+        self.ignore_changes = True
+        self.setRowCount(min(len(self.qs), limit))
+        self.setHorizontalHeaderLabels(self.column_labels)
+
+        if self.upstream:
+            self.setDragEnabled(False)
+            self.setAcceptDrops(False)
+
+        for row, exc in enumerate(self.qs):
+            obj = exc.output if self.upstream else exc.input
+            direction = "up" if self.upstream else "down"
+            if row == limit:
+                break
+
+            edit_flag = [QtCore.Qt.ItemIsEditable]
+
+            self.setItem(row, 3, ABTableItem(obj['database']))
+            self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+
+            if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
+                self.setItem(row, 0, ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag,
+                                                 color="amount"))
+                self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 2, ABTableItem(obj['name'], exchange=exc, direction=direction, color="name"))
+                self.setItem(row, 3, ABTableItem(" - ".join(obj.get('categories', [])), color="categories"))
+                self.setItem(row, 4, ABTableItem(obj['database'], color="database"))
+                self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+
+            else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
+                self.setItem(row, 0,
+                             ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag,
+                                         color="amount"))
+                self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 2, ABTableItem(obj.get('reference product') or obj["name"], exchange=exc,
+                                                 direction=direction, color="reference product"))
+                self.setItem(row, 3, ABTableItem(obj['name'], exchange=exc, direction=direction, color="name"))
+                self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown'), color="location"))
+                self.setItem(row, 5, ABTableItem(obj['database'], color="database"))
+                self.setItem(row, 6, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+
+        self.ignore_changes = False

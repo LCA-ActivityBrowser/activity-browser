@@ -2,7 +2,7 @@
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from .activity import ActivitiesTable
+from .inventory import ActivitiesTable
 from .table import ABTableWidget, ABTableItem
 from .ia import MethodsTable
 from ..icons import icons
