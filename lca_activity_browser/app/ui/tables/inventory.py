@@ -15,7 +15,6 @@ class DatabasesTable(ABTableWidget):
         self.name = "undefined"
         self.setColumnCount(len(self.HEADERS))
         self.connect_signals()
-        # self.sync()
 
     def connect_signals(self):
         signals.project_selected.connect(self.sync)
@@ -27,7 +26,6 @@ class DatabasesTable(ABTableWidget):
 
     @ABTableWidget.decorated_sync
     def sync(self, name=None):
-        print("Sync DatabasesTable... :", id(self), self.name)
         self.setRowCount(len(bw.databases))
         self.setHorizontalHeaderLabels(self.HEADERS)
         for row, name in enumerate(natural_sort(bw.databases)):

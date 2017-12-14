@@ -58,7 +58,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
         return wrapper
 
     # def sizeHint(self):
-    #     # return QtCore.QSize(100, 100)
+    #     """ Could be implemented like this to return the width and heights of the table. """
     #     width = self.width()
     #     if self.rowCount() > 0:
     #         height = self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
