@@ -46,17 +46,27 @@ class ABTableWidget(QtWidgets.QTableWidget):
         def wrapper(self, *args, **kwargs):
             # before making the table
             self.clear()
-            self.setSortingEnabled(True)
             # the actual sync
             sync(self, *args, **kwargs)
             # after syncing
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
-            if self.rowCount() > 0:
-                self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
-            else:
-                self.setMaximumHeight(50)
+            # if self.rowCount() > 0:
+            #     self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+            # else:
+            #     self.setMaximumHeight(50)
         return wrapper
+
+    # def sizeHint(self):
+    #     # return QtCore.QSize(100, 100)
+    #     width = self.width()
+    #     if self.rowCount() > 0:
+    #         height = self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
+    #         print("Size Hint:", height)
+    #         return QtCore.QSize(width, height)
+    #     else:
+    #         return QtCore.QSize(width, 50)
+
 
     @QtCore.pyqtSlot()
     def keyPressEvent(self, e):

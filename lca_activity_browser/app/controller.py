@@ -19,25 +19,20 @@ except ImportError:
 class Controller(object):
     def __init__(self, window):
         self.window = window
+        self.connect_signals()
+        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        print('Brightway2 active project: {}'.format(bw.projects.current))
 
         # switch directly to custom bw2 directory and project, if specified in settings
         # else use default bw2 path and project
         current_project = self.get_default_project_name()
+        signals.project_selected.emit(current_project)
         if settings:
             if hasattr(settings, "BW2_DIR"):
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
             if hasattr(settings, "PROJECT_NAME"):
-                if settings.PROJECT_NAME in [x.name for x in bw.projects]:
-                    current_project = bw.projects.set_current(settings.PROJECT_NAME)
-                else:
-                    print('Project indicated in settings.py not found.')
+                self.change_project(settings.PROJECT_NAME)
 
-        signals.project_selected.emit(current_project)
-
-        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        print('Brightway2 active project: {}'.format(bw.projects.current))
-
-        self.connect_signals()
         self.db_wizard = None
 
     def connect_signals(self):
@@ -45,6 +40,7 @@ class Controller(object):
         # Project
         signals.new_project.connect(self.new_project)
         signals.change_project.connect(self.change_project)
+        signals.change_project_dialogue.connect(self.change_project_dialogue)
         signals.copy_project.connect(self.copy_project)
         signals.delete_project.connect(self.delete_project)
         # Database
@@ -115,7 +111,7 @@ class Controller(object):
         else:
             return next(iter(bw.projects)).name
 
-    def change_project(self):
+    def change_project_dialogue(self):
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
             self.window,
@@ -126,9 +122,19 @@ class Controller(object):
             False
         )
         if ok:
-            if name != bw.projects.current:
-                bw.projects.set_current(name)
-                signals.project_selected.emit(name)
+            self.change_project(name)
+
+    def change_project(self, name=None):
+        if not name:
+            print("No project name given.")
+            return
+        if name not in [p.name for p in bw.projects]:
+            print("Project does not exist: {}".format(name))
+            return
+        if name != bw.projects.current:
+            bw.projects.set_current(name)
+            signals.project_selected.emit(name)
+            print("Changed project to:", name)
 
     def new_project(self):
         name = self.window.dialog(

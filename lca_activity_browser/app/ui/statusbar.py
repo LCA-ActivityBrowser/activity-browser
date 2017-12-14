@@ -18,6 +18,9 @@ class Statusbar(object):
         self.statusbar.addWidget(self.status_message_center, 2)
         self.statusbar.addWidget(self.status_message_right, 0)
 
+        self.connect_signals()
+
+    def connect_signals(self):
         signals.project_selected.connect(self.set_project)
         signals.database_selected.connect(self.set_database)
 

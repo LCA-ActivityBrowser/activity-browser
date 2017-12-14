@@ -11,3 +11,5 @@ from .activity import ExchangeTable
 from .history import ActivitiesHistoryTable
 from .ia import CFTable, MethodsTable
 from .lca_results import LCAResultsTable
+from .projects import ProjectTable, ProjectListWidget
+from .table import ABTableWidget, ABTableItem

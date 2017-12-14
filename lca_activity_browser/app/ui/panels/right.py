@@ -8,6 +8,7 @@ from ..tabs import (
     LCAResultsTab,
     MethodsTab,
 )
+from ..tabs.new_inventory import NewInventoryTab
 
 
 class RightPanel(Panel):
@@ -18,9 +19,12 @@ class RightPanel(Panel):
 
         self.history_tab = HistoryTab(self)
         self.inventory_tab = InventoryTab(self)
+        self.new_inventory_tab = NewInventoryTab(self)
         self.methods_tab = MethodsTab(self)
         self.lca_results_tab = LCAResultsTab(self)
+        self.addTab(self.new_inventory_tab, 'New Inventory')
         self.addTab(self.inventory_tab, 'Inventory')
+
         self.addTab(self.methods_tab, 'Impact Assessment')
         self.addTab(self.history_tab, 'History')
 

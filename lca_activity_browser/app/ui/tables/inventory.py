@@ -2,7 +2,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
 
-from . table import ABTableWidget, ABStandardTable, ABTableItem
+from .table import ABTableWidget, ABStandardTable, ABTableItem
 from ..icons import icons
 from ...signals import signals
 from ...bw2extensions.commontasks import *
@@ -12,11 +12,13 @@ class DatabasesTable(ABTableWidget):
     HEADERS = ["Name", "Depends", "Last modified", "Size", "Read-only"]
     def __init__(self):
         super(DatabasesTable, self).__init__()
+        self.name = "undefined"
         self.setColumnCount(len(self.HEADERS))
         self.connect_signals()
-        self.sync()
+        # self.sync()
 
     def connect_signals(self):
+        signals.project_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
         self.itemDoubleClicked.connect(self.select_database)
 
@@ -24,7 +26,8 @@ class DatabasesTable(ABTableWidget):
         signals.database_selected.emit(item.db_name)
 
     @ABTableWidget.decorated_sync
-    def sync(self):
+    def sync(self, name=None):
+        print("Sync DatabasesTable... :", id(self), self.name)
         self.setRowCount(len(bw.databases))
         self.setHorizontalHeaderLabels(self.HEADERS)
         for row, name in enumerate(natural_sort(bw.databases)):
@@ -127,16 +130,16 @@ class ActivitiesTable(ABTableWidget):
         )
 
     def connect_signals(self):
-        # Done by tab widget ``MaybeActivitiesTable`` because
-        # need to ensure order to get correct row count
-        # signals.database_selected.connect(self.sync)
+        signals.database_selected.connect(self.sync)
+        signals.database_changed.connect(self.filter_database_changed)
+
         self.itemDoubleClicked.connect(
             lambda x: signals.open_activity_tab.emit("activities", x.key)
         )
         self.itemDoubleClicked.connect(
             lambda x: signals.add_activity_to_history.emit(x.key)
         )
-        signals.database_changed.connect(self.filter_database_changed)
+
 
     @ABTableWidget.decorated_sync
     def sync(self, name, data=None):

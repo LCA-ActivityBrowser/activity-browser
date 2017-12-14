@@ -10,8 +10,12 @@ class Signals(QtCore.QObject):
     # Copy Text (Clipboard)
     copy_selection_to_clipboard = QtCore.pyqtSignal(str)
 
+    # bw2 directory
+    # directory_changed = QtCore.pyqtSignal()
+
     # Project
-    change_project = QtCore.pyqtSignal()
+    change_project = QtCore.pyqtSignal(str)
+    change_project_dialogue = QtCore.pyqtSignal()
     new_project = QtCore.pyqtSignal()
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
