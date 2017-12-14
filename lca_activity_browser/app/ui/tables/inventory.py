@@ -70,10 +70,6 @@ class BiosphereFlowsTable(ABTableWidget):
                 self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
             self.setItem(row, 1, ABTableItem(", ".join(ds.get('categories', [])), key=ds.key))
 
-        # sizePolicy = QtWidgets.QSizePolicy()
-        # sizePolicy.setVerticalStretch(20)
-        # self.setSizePolicy(sizePolicy)
-
     def reset_search(self):
         self.sync(self.database.name)
 

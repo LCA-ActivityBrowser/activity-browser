@@ -46,7 +46,6 @@ class CSActivityTable(ABTableWidget):
         self.connect_signals()
 
     def setup_context_menu(self):
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.delete_row_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Remove row", None
         )
@@ -127,6 +126,8 @@ class CSMethodsTable(ABTableWidget):
         super(CSMethodsTable, self).__init__()
         self.setColumnCount(len(self.HEADERS))
         self.setAcceptDrops(True)
+        self.setup_context_menu()
+        self.connect_signals()
 
     def setup_context_menu(self):
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
