@@ -51,21 +51,21 @@ class ABTableWidget(QtWidgets.QTableWidget):
             # after syncing
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
-            # if self.rowCount() > 0:
-            #     self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
-            # else:
-            #     self.setMaximumHeight(50)
+            if self.rowCount() > 0:
+                self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+            else:
+                self.setMaximumHeight(50)
         return wrapper
 
-    # def sizeHint(self):
-    #     """ Could be implemented like this to return the width and heights of the table. """
-    #     width = self.width()
-    #     if self.rowCount() > 0:
-    #         height = self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
-    #         print("Size Hint:", height)
-    #         return QtCore.QSize(width, height)
-    #     else:
-    #         return QtCore.QSize(width, 50)
+    def sizeHint(self):
+        """ Could be implemented like this to return the width and heights of the table. """
+        width = self.width()
+        if self.rowCount() > 0:
+            height = self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
+            print("Size Hint:", height)
+            return QtCore.QSize(width, height)
+        else:
+            return QtCore.QSize(width, 50)
 
 
     @QtCore.pyqtSlot()

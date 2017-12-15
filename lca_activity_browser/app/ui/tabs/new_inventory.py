@@ -42,6 +42,7 @@ class NewInventoryTab(QtWidgets.QWidget):
         # self.overall_layout.addWidget(self.activities_widget)
         # self.overall_layout.addWidget(self.flows_widget)
         self.overall_layout.addWidget(self.splitter)
+        self.overall_layout.addStretch(0)
         self.setLayout(self.overall_layout)
 
         self.activities_widget.hide()
@@ -89,6 +90,11 @@ class DatabaseWidget(QtWidgets.QWidget):
     def __init__(self):
         super(DatabaseWidget, self).__init__()
 
+        self.setAutoFillBackground(True)
+        p = self.palette()
+        p.setColor(self.backgroundRole(), QtCore.Qt.gray)
+        self.setPalette(p)
+
         self.table = DatabasesTable()
 
         # Header widget
@@ -112,15 +118,21 @@ class DatabaseWidget(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Minimum,
             QtWidgets.QSizePolicy.Preferred)
         )
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Maximum)
-        )
+        # self.setSizePolicy(QtWidgets.QSizePolicy(
+        #     QtWidgets.QSizePolicy.Minimum,
+        #     QtWidgets.QSizePolicy.Maximum)
+        # )
 
 
 class ActivitiesWidget(QtWidgets.QWidget):
     def __init__(self):
         super(ActivitiesWidget, self).__init__()
+
+        self.setAutoFillBackground(True)
+        p = self.palette()
+        p.setColor(self.backgroundRole(), QtCore.Qt.darkBlue)
+        self.setPalette(p)
+
 
         self.table = ActivitiesTable()
 
@@ -149,6 +161,11 @@ class ActivitiesWidget(QtWidgets.QWidget):
 class BiosphereFlowsWidget(QtWidgets.QWidget):
     def __init__(self):
         super(BiosphereFlowsWidget, self).__init__()
+
+        self.setAutoFillBackground(True)
+        p = self.palette()
+        p.setColor(self.backgroundRole(), QtCore.Qt.green)
+        self.setPalette(p)
 
         self.table = BiosphereFlowsTable()
 
