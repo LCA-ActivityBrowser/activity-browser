@@ -71,7 +71,6 @@ class Controller(object):
         # Other
         signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
 
-
     def import_database_wizard(self):
         if self.db_wizard is None:
             self.db_wizard = DatabaseImportWizard()
@@ -179,14 +178,21 @@ class Controller(object):
             signals.databases_changed.emit()
             signals.database_selected.emit(name)
 
-    def copy_database(self, name):
+    def copy_database(self):
         name = self.window.right_panel.inventory_tab.databases.currentItem().db_name
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if new_name:
-            bw.Database(name).copy(new_name)
-            signals.databases_changed.emit()
+            if new_name in bw.databases:
+                QtWidgets.QMessageBox.warning(
+                    None,
+                    'Database exists!',
+                    'Database <b>{}</b> already exists!'.format(new_name)
+                )
+            else:
+                bw.Database(name).copy(new_name)
+                signals.databases_changed.emit()
 
     def delete_database(self, *args):
         name = self.window.right_panel.inventory_tab.databases.currentItem().db_name
