@@ -42,7 +42,7 @@ class NewInventoryTab(QtWidgets.QWidget):
         # self.overall_layout.addWidget(self.activities_widget)
         # self.overall_layout.addWidget(self.flows_widget)
         self.overall_layout.addWidget(self.splitter)
-        self.overall_layout.addStretch(0)
+        self.overall_layout.addStretch()
         self.setLayout(self.overall_layout)
 
         self.activities_widget.hide()
