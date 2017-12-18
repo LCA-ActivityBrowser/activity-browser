@@ -38,6 +38,10 @@ class ABTableWidget(QtWidgets.QTableWidget):
         # same in all tables:
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setSortingEnabled(True)
+        # self.setSizePolicy(QtWidgets.QSizePolicy(
+        #     QtWidgets.QSizePolicy.Preferred,
+        #     QtWidgets.QSizePolicy.Maximum)
+        # )
 
     @classmethod  # needs to be a classmethod for decorating subclass methods
     def decorated_sync(cls, sync):
@@ -59,13 +63,12 @@ class ABTableWidget(QtWidgets.QTableWidget):
 
     def sizeHint(self):
         """ Could be implemented like this to return the width and heights of the table. """
-        width = self.width()
         if self.rowCount() > 0:
             height = self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
-            print("Size Hint:", height)
-            return QtCore.QSize(width, height)
+            # print("Size Hint:", height)
+            return QtCore.QSize(self.width(), height)
         else:
-            return QtCore.QSize(width, 50)
+            return QtCore.QSize(self.width(), 50)
 
 
     @QtCore.pyqtSlot()

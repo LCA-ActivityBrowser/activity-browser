@@ -23,8 +23,8 @@ class Signals(QtCore.QObject):
 
     # Database
     add_database = QtCore.pyqtSignal()
-    delete_database = QtCore.pyqtSignal()
-    copy_database = QtCore.pyqtSignal()
+    delete_database = QtCore.pyqtSignal(str)
+    copy_database = QtCore.pyqtSignal(str)
     install_default_data = QtCore.pyqtSignal()
     import_database = QtCore.pyqtSignal()
 

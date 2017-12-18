@@ -15,6 +15,40 @@ class DatabasesTable(ABTableWidget):
         self.name = "undefined"
         self.setColumnCount(len(self.HEADERS))
         self.connect_signals()
+        self.setup_context_menu()
+
+    def setup_context_menu(self):
+        # delete database
+        self.delete_database_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.delete), "Delete database", None
+        )
+        self.addAction(self.delete_database_action)
+        self.delete_database_action.triggered.connect(
+            lambda x: signals.delete_database.emit(
+                self.currentItem().db_name
+            )
+        )
+
+        # copy database
+        self.copy_database_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.duplicate), "Copy database", None
+        )
+        self.addAction(self.copy_database_action)
+        self.copy_database_action.triggered.connect(
+            lambda x: signals.copy_database.emit(
+                self.currentItem().db_name
+            )
+        )
+
+        # self.add_activity_action = QtWidgets.QAction(
+        #     QtGui.QIcon(icons.add), "Add new activity", None
+        # )
+        # self.databases_table.addAction(self.add_activity_action)
+        # self.add_activity_action.triggered.connect(
+        #     lambda x: signals.new_activity.emit(
+        #         self.databases_table.currentItem().db_name
+        #     )
+        # )
 
     def connect_signals(self):
         signals.project_selected.connect(self.sync)
@@ -50,6 +84,7 @@ class BiosphereFlowsTable(ABTableWidget):
 
     def __init__(self):
         super(BiosphereFlowsTable, self).__init__()
+        self.database_name = None
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
         self.connect_signals()
@@ -59,6 +94,7 @@ class BiosphereFlowsTable(ABTableWidget):
 
     @ABTableWidget.decorated_sync
     def sync(self, name, data=None):
+        self.database_name = name
         self.setHorizontalHeaderLabels(self.HEADERS)
         if not data:
             self.database = bw.Database(name)
@@ -92,6 +128,7 @@ class ActivitiesTable(ABTableWidget):
 
     def __init__(self, parent=None):
         super(ActivitiesTable, self).__init__(parent)
+        self.database_name = None
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
         self.setup_context_menu()
@@ -141,6 +178,7 @@ class ActivitiesTable(ABTableWidget):
 
     @ABTableWidget.decorated_sync
     def sync(self, name, data=None):
+        self.database_name = name
         if not data:
             self.database = bw.Database(name)
             self.database.order_by = 'name'

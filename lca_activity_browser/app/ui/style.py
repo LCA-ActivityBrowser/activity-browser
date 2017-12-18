@@ -14,6 +14,12 @@ class TableStyle:
             }
         """
 
+
+        # self.setAutoFillBackground(True)
+        # p = self.palette()
+        # p.setColor(self.backgroundRole(), QtCore.Qt.gray)
+        # self.setPalette(p)
+
 class TableItemStyle:
     COLOR_CODE = {
         'product': (0, 132, 130),

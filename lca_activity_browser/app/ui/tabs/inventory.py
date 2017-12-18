@@ -1,217 +1,362 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from .. import header
 from ..icons import icons
 from ..tables import (
     ActivitiesTable,
-    # ActivitiesTableNew,
     DatabasesTable,
     BiosphereFlowsTable,
+    ProjectListWidget,
 )
 from ...signals import signals
-
-
-class MaybeTable(QtWidgets.QWidget):
-    searchable = False
-
-    def __init__(self, parent):
-        super(MaybeTable, self).__init__(parent)
-        self.table = self.TABLE()
-
-        self.no_objects = QtWidgets.QLabel(self.NO)
-
-        inventory_layout = QtWidgets.QVBoxLayout()
-        if self.searchable:
-            self.search_box = QtWidgets.QLineEdit()
-            self.search_box.setPlaceholderText("Filter by search string")
-            reset_search_buton = QtWidgets.QPushButton("Reset")
-
-            search_layout = QtWidgets.QHBoxLayout()
-            search_layout.setAlignment(QtCore.Qt.AlignLeft)
-            search_layout.addWidget(header(self.HEADER))
-            search_layout.addWidget(self.search_box)
-            search_layout.addWidget(reset_search_buton)
-
-            search_layout_container = QtWidgets.QWidget()
-            search_layout_container.setLayout(search_layout)
-            inventory_layout.addWidget(search_layout_container)
-
-            reset_search_buton.clicked.connect(self.table.reset_search)
-            reset_search_buton.clicked.connect(self.search_box.clear)
-            self.search_box.returnPressed.connect(self.set_search_term)
-            signals.project_selected.connect(self.search_box.clear)
-        else:
-            inventory_layout.addWidget(header(self.HEADER))
-
-        inventory_layout.addWidget(self.table)
-
-        self.yes_objects = QtWidgets.QWidget(self)
-        self.yes_objects.setLayout(inventory_layout)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.no_objects)
-        layout.addWidget(self.yes_objects)
-        self.setLayout(layout)
-
-        signals.database_selected.connect(self.choose)
-
-    def set_search_term(self):
-        self.table.search(self.search_box.text())
-
-    def choose(self, name):
-        self.table.sync(name)
-        if self.table.rowCount():
-            self.no_objects.hide()
-            self.yes_objects.show()
-        else:
-            self.no_objects.show()
-            self.yes_objects.hide()
-
-
-class MaybeActivitiesTable(MaybeTable):
-    NO = 'This database has no technosphere activities'
-    TABLE = ActivitiesTable
-    HEADER = 'Activities:'
-    searchable = True
-
-
-class MaybeFlowsTable(MaybeTable):
-    NO = 'This database has no biosphere flows'
-    TABLE = BiosphereFlowsTable
-    HEADER = 'Biosphere flows:'
-    searchable = True
 
 
 class InventoryTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(InventoryTab, self).__init__(parent)
+        # main widgets
+        self.projects_widget = ProjectsWidget()
+        self.databases_widget = DatabaseWidget(self)
+        self.activities_widget = ActivitiesWidget(self)
+        self.flows_widget = BiosphereFlowsWidget(self)
 
-        # Tables
-        self.databases_table = DatabasesTable()
-        # self.databases_table1 = DatabasesTable()
-        self.activities_table = MaybeActivitiesTable(self)
-        self.flows_table = MaybeFlowsTable(self)
+        # Layout
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        # self.splitter.addWidget(self.projects_widget)
+        self.splitter.addWidget(self.databases_widget)
+        self.splitter.addWidget(self.activities_widget)
+        self.splitter.addWidget(self.flows_widget)
+
+        self.overall_layout = QtWidgets.QVBoxLayout()
+        self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.overall_layout.addWidget(self.projects_widget)
+
+        # self.overall_layout.addWidget(self.databases_widget)
+        # self.overall_layout.addWidget(self.activities_widget)
+        # self.overall_layout.addWidget(self.flows_widget)
+        self.overall_layout.addWidget(self.splitter)
+        self.overall_layout.addStretch()
+        self.setLayout(self.overall_layout)
+
+        self.activities_widget.hide()
+        self.flows_widget.hide()
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        signals.project_selected.connect(self.change_project)
+        signals.database_selected.connect(self.update_widgets)
+
+    def change_project(self):
+        self.activities_widget.table.setRowCount(0)
+        self.flows_widget.table.setRowCount(0)
+        self.update_widgets()
+
+    def update_widgets(self):
+        """Update widgets when a new database has been selected or the project has been changed.
+        Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
+        no_databases = self.databases_widget.table.rowCount() == 0
+        no_activities = self.activities_widget.table.rowCount() == 0
+        no_biosphere_flows = self.flows_widget.table.rowCount() == 0
+
+        self.databases_widget.update_widget()
+
+        if not no_databases and no_activities and no_biosphere_flows:
+            self.databases_widget.label_no_database_selected.show()
+        else:
+            self.databases_widget.label_no_database_selected.hide()
+        if no_activities:
+            self.activities_widget.hide()
+        else:
+            self.activities_widget.show()
+        if no_biosphere_flows:
+            self.flows_widget.hide()
+        else:
+            self.flows_widget.show()
+        self.resize_splitter()
+
+    def resize_splitter(self):
+        """Splitter sizes need to be reset (for some reason this is buggy if not done like this)"""
+        widgets = [self.databases_widget, self.activities_widget, self.flows_widget]
+        sizes = [x.sizeHint().height() for x in widgets]
+        self.splitter.setSizes(sizes)
+        # print("Widget sizes:", sizes)
+        # print("\nSH DB/Act/Bio: {}/{}/{}". format(*[x.sizeHint() for x in widgets]))
+        # print("Splitter Sizes:", self.splitter.sizes())
+        # print("SH Splitter Height:", self.splitter.height())
+
+
+class ProjectsWidget(QtWidgets.QWidget):
+    def __init__(self):
+        super(ProjectsWidget, self).__init__()
+        self.projects_list = ProjectListWidget()
+        # Buttons
+        self.new_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.add), 'New')
+        self.copy_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.copy), 'Copy current')
+        self.delete_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.delete), 'Delete current')
+        # Layout
+        self.h_layout = QtWidgets.QHBoxLayout()
+        self.h_layout.addWidget(header('Current Project:'))
+        self.h_layout.addWidget(self.projects_list)
+        self.h_layout.addWidget(self.new_project_button)
+        self.h_layout.addWidget(self.copy_project_button)
+        self.h_layout.addWidget(self.delete_project_button)
+        self.setLayout(self.h_layout)
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
+
+class HeaderTableTemplate(QtWidgets.QWidget):
+    searchable = False
+
+    def __init__(self, parent):
+        super(HeaderTableTemplate, self).__init__(parent)
+        self.table = self.TABLE()
+
+        # Header widget
+        self.header_widget = QtWidgets.QWidget()
+        self.header_layout = QtWidgets.QHBoxLayout()
+        self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
+        self.header_layout.addWidget(header(self.HEADER))
+        self.header_widget.setLayout(self.header_layout)
+
+        if hasattr(self.table, "database_name"):
+            self.label_database = QtWidgets.QLabel("[]")
+            self.header_layout.addWidget(self.label_database)
+            signals.database_selected.connect(self.database_changed)
+
+        if self.searchable:  # include searchbox
+            self.search_box = QtWidgets.QLineEdit()
+            self.search_box.setPlaceholderText("Filter by search string")
+            reset_search_button = QtWidgets.QPushButton("Reset")
+            reset_search_button.clicked.connect(self.table.reset_search)
+            reset_search_button.clicked.connect(self.search_box.clear)
+            self.search_box.returnPressed.connect(self.set_search_term)
+            signals.project_selected.connect(self.search_box.clear)
+            self.header_layout.addWidget(self.search_box)
+            self.header_layout.addWidget(reset_search_button)
+
+        # Overall Layout
+        self.v_layout = QtWidgets.QVBoxLayout()
+        self.v_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.v_layout.addWidget(self.header_widget)
+        self.v_layout.addWidget(self.table)
+        self.setLayout(self.v_layout)
+
+        # Size Policy
+        # self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
+        #     QtWidgets.QSizePolicy.Maximum,
+        #     QtWidgets.QSizePolicy.Maximum)
+        # )
+        self.table.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
+    def set_search_term(self):
+        self.table.search(self.search_box.text())
+
+    def database_changed(self):
+        if hasattr(self, "label_database"):
+            self.label_database.setText("[{}]".format(self.table.database_name))
+
+class DatabaseWidget(HeaderTableTemplate):
+    TABLE = DatabasesTable
+    HEADER = 'Databases:'
+    def __init__(self, parent):
+        super(DatabaseWidget, self).__init__(parent)
+
+        # Labels
+        self.label_no_database_selected = QtWidgets.QLabel("Select a database (double-click on table).")
 
         # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
             'Add Default Data (Biosphere flows, LCIA methods)')
-        self.new_database_button = QtWidgets.QPushButton('Create New Database')
+        self.new_database_button = QtWidgets.QPushButton('New Database')
         self.import_database_button = QtWidgets.QPushButton('Import Database')
-        self.import_database_button.clicked.connect(signals.import_database.emit)
 
-        # Layout
-        # vlayout = QtWidgets.QVBoxLayout()
-
-        no_database_layout = QtWidgets.QVBoxLayout()
-        no_database_layout.addWidget(header("No database selected"))
-        no_database_layout.addWidget(QtWidgets.QLabel(
-            'This section will be filled when a database is selected (double clicked)'))
-        no_database_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.no_database_widget = QtWidgets.QWidget()
-        self.no_database_widget.setLayout(no_database_layout)
-
-        databases_table_layout = QtWidgets.QHBoxLayout()
-        databases_table_layout.addWidget(self.databases_table)
-        # databases_table_layout.addWidget(self.databases_table1)
-        databases_table_layout.setAlignment(QtCore.Qt.AlignTop)
-
-        self.databases_table_widget = QtWidgets.QWidget()
-        self.databases_table_widget.setLayout(databases_table_layout)
-
-        default_data_button_layout = QtWidgets.QHBoxLayout()
-        default_data_button_layout.addWidget(self.add_default_data_button)
-
-        self.default_data_widget = QtWidgets.QWidget()
-        self.default_data_widget.hide()
-        self.default_data_widget.setLayout(
-            default_data_button_layout
-        )
-
-        database_header = QtWidgets.QHBoxLayout()
-        database_header.setAlignment(QtCore.Qt.AlignLeft)
-        database_header.addWidget(header('Databases:'))
-        database_header.addWidget(self.new_database_button)
-        database_header.addWidget(self.import_database_button)
-
-        database_layout = QtWidgets.QVBoxLayout()
-        database_layout.addLayout(database_header)
-        database_layout.addWidget(
-            self.databases_table_widget
-        )
-        database_layout.addWidget(
-            self.default_data_widget
-        )
-
-        inventory_layout = QtWidgets.QVBoxLayout()
-        inventory_layout.addWidget(self.activities_table)
-        inventory_layout.addWidget(self.flows_table)
-
-        self.inventory_widget = QtWidgets.QWidget()
-        self.inventory_widget.setLayout(inventory_layout)
-
-        activities_layout = QtWidgets.QVBoxLayout()
-        activities_layout.addWidget(self.no_database_widget)
-        activities_layout.addWidget(self.inventory_widget)
+        # Header widget
+        self.header_layout.addWidget(self.add_default_data_button)
+        self.header_layout.addWidget(self.new_database_button)
+        self.header_layout.addWidget(self.import_database_button)
 
         # Overall Layout
-        overall_layout = QtWidgets.QVBoxLayout()
-        overall_layout.addLayout(database_layout)
-        overall_layout.addLayout(activities_layout)
-        overall_layout.addStretch(1)
+        self.v_layout.addWidget(self.label_no_database_selected)
 
-        self.setLayout(overall_layout)
-
-        self.setup_context_menu()
         self.connect_signals()
 
-    def setup_context_menu(self):
-        # pass
-        self.databases_table.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.delete_database_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.delete), "Delete database", None
-        )
-        self.databases_table.addAction(self.delete_database_action)
-        self.delete_database_action.triggered.connect(signals.delete_database.emit)
-
-        self.copy_database_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.duplicate), "Copy database", None
-        )
-        self.databases_table.addAction(self.copy_database_action)
-        self.copy_database_action.triggered.connect(signals.copy_database.emit)
-
-        self.add_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add), "Add new activity", None
-        )
-        self.databases_table.addAction(self.add_activity_action)
-        self.add_activity_action.triggered.connect(
-            lambda x: signals.new_activity.emit(
-                self.databases_table.currentItem().db_name
-            )
-        )
-
     def connect_signals(self):
-        signals.project_selected.connect(self.change_project)
-        signals.database_selected.connect(self.change_database)
+        self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
+        self.import_database_button.clicked.connect(signals.import_database.emit)
         self.new_database_button.clicked.connect(signals.add_database.emit)
 
-        self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
-
-    def change_project(self, name):
-        # self.databases_table.sync()
-        self.no_database_widget.show()
-        self.inventory_widget.hide()
-
-        if not len(bw.databases):
-            self.default_data_widget.show()
-            self.databases_table_widget.hide()
-            self.import_database_button.setEnabled(False)
+    def update_widget(self):
+        no_databases = self.table.rowCount() == 0
+        if no_databases:
+            self.add_default_data_button.show()
+            self.import_database_button.hide()
+            self.new_database_button.hide()
+            self.table.hide()
+            self.label_no_database_selected.hide()
         else:
-            self.default_data_widget.hide()
-            self.databases_table_widget.show()
-            self.import_database_button.setEnabled(True)
+            self.add_default_data_button.hide()
+            self.import_database_button.show()
+            self.new_database_button.show()
+            self.table.show()
 
-    def change_database(self, name):
-        self.no_database_widget.hide()
-        self.inventory_widget.show()
+
+class ActivitiesWidget(HeaderTableTemplate):
+    TABLE = ActivitiesTable
+    HEADER = 'Activities:'
+    searchable = True
+
+
+class BiosphereFlowsWidget(HeaderTableTemplate):
+    TABLE = BiosphereFlowsTable
+    HEADER = 'Biosphere Flows:'
+    searchable = True
+
+
+# class DatabaseWidget(QtWidgets.QWidget):
+#     TABLE = DatabasesTable
+#     HEADER = 'Databases:'
+#     def __init__(self):
+#         super(DatabaseWidget, self).__init__()
+#
+#         self.table = DatabasesTable()
+#
+#         # Labels
+#         self.label_no_database_selected = QtWidgets.QLabel("Select a database (double-click on table).")
+#
+#         # Buttons
+#         self.add_default_data_button = QtWidgets.QPushButton(
+#             'Add Default Data (Biosphere flows, LCIA methods)')
+#         self.new_database_button = QtWidgets.QPushButton('New Database')
+#         self.import_database_button = QtWidgets.QPushButton('Import Database')
+#
+#         # Header widget
+#         self.header_widget = QtWidgets.QWidget()
+#         header_layout = QtWidgets.QHBoxLayout()
+#         header_layout.addWidget(header('Databases'))
+#         header_layout.addWidget(self.add_default_data_button)
+#         header_layout.addWidget(self.new_database_button)
+#         header_layout.addWidget(self.import_database_button)
+#         self.header_widget.setLayout(header_layout)
+#
+#         # Overall Layout
+#         v_layout = QtWidgets.QVBoxLayout()
+#         v_layout.setAlignment(QtCore.Qt.AlignTop)
+#         v_layout.addWidget(self.header_widget)
+#         v_layout.addWidget(self.table)
+#         v_layout.addWidget(self.label_no_database_selected)
+#         self.setLayout(v_layout)
+#
+#         self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
+#             QtWidgets.QSizePolicy.Maximum,
+#             QtWidgets.QSizePolicy.Maximum)
+#         )
+#         self.table.setSizePolicy(QtWidgets.QSizePolicy(
+#             QtWidgets.QSizePolicy.Preferred,
+#             QtWidgets.QSizePolicy.Maximum)
+#         )
+#
+#         self.connect_signals()
+#
+#     def connect_signals(self):
+#         self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
+#         self.import_database_button.clicked.connect(signals.import_database.emit)
+#         self.new_database_button.clicked.connect(signals.add_database.emit)
+#
+#     def update_widget(self):
+#         no_databases = self.table.rowCount() == 0
+#         if no_databases:
+#             self.add_default_data_button.show()
+#             self.import_database_button.hide()
+#             self.new_database_button.hide()
+#             self.table.hide()
+#             self.label_no_database_selected.hide()
+#         else:
+#             self.add_default_data_button.hide()
+#             self.import_database_button.show()
+#             self.new_database_button.show()
+#             self.table.show()
+#
+#
+# class ActivitiesWidget(QtWidgets.QWidget):
+#     def __init__(self):
+#         super(ActivitiesWidget, self).__init__()
+#
+#         self.table = ActivitiesTable()
+#         self.label_database = QtWidgets.QLabel("[]")
+#
+#         # Header widget
+#         self.header_widget = QtWidgets.QWidget()
+#         header_layout = QtWidgets.QHBoxLayout()
+#         header_layout.addWidget(header('Activities'))
+#         header_layout.addWidget(self.label_database)
+#         self.header_widget.setLayout(header_layout)
+#
+#         # Overall Layout
+#         v_layout = QtWidgets.QVBoxLayout()
+#         v_layout.setAlignment(QtCore.Qt.AlignTop)
+#         v_layout.addWidget(self.header_widget)
+#         v_layout.addWidget(self.table)
+#         self.setLayout(v_layout)
+#
+#         self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
+#             QtWidgets.QSizePolicy.Maximum,
+#             QtWidgets.QSizePolicy.Maximum)
+#         )
+#         self.table.setSizePolicy(QtWidgets.QSizePolicy(
+#             QtWidgets.QSizePolicy.Preferred,
+#             QtWidgets.QSizePolicy.Maximum)
+#         )
+#         self.connect_signals()
+#
+#     def connect_signals(self):
+#         signals.database_selected.connect(self.database_changed)
+#
+#     def database_changed(self):
+#         self.label_database.setText("[{}]".format(self.table.database_name))
+#
+#
+# class BiosphereFlowsWidget(QtWidgets.QWidget):
+#     def __init__(self):
+#         super(BiosphereFlowsWidget, self).__init__()
+#
+#         self.table = BiosphereFlowsTable()
+#         self.label_database = QtWidgets.QLabel("[]")
+#
+#         # Header widget
+#         self.header_widget = QtWidgets.QWidget()
+#         header_layout = QtWidgets.QHBoxLayout()
+#         header_layout.addWidget(header('Biosphere Flows'))
+#         header_layout.addWidget(self.label_database)
+#         self.header_widget.setLayout(header_layout)
+#
+#         # Overall Layout
+#         v_layout = QtWidgets.QVBoxLayout()
+#         v_layout.setAlignment(QtCore.Qt.AlignTop)
+#         v_layout.addWidget(self.header_widget)
+#         v_layout.addWidget(self.table)
+#         self.setLayout(v_layout)
+#
+#         self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
+#             QtWidgets.QSizePolicy.Maximum,
+#             QtWidgets.QSizePolicy.Maximum)
+#         )
+#         self.table.setSizePolicy(QtWidgets.QSizePolicy(
+#             QtWidgets.QSizePolicy.Preferred,
+#             QtWidgets.QSizePolicy.Maximum)
+#         )
+#
+#         self.connect_signals()
+#
+#     def connect_signals(self):
+#         signals.database_selected.connect(self.database_changed)
+#
+#     def database_changed(self):
+#         self.label_database.setText("[{}]".format(self.table.database_name))

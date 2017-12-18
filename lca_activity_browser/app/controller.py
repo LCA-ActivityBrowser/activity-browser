@@ -125,6 +125,7 @@ class Controller(object):
             self.change_project(name)
 
     def change_project(self, name=None):
+        # TODO: what should happen if a new project is opened? (all activities, etc. closed?)
         if not name:
             print("No project name given.")
             return
@@ -186,8 +187,6 @@ class Controller(object):
             signals.database_selected.emit(name)
 
     def copy_database(self, name):
-        # TODO: might be more flexible and robust to work with signals here
-        name = self.window.right_panel.inventory_tab.databases_table.currentItem().db_name
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
@@ -195,8 +194,8 @@ class Controller(object):
             bw.Database(name).copy(new_name)
             signals.databases_changed.emit()
 
-    def delete_database(self, *args):
-        name = self.window.right_panel.inventory_tab.databases_table.currentItem().db_name
+    def delete_database(self, name):
+        # name = self.window.right_panel.inventory_tab.databases_table.currentItem().db_name
         ok = self.window.confirm((
             "Are you sure you want to delete database '{}'? "
             "It has {} activity datasets").format(

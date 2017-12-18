@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtWidgets
 
 bold_font = QtGui.QFont()
 bold_font.setBold(True)
-bold_font.setPointSize(16)
+bold_font.setPointSize(12)
 
 activity_cache = {}
 
