@@ -31,10 +31,7 @@ class MethodsTable(ABTableWidget):
     def sync(self, query=None):
         self.setHorizontalHeaderLabels(self.HEADERS)
 
-        # print([m for m in bw.methods])
         sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
-
-        print("Query", query)
 
         if query:
             sorted_names = [
@@ -42,9 +39,8 @@ class MethodsTable(ABTableWidget):
                 if query.lower() in obj[0].lower()
             ]
 
-        print(len(sorted_names))
         self.setRowCount(len(sorted_names))
-        print("Rowcount, Methodstable:", self.rowCount())
+
         for row, method_obj in enumerate(sorted_names):
             name, method = method_obj
             data = bw.methods[method]

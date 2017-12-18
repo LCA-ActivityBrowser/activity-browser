@@ -3,6 +3,8 @@ from PyQt5 import QtCore
 
 
 class Signals(QtCore.QObject):
+    """ Signals used for the Activity Browser should be defined here.
+    While arguments can be passed to signals, it is good practice not to do this if possible. """
 
     # General Settings
     switch_bw2_dir_path = QtCore.pyqtSignal()
@@ -19,7 +21,7 @@ class Signals(QtCore.QObject):
     new_project = QtCore.pyqtSignal()
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
-    project_selected = QtCore.pyqtSignal(str)
+    project_selected = QtCore.pyqtSignal()
 
     # Database
     add_database = QtCore.pyqtSignal()

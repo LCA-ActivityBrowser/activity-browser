@@ -16,7 +16,7 @@ class ProjectListWidget(QtWidgets.QComboBox):
         self.activated.connect(self.on_activated)
         signals.project_selected.connect(self.sync)
 
-    def sync(self, project_name):
+    def sync(self):
         self.clear()
         self.project_names = sorted([project.name for project in projects])
         self.addItems(self.project_names)

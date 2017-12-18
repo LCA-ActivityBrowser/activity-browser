@@ -110,7 +110,8 @@ class Toolbar(QtWidgets.QToolBar):
         if text:
             create_issue(text)
 
-    def set_project_label(self, name):
+    def set_project_label(self):
+        name = projects.current
         self.project_name_label.setText('Project: {}'.format(name))
         self.project_read_only.setText('')
         if projects.read_only:

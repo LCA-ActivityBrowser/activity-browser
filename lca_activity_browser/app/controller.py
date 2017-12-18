@@ -26,7 +26,7 @@ class Controller(object):
         # switch directly to custom bw2 directory and project, if specified in settings
         # else use default bw2 path and project
         current_project = self.get_default_project_name()
-        signals.project_selected.emit(current_project)
+        signals.project_selected.emit()
         if settings:
             if hasattr(settings, "BW2_DIR"):
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
@@ -97,8 +97,9 @@ class Controller(object):
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
-            bw.projects.set_current("default")
-            signals.project_selected.emit(self.get_default_project_name())
+            # bw.projects.set_current(self.get_default_project_name())
+            # signals.project_selected.emit(self.get_default_project_name())
+            signals.change_project.emit(self.get_default_project_name())
             # TODO: message to Statusbar
             print('Changed brightway2 data directory to: {}'.format(bw.projects._base_data_dir))
 
@@ -134,7 +135,7 @@ class Controller(object):
             return
         if name != bw.projects.current:
             bw.projects.set_current(name)
-            signals.project_selected.emit(name)
+            signals.project_selected.emit()
             print("Changed project to:", name)
 
     def new_project(self):
@@ -144,7 +145,9 @@ class Controller(object):
         )
         if name and name not in bw.projects:
             bw.projects.set_current(name)
-            signals.project_selected.emit(name)
+            self.change_project(name)
+            # signals.project_selected.emit(name)
+            # signals.change_project.emit(name)
         elif name in bw.projects:
             # TODO feedback that project already exists
             pass
@@ -156,7 +159,8 @@ class Controller(object):
         )
         if name and name not in bw.projects:
             bw.projects.copy_project(name, switch=True)
-            signals.project_selected.emit(name)
+            self.change_project(name)
+            # signals.project_selected.emit(name)
 
     def delete_project(self):
         if len(bw.projects) == 1:
@@ -171,7 +175,8 @@ class Controller(object):
         ))
         if ok:
             bw.projects.delete_project(bw.projects.current)
-            signals.project_selected.emit(self.get_default_project_name())
+            # signals.project_selected.emit(self.get_default_project_name())
+            self.change_project(self.get_default_project_name())
 
     def install_default_data(self):
         self.default_biosphere_dialog = DefaultBiosphereDialog()
@@ -204,7 +209,8 @@ class Controller(object):
         ))
         if ok:
             del bw.databases[name]
-            signals.project_selected.emit(bw.projects.current)
+            # signals.project_selected.emit(bw.projects.current)
+            self.change_project(bw.projects.current)
 
     def new_calculation_setup(self):
         name = self.window.dialog(
