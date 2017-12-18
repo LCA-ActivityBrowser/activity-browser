@@ -24,7 +24,6 @@ requirements:
     - matplotlib
     - seaborn
     - arrow
-    - requests-oauthlib
     - pandas
     - patool
     - beautifulsoup4

@@ -69,7 +69,6 @@ class Controller(object):
         # Other
         signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
 
-
     def import_database_wizard(self):
         if self.db_wizard is None:
             self.db_wizard = DatabaseImportWizard()
@@ -197,12 +196,11 @@ class Controller(object):
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
-        if new_name:
             if new_name not in bw.databases:
                 bw.Database(name).copy(new_name)
                 signals.databases_changed.emit()
             else:
-                self.window.info("A database with this name already exists.")
+                self.window.info('Database <b>{}</b> already exists!'.format(new_name))
 
     def delete_database(self, name):
         ok = self.window.confirm((
