@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numbers
+from PyQt5 import QtWidgets
 
 import brightway2 as bw
 
@@ -13,6 +14,10 @@ class MethodsTable(ABTableWidget):
         super(MethodsTable, self).__init__()
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
         self.connect_signals()
         self.sync()
 
@@ -20,12 +25,16 @@ class MethodsTable(ABTableWidget):
         self.itemDoubleClicked.connect(
             lambda x: signals.method_selected.emit(x.method)
         )
+        signals.project_selected.connect(self.sync)
 
     @ABTableWidget.decorated_sync
     def sync(self, query=None):
         self.setHorizontalHeaderLabels(self.HEADERS)
 
+        # print([m for m in bw.methods])
         sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+
+        print("Query", query)
 
         if query:
             sorted_names = [
@@ -33,6 +42,7 @@ class MethodsTable(ABTableWidget):
                 if query.lower() in obj[0].lower()
             ]
 
+        print(len(sorted_names))
         self.setRowCount(len(sorted_names))
         print("Rowcount, Methodstable:", self.rowCount())
         for row, method_obj in enumerate(sorted_names):
