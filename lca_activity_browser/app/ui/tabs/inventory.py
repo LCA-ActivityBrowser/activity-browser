@@ -13,6 +13,7 @@ from ...signals import signals
 
 
 class InventoryTab(QtWidgets.QWidget):
+    # TODO: Inventory is not the right name... It is really something like a "manager"
     def __init__(self, parent):
         super(InventoryTab, self).__init__(parent)
         # main widgets

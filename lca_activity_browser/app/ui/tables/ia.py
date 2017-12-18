@@ -34,6 +34,7 @@ class MethodsTable(ABTableWidget):
             ]
 
         self.setRowCount(len(sorted_names))
+        print("Rowcount, Methodstable:", self.rowCount())
         for row, method_obj in enumerate(sorted_names):
             name, method = method_obj
             data = bw.methods[method]

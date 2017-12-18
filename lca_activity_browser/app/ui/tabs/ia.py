@@ -51,7 +51,7 @@ class MethodsTab(QtWidgets.QWidget):
         reset_search_button = QtWidgets.QPushButton("Reset")
         #
         search_layout = QtWidgets.QHBoxLayout()
-        search_layout.setAlignment(QtCore.Qt.AlignLeft)
+        search_layout.setAlignment(QtCore.Qt.AlignTop)
         search_layout.addWidget(header('LCIA Methods:'))
         search_layout.addWidget(self.search_box)
         search_layout.addWidget(reset_search_button)
@@ -60,8 +60,9 @@ class MethodsTab(QtWidgets.QWidget):
         search_layout_container.setLayout(search_layout)
         #
         container = QtWidgets.QVBoxLayout()
+        container.setAlignment(QtCore.Qt.AlignTop)
         container.addWidget(search_layout_container)
-        container.addWidget(horizontal_line())
+        # container.addWidget(horizontal_line())
         container.addWidget(self.table)
         self.setLayout(container)
         #
@@ -71,3 +72,8 @@ class MethodsTab(QtWidgets.QWidget):
         # reset_search_button.clicked.connect(self.search_box.clear)
         # # self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         # signals.project_selected.connect(self.search_box.clear)
+
+        self.table.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )

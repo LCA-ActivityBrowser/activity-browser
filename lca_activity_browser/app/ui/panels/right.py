@@ -4,11 +4,11 @@ from .. import activity_cache
 from ..tabs import (
     ActivityDetailsTab,
     HistoryTab,
-    InventoryTabOld,
     LCAResultsTab,
     MethodsTab,
+    InventoryTab,
 )
-from ..tabs.inventory import InventoryTab
+
 
 
 class RightPanel(Panel):

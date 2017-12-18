@@ -2,7 +2,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
 
-from .table import ABTableWidget, ABStandardTable, ABTableItem
+from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
 from ...bw2extensions.commontasks import *
@@ -202,27 +202,5 @@ class ActivitiesTable(ABTableWidget):
         search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
         self.setRowCount(len(search_result))
         self.sync(self.database.name, search_result)
-
-
-class ActivitiesTableNew(ABStandardTable):
-    """ This is an alternative, more generic approach to filling activity tables
-    as we have several ones. Not yet convinved that this approach is better than the original one.
-    """
-    MAX_LENGTH = 10
-    HEADERS = ["Activity", "Reference product", "Location", "Unit"]
-
-    def __init__(self, parent=None):
-        super(ActivitiesTableNew, self).__init__(parent)
-
-    def sync(self, name):
-        self.database = bw.Database(name)
-        self.database.order_by = 'name'
-        self.database.filters = {'type': 'process'}
-
-        self.setHorizontalHeaderLabels(self.HEADERS)
-        self.setRowCount(len(self.database))
-
-        data = get_activity_data(itertools.islice(self.database, 0, None))
-        super().update_table(data, self.HEADERS)
 
 
