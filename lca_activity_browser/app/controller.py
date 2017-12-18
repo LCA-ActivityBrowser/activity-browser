@@ -256,6 +256,7 @@ class Controller(object):
             }
 
     def new_activity(self, database_name):
+        # TODO: let user define product
         name = self.window.dialog(
             "Create new technosphere activity",
             "Name of new technosphere activity:" + " " * 10

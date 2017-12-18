@@ -39,16 +39,16 @@ class DatabasesTable(ABTableWidget):
                 self.currentItem().db_name
             )
         )
-
-        # self.add_activity_action = QtWidgets.QAction(
-        #     QtGui.QIcon(icons.add), "Add new activity", None
-        # )
-        # self.databases_table.addAction(self.add_activity_action)
-        # self.add_activity_action.triggered.connect(
-        #     lambda x: signals.new_activity.emit(
-        #         self.databases_table.currentItem().db_name
-        #     )
-        # )
+        # add activity (important for empty databases, where the activities table will not show up)
+        self.add_activity_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.add), "Add new activity", None
+        )
+        self.addAction(self.add_activity_action)
+        self.add_activity_action.triggered.connect(
+            lambda x: signals.new_activity.emit(
+                self.currentItem().db_name
+            )
+        )
 
     def connect_signals(self):
         signals.project_selected.connect(self.sync)
@@ -67,7 +67,7 @@ class DatabasesTable(ABTableWidget):
             depends = bw.databases[name].get('depends', [])
             self.setItem(row, 1, ABTableItem("; ".join(depends), db_name=name))
             dt = bw.databases[name].get('modified', '')
-            if dt:
+            if dt:  # TODO: there is a but with the time or timezone... when I modify a database, it shows last modified in an hour...
                 dt = arrow.get(dt).humanize()
             self.setItem(row, 2, ABTableItem(dt, db_name=name))
             self.setItem(row, 3, ABTableItem(str(bw.databases[name].get('number', [])), db_name=name))
