@@ -29,8 +29,10 @@ class Controller(object):
         signals.project_selected.emit()
         if settings:
             if hasattr(settings, "BW2_DIR"):
+                print("Loading brightway2 data directory from settings...")
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
             if hasattr(settings, "PROJECT_NAME"):
+                print("Loading project from settings...")
                 self.change_project(settings.PROJECT_NAME)
 
         self.db_wizard = None
@@ -97,10 +99,7 @@ class Controller(object):
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
-            # bw.projects.set_current(self.get_default_project_name())
-            # signals.project_selected.emit(self.get_default_project_name())
-            signals.change_project.emit(self.get_default_project_name())
-            # TODO: message to Statusbar
+            self.change_project(self.get_default_project_name())
             print('Changed brightway2 data directory to: {}'.format(bw.projects._base_data_dir))
 
         except AssertionError:
@@ -125,7 +124,7 @@ class Controller(object):
         if ok:
             self.change_project(name)
 
-    def change_project(self, name=None):
+    def change_project(self, name=None, reload=False):
         # TODO: what should happen if a new project is opened? (all activities, etc. closed?)
         if not name:
             print("No project name given.")
@@ -133,7 +132,7 @@ class Controller(object):
         if name not in [p.name for p in bw.projects]:
             print("Project does not exist: {}".format(name))
             return
-        if name != bw.projects.current:
+        if name != bw.projects.current or reload:
             bw.projects.set_current(name)
             signals.project_selected.emit()
             print("Changed project to:", name)
@@ -146,11 +145,8 @@ class Controller(object):
         if name and name not in bw.projects:
             bw.projects.set_current(name)
             self.change_project(name)
-            # signals.project_selected.emit(name)
-            # signals.change_project.emit(name)
         elif name in bw.projects:
-            # TODO feedback that project already exists
-            pass
+            self.window.info("A project with this name already exists.")
 
     def copy_project(self):
         name = self.window.dialog(
@@ -160,7 +156,6 @@ class Controller(object):
         if name and name not in bw.projects:
             bw.projects.copy_project(name, switch=True)
             self.change_project(name)
-            # signals.project_selected.emit(name)
 
     def delete_project(self):
         if len(bw.projects) == 1:
@@ -175,7 +170,6 @@ class Controller(object):
         ))
         if ok:
             bw.projects.delete_project(bw.projects.current)
-            # signals.project_selected.emit(self.get_default_project_name())
             self.change_project(self.get_default_project_name())
 
     def install_default_data(self):
@@ -187,20 +181,25 @@ class Controller(object):
             "Name of new database:" + " " * 25
         )
         if name:
-            bw.Database(name).register()
-            signals.databases_changed.emit()
-            signals.database_selected.emit(name)
+            if name not in bw.databases:
+                bw.Database(name).register()
+                signals.databases_changed.emit()
+                signals.database_selected.emit(name)
+            else:
+                self.window.info("A database with this name already exists.")
 
     def copy_database(self, name):
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if new_name:
-            bw.Database(name).copy(new_name)
-            signals.databases_changed.emit()
+            if new_name not in bw.databases:
+                bw.Database(name).copy(new_name)
+                signals.databases_changed.emit()
+            else:
+                self.window.info("A database with this name already exists.")
 
     def delete_database(self, name):
-        # name = self.window.right_panel.inventory_tab.databases_table.currentItem().db_name
         ok = self.window.confirm((
             "Are you sure you want to delete database '{}'? "
             "It has {} activity datasets").format(
@@ -209,8 +208,7 @@ class Controller(object):
         ))
         if ok:
             del bw.databases[name]
-            # signals.project_selected.emit(bw.projects.current)
-            self.change_project(bw.projects.current)
+            self.change_project(bw.projects.current, reload=True)
 
     def new_calculation_setup(self):
         name = self.window.dialog(
@@ -218,6 +216,7 @@ class Controller(object):
             "Name of new calculation setup:" + " " * 10
         )
         if name:
+            # TODO: prevent that existing calculation setups get overwritten
             bw.calculation_setups[name] = {'inv': [], 'ia': []}
             signals.calculation_setup_selected.emit(name)
             print("New calculation setup: {}".format(name))

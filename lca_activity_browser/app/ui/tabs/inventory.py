@@ -108,7 +108,12 @@ class ProjectsWidget(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Maximum,
             QtWidgets.QSizePolicy.Maximum)
         )
+        self.connect_signals()
 
+    def connect_signals(self):
+        self.new_project_button.clicked.connect(signals.new_project.emit)
+        self.delete_project_button.clicked.connect(signals.delete_project.emit)
+        self.copy_project_button.clicked.connect(signals.copy_project.emit)
 
 class HeaderTableTemplate(QtWidgets.QWidget):
     searchable = False
