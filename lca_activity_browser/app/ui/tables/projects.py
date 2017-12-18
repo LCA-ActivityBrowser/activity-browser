@@ -15,6 +15,7 @@ class ProjectListWidget(QtWidgets.QComboBox):
     def connect_signals(self):
         self.activated.connect(self.on_activated)
         signals.project_selected.connect(self.sync)
+        signals.projects_changed.connect(self.sync)
 
     def sync(self):
         self.clear()

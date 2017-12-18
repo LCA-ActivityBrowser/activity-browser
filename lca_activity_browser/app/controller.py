@@ -144,7 +144,8 @@ class Controller(object):
         )
         if name and name not in bw.projects:
             bw.projects.set_current(name)
-            self.change_project(name)
+            self.change_project(name, reload=True)
+            signals.projects_changed.emit()
         elif name in bw.projects:
             self.window.info("A project with this name already exists.")
 
@@ -156,6 +157,9 @@ class Controller(object):
         if name and name not in bw.projects:
             bw.projects.copy_project(name, switch=True)
             self.change_project(name)
+            signals.projects_changed.emit()
+        else:
+            self.window.info("A project with this name already exists.")
 
     def delete_project(self):
         if len(bw.projects) == 1:
@@ -170,7 +174,8 @@ class Controller(object):
         ))
         if ok:
             bw.projects.delete_project(bw.projects.current)
-            self.change_project(self.get_default_project_name())
+            self.change_project(self.get_default_project_name(), reload=True)
+            signals.projects_changed.emit()
 
     def install_default_data(self):
         self.default_biosphere_dialog = DefaultBiosphereDialog()

@@ -59,7 +59,7 @@ class DatabasesTable(ABTableWidget):
         signals.database_selected.emit(item.db_name)
 
     @ABTableWidget.decorated_sync
-    def sync(self, name=None):
+    def sync(self):
         self.setRowCount(len(bw.databases))
         self.setHorizontalHeaderLabels(self.HEADERS)
         for row, name in enumerate(natural_sort(bw.databases)):

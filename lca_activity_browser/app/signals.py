@@ -22,6 +22,7 @@ class Signals(QtCore.QObject):
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
     project_selected = QtCore.pyqtSignal()
+    projects_changed = QtCore.pyqtSignal()
 
     # Database
     add_database = QtCore.pyqtSignal()
