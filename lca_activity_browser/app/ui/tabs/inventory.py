@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from .. import header
+from ..style import header
 from ..icons import icons
 from ..tables import (
     ActivitiesTable,

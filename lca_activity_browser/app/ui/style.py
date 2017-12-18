@@ -1,5 +1,23 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtWidgets
+
+
+bold_font = QtGui.QFont()
+bold_font.setBold(True)
+bold_font.setPointSize(12)
+
+def horizontal_line():
+    line = QtWidgets.QFrame()
+    line.setFrameShape(QtWidgets.QFrame.HLine)
+    line.setFrameShadow(QtWidgets.QFrame.Sunken)
+    return line
+
+
+def header(label):
+    label = QtWidgets.QLabel(label)
+    label.setFont(bold_font)
+    return label
+
 
 # COLORS values are RGB
 
@@ -14,11 +32,6 @@ class TableStyle:
             }
         """
 
-
-        # self.setAutoFillBackground(True)
-        # p = self.palette()
-        # p.setColor(self.backgroundRole(), QtCore.Qt.gray)
-        # self.setPalette(p)
 
 class TableItemStyle:
     COLOR_CODE = {
@@ -44,6 +57,13 @@ class TableItemStyle:
 
 style_table = TableStyle()
 style_item = TableItemStyle()
+
+
+# self.setAutoFillBackground(True)
+# p = self.palette()
+# p.setColor(self.backgroundRole(), QtCore.Qt.gray)
+# self.setPalette(p)
+
 
 # class IconsContextMenu():
 #     to_multi_lca = 'icons/context/add.png'

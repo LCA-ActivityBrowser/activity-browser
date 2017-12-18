@@ -4,7 +4,7 @@ import functools
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
 
-from .. import header
+from ..style import header
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid
 
