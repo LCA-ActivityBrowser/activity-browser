@@ -9,7 +9,9 @@ from bw2data.project import ProjectDataset, create_database
 from PyQt5 import QtWidgets
 
 from .signals import signals
-from .ui.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
+from .ui.db_import_wizard import (
+    DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
+)
 try:
     from . import settings
 except ImportError:
@@ -196,11 +198,11 @@ class Controller(object):
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
-        if new_name not in bw.databases:
-            bw.Database(name).copy(new_name)
-            signals.databases_changed.emit()
-        else:
-            self.window.info('Database <b>{}</b> already exists!'.format(new_name))
+        if new_name:
+            if new_name not in bw.databases:
+                self.copydb_dialog = CopyDatabaseDialog(name, new_name)
+            else:
+                self.window.info('Database <b>{}</b> already exists!'.format(new_name))
 
     def delete_database(self, name):
         ok = self.window.confirm((
