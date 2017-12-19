@@ -713,4 +713,5 @@ class DefaultBiosphereThread(QtCore.QThread):
         if not len(bw.migrations):
             bw.create_core_migrations()
         import_signals.biosphere_finished.emit()
-        signals.project_selected.emit(bw.projects.current)
+        # signals.project_selected.emit(bw.projects.current)
+        signals.change_project.emit(bw.projects.current)

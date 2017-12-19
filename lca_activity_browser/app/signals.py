@@ -3,6 +3,8 @@ from PyQt5 import QtCore
 
 
 class Signals(QtCore.QObject):
+    """ Signals used for the Activity Browser should be defined here.
+    While arguments can be passed to signals, it is good practice not to do this if possible. """
 
     # General Settings
     switch_bw2_dir_path = QtCore.pyqtSignal()
@@ -10,16 +12,22 @@ class Signals(QtCore.QObject):
     # Copy Text (Clipboard)
     copy_selection_to_clipboard = QtCore.pyqtSignal(str)
 
+    # bw2 directory
+    # directory_changed = QtCore.pyqtSignal()
+
     # Project
-    change_project = QtCore.pyqtSignal()
+    change_project = QtCore.pyqtSignal(str)
+    change_project_dialogue = QtCore.pyqtSignal()
     new_project = QtCore.pyqtSignal()
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
+    project_selected = QtCore.pyqtSignal()
+    projects_changed = QtCore.pyqtSignal()
 
     # Database
     add_database = QtCore.pyqtSignal()
-    delete_database = QtCore.pyqtSignal()
-    copy_database = QtCore.pyqtSignal()
+    delete_database = QtCore.pyqtSignal(str)
+    copy_database = QtCore.pyqtSignal(str)
     install_default_data = QtCore.pyqtSignal()
     import_database = QtCore.pyqtSignal()
 
@@ -57,7 +65,7 @@ class Signals(QtCore.QObject):
     lca_calculation = QtCore.pyqtSignal(str)
 
     method_selected = QtCore.pyqtSignal(tuple)
-    project_selected = QtCore.pyqtSignal(str)
+
 
 
 signals = Signals()

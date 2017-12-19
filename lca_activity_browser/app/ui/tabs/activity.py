@@ -4,7 +4,7 @@ import functools
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
 
-from .. import header
+from ..style import header
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid
 
@@ -45,11 +45,13 @@ class ActivityDetailsTab(QtWidgets.QWidget):
         self.metadata = ActivityDataGrid()
         layout.addWidget(self.metadata)
 
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+
         tables = [
             (self.production, "Products:"),
             (self.inputs, "Technosphere Inputs:"),
             (self.flows, "Biosphere flows:"),
-            (self.upstream, "Upstream consumers:"),
+            (self.upstream, "Downstream consumers:"),
         ]
 
         for table, label in tables:
@@ -64,10 +66,35 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             inside_layout.addStretch()
             inside_widget.setLayout(inside_layout)
 
-            layout.addWidget(inside_widget)
-            layout.addWidget(table)
+            # layout.addWidget(inside_widget)
+            # layout.addWidget(table)
 
-        layout.addStretch()
+            inside_widget.setSizePolicy(QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Maximum,
+                QtWidgets.QSizePolicy.Maximum)
+            )
+
+            table.setSizePolicy(QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Minimum,
+                QtWidgets.QSizePolicy.Preferred)
+            )
+
+            table_layout = QtWidgets.QVBoxLayout()
+            table_layout.addWidget(inside_widget)
+            table_layout.addWidget(table)
+            table_container = QtWidgets.QWidget()
+
+
+
+            table_container.setLayout(table_layout)
+            splitter.addWidget(table_container)
+
+
+
+        layout.addWidget(splitter)
+        layout.addStretch(0)
+
+        # layout.addStretch()
         widget = QtWidgets.QWidget(self)
         widget.setLayout(layout)
         return widget

@@ -3,7 +3,7 @@ import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from . import header
+from .style import header
 from .icons import icons
 from .menu_bar import MenuBar
 from .panels import LeftPanel, RightPanel
