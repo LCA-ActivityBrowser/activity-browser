@@ -2,7 +2,7 @@
 from brightway2 import calculation_setups
 from PyQt5 import QtWidgets
 
-from .. import horizontal_line, header
+from ..style import horizontal_line, header
 from ..network import SankeyWindow
 from ..tables import (
     CSActivityTable,

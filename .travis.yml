@@ -23,7 +23,7 @@ install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda install conda-build
+  - conda install -q conda-build
   # Useful for debugging any issues with conda
   - conda info -a
 
@@ -48,7 +48,7 @@ install:
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION;
     fi
   - source activate test-environment
-  - conda install --use-local activity-browser-dev
+  - conda install -q --use-local activity-browser-dev
 
 script:
   #xvfb-run -a activity-browser

@@ -676,6 +676,7 @@ class ImportSignals(QtCore.QObject):
     unarchive_finished = QtCore.pyqtSignal()
     download_complete = QtCore.pyqtSignal()
     biosphere_finished = QtCore.pyqtSignal()
+    copydb_finished = QtCore.pyqtSignal()
 
 
 import_signals = ImportSignals()
@@ -713,4 +714,38 @@ class DefaultBiosphereThread(QtCore.QThread):
         if not len(bw.migrations):
             bw.create_core_migrations()
         import_signals.biosphere_finished.emit()
-        signals.project_selected.emit(bw.projects.current)
+        signals.change_project.emit(bw.projects.current)
+
+
+class CopyDatabaseDialog(QtWidgets.QProgressDialog):
+    def __init__(self, copy_from, copy_to):
+        super().__init__()
+        self.setWindowTitle('Copying database')
+        self.setLabelText(
+            'Copying existing database <b>{}</b> to new database <b>{}</b>:'.format(
+                copy_from, copy_to)
+        )
+        self.setMinimum(0)
+        self.setMaximum(0)
+        self.show()
+
+        self.copydb_thread = CopyDatabaseThread(copy_from, copy_to)
+        import_signals.copydb_finished.connect(self.finished)
+        import_signals.copydb_finished.connect(self.copydb_thread.exit)
+        self.copydb_thread.start()
+
+    def finished(self):
+        self.setMaximum(1)
+        self.setValue(1)
+
+
+class CopyDatabaseThread(QtCore.QThread):
+    def __init__(self, copy_from, copy_to):
+        super().__init__()
+        self.copy_from = copy_from
+        self.copy_to = copy_to
+
+    def run(self):
+        bw.Database(self.copy_from).copy(self.copy_to)
+        import_signals.copydb_finished.emit()
+        signals.databases_changed.emit()

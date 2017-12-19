@@ -2,40 +2,30 @@
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from . table import ABTableWidget
+from . table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
 
 
-class ActivityHistoryItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, key, *args):
-        super(ActivityHistoryItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.key = key
-
-
 class ActivitiesHistoryTable(ABTableWidget):
-    COUNT = 40
+    MAX_LENGTH = 40
     COLUMNS = {
         0: "name",
         1: "reference product",
         2: "location",
         3: "unit",
     }
+    HEADERS = ["Activity", "Reference Product", "Location", "Unit"]
 
     def __init__(self, *args):
         super(ActivitiesHistoryTable, self).__init__(*args)
         self.setDragEnabled(True)
-        self.setColumnCount(4)
         self.setRowCount(0)
-        self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
+        self.setColumnCount(len(self.HEADERS))
+        self.setup_context_menu()
+        self.connect_signals()
 
-        self.itemDoubleClicked.connect(
-            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
-        )
-        self.itemDoubleClicked.connect(
-            lambda x: signals.add_activity_to_history.emit(x.key)
-        )
+    def setup_context_menu(self):
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.open_left_tab_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open in new tab", None
@@ -47,6 +37,13 @@ class ActivitiesHistoryTable(ABTableWidget):
             )
         )
 
+    def connect_signals(self):
+        self.itemDoubleClicked.connect(
+            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+        )
+        self.itemDoubleClicked.connect(
+            lambda x: signals.add_activity_to_history.emit(x.key)
+        )
         signals.add_activity_to_history.connect(self.add_activity)
         signals.project_selected.connect(self.clear_history)
 
@@ -59,12 +56,12 @@ class ActivitiesHistoryTable(ABTableWidget):
         ds = bw.get_activity(key)
         self.insertRow(0)
         for col, value in self.COLUMNS.items():
-            self.setItem(0, col, ActivityHistoryItem(key, ds.get(value, '')))
+            self.setItem(0, col, ABTableItem(ds.get(value, ''), key=key, color=value))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
     def clear_history(self):
         self.clear()
-        self.setHorizontalHeaderLabels(["Name", "Reference Product", "Location", "Unit"])
+        self.setHorizontalHeaderLabels(self.HEADERS)
         self.setRowCount(0)

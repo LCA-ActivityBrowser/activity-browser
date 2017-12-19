@@ -9,7 +9,9 @@ from bw2data.project import ProjectDataset, create_database
 from PyQt5 import QtWidgets
 
 from .signals import signals
-from .ui.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
+from .ui.db_import_wizard import (
+    DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
+)
 try:
     from . import settings
 except ImportError:
@@ -19,33 +21,30 @@ except ImportError:
 class Controller(object):
     def __init__(self, window):
         self.window = window
-        signals.project_selected.emit(self.get_default_project_name())
-        signals.calculation_setup_changed.connect(
-            self.write_current_calculation_setup
-        )
         self.connect_signals()
-        self.db_wizard = None
-        # switch directly to custom bw2 directory and project, if specified in settings
         print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
 
+        # switch directly to custom bw2 directory and project, if specified in settings
+        # else use default bw2 path and project
+        current_project = self.get_default_project_name()
+        signals.project_selected.emit()
         if settings:
             if hasattr(settings, "BW2_DIR"):
+                print("Loading brightway2 data directory from settings...")
                 self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-                print('Switched to Brightway2 data directory: {}'.format(
-                    bw.projects._base_data_dir))
             if hasattr(settings, "PROJECT_NAME"):
-                if settings.PROJECT_NAME in [x.name for x in bw.projects]:
-                    bw.projects.set_current(settings.PROJECT_NAME)
-                    signals.project_selected.emit(settings.PROJECT_NAME)
-                else:
-                    print('Project indicated in settings.py not found.')
+                print("Loading project from settings...")
+                self.change_project(settings.PROJECT_NAME)
+
+        self.db_wizard = None
 
     def connect_signals(self):
         # SLOTS
         # Project
         signals.new_project.connect(self.new_project)
         signals.change_project.connect(self.change_project)
+        signals.change_project_dialogue.connect(self.change_project_dialogue)
         signals.copy_project.connect(self.copy_project)
         signals.delete_project.connect(self.delete_project)
         # Database
@@ -66,11 +65,11 @@ class Controller(object):
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
+        signals.calculation_setup_changed.connect(self.write_current_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
         signals.delete_calculation_setup.connect(self.delete_calculation_setup)
         # Other
         signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
-
 
     def import_database_wizard(self):
         if self.db_wizard is None:
@@ -101,10 +100,8 @@ class Controller(object):
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
-            bw.projects.set_current("default")
-            signals.project_selected.emit(self.get_default_project_name())
-            # TODO: message to Statusbar
-            print('Switched to {} as Brightway2 data directory.'.format(bw.projects._base_data_dir))
+            self.change_project(self.get_default_project_name())
+            print('Changed brightway2 data directory to: {}'.format(bw.projects._base_data_dir))
 
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
@@ -115,7 +112,7 @@ class Controller(object):
         else:
             return next(iter(bw.projects)).name
 
-    def change_project(self):
+    def change_project_dialogue(self):
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
             self.window,
@@ -126,9 +123,20 @@ class Controller(object):
             False
         )
         if ok:
-            if name != bw.projects.current:
-                bw.projects.set_current(name)
-                signals.project_selected.emit(name)
+            self.change_project(name)
+
+    def change_project(self, name=None, reload=False):
+        # TODO: what should happen if a new project is opened? (all activities, etc. closed?)
+        if not name:
+            print("No project name given.")
+            return
+        if name not in [p.name for p in bw.projects]:
+            print("Project does not exist: {}".format(name))
+            return
+        if name != bw.projects.current or reload:
+            bw.projects.set_current(name)
+            signals.project_selected.emit()
+            print("Changed project to:", name)
 
     def new_project(self):
         name = self.window.dialog(
@@ -137,10 +145,10 @@ class Controller(object):
         )
         if name and name not in bw.projects:
             bw.projects.set_current(name)
-            signals.project_selected.emit(name)
+            self.change_project(name, reload=True)
+            signals.projects_changed.emit()
         elif name in bw.projects:
-            # TODO feedback that project already exists
-            pass
+            self.window.info("A project with this name already exists.")
 
     def copy_project(self):
         name = self.window.dialog(
@@ -149,7 +157,10 @@ class Controller(object):
         )
         if name and name not in bw.projects:
             bw.projects.copy_project(name, switch=True)
-            signals.project_selected.emit(name)
+            self.change_project(name)
+            signals.projects_changed.emit()
+        else:
+            self.window.info("A project with this name already exists.")
 
     def delete_project(self):
         if len(bw.projects) == 1:
@@ -164,7 +175,8 @@ class Controller(object):
         ))
         if ok:
             bw.projects.delete_project(bw.projects.current)
-            signals.project_selected.emit(self.get_default_project_name())
+            self.change_project(self.get_default_project_name(), reload=True)
+            signals.projects_changed.emit()
 
     def install_default_data(self):
         self.default_biosphere_dialog = DefaultBiosphereDialog()
@@ -175,21 +187,24 @@ class Controller(object):
             "Name of new database:" + " " * 25
         )
         if name:
-            bw.Database(name).register()
-            signals.databases_changed.emit()
-            signals.database_selected.emit(name)
+            if name not in bw.databases:
+                bw.Database(name).register()
+                signals.databases_changed.emit()
+                signals.database_selected.emit(name)
+            else:
+                self.window.info("A database with this name already exists.")
 
     def copy_database(self, name):
-        name = self.window.right_panel.inventory_tab.databases.currentItem().db_name
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if new_name:
-            bw.Database(name).copy(new_name)
-            signals.databases_changed.emit()
+            if new_name not in bw.databases:
+                self.copydb_dialog = CopyDatabaseDialog(name, new_name)
+            else:
+                self.window.info('Database <b>{}</b> already exists!'.format(new_name))
 
-    def delete_database(self, *args):
-        name = self.window.right_panel.inventory_tab.databases.currentItem().db_name
+    def delete_database(self, name):
         ok = self.window.confirm((
             "Are you sure you want to delete database '{}'? "
             "It has {} activity datasets").format(
@@ -198,7 +213,7 @@ class Controller(object):
         ))
         if ok:
             del bw.databases[name]
-            signals.project_selected.emit(bw.projects.current)
+            self.change_project(bw.projects.current, reload=True)
 
     def new_calculation_setup(self):
         name = self.window.dialog(
@@ -206,6 +221,7 @@ class Controller(object):
             "Name of new calculation setup:" + " " * 10
         )
         if name:
+            # TODO: prevent that existing calculation setups get overwritten
             bw.calculation_setups[name] = {'inv': [], 'ia': []}
             signals.calculation_setup_selected.emit(name)
             print("New calculation setup: {}".format(name))
@@ -240,6 +256,7 @@ class Controller(object):
             }
 
     def new_activity(self, database_name):
+        # TODO: let user define product
         name = self.window.dialog(
             "Create new technosphere activity",
             "Name of new technosphere activity:" + " " * 10
@@ -248,7 +265,8 @@ class Controller(object):
             new_act = bw.Database(database_name).new_activity(
                 code=uuid.uuid4().hex,
                 name=name,
-                unit="unit"
+                unit="unit",
+                type="process",
             )
             new_act.save()
             production_exchange = new_act.new_exchange(amount=1, type="production")
