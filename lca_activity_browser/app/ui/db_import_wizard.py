@@ -715,6 +715,7 @@ class DefaultBiosphereThread(QtCore.QThread):
             bw.create_core_migrations()
         import_signals.biosphere_finished.emit()
         signals.change_project.emit(bw.projects.current)
+        signals.project_selected.emit()
 
 
 class CopyDatabaseDialog(QtWidgets.QProgressDialog):
