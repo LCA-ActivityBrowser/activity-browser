@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
 import itertools
+import arrow
+
+import brightway2 as bw
+from bw2data.utils import natural_sort
 
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
-from ...bw2extensions.commontasks import *
 
 
 class DatabasesTable(ABTableWidget):

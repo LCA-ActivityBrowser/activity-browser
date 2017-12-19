@@ -196,11 +196,11 @@ class Controller(object):
         new_name = self.window.dialog(
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
-            if new_name not in bw.databases:
-                bw.Database(name).copy(new_name)
-                signals.databases_changed.emit()
-            else:
-                self.window.info('Database <b>{}</b> already exists!'.format(new_name))
+        if new_name not in bw.databases:
+            bw.Database(name).copy(new_name)
+            signals.databases_changed.emit()
+        else:
+            self.window.info('Database <b>{}</b> already exists!'.format(new_name))
 
     def delete_database(self, name):
         ok = self.window.confirm((
