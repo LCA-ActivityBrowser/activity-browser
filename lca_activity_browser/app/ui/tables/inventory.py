@@ -70,8 +70,8 @@ class DatabasesTable(ABTableWidget):
             depends = bw.databases[name].get('depends', [])
             self.setItem(row, 1, ABTableItem("; ".join(depends), db_name=name))
             dt = bw.databases[name].get('modified', '')
-            if dt:  # TODO: there is a but with the time or timezone... when I modify a database, it shows last modified in an hour...
-                dt = arrow.get(dt).humanize()
+            if dt:
+                dt = arrow.get(dt).shift(hours=-1).humanize()
             self.setItem(row, 2, ABTableItem(dt, db_name=name))
             self.setItem(row, 3, ABTableItem(str(bw.databases[name].get('number', [])), db_name=name))
             self.setItem(row, 4, ABTableItem(None, set_flags=[QtCore.Qt.ItemIsUserCheckable]))
