@@ -1,0 +1,26 @@
+# modified from https://github.com/haasad/PyPardisoProject
+build: false
+
+environment:
+  matrix:
+    - JOB: "Python 3.6, 64bit"
+      PYTHON: "C:\\Python35_64"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+      CONDA_PY: "36"
+      CONDA_ENV_PY: "3.6"
+
+install:
+  - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "conda config --set always_yes yes --set changeps1 no"
+  - "conda config --append channels conda-forge"
+  - "conda config --append channels cmutel"
+  - "conda config --append channels haasad"
+  - "conda build .\\ci\\travis\\recipe"
+  - "conda create -n test_env python=%CONDA_ENV_PY%"
+  - "activate test_env"
+  - "conda install --use-local activity-browser-dev"
+
+test_script:
+  - "python .\\ci\\travis\\run-ab-travis.py"
