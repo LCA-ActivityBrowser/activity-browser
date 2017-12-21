@@ -86,3 +86,30 @@ __Brightway2__:
 - https://bitbucket.org/cmutel/brightway2
 - https://brightwaylca.org/
 - https://github.com/PoutineAndRosti/Brightway-Seminar-2017  (good starting point for learning bw)
+
+
+## Authors
+
+- Bernhard Steubing (b.steubing@cml.leidenuniv.nl)
+- Adrian Haas (haasad@ethz.ch) 
+- Chris Mutel (cmutel@gmail.com)
+
+
+## Copyright
+
+Copyright (c) 2015, Bernhard Steubing and ETH Zurich  
+Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut  
+Copyright (c) 2017, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)  
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
