@@ -34,7 +34,7 @@ about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
   license: GPL3+
   license_family: GPL3
-  license_file: LICENSE.txt
+  license_file: LICENSE
   summary: GUI for brightway2
   description: |
     The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
