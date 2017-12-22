@@ -3,7 +3,7 @@ from brightway2 import calculation_setups
 from PyQt5 import QtWidgets
 
 from ..style import horizontal_line, header
-from ..network import SankeyWindow
+from ..network import SankeyWidget
 from ..tables import (
     CSActivityTable,
     CSList,
@@ -79,6 +79,7 @@ The currently selected calculation setup is retrieved by getting the currently s
 class CalculationSetupTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(CalculationSetupTab, self).__init__(parent)
+        self.window = self.window()
 
         self.activities_table = CSActivityTable()
         self.methods_table = CSMethodsTable()
@@ -156,4 +157,9 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.methods_table.show()
 
     def open_sankey(self):
-        self.sankey = SankeyWindow(self)
+        if hasattr(self, 'sankey'):
+            self.window.stacked.removeWidget(self.sankey)
+            self.sankey.deleteLater()
+        self.sankey = SankeyWidget(self)
+        self.window.stacked.addWidget(self.sankey)
+        self.window.stacked.setCurrentWidget(self.sankey)
