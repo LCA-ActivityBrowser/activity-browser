@@ -12,15 +12,6 @@ from .signals import sankeysignals
 from .worker_threads import gt_worker_thread
 
 
-class SankeyWindow(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.sankeywidget = SankeyWidget(self)
-        self.setCentralWidget(self.sankeywidget)
-        self.showMaximized()
-        self.setWindowTitle('Sankey Diagram Contribution Analysis')
-
-
 class SankeyWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -28,7 +19,7 @@ class SankeyWidget(QtWidgets.QWidget):
         self.grid_lay = QtWidgets.QGridLayout()
         self.grid_lay.addWidget(QtWidgets.QLabel('Activity: '), 0, 0)
         self.grid_lay.addWidget(QtWidgets.QLabel('Method: '), 1, 0)
-        self.cs = self.parent().parent().list_widget.name
+        self.cs = self.window().left_panel.cs_tab.list_widget.name
         self.func_units = bw.calculation_setups[self.cs]['inv']
         self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
                            for fu in self.func_units]
@@ -43,6 +34,10 @@ class SankeyWidget(QtWidgets.QWidget):
         self.reload_pb = QtWidgets.QPushButton('Reload')
         self.reload_pb.clicked.connect(self.new_sankey)
         self.grid_lay.addWidget(self.reload_pb, 2, 0)
+        self.close_pb = QtWidgets.QPushButton('Close')
+        self.close_pb.clicked.connect(self.switch_to_main)
+        self.grid_lay.setColumnStretch(4, 1)
+        self.grid_lay.addWidget(self.close_pb, 0, 5)
         self.color_attr_cb = QtWidgets.QComboBox()
         self.color_attr_cb.addItems(['flow', 'location', 'name'])
         self.grid_lay.addWidget(QtWidgets.QLabel('color by: '), 0, 2)
@@ -57,7 +52,6 @@ class SankeyWidget(QtWidgets.QWidget):
         self.grid_lay.addWidget(self.cutoff_sb, 1, 3)
         self.hlay = QtWidgets.QHBoxLayout()
         self.hlay.addLayout(self.grid_lay)
-        self.hlay.addStretch(1)
 
         # qt js interaction
         self.bridge = Bridge()
@@ -122,6 +116,10 @@ class SankeyWidget(QtWidgets.QWidget):
 
     def send_json(self):
         self.bridge.sankey_ready.emit(self.sankey.json_data)
+
+    def switch_to_main(self):
+        window = self.window()
+        window.stacked.setCurrentWidget(window.main_widget)
 
 
 class Bridge(QtCore.QObject):

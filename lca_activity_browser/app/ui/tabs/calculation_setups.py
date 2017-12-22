@@ -3,7 +3,7 @@ from brightway2 import calculation_setups
 from PyQt5 import QtWidgets
 
 from ..style import horizontal_line, header
-from ..network import SankeyWindow
+from ..network import SankeyWidget
 from ..tables import (
     CSActivityTable,
     CSList,
@@ -79,6 +79,7 @@ The currently selected calculation setup is retrieved by getting the currently s
 class CalculationSetupTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(CalculationSetupTab, self).__init__(parent)
+        self.window = self.window()
 
         self.activities_table = CSActivityTable()
         self.methods_table = CSMethodsTable()
@@ -129,6 +130,8 @@ class CalculationSetupTab(QtWidgets.QWidget):
         # Slots
         signals.project_selected.connect(self.set_default_calculation_setup)
         signals.calculation_setup_selected.connect(self.show_details)
+        signals.calculation_setup_selected.connect(self.enable_calculations)
+        signals.calculation_setup_changed.connect(self.enable_calculations)
 
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)
@@ -136,6 +139,8 @@ class CalculationSetupTab(QtWidgets.QWidget):
     def set_default_calculation_setup(self):
         if not len(calculation_setups):
             self.hide_details()
+            self.calculate_button.setEnabled(False)
+            self.sankey_button.setEnabled(False)
         else:
             signals.calculation_setup_selected.emit(
                 sorted(calculation_setups)[0]
@@ -155,5 +160,15 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.activities_table.show()
         self.methods_table.show()
 
+    def enable_calculations(self):
+        valid_cs = bool(self.activities_table.rowCount()) and bool(self.methods_table.rowCount())
+        self.calculate_button.setEnabled(valid_cs)
+        self.sankey_button.setEnabled(valid_cs)
+
     def open_sankey(self):
-        self.sankey = SankeyWindow(self)
+        if hasattr(self, 'sankey'):
+            self.window.stacked.removeWidget(self.sankey)
+            self.sankey.deleteLater()
+        self.sankey = SankeyWidget(self)
+        self.window.stacked.addWidget(self.sankey)
+        self.window.stacked.setCurrentWidget(self.sankey)
