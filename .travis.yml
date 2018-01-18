@@ -10,6 +10,12 @@ matrix:
       os: osx
       env: pyver=3.6 pydist=macpython
 
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+      sudo apt-get update;
+      sudo apt install -y libgl1-mesa-dri;
+    fi
+
 install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update;fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
@@ -50,13 +56,7 @@ install:
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
 
-before_script:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3
-
 script:
-  #xvfb-run -a activity-browser
   - "python ci/travis/run-ab-travis.py"
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       timeout 10s ./ci/travis/ab_xvfb.sh;

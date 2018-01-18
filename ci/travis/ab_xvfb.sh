@@ -1,2 +1,2 @@
 #!/bin/bash
-xvfb-run activity-browser -e /dev/stdout
+xvfb-run -a activity-browser
