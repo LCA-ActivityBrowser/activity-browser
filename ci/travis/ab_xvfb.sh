@@ -1,2 +1,2 @@
 #!/bin/bash
-xvfb-run -a activity-browser
+xvfb-run activity-browser

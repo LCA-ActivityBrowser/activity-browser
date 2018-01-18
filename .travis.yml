@@ -50,6 +50,11 @@ install:
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
 
+before_script:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - sleep 3
+
 script:
   #xvfb-run -a activity-browser
   - "python ci/travis/run-ab-travis.py"
