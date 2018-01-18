@@ -53,6 +53,9 @@ install:
 script:
   #xvfb-run -a activity-browser
   - "python ci/travis/run-ab-travis.py"
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      timeout 10s ./ci/travis/ab_xvfb.sh;
+    fi
   
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
