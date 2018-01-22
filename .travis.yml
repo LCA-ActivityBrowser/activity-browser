@@ -54,7 +54,7 @@ install:
     fi
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
-  - conda install -q pytestqt
+  - conda install -q pytest-qt
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
