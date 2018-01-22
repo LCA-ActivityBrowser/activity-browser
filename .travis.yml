@@ -13,7 +13,6 @@ matrix:
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
       sudo apt-get update;
-      sudo apt install -y xvfb herbstluftwm;
     fi
 
 install:
@@ -58,10 +57,9 @@ install:
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      "herbstluftwm &";
-      sleep 2;
       export DISPLAY=:99.0;
       /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset;
+      sleep 2;
     fi
 
 script:
