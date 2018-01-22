@@ -10,8 +10,12 @@ matrix:
       os: osx
       env: pyver=3.6 pydist=macpython
 
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+      sudo apt-get update;
+    fi
+
 install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update;fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
@@ -49,10 +53,18 @@ install:
     fi
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
+  - conda install -q pytest-qt
+
+before_script:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      export DISPLAY=:99.0;
+      /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset;
+      sleep 2;
+    fi
 
 script:
-  #xvfb-run -a activity-browser
   - "python ci/travis/run-ab-travis.py"
+  - py.test
   
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
