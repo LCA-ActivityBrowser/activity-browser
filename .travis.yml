@@ -13,7 +13,7 @@ matrix:
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
       sudo apt-get update;
-      sudo apt install -y mesa-utils libgl1-mesa-glx;
+      sudo apt install -y xvfb herbstluftwm;
     fi
 
 install:
@@ -55,10 +55,14 @@ install:
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
 
+before_script:
+  - "herbstluftwm &"
+  - sleep 2
+
 script:
   - "python ci/travis/run-ab-travis.py"
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      timeout 10s ./ci/travis/ab_xvfb.sh;
+      timeout 10s activity-browser;
     fi
   
 after_success:
