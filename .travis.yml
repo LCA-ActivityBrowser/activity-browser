@@ -54,6 +54,7 @@ install:
     fi
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
+  - conda install -q pytestqt
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -65,9 +66,10 @@ before_script:
 
 script:
   - "python ci/travis/run-ab-travis.py"
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      timeout 10s activity-browser;
-    fi
+    #  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+    #      timeout 10s activity-browser;
+    #    fi
+  - py.test
   
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
