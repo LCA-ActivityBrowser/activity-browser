@@ -28,6 +28,7 @@ requirements:
     - patool
     - beautifulsoup4
     - pyqt >=5.9
+    - bw2io==0.6.RC3
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
