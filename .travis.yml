@@ -56,8 +56,12 @@ install:
   - conda install -q --use-local activity-browser-dev
 
 before_script:
-  - "herbstluftwm &"
-  - sleep 2
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      "herbstluftwm &";
+      sleep 2;
+      export DISPLAY=:99.0;
+      /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset;
+    fi
 
 script:
   - "python ci/travis/run-ab-travis.py"
