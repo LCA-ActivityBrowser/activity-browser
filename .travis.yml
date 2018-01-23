@@ -67,7 +67,8 @@ before_script:
 
 script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      py.test --cov=activity_browser;
+      py.test # run tests on installed activity-browser
+      python -m pytest --cov=activity_browser; # run tests again on source code for coverage
     else
       py.test;
     fi
