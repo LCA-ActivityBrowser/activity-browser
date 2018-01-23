@@ -63,7 +63,6 @@ before_script:
     fi
 
 script:
-  - "python ci/travis/run-ab-travis.py"
   - py.test
   
 after_success:

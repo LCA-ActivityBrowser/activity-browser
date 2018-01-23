@@ -13,6 +13,7 @@ environment:
 install:
   - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "conda update conda"
   - "conda config --set always_yes yes --set changeps1 no"
   - "conda config --append channels conda-forge"
   - "conda config --append channels cmutel"
@@ -21,6 +22,7 @@ install:
   - "conda create -n test_env python=%CONDA_ENV_PY%"
   - "activate test_env"
   - "conda install --use-local activity-browser-dev"
+  - "conda install -q pytest-qt"
 
 test_script:
-  - "python .\\ci\\travis\\run-ab-travis.py"
+  - "py.test"
