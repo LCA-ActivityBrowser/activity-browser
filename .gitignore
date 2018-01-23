@@ -5,10 +5,9 @@ docs/_build
 *.pyc
 *~
 MANIFEST
-lca_activity_browser.egg-info
+activity_browser.egg-info
 target
 *.swp
 Makefile
-run_activity_browser.py
 .DS_Store
 .cache
