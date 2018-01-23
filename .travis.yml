@@ -66,9 +66,11 @@ before_script:
     fi
 
 script:
+  # run tests twice on linux, first for the installed package (this makes sure that the conda package is valid),
+  # then for the source code to measure the code coverage of the tests
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      py.test; # run tests on installed activity-browser
-      python -m pytest --cov=activity_browser; # run tests again on source code for coverage
+      py.test;
+      python -m pytest --cov=activity_browser;
     else
       py.test;
     fi
