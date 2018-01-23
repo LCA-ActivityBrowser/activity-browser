@@ -7,7 +7,7 @@ root_dir = os.path.dirname(__file__)
 if root_dir:
     os.chdir(root_dir)
 
-for dirpath, dirnames, filenames in os.walk('lca_activity_browser'):
+for dirpath, dirnames, filenames in os.walk('activity_browser'):
     # Ignore dirnames that start with '.'
     if '__init__.py' in filenames:
         pkg = dirpath.replace(os.path.sep, '.')
@@ -37,7 +37,7 @@ setup(
     description=('Brightway2 GUI'),
     entry_points={
         'console_scripts': [
-            'activity-browser = lca_activity_browser.app:run_activity_browser',
+            'activity-browser = activity_browser.app:run_activity_browser',
         ]
     },
     classifiers=[

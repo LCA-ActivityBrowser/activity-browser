@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
-import sys
+# import os
+# import sys
 
-sys.path.append(os.path.abspath('.'))
+# sys.path.append(os.path.abspath('.'))
 
-from lca_activity_browser.app import run_activity_browser
+from activity_browser import run_activity_browser
 
 print('no import errors')
