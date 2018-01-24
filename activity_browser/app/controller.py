@@ -138,11 +138,16 @@ class Controller(object):
             signals.project_selected.emit()
             print("Changed project to:", name)
 
-    def new_project(self):
-        name = self.window.dialog(
+    def get_new_project_name(self, parent):
+        name, status = QtWidgets.QInputDialog.getText(
+            parent,
             "Create new project",
             "Name of new project:" + " " * 25
         )
+        return name
+
+    def new_project(self):
+        name = self.get_new_project_name(self.window)
         if name and name not in bw.projects:
             bw.projects.set_current(name)
             self.change_project(name, reload=True)
@@ -162,17 +167,24 @@ class Controller(object):
         else:
             self.window.info("A project with this name already exists.")
 
+    def confirm_project_deletion(self, parent):
+        confirm = QtWidgets.QMessageBox.question(
+            parent,
+            'Confirm project deletion',
+            ("Are you sure you want to delete project '{}'? It has {} databases" +
+             " and {} LCI methods").format(
+                bw.projects.current,
+                len(bw.databases),
+                len(bw.methods)
+            )
+        )
+        return confirm
+
     def delete_project(self):
         if len(bw.projects) == 1:
             self.window.info("Can't delete last project")
             return
-        ok = self.window.confirm((
-            "Are you sure you want to delete project '{}'? It has {} databases"
-            " and {} LCI methods").format(
-            bw.projects.current,
-            len(bw.databases),
-            len(bw.methods)
-        ))
+        ok = self.confirm_project_deletion(self.window)
         if ok:
             bw.projects.delete_project(bw.projects.current)
             self.change_project(self.get_default_project_name(), reload=True)
