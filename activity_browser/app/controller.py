@@ -186,7 +186,7 @@ class Controller(object):
             return
         ok = self.confirm_project_deletion(self.window)
         if ok:
-            bw.projects.delete_project(bw.projects.current)
+            bw.projects.delete_project(bw.projects.current, delete_dir=True)
             self.change_project(self.get_default_project_name(), reload=True)
             signals.projects_changed.emit()
 
