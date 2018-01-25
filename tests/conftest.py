@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import time
-
 import pytest
 
 import brightway2 as bw
@@ -13,5 +11,4 @@ def ab_app():
         bw.projects.delete_project('pytest_project', delete_dir=True)
     application = Application()
     application.show()
-    time.sleep(1)
     return application
