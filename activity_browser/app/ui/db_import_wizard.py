@@ -12,12 +12,6 @@ from bw2io.importers.base_lci import LCIImporter
 from bw2io import strategies
 from bw2data import config
 from bw2data.backends import SQLiteBackend
-from bw2data.backends.peewee import (
-    sqlite3_lci_db, ActivityDataset, ExchangeDataset)
-from bw2data.backends.peewee.utils import (
-    dict_as_exchangedataset, dict_as_activitydataset
-)
-from bw2data.errors import InvalidExchange, UntypedExchange
 from PyQt5 import QtWidgets, QtCore
 
 from ..signals import signals
@@ -614,54 +608,15 @@ class ActivityBrowserImporter(LCIImporter):
 
 
 class ActivityBrowserBackend(SQLiteBackend):
-    def _efficient_write_many_data(self, data, indices=True):
-        be_complicated = len(data) >= 100 and indices
-        if be_complicated:
-            self._drop_indices()
-        sqlite3_lci_db.autocommit = False
-        try:
-            sqlite3_lci_db.begin()
-            self.delete(keep_params=True)
-            exchanges, activities = [], []
+    def _efficient_write_many_data(self, *args, **kwargs):
+        data = args[0]
+        self.total = len(data)
+        super()._efficient_write_many_data(*args, **kwargs)
 
-            total = len(data)
-            for index, (key, ds) in enumerate(data.items()):
-                for exchange in ds.get('exchanges', []):
-                    if 'input' not in exchange or 'amount' not in exchange:
-                        raise InvalidExchange
-                    if 'type' not in exchange:
-                        raise UntypedExchange
-                    exchange['output'] = key
-                    exchanges.append(dict_as_exchangedataset(exchange))
-
-                    if len(exchanges) > 125:
-                        ExchangeDataset.insert_many(exchanges).execute()
-                        exchanges = []
-
-                ds = {k: v for k, v in ds.items() if k != "exchanges"}
-                ds["database"] = key[0]
-                ds["code"] = key[1]
-
-                activities.append(dict_as_activitydataset(ds))
-
-                if len(activities) > 125:
-                    ActivityDataset.insert_many(activities).execute()
-                    activities = []
-
-                import_signals.db_progress.emit(index+1, total)
-
-            if activities:
-                ActivityDataset.insert_many(activities).execute()
-            if exchanges:
-                ExchangeDataset.insert_many(exchanges).execute()
-            sqlite3_lci_db.commit()
-        except:
-            sqlite3_lci_db.rollback()
-            raise
-        finally:
-            sqlite3_lci_db.autocommit = True
-            if be_complicated:
-                self._add_indices()
+    def _efficient_write_dataset(self, *args, **kwargs):
+        index = args[0]
+        import_signals.db_progress.emit(index+1, self.total)
+        return super()._efficient_write_dataset(*args, **kwargs)
 
 
 config.backends['activitybrowser'] = ActivityBrowserBackend
