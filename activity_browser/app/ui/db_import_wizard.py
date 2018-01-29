@@ -45,7 +45,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
         # with this line, finish behaves like cancel and the wizard can be reused
         # db import is done when finish button becomes active
-        self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.finish)
+        self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.cleanup)
 
         # thread management
         self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_thread)
@@ -69,14 +69,14 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         close event now behaves similarly to cancel, because of self.reject
         like this the db wizard can be reused, ie starts from the beginning
         '''
-        self.reject()
+        self.cleanup()
         event.accept()
 
     def cancel_thread(self):
         import_signals.import_canceled.emit()
-        self.finish()
+        self.cleanup()
 
-    def finish(self):
+    def cleanup(self):
         self.reject()
         self.import_page.complete = False
         self.import_page.reset_progressbars()
@@ -492,13 +492,16 @@ class ImportWorkerThread(QtCore.QThread):
 
     def cancel(self):
         self.canceled = True
+        import_signals.cancel_sentinel = True
 
     def run(self):
+        import_signals.cancel_sentinel = False
         importer = ActivityBrowserImporter(self.dirpath, self.db_name)
         if not self.canceled:
             importer.apply_strategies()
         if not self.canceled:
             importer.write_database(backend='activitybrowser')
+        if not self.canceled:
             import_signals.finished.emit()
 
 
@@ -674,6 +677,9 @@ class ActivityBrowserImporter(LCIImporter):
 
 
 class ActivityBrowserBackend(SQLiteBackend):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def _efficient_write_many_data(self, *args, **kwargs):
         data = args[0]
         self.total = len(data)
@@ -682,6 +688,9 @@ class ActivityBrowserBackend(SQLiteBackend):
     def _efficient_write_dataset(self, *args, **kwargs):
         index = args[0]
         import_signals.db_progress.emit(index+1, self.total)
+        if import_signals.cancel_sentinel:
+            print(f'Writing canceled at {index}')
+            return None
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
@@ -699,6 +708,7 @@ class ImportSignals(QtCore.QObject):
     biosphere_finished = QtCore.pyqtSignal()
     copydb_finished = QtCore.pyqtSignal()
     import_canceled = QtCore.pyqtSignal()
+    cancel_sentinel = False
 
 
 import_signals = ImportSignals()
