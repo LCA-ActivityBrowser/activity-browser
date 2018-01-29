@@ -112,7 +112,10 @@ class ImportTypePage(QtWidgets.QWizardPage):
             return self.wizard.pages.index(self.wizard.archive_page)
         else:
             self.wizard.import_type = 'homepage'
-            return self.wizard.pages.index(self.wizard.ecoinvent_login_page)
+            if hasattr(self.wizard.ecoinvent_login_page, 'valid_pw'):
+                return self.wizard.pages.index(self.wizard.ecoinvent_version_page)
+            else:
+                return self.wizard.pages.index(self.wizard.ecoinvent_login_page)
 
 
 class ChooseDirPage(QtWidgets.QWizardPage):
