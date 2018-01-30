@@ -80,6 +80,15 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.reject()
         self.import_page.complete = False
         self.import_page.reset_progressbars()
+        if hasattr(self.import_page, 'download_tempdir'):
+            self.import_page.download_tempdir.cleanup()
+        running_threads = []
+        for thread in self.import_page.unarchive_thread_list:
+            if thread.isRunning():
+                running_threads.append(thread)
+            else:
+                thread.tempdir.cleanup()
+        self.import_page.unarchive_thread_list = running_threads
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
@@ -424,8 +433,6 @@ class ImportPage(QtWidgets.QWizardPage):
         self.complete = True
         self.completeChanged.emit()
         signals.databases_changed.emit()
-        if hasattr(self, 'tempdir'):
-            self.tempdir.cleanup()
 
     def update_unarchive(self):
         self.unarchive_progressbar.setMaximum(1)
