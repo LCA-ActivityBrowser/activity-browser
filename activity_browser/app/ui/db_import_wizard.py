@@ -339,16 +339,21 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.db_progress.connect(self.update_db_progress)
         import_signals.finalizing.connect(self.update_finalizing)
         import_signals.finished.connect(self.update_finished)
-        import_signals.unarchive_finished.connect(self.update_unarchive)
         import_signals.download_complete.connect(self.update_download)
 
-        import_signals.unarchive_finished.connect(self.import_dir)
+        import_signals.unarchive_finished.connect(self.unarchive_finished_check)
         import_signals.download_complete.connect(self.unarchive)
 
         # Threads
         self.download_thread = DownloadWorkerThread()
-        self.unarchive_thread = UnarchiveWorkerThread()
+        self.unarchive_thread_list = []
         self.import_thread = ImportWorkerThread()
+
+    @QtCore.pyqtSlot(str)
+    def unarchive_finished_check(self, extract_tempdir):
+        if self.tempdir.name == extract_tempdir:
+            self.update_unarchive()
+            self.import_dir()
 
     def reset_progressbars(self):
         for pb in [self.extraction_progressbar, self.strategy_progressbar,
@@ -367,28 +372,29 @@ class ImportPage(QtWidgets.QWizardPage):
             self.unarchive_label.hide()
             self.unarchive_progressbar.hide()
         elif self.wizard.import_type == 'archive':
-            self.tempdir = tempfile.TemporaryDirectory()
             self.archivepath = self.field('archivepath')
             self.unarchive()
         else:
             self.download_label.setVisible(True)
             self.download_progressbar.setVisible(True)
             self.unarchive_progressbar.setMaximum(1)
-            self.tempdir = tempfile.TemporaryDirectory()
-            self.archivepath = os.path.join(self.tempdir.name, 'db.7z')
+            self.download_tempdir = tempfile.TemporaryDirectory()
+            self.archivepath = os.path.join(self.download_tempdir.name, 'db.7z')
             self.download_thread.update(
                 self.wizard.ecoinvent_login_page.username,
                 self.wizard.ecoinvent_login_page.password,
                 self.wizard.db_url,
-                self.tempdir.name
+                self.download_tempdir.name
             )
             self.download_progressbar.setMaximum(0)
             self.download_progressbar.setMinimum(0)
             self.download_thread.start()
 
     def unarchive(self):
-        self.unarchive_thread.update(self.archivepath, self.tempdir.name)
-        self.unarchive_thread.start()
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.unarchive_thread_list.append(UnarchiveWorkerThread())
+        self.unarchive_thread_list[-1].update(self.archivepath, self.tempdir)
+        self.unarchive_thread_list[-1].start()
 
     @QtCore.pyqtSlot(int, int)
     def update_extraction_progress(self, i, tot):
@@ -488,9 +494,9 @@ class UnarchiveWorkerThread(QtCore.QThread):
         self.canceled = True
 
     def run(self):
-        patoolib.extract_archive(self.archivepath, outdir=self.tempdir)
+        patoolib.extract_archive(self.archivepath, outdir=self.tempdir.name)
         if not self.canceled:
-            import_signals.unarchive_finished.emit()
+            import_signals.unarchive_finished.emit(self.tempdir.name)
 
 
 class ImportWorkerThread(QtCore.QThread):
@@ -589,6 +595,9 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
             self.completeChanged.emit()
             self.login_button.setChecked(False)
         else:
+            self.username_edit.setEnabled(False)
+            self.password_edit.setEnabled(False)
+            self.login_button.setEnabled(False)
             self.valid_un = self.username
             self.valid_pw = self.password
             self.success_label.setText('Login successful!')
@@ -664,7 +673,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
     """
     @classmethod
     def extract(cls, dirpath, db_name):
-        assert os.path.exists(dirpath)
+        assert os.path.exists(dirpath), dirpath
         if os.path.isdir(dirpath):
             filelist = [filename for filename in os.listdir(dirpath)
                         if os.path.isfile(os.path.join(dirpath, filename))
@@ -749,7 +758,7 @@ class ImportSignals(QtCore.QObject):
     db_progress = QtCore.pyqtSignal(int, int)
     finalizing = QtCore.pyqtSignal()
     finished = QtCore.pyqtSignal()
-    unarchive_finished = QtCore.pyqtSignal()
+    unarchive_finished = QtCore.pyqtSignal(str)
     download_complete = QtCore.pyqtSignal()
     biosphere_finished = QtCore.pyqtSignal()
     copydb_finished = QtCore.pyqtSignal()
