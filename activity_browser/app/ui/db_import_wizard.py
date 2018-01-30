@@ -69,7 +69,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         close event now behaves similarly to cancel, because of self.reject
         like this the db wizard can be reused, ie starts from the beginning
         '''
-        self.cleanup()
+        self.cancel_thread()
         event.accept()
 
     def cancel_thread(self):
@@ -350,8 +350,6 @@ class ImportPage(QtWidgets.QWizardPage):
         self.unarchive_thread = UnarchiveWorkerThread()
         self.import_thread = ImportWorkerThread()
 
-        self.reset_progressbars()
-
     def reset_progressbars(self):
         for pb in [self.extraction_progressbar, self.strategy_progressbar,
                    self.db_progressbar, self.finalizing_progressbar,
@@ -363,6 +361,7 @@ class ImportPage(QtWidgets.QWizardPage):
         return self.complete
 
     def initializePage(self):
+        self.reset_progressbars()
         if self.wizard.import_type == 'directory':
             self.import_dir()
             self.unarchive_label.hide()
@@ -496,13 +495,23 @@ class ImportWorkerThread(QtCore.QThread):
 
     def run(self):
         import_signals.cancel_sentinel = False
-        importer = ActivityBrowserImporter(self.dirpath, self.db_name)
-        if not self.canceled:
-            importer.apply_strategies()
-        if not self.canceled:
-            importer.write_database(backend='activitybrowser')
-        if not self.canceled:
-            import_signals.finished.emit()
+        try:
+            importer = ActivityBrowserImporter(self.dirpath, self.db_name)
+            if not self.canceled:
+                importer.apply_strategies()
+            if not self.canceled:
+                importer.write_database(backend='activitybrowser')
+            if not self.canceled:
+                import_signals.finished.emit()
+            else:
+                self.delete_canceled_db()
+        except ImportCanceledError:
+            self.delete_canceled_db()
+
+    def delete_canceled_db(self):
+        if self.db_name in bw.databases:
+            del bw.databases[self.db_name]
+            print(f'Database {self.db_name} deleted!')
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
@@ -640,6 +649,10 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
         data = []
         total = len(filelist)
         for i, filename in enumerate(filelist, start=1):
+            if import_signals.cancel_sentinel:
+                print(f'Extraction canceled at position {i}!')
+                raise ImportCanceledError
+
             data.append(cls.extract_activity(dirpath, filename, db_name))
             import_signals.extraction_progress.emit(i, total)
 
@@ -687,14 +700,18 @@ class ActivityBrowserBackend(SQLiteBackend):
 
     def _efficient_write_dataset(self, *args, **kwargs):
         index = args[0]
-        import_signals.db_progress.emit(index+1, self.total)
         if import_signals.cancel_sentinel:
-            print(f'Writing canceled at {index}')
-            return None
+            print(f'\nWriting canceled at position {index}!')
+            raise ImportCanceledError
+        import_signals.db_progress.emit(index+1, self.total)
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
 config.backends['activitybrowser'] = ActivityBrowserBackend
+
+
+class ImportCanceledError(Exception):
+    pass
 
 
 class ImportSignals(QtCore.QObject):
