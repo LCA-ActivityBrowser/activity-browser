@@ -376,8 +376,12 @@ class ImportPage(QtWidgets.QWizardPage):
             self.unarchive_progressbar.setMaximum(1)
             self.tempdir = tempfile.TemporaryDirectory()
             self.archivepath = os.path.join(self.tempdir.name, 'db.7z')
-            session = self.wizard.ecoinvent_login_page.login_session()
-            self.download_thread.update(session, self.wizard.db_url, self.tempdir.name)
+            self.download_thread.update(
+                self.wizard.ecoinvent_login_page.username,
+                self.wizard.ecoinvent_login_page.password,
+                self.wizard.db_url,
+                self.tempdir.name
+            )
             self.download_progressbar.setMaximum(0)
             self.download_progressbar.setMinimum(0)
             self.download_thread.start()
@@ -442,8 +446,9 @@ class DownloadWorkerThread(QtCore.QThread):
         super().__init__()
         import_signals.import_canceled.connect(self.cancel)
 
-    def update(self, session, db_url, tempdir):
-        self.session = session
+    def update(self, username, password, db_url, tempdir):
+        self.username = username
+        self.password = password
         self.db_url = db_url
         self.tempdir = tempdir
         self.canceled = False
@@ -452,8 +457,17 @@ class DownloadWorkerThread(QtCore.QThread):
         self.canceled = True
 
     def run(self):
-        # TODO: implement timeout check for get request
-        file_content = self.session.get(self.db_url).content
+        session = requests.Session()
+        logon_url = 'https://v33.ecoquery.ecoinvent.org/Account/LogOn'
+        post_data = {'UserName': self.username,
+                     'Password': self.password,
+                     'IsEncrypted': 'false',
+                     'ReturnUrl': '/'}
+        session.post(logon_url, post_data)
+        if not len(session.cookies):
+            # TODO: implement retry
+            print('Login somehow failed!')
+        file_content = session.get(self.db_url).content
         with open(os.path.join(self.tempdir, 'db.7z'), 'wb') as outfile:
             outfile.write(file_content)
         if not self.canceled:
@@ -541,6 +555,8 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         layout.addWidget(self.success_label)
         self.setLayout(layout)
 
+        self.login_thread = LoginThread()
+
     @property
     def username(self):
         if hasattr(self, 'valid_un'):
@@ -560,8 +576,14 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
 
     def login(self):
         self.success_label.setText('Trying to login ...')
-        session = self.login_session()
-        if not len(session.cookies):
+        self.session = requests.Session()
+        self.login_thread.update(self.session, self.username, self.password)
+        import_signals.login_success.connect(self.login_response)
+        self.login_thread.start()
+
+    @QtCore.pyqtSlot(bool)
+    def login_response(self, success):
+        if not success:
             self.success_label.setText('Login failed!')
             self.complete = False
             self.completeChanged.emit()
@@ -573,17 +595,24 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
             self.complete = True
             self.completeChanged.emit()
             self.login_button.setChecked(False)
-            self.wizard.session = session
 
-    def login_session(self):
-        session = requests.Session()
-        logon_url = 'https://v33.ecoquery.ecoinvent.org/Account/LogOn'
-        post_data = {'UserName': self.username,
-                     'Password': self.password,
-                     'IsEncrypted': 'false',
-                     'ReturnUrl': '/'}
-        session.post(logon_url, post_data)
-        return session
+
+class LoginThread(QtCore.QThread):
+    def __init__(self):
+        super().__init__()
+        self.logon_url = 'https://v33.ecoquery.ecoinvent.org/Account/LogOn'
+
+    def update(self, session, username, password):
+        self.session = session
+        self.post_data = {'UserName': username,
+                          'Password': password,
+                          'IsEncrypted': 'false',
+                          'ReturnUrl': '/'}
+
+    def run(self):
+        self.session.post(self.logon_url, self.post_data)
+        success = bool(len(self.session.cookies))
+        import_signals.login_success.emit(success)
 
 
 class EcoinventVersionPage(QtWidgets.QWizardPage):
@@ -614,7 +643,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
 
     def get_available_files(self):
         files_url = 'https://v33.ecoquery.ecoinvent.org/File/Files'
-        files_res = self.wizard.session.get(files_url)
+        files_res = self.wizard.ecoinvent_login_page.session.get(files_url)
         soup = bs4.BeautifulSoup(files_res.text, 'html.parser')
         file_list = [l for l in soup.find_all('a', href=True) if
                      l['href'].startswith('/File/File?')]
@@ -726,6 +755,7 @@ class ImportSignals(QtCore.QObject):
     copydb_finished = QtCore.pyqtSignal()
     import_canceled = QtCore.pyqtSignal()
     cancel_sentinel = False
+    login_success = QtCore.pyqtSignal(bool)
 
 
 import_signals = ImportSignals()
