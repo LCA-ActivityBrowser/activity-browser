@@ -1,4 +1,4 @@
-[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/version.svg)](https://anaconda.org/haasad/activity-browser) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)[![Build Status](https://travis-ci.org/LCA-ActivityBrowser/activity-browser.svg?branch=master)](https://travis-ci.org/LCA-ActivityBrowser/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)[![Build status](https://ci.appveyor.com/api/projects/status/8cljoh7o1jrof8tf/branch/master?svg=true)](https://ci.appveyor.com/project/haasad/activity-browser/branch/master)
+[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/version.svg)](https://anaconda.org/haasad/activity-browser) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)[![Build Status](https://travis-ci.org/LCA-ActivityBrowser/activity-browser.svg?branch=master)](https://travis-ci.org/LCA-ActivityBrowser/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)[![Build status](https://ci.appveyor.com/api/projects/status/8cljoh7o1jrof8tf/branch/master?svg=true)](https://ci.appveyor.com/project/haasad/activity-browser/branch/master)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=master)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=master)
 
 
 
@@ -14,7 +14,7 @@ The activity browser is a graphical user interface for the [Brightway2](https://
 
 Install the newest python 3 version of [miniconda](https://conda.io/miniconda.html) for your operating system. Detailed installation instructions for miniconda can be found [here](https://conda.io/docs/user-guide/install/index.html).
 
-Skip this step if you already have a working installation of anaconda or miniconda.
+Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update conda`.
 
 ### Configure conda channels
 
@@ -39,9 +39,9 @@ It is recommended that you have a separate conda environment for the activity br
 ### Run the activity browser
 
 First activate the environment where the activity browser is installed:
-- Windows: `activate ab`
-- Unix: `source activate ab`
-
+```
+conda activate ab
+```
 Then simply run `activity-browser` and the application will open.
 
 ### Import an LCI database
@@ -64,8 +64,7 @@ conda create --yes --name ab_dev activity-browser-dev
 ```
 Or update like this if you already have a dev environment:
 ```
-activate ab_dev # win
-source activate ab_dev # linux, osx
+conda activate ab_dev
 conda update activity-browser-dev
 ```
 

@@ -1,0 +1,42 @@
+{% set version = "2.2.2" %}
+
+package:
+  name: activity-browser
+  version: {{ version }}
+
+source:
+  git_rev: {{ version }}
+  git_url: https://github.com/LCA-ActivityBrowser/activity-browser.git
+
+build:
+  noarch: python
+  number: 1
+  script: python setup.py install --single-version-externally-managed --record record.txt
+  entry_points:
+    - activity-browser = activity_browser.app:run_activity_browser 
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+    - brightway2
+    - matplotlib
+    - seaborn
+    - arrow
+    - pandas
+    - patool
+    - beautifulsoup4
+    - pyqt >=5.9
+
+about:
+  home: https://github.com/LCA-ActivityBrowser/activity-browser
+  license: GPL3+
+  license_family: GPL3
+  license_file: LICENSE
+  summary: GUI for brightway2
+  description: |
+    The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
+    advanced life cycle assessment framework. More details and installation instructions can be found 
+    on [github](https://github.com/LCA-ActivityBrowser/activity-browser).

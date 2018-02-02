@@ -96,7 +96,7 @@ class CSActivityTable(ABTableWidget):
         new_keys = [item.key for item in event.source().selectedItems()]
         for key in new_keys:
             act = bw.get_activity(key)
-            if act['type'] != "process":
+            if act.get('type', 'process') != "process":
                 continue
 
             new_row = self.rowCount()

@@ -10,8 +10,12 @@ matrix:
       os: osx
       env: pyver=3.6 pydist=macpython
 
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+      sudo apt-get update;
+    fi
+
 install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update;fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
@@ -23,7 +27,7 @@ install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda install conda-build
+  - conda install -q conda-build
   # Useful for debugging any issues with conda
   - conda info -a
 
@@ -36,10 +40,10 @@ install:
   # use sed to dynamically change the build number for the upload to conda
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       echo $(date '+%Y%m%d%H%M');
-      sed "s/  number:\ 1/  number:\ $(date '+%Y%m%d%H%M')/g" ./travis-recipe/meta.yaml > /tmp/meta.yaml;
-      mv /tmp/meta.yaml ./travis-recipe/meta.yaml;
+      sed "s/  number:\ 1/  number:\ $(date '+%Y%m%d%H%M')/g" ./ci/travis/recipe/meta.yaml > /tmp/meta.yaml;
+      mv /tmp/meta.yaml ./ci/travis/recipe/meta.yaml;
     fi
-  - conda build ./travis-recipe
+  - conda build ./ci/travis/recipe
 
   # Create environment
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
@@ -48,14 +52,32 @@ install:
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION;
     fi
   - source activate test-environment
-  - conda install --use-local activity-browser-dev
+  - conda install -q --use-local activity-browser-dev
+  - conda install -q pytest-qt pytest-mock
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+      conda install -q pytest-cov python-coveralls;
+    fi
+
+before_script:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      export DISPLAY=:99.0;
+      /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX +render -noreset;
+      sleep 2;
+    fi
 
 script:
-  #xvfb-run -a activity-browser
-  - "python run-ab-travis.py"
+  # run tests twice on linux, first for the installed package (this makes sure that the conda package is valid),
+  # then for the source code to measure the code coverage of the tests
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      py.test;
+      python -m pytest --cov=activity_browser;
+    else
+      py.test;
+    fi
   
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      coveralls;
       if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then 
         conda install anaconda-client;
         cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
