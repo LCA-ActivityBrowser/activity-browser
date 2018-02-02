@@ -17,12 +17,12 @@ for dirpath, dirnames, filenames in os.walk('lca_activity_browser'):
 
 setup(
     name='activity-browser',
-    version="2.2.1",
+    version="2.2.2",
     packages=packages,
     include_package_data=True,
-    author="Adrian Haas",
-    author_email="haasad@student.ethz.ch",
-    license=open('LICENSE.txt').read(),
+    author="Bernhard Steubing",
+    author_email="b.steubing@cml.leidenuniv.nl",
+    license=open('LICENSE').read(),
     install_requires=[
         'brightway2',
         'pyqt5',
@@ -32,7 +32,7 @@ setup(
         'beautifulsoup4',
         'patool'
     ],
-    url="https://github.com/haasad/activity-browser",
+    url="https://github.com/LCA-ActivityBrowser/activity-browser",
     long_description=open('README.md').read(),
     description=('Brightway2 GUI'),
     entry_points={

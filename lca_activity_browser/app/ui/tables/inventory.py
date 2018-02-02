@@ -70,8 +70,8 @@ class DatabasesTable(ABTableWidget):
             depends = bw.databases[name].get('depends', [])
             self.setItem(row, 1, ABTableItem("; ".join(depends), db_name=name))
             dt = bw.databases[name].get('modified', '')
-            if dt:  # TODO: there is a but with the time or timezone... when I modify a database, it shows last modified in an hour...
-                dt = arrow.get(dt).humanize()
+            if dt:
+                dt = arrow.get(dt).shift(hours=-1).humanize()
             self.setItem(row, 2, ABTableItem(dt, db_name=name))
             self.setItem(row, 3, ABTableItem(str(bw.databases[name].get('number', [])), db_name=name))
             self.setItem(row, 4, ABTableItem(None, set_flags=[QtCore.Qt.ItemIsUserCheckable]))
@@ -126,8 +126,9 @@ class ActivitiesTable(ABTableWidget):
         1: "reference product",
         2: "location",
         3: "unit",
+        4: "key",
     }
-    HEADERS = ["Name", "Reference Product", "Location", "Unit"]
+    HEADERS = ["Name", "Reference Product", "Location", "Unit", "Key"]
 
     def __init__(self, parent=None):
         super(ActivitiesTable, self).__init__(parent)
@@ -178,7 +179,6 @@ class ActivitiesTable(ABTableWidget):
             lambda x: signals.add_activity_to_history.emit(x.key)
         )
 
-
     @ABTableWidget.decorated_sync
     def sync(self, name, data=None):
         self.database_name = name
@@ -192,6 +192,8 @@ class ActivitiesTable(ABTableWidget):
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
                 self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
+                if value == "key":
+                    self.setItem(row, col, ABTableItem(str(ds.key), key=ds.key, color=value))
 
     def filter_database_changed(self, database_name):
         if not hasattr(self, "database") or self.database.name != database_name:

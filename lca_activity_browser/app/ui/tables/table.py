@@ -29,7 +29,8 @@ class ABTableItem(QtWidgets.QTableWidgetItem):
             self.setCheckState(QtCore.Qt.Unchecked)
 
         if hasattr(self, "color"):
-            self.setForeground(style_item.brushes.get(self.color, (0,0,0)))
+            self.setForeground(style_item.brushes.get(self.color, style_item.brushes.get("default")))
+
 
 
 class ABTableWidget(QtWidgets.QTableWidget):
