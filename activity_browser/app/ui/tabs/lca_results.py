@@ -9,7 +9,7 @@ from ..graphics import (
     LCAProcessContributionPlot,
     LCAElementaryFlowContributionPlot
 )
-from ...bw2extensions.multilca import MLCA
+from ...bwutils.multilca import MLCA
 from ...signals import signals
 
 

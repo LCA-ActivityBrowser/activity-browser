@@ -7,7 +7,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 
-from ..bw2extensions.commontasks import format_activity_label
+from ..bwutils.commontasks import format_activity_label
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -28,30 +28,6 @@ class Canvas(FigureCanvasQTAgg):
 
     def do_figure(self):
         raise NotImplementedError
-
-
-class DefaultGraph(FigureCanvasQTAgg):
-    # http://web.stanford.edu/~mwaskom/software/seaborn/examples/cubehelix_palette.html
-    def __init__(self, parent):
-        fig = Figure(figsize=(4, 4), dpi=100, tight_layout=True)
-        super(DefaultGraph, self).__init__(fig)
-        self.setParent(parent)
-        sns.set(style="dark")
-
-        for index, s in zip(range(9), np.linspace(0, 3, 10)):
-            axes = fig.add_subplot(3, 3, index + 1)
-            x, y = np.random.randn(2, 50)
-            cmap = sns.cubehelix_palette(start=s, light=1, as_cmap=True)
-            sns.kdeplot(x, y, cmap=cmap, shade=True, cut=5, ax=axes)
-            axes.set_xlim(-3, 3)
-            axes.set_ylim(-3, 3)
-            axes.set_xticks([])
-            axes.set_yticks([])
-
-        fig.suptitle("Activity Browser", y=0.5, fontsize=30, backgroundcolor=(1, 1, 1, 0.5))
-
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.updateGeometry()
 
 
 class CorrelationPlot(FigureCanvasQTAgg):

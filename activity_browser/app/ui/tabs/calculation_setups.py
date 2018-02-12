@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from brightway2 import calculation_setups
 from PyQt5 import QtWidgets
+from brightway2 import calculation_setups
 
+from activity_browser.app.ui.web.sankey import SankeyWidget
 from ..style import horizontal_line, header
-from ..network import SankeyWidget
 from ..tables import (
     CSActivityTable,
     CSList,

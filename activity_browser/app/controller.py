@@ -25,10 +25,7 @@ class Controller(object):
         print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
 
-        # switch directly to custom bw2 directory and project, if specified in settings
-        # else use default bw2 path and project
-        current_project = self.get_default_project_name()
-        signals.project_selected.emit()
+        # if specified in settings, switch to custom bw2 directory and project
         if settings:
             if hasattr(settings, "BW2_DIR"):
                 print("Loading brightway2 data directory from settings...")
@@ -36,6 +33,8 @@ class Controller(object):
             if hasattr(settings, "PROJECT_NAME"):
                 print("Loading project from settings...")
                 self.change_project(settings.PROJECT_NAME)
+        else:
+            signals.project_selected.emit()
 
         self.db_wizard = None
 
