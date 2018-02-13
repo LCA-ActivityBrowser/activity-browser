@@ -10,12 +10,12 @@ def format_activity_label(act, style='pnl'):
         a = bw.get_activity(act)
 
         if style == 'pnl':
-            label = '\n'.join([a['reference product'],
+            label = '\n'.join([a.get('reference product',''),
                                a['name'],
                                a['location'],
                                ])
         elif style == 'pl':
-            label = ', '.join([a['reference product'],
+            label = ', '.join([a.get('reference product') or a.get('name'),
                                a['location'],
                                ])
         elif style == 'key':
@@ -26,7 +26,7 @@ def format_activity_label(act, style='pnl'):
                                str(a['categories']),
                                ])
         else:
-            label = '\n'.join([a['reference product'],
+            label = '\n'.join([a.get('reference product',''),
                                a['name'],
                                a['location'],
                                ])
