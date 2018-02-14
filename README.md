@@ -70,7 +70,7 @@ conda update activity-browser-dev
 
 ## Sankey Contribution Analysis
 
-The ActivityBrowser provides a tool to graphically explore the LCIA results as a [sankey diagram](https://en.wikipedia.org/wiki/Sankey_diagram), based on the [d3-sankey-diagram](https://github.com/ricklupton/d3-sankey-diagram) library. The sankey tool is still very much experimental and has a number of known shortcomings, eg. it can't handle negative impacts (benefits). If you have trouble to display your results in the sankey tool, please make sure you have a working internet connection and that your database was created with a recent version of brightway (see details in issue #97).
+The ActivityBrowser provides a tool to graphically explore the LCIA results as a [sankey diagram](https://en.wikipedia.org/wiki/Sankey_diagram), based on the [d3-sankey-diagram](https://github.com/ricklupton/d3-sankey-diagram) library. The sankey tool is still very much experimental and has a number of known shortcomings, eg. it can't handle negative impacts (benefits). If you have trouble to display your results in the sankey tool, please make sure you have a working internet connection and that your database was created with a recent version of brightway (see details in issue [#97](https://github.com/LCA-ActivityBrowser/activity-browser/issues/97)).
 
 
 ## Info
