@@ -55,11 +55,8 @@ class MethodsTab(QtWidgets.QWidget):
         # container.addWidget(horizontal_line())
         container.addWidget(self.table)
         self.setLayout(container)
-        #
-        # signals.project_selected.connect(lambda x: self.table.sync())
-        # signals.project_selected.connect(self.table.sync)
-        # # reset_search_button.clicked.connect(self.table.sync)
-        # reset_search_button.clicked.connect(self.search_box.clear)
-        # # self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
-        # signals.project_selected.connect(self.search_box.clear)
 
+        reset_search_button.clicked.connect(self.table.sync)
+        reset_search_button.clicked.connect(self.search_box.clear)
+        self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
+        signals.project_selected.connect(self.search_box.clear)
