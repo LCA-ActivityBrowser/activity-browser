@@ -198,11 +198,11 @@ class SankeyGraphTraversal:
         impact = edge['impact']
         tooltip_text = \
             '<b>{}</b> Consuming activity: {} | {}<br>'.format(
-                edge['to'], consumer['name'], consumer['location']) +\
+                edge['to'], consumer['name'], consumer.get('location', '')) +\
             '<b>{}</b> Producing activity: {} | {}<br>'.format(
-                edge['from'], producer['name'], producer['location']) +\
+                edge['from'], producer['name'], producer.get('location', '')) +\
             'Flow: {} {} of {}<br>'.format(
-                edge['amount'], producer.get('unit', ''), producer.get('reference product', '')) +\
+                edge['amount'], producer.get('unit', ''), producer.get('reference product', producer.get('name', ''))) +\
             'Score: <b>{}</b><br>'.format(str(impact)) +\
             'Contribution: <b>{}%</b>'.format(np.round(impact/self.root_score*100, 3))
         return tooltip_text
@@ -215,13 +215,14 @@ class SankeyGraphTraversal:
 
     def colors(self):
         options = sorted(
-            {self.get_bw_activity_by_index(n).get(self.color_attr) for
+            {self.get_bw_activity_by_index(n).get(self.color_attr,self.get_bw_activity_by_index(n).get('name')) for
              n in self.nodes_set.difference({-1})})
         color_dict = {o: self.viridis_r_hex(v) for o, v in
                       zip(options, np.linspace(0, 1, len(options)))}
         for link in self.links:
             link['color'] = color_dict[self.get_bw_activity_by_index(
-                link['target']).get(self.color_attr)]
+                link['target']).get(self.color_attr,self.get_bw_activity_by_index(
+                link['target']).get('name'))]
 
     @staticmethod
     def viridis_r_hex(v):
