@@ -59,13 +59,11 @@ class Signals(QtCore.QObject):
     calculation_setup_changed = QtCore.pyqtSignal()
     calculation_setup_selected = QtCore.pyqtSignal(str)
 
-
-
     # LCA Calculation
     lca_calculation = QtCore.pyqtSignal(str)
 
     method_selected = QtCore.pyqtSignal(tuple)
-
+    method_tabs_changed = QtCore.pyqtSignal()
 
 
 signals = Signals()

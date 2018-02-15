@@ -3,7 +3,7 @@ import brightway2 as bw
 from PyQt5 import QtWidgets
 
 from .. import activity_cache
-from ..tabs import ActivityDetailsTab
+from ..tabs import ActivityDetailsTab, CFsTab
 from ..utils import get_name
 from ...signals import signals
 
@@ -15,6 +15,41 @@ class Panel(QtWidgets.QTabWidget):
 
     def select_tab(self, obj):
         self.setCurrentIndex(self.indexOf(obj))
+
+
+class MethodsPanel(Panel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMovable(True)
+        self.setTabsClosable(True)
+        self.tabCloseRequested.connect(self.close_tab)
+        self.tab_dict = {}
+        signals.method_selected.connect(self.open_method_tab)
+        signals.project_selected.connect(self.close_all)
+
+    def open_method_tab(self, method):
+        if method not in self.tab_dict:
+            tab = CFsTab(self, method)
+            full_tab_label = ' '.join(method)
+            label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
+            self.tab_dict[method] = tab
+            self.addTab(tab, label)
+        else:
+            tab = self.tab_dict[method]
+
+        self.select_tab(tab)
+        signals.method_tabs_changed.emit()
+
+    def close_tab(self, index):
+        tab = self.widget(index)
+        del self.tab_dict[tab.method]
+        self.removeTab(index)
+        signals.method_tabs_changed.emit()
+
+    def close_all(self):
+        self.clear()
+        self.tab_dict = {}
+        signals.method_tabs_changed.emit()
 
 
 class ActivitiesPanel(Panel):
