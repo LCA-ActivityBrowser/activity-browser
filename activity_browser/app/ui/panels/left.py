@@ -8,6 +8,9 @@ from ..tabs import CalculationSetupTab, CFsTab
 from ...signals import signals
 from .... import PACKAGE_DIRECTORY
 
+
+from ..web.sankey_adapted import GraphWidget
+
 class LeftPanel(Panel):
     side = "left"
 
@@ -18,11 +21,18 @@ class LeftPanel(Panel):
         self.cfs_tab = CFsTab(self)
         self.cs_tab = CalculationSetupTab(self)
         self.act_panel = ActivitiesPanel(self)
+        # self.graph_navigator_tab = ActivitiesPanel(self)
         # add tabs
         self.addTab(self.welcome_tab, 'Welcome')
         self.addTab(self.cfs_tab, 'LCIA CFs')
         self.addTab(self.cs_tab, 'LCA Calculations')
 
+        self.graph_navigator_tab = SimpleWebPageWidget(
+            html_file=PACKAGE_DIRECTORY + r'/app/ui/web/graph_navigator/graphviz_navigator.html')
+        self.addTab(self.graph_navigator_tab, 'Supply Chain')
+
+        self.graph_navigator_tab1 = GraphWidget()
+        self.addTab(self.graph_navigator_tab1, 'GraphNav')
         # self.setTabsClosable(True)
 
         signals.activity_tabs_changed.connect(self.update_activity_panel)
