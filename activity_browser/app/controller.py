@@ -25,13 +25,13 @@ class Controller(object):
         self.db_wizard = None
 
     def load_settings(self):
+        print("Loading user settings, if any.")
         if ab_settings.settings.get('custom_bw_dir') is not None:
-            print("Loading brightway2 data directory from settings...")
             self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
         if ab_settings.settings.get('startup_project') is not None:
-            print("Loading project from settings...")
             self.change_project(ab_settings.settings['startup_project'])
-        signals.project_selected.emit()
+        else:
+            signals.project_selected.emit()
 
     def connect_signals(self):
         # SLOTS
@@ -73,6 +73,8 @@ class Controller(object):
             self.db_wizard.activateWindow()
 
     def switch_brightway2_dir_path(self, dirpath):
+        if dirpath == bw.projects._base_data_dir:
+            return  # dirpath is already loaded
         try:
             assert os.path.isdir(dirpath)
             bw.projects._base_data_dir = dirpath
@@ -85,10 +87,11 @@ class Controller(object):
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
-            bw.projects.set_current(self.get_default_project_name())
-            signals.projects_changed.emit()
+            print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+
+            self.change_project(self.get_default_project_name())
             signals.databases_changed.emit()
-            print('Changed brightway2 data directory to: {}'.format(bw.projects._base_data_dir))
+
 
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
@@ -122,13 +125,16 @@ class Controller(object):
         if not name:
             print("No project name given.")
             return
-        if name not in [p.name for p in bw.projects]:
+        # elif name == bw.projects.current and not reload:
+        #     return  # project already set
+        elif name not in [p.name for p in bw.projects]:
             print("Project does not exist: {}".format(name))
             return
+
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
             signals.project_selected.emit()
-            print("Changed project to:", name)
+            print("Loaded project:", name)
 
     def get_new_project_name(self, parent):
         name, status = QtWidgets.QInputDialog.getText(

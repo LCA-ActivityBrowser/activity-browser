@@ -2,16 +2,12 @@
 import os
 import json
 
-import appdirs
+from .. import PACKAGE_DIRECTORY
 
 
 class ABSettings():
     def __init__(self):
-        ab_dir = appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser')
-        self.settings_dir = ab_dir.user_data_dir
-        if not os.path.isdir(self.settings_dir):
-            os.mkdir(self.settings_dir)
-        self.settings_file = os.path.join(self.settings_dir, 'ABsettings.json')
+        self.settings_file = os.path.join(PACKAGE_DIRECTORY, 'ABsettings.json')
         if os.path.isfile(self.settings_file):
             self.load_settings()
         else:
