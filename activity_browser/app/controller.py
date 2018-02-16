@@ -30,8 +30,7 @@ class Controller(object):
             self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
         if ab_settings.settings.get('startup_project') is not None:
             self.change_project(ab_settings.settings['startup_project'])
-        else:
-            signals.project_selected.emit()
+        signals.project_selected.emit()
 
     def connect_signals(self):
         # SLOTS
@@ -89,9 +88,9 @@ class Controller(object):
             )
             print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
 
-            self.change_project(self.get_default_project_name())
+            bw.projects.set_current(self.get_default_project_name())
+            signals.projects_changed.emit()
             signals.databases_changed.emit()
-
 
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
