@@ -10,7 +10,7 @@ from .signals import graphsignals
 from ....signals import signals
 
 
-class GraphWidget(QtWidgets.QWidget):
+class GraphNavigatorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -34,7 +34,7 @@ class GraphWidget(QtWidgets.QWidget):
         self.view = QtWebEngineWidgets.QWebEngineView()
         self.view.page().setWebChannel(self.channel)
         html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            'graphviz_navigator.html')
+                            'graphviz_navigator1.html')
         self.url = QtCore.QUrl.fromLocalFile(html)
 
         # Layout

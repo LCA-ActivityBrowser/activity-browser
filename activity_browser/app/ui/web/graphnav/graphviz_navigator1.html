@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><meta charset="utf-8">
+</head>
+<body>
+<h1>Graph Navigator</h1> 
+
+<!-- <script src="https://d3js.org/d3.v4.js"></script> -->
+<script src="scripts/d3.js"></script>
+<script src="scripts/dagre.js"></script>
+<script src="scripts/dagre-d3.js"></script>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+
+<svg width=800 height=600> <g/> </svg>
+
+<script>
+
+// SETUP GRAPH
+// https://github.com/dagrejs/graphlib/wiki/API-Reference
+// HOW TO SET EDGES AND NODES MANUALLY USING GRAPHLIB:
+// digraph.setNode("kspacey",    { label: "Kevin Spacey",  width: 144, height: 100 });
+// digraph.setEdge("kspacey",   "swilliams");
+var graph = new dagre.graphlib.Graph({ multigraph: true });  
+
+// Set an object for the graph label
+graph.setGraph({}); 
+
+
+// Create and configure the renderer
+var render = dagreD3.render();
+
+
+var svg = d3.select("body").select("svg");
+
+function update_graph(json_data) {
+	d3.json(json_data, function(error, data) {
+	  if (error) throw error;
+
+	  // nodes --> graph    
+	  data.nodes.forEach(function(n) {
+	    graph.setNode(n['id'], {
+	      label: chunkString(n['name'], 10), 
+	      product: n['product'],
+	      location: n['location'],
+	    });
+	  });
+
+	  // edges --> graph
+	  data.links.forEach(function(e) {
+	    graph.setEdge(e['source'], e['target'], {label: chunkString(e['label'], 10)}); 
+	  });
+
+	  // Render the graph into svg g
+	  svg.call(render, graph);
+
+	  // Interacting with the graph (MUST HAPPEN AFTER RENDERING!)
+	  var nodes = svg.selectAll("g .node")
+	      .on("click", handleMouseClick);;
+
+	      graph.set_rankdir("L")
+	});
+});
+
+console.log(graph);
+
+// point of interaction with Python/Qt
+function handleMouseClick(d){
+  console.log(graph.node(d).product)
+}
+
+// break strings into multiple lines after certain length if necessary
+function chunkString(str, length) {
+  return str.match(new RegExp('.{1,' + length + '}', 'g')).join("\n");
+}
+
+
+new QWebChannel(qt.webChannelTransport, function (channel) {
+    window.bridge = channel.objects.bridge;
+    window.bridge.graph_ready.connect(update_graph);
+    //window.bridge.viewer_ready();
+});
+
+</script>
+
+
+</body>
+</html>

@@ -9,7 +9,7 @@ from ...signals import signals
 from .... import PACKAGE_DIRECTORY
 
 
-from ..web.sankey_adapted import GraphWidget
+from ..web.graphnav import GraphNavigatorWidget
 
 class LeftPanel(Panel):
     side = "left"
@@ -27,11 +27,11 @@ class LeftPanel(Panel):
         self.addTab(self.cfs_tab, 'LCIA CFs')
         self.addTab(self.cs_tab, 'LCA Calculations')
 
-        self.graph_navigator_tab = SimpleWebPageWidget(
-            html_file=PACKAGE_DIRECTORY + r'/app/ui/web/graph_navigator/graphviz_navigator.html')
-        self.addTab(self.graph_navigator_tab, 'Supply Chain')
+        # self.graph_navigator_tab = SimpleWebPageWidget(
+        #     html_file=PACKAGE_DIRECTORY + r'/app/ui/web/graph_navigator_testing/graphviz_navigator1.html')
+        # self.addTab(self.graph_navigator_tab, 'Supply Chain')
 
-        self.graph_navigator_tab1 = GraphWidget()
+        self.graph_navigator_tab1 = GraphNavigatorWidget()
         self.addTab(self.graph_navigator_tab1, 'GraphNav')
         # self.setTabsClosable(True)
 
