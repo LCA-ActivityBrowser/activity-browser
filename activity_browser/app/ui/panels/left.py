@@ -20,13 +20,11 @@ class LeftPanel(Panel):
         self.method_panel = MethodsPanel(self)
         self.cs_tab = CalculationSetupTab(self)
         self.act_panel = ActivitiesPanel(self)
-
+        self.graph_navigator_tab = GraphNavigatorWidget()
 
         # add tabs
         self.addTab(self.welcome_tab, 'Welcome')
         self.addTab(self.cs_tab, 'LCA Calculations')
-
-        self.graph_navigator_tab = GraphNavigatorWidget()
         self.addTab(self.graph_navigator_tab, 'Graph-Navigator')
 
         # signals
