@@ -6,6 +6,7 @@ class GraphSignals(QtCore.QObject):
     gt_ready = QtCore.pyqtSignal(dict)
     calculating_gt = QtCore.pyqtSignal()
     graph_ready = QtCore.pyqtSignal()
+    update_graph = QtCore.pyqtSignal(tuple)
 
 
 graphsignals = GraphSignals()
