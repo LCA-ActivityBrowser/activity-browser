@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-from .sankey import GraphNavigatorWidget
+from .navigator import GraphNavigatorWidget
