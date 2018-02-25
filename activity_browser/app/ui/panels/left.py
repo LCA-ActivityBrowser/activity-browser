@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-import os
-
-from .panel import Panel, ActivitiesPanel
+from .panel import Panel, ActivitiesPanel, MethodsPanel
 from ..web.webutils import SimpleWebPageWidget
+from ..web.graphnav import GraphNavigatorWidget
 from .. import activity_cache
-from ..tabs import CalculationSetupTab, CFsTab
+from ..tabs import CalculationSetupTab
 from ...signals import signals
 from .... import PACKAGE_DIRECTORY
 
-
-from ..web.graphnav import GraphNavigatorWidget
 
 class LeftPanel(Panel):
     side = "left"
@@ -17,25 +14,34 @@ class LeftPanel(Panel):
     def __init__(self, *args):
         super(LeftPanel, self).__init__(*args)
         # Tabs
-        self.welcome_tab = SimpleWebPageWidget(html_file=PACKAGE_DIRECTORY+r'/app/ui/web/startscreen/startscreen.html')
-        self.cfs_tab = CFsTab(self)
+        self.welcome_tab = SimpleWebPageWidget(
+            html_file=PACKAGE_DIRECTORY+r'/app/ui/web/startscreen/startscreen.html'
+        )
+        self.method_panel = MethodsPanel(self)
         self.cs_tab = CalculationSetupTab(self)
         self.act_panel = ActivitiesPanel(self)
-        # self.graph_navigator_tab = ActivitiesPanel(self)
+
+
         # add tabs
         self.addTab(self.welcome_tab, 'Welcome')
-        self.addTab(self.cfs_tab, 'LCIA CFs')
         self.addTab(self.cs_tab, 'LCA Calculations')
 
-        # self.graph_navigator_tab = SimpleWebPageWidget(
-        #     html_file=PACKAGE_DIRECTORY + r'/app/ui/web/graph_navigator_testing/graphviz_navigator1.html')
-        # self.addTab(self.graph_navigator_tab, 'Supply Chain')
+        self.graph_navigator_tab = GraphNavigatorWidget()
+        self.addTab(self.graph_navigator_tab, 'Graph-Navigator')
 
-        self.graph_navigator_tab1 = GraphNavigatorWidget()
-        self.addTab(self.graph_navigator_tab1, 'GraphNav')
-        # self.setTabsClosable(True)
-
+        # signals
         signals.activity_tabs_changed.connect(self.update_activity_panel)
+        self.currentChanged.connect(self.remove_welcome_tab)
+        signals.method_tabs_changed.connect(self.update_method_panel)
+
+    def update_method_panel(self):
+        if self.method_panel.tab_dict:
+            if self.indexOf(self.method_panel) == -1:
+                self.addTab(self.method_panel, 'LCIA CFs')
+            self.select_tab(self.method_panel)
+        else:
+            self.removeTab(self.indexOf(self.method_panel))
+            self.setCurrentIndex(0)
 
     def update_activity_panel(self):
         if len(activity_cache):
@@ -44,3 +50,7 @@ class LeftPanel(Panel):
         else:
             self.removeTab(self.indexOf(self.act_panel))
             self.setCurrentIndex(0)
+
+    def remove_welcome_tab(self):
+        if self.indexOf(self.welcome_tab) != -1:
+            self.removeTab(self.indexOf(self.welcome_tab))
