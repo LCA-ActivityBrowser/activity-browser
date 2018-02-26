@@ -13,6 +13,8 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.graph = Graph()
+
         self.connect_signals()
 
         # button refresh
@@ -50,15 +52,45 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         graphsignals.update_graph.connect(self.update_graph)
         graphsignals.graph_ready.connect(self.draw_graph)
 
+    def update_graph(self, key):
+        print("Updating Graph for key: ", key)
+        try:
+            json_data = self.graph.get_json_graph(key)
+            self.bridge.graph_ready.emit(json_data)
+        except:
+            print("No activity with this key:", key)
+
+    def update_graph_random(self):
+        random_activity = bw.Database("ecoinvent 3.4 cutoff").random()
+        print("Random key:", random_activity, type(random_activity))
+        self.update_graph(random_activity)
+
+    def draw_graph(self):
+        self.view.load(self.url)
+
+
+class Bridge(QtCore.QObject):
+    graph_ready = QtCore.pyqtSignal(str)
+
+    @QtCore.pyqtSlot(str)
+    def node_clicked(self, js_string):
+        print("Clicked on: ", js_string)
+        db_id = js_string.split(";")
+        key = tuple([db_id[0], db_id[1]])
+        graphsignals.update_graph.emit(key)
+
+
+class Graph():
+    def __init__(self):
+        self.json_data = {}
 
     def get_json_graph(self, key):
-        # print("Key for JSON graph:", key)
         self.activity = bw.get_activity(key)
         print("Head:", self.activity)
         edges = []
         nodes = []
         # all inputs
-        for row, exc in enumerate(self.activity.technosphere()):
+        for exc in self.activity.technosphere():
             edges.append({
                 "source": exc.input.key[1],
                 "target": exc.output.key[1],
@@ -71,28 +103,42 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
                 "location": exc.input.get("location"),
                 "database": exc.input.key[0],
             })
+        # all downstream consumers
+        for row, exc in enumerate(self.activity.upstream()):
+            edges.append({
+                "source": exc.input.key[1],
+                "target": exc.output.key[1],
+                "label": exc.output.get("reference product")
+            })
+            nodes.append({
+                "id": exc.output.key[1],
+                "product": exc.output.get("reference product"),
+                "name": exc.output.get("name"),
+                "location": exc.output.get("location"),
+                "database": exc.output.key[0],
+            })
         # and the receiving node
         nodes.append({
-            "id": exc.output.key[1],
-            "product": exc.output.get("reference product"),
-            "name": exc.output.get("name"),
-            "location": exc.output.get("location"),
-            "database": exc.output.key[0],
+            "id": self.activity.key[1],
+            "product": self.activity.get("reference product"),
+            "name": self.activity.get("name"),
+            "location": self.activity.get("location"),
+            "database": self.activity.key[0],
         })
         json_data = {
             "nodes": nodes,
             "edges": edges,
-            "title": exc.output.get("reference product"),
+            "title": self.activity.get("reference product"),
         }
 
         print("JSON-Data:", json.dumps(json_data))
-
-        # Save to file
-        # filepath = os.path.join(os.path.dirname(__file__), "data.json")
-        # with open(filepath, 'w') as outfile:
-        #     json.dump(json_data, outfile)
-
         return json.dumps(json_data)
+
+    def save_json_to_file(self, filename="data.json"):
+        if self.json_data:
+            filepath = os.path.join(os.path.dirname(__file__), filename)
+            with open(filepath, 'w') as outfile:
+                json.dump(self.json_data, outfile)
 
     # def new_graph(self):
     #     print("Sending new Graph Data")
@@ -127,36 +173,4 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
     #         graph +='\n"'+from_act+'"'+' -> '+'"'+to_act+'"'+'; '
     #     graph += '}'
     #     return graph
-
-    def update_graph(self, key):
-        print("Updating Graph for key: ", key)
-        try:
-            json_data = self.get_json_graph(key)
-            self.bridge.graph_ready.emit(json_data)
-        except:
-            print("Could not find an activity with this key:", key)
-        # self.view.load(self.url)
-
-    def update_graph_random(self):
-        random_activity = bw.Database("ecoinvent 3.4 cutoff").random()
-        print("Random key:", random_activity, type(random_activity))
-        self.update_graph(random_activity)
-
-
-    def draw_graph(self):
-        self.view.load(self.url)
-
-
-class Bridge(QtCore.QObject):
-    graph_ready = QtCore.pyqtSignal(str)
-
-    @QtCore.pyqtSlot(str)
-    def node_clicked(self, js_string):
-        print("Clicked on: ", js_string)
-        db_id = js_string.split(";")
-        key = tuple([db_id[0], db_id[1]])
-        graphsignals.update_graph.emit(key)
-
-
-
 
