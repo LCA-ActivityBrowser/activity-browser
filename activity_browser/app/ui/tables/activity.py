@@ -13,7 +13,7 @@ class ExchangeTable(ABTableWidget):
         # Production
         (False, True): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain"],
         # Normal technosphere
-        (False, False): ["Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain","Formula"],
+        (False, False): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain" ,"Formula"],
         # Biosphere
         (True, False): ["Amount", "Unit", "Name", "Categories", "Database", "Uncertain"],
     }
