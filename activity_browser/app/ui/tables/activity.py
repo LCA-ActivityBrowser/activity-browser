@@ -13,7 +13,7 @@ class ExchangeTable(ABTableWidget):
         # Production
         (False, True): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain"],
         # Normal technosphere
-        (False, False): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain"],
+        (False, False): ["Amount", "Unit", "Product", "Activity","Location", "Database", "Uncertain" ,"Formula"],
         # Biosphere
         (True, False): ["Amount", "Unit", "Name", "Categories", "Database", "Uncertain"],
     }
@@ -137,7 +137,7 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 4, ABTableItem(obj['database'], color="database"))
                 self.setItem(row, 5, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
 
-            else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain"
+            else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain", "Formula"
                 self.setItem(row, 0,
                              ABTableItem("{:.4g}".format(exc['amount']), exchange=exc, set_flags=edit_flag,
                                          color="amount"))
@@ -148,5 +148,6 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown'), color="location"))
                 self.setItem(row, 5, ABTableItem(obj['database'], color="database"))
                 self.setItem(row, 6, ABTableItem("True" if exc.get("uncertainty type", 0) > 1 else "False"))
+                self.setItem(row, 7, ABTableItem(exc.get('formula', '')))
 
         self.ignore_changes = False
