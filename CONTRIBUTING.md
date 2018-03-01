@@ -33,6 +33,6 @@ If you want to check wheter your changes break anything essential, you can run t
 conda activate dev_ab
 conda install pytest pytest-mock pytest-qt
 ```
-You can then run the tests inside the repo like this: `python -m pytest`. An AB window will open and perform some autoated actions. If you interfere, test will most likely fail.
+You can then run the tests inside the repo like this: `python -m pytest`. An AB window will open and perform some automated actions. If you interfere, test will most likely fail.
 
 In an ideal case, you can write your own tests for new features that you add. However writing tests for PyQt applications is non-trivial. Check out the tests that are already present in the `tests` folder or look at the [pytest-qt documentation](https://pytest-qt.readthedocs.io/en/latest/) for inspiration and examples.
