@@ -28,7 +28,7 @@ conda install --only-deps activity-browser
 
 ## Running and writing tests
 
-If you want to check wheter your changes break anything essential, you can run the automated tests. This requires some additional packages.
+If you want to check whether your changes break anything essential, you can run the automated tests. This requires some additional packages.
 ```
 conda activate dev_ab
 conda install pytest pytest-mock pytest-qt
