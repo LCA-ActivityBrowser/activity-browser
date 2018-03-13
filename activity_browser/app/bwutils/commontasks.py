@@ -19,12 +19,16 @@ def format_activity_label(act, style='pnl'):
                                a['location'],
                                ])
         elif style == 'key':
-            label = tuple([a['database'], a['code']])
+            label = str(a.key) #safer to use key, code does not always exist
 
         elif style == 'bio':
             label = ', '.join([a['name'],
                                str(a['categories']),
                                ])
+        elif style == 'fu':
+            #join does not work here
+            label = str(a.key) + '\n' + a.get('reference product') or a.get('name')
+
         else:
             label = '\n'.join([a.get('reference product',''),
                                a['name'],
