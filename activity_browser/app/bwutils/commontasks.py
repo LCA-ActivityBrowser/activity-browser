@@ -11,28 +11,28 @@ def format_activity_label(act, style='pnl'):
 
         if style == 'pnl':
             label = '\n'.join([a.get('reference product',''),
-                               a['name'],
-                               a['location'],
+                               a.get('name',''),
+                               a.get('location',''),
                                ])
         elif style == 'pl':
-            label = ', '.join([a.get('reference product') or a.get('name'),
-                               a['location'],
-                               ])
+            label = ', '.join([a.get('reference product','') or a.get('name',''),
+                               a.get('location',''),
+                               ])            
         elif style == 'key':
             label = str(a.key) #safer to use key, code does not always exist
 
         elif style == 'bio':
-            label = ', '.join([a['name'],
-                               str(a['categories']),
+            label = ', '.join([a.get('name',''),
+                               str(a.get('categories','')),
                                ])
         elif style == 'fu':
-            #join does not work here
-            label = str(a.key) + '\n' + a.get('reference product') or a.get('name')
-
+            label = '\n'.join([str(a.key),
+                     a.get('reference product','') or a.get('name','')
+                     ])            
         else:
             label = '\n'.join([a.get('reference product',''),
-                               a['name'],
-                               a['location'],
+                               a.get('name',''),
+                               a.get('location',''),
                                ])
     except:
         if isinstance(act, tuple):
