@@ -7,7 +7,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 
-from ..bwutils.commontasks import format_activity_label
+from ..bwutils.commontasks import format_activity_label,wrap_text
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -71,12 +71,12 @@ class CorrelationPlot(FigureCanvasQTAgg):
 
 class LCAResultsPlot(FigureCanvasQTAgg):
     def __init__(self, parent, mlca, width=6, height=6, dpi=100):
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        activity_names = [format_activity_label(next(iter(f.keys())),style='fu') for f in mlca.func_units]
+        figure = Figure(figsize=(2+len(mlca.methods)*0.5, 2+len(activity_names)*0.6), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(111)
 
         super(LCAResultsPlot, self).__init__(figure)
         self.setParent(parent)
-        activity_names = [format_activity_label(next(iter(f.keys())),style='fu') for f in mlca.func_units]
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
         hm = sns.heatmap(
@@ -85,10 +85,11 @@ class LCAResultsPlot(FigureCanvasQTAgg):
             annot=True,
             linewidths=.05,
             cmap=cmap,
-            xticklabels=["\n".join(x) for x in mlca.methods],
+            xticklabels=[wrap_text(",".join(x),max_lenght=40) for x in mlca.methods],
             yticklabels=activity_names,
             ax=axes,
             square=False,
+            annot_kws={"size": 9,'rotation':0 if len(mlca.methods) <=8 else 60}
         )
         hm.tick_params(labelsize=8)
 
