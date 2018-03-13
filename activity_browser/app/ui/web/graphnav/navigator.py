@@ -79,6 +79,12 @@ class Bridge(QtCore.QObject):
         key = tuple([db_id[0], db_id[1]])
         graphsignals.update_graph.emit(key)
 
+    @QtCore.pyqtSlot(str)
+    def node_doubleclicked(self, js_string):
+        print("Double clicked on: ", js_string)
+        # db_id = js_string.split(";")
+        # key = tuple([db_id[0], db_id[1]])
+        # graphsignals.update_graph.emit(key)
 
 class Graph():
     def __init__(self):

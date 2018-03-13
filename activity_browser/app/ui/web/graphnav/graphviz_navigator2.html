@@ -174,7 +174,8 @@ function update_graph(json_data) {
 
 	  // Interacting with the graph (MUST HAPPEN AFTER RENDERING!)
 	  var nodes = svg.selectAll("g .node")
-	      .on("click", handleMouseClick);;
+	      .on("dblclick", handleDoubleClick);
+	      .on("click", handleMouseClick);
 
 	      // graph.set_rankdir("L")
 	// });
@@ -186,7 +187,14 @@ function update_graph(json_data) {
 		    window.bridge = channel.objects.bridge;
 		    window.bridge.node_clicked(graph.node(node).database + ";" + graph.node(node).id)
         window.bridge.graph_ready.connect(update_graph);
-		});	
+		});
+	};
+	function handleDoubleClick(node){
+		new QWebChannel(qt.webChannelTransport, function (channel) {
+		    window.bridge = channel.objects.bridge;
+		    window.bridge.node_doubleclicked(graph.node(node).database + ";" + graph.node(node).id)
+        window.bridge.graph_ready.connect(update_graph);
+		});
     // update_graph(jsondata)
 	}
 
