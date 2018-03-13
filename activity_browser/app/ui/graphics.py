@@ -76,7 +76,7 @@ class LCAResultsPlot(FigureCanvasQTAgg):
 
         super(LCAResultsPlot, self).__init__(figure)
         self.setParent(parent)
-        activity_names = [format_activity_label(next(iter(f.keys()))) for f in mlca.func_units]
+        activity_names = [format_activity_label(next(iter(f.keys())),style='fu') for f in mlca.func_units]
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
         hm = sns.heatmap(
@@ -107,7 +107,7 @@ class LCAProcessContributionPlot(FigureCanvasQTAgg):
         method = 0  # TODO let user choose the LCIA method
         tc = mlca.top_process_contributions(method=method, limit=5, relative=True)
         df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a) for a in tc.keys()]
+        df_tc.columns = [format_activity_label(a, style='fu') for a in tc.keys()]
         df_tc.index = [format_activity_label(a, style='pl') for a in df_tc.index]
         plot = df_tc.T.plot.barh(
             stacked=True,
@@ -132,7 +132,7 @@ class LCAElementaryFlowContributionPlot(FigureCanvasQTAgg):
         method = 0  # TODO let user choose the LCIA method
         tc = mlca.top_elementary_flow_contributions(method=method, limit=5, relative=True)
         df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a) for a in tc.keys()]
+        df_tc.columns = [format_activity_label(a, style='fu') for a in tc.keys()]
         df_tc.index = [format_activity_label(a, style='bio') for a in df_tc.index]
         plot = df_tc.T.plot.barh(
             stacked=True,
