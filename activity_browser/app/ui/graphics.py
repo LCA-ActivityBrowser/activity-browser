@@ -31,8 +31,8 @@ class Canvas(FigureCanvasQTAgg):
 
 
 class CorrelationPlot(FigureCanvasQTAgg):
-    def __init__(self, parent, data, labels, width=6, height=6, dpi=100):
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+    def __init__(self, parent, data, labels, dpi=100):
+        figure = Figure(figsize=(4+len(labels)*0.3, 4+len(labels)*0.3), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(111)
 
         super(CorrelationPlot, self).__init__(figure)
@@ -98,8 +98,8 @@ class LCAResultsPlot(FigureCanvasQTAgg):
 
 
 class LCAProcessContributionPlot(FigureCanvasQTAgg):
-    def __init__(self, parent, mlca, width=6, height=6, dpi=100):
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+    def __init__(self, parent, mlca, width=6, dpi=100):
+        figure = Figure(figsize=(width, 4+len(mlca.func_units)*0.3), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(121)
 
         super(LCAProcessContributionPlot, self).__init__(figure)
@@ -123,8 +123,8 @@ class LCAProcessContributionPlot(FigureCanvasQTAgg):
 
 
 class LCAElementaryFlowContributionPlot(FigureCanvasQTAgg):
-    def __init__(self, parent, mlca, width=6, height=6, dpi=100):
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+    def __init__(self, parent, mlca, width=6, dpi=100):
+        figure = Figure(figsize=(width, 4+len(mlca.func_units)*0.3), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(121)
 
         super(LCAElementaryFlowContributionPlot, self).__init__(figure)
