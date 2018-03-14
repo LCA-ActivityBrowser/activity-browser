@@ -99,7 +99,8 @@ class LCAResultsPlot(FigureCanvasQTAgg):
 
 class LCAProcessContributionPlot(FigureCanvasQTAgg):
     def __init__(self, parent, mlca, width=6, dpi=100):
-        figure = Figure(figsize=(width, 4+len(mlca.func_units)*0.3), dpi=dpi, tight_layout=True)
+        height=4+len(mlca.func_units)*0.3
+        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(121)
 
         super(LCAProcessContributionPlot, self).__init__(figure)
@@ -117,8 +118,8 @@ class LCAProcessContributionPlot(FigureCanvasQTAgg):
             ax=axes
         )
         plot.tick_params(labelsize=8)
-        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.rc('legend', **{'fontsize': 8})
+        plt.rc('legend', **{'fontsize': 8}) #putting below affects only LCAElementaryFlowContributionPlot
+        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5),ncol=ceil((len(df_tc.index)*0.22)/height))
         self.setMinimumSize(self.size())
 
 
