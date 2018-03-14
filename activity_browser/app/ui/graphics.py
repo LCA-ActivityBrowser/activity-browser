@@ -57,11 +57,11 @@ class CorrelationPlot(FigureCanvasQTAgg):
                     square=True, linecolor="lightgray", linewidths=1, ax=axes)
         for i in range(len(corr)):
             axes.text(i + 0.5, i + 0.5, corr.columns[i],
-                      ha="center", va="center", rotation=0)
+                      ha="center", va="center", rotation=0 if len(labels) <=8 else 45,size=11 if len(labels) <=8 else 9)
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
                 axes.text(j + 0.5, i + 0.5, s,
-                          ha="center", va="center")
+                          ha="center", va="center", rotation=0 if len(labels) <=8 else 45,size=11 if len(labels) <=8 else 9)
         axes.axis("off")
         # If uncommented, fills widget
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -89,7 +89,7 @@ class LCAResultsPlot(FigureCanvasQTAgg):
             yticklabels=activity_names,
             ax=axes,
             square=False,
-            annot_kws={"size": 9,'rotation':0 if len(mlca.methods) <=8 else 60}
+            annot_kws={"size": 11 if len(mlca.methods) <=8 else 9,'rotation':0 if len(mlca.methods) <=8 else 60}
         )
         hm.tick_params(labelsize=8)
 
