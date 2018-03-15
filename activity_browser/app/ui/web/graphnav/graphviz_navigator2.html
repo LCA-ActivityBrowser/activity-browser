@@ -79,9 +79,9 @@ label {
 <body>
 <h1 id="heading">Graph Navigator (JSON) </h1> 
 
-<p id="function" </p>
+<p id="function" ></p>
 
-<p id="data" </p>
+<p id="data"> </p>
 
 <!-- <script src="https://d3js.org/d3.v4.js"></script> -->
 <script src="scripts/d3.js"></script>
@@ -174,8 +174,7 @@ function update_graph(json_data) {
 
 	  // Interacting with the graph (MUST HAPPEN AFTER RENDERING!)
 	  var nodes = svg.selectAll("g .node")
-	      .on("dblclick", handleDoubleClick);
-	      .on("click", handleMouseClick);
+	      .on("dblclick", handleMouseClick);
 
 	      // graph.set_rankdir("L")
 	// });
@@ -189,14 +188,7 @@ function update_graph(json_data) {
         window.bridge.graph_ready.connect(update_graph);
 		});
 	};
-	function handleDoubleClick(node){
-		new QWebChannel(qt.webChannelTransport, function (channel) {
-		    window.bridge = channel.objects.bridge;
-		    window.bridge.node_doubleclicked(graph.node(node).database + ";" + graph.node(node).id)
-        window.bridge.graph_ready.connect(update_graph);
-		});
-    // update_graph(jsondata)
-	}
+
 
 };
 
