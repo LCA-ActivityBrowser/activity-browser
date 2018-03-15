@@ -57,12 +57,17 @@ class CFTable(ABTableWidget):
         2: "unit",
         3: "uncertain",
     }
-    HEADERS = ["Name", "Amount", "Unit", "Uncertain"]
+    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertain"]
 
     def __init__(self):
         super(CFTable, self).__init__()
         self.setVisible(False)
         self.setColumnCount(len(self.HEADERS))
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
 
     @ABTableWidget.decorated_sync
     def sync(self, method):
@@ -79,6 +84,8 @@ class CFTable(ABTableWidget):
                 uncertain = "True"
                 amount = amount['amount']
             self.setItem(row, 0, ABTableItem(flow['name'], key=key))
-            self.setItem(row, 1, ABTableItem("{:.6g}".format(amount), key=key))
-            self.setItem(row, 2, ABTableItem(flow.get('unit', 'Unknown'), key=key))
-            self.setItem(row, 3, ABTableItem(str(uncertain), key=key))
+            self.setItem(row, 1, ABTableItem(str(flow['categories']), key=key))
+            self.setItem(row, 1, ABTableItem(str(flow['categories']), key=key))
+            self.setItem(row, 2, ABTableItem("{:.6g}".format(amount), key=key))
+            self.setItem(row, 3, ABTableItem(flow.get('unit', 'Unknown'), key=key))
+            self.setItem(row, 4, ABTableItem(str(uncertain), key=key))

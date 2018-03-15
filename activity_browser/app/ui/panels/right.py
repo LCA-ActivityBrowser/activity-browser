@@ -4,9 +4,9 @@ from .. import activity_cache
 from ..tabs import (
     ActivityDetailsTab,
     HistoryTab,
-    LCAResultsTab,
+    ImpactAssessmentTab,
     MethodsTab,
-    InventoryTab,
+    ProjectTab,
 )
 
 
@@ -18,14 +18,12 @@ class RightPanel(Panel):
         super(RightPanel, self).__init__(*args)
 
         self.history_tab = HistoryTab(self)
-        # self.inventory_tab = InventoryTabOld(self)
-        self.inventory_tab = InventoryTab(self)
+        self.project_tab = ProjectTab(self)
         self.methods_tab = MethodsTab(self)
-        self.lca_results_tab = LCAResultsTab(self)
-        # self.addTab(self.new_inventory_tab, 'New Inventory')
-        self.addTab(self.inventory_tab, 'Inventory')
+        self.lca_results_tab = ImpactAssessmentTab(self)
 
-        self.addTab(self.methods_tab, 'Impact Assessment')
+        self.addTab(self.project_tab, 'Project')
+        self.addTab(self.methods_tab, 'Impact Categories')
         self.addTab(self.history_tab, 'History')
 
     def close_tab(self, index):

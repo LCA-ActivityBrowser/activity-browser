@@ -76,9 +76,9 @@ The currently selected calculation setup is retrieved by getting the currently s
 """
 
 
-class CalculationSetupTab(QtWidgets.QWidget):
+class LCASetupTab(QtWidgets.QWidget):
     def __init__(self, parent):
-        super(CalculationSetupTab, self).__init__(parent)
+        super(LCASetupTab, self).__init__(parent)
         self.window = self.window()
 
         self.activities_table = CSActivityTable()

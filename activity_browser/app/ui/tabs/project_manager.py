@@ -12,10 +12,10 @@ from ..tables import (
 from ...signals import signals
 
 
-class InventoryTab(QtWidgets.QWidget):
+class ProjectTab(QtWidgets.QWidget):
     # TODO: Inventory is not the right name... It is really something like a "manager"
     def __init__(self, parent):
-        super(InventoryTab, self).__init__(parent)
+        super(ProjectTab, self).__init__(parent)
         # main widgets
         self.projects_widget = ProjectsWidget()
         self.databases_widget = DatabaseWidget(self)
@@ -98,7 +98,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.delete_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.delete), 'Delete current')
         # Layout
         self.h_layout = QtWidgets.QHBoxLayout()
-        self.h_layout.addWidget(header('Current Project:'))
+        self.h_layout.addWidget(header('Project:'))
         self.h_layout.addWidget(self.projects_list)
         self.h_layout.addWidget(self.new_project_button)
         self.h_layout.addWidget(self.copy_project_button)
@@ -224,145 +224,3 @@ class BiosphereFlowsWidget(HeaderTableTemplate):
     TABLE = BiosphereFlowsTable
     HEADER = 'Biosphere Flows:'
     searchable = True
-
-
-# class DatabaseWidget(QtWidgets.QWidget):
-#     TABLE = DatabasesTable
-#     HEADER = 'Databases:'
-#     def __init__(self):
-#         super(DatabaseWidget, self).__init__()
-#
-#         self.table = DatabasesTable()
-#
-#         # Labels
-#         self.label_no_database_selected = QtWidgets.QLabel("Select a database (double-click on table).")
-#
-#         # Buttons
-#         self.add_default_data_button = QtWidgets.QPushButton(
-#             'Add Default Data (Biosphere flows, LCIA methods)')
-#         self.new_database_button = QtWidgets.QPushButton('New Database')
-#         self.import_database_button = QtWidgets.QPushButton('Import Database')
-#
-#         # Header widget
-#         self.header_widget = QtWidgets.QWidget()
-#         header_layout = QtWidgets.QHBoxLayout()
-#         header_layout.addWidget(header('Databases'))
-#         header_layout.addWidget(self.add_default_data_button)
-#         header_layout.addWidget(self.new_database_button)
-#         header_layout.addWidget(self.import_database_button)
-#         self.header_widget.setLayout(header_layout)
-#
-#         # Overall Layout
-#         v_layout = QtWidgets.QVBoxLayout()
-#         v_layout.setAlignment(QtCore.Qt.AlignTop)
-#         v_layout.addWidget(self.header_widget)
-#         v_layout.addWidget(self.table)
-#         v_layout.addWidget(self.label_no_database_selected)
-#         self.setLayout(v_layout)
-#
-#         self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
-#             QtWidgets.QSizePolicy.Maximum,
-#             QtWidgets.QSizePolicy.Maximum)
-#         )
-#         self.table.setSizePolicy(QtWidgets.QSizePolicy(
-#             QtWidgets.QSizePolicy.Preferred,
-#             QtWidgets.QSizePolicy.Maximum)
-#         )
-#
-#         self.connect_signals()
-#
-#     def connect_signals(self):
-#         self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
-#         self.import_database_button.clicked.connect(signals.import_database.emit)
-#         self.new_database_button.clicked.connect(signals.add_database.emit)
-#
-#     def update_widget(self):
-#         no_databases = self.table.rowCount() == 0
-#         if no_databases:
-#             self.add_default_data_button.show()
-#             self.import_database_button.hide()
-#             self.new_database_button.hide()
-#             self.table.hide()
-#             self.label_no_database_selected.hide()
-#         else:
-#             self.add_default_data_button.hide()
-#             self.import_database_button.show()
-#             self.new_database_button.show()
-#             self.table.show()
-#
-#
-# class ActivitiesWidget(QtWidgets.QWidget):
-#     def __init__(self):
-#         super(ActivitiesWidget, self).__init__()
-#
-#         self.table = ActivitiesTable()
-#         self.label_database = QtWidgets.QLabel("[]")
-#
-#         # Header widget
-#         self.header_widget = QtWidgets.QWidget()
-#         header_layout = QtWidgets.QHBoxLayout()
-#         header_layout.addWidget(header('Activities'))
-#         header_layout.addWidget(self.label_database)
-#         self.header_widget.setLayout(header_layout)
-#
-#         # Overall Layout
-#         v_layout = QtWidgets.QVBoxLayout()
-#         v_layout.setAlignment(QtCore.Qt.AlignTop)
-#         v_layout.addWidget(self.header_widget)
-#         v_layout.addWidget(self.table)
-#         self.setLayout(v_layout)
-#
-#         self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
-#             QtWidgets.QSizePolicy.Maximum,
-#             QtWidgets.QSizePolicy.Maximum)
-#         )
-#         self.table.setSizePolicy(QtWidgets.QSizePolicy(
-#             QtWidgets.QSizePolicy.Preferred,
-#             QtWidgets.QSizePolicy.Maximum)
-#         )
-#         self.connect_signals()
-#
-#     def connect_signals(self):
-#         signals.database_selected.connect(self.database_changed)
-#
-#     def database_changed(self):
-#         self.label_database.setText("[{}]".format(self.table.database_name))
-#
-#
-# class BiosphereFlowsWidget(QtWidgets.QWidget):
-#     def __init__(self):
-#         super(BiosphereFlowsWidget, self).__init__()
-#
-#         self.table = BiosphereFlowsTable()
-#         self.label_database = QtWidgets.QLabel("[]")
-#
-#         # Header widget
-#         self.header_widget = QtWidgets.QWidget()
-#         header_layout = QtWidgets.QHBoxLayout()
-#         header_layout.addWidget(header('Biosphere Flows'))
-#         header_layout.addWidget(self.label_database)
-#         self.header_widget.setLayout(header_layout)
-#
-#         # Overall Layout
-#         v_layout = QtWidgets.QVBoxLayout()
-#         v_layout.setAlignment(QtCore.Qt.AlignTop)
-#         v_layout.addWidget(self.header_widget)
-#         v_layout.addWidget(self.table)
-#         self.setLayout(v_layout)
-#
-#         self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
-#             QtWidgets.QSizePolicy.Maximum,
-#             QtWidgets.QSizePolicy.Maximum)
-#         )
-#         self.table.setSizePolicy(QtWidgets.QSizePolicy(
-#             QtWidgets.QSizePolicy.Preferred,
-#             QtWidgets.QSizePolicy.Maximum)
-#         )
-#
-#         self.connect_signals()
-#
-#     def connect_signals(self):
-#         signals.database_selected.connect(self.database_changed)
-#
-#     def database_changed(self):
-#         self.label_database.setText("[{}]".format(self.table.database_name))

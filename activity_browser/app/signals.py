@@ -7,7 +7,7 @@ class Signals(QtCore.QObject):
     While arguments can be passed to signals, it is good practice not to do this if possible. """
 
     # General Settings
-    switch_bw2_dir_path = QtCore.pyqtSignal()
+    switch_bw2_dir_path = QtCore.pyqtSignal(str)
 
     # Copy Text (Clipboard)
     copy_selection_to_clipboard = QtCore.pyqtSignal(str)
