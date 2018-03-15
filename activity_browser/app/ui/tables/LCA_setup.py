@@ -4,7 +4,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from .inventory import ActivitiesTable
 from .table import ABTableWidget, ABTableItem
-from .ia import MethodsTable
+from .impact_categories import MethodsTable
 from ..icons import icons
 from ...signals import signals
 
@@ -32,11 +32,14 @@ class CSList(QtWidgets.QComboBox):
 
 class CSActivityTable(ABTableWidget):
     COLUMNS = {
-        0: "name",
-        1: "amount",
-        2: "unit",
+        0: "amount",
+        1: "unit",
+        2: "reference product",
+        3: "name",
+        4: "location",
+        5: "database",
     }
-    HEADERS = ["Activity name", "Amount", "Unit"]
+    HEADERS = ["Amount", "Unit", "Product", "Activity", "Location", "Database",]
 
     def __init__(self):
         super(CSActivityTable, self).__init__()
@@ -69,9 +72,16 @@ class CSActivityTable(ABTableWidget):
                 act = bw.get_activity(key)
                 new_row = self.rowCount()
                 self.insertRow(new_row)
-                self.setItem(new_row, 0, ABTableItem(act['name'], key=key, color="name"))
-                self.setItem(new_row, 1, ABTableItem(amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount"))
-                self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key, color="unit"))
+                self.setItem(new_row, 0, ABTableItem(amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount"))
+                self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
+                self.setItem(new_row, 2, ABTableItem(act.get('reference product'), key=key, color="product"))
+                self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
+                self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
+                self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
+                # self.setItem(new_row, 0, ABTableItem(act['name'], key=key, color="name"))
+                # self.setItem(new_row, 0, ABTableItem(act['name'], key=key, color="name"))
+                #
+                # self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key, color="unit"))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
