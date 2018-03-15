@@ -5,7 +5,7 @@ from bw2data.utils import natural_sort
 from bw2data import databases
 import textwrap
 
-def wrap_text(string, max_lenght=50):
+def wrap_text(string, max_lenght=80):
     """wrap the label making sure that key and name are in 2 rows"""
     # idea from https://stackoverflow.com/a/39134215/4929813
     wrapArgs = {'width': max_lenght, 'break_long_words': True, 'replace_whitespace': False}
@@ -24,7 +24,7 @@ def format_activity_label(act, style='pnl'):
         elif style == 'pl':
             label = wrap_text(', '.join([a.get('reference product','') or a.get('name',''),
                                a.get('location',''),
-                               ]), max_lenght=25)    
+                               ]), max_lenght=40)    
         elif style == 'key':
             label = wrap_text(str(a.key)) #safer to use key, code does not always exist
 
@@ -32,10 +32,6 @@ def format_activity_label(act, style='pnl'):
             label = wrap_text(',\n'.join([a.get('name',''),
                                str(a.get('categories','')),
                                ]), max_lenght=25)
-        elif style == 'fu':              
-            label =  wrap_text('\n'.join([str(a.key),
-                     a.get('reference product','') or a.get('name','')
-                     ]))
         else:
             label = wrap_text('\n'.join([a.get('reference product',''),
                                a.get('name',''),
