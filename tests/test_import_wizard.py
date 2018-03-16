@@ -7,7 +7,7 @@ def test_open_db_wizard(qtbot, ab_app):
     assert bw.projects.current == 'pytest_project'
     qtbot.waitForWindowShown(ab_app.main_window)
     qtbot.mouseClick(
-        ab_app.main_window.right_panel.inventory_tab.databases_widget.import_database_button,
+        ab_app.main_window.right_panel.project_tab.databases_widget.import_database_button,
         QtCore.Qt.LeftButton
     )
     qtbot.mouseClick(
