@@ -128,16 +128,27 @@ function windowSize() {
 // var svg = d3.select("body").select("svg");
 // https://stackoverflow.com/questions/16265123/resize-svg-when-window-is-resized-in-d3-js
 var svg = d3.select("body")
-   .append("div")
+  // .append("div")
    .classed("svg-container", true) //container class to make it responsive
-   .append("svg")
+  // .append("svg")
    //responsive SVG needs these 2 attributes and no width and height attr
    // .attr("preserveAspectRatio", "none")
    // .attr("preserveAspectRatio", "xMinYMin meet")
    // .attr("viewBox", "0 0 600 400")
    .attr('viewBox','0 0 '+windowSize()[0]+' '+windowSize()[1])
    //class to make it responsive
-   .classed("svg-content-responsive", true); 
+   .classed("svg-content-responsive", true);
+
+  // zoom for the graph-first attempt
+var svg = d3.select("body")
+ .append("svg")
+ .attr("width", "100%")
+ .attr("height", "100%")
+ .call(d3.zoom().on("zoom", function () {
+    svg.attr("transform", d3.event.transform)
+ }))
+ .append("g")
+
 
 var render = dagreD3.render();  
 
@@ -193,6 +204,7 @@ function update_graph(json_data) {
 };
 
 // console.log(graph);
+
 
 // break strings into multiple lines after certain length if necessary
 function chunkString(str, length) {
