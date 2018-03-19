@@ -4,6 +4,12 @@ import brightway2 as bw
 from bw2data.utils import natural_sort
 from bw2data import databases
 
+def wrap_text(string, max_lenght=80):
+    """wrap the label making sure that key and name are in 2 rows"""
+    # idea from https://stackoverflow.com/a/39134215/4929813
+    wrapArgs = {'width': max_lenght, 'break_long_words': True, 'replace_whitespace': False}
+    fold = lambda line, wrapArgs: textwrap.fill(line, **wrapArgs)
+    return '\n'.join([fold(line, wrapArgs) for line in string.splitlines()])
 
 def format_activity_label(act, style='pnl'):
     try:
@@ -15,16 +21,16 @@ def format_activity_label(act, style='pnl'):
                                a['location'],
                                ])
         elif style == 'pl':
-            label = ', '.join([a.get('reference product') or a.get('name'),
-                               a['location'],
-                               ])
+            label = wrap_text(', '.join([a.get('reference product','') or a.get('name',''),
+                               a.get('location',''),
+                               ]), max_lenght=40)    
         elif style == 'key':
             label = tuple([a['database'], a['code']])
 
         elif style == 'bio':
-            label = ', '.join([a['name'],
-                               str(a['categories']),
-                               ])
+            label = wrap_text(',\n'.join([a.get('name',''),
+                               str(a.get('categories','')),
+                               ]), max_lenght=25)
         else:
             label = '\n'.join([a.get('reference product',''),
                                a['name'],
