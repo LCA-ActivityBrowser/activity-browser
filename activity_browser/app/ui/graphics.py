@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import math
+
 import numpy as np
 import seaborn as sns
 import pandas as pd
@@ -6,9 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
-from math import ceil
 
-from ..bwutils.commontasks import format_activity_label,wrap_text
+from ..bwutils.commontasks import format_activity_label, wrap_text
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -58,11 +59,15 @@ class CorrelationPlot(FigureCanvasQTAgg):
                     square=True, linecolor="lightgray", linewidths=1, ax=axes)
         for i in range(len(corr)):
             axes.text(i + 0.5, i + 0.5, corr.columns[i],
-                      ha="center", va="center", rotation=0 if len(labels) <=8 else 45,size=11 if len(labels) <=8 else 9)
+                      ha="center", va="center",
+                      rotation=0 if len(labels) <= 8 else 45,
+                      size=11 if len(labels) <= 8 else 9)
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
                 axes.text(j + 0.5, i + 0.5, s,
-                          ha="center", va="center", rotation=0 if len(labels) <=8 else 45,size=11 if len(labels) <=8 else 9)
+                          ha="center", va="center",
+                          rotation=0 if len(labels) <= 8 else 45,
+                          size=11 if len(labels) <= 8 else 9)
         axes.axis("off")
         # If uncommented, fills widget
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -72,8 +77,11 @@ class CorrelationPlot(FigureCanvasQTAgg):
 
 class LCAResultsPlot(FigureCanvasQTAgg):
     def __init__(self, parent, mlca, width=6, height=6, dpi=100):
-        activity_names = [format_activity_label(next(iter(f.keys())),style='pnl') for f in mlca.func_units]
-        figure = Figure(figsize=(2+len(mlca.methods)*0.5, 4+len(activity_names)*0.55), dpi=dpi, tight_layout=True)
+        activity_names = [
+            format_activity_label(next(iter(f.keys())), style='pnl') for f in mlca.func_units
+        ]
+        figure = Figure(figsize=(2+len(mlca.methods)*0.5, 4+len(activity_names)*0.55),
+                        dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(111)
 
         super(LCAResultsPlot, self).__init__(figure)
@@ -86,11 +94,12 @@ class LCAResultsPlot(FigureCanvasQTAgg):
             annot=True,
             linewidths=.05,
             cmap=cmap,
-            xticklabels=[wrap_text(",".join(x),max_lenght=40) for x in mlca.methods],
+            xticklabels=[wrap_text(",".join(x), max_lenght=40) for x in mlca.methods],
             yticklabels=activity_names,
             ax=axes,
             square=False,
-            annot_kws={"size": 11 if len(mlca.methods) <=8 else 9,'rotation':0 if len(mlca.methods) <=8 else 60}
+            annot_kws={"size": 11 if len(mlca.methods) <= 8 else 9,
+                       'rotation': 0 if len(mlca.methods) <= 8 else 60}
         )
         hm.tick_params(labelsize=8)
 
@@ -100,7 +109,7 @@ class LCAResultsPlot(FigureCanvasQTAgg):
 
 class LCAProcessContributionPlot(FigureCanvasQTAgg):
     def __init__(self, parent, mlca, width=6, dpi=100):
-        height=4+len(mlca.func_units)*0.3
+        height = 4 + len(mlca.func_units)*0.3
         figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(121)
 
@@ -119,8 +128,9 @@ class LCAProcessContributionPlot(FigureCanvasQTAgg):
             ax=axes
         )
         plot.tick_params(labelsize=8)
-        plt.rc('legend', **{'fontsize': 8}) #putting below affects only LCAElementaryFlowContributionPlot
-        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5),ncol=ceil((len(df_tc.index)*0.22)/height))
+        plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
+        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                    ncol=math.ceil((len(df_tc.index)*0.22)/height))
         self.setMinimumSize(self.size())
 
 

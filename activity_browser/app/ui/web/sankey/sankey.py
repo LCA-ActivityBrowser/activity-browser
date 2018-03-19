@@ -228,7 +228,7 @@ class SankeyGraphTraversal:
             link['color'] = color_dict[
                 self.get_bw_activity_by_index(link['target']).get(
                     self.color_attr,
-                    self.get_bw_activity_by_index(link['target']).get('name','')
+                    self.get_bw_activity_by_index(link['target']).get('name', '')
                 )
             ]
 
