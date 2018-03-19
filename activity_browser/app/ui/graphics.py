@@ -72,12 +72,8 @@ class CorrelationPlot(FigureCanvasQTAgg):
 
 class LCAResultsPlot(FigureCanvasQTAgg):
     def __init__(self, parent, mlca, width=6, height=6, dpi=100):
-<<<<<<< HEAD
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
-=======
         activity_names = [format_activity_label(next(iter(f.keys())),style='pnl') for f in mlca.func_units]
         figure = Figure(figsize=(2+len(mlca.methods)*0.5, 4+len(activity_names)*0.55), dpi=dpi, tight_layout=True)
->>>>>>> eb6abb61a3db4e9430586670ae52d5071ef0c131
         axes = figure.add_subplot(111)
 
         super(LCAResultsPlot, self).__init__(figure)
