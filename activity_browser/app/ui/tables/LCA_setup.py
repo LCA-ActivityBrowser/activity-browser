@@ -122,7 +122,7 @@ class CSActivityTable(ABTableWidget):
         return [{self.item(row, 0).key: self.item(row, 0).text()} for row in range(self.rowCount())]
 
     def filter_amount_change(self, row, col):
-        if col == 1:
+        if col == 0:
             signals.calculation_setup_changed.emit()
 
 
