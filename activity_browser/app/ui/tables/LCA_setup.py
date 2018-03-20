@@ -39,7 +39,7 @@ class CSActivityTable(ABTableWidget):
         4: "location",
         5: "database",
     }
-    HEADERS = ["Amount", "Unit", "Product", "Activity", "Location", "Database",]
+    HEADERS = ["Amount", "Unit", "Product", "Activity", "Location", "Database"]
 
     def __init__(self):
         super(CSActivityTable, self).__init__()
@@ -60,7 +60,20 @@ class CSActivityTable(ABTableWidget):
         self.cellChanged.connect(self.filter_amount_change)
         signals.calculation_setup_selected.connect(self.sync)
 
-    # @ABTableWidget.decorated_sync
+    def append_row(self, key, amount='1.0'):
+        act = bw.get_activity(key)
+        new_row = self.rowCount()
+        self.insertRow(new_row)
+        self.setItem(new_row, 0, ABTableItem(
+            amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount")
+        )
+        self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
+        self.setItem(new_row, 2, ABTableItem(act.get('reference product'),
+                                             key=key, color="product"))
+        self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
+        self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
+        self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
+
     def sync(self, name):
         self.cellChanged.disconnect(self.filter_amount_change)
         self.clear()
@@ -69,15 +82,7 @@ class CSActivityTable(ABTableWidget):
 
         for func_unit in bw.calculation_setups[name]['inv']:
             for key, amount in func_unit.items():
-                act = bw.get_activity(key)
-                new_row = self.rowCount()
-                self.insertRow(new_row)
-                self.setItem(new_row, 0, ABTableItem(amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount"))
-                self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
-                self.setItem(new_row, 2, ABTableItem(act.get('reference product'), key=key, color="product"))
-                self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
-                self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
-                self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
+                self.append_row(key, amount)
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -104,12 +109,7 @@ class CSActivityTable(ABTableWidget):
             act = bw.get_activity(key)
             if act.get('type', 'process') != "process":
                 continue
-
-            new_row = self.rowCount()
-            self.insertRow(new_row)
-            self.setItem(new_row, 0, ABTableItem(act['name'], key=key, color="name"))
-            self.setItem(new_row, 1, ABTableItem("1.0", key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount"))
-            self.setItem(new_row, 2, ABTableItem(act.get('unit', 'Unknown'), key=key, color="unit"))
+            self.append_row(key)
 
         event.accept()
 
@@ -119,15 +119,16 @@ class CSActivityTable(ABTableWidget):
         self.resizeRowsToContents()
 
     def to_python(self):
-        return [{self.item(row, 0).key: self.item(row, 1).text()} for row in range(self.rowCount())]
+        return [{self.item(row, 0).key: self.item(row, 0).text()} for row in range(self.rowCount())]
 
     def filter_amount_change(self, row, col):
-        if col == 1:
+        if col == 0:
             signals.calculation_setup_changed.emit()
 
 
 class CSMethodsTable(ABTableWidget):
-    HEADERS = ["Name"]
+    HEADERS = ["Name", "Unit", "# CFs"]
+
     def __init__(self):
         super(CSMethodsTable, self).__init__()
         self.setColumnCount(len(self.HEADERS))
@@ -146,15 +147,22 @@ class CSMethodsTable(ABTableWidget):
     def connect_signals(self):
         signals.calculation_setup_selected.connect(self.sync)
 
+    def append_row(self, method):
+        new_row = self.rowCount()
+        self.insertRow(new_row)
+        method_metadata = bw.methods[method]
+        self.setItem(new_row, 0, ABTableItem(', '.join(method), method=method))
+        self.setItem(new_row, 1, ABTableItem(method_metadata.get('unit', "Unknown"), method=method))
+        num_cfs = method_metadata.get('num_cfs', 0)
+        self.setItem(new_row, 2, ABTableItem(str(num_cfs), method=method, number=num_cfs))
+
     def sync(self, name):
         self.clear()
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(self.HEADERS)
 
-        for obj in bw.calculation_setups[name]['ia']:
-            new_row = self.rowCount()
-            self.insertRow(new_row)
-            self.setItem(new_row, 0, ABTableItem(", ".join(obj), method=obj,))
+        for method in bw.calculation_setups[name]['ia']:
+            self.append_row(method)
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -169,12 +177,10 @@ class CSMethodsTable(ABTableWidget):
             existing = {self.item(index, 0).method for index in range(self.rowCount())}
         else:
             existing = {}
-        for obj in new_methods:
-            if obj in existing:
+        for method in new_methods:
+            if method in existing:
                 continue
-            new_row = self.rowCount()
-            self.insertRow(new_row)
-            self.setItem(new_row, 0, ABTableItem(", ".join(obj), method=obj,))
+            self.append_row(method)
         event.accept()
 
         signals.calculation_setup_changed.emit()
