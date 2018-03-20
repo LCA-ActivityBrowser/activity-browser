@@ -127,7 +127,7 @@ class CSActivityTable(ABTableWidget):
 
 
 class CSMethodsTable(ABTableWidget):
-    HEADERS = ["Name"]
+    HEADERS = ["Name", "Unit", "# CFs"]
 
     def __init__(self):
         super(CSMethodsTable, self).__init__()
@@ -147,15 +147,22 @@ class CSMethodsTable(ABTableWidget):
     def connect_signals(self):
         signals.calculation_setup_selected.connect(self.sync)
 
+    def append_row(self, method):
+        new_row = self.rowCount()
+        self.insertRow(new_row)
+        method_metadata = bw.methods[method]
+        self.setItem(new_row, 0, ABTableItem(', '.join(method), method=method))
+        self.setItem(new_row, 1, ABTableItem(method_metadata.get('unit', "Unknown"), method=method))
+        num_cfs = method_metadata.get('num_cfs', 0)
+        self.setItem(new_row, 2, ABTableItem(str(num_cfs), method=method, number=num_cfs))
+
     def sync(self, name):
         self.clear()
         self.setRowCount(0)
         self.setHorizontalHeaderLabels(self.HEADERS)
 
-        for obj in bw.calculation_setups[name]['ia']:
-            new_row = self.rowCount()
-            self.insertRow(new_row)
-            self.setItem(new_row, 0, ABTableItem(", ".join(obj), method=obj,))
+        for method in bw.calculation_setups[name]['ia']:
+            self.append_row(method)
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -170,12 +177,10 @@ class CSMethodsTable(ABTableWidget):
             existing = {self.item(index, 0).method for index in range(self.rowCount())}
         else:
             existing = {}
-        for obj in new_methods:
-            if obj in existing:
+        for method in new_methods:
+            if method in existing:
                 continue
-            new_row = self.rowCount()
-            self.insertRow(new_row)
-            self.setItem(new_row, 0, ABTableItem(", ".join(obj), method=obj,))
+            self.append_row(method)
         event.accept()
 
         signals.calculation_setup_changed.emit()
