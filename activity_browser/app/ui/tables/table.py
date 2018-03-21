@@ -92,3 +92,5 @@ class ABTableWidget(QtWidgets.QTableWidget):
 
             elif e.key() == QtCore.Qt.Key_V:  # paste
                 pass
+        else:
+            QtWidgets.QTableWidget.keyPressEvent(self, e)
