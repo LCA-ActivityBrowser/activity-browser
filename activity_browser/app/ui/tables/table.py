@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtWidgets
 from ..style import style_item
 from ...signals import signals
 
@@ -29,8 +29,9 @@ class ABTableItem(QtWidgets.QTableWidgetItem):
             self.setCheckState(QtCore.Qt.Unchecked)
 
         if hasattr(self, "color"):
-            self.setForeground(style_item.brushes.get(self.color, style_item.brushes.get("default")))
-
+            self.setForeground(
+                style_item.brushes.get(self.color, style_item.brushes.get("default"))
+            )
 
 
 class ABTableWidget(QtWidgets.QTableWidget):
@@ -57,7 +58,9 @@ class ABTableWidget(QtWidgets.QTableWidget):
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
             if self.rowCount() > 0:
-                self.setMaximumHeight(self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin())
+                self.setMaximumHeight(
+                    self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
+                )
             else:
                 self.setMaximumHeight(50)
         return wrapper
@@ -70,7 +73,6 @@ class ABTableWidget(QtWidgets.QTableWidget):
             return QtCore.QSize(self.width(), height)
         else:
             return QtCore.QSize(self.width(), 50)
-
 
     @QtCore.pyqtSlot()
     def keyPressEvent(self, e):
@@ -90,3 +92,5 @@ class ABTableWidget(QtWidgets.QTableWidget):
 
             elif e.key() == QtCore.Qt.Key_V:  # paste
                 pass
+        else:
+            QtWidgets.QTableWidget.keyPressEvent(self, e)
