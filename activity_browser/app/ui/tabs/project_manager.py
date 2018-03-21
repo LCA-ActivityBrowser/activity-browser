@@ -144,9 +144,15 @@ class HeaderTableTemplate(QtWidgets.QWidget):
             reset_search_button.clicked.connect(self.table.reset_search)
             reset_search_button.clicked.connect(self.search_box.clear)
             self.search_box.returnPressed.connect(self.set_search_term)
+            self.fuzzy_checkbox = QtWidgets.QCheckBox('Fuzzy Search')
+            self.fuzzy_checkbox.setToolTip(
+                '''Try the fuzzy search if normal search doesn't yield the desired results.
+                The fuzzy search currently only searches for matches in the  name field.'''
+            )
             signals.project_selected.connect(self.search_box.clear)
             self.header_layout.addWidget(self.search_box)
             self.header_layout.addWidget(reset_search_button)
+            self.header_layout.addWidget(self.fuzzy_checkbox)
 
         # Overall Layout
         self.v_layout = QtWidgets.QVBoxLayout()
@@ -166,7 +172,12 @@ class HeaderTableTemplate(QtWidgets.QWidget):
         )
 
     def set_search_term(self):
-        self.table.search(self.search_box.text())
+        search_term = self.search_box.text()
+        if self.fuzzy_checkbox.isChecked() and hasattr(self.table, 'fuzzy_search_index'):
+            self.table.update_search_index()
+            self.table.fuzzy_search(search_term)
+        else:
+            self.table.search(search_term)
 
     def database_changed(self):
         if hasattr(self, "label_database"):
