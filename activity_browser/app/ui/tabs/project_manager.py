@@ -95,7 +95,9 @@ class ProjectsWidget(QtWidgets.QWidget):
         # Buttons
         self.new_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.add), 'New')
         self.copy_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.copy), 'Copy current')
-        self.delete_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.delete), 'Delete current')
+        self.delete_project_button = QtWidgets.QPushButton(
+            QtGui.QIcon(icons.delete), 'Delete current'
+        )
         # Layout
         self.h_layout = QtWidgets.QHBoxLayout()
         self.h_layout.addWidget(header('Project:'))
@@ -114,6 +116,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.new_project_button.clicked.connect(signals.new_project.emit)
         self.delete_project_button.clicked.connect(signals.delete_project.emit)
         self.copy_project_button.clicked.connect(signals.copy_project.emit)
+
 
 class HeaderTableTemplate(QtWidgets.QWidget):
     searchable = False
@@ -169,14 +172,18 @@ class HeaderTableTemplate(QtWidgets.QWidget):
         if hasattr(self, "label_database"):
             self.label_database.setText("[{}]".format(self.table.database_name))
 
+
 class DatabaseWidget(HeaderTableTemplate):
     TABLE = DatabasesTable
     HEADER = 'Databases:'
+
     def __init__(self, parent):
         super(DatabaseWidget, self).__init__(parent)
 
         # Labels
-        self.label_no_database_selected = QtWidgets.QLabel("Select a database (double-click on table).")
+        self.label_no_database_selected = QtWidgets.QLabel(
+            "Select a database (double-click on table)."
+        )
 
         # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
