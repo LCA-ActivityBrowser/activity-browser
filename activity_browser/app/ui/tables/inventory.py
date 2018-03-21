@@ -206,6 +206,5 @@ class ActivitiesTable(ABTableWidget):
     def search(self, search_term):
         search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
         self.setRowCount(len(search_result))
-        self.sync(self.database.name, search_result)
-
-
+        if search_result or search_term == '':
+            self.sync(self.database.name, search_result)
