@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtGui, QtWidgets
+import collections
 import itertools
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 import arrow
 
 import brightway2 as bw
 from bw2data.utils import natural_sort
+from fuzzywuzzy import process
 
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
@@ -13,6 +16,7 @@ from ...signals import signals
 
 class DatabasesTable(ABTableWidget):
     HEADERS = ["Name", "Depends", "Last modified", "Size", "Read-only"]
+
     def __init__(self):
         super(DatabasesTable, self).__init__()
         self.name = "undefined"
@@ -73,7 +77,9 @@ class DatabasesTable(ABTableWidget):
             if dt:
                 dt = arrow.get(dt).shift(hours=-1).humanize()
             self.setItem(row, 2, ABTableItem(dt, db_name=name))
-            self.setItem(row, 3, ABTableItem(str(bw.databases[name].get('number', [])), db_name=name))
+            self.setItem(
+                row, 3, ABTableItem(str(bw.databases[name].get('number', [])), db_name=name)
+            )
             self.setItem(row, 4, ABTableItem(None, set_flags=[QtCore.Qt.ItemIsUserCheckable]))
 
 
@@ -116,7 +122,8 @@ class BiosphereFlowsTable(ABTableWidget):
     def search(self, search_term):
         search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
         self.setRowCount(len(search_result))
-        self.sync(self.database.name, search_result)
+        if search_result or search_term == '':
+            self.sync(self.database.name, search_result)
 
 
 class ActivitiesTable(ABTableWidget):
@@ -137,6 +144,7 @@ class ActivitiesTable(ABTableWidget):
         self.setColumnCount(len(self.HEADERS))
         self.setup_context_menu()
         self.connect_signals()
+        self.fuzzy_search_index = (None, None)
 
     def setup_context_menu(self):
         self.add_activity_action = QtWidgets.QAction(
@@ -179,6 +187,14 @@ class ActivitiesTable(ABTableWidget):
             lambda x: signals.add_activity_to_history.emit(x.key)
         )
 
+    def update_search_index(self):
+        if self.database is not self.fuzzy_search_index[0]:
+            activity_data = [obj['data'] for obj in self.database._get_queryset().dicts()]
+            name_activity_dict = collections.defaultdict(list)
+            for act in activity_data:
+                name_activity_dict[act['name']].append(self.database.get(act['code']))
+            self.fuzzy_search_index = (self.database, name_activity_dict)
+
     @ABTableWidget.decorated_sync
     def sync(self, name, data=None):
         self.database_name = name
@@ -206,6 +222,15 @@ class ActivitiesTable(ABTableWidget):
     def search(self, search_term):
         search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
         self.setRowCount(len(search_result))
-        self.sync(self.database.name, search_result)
+        if search_result or search_term == '':
+            self.sync(self.database.name, search_result)
 
-
+    def fuzzy_search(self, search_term):
+        names = list(self.fuzzy_search_index[1].keys())
+        fuzzy_search_result = process.extractBests(search_term, names, score_cutoff=10, limit=50)
+        result = list(itertools.chain.from_iterable(
+            [self.fuzzy_search_index[1][name] for name, score in fuzzy_search_result]
+        ))
+        self.setRowCount(len(result))
+        if result or search_term == '':
+            self.sync(self.database.name, result)
