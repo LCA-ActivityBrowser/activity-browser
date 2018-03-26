@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .panel import Panel, ActivitiesPanel, MethodsPanel
-from ..web.webutils import RestrictedWebPageWidget
+from ..web.webutils import RestrictedWebViewWidget
 from .. import activity_cache
 from ..tabs import LCASetupTab
 from ...signals import signals
@@ -13,7 +13,7 @@ class LeftPanel(Panel):
     def __init__(self, *args):
         super(LeftPanel, self).__init__(*args)
         # Tabs
-        self.welcome_tab = RestrictedWebPageWidget(
+        self.welcome_tab = RestrictedWebViewWidget(
             html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'
         )
         self.method_panel = MethodsPanel(self)

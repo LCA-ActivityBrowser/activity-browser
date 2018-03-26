@@ -22,7 +22,7 @@ class RestrictedQWebEnginePage(QtWebEngineWidgets.QWebEnginePage):
             return False
 
 
-class RestrictedWebPageWidget(QtWidgets.QWidget):
+class RestrictedWebViewWidget(QtWidgets.QWidget):
     def __init__(self, parent=None, url=None, html_file=None):
         super().__init__(parent)
         self.view = QtWebEngineWidgets.QWebEngineView()
