@@ -1,22 +1,48 @@
 # -*- coding: utf-8 -*-
+from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
 
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 
+class RestrictedQWebEnginePage(QtWebEngineWidgets.QWebEnginePage):
+    """ Filters links so that users cannot just navigate to any page on the web,
+    but just to those pages, that are listed in allowed_pages.
+    This is achieved by re-implementing acceptNavigationRequest. The latter could also be adapted to accept,
+    e.g. URLs within a domain.
+    """
 
-class SimpleWebPageWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None, html_file=None, url=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        if html_file:
-            self.url = QtCore.QUrl.fromLocalFile(html_file)
-        elif url:
-            pass  # we don't want to display websites at this moment, but the code below would work
-            # self.url = QtCore.QUrl(url)
+        self.allowed_pages = []
 
-        if self.url:
-            # create view
-            self.view = QtWebEngineWidgets.QWebEngineView()
-            self.view.load(self.url)
-            # set layout
-            self.vl = QtWidgets.QVBoxLayout()
-            self.vl.addWidget(self.view)
-            self.setLayout(self.vl)
+    def acceptNavigationRequest(self, qurl, navtype, mainframe):
+        # print("Navigation Request intercepted:", qurl)
+        if qurl in self.allowed_pages:  # open in Activity Browser QWebEngineView
+            return True
+        else:  # delegate link to default browser
+            QtGui.QDesktopServices.openUrl(qurl)
+            return False
+
+
+class RestrictedWebPageWidget(QtWidgets.QWidget):
+    def __init__(self, parent=None, url=None, html_file=None):
+        super().__init__(parent)
+        self.view = QtWebEngineWidgets.QWebEngineView()
+        self.page = RestrictedQWebEnginePage()
+
+        if html_file:
+            print("Loading File:", html_file)
+            self.url = QtCore.QUrl.fromLocalFile(html_file)
+            self.page.allowed_pages.append(self.url)
+            self.page.load(self.url)
+        elif url:
+            print("Loading URL:", url)
+            self.url = QtCore.QUrl(url)
+            self.page.allowed_pages.append(self.url)
+            self.page.load(self.url)
+
+        # associate page with view
+        self.view.setPage(self.page)
+
+        # set layout
+        self.vl = QtWidgets.QVBoxLayout()
+        self.vl.addWidget(self.view)
+        self.setLayout(self.vl)
