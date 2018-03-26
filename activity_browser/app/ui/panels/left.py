@@ -14,7 +14,7 @@ class LeftPanel(Panel):
         super(LeftPanel, self).__init__(*args)
         # Tabs
         self.welcome_tab = RestrictedWebPageWidget(
-            html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/startscreen.html'
+            html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'
         )
         self.method_panel = MethodsPanel(self)
         self.LCA_setup_tab = LCASetupTab(self)
