@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import math
+
 import numpy as np
 import seaborn as sns
 import pandas as pd
@@ -7,7 +9,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 
-from ..bwutils.commontasks import format_activity_label
+from ..bwutils.commontasks import format_activity_label, wrap_text
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -31,8 +33,8 @@ class Canvas(FigureCanvasQTAgg):
 
 
 class CorrelationPlot(FigureCanvasQTAgg):
-    def __init__(self, parent, data, labels, width=6, height=6, dpi=100):
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+    def __init__(self, parent, data, labels, dpi=100):
+        figure = Figure(figsize=(4+len(labels)*0.3, 4+len(labels)*0.3), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(111)
 
         super(CorrelationPlot, self).__init__(figure)
@@ -57,11 +59,15 @@ class CorrelationPlot(FigureCanvasQTAgg):
                     square=True, linecolor="lightgray", linewidths=1, ax=axes)
         for i in range(len(corr)):
             axes.text(i + 0.5, i + 0.5, corr.columns[i],
-                      ha="center", va="center", rotation=0)
+                      ha="center", va="center",
+                      rotation=0 if len(labels) <= 8 else 45,
+                      size=11 if len(labels) <= 8 else 9)
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
                 axes.text(j + 0.5, i + 0.5, s,
-                          ha="center", va="center")
+                          ha="center", va="center",
+                          rotation=0 if len(labels) <= 8 else 45,
+                          size=11 if len(labels) <= 8 else 9)
         axes.axis("off")
         # If uncommented, fills widget
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -71,12 +77,15 @@ class CorrelationPlot(FigureCanvasQTAgg):
 
 class LCAResultsPlot(FigureCanvasQTAgg):
     def __init__(self, parent, mlca, width=6, height=6, dpi=100):
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        activity_names = [
+            format_activity_label(next(iter(f.keys())), style='pnl') for f in mlca.func_units
+        ]
+        figure = Figure(figsize=(2+len(mlca.methods)*0.5, 4+len(activity_names)*0.55),
+                        dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(111)
 
         super(LCAResultsPlot, self).__init__(figure)
         self.setParent(parent)
-        activity_names = [format_activity_label(next(iter(f.keys()))) for f in mlca.func_units]
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
         hm = sns.heatmap(
@@ -85,10 +94,12 @@ class LCAResultsPlot(FigureCanvasQTAgg):
             annot=True,
             linewidths=.05,
             cmap=cmap,
-            xticklabels=["\n".join(x) for x in mlca.methods],
+            xticklabels=[wrap_text(",".join(x), max_lenght=40) for x in mlca.methods],
             yticklabels=activity_names,
             ax=axes,
             square=False,
+            annot_kws={"size": 11 if len(mlca.methods) <= 8 else 9,
+                       'rotation': 0 if len(mlca.methods) <= 8 else 60}
         )
         hm.tick_params(labelsize=8)
 
@@ -97,7 +108,8 @@ class LCAResultsPlot(FigureCanvasQTAgg):
 
 
 class LCAProcessContributionPlot(FigureCanvasQTAgg):
-    def __init__(self, parent, mlca, width=6, height=6, dpi=100):
+    def __init__(self, parent, mlca, width=6, dpi=100):
+        height = 4 + len(mlca.func_units)*0.3
         figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(121)
 
@@ -107,7 +119,7 @@ class LCAProcessContributionPlot(FigureCanvasQTAgg):
         method = 0  # TODO let user choose the LCIA method
         tc = mlca.top_process_contributions(method=method, limit=5, relative=True)
         df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a) for a in tc.keys()]
+        df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         df_tc.index = [format_activity_label(a, style='pl') for a in df_tc.index]
         plot = df_tc.T.plot.barh(
             stacked=True,
@@ -116,14 +128,15 @@ class LCAProcessContributionPlot(FigureCanvasQTAgg):
             ax=axes
         )
         plot.tick_params(labelsize=8)
-        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.rc('legend', **{'fontsize': 8})
+        plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
+        axes.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                    ncol=math.ceil((len(df_tc.index)*0.22)/height))
         self.setMinimumSize(self.size())
 
 
 class LCAElementaryFlowContributionPlot(FigureCanvasQTAgg):
-    def __init__(self, parent, mlca, width=6, height=6, dpi=100):
-        figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+    def __init__(self, parent, mlca, width=6, dpi=100):
+        figure = Figure(figsize=(width, 4+len(mlca.func_units)*0.3), dpi=dpi, tight_layout=True)
         axes = figure.add_subplot(121)
 
         super(LCAElementaryFlowContributionPlot, self).__init__(figure)
@@ -132,7 +145,7 @@ class LCAElementaryFlowContributionPlot(FigureCanvasQTAgg):
         method = 0  # TODO let user choose the LCIA method
         tc = mlca.top_elementary_flow_contributions(method=method, limit=5, relative=True)
         df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a) for a in tc.keys()]
+        df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         df_tc.index = [format_activity_label(a, style='bio') for a in df_tc.index]
         plot = df_tc.T.plot.barh(
             stacked=True,

@@ -5,3 +5,4 @@ arrow
 pandas
 beautifulsoup4
 patool
+fuzzywuzzy

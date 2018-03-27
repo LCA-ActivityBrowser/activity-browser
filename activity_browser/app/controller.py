@@ -236,13 +236,13 @@ class Controller(object):
             print("New calculation setup: {}".format(name))
 
     def delete_calculation_setup(self):
-        name = self.window.left_panel.cs_tab.list_widget.name
+        name = self.window.left_panel.LCA_setup_tab.list_widget.name
         del bw.calculation_setups[name]
-        self.window.left_panel.cs_tab.set_default_calculation_setup()
+        self.window.left_panel.LCA_setup_tab.set_default_calculation_setup()
         print("Deleted calculation setup: {}".format(name))
 
     def rename_calculation_setup(self):
-        current = self.window.left_panel.cs_tab.list_widget.name
+        current = self.window.left_panel.LCA_setup_tab.list_widget.name
         new_name = self.window.dialog(
             "Rename '{}'".format(current),
             "New name of this calculation setup:" + " " * 10
@@ -257,11 +257,11 @@ class Controller(object):
     def write_current_calculation_setup(self):
         """Iterate over activity and methods tables, and write
         calculation setup to ``calculation_setups``."""
-        current = self.window.left_panel.cs_tab.list_widget.name
+        current = self.window.left_panel.LCA_setup_tab.list_widget.name
         if current:
             bw.calculation_setups[current] = {
-                'inv': self.window.left_panel.cs_tab.activities_table.to_python(),
-                'ia': self.window.left_panel.cs_tab.methods_table.to_python()
+                'inv': self.window.left_panel.LCA_setup_tab.activities_table.to_python(),
+                'ia': self.window.left_panel.LCA_setup_tab.methods_table.to_python()
             }
 
     def new_activity(self, database_name):
