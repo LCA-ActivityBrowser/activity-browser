@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
+import os
+
+
+# type "localhost:3999" in Chrome for DevTools of AB web content
+os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '3999'
 
 
 class RestrictedQWebEnginePage(QtWebEngineWidgets.QWebEnginePage):
