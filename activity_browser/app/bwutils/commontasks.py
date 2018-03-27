@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
+import textwrap
+
 import arrow
 import brightway2 as bw
 from bw2data.utils import natural_sort
 from bw2data import databases
+
+
+def wrap_text(string, max_lenght=80):
+    """wrap the label making sure that key and name are in 2 rows"""
+    # idea from https://stackoverflow.com/a/39134215/4929813
+    wrapArgs = {'width': max_lenght, 'break_long_words': True, 'replace_whitespace': False}
+    fold = lambda line, wrapArgs: textwrap.fill(line, **wrapArgs)
+    return '\n'.join([fold(line, wrapArgs) for line in string.splitlines()])
 
 
 def format_activity_label(act, style='pnl'):
@@ -10,32 +20,31 @@ def format_activity_label(act, style='pnl'):
         a = bw.get_activity(act)
 
         if style == 'pnl':
-            label = '\n'.join([a.get('reference product',''),
-                               a['name'],
-                               a['location'],
-                               ])
+            label = wrap_text(
+                '\n'.join([a.get('reference product', ''), a.get('name', ''),
+                           a.get('location', '')]))
         elif style == 'pl':
-            label = ', '.join([a.get('reference product') or a.get('name'),
-                               a['location'],
-                               ])
+            label = wrap_text(', '.join([a.get('reference product', '') or a.get('name', ''),
+                                         a.get('location', ''),
+                                         ]), max_lenght=40)
         elif style == 'key':
-            label = tuple([a['database'], a['code']])
+            label = wrap_text(str(a.key))  # safer to use key, code does not always exist
 
         elif style == 'bio':
-            label = ', '.join([a['name'],
-                               str(a['categories']),
-                               ])
+            label = wrap_text(',\n'.join(
+                [a.get('name', ''), str(a.get('categories', ''))]), max_lenght=25
+            )
         else:
-            label = '\n'.join([a.get('reference product',''),
-                               a['name'],
-                               a['location'],
-                               ])
+            label = wrap_text(
+                '\n'.join([a.get('reference product', ''), a.get('name', ''),
+                           a.get('location', '')]))
     except:
         if isinstance(act, tuple):
-            return str(''.join(act))
+            return wrap_text(str(''.join(act)))
         else:
-            return str(act)
+            return wrap_text(str(act))
     return label
+
 
 def get_database_metadata(name):
     """ Returns a dictionary with database meta-information. """
@@ -48,12 +57,14 @@ def get_database_metadata(name):
     d['Last modified'] = dt
     return d
 
+
 def get_databases_data(databases):
     """Returns a list with dictionaries that describe the available databases."""
     data = []
     for row, name in enumerate(natural_sort(databases)):
         data.append(get_database_metadata(name))
     yield data
+
 
 def get_activity_data(datasets):
     # if not fields:
@@ -74,6 +85,7 @@ def get_activity_data(datasets):
             'key': ds,
         }
         yield obj
+
 
 def get_exchanges_data(exchanges):
     # TODO: not finished

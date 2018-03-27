@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from .icons import icons
 from .utils import abt1
 from ..signals import signals
+from .widgets import SettingsWizard
 
 
 class MenuBar(object):
@@ -20,28 +21,15 @@ class MenuBar(object):
 
     def setup_file_menu(self):
         menu = QtWidgets.QMenu('&File', self.window)
-        # Switch BW2 directory
-        # switch_bw2_dir = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Database directory...', self.window)
-        # # switch_bw2_dir.setShortcut('Ctrl+Q')
-        # switch_bw2_dir.setStatusTip('Change database directory')
-        # switch_bw2_dir.triggered.connect(signals.switch_bw2_dir_path.emit)
-        # menu.addAction(switch_bw2_dir)
-        menu.addAction(
-            '&Database directory...',
-            signals.switch_bw2_dir_path.emit
-        )
         menu.addAction(
             '&Import database...',
             signals.import_database.emit
         )
+        menu.addAction(
+            '&Settings...',
+            self.open_settings_wizard
+        )
         return menu
-
-    # def setup_extensions_menu(self):
-    #     extensions_menu = QtWidgets.QMenu('&Extensions', self.window)
-    #     # extensions_menu.addAction(
-    #     #     self.add_metaprocess_menu_item()
-    #     # )
-    #     return extensions_menu
 
     def setup_help_menu(self):
         bug_icon = QtGui.QIcon(icons.debug)
@@ -126,3 +114,6 @@ You should have received a copy of the GNU General Public License along with thi
             content = text + '\n\nLog Output:\n```\n{}```'.format(self.window.log.toPlainText())
             self.raise_issue_api(content)
             print(content)
+
+    def open_settings_wizard(self):
+        self.settings_wizard = SettingsWizard()

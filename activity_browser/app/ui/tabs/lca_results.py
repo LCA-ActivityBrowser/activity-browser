@@ -13,9 +13,9 @@ from ...bwutils.multilca import MLCA
 from ...signals import signals
 
 
-class LCAResultsTab(QtWidgets.QWidget):
+class ImpactAssessmentTab(QtWidgets.QWidget):
     def __init__(self, parent):
-        super(LCAResultsTab, self).__init__(parent)
+        super(ImpactAssessmentTab, self).__init__(parent)
         self.panel = parent  # e.g. right panel
         self.visible = False
 
@@ -37,10 +37,7 @@ class LCAResultsTab(QtWidgets.QWidget):
         signals.lca_calculation.connect(self.calculate)
 
     def add_tab(self):
-        self.panel.addTab(self, "LCA Results")
-        print('Adding Tab:')
-        print(type(self.panel))
-        print(type(self.panel.addTab(self, "LCA Results")))
+        self.panel.addTab(self, "Impact Assessment")
         self.panel.select_tab(self)
         self.visible = True
         self.layout.addWidget(self.scroll_area)
@@ -52,8 +49,6 @@ class LCAResultsTab(QtWidgets.QWidget):
             self.clear_layout()
 
     def clear_layout(self):
-        print("Entering clear layout")
-        print("Total:", self.scroll_widget_layout.count())
         for index in range(self.scroll_widget_layout.count()):
             try:
                 widget = self.scroll_widget_layout.itemAt(index).widget().deleteLater()

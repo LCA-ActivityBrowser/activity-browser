@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from .panel import Panel, ActivitiesPanel, MethodsPanel
-from ..web.webutils import SimpleWebPageWidget
+from ..web.webutils import RestrictedWebViewWidget
 from ..web.graphnav import GraphNavigatorWidget
 from .. import activity_cache
-from ..tabs import CalculationSetupTab
+from ..tabs import LCASetupTab
 from ...signals import signals
 from .... import PACKAGE_DIRECTORY
 
@@ -14,16 +14,17 @@ class LeftPanel(Panel):
     def __init__(self, *args):
         super(LeftPanel, self).__init__(*args)
         # Tabs
-        self.welcome_tab = SimpleWebPageWidget(
-            html_file=PACKAGE_DIRECTORY+r'/app/ui/web/startscreen/startscreen.html'
+        self.welcome_tab = RestrictedWebViewWidget(
+            html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'
         )
         self.method_panel = MethodsPanel(self)
-        self.cs_tab = CalculationSetupTab(self)
+        self.LCA_setup_tab = LCASetupTab(self)
         self.act_panel = ActivitiesPanel(self)
         self.graph_navigator_tab = GraphNavigatorWidget()
 
         # add tabs
         self.addTab(self.welcome_tab, 'Welcome')
+        self.addTab(self.LCA_setup_tab, 'LCA Setup')
         self.addTab(self.cs_tab, 'LCA Calculations')
         self.addTab(self.graph_navigator_tab, 'Graph-Navigator')
 
@@ -35,7 +36,7 @@ class LeftPanel(Panel):
     def update_method_panel(self):
         if self.method_panel.tab_dict:
             if self.indexOf(self.method_panel) == -1:
-                self.addTab(self.method_panel, 'LCIA CFs')
+                self.addTab(self.method_panel, 'Characterization Factors')
             self.select_tab(self.method_panel)
         else:
             self.removeTab(self.indexOf(self.method_panel))

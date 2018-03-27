@@ -12,10 +12,7 @@ from .signals import signals
 from .ui.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
-try:
-    from . import settings
-except ImportError:
-    settings = None
+from .settings import ab_settings
 
 
 class Controller(object):
@@ -24,19 +21,16 @@ class Controller(object):
         self.connect_signals()
         print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
-
-        # if specified in settings, switch to custom bw2 directory and project
-        if settings:
-            if hasattr(settings, "BW2_DIR"):
-                print("Loading brightway2 data directory from settings...")
-                self.switch_brightway2_dir_path(dirpath=settings.BW2_DIR)
-            if hasattr(settings, "PROJECT_NAME"):
-                print("Loading project from settings...")
-                self.change_project(settings.PROJECT_NAME)
-        else:
-            signals.project_selected.emit()
-
+        self.load_settings()
         self.db_wizard = None
+
+    def load_settings(self):
+        print("Loading user settings, if any.")
+        if ab_settings.settings.get('custom_bw_dir') is not None:
+            self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
+        if ab_settings.settings.get('startup_project') is not None:
+            self.change_project(ab_settings.settings['startup_project'])
+        signals.project_selected.emit()
 
     def connect_signals(self):
         # SLOTS
@@ -68,7 +62,7 @@ class Controller(object):
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
         signals.delete_calculation_setup.connect(self.delete_calculation_setup)
         # Other
-        signals.switch_bw2_dir_path.connect(self.select_bw2_dir_path)
+        signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
 
     def import_database_wizard(self):
         if self.db_wizard is None:
@@ -77,16 +71,9 @@ class Controller(object):
             self.db_wizard.show()
             self.db_wizard.activateWindow()
 
-    def select_bw2_dir_path(self):
-        folder_path = QtWidgets.QFileDialog().getExistingDirectory(
-            None, "Select a brightway2 database folder")
-        # TODO: in case of a directory that does not contain an existing brightway2 database,
-        # ask if a new db should be set up
-        print(folder_path)
-        self.switch_brightway2_dir_path(folder_path)
-        return folder_path
-
     def switch_brightway2_dir_path(self, dirpath):
+        if dirpath == bw.projects._base_data_dir:
+            return  # dirpath is already loaded
         try:
             assert os.path.isdir(dirpath)
             bw.projects._base_data_dir = dirpath
@@ -99,17 +86,25 @@ class Controller(object):
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
-            self.change_project(self.get_default_project_name())
-            print('Changed brightway2 data directory to: {}'.format(bw.projects._base_data_dir))
+            print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+
+            bw.projects.set_current(self.get_default_project_name())
+            signals.projects_changed.emit()
+            signals.databases_changed.emit()
 
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
 
     def get_default_project_name(self):
-        if "default" in bw.projects:
+        custom_startup = ab_settings.settings.get('startup_project')
+        if custom_startup is not None and custom_startup in bw.projects:
+            return ab_settings.settings['startup_project']
+        elif "default" in bw.projects:
             return "default"
-        else:
+        elif len(bw.projects):
             return next(iter(bw.projects)).name
+        else:
+            return 'default'
 
     def change_project_dialogue(self):
         project_names = sorted([x.name for x in bw.projects])
@@ -129,13 +124,16 @@ class Controller(object):
         if not name:
             print("No project name given.")
             return
-        if name not in [p.name for p in bw.projects]:
+        # elif name == bw.projects.current and not reload:
+        #     return  # project already set
+        elif name not in [p.name for p in bw.projects]:
             print("Project does not exist: {}".format(name))
             return
+
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
             signals.project_selected.emit()
-            print("Changed project to:", name)
+            print("Loaded project:", name)
 
     def get_new_project_name(self, parent):
         name, status = QtWidgets.QInputDialog.getText(
@@ -238,13 +236,13 @@ class Controller(object):
             print("New calculation setup: {}".format(name))
 
     def delete_calculation_setup(self):
-        name = self.window.left_panel.cs_tab.list_widget.name
+        name = self.window.left_panel.LCA_setup_tab.list_widget.name
         del bw.calculation_setups[name]
-        self.window.left_panel.cs_tab.set_default_calculation_setup()
+        self.window.left_panel.LCA_setup_tab.set_default_calculation_setup()
         print("Deleted calculation setup: {}".format(name))
 
     def rename_calculation_setup(self):
-        current = self.window.left_panel.cs_tab.list_widget.name
+        current = self.window.left_panel.LCA_setup_tab.list_widget.name
         new_name = self.window.dialog(
             "Rename '{}'".format(current),
             "New name of this calculation setup:" + " " * 10
@@ -259,11 +257,11 @@ class Controller(object):
     def write_current_calculation_setup(self):
         """Iterate over activity and methods tables, and write
         calculation setup to ``calculation_setups``."""
-        current = self.window.left_panel.cs_tab.list_widget.name
+        current = self.window.left_panel.LCA_setup_tab.list_widget.name
         if current:
             bw.calculation_setups[current] = {
-                'inv': self.window.left_panel.cs_tab.activities_table.to_python(),
-                'ia': self.window.left_panel.cs_tab.methods_table.to_python()
+                'inv': self.window.left_panel.LCA_setup_tab.activities_table.to_python(),
+                'ia': self.window.left_panel.LCA_setup_tab.methods_table.to_python()
             }
 
     def new_activity(self, database_name):
