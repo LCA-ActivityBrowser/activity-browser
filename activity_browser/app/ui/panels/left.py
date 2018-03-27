@@ -25,7 +25,6 @@ class LeftPanel(Panel):
         # add tabs
         self.addTab(self.welcome_tab, 'Welcome')
         self.addTab(self.LCA_setup_tab, 'LCA Setup')
-        self.addTab(self.cs_tab, 'LCA Calculations')
         self.addTab(self.graph_navigator_tab, 'Graph-Navigator')
 
         # signals
