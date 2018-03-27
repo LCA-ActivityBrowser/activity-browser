@@ -27,8 +27,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
         # qt js interaction
         self.bridge = Bridge()
-        # self.bridge.viewer_waiting.connect(self.send_json)
-
         self.channel = QtWebChannel.QWebChannel()
         self.channel.registerObject('bridge', self.bridge)
         self.view = QtWebEngineWidgets.QWebEngineView()
