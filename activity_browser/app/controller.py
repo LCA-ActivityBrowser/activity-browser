@@ -340,6 +340,9 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             )
             if ok:
                 activity.copy(database=target_db)
+                # only process database immediatly if small
+                if len(bw.Database(target_db)) < 200:
+                    bw.databases.clean()
                 signals.database_changed.emit(target_db)
                 signals.databases_changed.emit()
 
