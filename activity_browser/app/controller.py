@@ -13,6 +13,7 @@ from .ui.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
 from .settings import ab_settings
+from .bwutils.activity import copy_to_db
 
 
 class Controller(object):
@@ -51,6 +52,7 @@ class Controller(object):
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
+        signals.copy_to_db.connect(self.copy_to_db)
         # Exchange
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
@@ -315,6 +317,32 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
         new_act.save()
         signals.database_changed.emit(act['database'])
         signals.open_activity_tab.emit("right", new_act.key)
+
+    def copy_to_db(self, activity_key):
+        origin_db = activity_key[0]
+        activity = bw.get_activity(activity_key)
+        # TODO: Exclude read-only dbs from target_dbs as soon as they are implemented
+        available_target_dbs = sorted(set(bw.databases).difference(
+            {'biosphere3', origin_db}
+        ))
+        if not available_target_dbs:
+            self.window.warning(
+                "No target database",
+                "No valid target databases available. Create a new database first."
+            )
+        else:
+            target_db, ok = QtWidgets.QInputDialog.getItem(
+                self.window,
+                "Copy activity to database",
+                "Target database:",
+                available_target_dbs,
+                0,
+                False
+            )
+            if ok:
+                copy_to_db(activity, bw.Database(target_db))
+                signals.database_changed.emit(target_db)
+                signals.databases_changed.emit()
 
     def modify_activity(self, key, field, value):
         activity = bw.get_activity(key)
