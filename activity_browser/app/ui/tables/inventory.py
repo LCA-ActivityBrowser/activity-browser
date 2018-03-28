@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import collections
 import itertools
 
@@ -74,8 +75,11 @@ class DatabasesTable(ABTableWidget):
             depends = bw.databases[name].get('depends', [])
             self.setItem(row, 1, ABTableItem(", ".join(depends), db_name=name))
             dt = bw.databases[name].get('modified', '')
+            # code below is based on the assumption that bw uses utc timestamps
+            tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
+            time_shift = - tz.utcoffset().total_seconds()
             if dt:
-                dt = arrow.get(dt).shift(hours=-1).humanize()
+                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
             self.setItem(row, 2, ABTableItem(dt, db_name=name))
             self.setItem(
                 row, 3, ABTableItem(str(len(bw.Database(name))), db_name=name)
