@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 
+import brightway2 as bw
 from bw2data.backends.peewee.proxies import ExchangeDataset, Activity
 from bw2data.backends.peewee.utils import dict_as_exchangedataset
 
@@ -19,4 +20,5 @@ def copy_to_db(activity, database):
         if exc['input'] == exc['output']:
             data['input'] = new_act.key
         ExchangeDataset.create(**dict_as_exchangedataset(data))
+    bw.databases.clean()
     return new_act
