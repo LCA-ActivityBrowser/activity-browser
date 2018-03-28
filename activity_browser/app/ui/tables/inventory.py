@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import time
+import datetime
 import collections
 import itertools
 
@@ -75,12 +75,11 @@ class DatabasesTable(ABTableWidget):
             depends = bw.databases[name].get('depends', [])
             self.setItem(row, 1, ABTableItem("; ".join(depends), db_name=name))
             dt = bw.databases[name].get('modified', '')
-            # dirty fix for time display issue, timestamps in bw are probably UTC and this adds
-            # a time shift based on the local time, see issue #42
-            daylight_savings_time = time.localtime().tm_isdst
-            time_shift = -(1+daylight_savings_time)
+            # code below is based on the assumption that bw uses utc timestamps
+            tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
+            time_shift = - tz.utcoffset().total_seconds()
             if dt:
-                dt = arrow.get(dt).shift(hours=time_shift).humanize()
+                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
             self.setItem(row, 2, ABTableItem(dt, db_name=name))
             self.setItem(
                 row, 3, ABTableItem(str(bw.databases[name].get('number', [])), db_name=name)
