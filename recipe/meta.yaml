@@ -21,7 +21,7 @@ requirements:
     - setuptools
   run:
     - python
-    - brightway2 >= 2.1.2
+    - brightway2 >=2.1.2
     - matplotlib
     - seaborn
     - arrow
@@ -29,7 +29,7 @@ requirements:
     - patool
     - beautifulsoup4
     - fuzzywuzzy
-    - pyqt >= 5.9
+    - pyqt >=5.9
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
