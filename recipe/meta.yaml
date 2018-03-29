@@ -21,7 +21,7 @@ requirements:
     - setuptools
   run:
     - python
-    - brightway2
+    - brightway2 >=2.1.2
     - matplotlib
     - seaborn
     - arrow
