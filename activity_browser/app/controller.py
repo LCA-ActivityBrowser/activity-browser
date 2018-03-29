@@ -13,7 +13,6 @@ from .ui.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
 from .settings import ab_settings
-from .bwutils.activity import copy_to_db
 
 
 class Controller(object):
@@ -340,7 +339,10 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
                 False
             )
             if ok:
-                copy_to_db(activity, bw.Database(target_db))
+                activity.copy(database=target_db)
+                # only process database immediatly if small
+                if len(bw.Database(target_db)) < 200:
+                    bw.databases.clean()
                 signals.database_changed.emit(target_db)
                 signals.databases_changed.emit()
 
