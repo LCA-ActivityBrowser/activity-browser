@@ -75,6 +75,7 @@ class CSActivityTable(ABTableWidget):
         self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
 
     def sync(self, name):
+        self.current_cs = name
         self.cellChanged.disconnect(self.filter_amount_change)
         self.clear()
         self.setRowCount(0)
@@ -82,7 +83,7 @@ class CSActivityTable(ABTableWidget):
 
         for func_unit in bw.calculation_setups[name]['inv']:
             for key, amount in func_unit.items():
-                self.append_row(key, amount)
+                self.append_row(key, str(amount))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -119,11 +120,16 @@ class CSActivityTable(ABTableWidget):
         self.resizeRowsToContents()
 
     def to_python(self):
-        return [{self.item(row, 0).key: self.item(row, 0).text()} for row in range(self.rowCount())]
+        return [{self.item(row, 0).key: float(self.item(row, 0).text())} for
+                row in range(self.rowCount())]
 
     def filter_amount_change(self, row, col):
         if col == 0:
-            signals.calculation_setup_changed.emit()
+            try:
+                float(self.item(row, col).text())
+                signals.calculation_setup_changed.emit()
+            except ValueError as e:
+                self.sync(self.current_cs)
 
 
 class CSMethodsTable(ABTableWidget):
