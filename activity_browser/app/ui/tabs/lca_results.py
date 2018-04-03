@@ -37,16 +37,14 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         signals.lca_calculation.connect(self.calculate)
 
     def add_tab(self):
-        self.panel.addTab(self, "Impact Assessment")
+        self.panel.addTab(self, "LCA results")
         self.panel.select_tab(self)
         self.visible = True
         self.layout.addWidget(self.scroll_area)
 
     def remove_tab(self):
         if self.visible:
-            self.panel.removeTab(4)
-            self.visible = False
-            self.clear_layout()
+            self.panel.removeTab(self.panel.indexOf(self))
 
     def clear_layout(self):
         for index in range(self.scroll_widget_layout.count()):
