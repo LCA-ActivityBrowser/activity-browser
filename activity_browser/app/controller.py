@@ -301,9 +301,24 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             act.delete()
             signals.database_changed.emit(act['database'])
 
+    def generate_copy_code(self, key):
+        if '_copy' in key[1]:
+            code = key[1].split('_copy')[0]
+        else:
+            code = key[1]
+        copies = [a['code'] for a in bw.Database(key[0]) if
+                  code in a['code'] and '_copy' in a['code']]
+        if copies:
+            n = max([int(c.split('_copy')[1]) for c in copies])
+            new_code = code + '_copy' + str(n + 1)
+        else:
+            new_code = code + '_copy1'
+        return new_code
+
     def copy_activity(self, key):
         act = bw.get_activity(key)
-        new_act = act.copy("Copy of " + act['name'])
+        new_code = self.generate_copy_code(key)
+        new_act = act.copy(new_code)
         # Update production exchanges
         for exc in new_act.production():
             if exc.input.key == key:
@@ -339,7 +354,8 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
                 False
             )
             if ok:
-                activity.copy(database=target_db)
+                new_code = self.generate_copy_code((target_db, activity['code']))
+                activity.copy(code=new_code, database=target_db)
                 # only process database immediatly if small
                 if len(bw.Database(target_db)) < 200:
                     bw.databases.clean()
