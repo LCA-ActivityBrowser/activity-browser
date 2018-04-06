@@ -5,7 +5,7 @@ import uuid
 
 import brightway2 as bw
 from bw2data.backends.peewee import Exchange
-from bw2data.project import ProjectDataset, create_database
+from bw2data.project import ProjectDataset, SubstitutableDatabase
 from PyQt5 import QtWidgets
 
 from .signals import signals
@@ -83,7 +83,7 @@ class Controller(object):
             if not os.path.isdir(bw.projects._base_logs_dir):
                 os.mkdir(bw.projects._base_logs_dir)
             bw.projects.db.close()
-            bw.projects.db = create_database(
+            bw.projects.db = SubstitutableDatabase(
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
