@@ -26,11 +26,15 @@ class Controller(object):
 
     def load_settings(self):
         print("Loading user settings, if any.")
+        loaded_settings = False
         if ab_settings.settings.get('custom_bw_dir') is not None:
             self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
+            loaded_settings = True
         if ab_settings.settings.get('startup_project') is not None:
             self.change_project(ab_settings.settings['startup_project'])
-        signals.project_selected.emit()
+            loaded_settings = True
+        if not loaded_settings:
+            signals.project_selected.emit()
 
     def connect_signals(self):
         # SLOTS
@@ -82,7 +86,7 @@ class Controller(object):
             # create folder if it does not yet exist
             if not os.path.isdir(bw.projects._base_logs_dir):
                 os.mkdir(bw.projects._base_logs_dir)
-            bw.projects.db.close()
+            # bw.projects.db.close()
             bw.projects.db = SubstitutableDatabase(
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
@@ -130,6 +134,8 @@ class Controller(object):
         elif name not in [p.name for p in bw.projects]:
             print("Project does not exist: {}".format(name))
             return
+        else:
+            print("Loading project:", name)
 
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
