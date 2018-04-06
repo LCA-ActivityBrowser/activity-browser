@@ -1,4 +1,4 @@
-{% set version = "2.2.3.dev" %}
+{% set version = "2.2.4.dev" %}
 
 package:
   name: activity-browser-dev
