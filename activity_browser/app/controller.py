@@ -20,10 +20,11 @@ class Controller(object):
     def __init__(self, window):
         self.window = window
         self.connect_signals()
-        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        print('Brightway2 active project: {}'.format(bw.projects.current))
+        signals.project_selected.emit()
         self.load_settings()
         self.db_wizard = None
+        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        print('Brightway2 active project: {}'.format(bw.projects.current))
 
     def load_settings(self):
         if ab_settings.settings:
@@ -32,8 +33,6 @@ class Controller(object):
                 self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
             if ab_settings.settings.get('startup_project'):
                 self.change_project(ab_settings.settings['startup_project'])
-        else:
-            signals.project_selected.emit()
 
     def connect_signals(self):
         # SLOTS
