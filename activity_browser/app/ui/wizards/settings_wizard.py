@@ -128,7 +128,7 @@ class SettingsPage(QtWidgets.QWizardPage):
             # ask user if to switch directory (which will update the project combobox correctly)
             reply = QtWidgets.QMessageBox.question(self,
                                                    'Continue?',
-                                                   'Would you like to switch to this directory now? \nThis will close your currently opened project. \nDo this to choose the startup project.',
+                                                   'Would you like to switch to this directory now? \nThis will close your currently opened project. \nClick "Yes" to be able to choose the startup project.',
                                                    QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.No)
             if reply == QtWidgets.QMessageBox.Yes:
