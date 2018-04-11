@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PyQt5 import QtWidgets
+import os
 
 from ...bwutils import commontasks as bc
 from ...signals import signals
@@ -107,7 +108,10 @@ class SettingsPage(QtWidgets.QWizardPage):
             print("No projects found in this directory.")
 
     def restore_defaults(self):
-        self.bwdir_edit.setText(bc.get_default_bw_dir())
+        default_path = bc.get_default_bw_dir()
+        print("Default path:", default_path)
+        print("Default path:", os.path(default_path))
+        self.bwdir_edit.setText(default_path)
         signals.switch_bw2_dir_path.emit(bc.get_default_bw_dir())
         self.update_project_combo()
         if 'default' in self.project_names:

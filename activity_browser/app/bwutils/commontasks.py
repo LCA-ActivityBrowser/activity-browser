@@ -101,10 +101,7 @@ def get_exchanges_data(exchanges):
 def get_startup_bw_dir():
     """Returns the brightway directory as defined in the settings file.
     If it has not been defined here, it returns the brightway default directory."""
-    if ab_settings.settings.get('custom_bw_dir') is not None:
-        return ab_settings.settings['custom_bw_dir']
-    else:  # not defined in settings
-        return get_default_bw_dir()
+    return ab_settings.settings.get('custom_bw_dir', get_default_bw_dir())
 
 
 def get_default_bw_dir():
@@ -113,13 +110,14 @@ def get_default_bw_dir():
 
 
 def get_current_bw_dir():
+    """Returns the current used brightway directory."""
     return bw.projects._base_data_dir
 
 
 def get_startup_project_name():
     """Returns the startup or default project name."""
     custom_startup = ab_settings.settings.get('startup_project')
-    if custom_startup is not None and custom_startup in bw.projects:
+    if custom_startup in bw.projects:
         return ab_settings.settings['startup_project']
     else:
         return get_default_project_name()

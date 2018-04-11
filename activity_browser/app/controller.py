@@ -28,9 +28,9 @@ class Controller(object):
     def load_settings(self):
         if ab_settings.settings:
             print("Loading user settings:")
-            if ab_settings.settings.get('custom_bw_dir') is not None:
+            if ab_settings.settings.get('custom_bw_dir'):
                 self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
-            if ab_settings.settings.get('startup_project') is not None:
+            if ab_settings.settings.get('startup_project'):
                 self.change_project(ab_settings.settings['startup_project'])
         else:
             signals.project_selected.emit()
