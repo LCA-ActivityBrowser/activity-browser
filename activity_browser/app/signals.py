@@ -54,8 +54,9 @@ class Signals(QtCore.QObject):
 
     # Calculation Setups
     new_calculation_setup = QtCore.pyqtSignal()
-    delete_calculation_setup = QtCore.pyqtSignal()
-    rename_calculation_setup = QtCore.pyqtSignal()
+    delete_calculation_setup = QtCore.pyqtSignal(str)
+    rename_calculation_setup = QtCore.pyqtSignal(str)
+    set_default_calculation_setup = QtCore.pyqtSignal()
 
     calculation_setup_changed = QtCore.pyqtSignal()
     calculation_setup_selected = QtCore.pyqtSignal(str)

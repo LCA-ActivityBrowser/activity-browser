@@ -17,8 +17,7 @@ from .signals import signals
 
 
 class Controller(object):
-    def __init__(self, window):
-        self.window = window
+    def __init__(self):
         self.connect_signals()
         signals.project_selected.emit()
         self.load_settings()
@@ -61,7 +60,6 @@ class Controller(object):
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
-        signals.calculation_setup_changed.connect(self.write_current_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
         signals.delete_calculation_setup.connect(self.delete_calculation_setup)
         # Other
@@ -234,19 +232,21 @@ class Controller(object):
             "Name of new calculation setup:" + " " * 10
         )
         if ok and name:
-            # TODO: prevent that existing calculation setups get overwritten
-            bw.calculation_setups[name] = {'inv': [], 'ia': []}
-            signals.calculation_setup_selected.emit(name)
-            print("New calculation setup: {}".format(name))
+            if name not in bw.calculation_setups.keys():
+                bw.calculation_setups[name] = {'inv': [], 'ia': []}
+                signals.calculation_setup_selected.emit(name)
+                print("New calculation setup: {}".format(name))
+            else:
+                QtWidgets.QMessageBox.information(None,
+                                                  "Not possible",
+                                                  "A calculation setup with this name already exists.")
 
-    def delete_calculation_setup(self):
-        name = self.window.left_panel.LCA_setup_tab.list_widget.name
+    def delete_calculation_setup(self, name):
         del bw.calculation_setups[name]
-        self.window.left_panel.LCA_setup_tab.set_default_calculation_setup()
+        signals.set_default_calculation_setup.emit()
         print("Deleted calculation setup: {}".format(name))
 
-    def rename_calculation_setup(self):
-        current = self.window.left_panel.LCA_setup_tab.list_widget.name
+    def rename_calculation_setup(self, current):
         new_name, ok = QtWidgets.QInputDialog.getText(
             None,
             "Rename '{}'".format(current),
@@ -254,20 +254,11 @@ class Controller(object):
         )
         if ok and new_name:
             bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
-            print("Current setups:", list(bw.calculation_setups.keys()))
+            # print("Current setups:", list(bw.calculation_setups.keys()))
             del bw.calculation_setups[current]
-            print("After deletion of {}:".format(current), list(bw.calculation_setups.keys()))
+            # print("After deletion of {}:".format(current), list(bw.calculation_setups.keys()))
             signals.calculation_setup_selected.emit(new_name)
-
-    def write_current_calculation_setup(self):
-        """Iterate over activity and methods tables, and write
-        calculation setup to ``calculation_setups``."""
-        current = self.window.left_panel.LCA_setup_tab.list_widget.name
-        if current:
-            bw.calculation_setups[current] = {
-                'inv': self.window.left_panel.LCA_setup_tab.activities_table.to_python(),
-                'ia': self.window.left_panel.LCA_setup_tab.methods_table.to_python()
-            }
+            print("Renamed calculation setup from {} to {}".format(current, new_name))
 
     def new_activity(self, database_name):
         # TODO: let user define product
