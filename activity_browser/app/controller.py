@@ -13,28 +13,26 @@ from .ui.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
 from .settings import ab_settings
+from .bwutils import commontasks as bc
 
 
 class Controller(object):
     def __init__(self, window):
         self.window = window
         self.connect_signals()
-        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        print('Brightway2 active project: {}'.format(bw.projects.current))
+        signals.project_selected.emit()
         self.load_settings()
         self.db_wizard = None
+        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        print('Brightway2 active project: {}'.format(bw.projects.current))
 
     def load_settings(self):
-        print("Loading user settings, if any.")
-        loaded_settings = False
-        if ab_settings.settings.get('custom_bw_dir') is not None:
-            self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
-            loaded_settings = True
-        if ab_settings.settings.get('startup_project') is not None:
-            self.change_project(ab_settings.settings['startup_project'])
-            loaded_settings = True
-        if not loaded_settings:
-            signals.project_selected.emit()
+        if ab_settings.settings:
+            print("Loading user settings:")
+            if ab_settings.settings.get('custom_bw_dir'):
+                self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
+            if ab_settings.settings.get('startup_project'):
+                self.change_project(ab_settings.settings['startup_project'])
 
     def connect_signals(self):
         # SLOTS
@@ -86,30 +84,17 @@ class Controller(object):
             # create folder if it does not yet exist
             if not os.path.isdir(bw.projects._base_logs_dir):
                 os.mkdir(bw.projects._base_logs_dir)
-            # bw.projects.db.close()
+            # load new brightway directory
             bw.projects.db = SubstitutableDatabase(
                 os.path.join(bw.projects._base_data_dir, "projects.db"),
                 [ProjectDataset]
             )
             print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-
-            bw.projects.set_current(self.get_default_project_name())
-            signals.projects_changed.emit()
+            self.change_project(bc.get_startup_project_name(), reload=True)
             signals.databases_changed.emit()
 
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
-
-    def get_default_project_name(self):
-        custom_startup = ab_settings.settings.get('startup_project')
-        if custom_startup is not None and custom_startup in bw.projects:
-            return ab_settings.settings['startup_project']
-        elif "default" in bw.projects:
-            return "default"
-        elif len(bw.projects):
-            return next(iter(bw.projects)).name
-        else:
-            return 'default'
 
     def change_project_dialogue(self):
         project_names = sorted([x.name for x in bw.projects])
@@ -129,13 +114,9 @@ class Controller(object):
         if not name:
             print("No project name given.")
             return
-        # elif name == bw.projects.current and not reload:
-        #     return  # project already set
         elif name not in [p.name for p in bw.projects]:
             print("Project does not exist: {}".format(name))
             return
-        else:
-            print("Loading project:", name)
 
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
@@ -191,7 +172,7 @@ class Controller(object):
         ok = self.confirm_project_deletion(self.window)
         if ok:
             bw.projects.delete_project(bw.projects.current)
-            self.change_project(self.get_default_project_name(), reload=True)
+            self.change_project(bc.get_startup_project_name(), reload=True)
             signals.projects_changed.emit()
 
     def install_default_data(self):

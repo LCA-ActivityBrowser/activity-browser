@@ -61,18 +61,21 @@ class CSActivityTable(ABTableWidget):
         signals.calculation_setup_selected.connect(self.sync)
 
     def append_row(self, key, amount='1.0'):
-        act = bw.get_activity(key)
-        new_row = self.rowCount()
-        self.insertRow(new_row)
-        self.setItem(new_row, 0, ABTableItem(
-            amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount")
-        )
-        self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
-        self.setItem(new_row, 2, ABTableItem(act.get('reference product'),
-                                             key=key, color="product"))
-        self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
-        self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
-        self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
+        try:
+            act = bw.get_activity(key)
+            new_row = self.rowCount()
+            self.insertRow(new_row)
+            self.setItem(new_row, 0, ABTableItem(
+                amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount")
+            )
+            self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
+            self.setItem(new_row, 2, ABTableItem(act.get('reference product'),
+                                                 key=key, color="product"))
+            self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
+            self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
+            self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
+        except:
+            print("Could not load key in Calculation Setup: ", key)
 
     def sync(self, name):
         self.current_cs = name
