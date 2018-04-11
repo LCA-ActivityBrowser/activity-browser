@@ -96,10 +96,11 @@ class Controller(object):
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
 
-    def change_project_dialogue(self):
+    def change_project_dialogue(self, parent=None):
+        parent = parent or self.window
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
-            None,
+            parent,
             "Choose project",
             "Name:",
             project_names,
