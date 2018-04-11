@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-import os
 import copy
+import os
 import uuid
 
 import brightway2 as bw
+from PyQt5 import QtWidgets
 from bw2data.backends.peewee import Exchange
 from bw2data.project import ProjectDataset, SubstitutableDatabase
-from PyQt5 import QtWidgets
 
-from .signals import signals
-from .ui.db_import_wizard import (
+from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
-from .settings import ab_settings
 from .bwutils import commontasks as bc
+from .settings import ab_settings
+from .signals import signals
 
 
 class Controller(object):
@@ -99,7 +99,7 @@ class Controller(object):
     def change_project_dialogue(self):
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
-            self.window,
+            None,
             "Choose project",
             "Name:",
             project_names,
@@ -123,38 +123,40 @@ class Controller(object):
             signals.project_selected.emit()
             print("Loaded project:", name)
 
-    def get_new_project_name(self, parent):
+    def get_new_project_name(self):
         name, status = QtWidgets.QInputDialog.getText(
-            parent,
+            None,
             "Create new project",
             "Name of new project:" + " " * 25
         )
         return name
 
     def new_project(self):
-        name = self.get_new_project_name(self.window)
+        name = self.get_new_project_name()
         if name and name not in bw.projects:
             bw.projects.set_current(name)
             self.change_project(name, reload=True)
             signals.projects_changed.emit()
         elif name in bw.projects:
-            self.window.info("A project with this name already exists.")
+            QtWidgets.QMessageBox.information("A project with this name already exists.")
 
     def copy_project(self):
-        name = self.window.dialog(
+        name, ok = QtWidgets.QInputDialog.getText(
+            self.window,
             "Copy current project",
             "Copy current project ({}) to new name:".format(bw.projects.current) + " " * 10
         )
-        if name and name not in bw.projects:
-            bw.projects.copy_project(name, switch=True)
-            self.change_project(name)
-            signals.projects_changed.emit()
-        else:
-            self.window.info("A project with this name already exists.")
+        if ok:
+            if name not in bw.projects:
+                bw.projects.copy_project(name, switch=True)
+                self.change_project(name)
+                signals.projects_changed.emit()
+            else:
+                QtWidgets.QMessageBox.information("A project with this name already exists.")
 
-    def confirm_project_deletion(self, parent):
+    def confirm_project_deletion(self):
         confirm = QtWidgets.QMessageBox.question(
-            parent,
+            None,
             'Confirm project deletion',
             ("Are you sure you want to delete project '{}'? It has {} databases" +
              " and {} LCI methods").format(
@@ -167,9 +169,9 @@ class Controller(object):
 
     def delete_project(self):
         if len(bw.projects) == 1:
-            self.window.info("Can't delete last project")
+            QtWidgets.QMessageBox.information("Can't delete last project")
             return
-        ok = self.confirm_project_deletion(self.window)
+        ok = self.confirm_project_deletion()
         if ok:
             bw.projects.delete_project(bw.projects.current)
             self.change_project(bc.get_startup_project_name(), reload=True)
@@ -189,7 +191,7 @@ class Controller(object):
                 signals.databases_changed.emit()
                 signals.database_selected.emit(name)
             else:
-                self.window.info("A database with this name already exists.")
+                QtWidgets.QMessageBox.information("A database with this name already exists.")
 
     def copy_database(self, name):
         new_name = self.window.dialog(
@@ -199,7 +201,7 @@ class Controller(object):
             if new_name not in bw.databases:
                 self.copydb_dialog = CopyDatabaseDialog(name, new_name)
             else:
-                self.window.info('Database <b>{}</b> already exists!'.format(new_name))
+                QtWidgets.QMessageBox.information('Database <b>{}</b> already exists!'.format(new_name))
 
     def delete_database(self, name):
         ok = self.window.confirm((
@@ -333,7 +335,7 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             )
         else:
             target_db, ok = QtWidgets.QInputDialog.getItem(
-                self.window,
+                None,
                 "Copy activity to database",
                 "Target database:",
                 available_target_dbs,

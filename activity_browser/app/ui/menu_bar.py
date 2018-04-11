@@ -7,7 +7,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from .icons import icons
 from .utils import abt1
 from ..signals import signals
-from .widgets import SettingsWizard
+from .wizards.settings_wizard import SettingsWizard
 
 
 class MenuBar(object):
