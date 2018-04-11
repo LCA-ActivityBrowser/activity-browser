@@ -96,11 +96,10 @@ class Controller(object):
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
 
-    def change_project_dialogue(self, parent=None):
-        parent = parent or self.window
+    def change_project_dialogue(self):
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
-            parent,
+            None,
             "Choose project",
             "Name:",
             project_names,
@@ -124,38 +123,42 @@ class Controller(object):
             signals.project_selected.emit()
             print("Loaded project:", name)
 
-    def get_new_project_name(self):
-        name, status = QtWidgets.QInputDialog.getText(
+    def get_new_project_name_diaglogue(self):
+        name, ok = QtWidgets.QInputDialog.getText(
             None,
             "Create new project",
             "Name of new project:" + " " * 25
         )
-        return name
+        return name if ok else None
 
-    def new_project(self):
-        name = self.get_new_project_name()
+    def new_project(self, name=None):
+        name = name or self.get_new_project_name_diaglogue()
         if name and name not in bw.projects:
             bw.projects.set_current(name)
             self.change_project(name, reload=True)
             signals.projects_changed.emit()
         elif name in bw.projects:
-            QtWidgets.QMessageBox.information("A project with this name already exists.")
+            QtWidgets.QMessageBox.information(None,
+                                              "Not possible.",
+                                              "A project with this name already exists.")
 
     def copy_project(self):
         name, ok = QtWidgets.QInputDialog.getText(
-            self.window,
+            None,
             "Copy current project",
             "Copy current project ({}) to new name:".format(bw.projects.current) + " " * 10
         )
-        if ok:
+        if ok and name:
             if name not in bw.projects:
                 bw.projects.copy_project(name, switch=True)
                 self.change_project(name)
                 signals.projects_changed.emit()
             else:
-                QtWidgets.QMessageBox.information("A project with this name already exists.")
+                QtWidgets.QMessageBox.information(None,
+                                                  "Not possible.",
+                                                  "A project with this name already exists.")
 
-    def confirm_project_deletion(self):
+    def confirm_project_deletion_dialogue(self):
         confirm = QtWidgets.QMessageBox.question(
             None,
             'Confirm project deletion',
@@ -170,9 +173,11 @@ class Controller(object):
 
     def delete_project(self):
         if len(bw.projects) == 1:
-            QtWidgets.QMessageBox.information("Can't delete last project")
+            QtWidgets.QMessageBox.information(None,
+                                              "Not possible",
+                                              "Can't delete last project.")
             return
-        ok = self.confirm_project_deletion()
+        ok = self.confirm_project_deletion_dialogue()
         if ok:
             bw.projects.delete_project(bw.projects.current)
             self.change_project(bc.get_startup_project_name(), reload=True)
@@ -182,45 +187,53 @@ class Controller(object):
         self.default_biosphere_dialog = DefaultBiosphereDialog()
 
     def add_database(self):
-        name = self.window.dialog(
+        name, ok = QtWidgets.QInputDialog.getText(
+            None,
             "Create new database",
             "Name of new database:" + " " * 25
         )
-        if name:
+
+        if ok and name:
             if name not in bw.databases:
                 bw.Database(name).register()
                 signals.databases_changed.emit()
                 signals.database_selected.emit(name)
             else:
-                QtWidgets.QMessageBox.information("A database with this name already exists.")
+                QtWidgets.QMessageBox.information(None,
+                                                  "Not possible",
+                                                  "A database with this name already exists.")
 
     def copy_database(self, name):
-        new_name = self.window.dialog(
+        new_name, ok = QtWidgets.QInputDialog.getText(
+            None,
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
-        if new_name:
+        if ok and new_name:
             if new_name not in bw.databases:
                 self.copydb_dialog = CopyDatabaseDialog(name, new_name)
             else:
-                QtWidgets.QMessageBox.information('Database <b>{}</b> already exists!'.format(new_name))
+                QtWidgets.QMessageBox.information(None,
+                                                  "Not possible",
+                                                  'Database <b>{}</b> already exists!'.format(new_name))
 
     def delete_database(self, name):
-        ok = self.window.confirm((
-            "Are you sure you want to delete database '{}'? "
-            "It has {} activity datasets").format(
-            name,
-            len(bw.Database(name))
-        ))
+        ok = QtWidgets.QMessageBox.question(
+            None,
+            "Delete database?",
+            ("Are you sure you want to delete database '{}'? It has {} activity datasets").format(
+                name, len(bw.Database(name)))
+        )
         if ok:
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
 
     def new_calculation_setup(self):
-        name = self.window.dialog(
+        name, ok = QtWidgets.QInputDialog.getText(
+            None,
             "Create new calculation setup",
             "Name of new calculation setup:" + " " * 10
         )
-        if name:
+        if ok and name:
             # TODO: prevent that existing calculation setups get overwritten
             bw.calculation_setups[name] = {'inv': [], 'ia': []}
             signals.calculation_setup_selected.emit(name)
@@ -234,11 +247,12 @@ class Controller(object):
 
     def rename_calculation_setup(self):
         current = self.window.left_panel.LCA_setup_tab.list_widget.name
-        new_name = self.window.dialog(
+        new_name, ok = QtWidgets.QInputDialog.getText(
+            None,
             "Rename '{}'".format(current),
             "New name of this calculation setup:" + " " * 10
         )
-        if new_name:
+        if ok and new_name:
             bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
             print("Current setups:", list(bw.calculation_setups.keys()))
             del bw.calculation_setups[current]
@@ -257,11 +271,12 @@ class Controller(object):
 
     def new_activity(self, database_name):
         # TODO: let user define product
-        name = self.window.dialog(
+        name, ok = QtWidgets.QInputDialog.getText(
+            None,
             "Create new technosphere activity",
             "Name of new technosphere activity:" + " " * 10
         )
-        if name:
+        if ok and name:
             new_act = bw.Database(database_name).new_activity(
                 code=uuid.uuid4().hex,
                 name=name,
@@ -281,11 +296,11 @@ class Controller(object):
         nu = len(act.upstream())
         if nu:
             text = "activities consume" if nu > 1 else "activity consumes"
-            self.window.warning(
-                "Can't delete activity",
-                """Can't delete {}.
-{} upstream {} its reference product.
-Upstream exchanges must be modified or deleted.""".format(act, nu, text)
+            QtWidgets.QMessageBox.information(
+                None,
+                "Not possible.",
+                """Can't delete {}. {} upstream {} its reference product.
+                Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             )
         else:
             act.delete()
@@ -330,7 +345,8 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             {'biosphere3', origin_db}
         ))
         if not available_target_dbs:
-            self.window.warning(
+            QtWidgets.QMessageBox.information(
+                None,
                 "No target database",
                 "No valid target databases available. Create a new database first."
             )
