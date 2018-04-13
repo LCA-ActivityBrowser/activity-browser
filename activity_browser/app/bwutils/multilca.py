@@ -60,6 +60,10 @@ class MLCA(object):
         """Get all possible databases by merging all functional units"""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
+    @property
+    def results_normalized(self):
+        return self.results / self.results.max(axis=0)
+
     # CONTRIBUTION ANALYSIS
     def top_process_contributions(self, method_name=None, limit=5, relative=True):
         if method_name:
