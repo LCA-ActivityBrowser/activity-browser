@@ -80,7 +80,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         if not self.visible:
             self.visible = True
             self.panel.addTab(self, "LCA results")
-            self.panel.select_tab(self)
+        self.panel.select_tab(self)  # put tab to front after LCA calculation
 
     def remove_tab(self):
         if self.visible:
