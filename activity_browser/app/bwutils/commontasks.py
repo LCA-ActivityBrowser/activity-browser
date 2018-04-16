@@ -138,9 +138,4 @@ def get_LCIA_method_name_dict(keys):
     key: comma separated string
     value: brightway2 method tuple
     """
-    name_tuple_dict = {}
-    for key in keys:
-        name_tuple_dict.update({
-            ", ".join(key): key
-        })
-    return name_tuple_dict
+    return {', '.join(key): key for key in keys}
