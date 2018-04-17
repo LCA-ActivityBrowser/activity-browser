@@ -1,4 +1,4 @@
-{% set version = "2.2.2" %}
+{% set version = "2.2.4" %}
 
 package:
   name: activity-browser
@@ -21,8 +21,8 @@ requirements:
     - setuptools
   run:
     - python
-    - brightway2
-    - matplotlib
+    - brightway2 >=2.1.2
+    - matplotlib >=2.2.2
     - seaborn
     - arrow
     - pandas

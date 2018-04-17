@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import collections
 import itertools
 
@@ -72,13 +73,16 @@ class DatabasesTable(ABTableWidget):
         for row, name in enumerate(natural_sort(bw.databases)):
             self.setItem(row, 0, ABTableItem(name, db_name=name))
             depends = bw.databases[name].get('depends', [])
-            self.setItem(row, 1, ABTableItem("; ".join(depends), db_name=name))
+            self.setItem(row, 1, ABTableItem(", ".join(depends), db_name=name))
             dt = bw.databases[name].get('modified', '')
+            # code below is based on the assumption that bw uses utc timestamps
+            tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
+            time_shift = - tz.utcoffset().total_seconds()
             if dt:
-                dt = arrow.get(dt).shift(hours=-1).humanize()
+                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
             self.setItem(row, 2, ABTableItem(dt, db_name=name))
             self.setItem(
-                row, 3, ABTableItem(str(bw.databases[name].get('number', [])), db_name=name)
+                row, 3, ABTableItem(str(len(bw.Database(name))), db_name=name)
             )
             self.setItem(row, 4, ABTableItem(None, set_flags=[QtCore.Qt.ItemIsUserCheckable]))
 
@@ -159,10 +163,14 @@ class ActivitiesTable(ABTableWidget):
         self.open_left_tab_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open in new tab", None
         )
+        self.copy_to_db_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.add_db), 'Copy to database', None
+        )
         self.addAction(self.add_activity_action)
         self.addAction(self.copy_activity_action)
         self.addAction(self.delete_activity_action)
         self.addAction(self.open_left_tab_action)
+        self.addAction(self.copy_to_db_action)
         self.add_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database.name)
         )
@@ -174,6 +182,9 @@ class ActivitiesTable(ABTableWidget):
         )
         self.open_left_tab_action.triggered.connect(
             lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+        )
+        self.copy_to_db_action.triggered.connect(
+            lambda: signals.copy_to_db.emit(self.currentItem().key)
         )
 
     def connect_signals(self):

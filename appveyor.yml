@@ -22,7 +22,7 @@ install:
   - "conda create -n test_env python=%CONDA_ENV_PY%"
   - "activate test_env"
   - "conda install --use-local activity-browser-dev"
-  - "conda install -q pytest-qt pytest-mock"
+  - 'conda install -q "pytest<3.5" pytest-qt pytest-mock'
 
 test_script:
   - "py.test"
