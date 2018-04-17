@@ -13,11 +13,10 @@ from ..bwutils.commontasks import format_activity_label, wrap_text
 
 
 class Plot(QtWidgets.QWidget):
-    def __init__(self, parent=None, height=5, width=6, dpi=100):
+    def __init__(self, parent=None):
         super(Plot, self).__init__(parent)
         # create figure, canvas, and axis
-        self.width, self.height = width, height
-        self.figure = Figure(figsize=(width, height), tight_layout=True)
+        self.figure = Figure(tight_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.ax = self.figure.add_subplot(111)  # create an axis
 
@@ -26,6 +25,9 @@ class Plot(QtWidgets.QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
+    def get_canvas_size_in_inches(self):
+        print("Canvas size:", self.canvas.get_width_height())
+        return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
 class CorrelationPlot(Plot):
     def __init__(self, parent=None, *args):
@@ -37,7 +39,8 @@ class CorrelationPlot(Plot):
         # because of the colorbar which does not get removed by the ax.clear()
         self.figure.clf()
         self.ax = self.figure.add_subplot(111)
-
+        canvas_size = self.canvas.get_width_height()
+        print("Canvas size:", canvas_size)
         size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
         self.figure.set_size_inches(size[0], size[1])
 
@@ -66,8 +69,8 @@ class CorrelationPlot(Plot):
 
         # refresh canvas
         self.canvas.draw()
-        size = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumSize(size[0], size[1])
+        size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        self.setMinimumHeight(size_pixels[1])
 
 
 class LCAResultsPlot(Plot):
@@ -83,8 +86,7 @@ class LCAResultsPlot(Plot):
         activity_names = [
             format_activity_label(next(iter(f.keys())), style='pnl') for f in mlca.func_units
         ]
-        size = (2 + len(mlca.methods) * 0.5, 4 + len(activity_names) * 0.55)
-        self.figure.set_size_inches(size[0], size[1])
+
 
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         # cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
@@ -94,7 +96,7 @@ class LCAResultsPlot(Plot):
             annot=True,
             linewidths=.05,
             # cmap=cmap,
-            xticklabels=[wrap_text(",".join(x), max_lenght=40) for x in mlca.methods],
+            xticklabels=[wrap_text(",".join(x), max_length=40) for x in mlca.methods],
             yticklabels=activity_names,
             ax=self.ax,
             # cbar_ax=self.axcb,
@@ -105,9 +107,12 @@ class LCAResultsPlot(Plot):
         hm.tick_params(labelsize=8)
 
         # refresh canvas
+        size_inches = (2 + len(mlca.methods) * 0.5, 4 + len(activity_names) * 0.55)
+        # self.figure.set_size_inches(size[0], size[1])
+        self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
         self.canvas.draw()
-        size = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumSize(size[0], size[1])
+        size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        self.setMinimumHeight(size_pixels[1])
 
 
 class ProcessContributionPlot(Plot):
@@ -116,13 +121,13 @@ class ProcessContributionPlot(Plot):
 
     def plot(self, mlca, method=None):
         self.ax.clear()
-        self.height = 4 + len(mlca.func_units) * 0.3
-        self.figure.set_figheight(self.height)
+        height = 4 + len(mlca.func_units) * 1
+        self.figure.set_figheight(height)
 
         tc = mlca.top_process_contributions(method_name=method, limit=5, relative=True)
         df_tc = pd.DataFrame(tc)
         df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-        df_tc.index = [format_activity_label(a, style='pl') for a in df_tc.index]
+        df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in df_tc.index]
         plot = df_tc.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
@@ -131,14 +136,13 @@ class ProcessContributionPlot(Plot):
         plot.tick_params(labelsize=8)
         plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
         plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                    ncol=math.ceil((len(df_tc.index) * 0.22) / self.height))
+                    ncol=math.ceil((len(df_tc.index) * 0.22) / height))
         plot.grid(b=False)
 
         # refresh canvas
         self.canvas.draw()
-
-        size = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumSize(size[0], size[1])
+        size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        self.setMinimumHeight(size_pixels[1])
 
 
 class ElementaryFlowContributionPlot(Plot):
@@ -147,8 +151,8 @@ class ElementaryFlowContributionPlot(Plot):
 
     def plot(self, mlca, method=None):
         self.ax.clear()
-        self.height = 4 + len(mlca.func_units) * 0.3
-        self.figure.set_figheight(self.height)
+        height = 3 + len(mlca.func_units) * 0.5
+        self.figure.set_figheight(height)
 
         tc = mlca.top_elementary_flow_contributions(method_name=method, limit=5, relative=True)
         df_tc = pd.DataFrame(tc)
@@ -156,7 +160,6 @@ class ElementaryFlowContributionPlot(Plot):
         df_tc.index = [format_activity_label(a, style='bio') for a in df_tc.index]
         plot = df_tc.T.plot.barh(
             stacked=True,
-            figsize=(6, 6),
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax
         )
@@ -167,6 +170,5 @@ class ElementaryFlowContributionPlot(Plot):
 
         # refresh canvas
         self.canvas.draw()
-
-        size = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumSize(size[0], size[1])
+        size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        self.setMinimumHeight(size_pixels[1])
