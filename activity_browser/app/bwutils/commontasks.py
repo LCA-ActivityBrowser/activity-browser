@@ -131,3 +131,11 @@ def get_default_project_name():
         return next(iter(bw.projects)).name
     else:
         return None
+
+def get_LCIA_method_name_dict(keys):
+    """LCIA methods in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
+    Returns a dictionary with
+    key: comma separated string
+    value: brightway2 method tuple
+    """
+    return {', '.join(key): key for key in keys}
