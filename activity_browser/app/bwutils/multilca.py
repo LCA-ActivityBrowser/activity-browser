@@ -27,6 +27,7 @@ class MLCA(object):
             )
         self.func_units = cs['inv']
         self.methods = cs['ia']
+        self.method_dict = {m: i for i, m in enumerate(self.methods)}
         self.lca = bw.LCA(demand=self.all, method=self.methods[0])
         self.lca.lci(factorize=True)
         self.method_matrices = []
@@ -59,8 +60,16 @@ class MLCA(object):
         """Get all possible databases by merging all functional units"""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
+    @property
+    def results_normalized(self):
+        return self.results / self.results.max(axis=0)
+
     # CONTRIBUTION ANALYSIS
-    def top_process_contributions(self, method=0, limit=5, relative=True):
+    def top_process_contributions(self, method_name=None, limit=5, relative=True):
+        if method_name:
+            method = self.method_dict[method_name]
+        else:
+            method = 0
         contribution_array = self.process_contributions[:, method, :]
         if relative:
             fu_scores = contribution_array.sum(axis=1)
@@ -76,7 +85,11 @@ class MLCA(object):
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
         return topcontribution_dict
 
-    def top_elementary_flow_contributions(self, method=0, limit=5, relative=True):
+    def top_elementary_flow_contributions(self, method_name=None, limit=5, relative=True):
+        if method_name:
+            method = self.method_dict[method_name]
+        else:
+            method = 0
         contribution_array = self.elementary_flow_contributions[:, method, :]
         if relative:
             fu_scores = contribution_array.sum(axis=1)

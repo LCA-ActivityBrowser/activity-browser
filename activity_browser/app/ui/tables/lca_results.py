@@ -29,4 +29,4 @@ class LCAResultsTable(ABTableWidget):
                 self.setItem(row, col, ReadOnlyItem("{:.4g}".format(lca.results[row, col])))
 
         # ensure minimum height as it gets too small otherwise
-        self.setMinimumHeight(self.rowHeight(0) * self.rowCount() + self.autoScrollMargin())
+        self.setMinimumHeight(self.rowHeight(0) * (self.rowCount()) + self.autoScrollMargin())
