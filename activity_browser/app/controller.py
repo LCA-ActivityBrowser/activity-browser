@@ -38,7 +38,7 @@ class Controller(object):
         # Project
         signals.new_project.connect(self.new_project)
         signals.change_project.connect(self.change_project)
-        signals.change_project_dialogue.connect(self.change_project_dialogue)
+        signals.change_project_dialog.connect(self.change_project_dialog)
         signals.copy_project.connect(self.copy_project)
         signals.delete_project.connect(self.delete_project)
         # Database
@@ -94,7 +94,7 @@ class Controller(object):
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
 
-    def change_project_dialogue(self):
+    def change_project_dialog(self):
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
             None,
@@ -121,7 +121,7 @@ class Controller(object):
             signals.project_selected.emit()
             print("Loaded project:", name)
 
-    def get_new_project_name_diaglogue(self):
+    def get_new_project_name_dialog(self):
         name, ok = QtWidgets.QInputDialog.getText(
             None,
             "Create new project",
@@ -130,7 +130,7 @@ class Controller(object):
         return name if ok else None
 
     def new_project(self, name=None):
-        name = name or self.get_new_project_name_diaglogue()
+        name = name or self.get_new_project_name_dialog()
         if name and name not in bw.projects:
             bw.projects.set_current(name)
             self.change_project(name, reload=True)
@@ -156,7 +156,7 @@ class Controller(object):
                                                   "Not possible.",
                                                   "A project with this name already exists.")
 
-    def confirm_project_deletion_dialogue(self):
+    def confirm_project_deletion_dialog(self):
         confirm = QtWidgets.QMessageBox.question(
             None,
             'Confirm project deletion',
@@ -175,7 +175,7 @@ class Controller(object):
                                               "Not possible",
                                               "Can't delete last project.")
             return
-        ok = self.confirm_project_deletion_dialogue()
+        ok = self.confirm_project_deletion_dialog()
         if ok:
             bw.projects.delete_project(bw.projects.current)
             self.change_project(bc.get_startup_project_name(), reload=True)

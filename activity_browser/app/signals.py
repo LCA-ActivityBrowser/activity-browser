@@ -17,7 +17,7 @@ class Signals(QtCore.QObject):
 
     # Project
     change_project = QtCore.pyqtSignal(str)
-    change_project_dialogue = QtCore.pyqtSignal()
+    change_project_dialog = QtCore.pyqtSignal()
     new_project = QtCore.pyqtSignal()
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
