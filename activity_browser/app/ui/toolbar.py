@@ -72,7 +72,7 @@ class Toolbar(QtWidgets.QToolBar):
         self.connect_signals()
 
     def connect_signals(self):
-        self.change_project_button.clicked.connect(signals.change_project_dialogue.emit)
+        self.change_project_button.clicked.connect(signals.change_project_dialog.emit)
         self.new_project_button.clicked.connect(signals.new_project.emit)
         self.delete_project_button.clicked.connect(signals.delete_project.emit)
         self.copy_project_button.clicked.connect(signals.copy_project.emit)
