@@ -36,7 +36,6 @@ class Toolbar(QtWidgets.QToolBar):
         )
         switch_stack_button.clicked.connect(switch_stack_button.switch_state)
 
-        self.project_name_label = QtWidgets.QLabel('Project: default')
         self.project_read_only = QtWidgets.QLabel('Read only')
         self.project_read_only.setStyleSheet('QLabel {color: red;}')
         if projects.read_only:
@@ -50,7 +49,6 @@ class Toolbar(QtWidgets.QToolBar):
 
         self.addWidget(QtWidgets.QLabel('Brightway2 Activity Browser'))
         self.addWidget(switch_stack_button)
-        self.addWidget(self.project_name_label)
         self.addWidget(self.project_read_only)
 
         spacer = QtWidgets.QWidget()
@@ -89,7 +87,6 @@ class Toolbar(QtWidgets.QToolBar):
 
     def set_project_label(self):
         name = projects.current
-        self.project_name_label.setText('Project: {}'.format(name))
         self.project_read_only.setText('')
         if projects.read_only:
             self.project_read_only.setText('Read Only Project')
