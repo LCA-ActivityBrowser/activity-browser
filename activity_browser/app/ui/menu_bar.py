@@ -44,12 +44,9 @@ class MenuBar(object):
         return self.windows_menu
 
     def update_windows_menu(self):
-        print("Updating Windows:")
         self.windows_menu.clear()
         for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
             widget = self.window.stacked.widget(index)
-            # print(widget)
-            # print(widget.name)
             self.windows_menu.addAction(
                 widget.name,
                 lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
