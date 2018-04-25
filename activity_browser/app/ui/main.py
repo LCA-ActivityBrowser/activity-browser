@@ -56,12 +56,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vertical_container.addLayout(self.main_horizontal_box)
 
         self.main_widget = QtWidgets.QWidget()
+        self.main_widget.name = "&Main Window"
         self.main_widget.setLayout(self.vertical_container)
-
-        # Layout: extra items outside main layout
-        self.menu_bar = MenuBar(self)
-        self.toolbar = Toolbar(self)
-        self.statusbar = Statusbar(self)
 
         # Debug/working... stack
         self.log = QtWidgets.QTextEdit(self)
@@ -73,6 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         working_layout.addWidget(self.log)
 
         self.working_widget = QtWidgets.QWidget()
+        self.working_widget.name = "&Debug Window"
         self.working_widget.setLayout(working_layout)
 
         self.stacked = QtWidgets.QStackedWidget()
@@ -80,10 +77,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stacked.addWidget(self.working_widget)
         self.setCentralWidget(self.stacked)
 
+        # Layout: extra items outside main layout
+        self.menu_bar = MenuBar(self)
+        self.toolbar = Toolbar(self)
+        self.statusbar = Statusbar(self)
+
         self.connect_signals()
 
     def connect_signals(self):
         signals.copy_selection_to_clipboard.connect(self.set_clipboard_text)
+
+        # Keyboard shortcuts
+        self.shortcut_debug = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+D"), self)
+        self.shortcut_debug.activated.connect(self.toggle_debug_window)
+
+    def toggle_debug_window(self):
+        if self.stacked.currentIndex() == self.stacked.indexOf(self.main_widget):
+            # print("Switching to debug window")
+            self.stacked.setCurrentWidget(self.working_widget)
+        else:
+            # print("Switching to Main window")
+            self.stacked.setCurrentWidget(self.main_widget)
 
     def add_tab_to_panel(self, obj, label, side):
         panel = self.left_panel if side == 'left' else self.right_panel

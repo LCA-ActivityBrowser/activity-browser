@@ -47,15 +47,14 @@ class Toolbar(QtWidgets.QToolBar):
         self.copy_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.copy), 'Copy current')
         self.delete_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.delete), 'Delete current')
 
-        self.addWidget(QtWidgets.QLabel('Brightway2 Activity Browser'))
         self.addWidget(switch_stack_button)
         self.addWidget(self.project_read_only)
 
         spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Expanding
-        )
+        # spacer.setSizePolicy(
+        #     QtWidgets.QSizePolicy.Expanding,
+        #     QtWidgets.QSizePolicy.Expanding
+        # )
         self.addWidget(spacer)
         self.addSeparator()
 
@@ -86,7 +85,6 @@ class Toolbar(QtWidgets.QToolBar):
             create_issue(text)
 
     def set_project_label(self):
-        name = projects.current
         self.project_read_only.setText('')
         if projects.read_only:
             self.project_read_only.setText('Read Only Project')
