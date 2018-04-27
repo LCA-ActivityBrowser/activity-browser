@@ -9,7 +9,7 @@ source:
 
 build:
   noarch: python
-  number: 1
+  number: 0
   script: python setup.py install --single-version-externally-managed --record record.txt
   entry_points:
     - activity-browser = activity_browser.app:run_activity_browser 
@@ -28,7 +28,7 @@ requirements:
     - patool
     - beautifulsoup4
     - fuzzywuzzy
-    - pyqt >=5.9
+    - pyqt =5.9.2
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
