@@ -22,6 +22,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.visible = False
 
         self.combo_LCIA_methods = QtWidgets.QComboBox()
+        self.combo_LCIA_methods.scroll = False
 
         self.results_plot = LCAResultsPlot(self)
         self.correlation_plot = CorrelationPlot(self)
@@ -37,6 +38,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.scroll_widget.setLayout(self.scroll_widget_layout)
         self.scroll_area.setWidget(self.scroll_widget)
         self.scroll_area.setWidgetResizable(True)
+
+        #self.calculation = self.calculate
+        #self.name = lambda name: self.get_contribution_analyses(method=name)
 
         self.layout = QtWidgets.QVBoxLayout()
 
@@ -99,11 +103,16 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         # Multi-LCA calculation
         self.mlca = MLCA(name)
         single_lca = len(self.mlca.func_units) == 1
+        single_method = len(self.mlca.methods) == 1
 
         # update LCIA methods combobox
-        self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
-        self.combo_LCIA_methods.clear()
-        self.combo_LCIA_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
+        if not single_method:
+            self.combo_LCIA_methods.setVisible(True)
+            self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
+            self.combo_LCIA_methods.clear()
+            self.combo_LCIA_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
+        else:
+            self.combo_LCIA_methods.setVisible(False)
 
         # PLOTS & TABLES
 
