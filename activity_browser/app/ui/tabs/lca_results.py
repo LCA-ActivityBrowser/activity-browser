@@ -39,9 +39,6 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.scroll_area.setWidget(self.scroll_widget)
         self.scroll_area.setWidgetResizable(True)
 
-        #self.calculation = self.calculate
-        #self.name = lambda name: self.get_contribution_analyses(method=name)
-
         self.layout = QtWidgets.QVBoxLayout()
 
         self.make_layout()
