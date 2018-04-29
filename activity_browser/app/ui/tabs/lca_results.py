@@ -103,11 +103,11 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         single_method = len(self.mlca.methods) == 1
 
         # update LCIA methods combobox
+        self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
+        self.combo_LCIA_methods.clear()
+        self.combo_LCIA_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
         if not single_method:
             self.combo_LCIA_methods.setVisible(True)
-            self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
-            self.combo_LCIA_methods.clear()
-            self.combo_LCIA_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
         else:
             self.combo_LCIA_methods.setVisible(False)
 
@@ -115,15 +115,19 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         # LCA Results Plot
         self.results_plot.plot(self.mlca)
+        if not single_lca:
+            self.results_plot.setVisible(True)
+        else:
+            self.results_plot.setVisible(False)
 
         # Contribution Analysis
         # is plotted by the combobox signal
 
         # Correlation Plot
-        labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
         if not single_lca:
-            self.correlation_plot.setVisible(True)
+            labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
             self.correlation_plot.plot(self.mlca, labels)
+            self.correlation_plot.setVisible(True)
         else:
             self.correlation_plot.setVisible(False)
 
