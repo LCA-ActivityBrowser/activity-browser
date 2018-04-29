@@ -343,7 +343,7 @@ Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             if ok:
                 new_code = self.generate_copy_code((target_db, activity['code']))
                 activity.copy(code=new_code, database=target_db)
-                # only process database immediatly if small
+                # only process database immediately if small
                 if len(bw.Database(target_db)) < 200:
                     bw.databases.clean()
                 signals.database_changed.emit(target_db)
