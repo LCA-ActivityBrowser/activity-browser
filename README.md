@@ -13,10 +13,12 @@ The activity browser is a graphical user interface for the [Brightway2](https://
     - [Configure conda channels](#configure-conda-channels)
     - [Install the activity browser](#install-the-activity-browser)
     - [Run the the activity browser](#run-the-activity-browser)
-    - [Install an LCI database](#install-an-lci-database)
+    - [Import an LCI database](#import-an-lci-database)
 - [Development Version](#development-version)
 - [Sankey Contribution Analysis](#sankey-contribution-analysis)
 - [Contributing](#contributing)
+- [Additional Resources](#additional-resources)
+- [Authors](#authors)
 
 
 ## Installation
