@@ -8,6 +8,17 @@
 
 The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle assessment framework.
 
+- [Installation](#installation)
+    - [Miniconda](#miniconda)
+    - [Configure conda channels](#configure-conda-channels)
+    - [Install the activity browser](#install-the-activity-browser)
+    - [Run the the activity browser](#run-the-activity-browser)
+    - [Install an LCI database](#install-an-lci-database)
+- [Development Version](#development-version)
+- [Sankey Contribution Analysis](#sankey-contribution-analysis)
+- [Contributing](#contributing)
+
+
 ## Installation
 
 ### Miniconda
@@ -101,7 +112,7 @@ __Brightway2__:
 
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich  
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut  
-Copyright (c) 2017, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)  
+Copyright (c) 2017-2018, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)  
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
