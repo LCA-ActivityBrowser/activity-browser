@@ -31,7 +31,7 @@ conda install --only-deps activity-browser
 If you want to check whether your changes break anything essential, you can run the automated tests. This requires some additional packages.
 ```
 conda activate dev_ab
-conda install pytest pytest-mock pytest-qt
+conda install "pytest<3.5" pytest-mock pytest-qt
 ```
 You can then run the tests inside the repo like this: `python -m pytest`. An AB window will open and perform some automated actions. If you interfere, test will most likely fail.
 
