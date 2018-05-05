@@ -73,12 +73,6 @@ conda update activity-browser-dev
 The ActivityBrowser provides a tool to graphically explore the LCIA results as a [sankey diagram](https://en.wikipedia.org/wiki/Sankey_diagram), based on the [d3-sankey-diagram](https://github.com/ricklupton/d3-sankey-diagram) library. The sankey tool is still very much experimental and has a number of known shortcomings, eg. it can't handle negative impacts (benefits). If you have trouble to display your results in the sankey tool, please make sure you have a working internet connection and that your database was created with a recent version of brightway (see details in issue [#97](https://github.com/LCA-ActivityBrowser/activity-browser/issues/97)).
 
 
-## Info
-
-- Note that this is a *hard* fork of Bernhard Steubing's work, and does not preserve compatibility.
-- This is a fork of Chris Mutel's version of the activity-browser on [bitbucket](https://bitbucket.org/cmutel/activity-browser)
-- The original repo was converted from mercurial to git using [fast-export](https://github.com/frej/fast-export)  
-
 ## Additional Resources
 
 __Activity Browser__:
