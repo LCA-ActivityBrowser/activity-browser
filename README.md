@@ -8,6 +8,19 @@
 
 The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle assessment framework.
 
+- [Installation](#installation)
+    - [Miniconda](#miniconda)
+    - [Configure conda channels](#configure-conda-channels)
+    - [Install the activity browser](#install-the-activity-browser)
+    - [Run the the activity browser](#run-the-activity-browser)
+    - [Import an LCI database](#import-an-lci-database)
+- [Development Version](#development-version)
+- [Sankey Contribution Analysis](#sankey-contribution-analysis)
+- [Contributing](#contributing)
+- [Additional Resources](#additional-resources)
+- [Authors](#authors)
+
+
 ## Installation
 
 ### Miniconda
@@ -72,12 +85,10 @@ conda update activity-browser-dev
 
 The ActivityBrowser provides a tool to graphically explore the LCIA results as a [sankey diagram](https://en.wikipedia.org/wiki/Sankey_diagram), based on the [d3-sankey-diagram](https://github.com/ricklupton/d3-sankey-diagram) library. The sankey tool is still very much experimental and has a number of known shortcomings, eg. it can't handle negative impacts (benefits). If you have trouble to display your results in the sankey tool, please make sure you have a working internet connection and that your database was created with a recent version of brightway (see details in issue [#97](https://github.com/LCA-ActivityBrowser/activity-browser/issues/97)).
 
+## Contributing
 
-## Info
+If you experience problems, find a bug or have an idea for a new feature or improvement for the activity browser, please [raise an issue](https://github.com/LCA-ActivityBrowser/activity-browser/issues) here on github. Please also have a look at our [contributing guidelines](CONTRIBUTING.md) for some more information on how to raise good issues. There you can also find instructions on how to open a pull request if you want to propose your own changes to the code or documentation.
 
-- Note that this is a *hard* fork of Bernhard Steubing's work, and does not preserve compatibility.
-- This is a fork of Chris Mutel's version of the activity-browser on [bitbucket](https://bitbucket.org/cmutel/activity-browser)
-- The original repo was converted from mercurial to git using [fast-export](https://github.com/frej/fast-export)  
 
 ## Additional Resources
 
@@ -103,7 +114,7 @@ __Brightway2__:
 
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich  
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut  
-Copyright (c) 2017, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)  
+Copyright (c) 2017-2018, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)  
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
