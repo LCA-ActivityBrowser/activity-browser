@@ -37,7 +37,14 @@ conda config --append channels conda-forge
 conda config --append channels cmutel
 conda config --append channels haasad
 ```
-If you have already installed brightway2 before and followed eg. the instructions from the ESDwiki, chances are you already have these channels in your config file. You can check your channels with `conda config --show` or `conda config --key channels`.
+If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly: 
+```
+channels:
+  - defaults
+  - conda-forge
+  - cmutel
+  - haasad
+```
 
 ### Install the activity browser
 
