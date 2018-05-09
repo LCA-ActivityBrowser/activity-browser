@@ -130,8 +130,10 @@ class Bridge(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def link_selected(self, link):
-        target_key = int(link.split('-')[-2])
-        self.link_clicked.emit(target_key)
+        target_key = link.split('-')[-2]
+        if target_key.startswith('__'):
+            target_key = target_key.split('_')[-2]
+        self.link_clicked.emit(int(target_key))
 
     @QtCore.pyqtSlot()
     def viewer_ready(self):
