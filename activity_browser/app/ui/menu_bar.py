@@ -16,9 +16,15 @@ class MenuBar(object):
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
         # self.menubar.addMenu(self.setup_extensions_menu())
+        self.menubar.addMenu(self.setup_windows_menu())
         self.menubar.addMenu(self.setup_help_menu())
         window.setMenuBar(self.menubar)
+        self.connect_signals()
 
+    def connect_signals(self):
+        signals.update_windows.connect(self.update_windows_menu)
+
+    # FILE
     def setup_file_menu(self):
         menu = QtWidgets.QMenu('&File', self.window)
         menu.addAction(
@@ -31,6 +37,22 @@ class MenuBar(object):
         )
         return menu
 
+    # WINDOWS
+    def setup_windows_menu(self):
+        self.windows_menu = QtWidgets.QMenu('&Windows', self.window)
+        self.update_windows_menu()
+        return self.windows_menu
+
+    def update_windows_menu(self):
+        self.windows_menu.clear()
+        for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
+            widget = self.window.stacked.widget(index)
+            self.windows_menu.addAction(
+                widget.name,
+                lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
+            )
+
+    # HELP
     def setup_help_menu(self):
         bug_icon = QtGui.QIcon(icons.debug)
         help_menu = QtWidgets.QMenu('&Help', self.window)

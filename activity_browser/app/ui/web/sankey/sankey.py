@@ -15,6 +15,7 @@ from .worker_threads import gt_worker_thread
 class SankeyWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.name = "&Sankey Diagram"
         self.label = QtWidgets.QLabel('hello')
         self.grid_lay = QtWidgets.QGridLayout()
         self.grid_lay.addWidget(QtWidgets.QLabel('Activity: '), 0, 0)

@@ -188,3 +188,4 @@ class LCASetupTab(QtWidgets.QWidget):
         self.sankey = SankeyWidget(self)
         self.window.stacked.addWidget(self.sankey)
         self.window.stacked.setCurrentWidget(self.sankey)
+        signals.update_windows.emit()

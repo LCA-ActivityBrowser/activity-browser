@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
 
 
 class Signals(QtCore.QObject):
@@ -66,6 +66,9 @@ class Signals(QtCore.QObject):
 
     method_selected = QtCore.pyqtSignal(tuple)
     method_tabs_changed = QtCore.pyqtSignal()
+
+    # Qt Windows
+    update_windows = QtCore.pyqtSignal()
 
 
 signals = Signals()
