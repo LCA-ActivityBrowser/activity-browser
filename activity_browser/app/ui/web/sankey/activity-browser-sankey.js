@@ -78,9 +78,11 @@ new QWebChannel(qt.webChannelTransport, function (channel) {
 
 
 diagram.on("selectLink", function(link){
-    new QWebChannel(qt.webChannelTransport, function (channel) {
-        window.bridge = channel.objects.bridge;
-        window.bridge.lca_calc_finished.connect(update_sankey);
-        window.bridge.link_selected(String(link.id));
-        });	
+    if (link != null){
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            window.bridge = channel.objects.bridge;
+            window.bridge.lca_calc_finished.connect(update_sankey);
+            window.bridge.link_selected(String(link.id));
+            });
+    }
 });
