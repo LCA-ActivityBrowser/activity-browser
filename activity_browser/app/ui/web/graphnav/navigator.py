@@ -48,7 +48,9 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
     def connect_signals(self):
         signals.add_activity_to_history.connect(self.update_graph)
         graphsignals.update_graph.connect(self.update_graph)
+        graphsignals.update_graph_expand.connect(self.update_graph_expand)
         graphsignals.graph_ready.connect(self.draw_graph)
+
 
     def update_graph(self, key):
         print("Updating Graph for key: ", key)
@@ -57,6 +59,15 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
             self.bridge.graph_ready.emit(json_data)
         except:
             print("No activity with this key:", key)
+
+    def update_graph_expand (self,key):
+        print ("Expanding graph from key: ", key)
+        try:
+            json_data = self.graph.get_json_expand_graph(key)
+            self.bridge.graph_ready.emit(json_data)
+        except:
+            print("No expansion possible with this activity:", key)
+
 
     def update_graph_random(self):
         random_activity = bw.Database("ecoinvent 3.4 cutoff").random()
@@ -77,8 +88,17 @@ class Bridge(QtCore.QObject):
         key = tuple([db_id[0], db_id[1]])
         graphsignals.update_graph.emit(key)
 
+    @QtCore.pyqtSlot(str)
+    def node_clicked_expand (self, js_string):
+        print("Clicked on to expand: ", js_string)
+        db_id = js_string.split(";")
+        key = tuple([db_id[0], db_id[1]])
+        graphsignals.update_graph_expand.emit(key)
+
 
 class Graph():
+    saved_json = {}
+
     def __init__(self):
         self.json_data = {}
 
@@ -128,7 +148,52 @@ class Graph():
             "edges": edges,
             "title": self.activity.get("reference product"),
         }
+        self.saved_json = json_data
 
+        print("JSON-Data:", json.dumps(json_data))
+        return json.dumps(json_data)
+
+    def get_json_expand_graph(self, key):
+        self.activity = bw.get_activity(key)
+        print("Head:", self.activity)
+        self.json_data = self.saved_json
+
+        print(self.json_data)
+        print(self.json_data['nodes'])
+        print(self.json_data['edges'])
+
+        edges = self.json_data["edges"]
+        nodes = self.json_data["nodes"]
+
+        # all downstream consumers
+        for row, exc in enumerate(self.activity.upstream()):
+            edges.append({
+                "source": exc.input.key[1],
+                "target": exc.output.key[1],
+                "label": exc.output.get("reference product")
+            })
+            nodes.append({
+                "id": exc.output.key[1],
+                "product": exc.output.get("reference product"),
+                "name": exc.output.get("name"),
+                "location": exc.output.get("location"),
+                "database": exc.output.key[0],
+            })
+        # # and the receiving node
+        # nodes.append({
+        #     "id": self.activity.key[1],
+        #     "product": self.activity.get("reference product"),
+        #     "name": self.activity.get("name"),
+        #     "location": self.activity.get("location"),
+        #     "database": self.activity.key[0],
+        # })
+
+        json_data = {
+            "nodes": nodes,
+            "edges": edges,
+            "title": self.json_data['title'],
+        }
+        self.saved_json = json_data
         print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
 
