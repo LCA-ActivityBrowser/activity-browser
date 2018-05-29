@@ -13,6 +13,8 @@ from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
 from ...signals import signals
 
+from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QTabWidget, QVBoxLayout, QScrollArea
+
 
 class ImpactAssessmentTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -42,7 +44,6 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
 
         self.make_layout()
-        self.layout.addWidget(self.scroll_area)
 
         self.setLayout(self.layout)
 
@@ -56,26 +57,72 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
     def make_layout(self):
         # Display the information in the scroll widget
-        self.scroll_widget_layout.addWidget(header("LCA Scores:"))
-        self.scroll_widget_layout.addWidget(horizontal_line())
-        self.scroll_widget_layout.addWidget(self.results_plot)
 
-        self.scroll_widget_layout.addWidget(header("Process Contributions:"))
-        self.scroll_widget_layout.addWidget(horizontal_line())
-        self.scroll_widget_layout.addWidget(self.combo_LCIA_methods)
-        self.scroll_widget_layout.addWidget(self.process_contribution_plot)
+        #self.scroll_widget_layout.addWidget(header("Elementary Flow Contributions:"))
+        #self.scroll_widget_layout.addWidget(horizontal_line())
+        #self.scroll_widget_layout.addWidget(self.elementary_flow_contribution_plot)
 
-        self.scroll_widget_layout.addWidget(header("Elementary Flow Contributions:"))
-        self.scroll_widget_layout.addWidget(horizontal_line())
-        self.scroll_widget_layout.addWidget(self.elementary_flow_contribution_plot)
+        #self.scroll_widget_layout.addWidget(header("LCA Scores Correlation:"))
+        #self.scroll_widget_layout.addWidget(horizontal_line())
+        #self.scroll_widget_layout.addWidget(self.correlation_plot)
 
-        self.scroll_widget_layout.addWidget(header("LCA Scores Correlation:"))
-        self.scroll_widget_layout.addWidget(horizontal_line())
-        self.scroll_widget_layout.addWidget(self.correlation_plot)
+        #self.scroll_widget_layout.addWidget(header("LCA Scores:"))
+        #self.scroll_widget_layout.addWidget(horizontal_line())
+        #self.scroll_widget_layout.addWidget(self.results_table)
 
-        self.scroll_widget_layout.addWidget(header("LCA Scores:"))
-        self.scroll_widget_layout.addWidget(horizontal_line())
-        self.scroll_widget_layout.addWidget(self.results_table)
+        # Initialize tab screen
+        self.tabs = QTabWidget()
+
+        #self.make_layout()
+        #self.layout.addWidget(self.scroll_area)
+        #self.setLayout(self.layout)
+
+        self.tabs.setTabShape(1)  # Triangular-shaped Tabs
+        self.tabs.setTabPosition(1)  # South-facing Tabs
+        self.tab1 = QScrollArea()
+        self.tab2 = QScrollArea()
+        self.tab3 = QScrollArea()
+        self.tab4 = QScrollArea()
+        #self.tabs.resize(800, 800)
+
+        # Add tabs
+        self.tabs.addTab(self.tab1, "LCIA Results")
+        self.tabs.addTab(self.tab2, "Process Contributions")
+        self.tabs.addTab(self.tab3, "Elementary Flow Contributions")
+        self.tabs.addTab(self.tab4, "Correlations")
+
+        # Create first tab
+        self.tab1.layout = QVBoxLayout(self)
+        #self.tab1.addScrollBarWidget(?,?,?,?)
+        # QScrollArea::setWidget()
+        #self.tab1.addWidget(header("LCA Scores:"))
+        #self.tab1.addWidget(horizontal_line())
+        #self.tab1.addWidget(self.results_plot)
+        self.tab1.layout.addWidget(self.results_plot)
+        self.tab1.layout.addWidget(self.results_table)
+        self.tab1.setLayout(self.tab1.layout)
+
+        # Create second tab
+        self.tab2.layout = QVBoxLayout(self)
+        #self.tab2.addWidget(header("Process Contributions:"))
+        #self.tab2.addWidget(horizontal_line())
+        self.tab2.layout.addWidget(self.combo_LCIA_methods)
+        self.tab2.layout.addWidget(self.process_contribution_plot)
+        self.tab2.setLayout(self.tab2.layout)
+
+        # Create third tab
+        self.tab3.layout = QVBoxLayout(self)
+        self.tab3.layout.addWidget(self.elementary_flow_contribution_plot)
+        self.tab3.setLayout(self.tab3.layout)
+
+        # Create fourth tab
+        self.tab4.layout = QVBoxLayout(self)
+        self.tab4.layout.addWidget(self.correlation_plot)
+        self.tab4.setLayout(self.tab4.layout)
+
+        # Add tabs to widget
+        self.layout.addWidget(self.tabs)
+        self.setLayout(self.layout)
 
     def add_tab(self):
         if not self.visible:
@@ -135,6 +182,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.results_table.sync(self.mlca)
 
         self.add_tab()
+
 
     def get_contribution_analyses(self, method=None):
         if not method:
