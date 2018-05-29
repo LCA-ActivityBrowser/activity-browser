@@ -60,15 +60,17 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         #self.scroll_widget_layout.addWidget(header("Elementary Flow Contributions:"))
         #self.scroll_widget_layout.addWidget(horizontal_line())
-        #self.scroll_widget_layout.addWidget(self.elementary_flow_contribution_plot)
+        #self.scroll_widget_layout.addWidget(self.elementary_flow_contribution_plot) DONE
 
         #self.scroll_widget_layout.addWidget(header("LCA Scores Correlation:"))
         #self.scroll_widget_layout.addWidget(horizontal_line())
-        #self.scroll_widget_layout.addWidget(self.correlation_plot)
+        #self.scroll_widget_layout.addWidget(self.correlation_plot) DONE
 
         #self.scroll_widget_layout.addWidget(header("LCA Scores:"))
         #self.scroll_widget_layout.addWidget(horizontal_line())
-        #self.scroll_widget_layout.addWidget(self.results_table)
+        #self.scroll_widget_layout.addWidget(self.results_table) DONE
+
+        # TO-DO: make a second combobox for working in the third results tab
 
         # Initialize tab screen
         self.tabs = QTabWidget()
@@ -83,7 +85,6 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.tab2 = QScrollArea()
         self.tab3 = QScrollArea()
         self.tab4 = QScrollArea()
-        #self.tabs.resize(800, 800)
 
         # Add tabs
         self.tabs.addTab(self.tab1, "LCIA Results")
@@ -98,9 +99,19 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         #self.tab1.addWidget(header("LCA Scores:"))
         #self.tab1.addWidget(horizontal_line())
         #self.tab1.addWidget(self.results_plot)
-        self.tab1.layout.addWidget(self.results_plot)
-        self.tab1.layout.addWidget(self.results_table)
+        #self.scrollbar = QtWidgets.QWidget()
+        #self.tab1.layout.addWidget(self.scrollbar)
+        self.tab1scroll = QtWidgets.QScrollArea()
+        self.tab1scroll.setWidget(self.results_plot)
+        #self.tab1scroll.setWidget(self.results_table)
+        self.tab1.layout.addWidget(self.tab1scroll)
         self.tab1.setLayout(self.tab1.layout)
+
+        #self.tab1.scroll_area = QtWidgets.QScrollArea()
+        #self.tab1.scroll_widget = QtWidgets.QWidget()
+        #self.tab1.scroll_widget_layout = QtWidgets.QVBoxLayout()
+        #self.tab1.scroll_widget.setLayout(self.tab1.scroll_widget_layout)
+        #self.tab1.scroll_area.setWidget(self.tab1.scroll_widget)
 
         # Create second tab
         self.tab2.layout = QVBoxLayout(self)
@@ -112,6 +123,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         # Create third tab
         self.tab3.layout = QVBoxLayout(self)
+        #self.tab3.layout.addWidget(self.combo_LCIA_methods)
         self.tab3.layout.addWidget(self.elementary_flow_contribution_plot)
         self.tab3.setLayout(self.tab3.layout)
 
