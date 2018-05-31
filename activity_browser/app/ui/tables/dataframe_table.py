@@ -45,7 +45,7 @@ class ABDataFrameTable(QtWidgets.QTableView):
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'
-            self.dataframe.to_csv(filepath)
+            self.dataframe.to_excel(filepath)
 
 
 class PandasModel(QtCore.QAbstractTableModel):
