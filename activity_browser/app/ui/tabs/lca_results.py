@@ -29,6 +29,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
 
         self.results_table = LCAResultsTable()
+        self.to_clipboard_button = QtWidgets.QPushButton('Copy')
+        self.to_csv_button = QtWidgets.QPushButton('csv')
+        self.to_excel_button = QtWidgets.QPushButton('Excel')
 
         self.scroll_area = QtWidgets.QScrollArea()
         self.scroll_widget = QtWidgets.QWidget()
@@ -52,6 +55,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         signals.lca_calculation.connect(self.calculate)
         self.combo_LCIA_methods.currentTextChanged.connect(
             lambda name: self.get_contribution_analyses(method=name))
+        self.to_clipboard_button.clicked.connect(self.results_table.to_clipboard)
+        self.to_csv_button.clicked.connect(self.results_table.to_csv)
+        self.to_excel_button.clicked.connect(self.results_table.to_excel)
 
     def make_layout(self):
         # Display the information in the scroll widget
@@ -75,6 +81,13 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.scroll_widget_layout.addWidget(header("LCA Scores:"))
         self.scroll_widget_layout.addWidget(horizontal_line())
         self.scroll_widget_layout.addWidget(self.results_table)
+
+        self.buttons = QtWidgets.QHBoxLayout()
+        self.buttons.addWidget(self.to_clipboard_button)
+        self.buttons.addWidget(self.to_csv_button)
+        self.buttons.addWidget(self.to_excel_button)
+        self.buttons.addStretch()
+        self.scroll_widget_layout.addLayout(self.buttons)
 
     def add_tab(self):
         if not self.visible:
