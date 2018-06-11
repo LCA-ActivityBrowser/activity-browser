@@ -33,7 +33,9 @@ function windowSize() {
 
 
 
-// zoom for the graph-
+/**
+ * Build svg container and listen for zoom and drag calls
+ */
 
 var svg = d3.select("body")
  .append("svg")
@@ -44,45 +46,6 @@ var svg = d3.select("body")
     svg.attr("transform", d3.event.transform)
  }))
  .append("g")
-
-// var container = svg.append("g")
-//    .attr("id", "container")
-//    .attr("transform", "translate(0,0)scale(1,1)");
-//
-// var bbox, viewBox, vx, vy, vw, vh, defaultView;
-//
-//
-// bbox = container.node().getBBox();
-//  vx = bbox.x;
-//  vy = bbox.y;
-//  vw = bbox.width;
-//  vh = bbox.height;
-//
-//  defaultView = "" + vx + " " + vy + " " + vw + " " + vh;
-//
-//  svg
-//    .attr("viewBox", defaultView)
-//    .attr("preserveAspectRatio", "xMidYMid meet")
-//        .call(zoom);
-//
-//function getTransform(node, xScale) {
-//  bbox = node.node().getBBox();
-//  var bx = bbox.x;
-//  var by = bbox.y;
-//  var bw = bbox.width;
-//  var bh = bbox.height;
-//  var tx = -bx*xScale + vx + vw/2 - bw*xScale/2;
-//  var ty = -by*xScale + vy + vh/2 - bh*xScale/2;
-//  return {translate: [tx, ty], scale: xScale}
-//}
-
- //.classed("svg-container", true) //container class to make it responsive
- //.attr("preserveAspectRatio", "none")
- //.attr("preserveAspectRatio", "xMinYMin meet")
-
- //.classed("svg-content-responsive", true);
-
-
 
 var render = dagreD3.render();
 
@@ -118,15 +81,15 @@ function update_graph(json_data) {
 	  svg.call(render, graph);
 
 
-	  // Interacting with the graph (MUST HAPPEN AFTER RENDERING!)
+	  // Adds click listener, calling handleMouseClick func
 	  var nodes = svg.selectAll("g .node")
 	      .on("click", handleMouseClick)
 	      console.log ("click!");
 
-	// Interaction with Python/Qt
+	// Function called on click
 
 	function handleMouseClick(node){
-
+        //launch downstream exploration on ctrl+clicked node
 		if (window.event.ctrlKey){
             console.log ('ctrl')
 
@@ -135,7 +98,7 @@ function update_graph(json_data) {
                 window.bridge.node_clicked_expand(graph.node(node).database + ";" + graph.node(node).id)
                 window.bridge.graph_ready.connect(update_graph);
             });
-
+        //launch upstream exploration on shift+clicked node
 		} else if (window.event.shiftKey){
             console.log ('shift')
 
@@ -144,7 +107,7 @@ function update_graph(json_data) {
                 window.bridge.node_clicked_expand_upstream(graph.node(node).database + ";" + graph.node(node).id)
                 window.bridge.graph_ready.connect(update_graph);
             });
-
+        //launch navigation from clicked node
 		} else  {
             console.log ('no ctrl')
             new QWebChannel(qt.webChannelTransport, function (channel) {
@@ -169,35 +132,3 @@ new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge.graph_ready.connect(update_graph);
 });
 
-// var svg = d3.select("body").select("svg");
-// https://stackoverflow.com/questions/16265123/resize-svg-when-window-is-resized-in-d3-js
-//var svg = d3.select("body")
-  // .append("div")
-
-  // .append("svg")
-   //responsive SVG needs these 2 attributes and no width and height attr
-   // .attr("preserveAspectRatio", "none")
-   // .attr("preserveAspectRatio", "xMinYMin meet")
-   // .attr("viewBox", "0 0 600 400")
-   //.attr('viewBox','0 0 '+windowSize()[0]+' '+windowSize()[1])
-   //class to make it responsive
-   //.classed("svg-content-responsive", true);
-
-      <!--var nodeEnter = node.enter().append("g")-->
-          <!--.attr("class", "node")-->
-          <!--.attr("transform", function(d) {-->
-              <!--return "translate(" + source.y0 + "," + source.x0 + ")";-->
-          <!--})-->
-          <!--.on("click", click)-->
-          <!--.on("mouseover", function(d) {-->
-              <!--// The class is used to remove the additional text later-->
-      <!--var info = g.append('text')-->
-                 <!--.classed('info', true)-->
-                 <!--.attr('x', 20)-->
-                 <!--.attr('y', 10)-->
-                 <!--.text('More info');-->
-          <!--})-->
-          <!--.on("mouseout", function() {-->
-              <!--// Remove the info text on mouse out.-->
-          <!--d3.select(this).select('text.info').remove();-->
-      <!--});-->

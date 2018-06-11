@@ -60,7 +60,9 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
             self.bridge.graph_ready.emit(json_data)
         except:
             print("No activity with this key:", key)
-
+    '''
+    Takes key, retrieves JSON data with more downstream nodes, and sends it to js graph_ready func
+    '''
     def update_graph_expand (self,key):
         print ("Expanding graph from key: ", key)
         try:
@@ -69,6 +71,9 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         except:
             print("No expansion possible with this activity:", key)
 
+    '''
+       Takes key, retrieves JSON data with more upstream nodes, and sends it to js graph_ready func
+    '''
     def update_graph_expand_upstream (self,key):
         print ("Expanding graph upstream from key: ", key)
         try:
@@ -82,11 +87,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         print("Random key:", random_activity, type(random_activity))
         self.update_graph(random_activity)
 
-    # def update_graph_random(self):
-    #     random_activity =bw.Database("ecoinvent 3.4 cutoff").query("market for electricity, low voltage")
-    #     print("Random key:", random_activity, type(random_activity))
-    #     self.update_graph(random_activity)
-
     def draw_graph(self):
         self.view.load(self.url)
 
@@ -94,6 +94,9 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 class Bridge(QtCore.QObject):
     graph_ready = QtCore.pyqtSignal(str)
 
+    '''
+    Is called when a node is clicked for navigation
+    '''
     @QtCore.pyqtSlot(str)
     def node_clicked(self, js_string):
         print("Clicked on: ", js_string)
@@ -101,6 +104,9 @@ class Bridge(QtCore.QObject):
         key = tuple([db_id[0], db_id[1]])
         graphsignals.update_graph.emit(key)
 
+    '''
+    is called when node is ctrl+clicked for downstream expansion
+    '''
     @QtCore.pyqtSlot(str)
     def node_clicked_expand (self, js_string):
         print("Clicked on to expand: ", js_string)
@@ -108,6 +114,9 @@ class Bridge(QtCore.QObject):
         key = tuple([db_id[0], db_id[1]])
         graphsignals.update_graph_expand.emit(key)
 
+    '''
+    is called when node is shift+clicked for upstream expansion
+    '''
     @QtCore.pyqtSlot(str)
     def node_clicked_expand_upstream(self, js_string):
         print("Clicked on to expand upstream: ", js_string)
@@ -116,11 +125,15 @@ class Bridge(QtCore.QObject):
         graphsignals.update_graph_expand_upstream.emit(key)
 
 class Graph():
-    saved_json = {}
 
     def __init__(self):
         self.json_data = {}
+        self.saved_json = {}
 
+    '''
+    Creates JSON graph for an activity
+    Return: JSON data as a string
+    '''
     def get_json_graph(self, key):
         self.activity = bw.get_activity(key)
         print("Head:", self.activity)
@@ -167,24 +180,26 @@ class Graph():
             "edges": edges,
             "title": self.activity.get("reference product"),
         }
+        # saves the current graph data to re-use it for the exploration functions
         self.saved_json = json_data
 
         print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
 
+    '''
+    Exploration Function: Expand graph saved in saved_json by adding downstream nodes to the ctrl+clicked node
+    Return: JSON data as a string
+    '''
     def get_json_expand_graph(self, key):
         self.activity = bw.get_activity(key)
         print("Head:", self.activity)
+        # load saved JSON data
         self.json_data = self.saved_json
-
-        print(self.json_data)
-        print(self.json_data['nodes'])
-        print(self.json_data['edges'])
-
+        # assign data to edges and nodes dictionaries
         edges = self.json_data["edges"]
         nodes = self.json_data["nodes"]
 
-        # all downstream consumers
+        # adds only downstream nodes to the ctrl+clicked node
         for row, exc in enumerate(self.activity.upstream()):
             edges.append({
                 "source": exc.input.key[1],
@@ -198,29 +213,32 @@ class Graph():
                 "location": exc.output.get("location"),
                 "database": exc.output.key[0],
             })
-
+        # Set JSON data with new nodes and edges
         json_data = {
             "nodes": nodes,
             "edges": edges,
             "title": self.json_data['title'],
         }
+        # saves the current graph data to re-use it for the exploration functions
         self.saved_json = json_data
         print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
 
+    '''
+    Exploration Function: Expand graph saved in saved_json by adding upstream nodes to the shift+clicked node
+    Return: JSON data as a string
+    '''
+
     def get_json_expand_graph_upstream (self, key):
         self.activity = bw.get_activity(key)
         print("Head:", self.activity)
+        # load saved JSON data
         self.json_data = self.saved_json
-
-        print(self.json_data)
-        print(self.json_data['nodes'])
-        print(self.json_data['edges'])
-
+        # assign data to edges and nodes dictionaries
         edges = self.json_data["edges"]
         nodes = self.json_data["nodes"]
 
-        # all inputs
+        # add only the upstreams nodes to the shift+clicked node
         for exc in self.activity.technosphere():
             print (exc)
             if exc.output.key[1] == key [1]:
@@ -237,31 +255,16 @@ class Graph():
                     "location": exc.input.get("location"),
                     "database": exc.input.key[0],
                 })
-                print ("bonne target")
-
-            else:
-                print ('bad target')
-
-
+        # Set JSON data with new nodes and edges
         json_data = {
             "nodes": nodes,
             "edges": edges,
             "title": self.json_data['title'],
         }
+        # saves the current graph data to re-use it for the exploration functions
         self.saved_json = json_data
         print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
-
-
-        #and the receiving node
-        # nodes.append({
-        #     "id": self.activity.key[1],
-        #     "product": self.activity.get("reference product"),
-        #     "name": self.activity.get("name"),
-        #     "location": self.activity.get("location"),
-        #     "database": self.activity.key[0],
-        # })
-
 
 
     def save_json_to_file(self, filename="data.json"):
@@ -270,6 +273,16 @@ class Graph():
             filepath = os.path.join(os.path.dirname(__file__), filename)
             with open(filepath, 'w') as outfile:
                 json.dump(self.json_data, outfile)
+
+
+
+
+
+
+
+
+
+
 
     # def new_graph(self):
     #     print("Sending new Graph Data")
