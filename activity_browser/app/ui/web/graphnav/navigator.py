@@ -49,6 +49,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         signals.add_activity_to_history.connect(self.update_graph)
         graphsignals.update_graph.connect(self.update_graph)
         graphsignals.update_graph_expand.connect(self.update_graph_expand)
+        graphsignals.update_graph_expand_upstream.connect(self.update_graph_expand_upstream)
         graphsignals.graph_ready.connect(self.draw_graph)
 
 
@@ -68,11 +69,23 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         except:
             print("No expansion possible with this activity:", key)
 
+    def update_graph_expand_upstream (self,key):
+        print ("Expanding graph upstream from key: ", key)
+        try:
+            json_data = self.graph.get_json_expand_graph_upstream(key)
+            self.bridge.graph_ready.emit(json_data)
+        except:
+            print("No upstream expansion possible with this activity:", key)
 
     def update_graph_random(self):
         random_activity = bw.Database("ecoinvent 3.4 cutoff").random()
         print("Random key:", random_activity, type(random_activity))
         self.update_graph(random_activity)
+
+    # def update_graph_random(self):
+    #     random_activity =bw.Database("ecoinvent 3.4 cutoff").query("market for electricity, low voltage")
+    #     print("Random key:", random_activity, type(random_activity))
+    #     self.update_graph(random_activity)
 
     def draw_graph(self):
         self.view.load(self.url)
@@ -95,6 +108,12 @@ class Bridge(QtCore.QObject):
         key = tuple([db_id[0], db_id[1]])
         graphsignals.update_graph_expand.emit(key)
 
+    @QtCore.pyqtSlot(str)
+    def node_clicked_expand_upstream(self, js_string):
+        print("Clicked on to expand upstream: ", js_string)
+        db_id = js_string.split(";")
+        key = tuple([db_id[0], db_id[1]])
+        graphsignals.update_graph_expand_upstream.emit(key)
 
 class Graph():
     saved_json = {}
@@ -179,14 +198,6 @@ class Graph():
                 "location": exc.output.get("location"),
                 "database": exc.output.key[0],
             })
-        # # and the receiving node
-        # nodes.append({
-        #     "id": self.activity.key[1],
-        #     "product": self.activity.get("reference product"),
-        #     "name": self.activity.get("name"),
-        #     "location": self.activity.get("location"),
-        #     "database": self.activity.key[0],
-        # })
 
         json_data = {
             "nodes": nodes,
@@ -197,7 +208,64 @@ class Graph():
         print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
 
+    def get_json_expand_graph_upstream (self, key):
+        self.activity = bw.get_activity(key)
+        print("Head:", self.activity)
+        self.json_data = self.saved_json
+
+        print(self.json_data)
+        print(self.json_data['nodes'])
+        print(self.json_data['edges'])
+
+        edges = self.json_data["edges"]
+        nodes = self.json_data["nodes"]
+
+        # all inputs
+        for exc in self.activity.technosphere():
+            print (exc)
+            if exc.output.key[1] == key [1]:
+
+                edges.append({
+                    "source": exc.input.key[1],
+                    "target": exc.output.key[1],
+                    "label": exc.input.get("reference product")
+                })
+                nodes.append({
+                    "id": exc.input.key[1],
+                    "product": exc.input.get("reference product"),
+                    "name": exc.input.get("name"),
+                    "location": exc.input.get("location"),
+                    "database": exc.input.key[0],
+                })
+                print ("bonne target")
+
+            else:
+                print ('bad target')
+
+
+        json_data = {
+            "nodes": nodes,
+            "edges": edges,
+            "title": self.json_data['title'],
+        }
+        self.saved_json = json_data
+        print("JSON-Data:", json.dumps(json_data))
+        return json.dumps(json_data)
+
+
+        #and the receiving node
+        # nodes.append({
+        #     "id": self.activity.key[1],
+        #     "product": self.activity.get("reference product"),
+        #     "name": self.activity.get("name"),
+        #     "location": self.activity.get("location"),
+        #     "database": self.activity.key[0],
+        # })
+
+
+
     def save_json_to_file(self, filename="data.json"):
+        """"Doc"""
         if self.json_data:
             filepath = os.path.join(os.path.dirname(__file__), filename)
             with open(filepath, 'w') as outfile:
