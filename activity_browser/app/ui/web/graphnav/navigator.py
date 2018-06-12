@@ -60,10 +60,12 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
             self.bridge.graph_ready.emit(json_data)
         except:
             print("No activity with this key:", key)
-    '''
-    Takes key, retrieves JSON data with more downstream nodes, and sends it to js graph_ready func
-    '''
+
     def update_graph_expand (self,key):
+        """ Takes key, retrieves JSON data with more downstream nodes, and sends it to js graph_ready func
+        Args: 
+            key: tuple containing the key of the activity
+        """
         print ("Expanding graph from key: ", key)
         try:
             json_data = self.graph.get_json_expand_graph(key)
@@ -71,10 +73,12 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         except:
             print("No expansion possible with this activity:", key)
 
-    '''
-       Takes key, retrieves JSON data with more upstream nodes, and sends it to js graph_ready func
-    '''
+
     def update_graph_expand_upstream (self,key):
+        """Takes key, retrieves JSON data with more upstream nodes, and sends it to js graph_ready func
+        Args: 
+            key: tuple containing the key of the activity
+        """
         print ("Expanding graph upstream from key: ", key)
         try:
             json_data = self.graph.get_json_expand_graph_upstream(key)
@@ -94,31 +98,36 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 class Bridge(QtCore.QObject):
     graph_ready = QtCore.pyqtSignal(str)
 
-    '''
-    Is called when a node is clicked for navigation
-    '''
+
     @QtCore.pyqtSlot(str)
     def node_clicked(self, js_string):
+        """ Is called when a node is clicked for navigation
+        Args:
+            js_string: string containing the node's database name and the ID of the clicked node
+        """
         print("Clicked on: ", js_string)
         db_id = js_string.split(";")
         key = tuple([db_id[0], db_id[1]])
         graphsignals.update_graph.emit(key)
 
-    '''
-    is called when node is ctrl+clicked for downstream expansion
-    '''
     @QtCore.pyqtSlot(str)
-    def node_clicked_expand (self, js_string):
+    def node_clicked_expand(self, js_string):
+        """ is called when node is ctrl+clicked for downstream expansion
+        Args:
+            js_string: string containing the node's database name and the ID of the clicked node
+        """
         print("Clicked on to expand: ", js_string)
         db_id = js_string.split(";")
         key = tuple([db_id[0], db_id[1]])
         graphsignals.update_graph_expand.emit(key)
 
-    '''
-    is called when node is shift+clicked for upstream expansion
-    '''
+
     @QtCore.pyqtSlot(str)
     def node_clicked_expand_upstream(self, js_string):
+        """ is called when node is shift+clicked for upstream expansion
+        Args:
+            js_string: string containing the node's database name and the ID of the clicked node
+        """
         print("Clicked on to expand upstream: ", js_string)
         db_id = js_string.split(";")
         key = tuple([db_id[0], db_id[1]])
@@ -130,11 +139,13 @@ class Graph():
         self.json_data = {}
         self.saved_json = {}
 
-    '''
-    Creates JSON graph for an activity
-    Return: JSON data as a string
-    '''
     def get_json_graph(self, key):
+        """Creates JSON graph for an activity
+        Args:
+            key: tuple containing the key of the activity
+        Returns:
+                JSON data as a string
+        """
         self.activity = bw.get_activity(key)
         print("Head:", self.activity)
         edges = []
@@ -186,11 +197,14 @@ class Graph():
         print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
 
-    '''
-    Exploration Function: Expand graph saved in saved_json by adding downstream nodes to the ctrl+clicked node
-    Return: JSON data as a string
-    '''
+
     def get_json_expand_graph(self, key):
+        """ Exploration Function: Expand graph saved in saved_json by adding downstream nodes to the ctrl+clicked node
+        Args:
+            key: tuple containing the key of the activity
+        Returns:
+                JSON data as a string
+        """
         self.activity = bw.get_activity(key)
         print("Head:", self.activity)
         # load saved JSON data
@@ -224,12 +238,13 @@ class Graph():
         print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
 
-    '''
-    Exploration Function: Expand graph saved in saved_json by adding upstream nodes to the shift+clicked node
-    Return: JSON data as a string
-    '''
-
     def get_json_expand_graph_upstream (self, key):
+        """ Exploration Function: Expand graph saved in saved_json by adding upstream nodes to the shift+clicked node
+        Args:
+            key: tuple containing the key of the activity
+        Returns:
+                JSON data as a string
+        """
         self.activity = bw.get_activity(key)
         print("Head:", self.activity)
         # load saved JSON data
@@ -268,7 +283,7 @@ class Graph():
 
 
     def save_json_to_file(self, filename="data.json"):
-        """"Doc"""
+
         if self.json_data:
             filepath = os.path.join(os.path.dirname(__file__), filename)
             with open(filepath, 'w') as outfile:
