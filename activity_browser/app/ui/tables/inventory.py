@@ -13,7 +13,8 @@ from fuzzywuzzy import process
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
-
+from activity_browser.app.settings import ab_settings
+from .. import activity_cache
 
 class DatabasesTable(ABTableWidget):
     HEADERS = ["Name", "Depends", "Last modified", "Size", "Read-only"]
@@ -47,7 +48,7 @@ class DatabasesTable(ABTableWidget):
                 self.currentItem().db_name
             )
         )
-        # add activity (important for empty databases, where the activities table will not show up)
+        # add activity (important for empty databases)
         self.add_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add), "Add new activity", None
         )
@@ -66,10 +67,33 @@ class DatabasesTable(ABTableWidget):
     def select_database(self, item):
         signals.database_selected.emit(item.db_name)
 
+    def readOnlyStateChanged(self, checked, project, db):
+        """User has clicked to update db to read-only or editable
+        emit one of 2 signals to slots defined in controller.py
+        """
+
+        #print(project, db, "Read-only:", checked)
+        if checked: # activities of this db should no longer be editable
+            signals.database_set_read_only.emit(db)
+
+        else: #checked == False - activities in db can now be edited
+            signals.database_set_writable.emit(db)
+
     @ABTableWidget.decorated_sync
     def sync(self):
         self.setRowCount(len(bw.databases))
         self.setHorizontalHeaderLabels(self.HEADERS)
+
+        project = bw.projects.current.lower().strip()
+
+        # access settings file for the project>dbs which the user has chosen to edit
+        # used to set state of in-table checkboxes on load
+        # todo: get settings only for current project.
+        settings_all_projects = ab_settings.settings.get("projects")
+        # return empty list/dict if project/setting not found in settings file
+        selected_project_settings = settings_all_projects.get(project, {})
+        writable_databases = selected_project_settings.get("writable_databases", [])
+
         for row, name in enumerate(natural_sort(bw.databases)):
             self.setItem(row, 0, ABTableItem(name, db_name=name))
             depends = bw.databases[name].get('depends', [])
@@ -84,7 +108,15 @@ class DatabasesTable(ABTableWidget):
             self.setItem(
                 row, 3, ABTableItem(str(len(bw.Database(name))), db_name=name)
             )
-            self.setItem(row, 4, ABTableItem(None, set_flags=[QtCore.Qt.ItemIsUserCheckable]))
+            # final column includes active checkbox which shows read-only state of db
+            # name = name.strip().lower()
+            database_read_only = False if name in writable_databases else True
+            # checkbox widgets for read-only column. Parent object of checkbox = db table
+            ch = QtWidgets.QCheckBox(parent=self)
+
+            ch.clicked.connect(lambda checked, project=project, db=name: self.readOnlyStateChanged(checked, project, db))
+            ch.setChecked(database_read_only)
+            self.setCellWidget(row, 4, ch)
 
 
 class BiosphereFlowsTable(ABTableWidget):
@@ -141,47 +173,52 @@ class ActivitiesTable(ABTableWidget):
     }
     HEADERS = ["Name", "Reference Product", "Location", "Unit", "Key"]
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, writable_db=False):
         super(ActivitiesTable, self).__init__(parent)
         self.database_name = None
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
-        self.setup_context_menu()
+        self.setup_context_menu(writable_db)
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
 
-    def setup_context_menu(self):
-        self.add_activity_action = QtWidgets.QAction(
+    def setup_context_menu(self, writable_db):
+        self.open_activity_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.left), "Open activity", None)
+        self.new_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add), "Add new activity", None
         )
-        self.copy_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.copy), "Copy activity", None
+        self.duplicate_activity_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.copy), "Duplicate activity", None
         )
         self.delete_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete activity", None
         )
-        self.open_left_tab_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.left), "Open in new tab", None
-        )
         self.copy_to_db_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add_db), 'Copy to database', None
         )
-        self.addAction(self.add_activity_action)
-        self.addAction(self.copy_activity_action)
+        if not writable_db:
+            self.new_activity_action.setEnabled(False)
+            self.duplicate_activity_action.setEnabled(False)
+            self.delete_activity_action.setEnabled(False)
+
+        self.addAction(self.open_activity_action)
+        self.addAction(self.new_activity_action)
+        self.addAction(self.duplicate_activity_action)
         self.addAction(self.delete_activity_action)
-        self.addAction(self.open_left_tab_action)
         self.addAction(self.copy_to_db_action)
-        self.add_activity_action.triggered.connect(
+
+        self.open_activity_action.triggered.connect(
+            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+        )
+        self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database.name)
         )
-        self.copy_activity_action.triggered.connect(
-            lambda x: signals.copy_activity.emit(self.currentItem().key)
+        self.duplicate_activity_action.triggered.connect(
+            lambda x: signals.duplicate_activity.emit(self.currentItem().key)
         )
         self.delete_activity_action.triggered.connect(
             lambda x: signals.delete_activity.emit(self.currentItem().key)
-        )
-        self.open_left_tab_action.triggered.connect(
-            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
         )
         self.copy_to_db_action.triggered.connect(
             lambda: signals.copy_to_db.emit(self.currentItem().key)

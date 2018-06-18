@@ -14,7 +14,7 @@ from activity_browser.app.ui.wizards.db_import_wizard import (
 from .bwutils import commontasks as bc
 from .settings import ab_settings
 from .signals import signals
-
+from activity_browser.app.ui import activity_cache
 
 class Controller(object):
     def __init__(self):
@@ -47,8 +47,10 @@ class Controller(object):
         signals.copy_database.connect(self.copy_database)
         signals.install_default_data.connect(self.install_default_data)
         signals.import_database.connect(self.import_database_wizard)
+        signals.database_set_read_only.connect(self.database_set_read_only)
+        signals.database_set_writable.connect(self.database_set_writable)
         # Activity
-        signals.copy_activity.connect(self.copy_activity)
+        signals.duplicate_activity.connect(self.duplicate_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
@@ -311,7 +313,11 @@ class Controller(object):
             new_code = code + '_copy1'
         return new_code
 
-    def copy_activity(self, key):
+    def duplicate_activity(self, key):
+        """duplicates the selected activity in the same db, with a new BW code
+        for creating a copy in a different db, use copy_to_db"""
+        # todo: add "copy of" (or similar) to name of activity for easy identification in new db
+        # todo: some interface feedback so user knows the copy has succeeded
         act = bw.get_activity(key)
         new_code = self.generate_copy_code(key)
         new_act = act.copy(new_code)
@@ -409,3 +415,33 @@ class Controller(object):
         exchange['amount'] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
+
+    def database_set_read_only(self, db):
+        """Set tables/rows/cells to read-only and set the Read-Only checkbox to greyed-out
+        Activities inventory context menu: Options for “Edit activity” and “New activity”
+        become greyed out (make this change here or on right-click?)
+        Insert or update entry in ab_settings file"""
+
+        print("controller.py database_set_read_only hit", db)
+        open_activities = activities_open_for_db(db)
+        for act_code in open_activities:
+            print("setting read-only for", db, ": ", act_code)
+
+    def database_set_writable(self, db):
+        """Set read-only checkbox of open panels to active (not greyed out)
+        Activities inventory list: Options for “Edit activity” and “New activity”
+        become active again (as above, may be handled on right-click)
+        Update settings file entry to read-only = false
+        """
+        print("controller.py database_set_writable hit", db)
+        open_activities = activities_open_for_db(db)
+        for act_code in open_activities:
+            print("setting writable for", db, ": ", act_code)
+
+def activities_open_for_db(db_name):
+    open_activities = []
+    for db, act_code in activity_cache:
+        #print("cache key:", key, "db_name", db_name, "cache key[0]:", key[0], "value", value)
+        if db == db_name:
+            open_activities.append(act_code)
+    return open_activities

@@ -34,13 +34,15 @@ class Signals(QtCore.QObject):
     database_selected = QtCore.pyqtSignal(str)
     databases_changed = QtCore.pyqtSignal()
     database_changed = QtCore.pyqtSignal(str)
+    database_set_read_only = QtCore.pyqtSignal(str)
+    database_set_writable = QtCore.pyqtSignal(str)
 
     # Activity (key, field, new value)
     new_activity = QtCore.pyqtSignal(str)
     add_activity_to_history = QtCore.pyqtSignal(tuple)
 
     activity_modified = QtCore.pyqtSignal(tuple, str, object)
-    copy_activity = QtCore.pyqtSignal(tuple)
+    duplicate_activity = QtCore.pyqtSignal(tuple)
     open_activity_tab = QtCore.pyqtSignal(str, tuple)
     activity_tabs_changed = QtCore.pyqtSignal()
     delete_activity = QtCore.pyqtSignal(tuple)
