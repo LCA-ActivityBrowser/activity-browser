@@ -62,6 +62,7 @@ class ActivitiesPanel(Panel):
 
         signals.open_activity_tab.connect(self.open_new_activity_tab)
         signals.activity_modified.connect(self.update_activity_name)
+        signals.project_selected.connect(self.close_all_activity_tabs)
 
     def update_activity_name(self, key, field, value):
         if key in activity_cache and field == 'name':
@@ -91,3 +92,7 @@ class ActivitiesPanel(Panel):
         widget.deleteLater()
         self.removeTab(index)
         signals.activity_tabs_changed.emit()
+
+    def close_all_activity_tabs(self):
+        for i in range(len(activity_cache)):
+            self.close_tab(i)
