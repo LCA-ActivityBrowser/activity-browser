@@ -12,3 +12,5 @@ Makefile
 .DS_Store
 .cache
 .pytest_cache
+activity_browser/ABSettings.json
+*.bak
