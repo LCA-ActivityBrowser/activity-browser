@@ -17,7 +17,14 @@ from activity_browser.app.settings import ab_settings
 from .. import activity_cache
 
 class DatabasesTable(ABTableWidget):
-    HEADERS = ["Name", "Depends", "Last modified", "Size", "Read-only"]
+    """Displays metadata for the databases found within the selected project
+    Dbs can be read-only or writable, with users preference persisted in settings file
+    User double-clicks to see the activities and flows within a db
+    A context menu (right click) provides further functionality
+    """
+    # Column 4 header options: Size / Entries / Flows / Activities / Count / Activity Count..
+    #... 'Records' seems reasonable for a "database", and is quite short
+    HEADERS = ["Name", "Depends", "Modified", "Records", "Read-only"]
 
     def __init__(self):
         super(DatabasesTable, self).__init__()
