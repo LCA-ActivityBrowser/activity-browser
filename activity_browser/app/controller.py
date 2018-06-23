@@ -47,8 +47,8 @@ class Controller(object):
         signals.copy_database.connect(self.copy_database)
         signals.install_default_data.connect(self.install_default_data)
         signals.import_database.connect(self.import_database_wizard)
-        signals.database_set_read_only.connect(self.database_set_read_only)
-        signals.database_set_writable.connect(self.database_set_writable)
+        signals.database_writable_enabled.connect(self.database_writable_enabled)
+
         # Activity
         signals.duplicate_activity.connect(self.duplicate_activity)
         signals.activity_modified.connect(self.modify_activity)
@@ -416,32 +416,27 @@ class Controller(object):
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
 
-    def database_set_read_only(self, db):
-        """Set tables/rows/cells to read-only and set the Read-Only checkbox to greyed-out
-        Activities inventory context menu: Options for “Edit activity” and “New activity”
-        become greyed out (make this change here or on right-click?)
-        Insert or update entry in ab_settings file"""
+        open_activities_for_db = [act_code for db, act_code in activity_cache if db == db_name]
+        for act_code in open_activities_for_db:
+            print("setting", db_name, "activity to read-only:", act_code)
 
-        print("controller.py database_set_read_only hit", db)
-        open_activities = activities_open_for_db(db)
-        for act_code in open_activities:
-            print("setting read-only for", db, ": ", act_code)
 
-    def database_set_writable(self, db):
+    def database_writable_enabled(self, db_name, db_writable):
         """Set read-only checkbox of open panels to active (not greyed out)
         Activities inventory list: Options for “Edit activity” and “New activity”
         become active again (as above, may be handled on right-click)
         Update settings file entry to read-only = false
-        """
-        print("controller.py database_set_writable hit", db)
-        open_activities = activities_open_for_db(db)
-        for act_code in open_activities:
-            print("setting writable for", db, ": ", act_code)
 
-def activities_open_for_db(db_name):
-    open_activities = []
-    for db, act_code in activity_cache:
-        #print("cache key:", key, "db_name", db_name, "cache key[0]:", key[0], "value", value)
-        if db == db_name:
-            open_activities.append(act_code)
-    return open_activities
+        Set tables/rows/cells to read-only and set the activity 'Read-Only checkbox' to greyed-out
+        Activities inventory context menu: Options for “Edit activity” and “New activity”
+        become greyed out (make this change here or on right-click?)
+        Insert or update entry in ab_settings file"""
+        # todo: also add a check for project of db for safety
+        # though no activities from other projects can be open, in theory
+
+        print("database:", db_name, "writable:", db_writable)
+        open_activities_for_db = [act_code for db, act_code in activity_cache if db == db_name]
+        for act_code in open_activities_for_db:
+            print("setting", db_name, "activity:",  act_code, "to writable?:", db_writable)
+
+        # send signal to ActivitiesTable.update_context_actions(db_writable)

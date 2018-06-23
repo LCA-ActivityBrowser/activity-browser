@@ -74,16 +74,12 @@ class DatabasesTable(ABTableWidget):
         signals.database_selected.emit(item.db_name)
 
     def readOnlyStateChanged(self, checked, project, db):
-        """User has clicked to update db to read-only or editable
-        emit one of 2 signals to slots defined in controller.py
-        """
-
-        #print(project, db, "Read-only:", checked)
-        if checked: # activities of this db should no longer be editable
-            signals.database_set_read_only.emit(db)
-
-        else: #checked == False - activities in db can now be edited
-            signals.database_set_writable.emit(db)
+        """User has clicked to update a db to either read-only or editable
+        emit a signal to a slots defined in controller.py with name and db_writable bool
+        if checked, activities of this db should no longer be editable
+        if not checked, the interface is changed so the user can write/edit activities"""
+        # the user sees clicks "read-only" but the code deals with the concept of "db_writable", hence inversion: "not"
+        signals.database_writable_enabled.emit(db, not checked)
 
     @ABTableWidget.decorated_sync
     def sync(self):
@@ -117,9 +113,9 @@ class DatabasesTable(ABTableWidget):
             # final column includes active checkbox which shows read-only state of db
             # name = name.strip().lower()
             database_read_only = False if name in writable_databases else True
-            # checkbox widgets for read-only column. Parent object of checkbox = db table
+            # checkbox widgets for read-only column. Parent object of checkbox = DatabasesTable
             ch = QtWidgets.QCheckBox(parent=self)
-
+            #
             ch.clicked.connect(lambda checked, project=project, db=name: self.readOnlyStateChanged(checked, project, db))
             ch.setChecked(database_read_only)
             self.setCellWidget(row, 4, ch)
@@ -188,7 +184,7 @@ class ActivitiesTable(ABTableWidget):
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
 
-    def setup_context_menu(self, writable_db):
+    def setup_context_menu(self, writable_db=False):
         self.open_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open activity", None)
         self.new_activity_action = QtWidgets.QAction(
@@ -203,10 +199,9 @@ class ActivitiesTable(ABTableWidget):
         self.copy_to_db_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add_db), 'Copy to database', None
         )
-        if not writable_db:
-            self.new_activity_action.setEnabled(False)
-            self.duplicate_activity_action.setEnabled(False)
-            self.delete_activity_action.setEnabled(False)
+        # context menu items are disabled if db is read-only
+        # defaults to false (db not writable)
+        self.update_context_actions(writable_db)
 
         self.addAction(self.open_activity_action)
         self.addAction(self.new_activity_action)
@@ -229,6 +224,11 @@ class ActivitiesTable(ABTableWidget):
         self.copy_to_db_action.triggered.connect(
             lambda: signals.copy_to_db.emit(self.currentItem().key)
         )
+    def update_context_actions(self, db_writable):
+        # [new, duplicate & delete] are actions that can only be performed on writable databases
+        self.new_activity_action.setEnabled(db_writable)
+        self.duplicate_activity_action.setEnabled(db_writable)
+        self.delete_activity_action.setEnabled(db_writable)
 
     def connect_signals(self):
         signals.database_selected.connect(self.sync)
@@ -248,6 +248,8 @@ class ActivitiesTable(ABTableWidget):
             for act in activity_data:
                 name_activity_dict[act['name']].append(self.database.get(act['code']))
             self.fuzzy_search_index = (self.database, name_activity_dict)
+
+
 
     @ABTableWidget.decorated_sync
     def sync(self, name, data=None):

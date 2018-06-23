@@ -34,8 +34,7 @@ class Signals(QtCore.QObject):
     database_selected = QtCore.pyqtSignal(str)
     databases_changed = QtCore.pyqtSignal()
     database_changed = QtCore.pyqtSignal(str)
-    database_set_read_only = QtCore.pyqtSignal(str)
-    database_set_writable = QtCore.pyqtSignal(str)
+    database_writable_enabled = QtCore.pyqtSignal(str, bool)
 
     # Activity (key, field, new value)
     new_activity = QtCore.pyqtSignal(str)
