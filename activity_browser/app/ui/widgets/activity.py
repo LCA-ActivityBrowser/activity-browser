@@ -40,29 +40,36 @@ class ActivityDataGrid(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout()
         grid.setSpacing(5)
 
-        grid.addWidget(QtWidgets.QLabel('Database'), 1, 1)
-        self.database = QtWidgets.QLabel('')
-        grid.addWidget(self.database, 1, 2, 1, -1)
-
-        grid.addWidget(QtWidgets.QLabel('Activity'), 2, 1)
+        grid.addWidget(QtWidgets.QLabel('Name'), 1, 1)
         self.name_box = SignalledLineEdit(
             key=getattr(self.activity, "key", None),
             field="name",
             parent=self,
         )
         self.name_box.setPlaceholderText("Activity name")
-        grid.addWidget(self.name_box, 2, 2, 1, -1)
+        grid.addWidget(self.name_box, 1, 2, 1, 3)
 
-        grid.addWidget(QtWidgets.QLabel('Location'), 3, 1)
+        self.read_only_checkbox = QtWidgets.QCheckBox('Read-Only')
+        self.read_only_checkbox.
+        #self.read_only_checkbox.SetChecked(True)
+        grid.addWidget(self.read_only_checkbox, 1, 5)
+        #improvement todo: location to be selectable from dropdown rather than free-text
+        #but this requires forming a list of valid locations based on selected db..
+        grid.addWidget(QtWidgets.QLabel('Location'), 2, 1)
         self.location_box = SignalledLineEdit(
             key=getattr(self.activity, "key", None),
             field="location",
             parent=self,
         )
         self.location_box.setPlaceholderText("ISO 2-letter code or custom name")
-        grid.addWidget(self.location_box, 3, 2, 1, -1)
+        grid.addWidget(self.location_box, 2, 2, 1, -1)
 
-        # grid.addWidget(QtWidgets.QLabel('Description'), 4, 1, 2, 1)
+        #todo: also show project to user alongside database
+        #improvement todo: allow user to copy open activity to other db, via drop-down menu here
+        grid.addWidget(QtWidgets.QLabel('In database'), 3, 1)
+        self.database = QtWidgets.QLabel('')
+        grid.addWidget(self.database, 3, 2, 1, -1)
+
         self.comment_box = SignalledPlainTextEdit(
             key=getattr(self.activity, "key", None),
             field="comment",
@@ -72,20 +79,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
             'Description', self.comment_box
         )
         self.comment_groupbox.setChecked(False)
-
-        grid.addWidget(self.comment_groupbox, 4, 1, 2, -1 + 1)
-        # grid.addWidget(self.comment_box, 4, 2, 2, -1)
-
-        # grid.addWidget(QtWidgets.QLabel('Unit'), 5, 1)
-        # self.unit_box = SignalledLineEdit(
-        #     key=getattr(self.activity, "key", None),
-        #     field="unit",
-        #     parent=self,
-        # )
-        # grid.addWidget(self.unit_box, 5, 2, 1, 3)
+        grid.addWidget(self.comment_groupbox, 4, 1, 2, -1)
 
         grid.setAlignment(QtCore.Qt.AlignTop)
-
         return grid
 
     def populate(self, activity=None):
