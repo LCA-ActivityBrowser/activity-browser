@@ -49,10 +49,12 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.name_box.setPlaceholderText("Activity name")
         grid.addWidget(self.name_box, 1, 2, 1, 3)
 
-        self.read_only_checkbox = QtWidgets.QCheckBox('Read-Only')
-        self.read_only_checkbox.
-        #self.read_only_checkbox.SetChecked(True)
-        grid.addWidget(self.read_only_checkbox, 1, 5)
+        self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
+        # todo: edit click lambda with db_name and act_code variables - how to access them from here?
+        # 'Populate' with data needed first. Can the lambda be created before the variables are in scope?
+        #self.read_only_ch.clicked.connect(lambda checked, db_name=db_name, act_code=act_code: self.readOnlyStateChanged(checked, db_name, act_code))
+
+        grid.addWidget(self.read_only_ch, 1, 5)
         #improvement todo: location to be selectable from dropdown rather than free-text
         #but this requires forming a list of valid locations based on selected db..
         grid.addWidget(QtWidgets.QLabel('Location'), 2, 1)
