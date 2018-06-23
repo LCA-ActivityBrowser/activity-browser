@@ -39,11 +39,10 @@ class ActivityDataGrid(QtWidgets.QWidget):
     def get_grid(self):
         grid = QtWidgets.QGridLayout()
         grid.setSpacing(5)
-        right_side = 10
 
         grid.addWidget(QtWidgets.QLabel('Database'), 1, 1)
         self.database = QtWidgets.QLabel('')
-        grid.addWidget(self.database, 1, 2, 1, right_side)
+        grid.addWidget(self.database, 1, 2, 1, -1)
 
         grid.addWidget(QtWidgets.QLabel('Activity'), 2, 1)
         self.name_box = SignalledLineEdit(
@@ -52,7 +51,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             parent=self,
         )
         self.name_box.setPlaceholderText("Activity name")
-        grid.addWidget(self.name_box, 2, 2, 1, right_side)
+        grid.addWidget(self.name_box, 2, 2, 1, -1)
 
         grid.addWidget(QtWidgets.QLabel('Location'), 3, 1)
         self.location_box = SignalledLineEdit(
@@ -61,7 +60,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             parent=self,
         )
         self.location_box.setPlaceholderText("ISO 2-letter code or custom name")
-        grid.addWidget(self.location_box, 3, 2, 1, right_side)
+        grid.addWidget(self.location_box, 3, 2, 1, -1)
 
         # grid.addWidget(QtWidgets.QLabel('Description'), 4, 1, 2, 1)
         self.comment_box = SignalledPlainTextEdit(
@@ -74,8 +73,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
         )
         self.comment_groupbox.setChecked(False)
 
-        grid.addWidget(self.comment_groupbox, 4, 1, 2, right_side + 1)
-        # grid.addWidget(self.comment_box, 4, 2, 2, right_side)
+        grid.addWidget(self.comment_groupbox, 4, 1, 2, -1 + 1)
+        # grid.addWidget(self.comment_box, 4, 2, 2, -1)
 
         # grid.addWidget(QtWidgets.QLabel('Unit'), 5, 1)
         # self.unit_box = SignalledLineEdit(
