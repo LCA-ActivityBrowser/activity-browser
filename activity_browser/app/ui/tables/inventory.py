@@ -175,16 +175,16 @@ class ActivitiesTable(ABTableWidget):
     }
     HEADERS = ["Name", "Reference Product", "Location", "Unit", "Key"]
 
-    def __init__(self, parent=None, writable_db=False):
+    def __init__(self, parent=None, db_writable=False):
         super(ActivitiesTable, self).__init__(parent)
         self.database_name = None
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
-        self.setup_context_menu(writable_db)
+        self.setup_context_menu(db_writable)
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
 
-    def setup_context_menu(self, writable_db=False):
+    def setup_context_menu(self, db_writable=False):
         self.open_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open activity", None)
         self.new_activity_action = QtWidgets.QAction(
@@ -201,7 +201,7 @@ class ActivitiesTable(ABTableWidget):
         )
         # context menu items are disabled if db is read-only
         # defaults to false (db not writable)
-        self.update_context_actions(writable_db)
+        self.update_context_actions(db_writable)
 
         self.addAction(self.open_activity_action)
         self.addAction(self.new_activity_action)
@@ -225,7 +225,7 @@ class ActivitiesTable(ABTableWidget):
             lambda: signals.copy_to_db.emit(self.currentItem().key)
         )
     def update_context_actions(self, db_writable):
-        # [new, duplicate & delete] are actions that can only be performed on writable databases
+        # [new, duplicate & delete] actions can only be selected for writable databases
         self.new_activity_action.setEnabled(db_writable)
         self.duplicate_activity_action.setEnabled(db_writable)
         self.delete_activity_action.setEnabled(db_writable)
@@ -233,6 +233,7 @@ class ActivitiesTable(ABTableWidget):
     def connect_signals(self):
         signals.database_selected.connect(self.sync)
         signals.database_changed.connect(self.filter_database_changed)
+        signals.update_activity_table_context.connect(self.update_context_actions)
 
         self.itemDoubleClicked.connect(
             lambda x: signals.open_activity_tab.emit("activities", x.key)

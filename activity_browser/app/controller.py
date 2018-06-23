@@ -438,5 +438,6 @@ class Controller(object):
         open_activities_for_db = [act_code for db, act_code in activity_cache if db == db_name]
         for act_code in open_activities_for_db:
             print("setting", db_name, "activity:",  act_code, "to writable?:", db_writable)
+            signals.update_activity_table_context.emit(db_writable)
 
         # send signal to ActivitiesTable.update_context_actions(db_writable)
