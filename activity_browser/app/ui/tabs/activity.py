@@ -23,16 +23,15 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             self.populate(activity)
 
     def get_details_widget(self):
+        self.activity_data = ActivityDataGrid()
+
         self.production = ExchangeTable(self, production=True)
         self.inputs = ExchangeTable(self)
         self.flows = ExchangeTable(self, biosphere=True)
         self.upstream = ExchangeTable(self)
 
         layout = QtWidgets.QVBoxLayout()
-        self.metadata = ActivityDataGrid()
-        layout.addWidget(self.metadata)
-
-        # splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        layout.addWidget(self.activity_data)
 
         tables = [
             (self.production, "Products:"),
@@ -51,11 +50,13 @@ class ActivityDetailsTab(QtWidgets.QWidget):
 
         return widget
 
+
     def populate(self, key):
         self.activity = bw.get_activity(key)
 
+        self.activity_data.populate(self.activity)
         self.production.set_queryset(key[0], self.activity.production())
         self.inputs.set_queryset(key[0], self.activity.technosphere())
         self.flows.set_queryset(key[0], self.activity.biosphere())
         self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
-        self.metadata.populate(self.activity)
+
