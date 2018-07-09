@@ -48,7 +48,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.button_widget.setLayout(self.button_widget_layout)
         self.button_area.setWidget(self.button_widget)
         self.button_area.setWidgetResizable(True)
-        self.button_area.setFixedHeight(45)  # This is ugly, how do we make this automatic?
+        self.button_area.setFixedHeight(44)  # This is ugly, how do we make this automatic?
         self.layout = QtWidgets.QVBoxLayout()
 
         # Generate layout & Connect
@@ -71,7 +71,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
     def createtab(self, Tabname, Widgets):
         Tabname.layout = QVBoxLayout()
         self.tabscroll = QtWidgets.QScrollArea()
-        header_height = 15
+        header_height = 17
         Widgets[0].setFixedHeight(header_height)
         if len(Widgets) == 8:
             Widgets[3].setFixedHeight(header_height)
