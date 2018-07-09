@@ -65,6 +65,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.tabwidget = QtWidgets.QGroupBox()
         self.tabwidget.setLayout(self.group)
         self.tabscroll.setWidget(self.tabwidget)
+        self.tabscroll.setWidgetResizable(True)
 
         Tabname.layout.addWidget(self.tabscroll)
         Tabname.setLayout(Tabname.layout)
