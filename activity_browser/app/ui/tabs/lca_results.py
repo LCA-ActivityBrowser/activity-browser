@@ -32,6 +32,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
 
         self.results_table = LCAResultsTable()
+        self.to_clipboard_button = QtWidgets.QPushButton('Copy')
+        self.to_csv_button = QtWidgets.QPushButton('.csv')
+        self.to_excel_button = QtWidgets.QPushButton('Excel')
 
         self.scroll_area = QtWidgets.QScrollArea()
         self.scroll_widget = QtWidgets.QWidget()
@@ -44,6 +47,8 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
 
         self.make_layout()
+        self.layout.addWidget(self.scroll_area)
+        self.scroll_area.setFixedHeight(45)
 
         self.setLayout(self.layout)
 
@@ -110,6 +115,13 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         # Create fourth tab
         self.createtab(self.tab4, [header("LCA Scores Correlation:"), horizontal_line(), self.correlation_plot])
 
+        # Create export buttons
+        self.buttons = QtWidgets.QHBoxLayout()
+        self.buttons.addWidget(self.to_clipboard_button)
+        self.buttons.addWidget(self.to_csv_button)
+        self.buttons.addWidget(self.to_excel_button)
+        self.buttons.addStretch()
+        self.scroll_widget_layout.addLayout(self.buttons)
 
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
