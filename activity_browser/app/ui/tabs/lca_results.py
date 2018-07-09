@@ -13,7 +13,7 @@ from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
 from ...signals import signals
 
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QTabWidget, QVBoxLayout, QScrollArea
+from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea
 
 
 class ImpactAssessmentTab(QtWidgets.QWidget):
@@ -23,8 +23,10 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.setVisible(False)
         self.visible = False
 
-        self.combo_LCIA_methods = QtWidgets.QComboBox()
-        self.combo_LCIA_methods.scroll = False
+        self.combo_process_cont_methods = QtWidgets.QComboBox()
+        self.combo_process_cont_methods.scroll = False
+        self.combo_flow_cont_methods = QtWidgets.QComboBox()
+        self.combo_flow_cont_methods.scroll = False
 
         self.results_plot = LCAResultsPlot(self)
         self.correlation_plot = CorrelationPlot(self)
@@ -48,7 +50,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         self.make_layout()
         self.layout.addWidget(self.scroll_area)
-        self.scroll_area.setFixedHeight(45)
+        self.scroll_area.setFixedHeight(45) # This is ugly, how do we make this automatic?
 
         self.setLayout(self.layout)
 
@@ -57,8 +59,10 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
     def connect_signals(self):
         signals.project_selected.connect(self.remove_tab)
         signals.lca_calculation.connect(self.calculate)
-        self.combo_LCIA_methods.currentTextChanged.connect(
-            lambda name: self.get_contribution_analyses(method=name))
+        self.combo_process_cont_methods.currentTextChanged.connect(
+            lambda name: self.get_process_contribution(method=name))
+        self.combo_flow_cont_methods.currentTextChanged.connect(
+            lambda name: self.get_flow_contribution(method=name))
         self.to_clipboard_button.clicked.connect(self.results_table.to_clipboard)
         self.to_csv_button.clicked.connect(self.results_table.to_csv)
         self.to_excel_button.clicked.connect(self.results_table.to_excel)
@@ -83,8 +87,6 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         Tabname.setLayout(Tabname.layout)
         return ()
 
-
-
     def make_layout(self):
     # TO-DO: make a second combobox for working in the third results tab
 
@@ -108,11 +110,11 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
                                     header("LCA Scores Table:"), self.results_table])
 
         # Create second tab
-        self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_LCIA_methods, \
+        self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_process_cont_methods, \
                                     self.process_contribution_plot])
 
         # Create third tab
-        self.createtab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(), \
+        self.createtab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(),self.combo_flow_cont_methods, \
                                    self.elementary_flow_contribution_plot])
 
         # Create fourth tab
@@ -164,12 +166,17 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         # update LCIA methods combobox
         self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
-        self.combo_LCIA_methods.clear()
-        self.combo_LCIA_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
+
+        self.combo_process_cont_methods.clear()
+        self.combo_flow_cont_methods.clear()
+        self.combo_process_cont_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
+        self.combo_flow_cont_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
         if not single_method:
-            self.combo_LCIA_methods.setVisible(True)
+            self.combo_process_cont_methods.setVisible(True)
+            self.combo_flow_cont_methods.setVisible(True)
         else:
-            self.combo_LCIA_methods.setVisible(False)
+            self.combo_process_cont_methods.setVisible(False)
+            self.combo_flow_cont_methods.setVisible(False)
 
         # PLOTS & TABLES
 
@@ -196,12 +203,18 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         self.add_tab()
 
-
-    def get_contribution_analyses(self, method=None):
+    def get_process_contribution(self, method=None):
         if not method:
             method = next(iter(self.mlca.method_dict.keys()))
         else:
             method = self.dict_LCIA_methods_str_tuples[method]
 
         self.process_contribution_plot.plot(self.mlca, method=method)
+
+    def get_flow_contribution(self, method=None):
+        if not method:
+            method = next(iter(self.mlca.method_dict.keys()))
+        else:
+            method = self.dict_LCIA_methods_str_tuples[method]
+
         self.elementary_flow_contribution_plot.plot(self.mlca, method=method)
