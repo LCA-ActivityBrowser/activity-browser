@@ -96,7 +96,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         # Create second tab
         self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_LCIA_methods, \
-                                    self.process_contribution_plot])
+                                    self.process_contribution_plot, header("\n\n\n\n")])
 
         # Create third tab
         self.createtab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(), \
