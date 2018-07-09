@@ -59,6 +59,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         signals.lca_calculation.connect(self.calculate)
         self.combo_LCIA_methods.currentTextChanged.connect(
             lambda name: self.get_contribution_analyses(method=name))
+        self.to_clipboard_button.clicked.connect(self.results_table.to_clipboard)
+        self.to_csv_button.clicked.connect(self.results_table.to_csv)
+        self.to_excel_button.clicked.connect(self.results_table.to_excel)
 
     def createtab(self, Tabname, Widgets):
         Tabname.layout = QVBoxLayout()
@@ -126,6 +129,13 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
+
+        self.buttons = QtWidgets.QHBoxLayout()
+        self.buttons.addWidget(self.to_clipboard_button)
+        self.buttons.addWidget(self.to_csv_button)
+        self.buttons.addWidget(self.to_excel_button)
+        self.buttons.addStretch()
+        self.scroll_widget_layout.addLayout(self.buttons)
 
     def add_tab(self):
         if not self.visible:

@@ -3,9 +3,9 @@ import brightway2 as bw
 from PyQt5 import QtWidgets, QtGui
 import os
 
-from ...bwutils import commontasks as bc
-from ...signals import signals
-from ...settings import ab_settings
+from activity_browser.app.bwutils import commontasks as bc
+from activity_browser.app.signals import signals
+from activity_browser.app.settings import ab_settings
 
 
 class SettingsWizard(QtWidgets.QWizard):
