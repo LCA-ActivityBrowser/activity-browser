@@ -23,35 +23,36 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.setVisible(False)
         self.visible = False
 
+        # Comboboxes
         self.combo_process_cont_methods = QtWidgets.QComboBox()
         self.combo_process_cont_methods.scroll = False
         self.combo_flow_cont_methods = QtWidgets.QComboBox()
         self.combo_flow_cont_methods.scroll = False
 
+        # Plots & Table
         self.results_plot = LCAResultsPlot(self)
         self.correlation_plot = CorrelationPlot(self)
         self.process_contribution_plot = ProcessContributionPlot(self)
         self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
-
         self.results_table = LCAResultsTable()
+
+        # Buttons
         self.to_clipboard_button = QtWidgets.QPushButton('Copy')
         self.to_csv_button = QtWidgets.QPushButton('.csv')
         self.to_excel_button = QtWidgets.QPushButton('Excel')
 
-        self.scroll_area = QtWidgets.QScrollArea()
-        self.scroll_widget = QtWidgets.QWidget()
-        self.scroll_widget_layout = QtWidgets.QVBoxLayout()
+        self.button_area = QtWidgets.QScrollArea()
+        self.button_widget = QtWidgets.QWidget()
+        self.button_widget_layout = QtWidgets.QVBoxLayout()
 
-        self.scroll_widget.setLayout(self.scroll_widget_layout)
-        self.scroll_area.setWidget(self.scroll_widget)
-        self.scroll_area.setWidgetResizable(True)
-
+        self.button_widget.setLayout(self.button_widget_layout)
+        self.button_area.setWidget(self.button_widget)
+        self.button_area.setWidgetResizable(True)
+        self.button_area.setFixedHeight(45)  # This is ugly, how do we make this automatic?
         self.layout = QtWidgets.QVBoxLayout()
 
+        # Generate layout & Connect
         self.make_layout()
-        self.layout.addWidget(self.scroll_area)
-        self.scroll_area.setFixedHeight(45) # This is ugly, how do we make this automatic?
-
         self.setLayout(self.layout)
 
         self.connect_signals()
@@ -72,8 +73,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.tabscroll = QtWidgets.QScrollArea()
         header_height = 15
         Widgets[0].setFixedHeight(header_height)
-        if len(Widgets) == 5:
+        if len(Widgets) == 8:
             Widgets[3].setFixedHeight(header_height)
+            Widgets[6].setFixedHeight(header_height)
 
         self.group = QVBoxLayout()
         for i in Widgets:
@@ -88,7 +90,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         return ()
 
     def make_layout(self):
-    # TO-DO: make a second combobox for working in the third results tab
+    # TO-DO: get buttons out of the Q(H/V?)box
 
         # Initialize tabs as layouts
         self.tabs = QTabWidget()
@@ -105,9 +107,19 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.tabs.addTab(self.tab3, "Elementary Flow Contributions")
         self.tabs.addTab(self.tab4, "Correlations")
 
+        # Create export buttons
+        self.buttons = QtWidgets.QHBoxLayout()
+        self.buttons.addWidget(self.to_clipboard_button)
+        self.buttons.addWidget(self.to_csv_button)
+        self.buttons.addWidget(self.to_excel_button)
+        self.buttons.addStretch()
+
+        self.button_widget_layout.addLayout(self.buttons)
+
         # Create first tab
         self.createtab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
-                                    header("LCA Scores Table:"), self.results_table])
+                                    header("LCA Scores Table:"), self.results_table, horizontal_line(), \
+                                    header("Export"), self.button_area])
 
         # Create second tab
         self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_process_cont_methods, \
@@ -120,24 +132,8 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         # Create fourth tab
         self.createtab(self.tab4, [header("LCA Scores Correlation:"), horizontal_line(), self.correlation_plot])
 
-        # Create export buttons
-        self.buttons = QtWidgets.QHBoxLayout()
-        self.buttons.addWidget(self.to_clipboard_button)
-        self.buttons.addWidget(self.to_csv_button)
-        self.buttons.addWidget(self.to_excel_button)
-        self.buttons.addStretch()
-        self.scroll_widget_layout.addLayout(self.buttons)
-
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
-        self.setLayout(self.layout)
-
-        self.buttons = QtWidgets.QHBoxLayout()
-        self.buttons.addWidget(self.to_clipboard_button)
-        self.buttons.addWidget(self.to_csv_button)
-        self.buttons.addWidget(self.to_excel_button)
-        self.buttons.addStretch()
-        self.scroll_widget_layout.addLayout(self.buttons)
 
     def add_tab(self):
         if not self.visible:
