@@ -41,6 +41,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.to_csv_button = QtWidgets.QPushButton('.csv')
         self.to_excel_button = QtWidgets.QPushButton('Excel')
 
+        self.to_png_button = QtWidgets.QPushButton('png')
+        self.to_svg_button = QtWidgets.QPushButton('svg')
+
         self.button_area = QtWidgets.QScrollArea()
         self.button_widget = QtWidgets.QWidget()
         self.button_widget_layout = QtWidgets.QVBoxLayout()
@@ -67,6 +70,8 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.to_clipboard_button.clicked.connect(self.results_table.to_clipboard)
         self.to_csv_button.clicked.connect(self.results_table.to_csv)
         self.to_excel_button.clicked.connect(self.results_table.to_excel)
+        self.to_png_button.clicked.connect(self.results_plot.to_png)
+        self.to_svg_button.clicked.connect(self.results_plot.to_svg)
 
     def createtab(self, Tabname, Widgets):
         Tabname.layout = QVBoxLayout()
@@ -112,6 +117,8 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.buttons.addWidget(self.to_clipboard_button)
         self.buttons.addWidget(self.to_csv_button)
         self.buttons.addWidget(self.to_excel_button)
+        self.buttons.addWidget(self.to_png_button)
+        self.buttons.addWidget(self.to_svg_button)
         self.buttons.addStretch()
 
         self.button_widget_layout.addLayout(self.buttons)
@@ -160,7 +167,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         single_lca = len(self.mlca.func_units) == 1
         single_method = len(self.mlca.methods) == 1
 
-        # update LCIA methods combobox
+        # update process and elementary flow contribution combo boxes
         self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
         self.combo_process_cont_methods.clear()
