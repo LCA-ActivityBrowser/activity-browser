@@ -58,6 +58,10 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
     def createtab(self, Tabname, Widgets):
         Tabname.layout = QVBoxLayout()
         self.tabscroll = QtWidgets.QScrollArea()
+        header_height = 15
+        Widgets[0].setFixedHeight(header_height)
+        if len(Widgets) == 5:
+            Widgets[3].setFixedHeight(header_height)
 
         self.group = QVBoxLayout()
         for i in Widgets:
@@ -93,7 +97,7 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         # Create first tab
         self.createtab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
-                                    header("\n\n\n\nLCA Scores Table:"), self.results_table])
+                                    header("LCA Scores Table:"), self.results_table])
 
         # Create second tab
         self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_LCIA_methods, \

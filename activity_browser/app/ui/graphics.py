@@ -25,6 +25,7 @@ class Plot(QtWidgets.QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
+
     def get_canvas_size_in_inches(self):
         print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
