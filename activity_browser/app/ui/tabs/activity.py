@@ -7,6 +7,21 @@ from ..widgets import ActivityDataGrid, DetailsGroupBox
 
 
 class ActivityDetailsTab(QtWidgets.QWidget):
+    """The data relating to Brightway activities can be viewed and edited through this panel interface
+    The interface is a GUI representation of the standard activity data format as determined by Brightway
+    This is necessitated as AB does not save its own data structures to disk
+    Data format documentation is under the heading "The schema for an LCI dataset in voluptuous is:" at this link:
+    https://docs.brightwaylca.org/intro.html#database-is-a-subclass-of-datastore
+    Note that all activity data are optional.
+    When activities contain exchanges, some fields are required (input, type, amount)
+    Each exchange has a type: production, substitution, technosphere, or biosphere
+    AB does not yet support 'substitution'. Other exchange types are shown in separate columns on this interface
+    Required and other common exchange data fields are hardcoded as column headers in these tables
+    More detail available at: https://docs.brightwaylca.org/intro.html#exchange-data-format
+    The technosphere products (first table) of the visible activity are consumed by other activities downstream
+    The final table of this tab lists these 'Downstream Consumers'
+    """
+
     def __init__(self, parent=None, activity=None):
         super(ActivityDetailsTab, self).__init__(parent)
         self.parent = parent
