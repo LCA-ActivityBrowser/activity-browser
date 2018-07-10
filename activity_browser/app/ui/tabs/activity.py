@@ -40,10 +40,10 @@ class ActivityDetailsTab(QtWidgets.QWidget):
     def get_details_widget(self):
         self.activity_data = ActivityDataGrid()
 
-        self.production = ExchangeTable(self, production=True)
-        self.inputs = ExchangeTable(self)
-        self.flows = ExchangeTable(self, biosphere=True)
-        self.upstream = ExchangeTable(self)
+        self.production = ExchangeTable(self, tableType="products")
+        self.inputs = ExchangeTable(self, tableType="technosphere")
+        self.flows = ExchangeTable(self, tableType="biosphere")
+        self.upstream = ExchangeTable(self, tableType="technosphere")
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.activity_data)

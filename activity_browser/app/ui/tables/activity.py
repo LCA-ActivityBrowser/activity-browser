@@ -9,7 +9,7 @@ from ...signals import signals
 
 
 class ExchangeTable(ABTableWidget):
-    COLUMN_LABELS = {
+    COLUMN_LABELS = { # (biosphere, production)
         # Products
         (False, True): ["Amount", "Unit", "Product", "Activity",
                         "Location", "Database", "Uncertain"],
@@ -17,17 +17,23 @@ class ExchangeTable(ABTableWidget):
         (False, False): ["Amount", "Unit", "Product", "Activity",
                          "Location", "Database", "Uncertain", "Formula"],
         # Biosphere
-        (True, False): ["Amount", "Unit", "Name", "Categories", "Database", "Uncertain"],
+        (True, False): ["Amount", "Unit", "Name", "Compartments", "Database", "Uncertain"],
     }
 
-    def __init__(self, parent, biosphere=False, production=False):
+    COLUMN_LABELS2 = {
+        # {exchangeTableName: headers}
+        "products": ["Amount", "Unit", "Name", "Location"],
+        # technosphere & downstream consumers
+        "technosphere": ["Amount", "Unit", "Name", "Uncertainty", "Database"],
+        "biosphere": ["Amount", "Unit", "Name", "Compartments", "Uncertainty", "Database"],
+    }
+    def __init__(self, parent, tableType):
         super(ExchangeTable, self).__init__()
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
-        self.biosphere = biosphere
-        self.production = production
-        self.column_labels = self.COLUMN_LABELS[(biosphere, production)]
+        self.tableType = tableType
+        self.column_labels = self.COLUMN_LABELS2[self.tableType]
         self.setColumnCount(len(self.column_labels))
         self.qs, self.upstream, self.database = None, False, None
         self.ignore_changes = False
@@ -99,7 +105,7 @@ class ExchangeTable(ABTableWidget):
 
     def filter_clicks(self, row, col):
         item = self.item(row, col)
-        if self.biosphere or self.production or (item.flags() & QtCore.Qt.ItemIsEditable):
+        if self.tableType == "products" or self.tableType == "biosphere" or (item.flags() & QtCore.Qt.ItemIsEditable):
             return
 
         if hasattr(item, "exchange"):
@@ -132,7 +138,41 @@ class ExchangeTable(ABTableWidget):
 
             edit_flag = [QtCore.Qt.ItemIsEditable]
 
-            if self.biosphere:  #"Amount", "Unit", "Name", "Categories", "Database", "Uncertain"
+            if self.tableType == "products":  # "Amount", "Unit", "Name", "Location"
+                self.setItem(row, 0, ABTableItem(
+                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+
+                self.setItem(row, 1, ABTableItem(
+                    act.get('unit', 'Unknown'), color="unit"))
+
+                self.setItem(row, 2, ABTableItem(
+                    act.get('reference product') or act.get("name") if self.upstream else
+                    exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
+                    exchange=exc, color="reference product"))
+
+                self.setItem(row, 4, ABTableItem(
+                    act.get('location', 'Unknown'), color="location"))
+
+            elif self.tableType == "technosphere":  # "Amount", "Unit", "Name", "Uncertainty", "Database",
+                self.setItem(row, 0, ABTableItem(
+                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+
+                self.setItem(row, 1, ABTableItem(
+                    act.get('unit', 'Unknown'), color="unit"))
+
+                self.setItem(row, 2, ABTableItem(
+                    act.get('reference product') or act.get("name") if self.upstream else
+                    exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
+                    exchange=exc, color="reference product"))
+
+                self.setItem(row, 3, ABTableItem(
+                    "True" if exc.get("uncertainty type", 0) > 1 else "False"
+                ))
+
+                self.setItem(row, 4, ABTableItem(
+                    act.get('database'), color="database"))
+
+            elif self.tableType == "biosphere":  # "Amount", "Unit", "Name", "Compartments", "Uncertainty", "Database"
                 self.setItem(row, 0, ABTableItem(
                     "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
@@ -146,37 +186,10 @@ class ExchangeTable(ABTableWidget):
                     " - ".join(act.get('categories', [])), color="categories"))
 
                 self.setItem(row, 4, ABTableItem(
-                    act.get('database'), color="database"))
-
-                self.setItem(row, 5, ABTableItem(
-                    "True" if exc.get("uncertainty type", 0) > 1 else "False"
-                ))
-
-            else:  # ["Amount", "Unit", "Product", "Activity", "Location", "Database", "Uncertain", "Formula"]
-                self.setItem(row, 0, ABTableItem(
-                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
-
-                self.setItem(row, 1, ABTableItem(
-                    act.get('unit', 'Unknown'), color="unit"))
-
-                self.setItem(row, 2, ABTableItem(
-                    act.get('reference product') or act.get("name") if self.upstream else
-                    exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
-                    exchange=exc, color="reference product"))
-
-                self.setItem(row, 3, ABTableItem(
-                    act.get('name'), exchange=exc, color="name"))
-
-                self.setItem(row, 4, ABTableItem(
-                    act.get('location', 'Unknown'), color="location"))
-
-                self.setItem(row, 5, ABTableItem(
-                    act.get('database'), color="database"))
-
-                self.setItem(row, 6, ABTableItem(
                     "True" if exc.get("uncertainty type", 0) > 1 else "False"))
 
-                self.setItem(row, 7, ABTableItem(
-                    exc.get('formula', '')))
+                self.setItem(row, 5, ABTableItem(
+                    act.get('database'), color="database"))
+
 
         self.ignore_changes = False
