@@ -25,6 +25,11 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
 
 
 class ActivityDataGrid(QtWidgets.QWidget):
+    """ Displayed at the top of each activity panel to show the user basic data related to the activity
+    Expects to find the following data for each activity displayed: name, location, database, comment
+    Exchange data is displayed separately, below this grid, in tables.
+    Includes the read-only checkbox which enables or disables user-editing of some activity and exchange data
+    """
     def __init__(self, parent=None, activity=None):
         super(ActivityDataGrid, self).__init__(parent)
         self.activity = activity
