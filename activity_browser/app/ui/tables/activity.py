@@ -126,7 +126,6 @@ class ExchangeTable(ABTableWidget):
 
         for row, exc in enumerate(self.qs):
             act = exc.output if self.upstream else exc.input
-            direction = "up" if self.upstream else "down"
             if row == limit:
                 # todo: use table paging rather than a hard limit
                 break
@@ -138,7 +137,7 @@ class ExchangeTable(ABTableWidget):
                                                  set_flags=edit_flag, color="amount"))
                 self.setItem(row, 1, ABTableItem(act.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(
-                    act.get('name'), exchange=exc, direction=direction, color="name"
+                    act.get('name'), exchange=exc, color="name"
                 ))
                 self.setItem(row, 3, ABTableItem(
                     " - ".join(act.get('categories', [])), color="categories"
@@ -155,10 +154,10 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 2, ABTableItem(
                     act.get('reference product') or act.get("name") if self.upstream else
                     exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
-                    exchange=exc, direction=direction, color="reference product"
+                    exchange=exc, color="reference product"
                 ))
                 self.setItem(row, 3, ABTableItem(
-                    act.get('name'), exchange=exc, direction=direction, color="name")
+                    act.get('name'), exchange=exc, color="name")
                 )
                 self.setItem(row, 4, ABTableItem(act.get('location', 'Unknown'), color="location"))
                 self.setItem(row, 5, ABTableItem(act.get('database'), color="database"))

@@ -10,7 +10,7 @@ class ABTableItem(QtWidgets.QTableWidgetItem):
 
         self.previous = text  # for going back to this value if the new text does not make sense
 
-        # assign attributes, e.g. "database", "key", "exchange", "direction", "editable"
+        # assign attributes, e.g. "database", "key", "exchange", "editable"
         for k, v in kwargs.items():
             setattr(self, k, v)
 
