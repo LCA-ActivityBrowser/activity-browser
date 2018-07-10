@@ -40,6 +40,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
         # same in all tables:
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setSortingEnabled(True)
+        self.verticalHeader().setVisible(False)
         # self.setSizePolicy(QtWidgets.QSizePolicy(
         #     QtWidgets.QSizePolicy.Preferred,
         #     QtWidgets.QSizePolicy.Maximum)
