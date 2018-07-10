@@ -73,6 +73,9 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.button_area.setWidgetResizable(True)
         self.button_area.setFixedHeight(44)  # This is ugly, how do we make this automatic?
         self.layout = QtWidgets.QVBoxLayout()
+        
+        # Testing
+        self.b_group = QtWidgets.QVBoxLayout()
 
         # Generate layout & Connect
         self.make_layout()
@@ -115,6 +118,32 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         tab_name.setLayout(tab_name.layout)
         return ()
 
+    def generate_tab(self, tab_name, Widgets, button_set):
+        tab_name.layout = QVBoxLayout()
+        self.tabscroll = QtWidgets.QVBoxLayout()
+
+        # Add widgets
+        self.w_group = QVBoxLayout()
+        for i in Widgets:
+            self.w_group.addWidget(i)
+
+        # Add buttons
+        self.b_group_layout = QtWidgets.QHBoxLayout()
+        for i in button_set:
+            self.b_group_layout.addWidget(i)
+        self.b_group_layout.addStretch()
+        self.b_group.addLayout(self.b_group_layout)
+
+        if len(Widgets) > 0:
+            self.tabscroll.addWidget(self.w_group)
+        if len(button_set) > 0:
+            self.tabscroll.addWidget(self.b_group_layout)
+
+        self.tabscroll.setWidgetResizable(True)
+
+        tab_name.layout.addWidget(self.tabscroll)
+        tab_name.setLayout(tab_name.layout)
+
     def make_layout(self):
         # Create export buttons
         self.buttons = QtWidgets.QHBoxLayout()
@@ -131,6 +160,11 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.create_tab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
                                     header("LCA Scores Table:"), self.results_table, horizontal_line(), \
                                     header("Export"), self.button_area])
+        """
+
+        self.generate_tab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
+                                    header("LCA Scores Table:"), self.results_table, horizontal_line(), \
+                                    header("Export"), self.button_area], [self.to_clipboard_button, self.to_csv_button])"""
 
         # Create second tab
         self.create_tab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_process_cont_methods, \
