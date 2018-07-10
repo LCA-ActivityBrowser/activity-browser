@@ -10,10 +10,10 @@ from ...signals import signals
 
 class ExchangeTable(ABTableWidget):
     COLUMN_LABELS = {
-        # Production
+        # Products
         (False, True): ["Amount", "Unit", "Product", "Activity",
                         "Location", "Database", "Uncertain"],
-        # Normal technosphere
+        # technosphere & downstream consumers
         (False, False): ["Amount", "Unit", "Product", "Activity",
                          "Location", "Database", "Uncertain", "Formula"],
         # Biosphere
@@ -125,47 +125,43 @@ class ExchangeTable(ABTableWidget):
             self.setAcceptDrops(False)
 
         for row, exc in enumerate(self.qs):
-            obj = exc.output if self.upstream else exc.input
+            act = exc.output if self.upstream else exc.input
             direction = "up" if self.upstream else "down"
             if row == limit:
+                # todo: use table paging rather than a hard limit
                 break
 
             edit_flag = [QtCore.Qt.ItemIsEditable]
 
-            self.setItem(row, 3, ABTableItem(obj.get('database')))
-            self.setItem(row, 5, ABTableItem(
-                "True" if exc.get("uncertainty type", 0) > 1 else "False"
-            ))
-
-            if self.biosphere:  # "Name", "Amount", "Unit", "Database", "Categories", "Uncertain"
+            if self.biosphere:  #"Amount", "Unit", "Name", "Categories", "Database", "Uncertain"
                 self.setItem(row, 0, ABTableItem("{:.4g}".format(exc.get('amount')), exchange=exc,
                                                  set_flags=edit_flag, color="amount"))
-                self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 1, ABTableItem(act.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(
-                    obj.get('name'), exchange=exc, direction=direction, color="name"
+                    act.get('name'), exchange=exc, direction=direction, color="name"
                 ))
                 self.setItem(row, 3, ABTableItem(
-                    " - ".join(obj.get('categories', [])), color="categories"
+                    " - ".join(act.get('categories', [])), color="categories"
                 ))
-                self.setItem(row, 4, ABTableItem(obj.get('database'), color="database"))
+                self.setItem(row, 4, ABTableItem(act.get('database'), color="database"))
                 self.setItem(row, 5, ABTableItem(
                     "True" if exc.get("uncertainty type", 0) > 1 else "False"
                 ))
 
-            else:  # "Activity", "Product", "Amount", "Database", "Location", "Unit", "Uncertain", "Formula"
+            else:  # ["Amount", "Unit", "Product", "Activity", "Location", "Database", "Uncertain", "Formula"]
                 self.setItem(row, 0, ABTableItem("{:.4g}".format(exc.get('amount')), exchange=exc,
                                                  set_flags=edit_flag, color="amount"))
-                self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 1, ABTableItem(act.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(
-                    obj.get('reference product') or obj.get("name") if self.upstream else
+                    act.get('reference product') or act.get("name") if self.upstream else
                     exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
                     exchange=exc, direction=direction, color="reference product"
                 ))
                 self.setItem(row, 3, ABTableItem(
-                    obj.get('name'), exchange=exc, direction=direction, color="name")
+                    act.get('name'), exchange=exc, direction=direction, color="name")
                 )
-                self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown'), color="location"))
-                self.setItem(row, 5, ABTableItem(obj.get('database'), color="database"))
+                self.setItem(row, 4, ABTableItem(act.get('location', 'Unknown'), color="location"))
+                self.setItem(row, 5, ABTableItem(act.get('database'), color="database"))
                 self.setItem(row, 6, ABTableItem(
                     "True" if exc.get("uncertainty type", 0) > 1 else "False")
                 )
