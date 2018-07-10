@@ -49,10 +49,10 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.name_box.setPlaceholderText("Activity name")
         grid.addWidget(self.name_box, 1, 2, 1, 3)
 
+        # checkbox for enabling editing of activity, default=read-only
+        # lambda for user-check defined in Populate function, after required variables in scope
         self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
-        # todo: edit click lambda with db_name and act_code variables - how to access them from here?
-        # 'Populate' with data needed first. Can the lambda be created before the variables are in scope?
-        #self.read_only_ch.clicked.connect(lambda checked, db_name=db_name, act_code=act_code: self.readOnlyStateChanged(checked, db_name, act_code))
+        self.read_only_ch.setChecked(True)
 
         grid.addWidget(self.read_only_ch, 1, 5)
         #improvement todo: location to be selectable from dropdown rather than free-text
@@ -89,6 +89,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
     def populate(self, activity=None):
         if activity:
             self.activity = activity
+
+        self.read_only_ch.clicked.connect(
+            lambda checked, key=self.activity.key: self.readOnlyStateChanged(checked, key))
         self.database.setText(self.activity['database'])
         self.name_box.setText(self.activity['name'])
         self.name_box._key = self.activity.key
@@ -100,11 +103,15 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.comment_groupbox.setToolTip(
             '<font>{}</font>'.format(self.comment_box.toPlainText())
         )
-        # print("Commentbox Width/Height: {}/{}".format(self.comment_box.width(), self.comment_box.width()))
         self.comment_box._before = self.activity.get('comment', '')
         self.comment_box._key = self.activity.key
         self.comment_box.adjust_size()
-        # print("Commentbox Width/Height: {}/{}".format(self.comment_box.width(), self.comment_box.height()))
-        # print("Activity Grid Width/Height: {}/{}".format(self.width(), self.height()))
-        # self.unit_box.setText(self.activity.get('unit', ''))
-        # self.unit_box._key = self.activity.key
+
+    def readOnlyStateChanged(self, checked, key):
+        """
+        When checked=False specific data fields in the tables below become editable
+        When checked=True these same fields become read-only
+        """
+        print("ro state change hit for:", checked, key)
+
+        #
