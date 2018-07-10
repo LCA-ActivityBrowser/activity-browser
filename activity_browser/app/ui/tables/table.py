@@ -52,11 +52,13 @@ class ABTableWidget(QtWidgets.QTableWidget):
         def wrapper(self, *args, **kwargs):
             # before making the table
             self.clear()
+            self.setSortingEnabled(False)
             # the actual sync
             sync(self, *args, **kwargs)
             # after syncing
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
+            self.setSortingEnabled(True)
             if self.rowCount() > 0:
                 self.setMaximumHeight(
                     self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()

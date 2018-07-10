@@ -29,6 +29,27 @@ class Plot(QtWidgets.QWidget):
         print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
+    def savefilepath(self):
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            'Choose location to save lca results'
+        )
+        return filepath
+
+    def to_png(self):
+        filepath = self.savefilepath()
+        if filepath:
+            if not filepath.endswith('.png'):
+                filepath += '.png'
+            self.figure.savefig(filepath)
+
+    def to_svg(self):
+        filepath = self.savefilepath()
+        if filepath:
+            if not filepath.endswith('.svg'):
+                filepath += '.svg'
+            self.figure.savefig(filepath)
+
 class CorrelationPlot(Plot):
     def __init__(self, parent=None, *args):
         super(CorrelationPlot, self).__init__(parent, *args)

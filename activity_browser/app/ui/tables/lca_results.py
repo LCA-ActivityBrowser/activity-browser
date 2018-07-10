@@ -1,35 +1,16 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
 from brightway2 import get_activity
-from PyQt5 import QtCore, QtWidgets
 
-from . table import ABTableWidget
-
-
-class ReadOnlyItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, *args):
-        super(ReadOnlyItem, self).__init__(*args)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+from .dataframe_table import ABDataFrameTable
 
 
-class LCAResultsTable(ABTableWidget):
-    """ Displays total LCA scores for multiple functional units and LCIA methods. """
-
-    @ABTableWidget.decorated_sync
+class LCAResultsTable(ABDataFrameTable):
+    @ABDataFrameTable.decorated_sync
     def sync(self, lca):
-        self.setColumnCount(len(lca.methods))
-        self.setRowCount(len(lca.func_units))
-
-        col_labels = ["-".join(x) for x in lca.methods]
+        col_labels = [" | ".join(x) for x in lca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
-        self.setHorizontalHeaderLabels(col_labels)
-        self.setVerticalHeaderLabels(row_labels)
-
-        for row in range(len(lca.func_units)):
-            for col in range(len(lca.methods)):
-                self.setItem(row, col, ReadOnlyItem("{:.4g}".format(lca.results[row, col])))
-
-        # ensure minimum height as it gets too small otherwise
-        self.setMinimumHeight(self.rowHeight(0) * self.rowCount() + self.autoScrollMargin() + 5)
+        self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
 
         # smooth scrolling instead of jumping from cell to cell
         self.setVerticalScrollMode(1)

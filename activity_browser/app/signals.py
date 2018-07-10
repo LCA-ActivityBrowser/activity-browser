@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
 
 
 class Signals(QtCore.QObject):
@@ -17,7 +17,7 @@ class Signals(QtCore.QObject):
 
     # Project
     change_project = QtCore.pyqtSignal(str)
-    change_project_dialogue = QtCore.pyqtSignal()
+    change_project_dialog = QtCore.pyqtSignal()
     new_project = QtCore.pyqtSignal()
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
@@ -54,8 +54,9 @@ class Signals(QtCore.QObject):
 
     # Calculation Setups
     new_calculation_setup = QtCore.pyqtSignal()
-    delete_calculation_setup = QtCore.pyqtSignal()
-    rename_calculation_setup = QtCore.pyqtSignal()
+    delete_calculation_setup = QtCore.pyqtSignal(str)
+    rename_calculation_setup = QtCore.pyqtSignal(str)
+    set_default_calculation_setup = QtCore.pyqtSignal()
 
     calculation_setup_changed = QtCore.pyqtSignal()
     calculation_setup_selected = QtCore.pyqtSignal(str)
@@ -65,6 +66,9 @@ class Signals(QtCore.QObject):
 
     method_selected = QtCore.pyqtSignal(tuple)
     method_tabs_changed = QtCore.pyqtSignal()
+
+    # Qt Windows
+    update_windows = QtCore.pyqtSignal()
 
 
 signals = Signals()

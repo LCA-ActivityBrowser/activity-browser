@@ -13,7 +13,7 @@ from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
 from ...signals import signals
 
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QTabWidget, QVBoxLayout, QScrollArea
+from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea
 
 
 class ImpactAssessmentTab(QtWidgets.QWidget):
@@ -23,28 +23,39 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.setVisible(False)
         self.visible = False
 
-        self.combo_LCIA_methods = QtWidgets.QComboBox()
-        self.combo_LCIA_methods.scroll = False
+        # Comboboxes
+        self.combo_process_cont_methods = QtWidgets.QComboBox()
+        self.combo_process_cont_methods.scroll = False
+        self.combo_flow_cont_methods = QtWidgets.QComboBox()
+        self.combo_flow_cont_methods.scroll = False
 
+        # Plots & Table
         self.results_plot = LCAResultsPlot(self)
         self.correlation_plot = CorrelationPlot(self)
         self.process_contribution_plot = ProcessContributionPlot(self)
         self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
-
         self.results_table = LCAResultsTable()
 
-        self.scroll_area = QtWidgets.QScrollArea()
-        self.scroll_widget = QtWidgets.QWidget()
-        self.scroll_widget_layout = QtWidgets.QVBoxLayout()
+        # Buttons
+        self.to_clipboard_button = QtWidgets.QPushButton('Copy')
+        self.to_csv_button = QtWidgets.QPushButton('.csv')
+        self.to_excel_button = QtWidgets.QPushButton('Excel')
 
-        self.scroll_widget.setLayout(self.scroll_widget_layout)
-        self.scroll_area.setWidget(self.scroll_widget)
-        self.scroll_area.setWidgetResizable(True)
+        self.to_png_button = QtWidgets.QPushButton('png')
+        self.to_svg_button = QtWidgets.QPushButton('svg')
 
+        self.button_area = QtWidgets.QScrollArea()
+        self.button_widget = QtWidgets.QWidget()
+        self.button_widget_layout = QtWidgets.QVBoxLayout()
+
+        self.button_widget.setLayout(self.button_widget_layout)
+        self.button_area.setWidget(self.button_widget)
+        self.button_area.setWidgetResizable(True)
+        self.button_area.setFixedHeight(44)  # This is ugly, how do we make this automatic?
         self.layout = QtWidgets.QVBoxLayout()
 
+        # Generate layout & Connect
         self.make_layout()
-
         self.setLayout(self.layout)
 
         self.connect_signals()
@@ -52,12 +63,24 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
     def connect_signals(self):
         signals.project_selected.connect(self.remove_tab)
         signals.lca_calculation.connect(self.calculate)
-        self.combo_LCIA_methods.currentTextChanged.connect(
-            lambda name: self.get_contribution_analyses(method=name))
+        self.combo_process_cont_methods.currentTextChanged.connect(
+            lambda name: self.get_process_contribution(method=name))
+        self.combo_flow_cont_methods.currentTextChanged.connect(
+            lambda name: self.get_flow_contribution(method=name))
+        self.to_clipboard_button.clicked.connect(self.results_table.to_clipboard)
+        self.to_csv_button.clicked.connect(self.results_table.to_csv)
+        self.to_excel_button.clicked.connect(self.results_table.to_excel)
+        self.to_png_button.clicked.connect(self.results_plot.to_png)
+        self.to_svg_button.clicked.connect(self.results_plot.to_svg)
 
     def createtab(self, Tabname, Widgets):
         Tabname.layout = QVBoxLayout()
         self.tabscroll = QtWidgets.QScrollArea()
+        header_height = 17
+        Widgets[0].setFixedHeight(header_height)
+        if len(Widgets) == 8:
+            Widgets[3].setFixedHeight(header_height)
+            Widgets[6].setFixedHeight(header_height)
 
         self.group = QVBoxLayout()
         for i in Widgets:
@@ -65,15 +88,14 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.tabwidget = QtWidgets.QGroupBox()
         self.tabwidget.setLayout(self.group)
         self.tabscroll.setWidget(self.tabwidget)
+        self.tabscroll.setWidgetResizable(True)
 
         Tabname.layout.addWidget(self.tabscroll)
         Tabname.setLayout(Tabname.layout)
         return ()
 
-
-
     def make_layout(self):
-    # TO-DO: make a second combobox for working in the third results tab
+    # TO-DO: get buttons out of the Q(H/V?)box
 
         # Initialize tabs as layouts
         self.tabs = QTabWidget()
@@ -90,25 +112,35 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.tabs.addTab(self.tab3, "Elementary Flow Contributions")
         self.tabs.addTab(self.tab4, "Correlations")
 
+        # Create export buttons
+        self.buttons = QtWidgets.QHBoxLayout()
+        self.buttons.addWidget(self.to_clipboard_button)
+        self.buttons.addWidget(self.to_csv_button)
+        self.buttons.addWidget(self.to_excel_button)
+        self.buttons.addWidget(self.to_png_button)
+        self.buttons.addWidget(self.to_svg_button)
+        self.buttons.addStretch()
+
+        self.button_widget_layout.addLayout(self.buttons)
+
         # Create first tab
         self.createtab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
-                                    header("\n\n\n\nLCA Scores Table:"), self.results_table])
+                                    header("LCA Scores Table:"), self.results_table, horizontal_line(), \
+                                    header("Export"), self.button_area])
 
         # Create second tab
-        self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_LCIA_methods, \
-                                    self.process_contribution_plot, header("\n\n\n\n")])
+        self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_process_cont_methods, \
+                                    self.process_contribution_plot])
 
         # Create third tab
-        self.createtab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(), \
+        self.createtab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(),self.combo_flow_cont_methods, \
                                    self.elementary_flow_contribution_plot])
 
         # Create fourth tab
         self.createtab(self.tab4, [header("LCA Scores Correlation:"), horizontal_line(), self.correlation_plot])
 
-
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
-        self.setLayout(self.layout)
 
     def add_tab(self):
         if not self.visible:
@@ -135,14 +167,19 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         single_lca = len(self.mlca.func_units) == 1
         single_method = len(self.mlca.methods) == 1
 
-        # update LCIA methods combobox
+        # update process and elementary flow contribution combo boxes
         self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
-        self.combo_LCIA_methods.clear()
-        self.combo_LCIA_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
+
+        self.combo_process_cont_methods.clear()
+        self.combo_flow_cont_methods.clear()
+        self.combo_process_cont_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
+        self.combo_flow_cont_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
         if not single_method:
-            self.combo_LCIA_methods.setVisible(True)
+            self.combo_process_cont_methods.setVisible(True)
+            self.combo_flow_cont_methods.setVisible(True)
         else:
-            self.combo_LCIA_methods.setVisible(False)
+            self.combo_process_cont_methods.setVisible(False)
+            self.combo_flow_cont_methods.setVisible(False)
 
         # PLOTS & TABLES
 
@@ -169,12 +206,18 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
 
         self.add_tab()
 
-
-    def get_contribution_analyses(self, method=None):
+    def get_process_contribution(self, method=None):
         if not method:
             method = next(iter(self.mlca.method_dict.keys()))
         else:
             method = self.dict_LCIA_methods_str_tuples[method]
 
         self.process_contribution_plot.plot(self.mlca, method=method)
+
+    def get_flow_contribution(self, method=None):
+        if not method:
+            method = next(iter(self.mlca.method_dict.keys()))
+        else:
+            method = self.dict_LCIA_methods_str_tuples[method]
+
         self.elementary_flow_contribution_plot.plot(self.mlca, method=method)

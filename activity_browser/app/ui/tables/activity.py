@@ -33,6 +33,11 @@ class ExchangeTable(ABTableWidget):
         self.ignore_changes = False
         self.setup_context_menu()
         self.connect_signals()
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
 
     def setup_context_menu(self):
         self.delete_exchange_action = QtWidgets.QAction(
@@ -152,8 +157,9 @@ class ExchangeTable(ABTableWidget):
                                                  set_flags=edit_flag, color="amount"))
                 self.setItem(row, 1, ABTableItem(obj.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(
-                    obj.get('reference product') or obj.get("name"), exchange=exc,
-                    direction=direction, color="reference product"
+                    obj.get('reference product') or obj.get("name") if self.upstream else
+                    exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
+                    exchange=exc, direction=direction, color="reference product"
                 ))
                 self.setItem(row, 3, ABTableItem(
                     obj.get('name'), exchange=exc, direction=direction, color="name")

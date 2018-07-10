@@ -6,7 +6,7 @@ from .ui.main import MainWindow
 class Application(object):
     def __init__(self):
         self.main_window = MainWindow()
-        self.controller = Controller(self.main_window)
+        self.controller = Controller()
 
     def show(self):
         self.main_window.showMaximized()
