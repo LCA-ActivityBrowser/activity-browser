@@ -133,7 +133,7 @@ class ExchangeTable(ABTableWidget):
             edit_flag = [QtCore.Qt.ItemIsEditable]
 
             if self.biosphere:  #"Amount", "Unit", "Name", "Categories", "Database", "Uncertain"
-                self.setItem(row, 0, ABTableItem("{:.4g}".format(exc.get('amount')), exchange=exc,
+                self.setItem(row, 0, ABTableItem("{0:.3e}".format(exc.get('amount')), exchange=exc,
                                                  set_flags=edit_flag, color="amount"))
                 self.setItem(row, 1, ABTableItem(act.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(
@@ -148,7 +148,7 @@ class ExchangeTable(ABTableWidget):
                 ))
 
             else:  # ["Amount", "Unit", "Product", "Activity", "Location", "Database", "Uncertain", "Formula"]
-                self.setItem(row, 0, ABTableItem("{:.4g}".format(exc.get('amount')), exchange=exc,
+                self.setItem(row, 0, ABTableItem("{0:.3e}".format(exc.get('amount')), exchange=exc,
                                                  set_flags=edit_flag, color="amount"))
                 self.setItem(row, 1, ABTableItem(act.get('unit', 'Unknown'), color="unit"))
                 self.setItem(row, 2, ABTableItem(
