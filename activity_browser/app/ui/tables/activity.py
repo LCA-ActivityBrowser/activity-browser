@@ -166,8 +166,7 @@ class ExchangeTable(ABTableWidget):
                     exchange=exc, color="reference product"))
 
                 self.setItem(row, 3, ABTableItem(
-                    "True" if exc.get("uncertainty type", 0) > 1 else "False"
-                ))
+                    str(exc.get("uncertainty type", ""))))
 
                 self.setItem(row, 4, ABTableItem(
                     act.get('database'), color="database"))
@@ -186,7 +185,7 @@ class ExchangeTable(ABTableWidget):
                     " - ".join(act.get('categories', [])), color="categories"))
 
                 self.setItem(row, 4, ABTableItem(
-                    "True" if exc.get("uncertainty type", 0) > 1 else "False"))
+                    str(exc.get("uncertainty type", ""))))
 
                 self.setItem(row, 5, ABTableItem(
                     act.get('database'), color="database"))
