@@ -133,37 +133,50 @@ class ExchangeTable(ABTableWidget):
             edit_flag = [QtCore.Qt.ItemIsEditable]
 
             if self.biosphere:  #"Amount", "Unit", "Name", "Categories", "Database", "Uncertain"
-                self.setItem(row, 0, ABTableItem("{0:.3e}".format(exc.get('amount')), exchange=exc,
-                                                 set_flags=edit_flag, color="amount"))
-                self.setItem(row, 1, ABTableItem(act.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 0, ABTableItem(
+                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+
+                self.setItem(row, 1, ABTableItem(
+                    act.get('unit', 'Unknown'), color="unit"))
+
                 self.setItem(row, 2, ABTableItem(
-                    act.get('name'), exchange=exc, color="name"
-                ))
+                    act.get('name'), exchange=exc, color="name"))
+
                 self.setItem(row, 3, ABTableItem(
-                    " - ".join(act.get('categories', [])), color="categories"
-                ))
-                self.setItem(row, 4, ABTableItem(act.get('database'), color="database"))
+                    " - ".join(act.get('categories', [])), color="categories"))
+
+                self.setItem(row, 4, ABTableItem(
+                    act.get('database'), color="database"))
+
                 self.setItem(row, 5, ABTableItem(
                     "True" if exc.get("uncertainty type", 0) > 1 else "False"
                 ))
 
             else:  # ["Amount", "Unit", "Product", "Activity", "Location", "Database", "Uncertain", "Formula"]
-                self.setItem(row, 0, ABTableItem("{0:.3e}".format(exc.get('amount')), exchange=exc,
-                                                 set_flags=edit_flag, color="amount"))
-                self.setItem(row, 1, ABTableItem(act.get('unit', 'Unknown'), color="unit"))
+                self.setItem(row, 0, ABTableItem(
+                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+
+                self.setItem(row, 1, ABTableItem(
+                    act.get('unit', 'Unknown'), color="unit"))
+
                 self.setItem(row, 2, ABTableItem(
                     act.get('reference product') or act.get("name") if self.upstream else
                     exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
-                    exchange=exc, color="reference product"
-                ))
+                    exchange=exc, color="reference product"))
+
                 self.setItem(row, 3, ABTableItem(
-                    act.get('name'), exchange=exc, color="name")
-                )
-                self.setItem(row, 4, ABTableItem(act.get('location', 'Unknown'), color="location"))
-                self.setItem(row, 5, ABTableItem(act.get('database'), color="database"))
+                    act.get('name'), exchange=exc, color="name"))
+
+                self.setItem(row, 4, ABTableItem(
+                    act.get('location', 'Unknown'), color="location"))
+
+                self.setItem(row, 5, ABTableItem(
+                    act.get('database'), color="database"))
+
                 self.setItem(row, 6, ABTableItem(
-                    "True" if exc.get("uncertainty type", 0) > 1 else "False")
-                )
-                self.setItem(row, 7, ABTableItem(exc.get('formula', '')))
+                    "True" if exc.get("uncertainty type", 0) > 1 else "False"))
+
+                self.setItem(row, 7, ABTableItem(
+                    exc.get('formula', '')))
 
         self.ignore_changes = False
