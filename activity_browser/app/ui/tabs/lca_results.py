@@ -94,8 +94,8 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.to_png_button.clicked.connect(self.results_plot.to_png)
         self.to_svg_button.clicked.connect(self.results_plot.to_svg)
 
-    def createtab(self, Tabname, Widgets):
-        Tabname.layout = QVBoxLayout()
+    def create_tab(self, tab_name, Widgets):
+        tab_name.layout = QVBoxLayout()
         self.tabscroll = QtWidgets.QScrollArea()
         header_height = 17
         Widgets[0].setFixedHeight(header_height)
@@ -111,8 +111,8 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.tabscroll.setWidget(self.tabwidget)
         self.tabscroll.setWidgetResizable(True)
 
-        Tabname.layout.addWidget(self.tabscroll)
-        Tabname.setLayout(Tabname.layout)
+        tab_name.layout.addWidget(self.tabscroll)
+        tab_name.setLayout(tab_name.layout)
         return ()
 
     def make_layout(self):
@@ -128,20 +128,20 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.button_widget_layout.addLayout(self.buttons)
 
         # Create first tab
-        self.createtab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
+        self.create_tab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
                                     header("LCA Scores Table:"), self.results_table, horizontal_line(), \
                                     header("Export"), self.button_area])
 
         # Create second tab
-        self.createtab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_process_cont_methods, \
+        self.create_tab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_process_cont_methods, \
                                     self.process_contribution_plot])
 
         # Create third tab
-        self.createtab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(),self.combo_flow_cont_methods, \
+        self.create_tab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(),self.combo_flow_cont_methods, \
                                    self.elementary_flow_contribution_plot])
 
         # Create fourth tab
-        self.createtab(self.tab4, [header("LCA Scores Correlation:"), horizontal_line(), self.correlation_plot])
+        self.create_tab(self.tab4, [header("LCA Scores Correlation:"), horizontal_line(), self.correlation_plot])
 
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
