@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from .panel import Panel, ActivitiesPanel, MethodsPanel
+from ...signals import signals
+from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
     ActivityDetailsTab,
     HistoryTab,
     ImpactAssessmentTab,
 )
-from ...signals import signals
-from .. import activity_cache
 
 class RightPanel(Panel):
     side = "right"
