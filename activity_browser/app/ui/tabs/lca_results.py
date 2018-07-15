@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
-
-from ..style import horizontal_line, header
+from ..style import horizontal_line, vertical_line, header
 from ..tables import LCAResultsTable
 from ..graphics import (
     CorrelationPlot,
@@ -11,12 +9,16 @@ from ..graphics import (
 )
 from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
+
+
+from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, QSlider, \
+    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIntValidator
+
 from ...signals import signals
 
-from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea
-
-
-class ImpactAssessmentTab(QtWidgets.QWidget):
+class ImpactAssessmentTab(QWidget):
     def __init__(self, parent):
         super(ImpactAssessmentTab, self).__init__(parent)
         self.panel = parent  # e.g. right panel
@@ -28,176 +30,68 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.single_method = bool
         self.calculate_data()
 
+        # Generate plots and tables
+        self.results_table = LCAResultsTable()
+        self.results_plot = LCAResultsPlot(self)
+
+        self.process_contribution_table = None
+        self.process_contribution_plot = ProcessContributionPlot(self)
+
+        self.elementary_flow_contribution_table = None
+        self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
+
+        self.correlation_table = None
+        self.correlation_plot = CorrelationPlot(self)
+
         # Generate tabs
         self.tabs = QTabWidget()
         self.tabs.setTabShape(1)  # Triangular-shaped Tabs
         self.tabs.setTabPosition(1)  # South-facing Tabs
-        self.tab1 = QScrollArea()
-        self.tab2 = QScrollArea()
-        self.tab3 = QScrollArea()
-        self.tab4 = QScrollArea()
 
-        # Name tabs
-        self.tabs.addTab(self.tab1, "LCIA Results")
-        self.tabs.addTab(self.tab2, "Process Contributions")
-        self.tabs.addTab(self.tab3, "Elementary Flow Contributions")
-        self.tabs.addTab(self.tab4, "Correlations")
+        # Default tab settings: combobox_list=False, cutoff=False, export=True
+        TabPanel(self.tabs, "LCIA Results",
+                 table=self.results_table,
+                 graph=self.results_plot)
+        TabPanel(self.tabs, "Process Contributions",
+                 table=self.process_contribution_table,
+                 graph=self.process_contribution_plot,
+                 combobox_list=True,
+                 cutoff=True,)
+        TabPanel(self.tabs, "Elementary Flow Contributions",
+                 table=self.elementary_flow_contribution_table,
+                 graph=self.elementary_flow_contribution_plot,
+                 combobox_list=True,
+                 cutoff=True)
+        TabPanel(self.tabs, "Correlations",
+                 table=self.correlation_table,
+                 graph=self.correlation_plot)
 
-        # Comboboxes
-        self.combo_process_cont_methods = QtWidgets.QComboBox()
-        self.combo_process_cont_methods.scroll = False
-        self.combo_flow_cont_methods = QtWidgets.QComboBox()
-        self.combo_flow_cont_methods.scroll = False
-
-        # Plots & Table
-        self.results_plot = LCAResultsPlot(self)
-        self.correlation_plot = CorrelationPlot(self)
-        self.process_contribution_plot = ProcessContributionPlot(self)
-        self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
-        self.results_table = LCAResultsTable()
-
-        # Buttons
-        self.to_clipboard_button = QtWidgets.QPushButton('Copy')
-        self.to_csv_button = QtWidgets.QPushButton('.csv')
-        self.to_excel_button = QtWidgets.QPushButton('Excel')
-
-        self.to_png_button = QtWidgets.QPushButton('png')
-        self.to_svg_button = QtWidgets.QPushButton('svg')
-
-        self.button_area = QtWidgets.QScrollArea()
-        self.button_widget = QtWidgets.QWidget()
-        self.button_widget_layout = QtWidgets.QVBoxLayout()
-
-        self.button_widget.setLayout(self.button_widget_layout)
-        self.button_area.setWidget(self.button_widget)
-        self.button_area.setWidgetResizable(True)
-        self.button_area.setFixedHeight(44)  # This is ugly, how do we make this automatic?
-        self.layout = QtWidgets.QVBoxLayout()
-        
-        # Testing
-        self.b_group = QtWidgets.QVBoxLayout()
-
-        # Generate layout & Connect
-        self.make_layout()
-        self.connect_signals()
+        # Generate layout
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
     def calculate_data(self):
-        """Call remove_tab() and calculate()."""
+        """ Wrap remove_tab, calculate and add_tab. """
         signals.project_selected.connect(self.remove_tab)
         signals.lca_calculation.connect(self.calculate)
+        signals.lca_calculation.connect(self.add_tab)
 
-    def connect_signals(self):
-        """Connect all signals relevant to LCA Results tab."""
-        self.combo_process_cont_methods.currentTextChanged.connect(
-            lambda name: self.get_process_contribution(method=name))
-        self.combo_flow_cont_methods.currentTextChanged.connect(
-            lambda name: self.get_flow_contribution(method=name))
-        self.to_clipboard_button.clicked.connect(self.results_table.to_clipboard)
-        self.to_csv_button.clicked.connect(self.results_table.to_csv)
-        self.to_excel_button.clicked.connect(self.results_table.to_excel)
-        self.to_png_button.clicked.connect(self.results_plot.to_png)
-        self.to_svg_button.clicked.connect(self.results_plot.to_svg)
-
-    def create_tab(self, tab_name, Widgets):
-        tab_name.layout = QVBoxLayout()
-        self.tabscroll = QtWidgets.QScrollArea()
-        header_height = 17
-        Widgets[0].setFixedHeight(header_height)
-        if len(Widgets) == 8:
-            Widgets[3].setFixedHeight(header_height)
-            Widgets[6].setFixedHeight(header_height)
-
-        self.group = QVBoxLayout()
-        for i in Widgets:
-            self.group.addWidget(i)
-        self.tabwidget = QtWidgets.QGroupBox()
-        self.tabwidget.setLayout(self.group)
-        self.tabscroll.setWidget(self.tabwidget)
-        self.tabscroll.setWidgetResizable(True)
-
-        tab_name.layout.addWidget(self.tabscroll)
-        tab_name.setLayout(tab_name.layout)
-        return ()
-
-    def generate_tab(self, tab_name, Widgets, button_set):
-        tab_name.layout = QVBoxLayout()
-        self.tabscroll = QtWidgets.QVBoxLayout()
-
-        # Add widgets
-        self.w_group = QVBoxLayout()
-        for i in Widgets:
-            self.w_group.addWidget(i)
-
-        # Add buttons
-        self.b_group_layout = QtWidgets.QHBoxLayout()
-        for i in button_set:
-            self.b_group_layout.addWidget(i)
-        self.b_group_layout.addStretch()
-        self.b_group.addLayout(self.b_group_layout)
-
-        if len(Widgets) > 0:
-            self.tabscroll.addWidget(self.w_group)
-        if len(button_set) > 0:
-            self.tabscroll.addWidget(self.b_group_layout)
-
-        self.tabscroll.setWidgetResizable(True)
-
-        tab_name.layout.addWidget(self.tabscroll)
-        tab_name.setLayout(tab_name.layout)
-
-    def make_layout(self):
-        """Make the layout for the LCA Results tab."""
-        # Create export buttons
-        self.buttons = QtWidgets.QHBoxLayout()
-        self.buttons.addWidget(self.to_clipboard_button)
-        self.buttons.addWidget(self.to_csv_button)
-        self.buttons.addWidget(self.to_excel_button)
-        self.buttons.addWidget(self.to_png_button)
-        self.buttons.addWidget(self.to_svg_button)
-        self.buttons.addStretch()
-
-        self.button_widget_layout.addLayout(self.buttons)
-
-        # Create first tab
-        self.create_tab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
-                                    header("LCA Scores Table:"), self.results_table, horizontal_line(), \
-                                    header("Export"), self.button_area])
-        """
-
-        self.generate_tab(self.tab1, [header("LCA Scores Plot:"), horizontal_line(), self.results_plot, \
-                                    header("LCA Scores Table:"), self.results_table, horizontal_line(), \
-                                    header("Export"), self.button_area], [self.to_clipboard_button, self.to_csv_button])"""
-
-        # Create second tab
-        self.create_tab(self.tab2, [header("Process Contributions:"), horizontal_line(), self.combo_process_cont_methods, \
-                                    self.process_contribution_plot])
-
-        # Create third tab
-        self.create_tab(self.tab3, [header("Elementary Flow Contributions:"), horizontal_line(),self.combo_flow_cont_methods, \
-                                   self.elementary_flow_contribution_plot])
-
-        # Create fourth tab
-        self.create_tab(self.tab4, [header("LCA Scores Correlation:"), horizontal_line(), self.correlation_plot])
-
-        # Add tabs to widget
-        self.layout.addWidget(self.tabs)
-
-    def add_tab(self):
-        """Add the LCA Results tab to the right panel of AB."""
+    def add_tab(self, name):
+        """ Add the LCA Results tab to the right panel of AB. """
         if not self.visible:
             self.visible = True
-            self.panel.addTab(self, "LCA results")
+            self.panel.addTab(self, name)
         self.panel.select_tab(self)  # put tab to front after LCA calculation
 
     def remove_tab(self):
-        """Remove the LCA results tab."""
+        """ Remove the LCA results tab. """
         if self.visible:
             self.visible = False
             self.panel.removeTab(self.panel.indexOf(self))
 
     def calculate(self, name):
-        """Calculate the (M)LCA."""
+        """ Calculate the (M)LCA and generate plots and tables. """
         # LCA Results Analysis: (ideas to implement)
         # - LCA score: Barchart (choice LCIA method)
         # - Contribution Analysis (choice process, LCIA method;
@@ -210,60 +104,344 @@ class ImpactAssessmentTab(QtWidgets.QWidget):
         self.mlca = MLCA(name)
         self.single_lca = len(self.mlca.func_units) == 1
         self.single_method = len(self.mlca.methods) == 1
+        signals.mlca_results.emit(self.mlca)
 
-        # update process and elementary flow contribution combo boxes
-        self.dict_LCIA_methods_str_tuples = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
-        self.combo_process_cont_methods.clear()
-        self.combo_flow_cont_methods.clear()
-        self.combo_process_cont_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
-        self.combo_flow_cont_methods.insertItems(0, self.dict_LCIA_methods_str_tuples.keys())
-        if not self.single_method:
-            self.combo_process_cont_methods.setVisible(True)
-            self.combo_flow_cont_methods.setVisible(True)
-        else:
-            self.combo_process_cont_methods.setVisible(False)
-            self.combo_flow_cont_methods.setVisible(False)
+class TabPanel:
+    def __init__(self, tabs, name, table, graph, combobox_list=False, cutoff=False, export=True):
+        super(TabPanel, self).__init__()
 
-        # PLOTS & TABLES
+        # Generate generic tab items
+        self.tab = QScrollArea()
+        self.tab_layout = QVBoxLayout()
+        self.tab.setLayout(self.tab_layout)
 
-        # LCA Results Plot
-        self.results_plot.plot(self.mlca)
-        if not self.single_lca:
-            self.results_plot.setVisible(True)
-        else:
-            self.results_plot.setVisible(False)
+        self.tabs = tabs
+        self.name = name
+        self.table = table
+        self.graph = graph
+        self.combobox_list = combobox_list
+        self.cutoff = cutoff
+        self.export = export
+        self.mlca = object
 
-        # Contribution Analysis
-        # is plotted by the combobox signal
+        # Generate Cut-off menu
+        self.cutoff_menu = QHBoxLayout()
+        if cutoff:
+            # Cut-off types
+            self.cutoff_type = QVBoxLayout()
+            self.cutoff_type_label = QLabel("Cut-off type")
+            self.cutoff_type_absolute = QRadioButton("Absolute")
+            self.cutoff_type_absolute.setChecked(True)
+            self.cutoff_type_relative = QRadioButton("Relative")
+            self.cutoff_type_topx = QRadioButton("Top x")
+            # Cut-off slider
+            self.cutoff_slider = QVBoxLayout()
+            self.cutoff_slider_set = QVBoxLayout()
+            self.cutoff_slider_label = QLabel("Cut-off level")
+            self.cutoff_slider_slider = QSlider(Qt.Horizontal)
+            self.cutoff_slider_slider.setMinimum(1)  # temporary
+            self.cutoff_slider_slider.setMaximum(99)  # temporary
+            self.cutoff_slider_slider.sizeHint()
+            self.cutoff_slider_minmax = QHBoxLayout()
+            self.cutoff_slider_min = QLabel(str(self.cutoff_slider_slider.minimum()))
+            self.cutoff_slider_max = QLabel(str(self.cutoff_slider_slider.maximum()))
+            self.cutoff_slider_ledit = QHBoxLayout()
+            self.cutoff_slider_line = QLineEdit()
+            self.cutoff_validator = QIntValidator(self.cutoff_slider_line)
+            self.cutoff_slider_line.setValidator(self.cutoff_validator)
+            self.cutoff_value = int()  # set to max when known how to port data to this class
+            self.cutoff_slider_unit = QLabel("unit")
 
-        # Correlation Plot
-        if not self.single_lca:
-            labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
-            self.correlation_plot.plot(self.mlca, labels)
-            self.correlation_plot.setVisible(True)
-        else:
-            self.correlation_plot.setVisible(False)
+        # Generate Combobox for method selection
+        self.combobox_menu = QHBoxLayout()
+        if combobox_list:
+            self.combobox_menu_label = QLabel("Assesment method: ")
+            self.combobox_menu_combobox = QComboBox()
+            self.combobox_menu_combobox.scroll = False
+            # add stuff for in the box
 
-        # LCA results table
-        self.results_table.sync(self.mlca)
+        # Generate Table and Graph area
+        self.main_space = QVBoxLayout()
+        # Option switch
+        self.main_space_tb_grph = QHBoxLayout()
+        self.main_space_tb_grph_table = QCheckBox("Table")
+        self.main_space_tb_grph_table.setChecked(True)
+        self.main_space_tb_grph_graph = QCheckBox("Graph")
+        self.main_space_tb_grph_graph.setChecked(True)
+        # Table
+        self.main_space_table = self.table
+        # Graph
+        self.main_space_graph = self.graph
 
-        self.add_tab()
+        # Generate Export buttons
+        self.export_menu = QHBoxLayout()
+        if export:
+            # Export Table
+            self.export_table = QVBoxLayout()
+            self.export_table_label = QLabel("Export table")
+            self.export_table_buttons = QHBoxLayout()
+            self.export_table_buttons_copy = QPushButton("Copy")
+            self.export_table_buttons_csv = QPushButton(".csv")
+            self.export_table_buttons_excel = QPushButton("Excel")
+            # Export Graph
+            self.export_graph = QVBoxLayout()
+            self.export_graph_label = QLabel("Export graph")
+            self.export_graph_buttons = QHBoxLayout()
+            self.export_graph_buttons_png = QPushButton(".png")
+            self.export_graph_buttons_svg = QPushButton(".svg")
 
-    def get_process_contribution(self, method=None):
-        """Generate the process contribution plot."""
+        # Assemble complete tab panel and add to tabs
+        if cutoff:
+            self.assemble_cutoff()
+        if combobox_list:
+            self.assemble_combobox()
+        self.assemble_main_space()
+        if export:
+            self.assemble_export()
+
+        signals.mlca_results.connect(
+            lambda: self.assemble_panel(cutoff, combobox_list, export))
+
+        self.tabs.addTab(self.tab, name)
+
+        # Connect signals
+        self.connect_signals()
+
+    def connect_signals(self):
+        """ Connect all signals relevant to specific LCA Results tab. """
+        # Receive mlca
+        signals.mlca_results.connect(self.get_mlca_results)
+
+        # Update graph and table to selected method from combobox
+        if self.combobox_list:
+            self.combobox_menu_combobox.currentTextChanged.connect(
+                lambda name: self.get_new_combobox_list(method=name))
+
+        # Generate tables, graphs and combobox
+        signals.mlca_results.connect(self.generate_table_plot_combobox)
+
+        # Cut-off
+        if self.cutoff:
+            # Cut-off types
+            self.cutoff_type_absolute.clicked.connect(self.cutoff_type_absolute_check)
+            self.cutoff_type_relative.clicked.connect(self.cutoff_type_relative_check)
+            self.cutoff_type_topx.clicked.connect(self.cutoff_type_topx_check)
+
+            # Cut-off slider
+            self.cutoff_slider_slider.valueChanged.connect(
+                lambda: self.cutoff_slider_check("S"))
+            self.cutoff_slider_line.textChanged.connect(
+                lambda: self.cutoff_slider_check("L"))
+
+        # Main space checkboxes
+        if self.table and self.graph:
+            self.main_space_tb_grph_table.stateChanged.connect(
+                lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_graph))
+            self.main_space_tb_grph_graph.stateChanged.connect(
+                lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_graph))
+
+        # Export Table
+        if self.table and self.export:
+            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
+            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
+            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
+
+        # Export Graph
+        if self.graph and self.export:
+            self.export_graph_buttons_png.clicked.connect(self.graph.to_png)
+            self.export_graph_buttons_svg.clicked.connect(self.graph.to_svg)
+
+    def get_mlca_results(self, mlca):
+        """ Port mlca data from ImpactAssessmentTab to sub-tab. """
+        self.mlca = mlca
+        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+
+        if self.combobox_list:
+            self.combobox_menu_combobox.clear()
+            self.combobox_list = list(self.method_dict.keys())
+            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+
+    def generate_table_plot_combobox(self):
+        """ Populate the relevant tables, graphs and comboboxes. """
+        if self.name == "LCIA Results":
+            if self.table:
+                self.table.sync(self.mlca)
+            if self.graph:
+                self.graph.plot(self.mlca)
+
+        elif self.name == "Process Contributions":
+            if self.table:
+                self.table = False
+            if self.graph:
+                self.graph.plot(self.mlca, method=self.mlca.methods[0])
+
+        elif self.name == "Elementary Flow Contributions":
+            if self.table:
+                self.table = False
+            if self.graph:
+                self.graph.plot(self.mlca, method=self.mlca.methods[0])
+
+        elif self.name == "Correlations":
+            if self.table:
+                self.table = False
+            if self.graph:
+                labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
+                self.graph.plot(self.mlca, labels)
+
+        if self.combobox_list:
+            self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+            self.combobox_menu_combobox.clear()
+            self.combobox_list = list(self.method_dict.keys())
+            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+
+    def get_new_combobox_list(self, method=None):
+        """ Update the plot with method selected from combobox. """
         if not method:
             method = next(iter(self.mlca.method_dict.keys()))
         else:
-            method = self.dict_LCIA_methods_str_tuples[method]
+            method = self.method_dict[method]
 
-        self.process_contribution_plot.plot(self.mlca, method=method)
+        self.graph.plot(self.mlca, method=method)
 
-    def get_flow_contribution(self, method=None):
-        """Generate the Elementary flow contribution plot."""
-        if not method:
-            method = next(iter(self.mlca.method_dict.keys()))
+    def cutoff_type_absolute_check(self):
+        """ Work in progress. """
+        # set cutoff to some number
+        self.cutoff_slider_unit.setText("absolute selected, functionality to be added later")
+
+    def cutoff_type_relative_check(self):
+        """ Work in progress. """
+        # set cutoff to some %
+        self.cutoff_slider_unit.setText("relative selected, functionality to be added later")
+
+    def cutoff_type_topx_check(self):
+        """ Work in progress. """
+        # set cutoff to some number
+        self.cutoff_slider_unit.setText("topx selected, functionality to be added later")
+
+    def cutoff_slider_check(self, editor):
+        """ Update the slider and line-edit field when either one changes. """
+        cutoff = int
+        if editor == "S":
+            cutoff = abs(int(self.cutoff_slider_slider.value()))
+            self.cutoff_slider_line.setText(str(cutoff))
+        elif editor == "L":
+            if self.cutoff_slider_line.text() == '-':
+                cutoff = self.cutoff_slider_slider.minimum()
+                self.cutoff_slider_line.setText(str(self.cutoff_slider_slider.minimum()))
+            elif self.cutoff_slider_line.text() == '':
+                cutoff = self.cutoff_slider_slider.minimum()
+            else:
+                cutoff = abs(int(self.cutoff_slider_line.text()))
+
+            if cutoff > self.cutoff_slider_slider.maximum():
+                cutoff = self.cutoff_slider_slider.maximum()
+                self.cutoff_slider_line.setText(str(cutoff))
+            self.cutoff_slider_slider.setValue(int(cutoff))
+        self.cutoff_value = cutoff
+
+    def main_space_check(self, table_ch, graph_ch):
+        """ Show graph or table, dependent on which is selected. """
+        table_state = table_ch.isChecked()
+        graph_state = graph_ch.isChecked()
+
+        if table_state and graph_state:
+            self.main_space_table.setVisible(True)
+            self.main_space_graph.setVisible(True)
+        elif not table_state and graph_state:
+            self.main_space_table.setVisible(False)
+            self.main_space_graph.setVisible(True)
         else:
-            method = self.dict_LCIA_methods_str_tuples[method]
+            self.main_space_tb_grph_table.setChecked(True)
+            self.main_space_table.setVisible(True)
+            self.main_space_graph.setVisible(False)
 
-        self.elementary_flow_contribution_plot.plot(self.mlca, method=method)
+    def assemble_cutoff(self):
+        """ Assemble the cut-off section of the tab. """
+        # Assemble types
+        self.cutoff_type.addWidget(self.cutoff_type_label)
+        self.cutoff_type.addWidget(self.cutoff_type_absolute)
+        self.cutoff_type.addWidget(self.cutoff_type_relative)
+        self.cutoff_type.addWidget(self.cutoff_type_topx)
+
+        # Assemble slider set
+        self.cutoff_slider_set.addWidget(self.cutoff_slider_label)
+        self.cutoff_slider_set.addWidget(self.cutoff_slider_slider)
+        self.cutoff_slider_minmax.addWidget(self.cutoff_slider_min)
+        self.cutoff_slider_minmax.addStretch()
+        self.cutoff_slider_minmax.addWidget(self.cutoff_slider_max)
+        self.cutoff_slider_set.addLayout(self.cutoff_slider_minmax)
+
+        self.cutoff_slider_ledit.addWidget(self.cutoff_slider_line)
+        self.cutoff_slider_ledit.addWidget(self.cutoff_slider_unit)
+        self.cutoff_slider_ledit.addStretch(1)
+
+        self.cutoff_slider.addLayout(self.cutoff_slider_set)
+        self.cutoff_slider.addLayout(self.cutoff_slider_ledit)
+
+        # Assemble cut-off menu
+        self.cutoff_menu.addLayout(self.cutoff_type)
+        self.cutoff_menu.addWidget(vertical_line())
+        self.cutoff_menu.addLayout(self.cutoff_slider)
+        self.cutoff_menu.addStretch()
+
+    def assemble_combobox(self):
+        """ Assemble the combobox section of the tab. """
+        self.combobox_menu.addWidget(self.combobox_menu_label)
+        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
+        self.combobox_menu.addStretch(1)
+
+    def assemble_main_space(self):
+        """ Assemble the main space section of the tab. """
+        # Assemble option switch
+        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
+        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_graph)
+        self.main_space_tb_grph.addStretch()
+
+        # Assemble Table and Graph area
+        if self.table and self.graph:
+            self.main_space.addLayout(self.main_space_tb_grph)
+        if self.table:
+            self.main_space.addWidget(self.main_space_table)
+        if self.graph:
+            self.main_space.addWidget(self.main_space_graph, 1)
+        self.main_space.addStretch()
+
+    def assemble_export(self):
+        """ Assemble the export section of the tab. """
+        # Assemble export table
+        self.export_table.addWidget(self.export_table_label)
+        self.export_table_buttons.addWidget(self.export_table_buttons_copy)
+        self.export_table_buttons.addWidget(self.export_table_buttons_csv)
+        self.export_table_buttons.addWidget(self.export_table_buttons_excel)
+        self.export_table.addLayout(self.export_table_buttons)
+
+        # Assemble export graph
+        self.export_graph.addWidget(self.export_graph_label)
+        self.export_graph_buttons.addWidget(self.export_graph_buttons_png)
+        self.export_graph_buttons.addWidget(self.export_graph_buttons_svg)
+        self.export_graph.addLayout(self.export_graph_buttons)
+
+        # Assemble export menu
+        if self.table:
+            self.export_menu.addLayout(self.export_table)
+        if self.table and self.graph:
+            self.export_menu.addWidget(vertical_line())
+        if self.graph:
+            self.export_menu.addLayout(self.export_graph)
+        self.export_menu.addStretch()
+
+    def assemble_panel(self, cutoff, combobox, export):
+        """ Assemble the tab. """
+        self.tab_layout.addWidget(header(self.name))
+        self.tab_layout.addWidget(horizontal_line())
+        if cutoff:
+            self.tab_layout.addLayout(self.cutoff_menu)
+            self.tab_layout.addWidget(horizontal_line())
+        if combobox:
+            self.tab_layout.addLayout(self.combobox_menu)
+            self.tab_layout.addWidget(horizontal_line())
+        self.tab_layout.addLayout(self.main_space)
+        if export:
+            self.tab_layout.addWidget(horizontal_line())
+            self.tab_layout.addLayout(self.export_menu) 
