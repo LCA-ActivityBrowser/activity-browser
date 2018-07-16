@@ -107,14 +107,13 @@ class ImpactAssessmentTab(QWidget):
         signals.mlca_results.emit(self.mlca)
 
 
-class TabPanel:
+class TabPanel(QTabWidget):
     def __init__(self, tabs, name, table, graph, combobox_list=False, cutoff=False, export=True):
         super(TabPanel, self).__init__()
 
         # Generate generic tab items
-        self.tab = QTabWidget()
         self.tab_layout = QVBoxLayout()
-        self.tab.setLayout(self.tab_layout)
+        self.setLayout(self.tab_layout)
 
         self.tabs = tabs
         self.name = name
@@ -201,11 +200,9 @@ class TabPanel:
         self.assemble_main_space()
         if export:
             self.assemble_export()
+        self.assemble_panel(cutoff, combobox_list, export)
 
-        signals.mlca_results.connect(
-            lambda: self.assemble_panel(cutoff, combobox_list, export))
-
-        self.tabs.addTab(self.tab, name)
+        self.tabs.addTab(self, name)
 
         # Connect signals
         self.connect_signals()
