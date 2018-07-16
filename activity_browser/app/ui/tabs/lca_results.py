@@ -112,11 +112,9 @@ class TabPanel:
         super(TabPanel, self).__init__()
 
         # Generate generic tab items
-        #self.tab = QScrollArea()
         self.tab = QTabWidget()
         self.tab_layout = QVBoxLayout()
         self.tab.setLayout(self.tab_layout)
-
 
         self.tabs = tabs
         self.name = name
@@ -326,7 +324,6 @@ class TabPanel:
     def set_cutoff(self):
         pass
 
-
     def cutoff_slider_check(self, editor):
         """ Update the slider and line-edit field when either one changes. """
         cutoff = int
@@ -413,23 +410,6 @@ class TabPanel:
             self.main_space_layout.addWidget(self.main_space_table)
         if self.graph:
             self.main_space_layout.addWidget(self.main_space_graph, 1)
-        #self.main_space_layout.addStretch()
-
-    def assemble_main_spaces(self):
-        """ Assemble the main space section of the tab. """
-        # Assemble option switch
-        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
-        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_graph)
-        self.main_space_tb_grph.addStretch()
-
-        # Assemble Table and Graph area
-        if self.table and self.graph:
-            self.main_space.addLayout(self.main_space_tb_grph)
-        if self.table:
-            self.main_space.addWidget(self.main_space_table)
-        if self.graph:
-            self.main_space.addWidget(self.main_space_graph, 1)
-        self.main_space.addStretch()
 
     def assemble_export(self):
         """ Assemble the export section of the tab. """
@@ -469,18 +449,3 @@ class TabPanel:
         if export:
             self.tab_layout.addWidget(horizontal_line())
             self.tab_layout.addLayout(self.export_menu)
-
-    def assemble_panels(self, cutoff, combobox, export):
-        """ Assemble the tab. """
-        self.tab.addWidget(header(self.name))
-        self.tab.addWidget(horizontal_line())
-        if cutoff:
-            self.tab.addLayout(self.cutoff_menu)
-            self.tab.addWidget(horizontal_line())
-        if combobox:
-            self.tab.addLayout(self.combobox_menu)
-            self.tab.addWidget(horizontal_line())
-        self.tab.addWidget(self.main_space)
-        if export:
-            self.tab.addWidget(horizontal_line())
-            self.tab.addLayout(self.export_menu)
