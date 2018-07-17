@@ -34,12 +34,12 @@ class RestrictedWebViewWidget(QtWidgets.QWidget):
         self.page = RestrictedQWebEnginePage()
 
         if html_file:
-            print("Loading File:", html_file)
+            # print("Loading File:", html_file)
             self.url = QtCore.QUrl.fromLocalFile(html_file)
             self.page.allowed_pages.append(self.url)
             self.page.load(self.url)
         elif url:
-            print("Loading URL:", url)
+            # print("Loading URL:", url)
             self.url = QtCore.QUrl(url)
             self.page.allowed_pages.append(self.url)
             self.page.load(self.url)

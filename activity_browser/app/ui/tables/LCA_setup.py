@@ -61,20 +61,24 @@ class CSActivityTable(ABTableWidget):
         signals.calculation_setup_selected.connect(self.sync)
 
     def append_row(self, key, amount='1.0'):
-        act = bw.get_activity(key)
-        new_row = self.rowCount()
-        self.insertRow(new_row)
-        self.setItem(new_row, 0, ABTableItem(
-            amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount")
-        )
-        self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
-        self.setItem(new_row, 2, ABTableItem(act.get('reference product'),
-                                             key=key, color="product"))
-        self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
-        self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
-        self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
+        try:
+            act = bw.get_activity(key)
+            new_row = self.rowCount()
+            self.insertRow(new_row)
+            self.setItem(new_row, 0, ABTableItem(
+                amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount")
+            )
+            self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
+            self.setItem(new_row, 2, ABTableItem(act.get('reference product'),
+                                                 key=key, color="product"))
+            self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
+            self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
+            self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
+        except:
+            print("Could not load key in Calculation Setup: ", key)
 
     def sync(self, name):
+        self.current_cs = name
         self.cellChanged.disconnect(self.filter_amount_change)
         self.clear()
         self.setRowCount(0)
@@ -82,7 +86,7 @@ class CSActivityTable(ABTableWidget):
 
         for func_unit in bw.calculation_setups[name]['inv']:
             for key, amount in func_unit.items():
-                self.append_row(key, amount)
+                self.append_row(key, str(amount))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -119,11 +123,16 @@ class CSActivityTable(ABTableWidget):
         self.resizeRowsToContents()
 
     def to_python(self):
-        return [{self.item(row, 0).key: self.item(row, 0).text()} for row in range(self.rowCount())]
+        return [{self.item(row, 0).key: float(self.item(row, 0).text())} for
+                row in range(self.rowCount())]
 
     def filter_amount_change(self, row, col):
         if col == 0:
-            signals.calculation_setup_changed.emit()
+            try:
+                float(self.item(row, col).text())
+                signals.calculation_setup_changed.emit()
+            except ValueError as e:
+                self.sync(self.current_cs)
 
 
 class CSMethodsTable(ABTableWidget):
