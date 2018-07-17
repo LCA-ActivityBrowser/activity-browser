@@ -3,6 +3,7 @@ import os
 import json
 
 import brightway2 as bw
+from bw2data import databases
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 
 from .signals import graphsignals
@@ -46,11 +47,15 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.draw_graph()
 
     def connect_signals(self):
+        signals.database_selected.connect(self.set_database)
         signals.add_activity_to_history.connect(self.update_graph)
         graphsignals.update_graph.connect(self.update_graph)
         graphsignals.update_graph_expand.connect(self.update_graph_expand)
         graphsignals.update_graph_expand_upstream.connect(self.update_graph_expand_upstream)
         graphsignals.graph_ready.connect(self.draw_graph)
+
+    def set_database(self, name):
+        self.selected_db = name
 
 
     def update_graph(self, key):
@@ -87,9 +92,19 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
             print("No upstream expansion possible with this activity:", key)
 
     def update_graph_random(self):
-        random_activity = bw.Database("ecoinvent 3.4 cutoff").random()
-        print("Random key:", random_activity, type(random_activity))
-        self.update_graph(random_activity)
+        """changes the database the random activity is taken from to a random one present in the project
+        replacing: random_activity=bw.Database("ecoinvent3.4cutoff").random()
+        how to access the selected database for random activity?
+        """
+        try:
+            cur_db = self.selected_db
+            random_activity = bw.Database(cur_db).random()
+            if random_activity == None:
+                raise Exception()
+            print("Database: {} ; Randomkey: {}; {}" .format(cur_db, random_activity, type(random_activity)))
+            self.update_graph(random_activity)
+        except Exception:
+            print('Activity empty, please select a Database!')
 
     def draw_graph(self):
         self.view.load(self.url)
