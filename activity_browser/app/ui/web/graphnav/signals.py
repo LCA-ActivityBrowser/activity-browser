@@ -9,6 +9,7 @@ class GraphSignals(QtCore.QObject):
     update_graph = QtCore.pyqtSignal(tuple)
     update_graph_expand = QtCore.pyqtSignal(tuple)
     update_graph_expand_upstream = QtCore.pyqtSignal(tuple)
+    update_graph_reduce = QtCore.pyqtSignal(tuple)
 
 
 
