@@ -346,20 +346,47 @@ class TabPanel(QTabWidget):
         self.cutoff_value = cutoff
 
     def main_space_check(self, table_ch, graph_ch):
-        """ Show graph or table, dependent on which is selected. """
+        """ Show graph or table and related export functions, dependent on which is selected. """
         table_state = table_ch.isChecked()
         graph_state = graph_ch.isChecked()
 
         if table_state and graph_state:
             self.main_space_table.setVisible(True)
             self.main_space_graph.setVisible(True)
+
+            self.export_table_label.setVisible(True)
+            self.export_table_buttons_copy.setVisible(True)
+            self.export_table_buttons_csv.setVisible(True)
+            self.export_table_buttons_excel.setVisible(True)
+            self.export_menu_vert_line.setVisible(True)
+            self.export_graph_label.setVisible(True)
+            self.export_graph_buttons_png.setVisible(True)
+            self.export_graph_buttons_svg.setVisible(True)
         elif not table_state and graph_state:
             self.main_space_table.setVisible(False)
             self.main_space_graph.setVisible(True)
+
+            self.export_table_label.setVisible(False)
+            self.export_table_buttons_copy.setVisible(False)
+            self.export_table_buttons_csv.setVisible(False)
+            self.export_table_buttons_excel.setVisible(False)
+            self.export_menu_vert_line.setVisible(False)
+            self.export_graph_label.setVisible(True)
+            self.export_graph_buttons_png.setVisible(True)
+            self.export_graph_buttons_svg.setVisible(True)
         else:
             self.main_space_tb_grph_table.setChecked(True)
             self.main_space_table.setVisible(True)
             self.main_space_graph.setVisible(False)
+
+            self.export_table_label.setVisible(True)
+            self.export_table_buttons_copy.setVisible(True)
+            self.export_table_buttons_csv.setVisible(True)
+            self.export_table_buttons_excel.setVisible(True)
+            self.export_menu_vert_line.setVisible(False)
+            self.export_graph_label.setVisible(False)
+            self.export_graph_buttons_png.setVisible(False)
+            self.export_graph_buttons_svg.setVisible(False)
 
     def assemble_cutoff(self):
         """ Assemble the cut-off section of the tab. """
@@ -410,6 +437,7 @@ class TabPanel(QTabWidget):
             self.main_space_widget_layout.addWidget(self.main_space_table)
         if self.graph:
             self.main_space_widget_layout.addWidget(self.main_space_graph, 1)
+        self.main_space_widget_layout.addStretch()
 
     def assemble_export(self):
         """ Assemble the export section of the tab. """
@@ -430,9 +458,29 @@ class TabPanel(QTabWidget):
         if self.table:
             self.export_menu.addLayout(self.export_table)
         if self.table and self.graph:
-            self.export_menu.addWidget(vertical_line())
+            self.export_menu_vert_line = vertical_line()
+            self.export_menu.addWidget(self.export_menu_vert_line)
         if self.graph:
             self.export_menu.addLayout(self.export_graph)
+        """self.export_menu.addLayout(self.export_table)
+        self.export_menu_vert_line = vertical_line()
+        self.export_menu.addWidget(self.export_menu_vert_line)
+        self.export_menu.addLayout(self.export_graph)
+        if self.main_space_tb_grph_table.isChecked():
+            self.export_table.setVisible(True)
+            self.export_menu_vert_line.setVisible(False)
+            self.export_graph.setVisible(False)
+        elif self.main_space_tb_grph_table.isChecked() and \
+                self.main_space_tb_grph_graph.isChecked():
+            self.export_table.setVisible(True)
+            self.export_menu_vert_line.setVisible(True)
+            self.export_graph.setVisible(True)
+        elif self.main_space_tb_grph_table.isChecked():
+            self.export_table.setVisible(False)
+            self.export_menu_vert_line.setVisible(False)
+            self.export_graph.setVisible(True)"""
+
+
         self.export_menu.addStretch()
 
     def assemble_panel(self, cutoff, combobox, export):
