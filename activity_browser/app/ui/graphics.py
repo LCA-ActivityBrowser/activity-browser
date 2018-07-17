@@ -145,7 +145,7 @@ class ProcessContributionPlot(Plot):
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
 
-        tc = mlca.top_process_contributions(method_name=method, limit=5, relative=True)
+        tc = mlca.top_process_contributions(method_name=method, limit=5, relative=True) #change limit as new cut-off
         df_tc = pd.DataFrame(tc)
         df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in df_tc.index]

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from ..style import horizontal_line, vertical_line, header
 from ..tables import LCAResultsTable
+from ..tables.lca_results import InventoryTable
 from ..graphics import (
     CorrelationPlot,
     LCAResultsPlot,
@@ -43,6 +44,9 @@ class ImpactAssessmentTab(QWidget):
         self.correlation_table = None
         self.correlation_plot = CorrelationPlot(self)
 
+        self.Inventory_table = InventoryTable()
+        self.Inventory_plot = None
+
         # Generate tabs
         self.tabs = QTabWidget()
         self.tabs.setTabShape(1)  # Triangular-shaped Tabs
@@ -65,6 +69,9 @@ class ImpactAssessmentTab(QWidget):
         TabPanel(self.tabs, "Correlations",
                  table=self.correlation_table,
                  graph=self.correlation_plot)
+        TabPanel(self.tabs, "Inventory",
+                 table=self.Inventory_table,
+                 graph=self.Inventory_plot)
 
         # Generate layout
         self.layout = QVBoxLayout()

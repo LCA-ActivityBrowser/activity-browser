@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .panel import Panel
 from ..web.webutils import RestrictedWebViewWidget
-from ..tabs import (ProjectTab, MethodsTab)
+from ..tabs import (ProjectTab, MethodsTab, HistoryTab)
 from .... import PACKAGE_DIRECTORY
 
 class LeftPanel(Panel):
@@ -16,11 +16,13 @@ class LeftPanel(Panel):
 
         self.methods_tab = MethodsTab(self)
         self.project_tab = ProjectTab(self)
+        self.history_tab = HistoryTab(self)
 
         # add tabs
         self.addTab(self.welcome_tab, 'Welcome')
         self.addTab(self.project_tab, 'Project')
         self.addTab(self.methods_tab, 'Impact Categories')
+        self.addTab(self.history_tab, 'Project History')
 
         # signals
         self.currentChanged.connect(self.remove_welcome_tab)

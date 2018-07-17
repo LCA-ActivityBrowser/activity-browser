@@ -5,7 +5,6 @@ from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
     ActivityDetailsTab,
-    HistoryTab,
     ImpactAssessmentTab,
 )
 
@@ -19,12 +18,10 @@ class RightPanel(Panel):
         self.act_panel = ActivitiesPanel(self)
 
         self.LCA_setup_tab = LCASetupTab(self)
-        self.history_tab = HistoryTab(self)
         self.lca_results_tab = ImpactAssessmentTab(self)
 
-        # addtabs
+        # addtab
         self.addTab(self.LCA_setup_tab, 'LCA Setup')
-        self.addTab(self.history_tab, 'History')
 
         # Signals
         signals.activity_tabs_changed.connect(self.update_activity_panel)
