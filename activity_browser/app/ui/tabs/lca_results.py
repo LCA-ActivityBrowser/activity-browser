@@ -162,8 +162,11 @@ class TabPanel(QTabWidget):
 
         # Generate Table and Graph area
         self.main_space = QScrollArea()
-        self.main_space_layout = QVBoxLayout()
-        self.main_space.setLayout(self.main_space_layout)
+        self.main_space_widget = QWidget()
+        self.main_space_widget_layout = QVBoxLayout()
+        self.main_space_widget.setLayout(self.main_space_widget_layout)
+        self.main_space.setWidget(self.main_space_widget)
+        self.main_space.setWidgetResizable(True)
         # Option switch
         self.main_space_tb_grph = QHBoxLayout()
         self.main_space_tb_grph_table = QCheckBox("Table")
@@ -402,11 +405,11 @@ class TabPanel(QTabWidget):
 
         # Assemble Table and Graph area
         if self.table and self.graph:
-            self.main_space_layout.addLayout(self.main_space_tb_grph)
+            self.main_space_widget_layout.addLayout(self.main_space_tb_grph)
         if self.table:
-            self.main_space_layout.addWidget(self.main_space_table)
+            self.main_space_widget_layout.addWidget(self.main_space_table)
         if self.graph:
-            self.main_space_layout.addWidget(self.main_space_graph, 1)
+            self.main_space_widget_layout.addWidget(self.main_space_graph, 1)
 
     def assemble_export(self):
         """ Assemble the export section of the tab. """
