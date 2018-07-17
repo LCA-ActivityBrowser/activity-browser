@@ -298,6 +298,14 @@ class TabPanel(QTabWidget):
                 labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
                 self.graph.plot(self.mlca, labels)
 
+        elif self.name == "Inventory":
+            if self.table:
+                self.table.sync(self.mlca)
+            if self.graph:
+                self.graph = None
+                #labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
+                #self.graph.plot(self.mlca, labels)
+
         if self.combobox_list:
             self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
             self.combobox_menu_combobox.clear()
