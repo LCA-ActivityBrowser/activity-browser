@@ -5,7 +5,7 @@ from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
     ActivityDetailsTab,
-    ImpactAssessmentTab,
+    LCAResultsTab,
 )
 
 class RightPanel(Panel):
@@ -18,7 +18,7 @@ class RightPanel(Panel):
         self.act_panel = ActivitiesPanel(self)
 
         self.LCA_setup_tab = LCASetupTab(self)
-        self.lca_results_tab = ImpactAssessmentTab(self)
+        self.lca_results_tab = LCAResultsTab(self)
 
         # addtab
         self.addTab(self.LCA_setup_tab, 'LCA Setup')

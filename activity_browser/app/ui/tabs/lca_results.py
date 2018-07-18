@@ -19,9 +19,9 @@ from PyQt5.QtGui import QIntValidator
 
 from ...signals import signals
 
-class ImpactAssessmentTab(QWidget):
+class LCAResultsTab(QWidget):
     def __init__(self, parent):
-        super(ImpactAssessmentTab, self).__init__(parent)
+        super(LCAResultsTab, self).__init__(parent)
         self.panel = parent  # e.g. right panel
         self.setVisible(False)
         self.visible = False
@@ -53,25 +53,25 @@ class ImpactAssessmentTab(QWidget):
         self.tabs.setTabPosition(1)  # South-facing Tabs
 
         # Default tab settings: combobox_list=False, cutoff=False, export=True
-        TabPanel(self.tabs, "LCIA Results",
-                 table=self.results_table,
-                 graph=self.results_plot)
-        TabPanel(self.tabs, "Process Contributions",
-                 table=self.process_contribution_table,
-                 graph=self.process_contribution_plot,
-                 combobox_list=True,
-                 cutoff=True,)
-        TabPanel(self.tabs, "Elementary Flow Contributions",
-                 table=self.elementary_flow_contribution_table,
-                 graph=self.elementary_flow_contribution_plot,
-                 combobox_list=True,
-                 cutoff=True)
-        TabPanel(self.tabs, "Correlations",
-                 table=self.correlation_table,
-                 graph=self.correlation_plot)
-        TabPanel(self.tabs, "Inventory",
-                 table=self.Inventory_table,
-                 graph=self.Inventory_plot)
+        self.LCIA_results_tab = AnalysisPanel(self.tabs, "LCIA Results",
+                                              table=self.results_table,
+                                              graph=self.results_plot)
+        AnalysisPanel(self.tabs, "Process Contributions",
+                      table=self.process_contribution_table,
+                      graph=self.process_contribution_plot,
+                      combobox_list=True,
+                      cutoff=True, )
+        AnalysisPanel(self.tabs, "Elementary Flow Contributions",
+                      table=self.elementary_flow_contribution_table,
+                      graph=self.elementary_flow_contribution_plot,
+                      combobox_list=True,
+                      cutoff=True)
+        AnalysisPanel(self.tabs, "Correlations",
+                      table=self.correlation_table,
+                      graph=self.correlation_plot)
+        AnalysisPanel(self.tabs, "Inventory",
+                      table=self.Inventory_table,
+                      graph=self.Inventory_plot)
 
         # Generate layout
         self.layout = QVBoxLayout()
@@ -114,9 +114,9 @@ class ImpactAssessmentTab(QWidget):
         signals.mlca_results.emit(self.mlca)
 
 
-class TabPanel(QTabWidget):
+class AnalysisPanel(QTabWidget):
     def __init__(self, tabs, name, table, graph, combobox_list=False, cutoff=False, export=True):
-        super(TabPanel, self).__init__()
+        super(AnalysisPanel, self).__init__()
 
         # Generate generic tab items
         self.tab_layout = QVBoxLayout()
