@@ -31,8 +31,6 @@ function windowSize() {
     return [x,y];
 };
 
-
-
 /**
  * Build svg container and listen for zoom and drag calls
  */
@@ -67,16 +65,20 @@ function update_graph(json_data) {
 	      product: n['product'],
 	      location: n['location'],
 	      id: n['id'],
-	      database: n['database'],
+	      database: n['db'],
 	    });
 	  });
+
+    console.log("Nodes successfully loaded...");
 
 	  // edges --> graph
 	  data.edges.forEach(function(e) {
 	  	// document.writeln(e['source']);
-	    graph.setEdge(e['source'], e['target'], {label: chunkString(e['label'], 40)});
+	    graph.setEdge(e['source_id'], e['target_id'], {label: chunkString(e['label'], 40)
+	    });
 	  });
 
+    console.log("Edges successfully loaded...")
 	  // Render the graph into svg g
 	  svg.call(render, graph);
 
@@ -89,30 +91,40 @@ function update_graph(json_data) {
 	// Function called on click
 
 	function handleMouseClick(node){
-        //launch downstream exploration on ctrl+clicked node
-		if (window.event.ctrlKey){
-            console.log ('ctrl')
-
-            new QWebChannel(qt.webChannelTransport, function (channel) {
-                window.bridge = channel.objects.bridge;
-                window.bridge.node_clicked_expand(graph.node(node).database + ";" + graph.node(node).id)
-                window.bridge.graph_ready.connect(update_graph);
-            });
-        //launch upstream exploration on shift+clicked node
-		} else if (window.event.shiftKey){
+        //launch downstream exploration on shift+clicked node
+		if (window.event.shiftKey){
             console.log ('shift')
 
             new QWebChannel(qt.webChannelTransport, function (channel) {
                 window.bridge = channel.objects.bridge;
-                window.bridge.node_clicked_expand_upstream(graph.node(node).database + ";" + graph.node(node).id)
+                window.bridge.node_clicked_expand(
+                  graph.node(node).database + ";" + graph.node(node).id
+                );
                 window.bridge.graph_ready.connect(update_graph);
             });
-        //launch navigation from clicked node
-		} else  {
-            console.log ('no ctrl')
+
+
+        //launch reduction on alt+clicked node
+		} else if (window.event.altKey){
+            console.log ('alt')
+
             new QWebChannel(qt.webChannelTransport, function (channel) {
                 window.bridge = channel.objects.bridge;
-                window.bridge.node_clicked(graph.node(node).database + ";" + graph.node(node).id)
+                window.bridge.node_clicked_reduce(
+                  graph.node(node).database + ";" + graph.node(node).id
+                );
+                window.bridge.graph_ready.connect(update_graph);
+            });
+
+
+        //launch navigation from clicked node
+		} else  {
+            console.log ('no additional key')
+            new QWebChannel(qt.webChannelTransport, function (channel) {
+                window.bridge = channel.objects.bridge;
+                window.bridge.node_clicked(
+                  graph.node(node).database + ";" + graph.node(node).id
+                );
             window.bridge.graph_ready.connect(update_graph);
             });
 	}
