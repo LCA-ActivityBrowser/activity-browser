@@ -137,10 +137,9 @@ class AnalysisPanel(QTabWidget):
             # Cut-off types
             self.cutoff_type = QVBoxLayout()
             self.cutoff_type_label = QLabel("Cut-off type")
-            self.cutoff_type_absolute = QRadioButton("Absolute")
-            self.cutoff_type_absolute.setChecked(True)
-            self.cutoff_type_relative = QRadioButton("Relative")
             self.cutoff_type_topx = QRadioButton("Top x")
+            self.cutoff_type_topx.setChecked(True)
+            self.cutoff_type_relative = QRadioButton("Relative")
             # Cut-off slider
             self.cutoff_slider = QVBoxLayout()
             self.cutoff_slider_set = QVBoxLayout()
@@ -176,18 +175,24 @@ class AnalysisPanel(QTabWidget):
         self.main_space.setWidgetResizable(True)
         # Option switch
         self.main_space_tb_grph = QHBoxLayout()
-        self.main_space_tb_grph_table = QCheckBox("Table")
-        self.main_space_tb_grph_table.setChecked(True)
         self.main_space_tb_grph_graph = QCheckBox("Graph")
         self.main_space_tb_grph_graph.setChecked(True)
-        # Table
-        self.main_space_table = self.table
+        self.main_space_tb_grph_table = QCheckBox("Table")
+        self.main_space_tb_grph_table.setChecked(True)
         # Graph
         self.main_space_graph = self.graph
+        # Table
+        self.main_space_table = self.table
 
         # Generate Export buttons
         self.export_menu = QHBoxLayout()
         if export:
+            # Export Graph
+            self.export_graph = QVBoxLayout()
+            self.export_graph_label = QLabel("Export graph")
+            self.export_graph_buttons = QHBoxLayout()
+            self.export_graph_buttons_png = QPushButton(".png")
+            self.export_graph_buttons_svg = QPushButton(".svg")
             # Export Table
             self.export_table = QVBoxLayout()
             self.export_table_label = QLabel("Export table")
@@ -195,12 +200,6 @@ class AnalysisPanel(QTabWidget):
             self.export_table_buttons_copy = QPushButton("Copy")
             self.export_table_buttons_csv = QPushButton(".csv")
             self.export_table_buttons_excel = QPushButton("Excel")
-            # Export Graph
-            self.export_graph = QVBoxLayout()
-            self.export_graph_label = QLabel("Export graph")
-            self.export_graph_buttons = QHBoxLayout()
-            self.export_graph_buttons_png = QPushButton(".png")
-            self.export_graph_buttons_svg = QPushButton(".svg")
 
         # Assemble complete tab panel and add to tabs
         if cutoff:
@@ -233,9 +232,8 @@ class AnalysisPanel(QTabWidget):
         # Cut-off
         if self.cutoff:
             # Cut-off types
-            self.cutoff_type_absolute.clicked.connect(self.cutoff_type_absolute_check)
-            self.cutoff_type_relative.clicked.connect(self.cutoff_type_relative_check)
             self.cutoff_type_topx.clicked.connect(self.cutoff_type_topx_check)
+            self.cutoff_type_relative.clicked.connect(self.cutoff_type_relative_check)
 
             # Cut-off slider
             self.cutoff_slider_slider.valueChanged.connect(
@@ -303,8 +301,6 @@ class AnalysisPanel(QTabWidget):
                 self.table.sync(self.mlca)
             if self.graph:
                 self.graph = None
-                #labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
-                #self.graph.plot(self.mlca, labels)
 
         if self.combobox_list:
             self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
@@ -321,20 +317,15 @@ class AnalysisPanel(QTabWidget):
 
         self.graph.plot(self.mlca, method=method)
 
-    def cutoff_type_absolute_check(self):
+    def cutoff_type_topx_check(self):
         """ Work in progress. """
         # set cutoff to some number
-        self.cutoff_slider_unit.setText("absolute selected, functionality to be added later")
+        self.cutoff_slider_unit.setText("topx selected, functionality to be added later")
 
     def cutoff_type_relative_check(self):
         """ Work in progress. """
         # set cutoff to some %
         self.cutoff_slider_unit.setText("relative selected, functionality to be added later")
-
-    def cutoff_type_topx_check(self):
-        """ Work in progress. """
-        # set cutoff to some number
-        self.cutoff_slider_unit.setText("topx selected, functionality to be added later")
 
     def set_cutoff(self):
         pass
@@ -407,9 +398,8 @@ class AnalysisPanel(QTabWidget):
         """ Assemble the cut-off section of the tab. """
         # Assemble types
         self.cutoff_type.addWidget(self.cutoff_type_label)
-        self.cutoff_type.addWidget(self.cutoff_type_absolute)
-        self.cutoff_type.addWidget(self.cutoff_type_relative)
         self.cutoff_type.addWidget(self.cutoff_type_topx)
+        self.cutoff_type.addWidget(self.cutoff_type_relative)
 
         # Assemble slider set
         self.cutoff_slider_set.addWidget(self.cutoff_slider_label)
@@ -441,21 +431,27 @@ class AnalysisPanel(QTabWidget):
     def assemble_main_space(self):
         """ Assemble the main space section of the tab. """
         # Assemble option switch
-        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_graph)
+        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
         self.main_space_tb_grph.addStretch()
 
         # Assemble Table and Graph area
         if self.table and self.graph:
             self.main_space_widget_layout.addLayout(self.main_space_tb_grph)
-        if self.table:
-            self.main_space_widget_layout.addWidget(self.main_space_table)
         if self.graph:
             self.main_space_widget_layout.addWidget(self.main_space_graph, 1)
+        if self.table:
+            self.main_space_widget_layout.addWidget(self.main_space_table)
         self.main_space_widget_layout.addStretch()
 
     def assemble_export(self):
         """ Assemble the export section of the tab. """
+        # Assemble export graph
+        self.export_graph.addWidget(self.export_graph_label)
+        self.export_graph_buttons.addWidget(self.export_graph_buttons_png)
+        self.export_graph_buttons.addWidget(self.export_graph_buttons_svg)
+        self.export_graph.addLayout(self.export_graph_buttons)
+
         # Assemble export table
         self.export_table.addWidget(self.export_table_label)
         self.export_table_buttons.addWidget(self.export_table_buttons_copy)
@@ -463,39 +459,14 @@ class AnalysisPanel(QTabWidget):
         self.export_table_buttons.addWidget(self.export_table_buttons_excel)
         self.export_table.addLayout(self.export_table_buttons)
 
-        # Assemble export graph
-        self.export_graph.addWidget(self.export_graph_label)
-        self.export_graph_buttons.addWidget(self.export_graph_buttons_png)
-        self.export_graph_buttons.addWidget(self.export_graph_buttons_svg)
-        self.export_graph.addLayout(self.export_graph_buttons)
-
         # Assemble export menu
-        if self.table:
-            self.export_menu.addLayout(self.export_table)
+        if self.graph:
+            self.export_menu.addLayout(self.export_graph)
         if self.table and self.graph:
             self.export_menu_vert_line = vertical_line()
             self.export_menu.addWidget(self.export_menu_vert_line)
-        if self.graph:
-            self.export_menu.addLayout(self.export_graph)
-        """self.export_menu.addLayout(self.export_table)
-        self.export_menu_vert_line = vertical_line()
-        self.export_menu.addWidget(self.export_menu_vert_line)
-        self.export_menu.addLayout(self.export_graph)
-        if self.main_space_tb_grph_table.isChecked():
-            self.export_table.setVisible(True)
-            self.export_menu_vert_line.setVisible(False)
-            self.export_graph.setVisible(False)
-        elif self.main_space_tb_grph_table.isChecked() and \
-                self.main_space_tb_grph_graph.isChecked():
-            self.export_table.setVisible(True)
-            self.export_menu_vert_line.setVisible(True)
-            self.export_graph.setVisible(True)
-        elif self.main_space_tb_grph_table.isChecked():
-            self.export_table.setVisible(False)
-            self.export_menu_vert_line.setVisible(False)
-            self.export_graph.setVisible(True)"""
-
-
+        if self.table:
+            self.export_menu.addLayout(self.export_table)
         self.export_menu.addStretch()
 
     def assemble_panel(self, cutoff, combobox, export):
