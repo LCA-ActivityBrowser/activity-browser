@@ -102,19 +102,6 @@ function update_graph(json_data) {
                 );
                 window.bridge.graph_ready.connect(update_graph);
             });
-        /*
-        TO DELETE ONCE SINGLE EXPAND FUNCTION IS DONE
-        //launch upstream exploration on shift+clicked node
-		} else if (window.event.shiftKey){
-            console.log ('shift')
-
-            new QWebChannel(qt.webChannelTransport, function (channel) {
-                window.bridge = channel.objects.bridge;
-                window.bridge.node_clicked_expand_upstream(
-                  graph.node(node).database + ";" + graph.node(node).id
-                );
-                window.bridge.graph_ready.connect(update_graph);
-            }); */
 
 
         //launch reduction on alt+clicked node

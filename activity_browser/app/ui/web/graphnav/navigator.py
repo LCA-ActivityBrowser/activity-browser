@@ -50,13 +50,10 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.draw_graph()
 
     def connect_signals(self):
-        # TODO : remove upstream signal once single expand function is done
         signals.database_selected.connect(self.set_database)
         signals.add_activity_to_history.connect(self.update_graph)
         graphsignals.update_graph.connect(self.update_graph)
         graphsignals.method_chooser.connect(self.method_chooser)
-        #graphsignals.update_graph_expand.connect(self.update_graph_expand)
-        #graphsignals.update_graph_expand_upstream.connect(self.update_graph_expand_upstream)
         graphsignals.update_graph_reduce.connect(self.update_graph_reduce)
         graphsignals.graph_ready.connect(self.draw_graph)
 
@@ -170,17 +167,6 @@ class Bridge(QtCore.QObject):
         key = tuple([db_id[0], db_id[1]])
         graphsignals.method_chooser.emit(key)
 
-        """@QtCore.pyqtSlot(str)
-    # TODO: remove this after adding mediating function to call expand or expand_upstream
-    def node_clicked_expand_upstream(self, js_string): """
-        """ is called when node is shift+clicked for upstream expansion
-        Args:
-            js_string: string containing the node's database name and the ID of the clicked node
-        """
-        """print("Clicked on to expand upstream: ", js_string)
-        db_id = js_string.split(";")
-        key = tuple([db_id[0], db_id[1]])
-        graphsignals.update_graph_expand_upstream.emit(key) """
 
     @QtCore.pyqtSlot(str)
     def node_clicked_reduce(self, js_string):
@@ -229,9 +215,7 @@ class GraphNode(object):
 class GraphModel:
     """ Stores the data of a graph and provides functionality to manipulate data. """
 
-    from json import JSONEncoder
-
-    class JsonSerializer(JSONEncoder):
+    class JsonSerializer(json.JSONEncoder):
         """ A custom JSON serializer that can be used with json.dumps. """
         def default(self, o):
             """ Returns the object to be used with pickle. """
@@ -269,10 +253,6 @@ class GraphModel:
 
     def add_edge(self, edge: Edge):
         """ Adds an edge to the current model. """
-        # TODO: check whether the given edge already exists, or not (if yes, skip or raise)
-        # TODO: check whether source and target are known nodes to the current model (if not, skip or raise)
-        # TODO: check whether source and target of the given edge are equal (if yes, skip or raise) - NOT NEEDED
-        # TODO: add function to check for existing downstream nodes
         try:
             self._data.edges.append(edge)
         except Exception as e:
@@ -296,7 +276,6 @@ class GraphModel:
 
     def add_node(self, node: GraphNode):
         """ Adds a node to the current model. """
-        # TODO: check whether the given node already exists, or not (if yes, skip or raise)
         self._data.nodes.append(node)
 
     def remove_node(self, node: GraphNode):
@@ -326,12 +305,12 @@ class GraphModel:
             if e.source_id == source_id:
                 return True
             return False
-        print("Checking for downstream exchanges present for:", activity, key)
+        #print("Checking for downstream exchanges present for:", activity, key)
         if len(list(filter(lambda e: contains_source_id(e, node_id), self._data.edges))) >= 1:
-            print("At least one downstream edge seems to be present for:", activity, key)
+            #print("At least one downstream edge seems to be present for:", activity, key)
             return True
         else:
-            print("No downstream edges seem to be present for:", activity, key)
+            #print("No downstream edges seem to be present for:", activity, key)
             return False
 
 
@@ -349,11 +328,10 @@ class Graph:
     def __init__(self):
         self.model = GraphModel()
 
-        # TODO: since all methods obtain the activity via the given key, there´s actually no need to it in a field.
+        # since all methods obtain the activity via the given key, there´s actually no need to it in a field.
         self.activity = None
 
     def get_json_graph(self, key: Tuple[str, str]):
-        # TODO: remove test print statements
         """Creates JSON graph for an activity
         Args:
             key: tuple containing the key of the activity
