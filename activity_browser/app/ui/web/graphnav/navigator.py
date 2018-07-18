@@ -50,16 +50,23 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.draw_graph()
 
     def connect_signals(self):
+        # TODO : remove upstream signal once single expand function is done
         signals.database_selected.connect(self.set_database)
         signals.add_activity_to_history.connect(self.update_graph)
         graphsignals.update_graph.connect(self.update_graph)
-        graphsignals.update_graph_expand.connect(self.update_graph_expand)
+        graphsignals.method_chooser.connect(self.method_chooser)
+        #graphsignals.update_graph_expand.connect(self.update_graph_expand)
         #graphsignals.update_graph_expand_upstream.connect(self.update_graph_expand_upstream)
         graphsignals.update_graph_reduce.connect(self.update_graph_reduce)
         graphsignals.graph_ready.connect(self.draw_graph)
 
     def set_database(self, name):
+        """
+        Saves the currently selected database for graphing a random activity
+        Args: takes string of selected database
+        """
         self.selected_db = name
+
 
     def update_graph(self, key):
         print("Updating Graph for key: ", key)
@@ -69,6 +76,14 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         except Exception as e:
             ErrorHandler.trace_error(e)
             print("No activity with this key:", key)
+
+    def method_chooser(self, key):
+        if self.graph.model.method_chooser_helper(key) is True:
+            print("Upstream Expansion initiated for:", key)
+            self.update_graph_expand_upstream(key)
+        else:
+            print("Downstream Expansion initiated for:", key)
+            self.update_graph_expand(key)
 
     def update_graph_expand(self, key):
         """ Takes key, retrieves JSON data with more downstream nodes, and sends it to js graph_ready func
@@ -146,26 +161,26 @@ class Bridge(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def node_clicked_expand(self, js_string):
-        """ is called when node is ctrl+clicked for downstream expansion
+        """ is called when node is shift+clicked for expansion
         Args:
             js_string: string containing the node's database name and the ID of the clicked node
         """
         print("Clicked on to expand: ", js_string)
         db_id = js_string.split(";")
         key = tuple([db_id[0], db_id[1]])
-        graphsignals.update_graph_expand.emit(key)
+        graphsignals.method_chooser.emit(key)
 
-    @QtCore.pyqtSlot(str)
+        """@QtCore.pyqtSlot(str)
     # TODO: remove this after adding mediating function to call expand or expand_upstream
-    def node_clicked_expand_upstream(self, js_string):
+    def node_clicked_expand_upstream(self, js_string): """
         """ is called when node is shift+clicked for upstream expansion
         Args:
             js_string: string containing the node's database name and the ID of the clicked node
         """
-        print("Clicked on to expand upstream: ", js_string)
+        """print("Clicked on to expand upstream: ", js_string)
         db_id = js_string.split(";")
         key = tuple([db_id[0], db_id[1]])
-        graphsignals.update_graph_expand_upstream.emit(key)
+        graphsignals.update_graph_expand_upstream.emit(key) """
 
     @QtCore.pyqtSlot(str)
     def node_clicked_reduce(self, js_string):
@@ -208,18 +223,7 @@ class GraphNode(object):
         self.name = name
         self.location = location
         self.db = database
-        self._type = ""
 
-    @property
-    def type(self) -> str:
-        """ Gets a value indicating the current nodes informative type name. """
-        return self._type
-
-    @type.setter
-    def type(self, type_name: str):
-        """ Sets an informative type that classifies the current node;
-        for instance receiver, input, consumer, or such. """
-        self._type = type_name
 
 
 class GraphModel:
@@ -307,6 +311,29 @@ class GraphModel:
             return False
 
         self._data.nodes = list(filter(lambda n: node_filter_predicate(n, node.id) is False, self._data.nodes))
+
+    def method_chooser_helper(self, key: Tuple[str, str]):
+        """
+        Checks current model instance for whether the specified node has any downstream edges connected to it
+        and returns True if Yes; returns False if No
+        Args: node
+        Returns: True or False
+        """
+        activity = bw.get_activity(key)
+        node_id = key[1]
+        def contains_source_id(e: Edge, source_id: str):
+            """Filter function to return True, if the edges source id is identical to specified source id string"""
+            if e.source_id == source_id:
+                return True
+            return False
+        print("Checking for downstream exchanges present for:", activity, key)
+        if len(list(filter(lambda e: contains_source_id(e, node_id), self._data.edges))) >= 1:
+            print("At least one downstream edge seems to be present for:", activity, key)
+            return True
+        else:
+            print("No downstream edges seem to be present for:", activity, key)
+            return False
+
 
     def json(self):
         """ Returns a JSON representation of the current model´s graph data. """
@@ -434,7 +461,7 @@ class Graph:
 
         json_data = self.model.json()
 
-        # print("JSON-Data:", json_data)
+        #print("JSON-Data:", json_data)
         return json_data
 
     def get_json_expand_graph_upstream(self, key: Tuple[str, str]):
@@ -469,11 +496,11 @@ class Graph:
         for exchange in filter(lambda x: x.output.key[1] == key[1], exchanges):
             self.model.add_node(make_node(exchange.input))
             self.model.add_edge(make_edge(exchange.input, exchange.output))
-
+        print('done with adding nodes & edges')
         # JSON pickle
         json_data = self.model.json()
 
-        # print("JSON-Data:", json_data)
+        print("JSON-Data:", json_data)
         return json_data
 
     def get_json_reduce_graph(self, key: Tuple[str, str]):  # NOT DONE!!!!
