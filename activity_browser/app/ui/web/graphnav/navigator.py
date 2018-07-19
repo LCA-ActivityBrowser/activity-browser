@@ -21,6 +21,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.graph = Graph()
 
         self.connect_signals()
+        self.selected_db = ''
 
         # button refresh
         self.button_refresh = QtWidgets.QPushButton('Refresh')
@@ -65,7 +66,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         """
         self.selected_db = name
 
-
     def update_graph(self, key):
         print("Updating Graph for key: ", key)
         try:
@@ -96,7 +96,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
             ErrorHandler.trace_error(e)
             print("No expansion possible with this activity:", key)
 
-    def update_graph_expand_upstream(self, key: str):
+    def update_graph_expand_upstream(self, key):
         """Takes key, retrieves JSON data with more upstream nodes, and sends it to js graph_ready func
         Args: 
             key: tuple containing the key of the activity
@@ -352,24 +352,31 @@ class GraphModel:
             #print("At least one downstream edge seems to be present for:", activity, key)
             return True
         else:
-            #print("No downstream edges seem to be present for:", activity, key)
+            # print("No downstream edges seem to be present for:", activity, key)
             return False
 
     def get_orphaned_nodes(self, node_central: GraphNode):
         """Returns a list of orphaned nodes (i.e. who have no path to the central node)
         Args: central node, specified node
-        Ret: list of nodes"""
-        # TODO : try using json serialized data instead of raw data!
-        G = MultiGraph(self.json())
-        print('len of nodes {} and edges {}'.format(len(self._data.nodes), len(self._data.nodes)))
-        #G.add_nodes_from(self._data.nodes)
-        #G.add_edges_from(self._data.edges)
+        Ret: list of node ids without connection to central node"""
+        # creates MultiGraph class for networkx function has_path
+        G = MultiGraph()
+        # fills node_ids into MultiGraph
+        for node in list(self._data.nodes):
+            G.add_node(node.id)
+        # fills edges (source_id, target_id) into MultiGraph
+        for edge in list(self._data.edges):
+            G.add_edge(edge.source_id, edge.target_id)
 
-        orphaned_nodes = []
+        orphaned_node_ids = []
+        #checks each node in current dataset whether it is connected to central node
+        #adds node_id of orphaned nodes to list
         for node in G.nodes:
-            if not has_path(G, node, node_central):
-                orphaned_nodes.append(node)
-                print('Orphaned node added with name', node.name)
+            if not has_path(G, node, node_central.id) and node != node_central.id:
+                orphaned_node_ids.append(node)
+                #print('Orphaned node added with name', node.name)
+        print('no of orphaned nodes added: ',len(orphaned_node_ids))
+        return orphaned_node_ids
 
     def json(self):
         """ Returns a JSON representation of the current model´s graph data. """
@@ -539,11 +546,7 @@ class Graph:
 
     def get_json_reduce_graph(self, key: Tuple[str, str]):
         """ Exploration Function: Reduce graph saved in saved_json by removing the alt+clicked node and direct exchanges
-        # TODO : implement a check for any orphaned nodes (preferably helper func in GraphModel
-        # TODO : #1 make nodes_removable: specified + nodes with shortest path to central through specified node
-        # TODO : 2# go through that list to make edges_removal and remove those
-        # TODO : #3 remove nodes_removable
-
+            Removes specified node as well as any dependent nodes which become isolated and their edges
         Args:
             key: tuple containing the key of the activity
         Returns:
@@ -573,15 +576,18 @@ class Graph:
 
         activity = bw.get_activity(key)
         print("Head:", activity)
-
+        if key[1] == self.central_node.id:
+            print('Central node cannot be removed.')
+            return self.model.json()
         # remove alt+clicked node and directly connected edges
         remove_edges(key[1])
         remove_nodes(key[1])
-        """
-        #retrieve list of orphaned nodes and remove these and their direct edges
-        for orphan in self.model.get_orphaned_nodes(self.central_node):
-            remove_edges(orphan.id)
-            remove_nodes(orphan.id)"""
+
+        # retrieve list of orphaned nodes and remove these and their direct edges
+        for orphan_id in self.model.get_orphaned_nodes(self.central_node):
+            remove_edges(orphan_id)
+            remove_nodes(orphan_id)
+            print('removed nodes and edges for orphaned node', orphan_id)
 
         # JSON pickle
         json_data = self.model.json()
