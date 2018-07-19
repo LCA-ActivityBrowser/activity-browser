@@ -7,6 +7,7 @@ from typing import Tuple
 import brightway2 as bw
 from bw2data import databases
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from networkx import has_path, MultiGraph
 
 from activity_browser.app.ui.web.graphnav.errorhandler import ErrorHandler
 from .signals import graphsignals
@@ -209,7 +210,18 @@ class GraphNode(object):
         self.name = name
         self.location = location
         self.db = database
+        self._type = ""
 
+    @property
+    def type(self) -> str:
+        """ Gets a value indicating the current nodes informative type name. """
+        return self._type
+
+    @type.setter
+    def type(self, type_name: str):
+        """ Sets an informative type that classifies the current node;
+        for instance receiver, input, consumer, or such. """
+        self._type = type_name
 
 
 class GraphModel:
@@ -253,12 +265,16 @@ class GraphModel:
 
     def add_edge(self, edge: Edge):
         """ Adds an edge to the current model. """
-        try:
-            self._data.edges.append(edge)
-        except Exception as e:
-            ErrorHandler.trace_error(e)
-            raise
-
+        # TODO : Add check for whether edge is already in model
+        if len(list(filter(lambda e: e.source_id == edge.source_id and
+                                     e.target_id == edge.target_id, self._data.edges))) == 0:
+            try:
+                self._data.edges.append(edge)
+            except Exception as e:
+                ErrorHandler.trace_error(e)
+                raise
+        else:
+            print('Edge already present, source_id: {} ; target_id: {}'.format(edge.source_id, edge.target_id))
     def remove_edge(self, edge: Edge):
         """ Removes the specified node from the current model instance. """
 
@@ -266,17 +282,34 @@ class GraphModel:
             """ A filter function that returns true, if the given edge´s source and target properties equal the
             specified source and target identifiers, otherwise false."""
             if e.source == edge_source_id and e.target == edge_target_id:
+                #print('{} == {}' .format(e.source, edge_source_id))
                 return True
 
             return False
 
-        # num_edges = self._data.edges.__len__()
-        self._data.edges = list(filter(lambda e: edge_filter_predicate(e, edge.source, edge.target), self._data.edges))
-        # num_edges_after = self._data.edges.__len__()
+        #num_edges = self._data.edges.__len__()
+        #print('no of edges before removal: ', self._data.edges.__len__())
+        try:
+            self._data.edges = list(
+                filter(lambda e: edge_filter_predicate(e, edge.source, edge.target) is False, self._data.edges))
+        except Exception as e:
+            ErrorHandler.trace_error(e)
+            print("Failed to set reduced array of edges")
+            raise
+
+        #num_edges_after = self._data.edges.__len__()
+        #print('no of edges after removal: ', self._data.edges.__len__())
 
     def add_node(self, node: GraphNode):
         """ Adds a node to the current model. """
-        self._data.nodes.append(node)
+        if len(list(filter(lambda n: n.id == node.id, self._data.nodes))) == 0:
+            try:
+                self._data.nodes.append(node)
+            except Exception as e:
+                ErrorHandler.trace_error(e)
+                raise
+        else:
+            print('Node {} already present'.format(node.id))
 
     def remove_node(self, node: GraphNode):
         """ Removes the specifies node from the current model instance. """
@@ -285,11 +318,20 @@ class GraphModel:
             """ A filter function that returns true, if the given node´s id property equals the specified identifier,
             otherwise false. """
             if n.id == node_id:
+                #print('{} == {}' .format(n.id, node_id))
                 return True
 
             return False
 
-        self._data.nodes = list(filter(lambda n: node_filter_predicate(n, node.id) is False, self._data.nodes))
+        #print('no of nodes before removal: ', len(self._data.nodes))
+        reduced_nodes = list(filter(lambda n: node_filter_predicate(n, node.id) is False, self._data.nodes))
+        #print('no of nodes after removal', len(reduced_nodes))
+        try:
+            self._data.nodes = list(filter(lambda n: node_filter_predicate(n, node.id) is False, self._data.nodes))
+        except Exception as e:
+            ErrorHandler.trace_error(e)
+            print("Failed to set reduced array of nodes: {}.", node.id)
+            raise
 
     def method_chooser_helper(self, key: Tuple[str, str]):
         """
@@ -313,6 +355,21 @@ class GraphModel:
             #print("No downstream edges seem to be present for:", activity, key)
             return False
 
+    def get_orphaned_nodes(self, node_central: GraphNode):
+        """Returns a list of orphaned nodes (i.e. who have no path to the central node)
+        Args: central node, specified node
+        Ret: list of nodes"""
+        # TODO : try using json serialized data instead of raw data!
+        G = MultiGraph(self.json())
+        print('len of nodes {} and edges {}'.format(len(self._data.nodes), len(self._data.nodes)))
+        #G.add_nodes_from(self._data.nodes)
+        #G.add_edges_from(self._data.edges)
+
+        orphaned_nodes = []
+        for node in G.nodes:
+            if not has_path(G, node, node_central):
+                orphaned_nodes.append(node)
+                print('Orphaned node added with name', node.name)
 
     def json(self):
         """ Returns a JSON representation of the current model´s graph data. """
@@ -328,8 +385,8 @@ class Graph:
     def __init__(self):
         self.model = GraphModel()
 
-        # since all methods obtain the activity via the given key, there´s actually no need to it in a field.
-        self.activity = None
+        # to avoid a change of title and retain information about the original central node it is stored here
+        self.central_node = None
 
     def get_json_graph(self, key: Tuple[str, str]):
         """Creates JSON graph for an activity
@@ -393,8 +450,7 @@ class Graph:
 
         json_data = self.model.json()
 
-
-        self.activity = activity
+        self.central_node = node
         # print("JSON-Data:", json_data)
         return json_data
 
@@ -426,7 +482,7 @@ class Graph:
                 output_activity.get("location"),
                 activity_database)
 
-        # adds only downstream nodes to the ctrl+clicked node
+        # adds only downstream nodes to the specified node
         activity_exchanges = activity.upstream()
         for index, exchange in enumerate(activity_exchanges):
             try:
@@ -469,7 +525,7 @@ class Graph:
                 input_activity.get("location"),
                 input_activity.key[0])
 
-        # add only the upstreams nodes to the shift+clicked node
+        # add only the upstreams nodes to the specified node
         exchanges = activity.technosphere()
         for exchange in filter(lambda x: x.output.key[1] == key[1], exchanges):
             self.model.add_node(make_node(exchange.input))
@@ -478,32 +534,54 @@ class Graph:
         # JSON pickle
         json_data = self.model.json()
 
-        print("JSON-Data:", json_data)
+        #print("JSON-Data:", json_data)
         return json_data
 
-    def get_json_reduce_graph(self, key: Tuple[str, str]):  # NOT DONE!!!!
-        """ Exploration Function: Reduce graph saved in saved_json by removing the alt+clicked node
+    def get_json_reduce_graph(self, key: Tuple[str, str]):
+        """ Exploration Function: Reduce graph saved in saved_json by removing the alt+clicked node and direct exchanges
+        # TODO : implement a check for any orphaned nodes (preferably helper func in GraphModel
+        # TODO : #1 make nodes_removable: specified + nodes with shortest path to central through specified node
+        # TODO : 2# go through that list to make edges_removal and remove those
+        # TODO : #3 remove nodes_removable
+
         Args:
             key: tuple containing the key of the activity
         Returns:
                 JSON data as a string
         """
+        def remove_edges(id: str):
+            # filters edges that have the specified node_id as a target or source
+            edges_removable = list(filter(lambda x: x.source == id or x.target == id, self.model._data.edges))
+            # print('Number of edges to remove: ', len(edges_removable))
+            for x in edges_removable:
+                try:
+                    self.model.remove_edge(x)
+                    print("edge removed with source_id: ", x.source)
+                except Exception as e:
+                    ErrorHandler.trace_error(e)
+                    raise
+        def remove_nodes(id: str):
+            node_removable = list(filter(lambda x: x.id == id, self.model._data.nodes))
+            # print('Number of nodes to remove: ', len(node_removable))
+            for x in node_removable:
+                try:
+                    self.model.remove_node(x)
+                    print("specified node removed with key: ", id)
+                except Exception as e:
+                    ErrorHandler.trace_error(e)
+                    raise
+
         activity = bw.get_activity(key)
         print("Head:", activity)
 
-        # remove alt+clicked node and dependencies ---> NOT DONE
-        exchanges = activity.technosphere()
-        for exchange in filter(lambda x: x.output.key[1] == key[1], exchanges):
-            self.model.remove_edge(Edge(
-                exchange.input.key[1],
-                exchange.output.key[1],
-                exchange.input.get("reference product")))
-            self.model.remove_node(GraphNode(
-                exchange.input.key[1],
-                exchange.input.get("reference product"),
-                exchange.input.get("name"),
-                exchange.input.get("location"),
-                exchange.input.key[0]))
+        # remove alt+clicked node and directly connected edges
+        remove_edges(key[1])
+        remove_nodes(key[1])
+        """
+        #retrieve list of orphaned nodes and remove these and their direct edges
+        for orphan in self.model.get_orphaned_nodes(self.central_node):
+            remove_edges(orphan.id)
+            remove_nodes(orphan.id)"""
 
         # JSON pickle
         json_data = self.model.json()
