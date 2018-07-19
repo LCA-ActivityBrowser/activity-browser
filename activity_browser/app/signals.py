@@ -63,6 +63,7 @@ class Signals(QtCore.QObject):
 
     # LCA Calculation
     lca_calculation = QtCore.pyqtSignal(str)
+    mlca_results =  QtCore.pyqtSignal(object)
 
     method_selected = QtCore.pyqtSignal(tuple)
     method_tabs_changed = QtCore.pyqtSignal()

@@ -40,6 +40,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Inside the vertical layout is a horizontal layout `main_horizontal_box` with two elements and a
         # The enclosing element is `main_horizontal_box`, which contains the
         # left and right panels `left_panel` and `right_panel`.
+        # Left (0) and right (1) panels have a default screen division, set by the setStretchfactor() commands
+        # the last argument is the proportion of screen it takes up from total (so 1 and 3 gives 1/4 and 3/4)
 
         self.main_horizontal_box = QtWidgets.QHBoxLayout()
 
@@ -49,6 +51,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter_horizontal = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter_horizontal.addWidget(self.left_panel)
         self.splitter_horizontal.addWidget(self.right_panel)
+        self.splitter_horizontal.setStretchFactor(0, 1)
+        self.splitter_horizontal.setStretchFactor(1, 3)
         self.main_horizontal_box.addWidget(self.splitter_horizontal)
 
         self.vertical_container = QtWidgets.QVBoxLayout()
