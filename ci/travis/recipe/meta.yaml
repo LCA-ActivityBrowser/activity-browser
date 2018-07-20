@@ -29,6 +29,7 @@ requirements:
     - beautifulsoup4
     - fuzzywuzzy
     - pyqt==5.9.2
+    - lcopt
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

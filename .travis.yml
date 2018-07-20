@@ -35,6 +35,7 @@ install:
   - conda config --append channels conda-forge
   - conda config --append channels cmutel
   - conda config --append channels haasad
+  - conda config --append channels pjamesjoyce
 
   # conda build
   # use sed to dynamically change the build number for the upload to conda
