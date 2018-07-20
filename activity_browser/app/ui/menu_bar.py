@@ -15,6 +15,7 @@ class MenuBar(object):
         self.window = window
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
+        self.menubar.addMenu(self.setup_plugins_menu())
         # self.menubar.addMenu(self.setup_extensions_menu())
         self.menubar.addMenu(self.setup_windows_menu())
         self.menubar.addMenu(self.setup_help_menu())
@@ -34,6 +35,15 @@ class MenuBar(object):
         menu.addAction(
             '&Settings...',
             self.open_settings_wizard
+        )
+        return menu
+
+    # PLUGINS
+    def setup_plugins_menu(self):
+        menu = QtWidgets.QMenu('&Plugins', self.window)
+        menu.addAction(
+            '&Lcopt',
+            self.load_plugin_lcopt
         )
         return menu
 
@@ -139,3 +149,6 @@ You should have received a copy of the GNU General Public License along with thi
 
     def open_settings_wizard(self):
         self.settings_wizard = SettingsWizard()
+
+    def load_plugin_lcopt(self):
+        signals.launch_plugin_lcopt.emit()

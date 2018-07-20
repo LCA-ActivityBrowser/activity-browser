@@ -70,5 +70,8 @@ class Signals(QtCore.QObject):
     # Qt Windows
     update_windows = QtCore.pyqtSignal()
 
+    # Plugins
+    launch_plugin_lcopt = QtCore.pyqtSignal()
+
 
 signals = Signals()
