@@ -3,6 +3,7 @@ from PyQt5 import QtWidgets
 from brightway2 import calculation_setups
 
 from activity_browser.app.ui.web.sankey import SankeyWidget
+from activity_browser.app.ui.web.lcopt import LcoptWidget
 from ..style import horizontal_line, header
 from ..tables import (
     CSActivityTable,
@@ -90,6 +91,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.delete_cs_button = QtWidgets.QPushButton('Delete')
         self.calculate_button = QtWidgets.QPushButton('Calculate')
         self.sankey_button = QtWidgets.QPushButton('Sankey')
+        self.lcopt_button = QtWidgets.QPushButton('lcopt')
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -102,6 +104,7 @@ class LCASetupTab(QtWidgets.QWidget):
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
         calc_row.addWidget(self.sankey_button)
+        calc_row.addWidget(self.lcopt_button)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
@@ -122,6 +125,7 @@ class LCASetupTab(QtWidgets.QWidget):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
         self.sankey_button.clicked.connect(self.open_sankey)
+        self.lcopt_button.clicked.connect(self.open_lcopt)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.delete_cs_button.clicked.connect(
@@ -188,4 +192,12 @@ class LCASetupTab(QtWidgets.QWidget):
         self.sankey = SankeyWidget(self)
         self.window.stacked.addWidget(self.sankey)
         self.window.stacked.setCurrentWidget(self.sankey)
+        signals.update_windows.emit()
+
+    def open_lcopt(self):
+        signals.change_project.emit('LCOPT_Setup')
+        if not hasattr(self, 'lcopt_window'):
+            self.lcopt_window = LcoptWidget()
+        self.window.stacked.addWidget(self.lcopt_window)
+        self.window.stacked.setCurrentWidget(self.lcopt_window)
         signals.update_windows.emit()
