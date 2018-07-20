@@ -9,9 +9,9 @@ from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 LCOPT_URL = 'http://127.0.0.1:5000/'
 
 
-class LcoptWindow(QtWidgets.QWidget):
+class LcoptWidget(QtWidgets.QWidget):
     """
-    LcoptWindow displays the options to create/load an lcopt model and displays the flask app
+    LcoptWidget displays the options to create/load an lcopt model and displays the flask app
     top-level full-app window like the main window and the sankey window
     """
     def __init__(self, parent=None):
