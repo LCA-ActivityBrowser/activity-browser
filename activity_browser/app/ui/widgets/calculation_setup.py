@@ -24,6 +24,8 @@ from ...signals import signals
 # TODO: re-add functionality for changing slider/input for cutoff interaction
 # TODO: re-add functionality for export buttons
 
+# TODO: fix box-in-box of the main space
+
 # TODO: add functionality for actually changing cutoff
 
 class CalculationSetupTab(QTabWidget):
