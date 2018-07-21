@@ -6,6 +6,7 @@ from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
     ActivityDetailsTab,
+    LCAResultsTab,
 )
 from ..widgets import CalculationSetupTab
 
@@ -20,7 +21,8 @@ class RightPanel(Panel):
         self.act_panel = ActivitiesTab(self)
         self.LCA_setup_tab = LCASetupTab(self)
         self.graph_navigator_tab = GraphNavigatorWidget()
-        self.lca_results_tab = CalculationSetupTab(self)
+        self.lca_results_tab = LCAResultsTab(self)
+        #self.calculation_setup = CalculationSetupTab(self) # Temporary, remove
 
         # add tabs to Panel
         self.addTab(self.LCA_setup_tab, 'LCA Setup')
