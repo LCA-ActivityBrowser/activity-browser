@@ -19,9 +19,9 @@ from PyQt5.QtGui import QIntValidator
 
 from ...signals import signals
 
-class LCAResultsTab(QWidget):
+class CalculationSetupTab(QWidget):
     def __init__(self, parent):
-        super(LCAResultsTab, self).__init__(parent)
+        super(CalculationSetupTab, self).__init__(parent)
         self.panel = parent  # e.g. right panel
         self.setVisible(False)
         self.visible = False
