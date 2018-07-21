@@ -18,13 +18,21 @@ from PyQt5.QtGui import QIntValidator
 
 from ...signals import signals
 
-# TODO: re-add functionality for userinteraction
+# TODO: Find out how to implement signals in the AnalysisTab class for subclassing
+# TODO: Move signals to AnalysisTab
+
+# TODO: re-add functionality for changing slider/input for cutoff interaction
+# TODO: re-add functionality for export buttons
+
+# TODO: add functionality for actually changing cutoff
 
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
         super(CalculationSetupTab, self).__init__(parent)
         self.panel = parent  # e.g. right panel
         self.setup_name = name
+        self.method_dict = dict()
+
         self.setVisible(False)
         self.visible = False
 
@@ -45,7 +53,7 @@ class CalculationSetupTab(QTabWidget):
 
     def update(self):
         self.mlca = MLCA(self.setup_name)
-        print("updating {}".format(self.setup_name))
+        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
         self.lcia_results_tab.update()
 
@@ -57,11 +65,13 @@ class CalculationSetupTab(QTabWidget):
 
         self.inventory_tab.update()
 
-
 class AnalysisTab(QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent, table=None, plot=None, combobox=None):
         super(AnalysisTab, self).__init__(parent)
-        self.tab = parent
+        self.setup = parent
+        self.table = table
+        self.plot = plot
+        self.combobox_menu_combobox = combobox
 
         self.name = str()
         self.header = header(self.name)
@@ -72,19 +82,21 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(self.header)
         self.layout.addWidget(horizontal_line())
 
-        self.connect_signals()
-
-    def connect_signals(self):
-        pass
-
     def update(self):
         if self.table:
             self.update_table()
         if self.plot:
             self.update_plot()
+        if self.combobox_menu_combobox != None:
+            self.update_combobox()
 
     def update_table(self):
         self.table.sync(self.setup.mlca)
+
+    def update_combobox(self):
+        self.combobox_menu_combobox.clear()
+        self.combobox_list = list(self.setup.method_dict.keys())
+        self.combobox_menu_combobox.insertItems(0, self.combobox_list)
 
     def add_cutoff(self):
         self.cutoff_menu = QHBoxLayout()
@@ -158,7 +170,6 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(horizontal_line())
 
     def add_main_space(self):
-
         # Generate Table and Plot area
         self.main_space = QScrollArea()
         self.main_space_widget = QWidget()
@@ -253,6 +264,33 @@ class LCIAAnalysis(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
+        self.connect_signals()
+
+    def connect_signals(self):
+        # Mainspace Checkboxes
+
+        self.main_space_tb_grph_table.stateChanged.connect(
+            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
+        self.main_space_tb_grph_plot.stateChanged.connect(
+            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
+
+    def main_space_check(self, table_ch, plot_ch):
+        table_state = table_ch.isChecked()
+        plot_state = plot_ch.isChecked()
+
+        if table_state and plot_state:
+            self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(True)
+
+        elif not table_state and plot_state:
+            self.main_space_table.setVisible(False)
+            self.main_space_plot.setVisible(True)
+
+        else:
+            self.main_space_tb_grph_table.setChecked(True)
+            self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(False)
+
     def update_plot(self):
         self.plot.plot(self.setup.mlca)
 
@@ -264,7 +302,6 @@ class ProcessContributions(AnalysisTab):
         self.name = "Process Contributions"
         self.header.setText(self.name)
 
-        self.table = None
         self.plot = ProcessContributionPlot(self.setup)
 
         self.add_cutoff()
@@ -274,8 +311,19 @@ class ProcessContributions(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
-    def update_plot(self):
-        self.plot.plot(self.setup.mlca, method=self.setup.mlca.methods[0])
+        self.connect_signals()
+
+    def connect_signals(self):
+
+        self.combobox_menu_combobox.currentTextChanged.connect(
+            lambda name: self.update_plot(method=name))
+
+    def update_plot(self, method=None):
+        if method == None:
+            method = self.setup.mlca.methods[0]
+        else:
+            method = self.setup.method_dict[method]
+        self.plot.plot(self.setup.mlca, method=method)
 
 class ElementaryFlowContributions(AnalysisTab):
     def __init__(self, parent):
@@ -285,7 +333,6 @@ class ElementaryFlowContributions(AnalysisTab):
         self.name = "Elementary Flow Contributions"
         self.header.setText(self.name)
 
-        self.table = None
         self.plot = ElementaryFlowContributionPlot(self.setup)
 
         self.add_cutoff()
@@ -295,8 +342,19 @@ class ElementaryFlowContributions(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
-    def update_plot(self):
-        self.plot.plot(self.setup.mlca, method=self.setup.mlca.methods[0])
+        self.connect_signals()
+
+    def connect_signals(self):
+
+        self.combobox_menu_combobox.currentTextChanged.connect(
+            lambda name: self.update_plot(method=name))
+
+    def update_plot(self, method=None):
+        if method == None:
+            method = self.setup.mlca.methods[0]
+        else:
+            method = self.setup.method_dict[method]
+        self.plot.plot(self.setup.mlca, method=method)
 
 class Correlations(AnalysisTab):
     def __init__(self, parent):
@@ -306,13 +364,17 @@ class Correlations(AnalysisTab):
         self.name = "Correlations"
         self.header.setText(self.name)
 
-        self.table = None
         self.plot = CorrelationPlot(self.setup)
 
         self.add_main_space()
         self.add_export()
 
         self.setup.addTab(self, self.name)
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        pass
 
     def update_plot(self):
         labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
@@ -327,9 +389,13 @@ class Inventory(AnalysisTab):
         self.header.setText(self.name)
 
         self.table = InventoryTable(self.setup)
-        self.plot = None
 
         self.add_main_space()
         self.add_export()
 
         self.setup.addTab(self, self.name)
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        pass
