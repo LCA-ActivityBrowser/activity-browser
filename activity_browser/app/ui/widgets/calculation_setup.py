@@ -147,7 +147,7 @@ class AnalysisTab(QWidget):
 
     def add_main_space(self):
 
-        # Generate Table and Graph area
+        # Generate Table and Plot area
         self.main_space = QScrollArea()
         self.main_space_widget = QWidget()
         self.main_space_widget_layout = QVBoxLayout()
@@ -156,25 +156,25 @@ class AnalysisTab(QWidget):
         self.main_space.setWidgetResizable(True)
         # Option switch
         self.main_space_tb_grph = QHBoxLayout()
-        self.main_space_tb_grph_graph = QCheckBox("Graph")
-        self.main_space_tb_grph_graph.setChecked(True)
+        self.main_space_tb_grph_plot = QCheckBox("Plot")
+        self.main_space_tb_grph_plot.setChecked(True)
         self.main_space_tb_grph_table = QCheckBox("Table")
         self.main_space_tb_grph_table.setChecked(True)
-        # Graph
-        self.main_space_graph = self.plot
+        # Plot
+        self.main_space_plot = self.plot
         # Table
         self.main_space_table = self.table
 
         # Assemble option switch
-        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_graph)
+        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_plot)
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
         self.main_space_tb_grph.addStretch()
 
-        # Assemble Table and Graph area
+        # Assemble Table and Plot area
         if self.table and self.plot:
             self.main_space_widget_layout.addLayout(self.main_space_tb_grph)
         if self.plot:
-            self.main_space_widget_layout.addWidget(self.main_space_graph, 1)
+            self.main_space_widget_layout.addWidget(self.main_space_plot, 1)
         if self.table:
             self.main_space_widget_layout.addWidget(self.main_space_table)
         self.main_space_widget_layout.addStretch()
@@ -184,12 +184,12 @@ class AnalysisTab(QWidget):
     def add_export(self):
         self.export_menu = QHBoxLayout()
 
-        # Export Graph
-        self.export_graph = QVBoxLayout()
-        self.export_graph_label = QLabel("Export graph")
-        self.export_graph_buttons = QHBoxLayout()
-        self.export_graph_buttons_png = QPushButton(".png")
-        self.export_graph_buttons_svg = QPushButton(".svg")
+        # Export Plot
+        self.export_plot = QVBoxLayout()
+        self.export_plot_label = QLabel("Export plot")
+        self.export_plot_buttons = QHBoxLayout()
+        self.export_plot_buttons_png = QPushButton(".png")
+        self.export_plot_buttons_svg = QPushButton(".svg")
         # Export Table
         self.export_table = QVBoxLayout()
         self.export_table_label = QLabel("Export table")
@@ -198,11 +198,11 @@ class AnalysisTab(QWidget):
         self.export_table_buttons_csv = QPushButton(".csv")
         self.export_table_buttons_excel = QPushButton("Excel")
 
-        # Assemble export graph
-        self.export_graph.addWidget(self.export_graph_label)
-        self.export_graph_buttons.addWidget(self.export_graph_buttons_png)
-        self.export_graph_buttons.addWidget(self.export_graph_buttons_svg)
-        self.export_graph.addLayout(self.export_graph_buttons)
+        # Assemble export plot
+        self.export_plot.addWidget(self.export_plot_label)
+        self.export_plot_buttons.addWidget(self.export_plot_buttons_png)
+        self.export_plot_buttons.addWidget(self.export_plot_buttons_svg)
+        self.export_plot.addLayout(self.export_plot_buttons)
 
         # Assemble export table
         self.export_table.addWidget(self.export_table_label)
@@ -213,7 +213,7 @@ class AnalysisTab(QWidget):
 
         # Assemble export menu
         if self.plot:
-            self.export_menu.addLayout(self.export_graph)
+            self.export_menu.addLayout(self.export_plot)
         if self.table and self.plot:
             self.export_menu_vert_line = vertical_line()
             self.export_menu.addWidget(self.export_menu_vert_line)
@@ -293,7 +293,6 @@ class Correlations(AnalysisTab):
         self.table = None
         self.plot = CorrelationPlot(self.setup)
 
-        self.add_combobox()
         self.add_main_space()
         self.add_export()
 
