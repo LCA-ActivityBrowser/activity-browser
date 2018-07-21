@@ -18,6 +18,8 @@ from PyQt5.QtGui import QIntValidator
 
 from ...signals import signals
 
+# TODO: re-add functionality for userinteraction
+
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
         super(CalculationSetupTab, self).__init__(parent)
@@ -43,18 +45,17 @@ class CalculationSetupTab(QTabWidget):
 
     def update(self):
         self.mlca = MLCA(self.setup_name)
+        print("updating {}".format(self.setup_name))
 
-        self.lcia_results_tab.update_table()
-        self.lcia_results_tab.update_plot()
+        self.lcia_results_tab.update()
 
-        self.process_contributions_tab.update_plot()
+        self.process_contributions_tab.update()
 
-        self.elementary_flows_tab.update_plot()
+        self.elementary_flows_tab.update()
 
-        self.correlations_tab.update_plot()
+        self.correlations_tab.update()
 
-        self.inventory_tab.update_table()
-        # TODO: Make sure the right setup moves to front after update/new tab
+        self.inventory_tab.update()
 
 
 class AnalysisTab(QWidget):
@@ -62,14 +63,25 @@ class AnalysisTab(QWidget):
         super(AnalysisTab, self).__init__(parent)
         self.tab = parent
 
+        self.name = str()
+        self.header = header(self.name)
+
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.layout.addWidget(header(self.tab.setup_name))
+        self.layout.addWidget(self.header)
         self.layout.addWidget(horizontal_line())
+
+        self.connect_signals()
 
     def connect_signals(self):
         pass
+
+    def update(self):
+        if self.table:
+            self.update_table()
+        if self.plot:
+            self.update_plot()
 
     def update_table(self):
         self.table.sync(self.setup.mlca)
@@ -230,6 +242,7 @@ class LCIAAnalysis(AnalysisTab):
         self.setup = parent
 
         self.name = "LCIA Results"
+        self.header.setText(self.name)
 
         self.table = LCAResultsTable()
         self.plot = LCAResultsPlot(self.setup)
@@ -249,6 +262,7 @@ class ProcessContributions(AnalysisTab):
         self.setup = parent
 
         self.name = "Process Contributions"
+        self.header.setText(self.name)
 
         self.table = None
         self.plot = ProcessContributionPlot(self.setup)
@@ -269,6 +283,7 @@ class ElementaryFlowContributions(AnalysisTab):
         self.setup = parent
 
         self.name = "Elementary Flow Contributions"
+        self.header.setText(self.name)
 
         self.table = None
         self.plot = ElementaryFlowContributionPlot(self.setup)
@@ -289,6 +304,7 @@ class Correlations(AnalysisTab):
         self.setup = parent
 
         self.name = "Correlations"
+        self.header.setText(self.name)
 
         self.table = None
         self.plot = CorrelationPlot(self.setup)
@@ -308,6 +324,7 @@ class Inventory(AnalysisTab):
         self.setup = parent
 
         self.name = "Inventory"
+        self.header.setText(self.name)
 
         self.table = InventoryTable(self.setup)
         self.plot = None

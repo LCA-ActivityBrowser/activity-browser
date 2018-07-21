@@ -41,6 +41,7 @@ class LCAResultsTab(QTabWidget):
         signals.lca_calculation.connect(self.add_tab)
 
         signals.lca_calculation.connect(self.generate_setup)
+        signals.delete_calculation_setup.connect(self.remove_setup)
 
     def add_tab(self):
         """ Add the LCA Results tab to the right panel of AB. """
@@ -55,11 +56,16 @@ class LCAResultsTab(QTabWidget):
             self.visible = False
             self.panel.removeTab(self.panel.indexOf(self))
 
+    def remove_setup(self, name):
+        self.removeTab(self.indexOf(self.calculation_setups[name]))
+        del self.calculation_setups[name]
+
     def generate_setup(self, name):
         if isinstance(self.calculation_setups.get(name), CalculationSetupTab):
             self.calculation_setups[name].update()
         else:
             self.calculation_setups[name] = CalculationSetupTab(self, name)
             self.addTab(self.calculation_setups[name], name)
+        self.setCurrentIndex(self.indexOf(self.calculation_setups[name]))
 
 
