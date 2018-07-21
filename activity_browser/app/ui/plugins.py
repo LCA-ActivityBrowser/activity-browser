@@ -18,8 +18,9 @@ class PluginManager():
     def open_lcopt(self):
         try:
             from activity_browser.app.ui.web.lcopt import LcoptWidget
-        except:
+        except ImportError:
             QtWidgets.QMessageBox.warning(self.window, "ImportError", "Could not load plugin.")
+            return
 
         signals.change_project.emit('LCOPT_Setup')
         if not hasattr(self, 'lcopt_window'):
