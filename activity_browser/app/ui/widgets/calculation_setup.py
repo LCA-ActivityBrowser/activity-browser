@@ -18,12 +18,6 @@ from PyQt5.QtGui import QIntValidator
 
 from ...signals import signals
 
-# TODO: Find out how to implement signals in the AnalysisTab class for subclassing
-# TODO: Move signals to AnalysisTab
-
-# TODO: re-add functionality for changing slider/input for cutoff interaction
-# TODO: re-add functionality for export buttons
-
 # TODO: fix box-in-box of the main space
 
 # TODO: add functionality for actually changing cutoff
@@ -47,33 +41,36 @@ class CalculationSetupTab(QTabWidget):
         self.correlations_tab = Correlations(self)
         self.inventory_tab = Inventory(self)
 
-        self.update()
+        self.update_setup()
         self.connect_signals()
 
     def connect_signals(self):
         pass
 
-    def update(self):
+    def update_setup(self):
         self.mlca = MLCA(self.setup_name)
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
-        self.lcia_results_tab.update()
+        self.lcia_results_tab.update_analysis_tab()
 
-        self.process_contributions_tab.update()
+        self.process_contributions_tab.update_analysis_tab()
 
-        self.elementary_flows_tab.update()
+        self.elementary_flows_tab.update_analysis_tab()
 
-        self.correlations_tab.update()
+        self.correlations_tab.update_analysis_tab()
 
-        self.inventory_tab.update()
+        self.inventory_tab.update_analysis_tab()
 
 class AnalysisTab(QWidget):
-    def __init__(self, parent, table=None, plot=None, combobox=None):
+    def __init__(self, parent, cutoff=None, combobox=None, table=None, plot=None, export=None):
         super(AnalysisTab, self).__init__(parent)
         self.setup = parent
+
+        self.cutoff_menu = cutoff
+        self.combobox_menu_combobox = combobox
         self.table = table
         self.plot = plot
-        self.combobox_menu_combobox = combobox
+        self.export_menu = export
 
         self.name = str()
         self.header = header(self.name)
@@ -84,7 +81,90 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(self.header)
         self.layout.addWidget(horizontal_line())
 
-    def update(self):
+    def connect_analysis_signals(self):
+        # Cut-off
+        if self.cutoff_menu:
+            # Cut-off types
+            self.cutoff_type_topx.clicked.connect(self.cutoff_type_topx_check)
+            self.cutoff_type_relative.clicked.connect(self.cutoff_type_relative_check)
+
+            # Cut-off slider
+            self.cutoff_slider_slider.valueChanged.connect(
+                lambda: self.cutoff_slider_check("S"))
+            self.cutoff_slider_line.textChanged.connect(
+                lambda: self.cutoff_slider_check("L"))
+
+        # Combo box signal
+        if self.combobox_menu_combobox != None:
+            self.combobox_menu_combobox.currentTextChanged.connect(
+                lambda name: self.update_plot(method=name))
+
+        # Mainspace Checkboxes
+        self.main_space_tb_grph_table.stateChanged.connect(
+            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
+        self.main_space_tb_grph_plot.stateChanged.connect(
+            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
+
+        # Export Table
+        if self.table and self.export_menu:
+            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
+            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
+            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
+
+        # Export Plot
+        if self.plot and self.export_menu:
+            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
+            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+
+    def cutoff_type_relative_check(self):
+        """ Work in progress. """
+        # set cutoff to some %
+        self.cutoff_slider_unit.setText("relative selected, functionality to be added later")
+
+    def cutoff_type_topx_check(self):
+        """ Work in progress. """
+        # set cutoff to some number
+        self.cutoff_slider_unit.setText("top # selected, functionality to be added later")
+
+
+    def cutoff_slider_check(self, editor):
+        cutoff = int
+        if editor == "S":
+            cutoff = abs(int(self.cutoff_slider_slider.value()))
+            self.cutoff_slider_line.setText(str(cutoff))
+        elif editor == "L":
+            if self.cutoff_slider_line.text() == '-':
+                cutoff = self.cutoff_slider_slider.minimum()
+                self.cutoff_slider_line.setText(str(self.cutoff_slider_slider.minimum()))
+            elif self.cutoff_slider_line.text() == '':
+                cutoff = self.cutoff_slider_slider.minimum()
+            else:
+                cutoff = abs(int(self.cutoff_slider_line.text()))
+
+            if cutoff > self.cutoff_slider_slider.maximum():
+                cutoff = self.cutoff_slider_slider.maximum()
+                self.cutoff_slider_line.setText(str(cutoff))
+            self.cutoff_slider_slider.setValue(int(cutoff))
+        self.cutoff_value = cutoff
+
+    def main_space_check(self, table_ch, plot_ch):
+        table_state = table_ch.isChecked()
+        plot_state = plot_ch.isChecked()
+
+        if table_state and plot_state:
+            self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(True)
+
+        elif not table_state and plot_state:
+            self.main_space_table.setVisible(False)
+            self.main_space_plot.setVisible(True)
+
+        else:
+            self.main_space_tb_grph_table.setChecked(True)
+            self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(False)
+
+    def update_analysis_tab(self):
         if self.table:
             self.update_table()
         if self.plot:
@@ -266,32 +346,7 @@ class LCIAAnalysis(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
-        self.connect_signals()
-
-    def connect_signals(self):
-        # Mainspace Checkboxes
-
-        self.main_space_tb_grph_table.stateChanged.connect(
-            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
-        self.main_space_tb_grph_plot.stateChanged.connect(
-            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
-
-    def main_space_check(self, table_ch, plot_ch):
-        table_state = table_ch.isChecked()
-        plot_state = plot_ch.isChecked()
-
-        if table_state and plot_state:
-            self.main_space_table.setVisible(True)
-            self.main_space_plot.setVisible(True)
-
-        elif not table_state and plot_state:
-            self.main_space_table.setVisible(False)
-            self.main_space_plot.setVisible(True)
-
-        else:
-            self.main_space_tb_grph_table.setChecked(True)
-            self.main_space_table.setVisible(True)
-            self.main_space_plot.setVisible(False)
+        self.connect_analysis_signals()
 
     def update_plot(self):
         self.plot.plot(self.setup.mlca)
@@ -313,12 +368,7 @@ class ProcessContributions(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
-        self.connect_signals()
-
-    def connect_signals(self):
-
-        self.combobox_menu_combobox.currentTextChanged.connect(
-            lambda name: self.update_plot(method=name))
+        self.connect_analysis_signals()
 
     def update_plot(self, method=None):
         if method == None:
@@ -344,12 +394,7 @@ class ElementaryFlowContributions(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
-        self.connect_signals()
-
-    def connect_signals(self):
-
-        self.combobox_menu_combobox.currentTextChanged.connect(
-            lambda name: self.update_plot(method=name))
+        self.connect_analysis_signals()
 
     def update_plot(self, method=None):
         if method == None:
@@ -373,10 +418,7 @@ class Correlations(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
-        self.connect_signals()
-
-    def connect_signals(self):
-        pass
+        self.connect_analysis_signals()
 
     def update_plot(self):
         labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
@@ -397,7 +439,4 @@ class Inventory(AnalysisTab):
 
         self.setup.addTab(self, self.name)
 
-        self.connect_signals()
-
-    def connect_signals(self):
-        pass
+        self.connect_analysis_signals()

@@ -19,8 +19,6 @@ from PyQt5.QtGui import QIntValidator
 
 from ...signals import signals
 
-# TODO: Add functionality to remove calculation setup
-
 class LCAResultsTab(QTabWidget):
     def __init__(self, parent):
         super(LCAResultsTab, self).__init__(parent)
@@ -62,7 +60,7 @@ class LCAResultsTab(QTabWidget):
 
     def generate_setup(self, name):
         if isinstance(self.calculation_setups.get(name), CalculationSetupTab):
-            self.calculation_setups[name].update()
+            self.calculation_setups[name].update_setup()
         else:
             self.calculation_setups[name] = CalculationSetupTab(self, name)
             self.addTab(self.calculation_setups[name], name)
