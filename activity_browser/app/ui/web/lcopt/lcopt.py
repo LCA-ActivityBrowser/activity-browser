@@ -5,6 +5,8 @@ import requests
 import lcopt
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 
+from ....signals import signals
+
 
 LCOPT_URL = 'http://127.0.0.1:5000/'
 
@@ -30,6 +32,9 @@ class LcoptWidget(QtWidgets.QWidget):
         self.example_combobox = QtWidgets.QComboBox()
         self.example_button = QtWidgets.QPushButton('Load Example')
 
+        # return to main window
+        self.close_button = QtWidgets.QPushButton('Return to Main Window')
+
         # layout
         self.create_gb = OptionGroupBox('Create a new model', self.create_edit,
                                         self.create_button)
@@ -44,6 +49,8 @@ class LcoptWidget(QtWidgets.QWidget):
         self.option_layout.addWidget(self.load_gb)
         self.option_layout.addWidget(self.example_gb)
         self.option_layout.addStretch()
+        self.option_layout.addWidget(self.close_button)
+        self.option_layout.setAlignment(self.close_button, QtCore.Qt.AlignTop)
         self.option_widget = QtWidgets.QWidget()  # needed for setVisible
         self.option_widget.setLayout(self.option_layout)
 
@@ -68,6 +75,8 @@ class LcoptWidget(QtWidgets.QWidget):
         self.example_button.clicked.connect(self.load_example)
         lcopt_signals.app_running.connect(self.switch_options_view)
         lcopt_signals.app_shutdown.connect(self.switch_options_view)
+        lcopt_signals.app_shutdown.connect(self.global_updates)
+        self.close_button.clicked.connect(self.return_main_window)
 
     def switch_options_view(self):
         self.view.setVisible(not self.view.isVisible())
@@ -126,6 +135,14 @@ class LcoptWidget(QtWidgets.QWidget):
         ecoinvent_example = os.path.join(lcopt_asset_path, model_name)
         model = lcopt.LcoptModel(load=ecoinvent_example)
         self.run_lcopt(model)
+
+    def return_main_window(self):
+        window = self.window()
+        window.stacked.setCurrentWidget(window.main_widget)
+
+    def global_updates(self):
+        signals.projects_changed.emit()
+        signals.databases_changed.emit()
 
 
 class OptionGroupBox(QtWidgets.QGroupBox):
