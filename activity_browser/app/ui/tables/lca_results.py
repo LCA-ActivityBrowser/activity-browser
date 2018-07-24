@@ -22,7 +22,7 @@ class ProcessContributionsTable(ABDataFrameTable):
         self.parent = parent
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, lca):
+    def sync(self, dummy):
         self.dataframe = self.parent.plot.df_tc
 
         self.setVerticalScrollMode(1)
@@ -34,7 +34,7 @@ class InventoryCharacterisationTable(ABDataFrameTable):
         self.parent = parent
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, lca):
+    def sync(self, dummy):
         self.dataframe = self.parent.plot.df_tc
 
         self.setVerticalScrollMode(1)

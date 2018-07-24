@@ -1,6 +1,5 @@
 from ..style import horizontal_line, vertical_line, header
 from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable, InventoryCharacterisationTable
-# from ..tables.lca_results import InventoryTable
 from ..graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
@@ -17,8 +16,6 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScro
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-from ...signals import signals
-
 # TODO: fix box-in-box of the main space
 
 # TODO: implement parts of each analysis tab as class MM
@@ -26,7 +23,6 @@ from ...signals import signals
 # TODO: Finish inventory tab (with techno/biosphere options MS
 # TODO: fix 1 product/functional unit crashing entire tab (check for single_func_unit already in place)
 # TODO: add relative/absolute option for plots in characterised inventory and process contributions MS
-# TODO: add tables to characterised inventory and process contributions MM
 # TODO: add rest+total row to tables in char. inv. and proc. cont. MM
 # TODO: add switch for characterised inventory and process contributions between func unit and method MM
 # TODO: Basic plot for LCIA Results + Combobox MS

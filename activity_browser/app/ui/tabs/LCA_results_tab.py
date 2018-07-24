@@ -1,21 +1,7 @@
-from ..style import horizontal_line, vertical_line, header
-from ..tables import LCAResultsTable
-from ..tables.lca_results import InventoryTable
-from ..graphics import (
-    CorrelationPlot,
-    LCAResultsPlot,
-    ProcessContributionPlot,
-    InventoryCharacterisationPlot
-)
 from ..widgets import CalculationSetupTab
-from ...bwutils.multilca import MLCA
-from ...bwutils import commontasks as bc
-
 
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, QSlider, \
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIntValidator
 
 from ...signals import signals
 
