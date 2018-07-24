@@ -30,7 +30,6 @@ class MLCA(object):
         self.method_dict = {m: i for i, m in enumerate(self.methods)}
         self.lca = bw.LCA(demand=self.all, method=self.methods[0])
         self.lca.lci(factorize=True)
-        # print(self.lca.inventory)
         self.method_matrices = []
         self.results = np.zeros((len(self.func_units), len(self.methods)))
 

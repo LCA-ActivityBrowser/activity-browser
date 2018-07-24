@@ -17,18 +17,26 @@ class LogarithmicSlider(QSlider):
         self.resolution_pow = 5 # Must always be integer higher than 3
         self.slider_resolution = 10**self.resolution_pow
 
-        self.setMinimum(1)
-        self.setMaximum(self.slider_resolution)
+        self.setMinimum(0.001)
+        # self.setMaximum(self.slider_resolution)
+        self.setMaximum(100)
 
     def setLogValue(self, value):
+        # value = float(value)
+        # log_val = log10(value)
+        # log_val += (self.resolution_pow - 3)
+        # order = self.find_order(log_val)
+        # self.setValue(value*(10**order))
+        value = float(value)
         log_val = log10(value)
-        log_val += (self.resolution_pow - 3)
-        order  = self.find_order(log_val)
-        self.setValue(value*(10**order))
+        log_val += 3
+        log_val*20
+        self.setValue(log_val)
 
-
-    def logValue(self):
-        value = self.value()
+    def logValue(self, value=None):
+        if value == None:
+            value = self.value()
+        value = float(value)
         log_val = log10(value)
         order = self.find_order(log_val)
 
@@ -38,7 +46,6 @@ class LogarithmicSlider(QSlider):
     def find_order(self, log_val):
         for i in range(self.resolution_pow):
             j = i + 1
-            if log_val < i and log_val > j:
-                return i
-            else:
-                return None
+            if log_val >= i and log_val < j:
+                return float(i)
+        return None

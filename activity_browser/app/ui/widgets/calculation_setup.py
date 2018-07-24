@@ -37,7 +37,6 @@ class CalculationSetupTab(QTabWidget):
         self.setTabPosition(1)  # South-facing Tabs
 
         self.update_calculation()
-        print(type(self.mlca.lca.inventory))
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
         self.elementary_flows_tab = ElementaryFlowContributions(self)
@@ -54,8 +53,6 @@ class CalculationSetupTab(QTabWidget):
         if calculate:
             self.update_calculation()
 
-        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
-
         self.lcia_results_tab.update_analysis_tab()
 
         self.process_contributions_tab.update_analysis_tab()
@@ -68,6 +65,17 @@ class CalculationSetupTab(QTabWidget):
 
     def update_calculation(self):
         self.mlca = MLCA(self.setup_name)
+
+        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+
+        if len(self.mlca.func_units) != 1:
+            self.single_func_unit = False
+        else:
+            self.single_func_unit = True
+        if len(self.mlca.methods) != 1:
+            self.single_method = False
+        else:
+            self.single_method = True
 
 class AnalysisTab(QWidget):
     def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, plot=None, export=None):
@@ -135,6 +143,8 @@ class AnalysisTab(QWidget):
         # set cutoff to some %
         self.cutoff_slider_slider.setVisible(False)
         self.cutoff_slider_unit.setText("This feature is not functional yet")
+        self.cutoff_slider_min.setText("100%")
+        self.cutoff_slider_max.setText("0.001%")
         self.cutoff_slider_log_slider.setVisible(True)
 
     def cutoff_type_topx_check(self):
@@ -142,15 +152,17 @@ class AnalysisTab(QWidget):
         # set cutoff to some number
         self.cutoff_slider_log_slider.setVisible(False)
         self.cutoff_slider_unit.setText("top # contributing unit processes")
+        self.cutoff_slider_min.setText(str(self.cutoff_slider_slider.minimum()))
+        self.cutoff_slider_max.setText(str(self.cutoff_slider_slider.maximum()))
         self.cutoff_slider_slider.setVisible(True)
 
     def cutoff_slider_relative_check(self, editor):
-        print("relative")
-        if self.cutoff_type_relative:
+        if self.cutoff_type_relative.isChecked():
             self.cutoff_validator = self.cutoff_validator_float
+            self.cutoff_slider_line.setValidator(self.cutoff_validator)
             cutoff = float
             if editor == "S":
-                cutoff = abs(float(self.cutoff_slider_log_slider.value()))
+                cutoff = abs(float(self.cutoff_slider_log_slider.logValue()))
                 self.cutoff_slider_line.setText(str(cutoff))
             elif editor == "L":
                 if self.cutoff_slider_line.text() == '-':
@@ -164,7 +176,7 @@ class AnalysisTab(QWidget):
                 if cutoff > self.cutoff_slider_log_slider.maximum():
                     cutoff = self.cutoff_slider_log_slider.maximum()
                     self.cutoff_slider_line.setText(str(cutoff))
-                self.cutoff_slider_log_slider.setValue(float(cutoff))
+                self.cutoff_slider_log_slider.setLogValue(float(cutoff))
 
             # logic to move stuff around
 
@@ -179,9 +191,9 @@ class AnalysisTab(QWidget):
 
 
     def cutoff_slider_topx_check(self, editor):
-        print("topx")
-        if self.cutoff_type_topx:
+        if self.cutoff_type_topx.isChecked():
             self.cutoff_validator = self.cutoff_validator_int
+            self.cutoff_slider_line.setValidator(self.cutoff_validator)
             cutoff = int
             if editor == "S":
                 cutoff = abs(int(self.cutoff_slider_slider.value()))
@@ -235,9 +247,17 @@ class AnalysisTab(QWidget):
         self.table.sync(self.setup.mlca)
 
     def update_combobox(self):
-        self.combobox_menu_combobox.clear()
-        self.combobox_list = list(self.setup.method_dict.keys())
-        self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+        if not self.setup.single_method:
+            self.combobox_menu_combobox.clear()
+            self.combobox_list = list(self.setup.method_dict.keys())
+            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+            self.combobox_menu_combobox.setVisible(True)
+            self.combobox_menu_label.setVisible(True)
+            self.combobox_menu_horizontal.setVisible(True)
+        else:
+            self.combobox_menu_combobox.setVisible(False)
+            self.combobox_menu_label.setVisible(False)
+            self.combobox_menu_horizontal.setVisible(False)
 
     def add_cutoff(self):
         self.cutoff_menu = QHBoxLayout()
@@ -258,12 +278,12 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_slider = QSlider(Qt.Horizontal)
         self.cutoff_slider_log_slider = LogarithmicSlider(self)
         self.cutoff_slider_log_slider.setInvertedAppearance(True)
-        self.cutoff_slider_slider.setMinimum(1)  # temporary
-        self.cutoff_slider_slider.setMaximum(50)  # temporary
+        self.cutoff_slider_slider.setMinimum(1)
+        self.cutoff_slider_slider.setMaximum(50)
         self.cutoff_slider_slider.setValue(self.cutoff_value)
         self.cutoff_slider_slider.sizeHint()
         self.cutoff_slider_minmax = QHBoxLayout()
-        self.cutoff_slider_min = QLabel(str(self.cutoff_slider_slider.minimum()))
+        self.cutoff_slider_min = QLabel(str(self.cutoff_slider_slider.minimum())) # change to relative later
         self.cutoff_slider_max = QLabel(str(self.cutoff_slider_slider.maximum()))
         self.cutoff_slider_ledit = QHBoxLayout()
         self.cutoff_slider_line = QLineEdit()
@@ -314,10 +334,11 @@ class AnalysisTab(QWidget):
 
         self.combobox_menu.addWidget(self.combobox_menu_label)
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
+        self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
 
         self.layout.addLayout(self.combobox_menu)
-        self.layout.addWidget(horizontal_line())
+        self.layout.addWidget(self.combobox_menu_horizontal)
 
     def add_main_space(self):
         # Generate Table and Plot area
