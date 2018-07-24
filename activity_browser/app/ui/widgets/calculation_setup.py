@@ -35,20 +35,22 @@ class CalculationSetupTab(QTabWidget):
         self.setTabShape(1)  # Triangular-shaped Tabs
         self.setTabPosition(1)  # South-facing Tabs
 
+        self.update_calculation()
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
         self.elementary_flows_tab = ElementaryFlowContributions(self)
         self.correlations_tab = Correlations(self)
         self.inventory_tab = Inventory(self)
+        self.update_setup(calc=False)
 
-        self.update_setup()
         self.connect_signals()
 
     def connect_signals(self):
         pass
 
-    def update_setup(self):
-        self.mlca = MLCA(self.setup_name)
+    def update_setup(self, calc=True):
+        if calc:
+            self.update_calculation()
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
         self.lcia_results_tab.update_analysis_tab()
@@ -61,12 +63,17 @@ class CalculationSetupTab(QTabWidget):
 
         self.inventory_tab.update_analysis_tab()
 
+    def update_calculation(self):
+        self.mlca = MLCA(self.setup_name)
+
 class AnalysisTab(QWidget):
-    def __init__(self, parent, cutoff=None, combobox=None, table=None, plot=None, export=None):
+    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, plot=None, export=None):
         super(AnalysisTab, self).__init__(parent)
         self.setup = parent
 
         self.cutoff_menu = cutoff
+        self.cutoff_func = func
+
         self.combobox_menu_combobox = combobox
         self.table = table
         self.plot = plot
@@ -119,13 +126,24 @@ class AnalysisTab(QWidget):
     def cutoff_type_relative_check(self):
         """ Work in progress. """
         # set cutoff to some %
-        self.cutoff_slider_unit.setText("relative selected, functionality to be added later")
+        self.cutoff_slider_unit.setText("This feature is not functional yet")
+        self.cutoff_slider_slider.setInvertedAppearance(True)
+        min = self.cutoff_slider_min.text()
+        max = self.cutoff_slider_max.text()
+        self.cutoff_slider_min.setText(max)
+        self.cutoff_slider_max.setText(min)
 
     def cutoff_type_topx_check(self):
         """ Work in progress. """
         # set cutoff to some number
-        self.cutoff_slider_unit.setText("top # selected, functionality to be added later")
-
+        self.cutoff_slider_unit.setText("top # contributing unit processes")
+        self.cutoff_slider_slider.setInvertedAppearance(False)
+        minimum = 1
+        maximum = 1000
+        self.cutoff_slider_min.setText(str(minimum))
+        self.cutoff_slider_slider.setMinimum(minimum)
+        self.cutoff_slider_max.setText(str(maximum))
+        self.cutoff_slider_slider.setMaximum(maximum)
 
     def cutoff_slider_check(self, editor):
         cutoff = int
@@ -145,7 +163,8 @@ class AnalysisTab(QWidget):
                 cutoff = self.cutoff_slider_slider.maximum()
                 self.cutoff_slider_line.setText(str(cutoff))
             self.cutoff_slider_slider.setValue(int(cutoff))
-        self.cutoff_value = cutoff
+        self.cutoff_value = int(cutoff)
+        self.update_plot()
 
     def main_space_check(self, table_ch, plot_ch):
         table_state = table_ch.isChecked()
@@ -187,16 +206,20 @@ class AnalysisTab(QWidget):
         self.cutoff_type = QVBoxLayout()
         self.cutoff_type_label = QLabel("Cut-off type")
         self.cutoff_type_relative = QRadioButton("Relative")
-        self.cutoff_type_relative.setChecked(True)
+        # self.cutoff_type_relative.setChecked(True)
         self.cutoff_type_topx = QRadioButton("Top #")
+        self.cutoff_type_topx.setChecked(True)
 
         # Cut-off slider
         self.cutoff_slider = QVBoxLayout()
         self.cutoff_slider_set = QVBoxLayout()
         self.cutoff_slider_label = QLabel("Cut-off level")
+        self.cutoff_value = 5
         self.cutoff_slider_slider = QSlider(Qt.Horizontal)
+        # self.cutoff_slider_slider.setInvertedAppearance(True)
         self.cutoff_slider_slider.setMinimum(1)  # temporary
-        self.cutoff_slider_slider.setMaximum(99)  # temporary
+        self.cutoff_slider_slider.setMaximum(1000)  # temporary
+        self.cutoff_slider_slider.setValue(self.cutoff_value)
         self.cutoff_slider_slider.sizeHint()
         self.cutoff_slider_minmax = QHBoxLayout()
         self.cutoff_slider_min = QLabel(str(self.cutoff_slider_slider.minimum()))
@@ -205,7 +228,7 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_line = QLineEdit()
         self.cutoff_validator = QIntValidator(self.cutoff_slider_line)
         self.cutoff_slider_line.setValidator(self.cutoff_validator)
-        self.cutoff_value = int()  # set to max when known how to port data to this class
+
         self.cutoff_slider_unit = QLabel("unit")
 
         # Assemble types
@@ -340,7 +363,6 @@ class LCIAAnalysis(AnalysisTab):
         self.table = LCAResultsTable()
         self.plot = LCAResultsPlot(self.setup)
 
-        self.add_cutoff()
         self.add_main_space()
         self.add_export()
 
@@ -362,6 +384,7 @@ class ProcessContributions(AnalysisTab):
         self.plot = ProcessContributionPlot(self.setup)
 
         self.add_cutoff()
+        self.cutoff_value = 5
         self.add_combobox()
         self.add_main_space()
         self.add_export()
@@ -375,7 +398,7 @@ class ProcessContributions(AnalysisTab):
             method = self.setup.mlca.methods[0]
         else:
             method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method)
+        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value)
 
 class ElementaryFlowContributions(AnalysisTab):
     def __init__(self, parent):
@@ -388,6 +411,7 @@ class ElementaryFlowContributions(AnalysisTab):
         self.plot = ElementaryFlowContributionPlot(self.setup)
 
         self.add_cutoff()
+        self.cutoff_value = 5
         self.add_combobox()
         self.add_main_space()
         self.add_export()
@@ -401,7 +425,7 @@ class ElementaryFlowContributions(AnalysisTab):
             method = self.setup.mlca.methods[0]
         else:
             method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method)
+        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value)
 
 class Correlations(AnalysisTab):
     def __init__(self, parent):
