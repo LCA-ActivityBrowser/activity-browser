@@ -21,7 +21,20 @@ from ...signals import signals
 
 # TODO: fix box-in-box of the main space
 
-# TODO: add functionality for actually changing cutoff
+# TODO: implement parts of each analysis tab as class MM
+
+# TODO: Finish inventory tab (with techno/biosphere options MS
+# TODO: add functionality for changing relative cutoff MM
+# TODO: fix 1 product/functional unit crashing entire tab (check for single_func_unit already in place)
+# TODO: add relative/absolute option for plots in characterised inventory and process contributions MS
+# TODO: add tables to characterised inventory and process contributions MM
+# TODO: add rest+total row to tables in char. inv. and proc. cont. MM
+# TODO: add switch for characterised inventory and process contributions between func unit and method MM
+# TODO: Basic plot for LCIA Results + Combobox MS
+# TODO: LCIA Results > column specific colour gradients MS
+# TODO: LOW PRIORITY: add filtering for tables/graphs
+
+
 
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
