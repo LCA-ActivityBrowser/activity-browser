@@ -21,7 +21,6 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 # TODO: implement parts of each analysis tab as class MM
 
 # TODO: Finish inventory tab (with techno/biosphere options MS
-# TODO: fix 1 product/functional unit crashing entire tab (check for single_func_unit already in place)
 # TODO: add relative/absolute option for plots in characterised inventory and process contributions MS
 # TODO: add rest+total row to tables in char. inv. and proc. cont. MM
 # TODO: add switch for characterised inventory and process contributions between func unit and method MM
@@ -47,7 +46,7 @@ class CalculationSetupTab(QTabWidget):
         self.update_calculation()
 
         self.inventory_tab = Inventory(self)
-        self.elementary_flows_tab = InventoryCharacterisation(self)
+        self.inventory_characterisation_tab = InventoryCharacterisation(self)
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
         self.correlations_tab = Correlations(self)
@@ -63,15 +62,24 @@ class CalculationSetupTab(QTabWidget):
         if calculate:
             self.update_calculation()
 
+        self.inventory_tab.update_analysis_tab()
+
+        self.inventory_characterisation_tab.update_analysis_tab()
+
         self.lcia_results_tab.update_analysis_tab()
+        lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
 
         self.process_contributions_tab.update_analysis_tab()
 
-        self.elementary_flows_tab.update_analysis_tab()
-
         self.correlations_tab.update_analysis_tab()
+        correlations_tab_index = self.indexOf(self.correlations_tab)
 
-        self.inventory_tab.update_analysis_tab()
+        if not self.single_func_unit:
+            self.setTabEnabled(lcia_results_tab_index, True)
+            self.setTabEnabled(correlations_tab_index, True)
+        else:
+            self.setTabEnabled(lcia_results_tab_index, False)
+            self.setTabEnabled(correlations_tab_index, False)
 
     def update_calculation(self):
         self.mlca = MLCA(self.setup_name)
@@ -485,7 +493,7 @@ class InventoryCharacterisation(AnalysisTab):
         self.connect_analysis_signals()
 
     def update_plot(self, method=None):
-        if method == None:
+        if method == None or method == '':
             method = self.setup.mlca.methods[0]
         else:
             method = self.setup.method_dict[method]
@@ -499,8 +507,9 @@ class LCIAAnalysis(AnalysisTab):
         self.name = "LCIA Results"
         self.header.setText(self.name)
 
-        self.plot = LCAResultsPlot(self.setup)
-        self.table = LCAResultsTable()
+        if not self.setup.single_func_unit:
+            self.plot = LCAResultsPlot(self.setup)
+            self.table = LCAResultsTable()
 
         self.add_main_space()
         self.add_export()
@@ -510,7 +519,18 @@ class LCIAAnalysis(AnalysisTab):
         self.connect_analysis_signals()
 
     def update_plot(self):
-        self.plot.plot(self.setup.mlca)
+        if isinstance(self.plot, LCAResultsPlot):
+            self.plot.plot(self.setup.mlca)
+        else:
+            self.plot = LCAResultsPlot(self.setup)
+            self.plot.plot(self.setup.mlca)
+
+    def update_table(self):
+        if isinstance(self.table, LCAResultsTable):
+            self.table.sync(self.setup.mlca)
+        else:
+            self.table = LCAResultsTable()
+            self.table.sync(self.setup.mlca)
 
 class ProcessContributions(AnalysisTab):
     def __init__(self, parent):
@@ -534,7 +554,7 @@ class ProcessContributions(AnalysisTab):
         self.connect_analysis_signals()
 
     def update_plot(self, method=None):
-        if method == None:
+        if method == None or method == '':
             method = self.setup.mlca.methods[0]
         else:
             method = self.setup.method_dict[method]
@@ -548,7 +568,8 @@ class Correlations(AnalysisTab):
         self.name = "Correlations"
         self.header.setText(self.name)
 
-        self.plot = CorrelationPlot(self.setup)
+        if not self.setup.single_func_unit:
+            self.plot = CorrelationPlot(self.setup)
 
         self.add_main_space()
         self.add_export()
@@ -558,5 +579,10 @@ class Correlations(AnalysisTab):
         self.connect_analysis_signals()
 
     def update_plot(self):
-        labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
-        self.plot.plot(self.setup.mlca, labels)
+        if isinstance(self.plot, CorrelationPlot):
+            labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
+            self.plot.plot(self.setup.mlca, labels)
+        else:
+            self.plot = CorrelationPlot(self.setup)
+            labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
+            self.plot.plot(self.setup.mlca, labels)
