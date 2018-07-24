@@ -377,12 +377,12 @@ class GraphModel:
         print('no of orphaned nodes added: ',len(orphaned_node_ids))
         return orphaned_node_ids
 
-    def complete_edges(self):
+    #def complete_edges(self):
         """Method checks each node in the current dataset and compare whether all exchanges between the nodes present
         in the dataset are included as edges, appends the missing edges
         Args: current self._data
         Return: none, appends self._data.edges in-situ"""
-        print('complete_edges started')
+        """print('complete_edges started')
         for node in self._data.nodes:
             c = 0
             key = (node.db, node.id)
@@ -414,7 +414,7 @@ class GraphModel:
                         self.add_edge(edge)
                     except Exception as e:
                         ErrorHandler.trace_error(e)
-                        raise
+                        raise"""
 
     def json(self):
         """ Returns a JSON representation of the current model´s graph data. """
@@ -542,7 +542,7 @@ class Graph:
                 ErrorHandler.trace_error(e)
                 raise
         print('checking for missing edges')
-        self.model.complete_edges()
+        #self.model.complete_edges()
 
         json_data = self.model.json()
 
@@ -591,7 +591,7 @@ class Graph:
                 raise
         #print('done with adding nodes & edges')
         print('checking for missing edges')
-        self.model.complete_edges()
+        #self.model.complete_edges()
         # JSON pickle
         json_data = self.model.json()
 
