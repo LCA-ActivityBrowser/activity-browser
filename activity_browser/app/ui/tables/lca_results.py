@@ -27,10 +27,10 @@ class ProcessContributionsTable(ABDataFrameTable):
 
 class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
-    def sync(self, lca):
-        col_labels = ['tons CO2-eq.', 'CTUe']
-        row_labels = ["Process 1", "Process 2"]
-        self.dataframe = pd.DataFrame([[0.5,0.2], [1.3,1.8]], index=row_labels, columns=col_labels)
+    def sync(self, mlca):
+        #col_labels = ['tons CO2-eq.', 'CTUe']
+        #row_labels = ["Process 1", "Process 2"]
+        self.dataframe = pd.DataFrame(i for i in mlca.lca.inventory) #, index=row_labels, columns=col_labels)
 
         # smooth scrolling instead of jumping from cell to cell
         self.setVerticalScrollMode(1)
