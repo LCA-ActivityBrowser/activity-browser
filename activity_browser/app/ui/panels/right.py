@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-from .panel import Panel, ActivitiesPanel, MethodsPanel
+from .panel import Panel, ActivitiesTab, MethodsTab
+from ..web.graphnav import GraphNavigatorWidget
 from ...signals import signals
 from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
     ActivityDetailsTab,
-    ImpactAssessmentTab,
+    LCAResultsTab,
 )
 
 class RightPanel(Panel):
@@ -14,19 +15,20 @@ class RightPanel(Panel):
     def __init__(self, *args):
         super(RightPanel, self).__init__(*args)
 
-        self.method_panel = MethodsPanel(self)
-        self.act_panel = ActivitiesPanel(self)
-
+        # instantiate tabs
+        self.method_panel = MethodsTab(self)
+        self.act_panel = ActivitiesTab(self)
         self.LCA_setup_tab = LCASetupTab(self)
-        self.lca_results_tab = ImpactAssessmentTab(self)
+        self.graph_navigator_tab = GraphNavigatorWidget()
+        self.lca_results_tab = LCAResultsTab(self)
 
-        # addtab
+        # add tabs to Panel
         self.addTab(self.LCA_setup_tab, 'LCA Setup')
+        self.addTab(self.graph_navigator_tab, 'Graph-Navigator')
 
         # Signals
         signals.activity_tabs_changed.connect(self.update_activity_panel)
         signals.method_tabs_changed.connect(self.update_method_panel)
-
 
     def update_method_panel(self):
         if self.method_panel.tab_dict:

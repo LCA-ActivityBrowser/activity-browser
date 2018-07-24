@@ -65,13 +65,13 @@ class MLCA(object):
         return self.results / self.results.max(axis=0)
 
     # CONTRIBUTION ANALYSIS
-    def top_process_contributions(self, method_name=None, limit=5, relative=True):
+    def top_process_contributions(self, method_name=None, limit=5, normalised=True):
         if method_name:
             method = self.method_dict[method_name]
         else:
             method = 0
         contribution_array = self.process_contributions[:, method, :]
-        if relative:
+        if normalised:
             fu_scores = contribution_array.sum(axis=1)
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
         topcontribution_dict = {}

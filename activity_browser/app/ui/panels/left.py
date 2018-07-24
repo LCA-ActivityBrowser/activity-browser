@@ -14,8 +14,9 @@ class LeftPanel(Panel):
             html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'
         )
 
-        self.methods_tab = MethodsTab(self)
+        # instantiate tabs
         self.project_tab = ProjectTab(self)
+        self.methods_tab = MethodsTab(self)
         self.history_tab = HistoryTab(self)
 
         # add tabs
@@ -26,7 +27,6 @@ class LeftPanel(Panel):
 
         # signals
         self.currentChanged.connect(self.remove_welcome_tab)
-
 
     def remove_welcome_tab(self):
         if self.indexOf(self.welcome_tab) != -1:
