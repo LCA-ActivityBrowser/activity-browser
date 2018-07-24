@@ -9,12 +9,13 @@ from ..graphics import (
 )
 from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
+from .log_slider import LogarithmicSlider
 
 
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, QSlider, \
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIntValidator
+from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
 from ...signals import signals
 
@@ -25,7 +26,7 @@ from ...signals import signals
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
         super(CalculationSetupTab, self).__init__(parent)
-        self.panel = parent  # e.g. right panel
+        self.panel = parent
         self.setup_name = name
         self.method_dict = dict()
 
@@ -36,21 +37,23 @@ class CalculationSetupTab(QTabWidget):
         self.setTabPosition(1)  # South-facing Tabs
 
         self.update_calculation()
+        print(type(self.mlca.lca.inventory))
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
         self.elementary_flows_tab = ElementaryFlowContributions(self)
         self.correlations_tab = Correlations(self)
         self.inventory_tab = Inventory(self)
-        self.update_setup(calc=False)
+        self.update_setup(calculate=False)
 
         self.connect_signals()
 
     def connect_signals(self):
         pass
 
-    def update_setup(self, calc=True):
-        if calc:
+    def update_setup(self, calculate=True):
+        if calculate:
             self.update_calculation()
+
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
         self.lcia_results_tab.update_analysis_tab()
@@ -97,9 +100,13 @@ class AnalysisTab(QWidget):
 
             # Cut-off slider
             self.cutoff_slider_slider.valueChanged.connect(
-                lambda: self.cutoff_slider_check("S"))
+                lambda: self.cutoff_slider_relative_check("S"))
             self.cutoff_slider_line.textChanged.connect(
-                lambda: self.cutoff_slider_check("L"))
+                lambda: self.cutoff_slider_relative_check("L"))
+            self.cutoff_slider_slider.valueChanged.connect(
+                lambda: self.cutoff_slider_topx_check("S"))
+            self.cutoff_slider_line.textChanged.connect(
+                lambda: self.cutoff_slider_topx_check("L"))
 
         # Combo box signal
         if self.combobox_menu_combobox != None:
@@ -126,45 +133,78 @@ class AnalysisTab(QWidget):
     def cutoff_type_relative_check(self):
         """ Work in progress. """
         # set cutoff to some %
+        self.cutoff_slider_slider.setVisible(False)
         self.cutoff_slider_unit.setText("This feature is not functional yet")
-        self.cutoff_slider_slider.setInvertedAppearance(True)
-        min = self.cutoff_slider_min.text()
-        max = self.cutoff_slider_max.text()
-        self.cutoff_slider_min.setText(max)
-        self.cutoff_slider_max.setText(min)
+        self.cutoff_slider_log_slider.setVisible(True)
 
     def cutoff_type_topx_check(self):
         """ Work in progress. """
         # set cutoff to some number
+        self.cutoff_slider_log_slider.setVisible(False)
         self.cutoff_slider_unit.setText("top # contributing unit processes")
-        self.cutoff_slider_slider.setInvertedAppearance(False)
-        minimum = 1
-        maximum = 1000
-        self.cutoff_slider_min.setText(str(minimum))
-        self.cutoff_slider_slider.setMinimum(minimum)
-        self.cutoff_slider_max.setText(str(maximum))
-        self.cutoff_slider_slider.setMaximum(maximum)
+        self.cutoff_slider_slider.setVisible(True)
 
-    def cutoff_slider_check(self, editor):
-        cutoff = int
-        if editor == "S":
-            cutoff = abs(int(self.cutoff_slider_slider.value()))
-            self.cutoff_slider_line.setText(str(cutoff))
-        elif editor == "L":
-            if self.cutoff_slider_line.text() == '-':
-                cutoff = self.cutoff_slider_slider.minimum()
-                self.cutoff_slider_line.setText(str(self.cutoff_slider_slider.minimum()))
-            elif self.cutoff_slider_line.text() == '':
-                cutoff = self.cutoff_slider_slider.minimum()
-            else:
-                cutoff = abs(int(self.cutoff_slider_line.text()))
-
-            if cutoff > self.cutoff_slider_slider.maximum():
-                cutoff = self.cutoff_slider_slider.maximum()
+    def cutoff_slider_relative_check(self, editor):
+        print("relative")
+        if self.cutoff_type_relative:
+            self.cutoff_validator = self.cutoff_validator_float
+            cutoff = float
+            if editor == "S":
+                cutoff = abs(float(self.cutoff_slider_log_slider.value()))
                 self.cutoff_slider_line.setText(str(cutoff))
-            self.cutoff_slider_slider.setValue(int(cutoff))
-        self.cutoff_value = int(cutoff)
-        self.update_plot()
+            elif editor == "L":
+                if self.cutoff_slider_line.text() == '-':
+                    cutoff = self.cutoff_slider_log_slider.minimum()
+                    self.cutoff_slider_line.setText(str(self.cutoff_slider_log_slider.minimum()))
+                elif self.cutoff_slider_line.text() == '':
+                    cutoff = self.cutoff_slider_log_slider.minimum()
+                else:
+                    cutoff = abs(float(self.cutoff_slider_line.text()))
+
+                if cutoff > self.cutoff_slider_log_slider.maximum():
+                    cutoff = self.cutoff_slider_log_slider.maximum()
+                    self.cutoff_slider_line.setText(str(cutoff))
+                self.cutoff_slider_log_slider.setValue(float(cutoff))
+
+            # logic to move stuff around
+
+
+
+            # self.cutoff_value = 5
+
+            # if self.plot:
+            #     self.update_plot()
+            # if self.table:
+            #     self.update_table()
+
+
+    def cutoff_slider_topx_check(self, editor):
+        print("topx")
+        if self.cutoff_type_topx:
+            self.cutoff_validator = self.cutoff_validator_int
+            cutoff = int
+            if editor == "S":
+                cutoff = abs(int(self.cutoff_slider_slider.value()))
+                self.cutoff_slider_line.setText(str(cutoff))
+            elif editor == "L":
+                if self.cutoff_slider_line.text() == '-':
+                    cutoff = self.cutoff_slider_slider.minimum()
+                    self.cutoff_slider_line.setText(str(self.cutoff_slider_slider.minimum()))
+                elif self.cutoff_slider_line.text() == '':
+                    cutoff = self.cutoff_slider_slider.minimum()
+                else:
+                    cutoff = abs(int(self.cutoff_slider_line.text()))
+
+                if cutoff > self.cutoff_slider_slider.maximum():
+                    cutoff = self.cutoff_slider_slider.maximum()
+                    self.cutoff_slider_line.setText(str(cutoff))
+                self.cutoff_slider_slider.setValue(int(cutoff))
+            self.cutoff_value = int(cutoff)
+            if self.plot:
+                self.update_plot()
+            if self.table:
+                self.update_table()
+
 
     def main_space_check(self, table_ch, plot_ch):
         table_state = table_ch.isChecked()
@@ -216,9 +256,10 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_label = QLabel("Cut-off level")
         self.cutoff_value = 5
         self.cutoff_slider_slider = QSlider(Qt.Horizontal)
-        # self.cutoff_slider_slider.setInvertedAppearance(True)
+        self.cutoff_slider_log_slider = LogarithmicSlider(self)
+        self.cutoff_slider_log_slider.setInvertedAppearance(True)
         self.cutoff_slider_slider.setMinimum(1)  # temporary
-        self.cutoff_slider_slider.setMaximum(1000)  # temporary
+        self.cutoff_slider_slider.setMaximum(50)  # temporary
         self.cutoff_slider_slider.setValue(self.cutoff_value)
         self.cutoff_slider_slider.sizeHint()
         self.cutoff_slider_minmax = QHBoxLayout()
@@ -226,7 +267,9 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_max = QLabel(str(self.cutoff_slider_slider.maximum()))
         self.cutoff_slider_ledit = QHBoxLayout()
         self.cutoff_slider_line = QLineEdit()
-        self.cutoff_validator = QIntValidator(self.cutoff_slider_line)
+        self.cutoff_validator_int = QIntValidator(self.cutoff_slider_line)
+        self.cutoff_validator_float = QDoubleValidator(self.cutoff_slider_line)
+        self.cutoff_validator = self.cutoff_validator_int
         self.cutoff_slider_line.setValidator(self.cutoff_validator)
 
         self.cutoff_slider_unit = QLabel("unit")
@@ -239,6 +282,8 @@ class AnalysisTab(QWidget):
         # Assemble slider set
         self.cutoff_slider_set.addWidget(self.cutoff_slider_label)
         self.cutoff_slider_set.addWidget(self.cutoff_slider_slider)
+        self.cutoff_slider_set.addWidget(self.cutoff_slider_log_slider)
+        self.cutoff_slider_log_slider.setVisible(False)
         self.cutoff_slider_minmax.addWidget(self.cutoff_slider_min)
         self.cutoff_slider_minmax.addStretch()
         self.cutoff_slider_minmax.addWidget(self.cutoff_slider_max)
