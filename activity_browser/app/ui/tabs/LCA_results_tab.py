@@ -5,7 +5,7 @@ from ..graphics import (
     CorrelationPlot,
     LCAResultsPlot,
     ProcessContributionPlot,
-    ElementaryFlowContributionPlot
+    InventoryCharacterisationPlot
 )
 from ..widgets import CalculationSetupTab
 from ...bwutils.multilca import MLCA

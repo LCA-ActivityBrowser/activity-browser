@@ -4,7 +4,7 @@ from ..tables.lca_results import InventoryTable
 from ..graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
-    ElementaryFlowContributionPlot,
+    InventoryCharacterisationPlot,
     CorrelationPlot,
 )
 from ...bwutils.multilca import MLCA
@@ -51,7 +51,7 @@ class CalculationSetupTab(QTabWidget):
         self.update_calculation()
 
         self.inventory_tab = Inventory(self)
-        self.elementary_flows_tab = ElementaryFlowContributions(self)
+        self.elementary_flows_tab = InventoryCharacterisation(self)
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
         self.correlations_tab = Correlations(self)
@@ -466,15 +466,15 @@ class Inventory(AnalysisTab):
 
         self.connect_analysis_signals()
 
-class ElementaryFlowContributions(AnalysisTab):
+class InventoryCharacterisation(AnalysisTab):
     def __init__(self, parent):
-        super(ElementaryFlowContributions, self).__init__(parent)
+        super(InventoryCharacterisation, self).__init__(parent)
         self.setup = parent
 
-        self.name = "Elementary Flow Contributions"
+        self.name = "Inventory Characterisation"
         self.header.setText(self.name)
 
-        self.plot = ElementaryFlowContributionPlot(self.setup)
+        self.plot = InventoryCharacterisationPlot(self.setup)
 
         self.add_cutoff()
         self.cutoff_value = 0.01

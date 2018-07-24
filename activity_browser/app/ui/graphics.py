@@ -166,9 +166,9 @@ class ProcessContributionPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
 
 
-class ElementaryFlowContributionPlot(Plot):
+class InventoryCharacterisationPlot(Plot):
     def __init__(self, parent=None, *args):
-        super(ElementaryFlowContributionPlot, self).__init__(parent, *args)
+        super(InventoryCharacterisationPlot, self).__init__(parent, *args)
 
     def plot(self, mlca, method=None, limit=5, limit_type="number"):
         self.ax.clear()
