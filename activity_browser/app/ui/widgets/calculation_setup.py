@@ -1,5 +1,5 @@
 from ..style import horizontal_line, vertical_line, header
-from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable
+from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable, InventoryCharacterisationTable
 # from ..tables.lca_results import InventoryTable
 from ..graphics import (
     LCAResultsPlot,
@@ -476,6 +476,7 @@ class InventoryCharacterisation(AnalysisTab):
         self.header.setText(self.name)
 
         self.plot = InventoryCharacterisationPlot(self.setup)
+        self.table = InventoryCharacterisationTable(self)
 
         self.add_cutoff()
         self.cutoff_value = 0.01

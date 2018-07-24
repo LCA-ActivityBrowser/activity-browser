@@ -28,6 +28,18 @@ class ProcessContributionsTable(ABDataFrameTable):
         self.setVerticalScrollMode(1)
         self.setHorizontalScrollMode(1)
 
+class InventoryCharacterisationTable(ABDataFrameTable):
+    def __init__(self, parent):
+        super(InventoryCharacterisationTable, self).__init__(parent)
+        self.parent = parent
+
+    @ABDataFrameTable.decorated_sync
+    def sync(self, lca):
+        self.dataframe = self.parent.plot.df_tc
+
+        self.setVerticalScrollMode(1)
+        self.setHorizontalScrollMode(1)
+
 
 class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
