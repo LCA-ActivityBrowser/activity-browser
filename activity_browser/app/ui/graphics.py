@@ -139,6 +139,7 @@ class LCAResultsPlot(Plot):
 class ProcessContributionPlot(Plot):
     def __init__(self, parent=None, *args):
         super(ProcessContributionPlot, self).__init__(parent, *args)
+        self.df_tc = pd.DataFrame()
 
     def plot(self, mlca, method=None, limit=5, limit_type="number"):
         self.ax.clear()
@@ -146,10 +147,10 @@ class ProcessContributionPlot(Plot):
         self.figure.set_figheight(height)
 
         tc = mlca.top_process_contributions(method_name=method, limit=limit, normalised=True, limit_type=limit_type)
-        df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-        df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in df_tc.index]
-        plot = df_tc.T.plot.barh(
+        self.df_tc = pd.DataFrame(tc)
+        self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
+        self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
+        plot = self.df_tc.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax
@@ -157,7 +158,7 @@ class ProcessContributionPlot(Plot):
         plot.tick_params(labelsize=8)
         plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
         plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                    ncol=math.ceil((len(df_tc.index) * 0.22) / height))
+                    ncol=math.ceil((len(self.df_tc.index) * 0.22) / height))
         plot.grid(b=False)
 
         # refresh canvas
@@ -176,10 +177,10 @@ class InventoryCharacterisationPlot(Plot):
         self.figure.set_figheight(height)
 
         tc = mlca.top_elementary_flow_contributions(method_name=method, limit=limit, relative=True, limit_type=limit_type)
-        df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-        df_tc.index = [format_activity_label(a, style='bio') for a in df_tc.index]
-        plot = df_tc.T.plot.barh(
+        self.df_tc = pd.DataFrame(tc)
+        self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
+        self.df_tc.index = [format_activity_label(a, style='bio') for a in self.df_tc.index]
+        plot = self.df_tc.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax

@@ -1,6 +1,6 @@
 from ..style import horizontal_line, vertical_line, header
-from ..tables import LCAResultsTable
-from ..tables.lca_results import InventoryTable
+from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable
+# from ..tables.lca_results import InventoryTable
 from ..graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
@@ -136,6 +136,7 @@ class AnalysisTab(QWidget):
         if self.combobox_menu_combobox != None:
             self.combobox_menu_combobox.currentTextChanged.connect(
                 lambda name: self.update_plot(method=name))
+            self.combobox_menu_combobox.currentTextChanged.connect(self.update_table)
 
         # Mainspace Checkboxes
         self.main_space_tb_grph_table.stateChanged.connect(
@@ -266,12 +267,12 @@ class AnalysisTab(QWidget):
             self.main_space_plot.setVisible(False)
 
     def update_analysis_tab(self):
-        if self.table:
-            self.update_table()
-        if self.plot:
-            self.update_plot()
         if self.combobox_menu_combobox != None:
             self.update_combobox()
+        if self.plot:
+            self.update_plot()
+        if self.table:
+            self.update_table()
 
     def update_table(self):
         self.table.sync(self.setup.mlca)
@@ -501,8 +502,8 @@ class LCIAAnalysis(AnalysisTab):
         self.name = "LCIA Results"
         self.header.setText(self.name)
 
-        self.table = LCAResultsTable()
         self.plot = LCAResultsPlot(self.setup)
+        self.table = LCAResultsTable()
 
         self.add_main_space()
         self.add_export()
@@ -523,6 +524,7 @@ class ProcessContributions(AnalysisTab):
         self.header.setText(self.name)
 
         self.plot = ProcessContributionPlot(self.setup)
+        self.table = ProcessContributionsTable(self)
 
         self.add_cutoff()
         self.cutoff_value = 0.05
