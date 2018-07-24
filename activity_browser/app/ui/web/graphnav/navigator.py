@@ -377,12 +377,12 @@ class GraphModel:
         print('no of orphaned nodes added: ',len(orphaned_node_ids))
         return orphaned_node_ids
 
-    #def complete_edges(self):
-        """Method checks each node in the current dataset and compare whether all exchanges between the nodes present
+    """def complete_edges(self):
+        "Method checks each node in the current dataset and compare whether all exchanges between the nodes present
         in the dataset are included as edges, appends the missing edges
         Args: current self._data
-        Return: none, appends self._data.edges in-situ"""
-        """print('complete_edges started')
+        Return: none, appends self._data.edges in-situ"
+        print('complete_edges started')
         for node in self._data.nodes:
             c = 0
             key = (node.db, node.id)
@@ -414,7 +414,42 @@ class GraphModel:
                         self.add_edge(edge)
                     except Exception as e:
                         ErrorHandler.trace_error(e)
-                        raise"""
+                        raise """
+
+    def complete_edges(self, key):
+        """Method checks node for whether all exchanges between the nodes present
+        in the dataset are included as edges, appends the missing edges
+        Args: current self._data
+        Return: none, appends self._data.edges in -situ"""
+        print('complete_edges started')
+
+        activity = bw.get_activity(key)
+        upstream = activity.technosphere()
+        downstream = activity.upstream()
+        # checks upstream exchanges
+        for exchange in upstream:
+            edge = Edge(
+                exchange.input.key[1],
+                exchange.output.key[1],
+                exchange.input.get("reference product"))
+            if len(list(filter(lambda n: n.id == edge.source_id or n.id == edge.target_id, self._data.nodes))) == 2:
+                try:
+                    self.add_edge(edge)
+                except Exception as e:
+                    ErrorHandler.trace_error(e)
+                    raise
+        # checks downstream exchanges
+        for row, exchange in enumerate(downstream):
+            edge = Edge(
+                exchange.input.key[1],
+                exchange.output.key[1],
+                exchange.output.get("reference product"))
+            if len(list(filter(lambda n: n.id == edge.source_id or n.id == edge.target_id, self._data.nodes))) == 2:
+                try:
+                    self.add_edge(edge)
+                except Exception as e:
+                    ErrorHandler.trace_error(e)
+                    raise
 
     def json(self):
         """ Returns a JSON representation of the current model´s graph data. """
@@ -532,17 +567,16 @@ class Graph:
         for index, exchange in enumerate(activity_exchanges):
             try:
                 self.model.add_node(make_node(exchange.output))
+                """self.model.add_edge(make_edge(exchange.input, exchange.output))"""
+                self.model.complete_edges(exchange.output.key)
             except Exception as e:
                 ErrorHandler.trace_error(e)
                 print("Failed to create edge/node for exchange: {}.", index)
                 raise
-            try:
-                self.model.add_edge(make_edge(exchange.input, exchange.output))
-            except Exception as e:
-                ErrorHandler.trace_error(e)
-                raise
+
+        """
         print('checking for missing edges')
-        #self.model.complete_edges()
+        self.model.complete_edges()"""
 
         json_data = self.model.json()
 
@@ -581,17 +615,15 @@ class Graph:
         for exchange in filter(lambda x: x.output.key[1] == key[1], exchanges):
             try:
                 self.model.add_node(make_node(exchange.input))
+                """self.model.add_edge(make_edge(exchange.input, exchange.output))"""
+                self.model.complete_edges(exchange.input.key)
             except Exception as e:
                 ErrorHandler.trace_error(e)
                 raise
-            try:
-                self.model.add_edge(make_edge(exchange.input, exchange.output))
-            except Exception as e:
-                ErrorHandler.trace_error(e)
-                raise
+
         #print('done with adding nodes & edges')
-        print('checking for missing edges')
-        #self.model.complete_edges()
+        """print('checking for missing edges')
+        self.model.complete_edges()"""
         # JSON pickle
         json_data = self.model.json()
 
