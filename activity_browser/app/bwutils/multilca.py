@@ -65,7 +65,7 @@ class MLCA(object):
         return self.results / self.results.max(axis=0)
 
     # CONTRIBUTION ANALYSIS
-    def top_process_contributions(self, method_name=None, limit=5, normalised=True):
+    def top_process_contributions(self, method_name=None, limit=5, normalised=True, limit_type="number"):
         if method_name:
             method = self.method_dict[method_name]
         else:
@@ -76,7 +76,7 @@ class MLCA(object):
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
-            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit)
+            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
             cont_per_fu = {}
             cont_per_fu.update(
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
@@ -85,7 +85,7 @@ class MLCA(object):
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
         return topcontribution_dict
 
-    def top_elementary_flow_contributions(self, method_name=None, limit=5, relative=True):
+    def top_elementary_flow_contributions(self, method_name=None, limit=5, relative=True, limit_type="number"):
         if method_name:
             method = self.method_dict[method_name]
         else:
@@ -96,7 +96,7 @@ class MLCA(object):
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
-            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit)
+            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
             cont_per_fu = {}
             cont_per_fu.update(
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})

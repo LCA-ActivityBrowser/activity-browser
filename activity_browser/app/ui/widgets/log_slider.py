@@ -12,40 +12,32 @@ class LogarithmicSlider(QSlider):
         super(LogarithmicSlider, self).__init__(parent)
 
         self.setOrientation(Qt.Horizontal)
-        self.analysis_tab = parent
 
-        self.resolution_pow = 5 # Must always be integer higher than 3
-        self.slider_resolution = 10**self.resolution_pow
-
-        self.setMinimum(0.001)
-        # self.setMaximum(self.slider_resolution)
+        self.setMinimum(1)
         self.setMaximum(100)
 
     def setLogValue(self, value):
-        # value = float(value)
-        # log_val = log10(value)
-        # log_val += (self.resolution_pow - 3)
-        # order = self.find_order(log_val)
-        # self.setValue(value*(10**order))
-        value = float(value)
-        log_val = log10(value)
-        log_val += 3
-        log_val*20
-        self.setValue(log_val)
+        """ Modify value from 0.001-100 to 1-100 logarithmically and set slider to value. """
+        value = int(float(value)*(10**3))
+        log_val = round(log10(value), 3)
+        set_val = log_val*20
+        self.setValue(set_val)
 
     def logValue(self, value=None):
+        """ Read (slider) value and modify it from 1-100 to 0.001-100 logarithmically with relevant rounding. """
         if value == None:
             value = self.value()
         value = float(value)
         log_val = log10(value)
-        order = self.find_order(log_val)
+        power = log_val * 2.5 - 3
+        ret_val = 10**power
 
-        logarithmic = value*(10**(order - self.resolution_pow))
-        return logarithmic
-
-    def find_order(self, log_val):
-        for i in range(self.resolution_pow):
-            j = i + 1
-            if log_val >= i and log_val < j:
-                return float(i)
-        return None
+        if log10(ret_val) < -1:
+            ret_val = round(ret_val, 3)
+        elif log10(ret_val) < -0:
+            ret_val = round(ret_val, 2)
+        elif log10(ret_val) < 1:
+            ret_val = round(ret_val, 1)
+        else:
+            ret_val = int(round(ret_val, 0))
+        return ret_val
