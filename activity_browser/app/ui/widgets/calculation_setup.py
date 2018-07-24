@@ -37,11 +37,13 @@ class CalculationSetupTab(QTabWidget):
         self.setTabPosition(1)  # South-facing Tabs
 
         self.update_calculation()
+
+        self.inventory_tab = Inventory(self)
+        self.elementary_flows_tab = ElementaryFlowContributions(self)
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
-        self.elementary_flows_tab = ElementaryFlowContributions(self)
         self.correlations_tab = Correlations(self)
-        self.inventory_tab = Inventory(self)
+
         self.update_setup(calculate=False)
 
         self.connect_signals()
@@ -418,6 +420,50 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(horizontal_line())
         self.layout.addLayout(self.export_menu)
 
+class Inventory(AnalysisTab):
+    def __init__(self, parent):
+        super(Inventory, self).__init__(parent)
+        self.setup = parent
+
+        self.name = "Inventory"
+        self.header.setText(self.name)
+
+        self.table = InventoryTable(self.setup)
+
+        self.add_main_space()
+        self.add_export()
+
+        self.setup.addTab(self, self.name)
+
+        self.connect_analysis_signals()
+
+class ElementaryFlowContributions(AnalysisTab):
+    def __init__(self, parent):
+        super(ElementaryFlowContributions, self).__init__(parent)
+        self.setup = parent
+
+        self.name = "Elementary Flow Contributions"
+        self.header.setText(self.name)
+
+        self.plot = ElementaryFlowContributionPlot(self.setup)
+
+        self.add_cutoff()
+        self.cutoff_value = 5
+        self.add_combobox()
+        self.add_main_space()
+        self.add_export()
+
+        self.setup.addTab(self, self.name)
+
+        self.connect_analysis_signals()
+
+    def update_plot(self, method=None):
+        if method == None:
+            method = self.setup.mlca.methods[0]
+        else:
+            method = self.setup.method_dict[method]
+        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value)
+
 class LCIAAnalysis(AnalysisTab):
     def __init__(self, parent):
         super(LCIAAnalysis, self).__init__(parent)
@@ -466,33 +512,6 @@ class ProcessContributions(AnalysisTab):
             method = self.setup.method_dict[method]
         self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value)
 
-class ElementaryFlowContributions(AnalysisTab):
-    def __init__(self, parent):
-        super(ElementaryFlowContributions, self).__init__(parent)
-        self.setup = parent
-
-        self.name = "Elementary Flow Contributions"
-        self.header.setText(self.name)
-
-        self.plot = ElementaryFlowContributionPlot(self.setup)
-
-        self.add_cutoff()
-        self.cutoff_value = 5
-        self.add_combobox()
-        self.add_main_space()
-        self.add_export()
-
-        self.setup.addTab(self, self.name)
-
-        self.connect_analysis_signals()
-
-    def update_plot(self, method=None):
-        if method == None:
-            method = self.setup.mlca.methods[0]
-        else:
-            method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value)
-
 class Correlations(AnalysisTab):
     def __init__(self, parent):
         super(Correlations, self).__init__(parent)
@@ -513,20 +532,3 @@ class Correlations(AnalysisTab):
     def update_plot(self):
         labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
         self.plot.plot(self.setup.mlca, labels)
-
-class Inventory(AnalysisTab):
-    def __init__(self, parent):
-        super(Inventory, self).__init__(parent)
-        self.setup = parent
-
-        self.name = "Inventory"
-        self.header.setText(self.name)
-
-        self.table = InventoryTable(self.setup)
-
-        self.add_main_space()
-        self.add_export()
-
-        self.setup.addTab(self, self.name)
-
-        self.connect_analysis_signals()
