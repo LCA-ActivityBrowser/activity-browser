@@ -317,63 +317,6 @@ class Graph:
         # print("JSON-Data:", json.dumps(json_data))
         return json.dumps(json_data)
 
-    def get_json_expand_graph(self, key: Tuple[str, str]):
-        """ Exploration Function: Expand graph saved in saved_json by adding downstream nodes to the ctrl+clicked node
-        Args:
-            key: tuple containing the key of the activity
-        Returns:
-                JSON data as a string
-        """
-        activity = bw.get_activity(key)
-        print("Head:", activity)
-
-    def get_json_expand_graph_upstream(self, key: Tuple[str, str]):
-        """ Exploration Function: Expand graph saved in saved_json by adding upstream nodes to the shift+clicked node
-        Args:
-            key: tuple containing the key of the activity
-        Returns:
-                JSON data as a string
-        """
-
-        activity = bw.get_activity(key)
-        print("Head:", activity)
-
-        def make_edge(input_activity, output_activity) -> Edge:
-            """ Creates a new edge from the specified input and output activities. """
-            source_id = input_activity.key[1]
-            target_id = output_activity.key[1]
-            label = input_activity.get("reference product")
-            return Edge(source_id, target_id, label)
-
-        def make_node(input_activity) -> GraphNode:
-            """ Creates a new node from the specified input activity. """
-            return GraphNode(
-                input_activity.key[1],
-                input_activity.get("reference product"),
-                input_activity.get("name"),
-                input_activity.get("location"),
-                input_activity.key[0])
-
-        # add only the upstreams nodes to the specified node
-        exchanges = activity.technosphere()
-        for exchange in filter(lambda x: x.output.key[1] == key[1], exchanges):
-            try:
-                self.model.add_node(make_node(exchange.input))
-                """self.model.add_edge(make_edge(exchange.input, exchange.output))"""
-                self.model.complete_edges(exchange.input.key)
-            except Exception as e:
-                ErrorHandler.trace_error(e)
-                raise
-
-        #print('done with adding nodes & edges')
-        """print('checking for missing edges')
-        self.model.complete_edges()"""
-        # JSON pickle
-        json_data = self.model.json()
-
-        #print("JSON-Data:", json_data)
-        return json_data
-
     def reduce_graph(self, key: Tuple[str, str]):
         """ Exploration Function: Reduce graph saved in saved_json by removing the alt+clicked node and direct exchanges
             Removes specified node as well as any dependent nodes which become isolated and their edges
