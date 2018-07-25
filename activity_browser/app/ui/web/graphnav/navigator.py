@@ -5,11 +5,10 @@ import json
 from typing import Tuple
 
 import brightway2 as bw
-from bw2data import databases
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from networkx import has_path, MultiGraph
+from networkx import has_path, MultiDiGraph
 
-from activity_browser.app.ui.web.graphnav.errorhandler import ErrorHandler
+from .errorhandler import ErrorHandler
 from .signals import graphsignals
 from ....signals import signals
 
@@ -21,7 +20,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.graph = Graph()
 
         self.connect_signals()
-        self.selected_db = ''
+        # self.selected_db = ''
 
         # button refresh
         self.button_refresh = QtWidgets.QPushButton('Refresh')
@@ -55,7 +54,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         signals.database_selected.connect(self.set_database)
         signals.add_activity_to_history.connect(self.update_graph)
         graphsignals.update_graph.connect(self.update_graph)
-        graphsignals.method_chooser.connect(self.method_chooser)
+        graphsignals.expand_graph.connect(self.expand_graph)
         graphsignals.update_graph_reduce.connect(self.update_graph_reduce)
         graphsignals.graph_ready.connect(self.draw_graph)
 
@@ -68,14 +67,16 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
     def update_graph(self, key):
         print("Updating Graph for key: ", key)
-        try:
-            json_data = self.graph.get_json_graph(key)
-            self.bridge.graph_ready.emit(json_data)
-        except Exception as e:
-            ErrorHandler.trace_error(e)
-            print("No activity with this key:", key)
+        # try:
+        json_data = self.graph.get_json_graph(key)
+        print("Sending JSON data as signal graph_ready")
+        self.bridge.graph_ready.emit(json_data)
+        # except Exception as e:
+        #     ErrorHandler.trace_error(e)
+        #     print("No activity with this key:", key)
 
-    def method_chooser(self, key):
+    def expand_graph(self, key):
+        print("Expanding Graph for key: ", key)
         if self.graph.model.method_chooser_helper(key) is True:
             print("Upstream Expansion initiated for:", key)
             self.update_graph_expand_upstream(key)
@@ -166,7 +167,7 @@ class Bridge(QtCore.QObject):
         print("Clicked on to expand: ", js_string)
         db_id = js_string.split(";")
         key = tuple([db_id[0], db_id[1]])
-        graphsignals.method_chooser.emit(key)
+        graphsignals.expand_graph.emit(key)
 
 
     @QtCore.pyqtSlot(str)
@@ -359,7 +360,7 @@ class GraphModel:
         Args: central node, specified node
         Ret: list of node ids without connection to central node"""
         # creates MultiGraph class for networkx function has_path
-        G = MultiGraph()
+        G = MultiDiGraph()
         # fills node_ids into MultiGraph
         for node in list(self._data.nodes):
             G.add_node(node.id)
@@ -463,10 +464,81 @@ class GraphModel:
 class Graph:
 
     def __init__(self):
-        self.model = GraphModel()
+        self.activity = None
+        self.nodes = None
+        self.edges = None
+        self.json_data = None
+        # self.model = GraphModel()
 
         # to avoid a change of title and retain information about the original central node it is stored here
-        self.central_node = None
+        # self.central_node = None
+
+    def clear_graph(self):
+        self.nodes = None
+        self.edges = None
+        self.json_data = None
+
+    def upstream_and_downstream_nodes(self, key):
+        """Returns the upstream and downstream activity objects for a key. """
+        activity = bw.get_activity(key)
+        upstream_nodes = [ex.input for ex in activity.technosphere()]
+        downstream_nodes = [ex.output for ex in activity.technosphere()]
+        return upstream_nodes, downstream_nodes
+
+    def inner_exchanges(self, nodes):
+        """Returns all exchanges (Exchange objects) between a list of nodes."""
+        node_keys = [node.key for node in nodes]
+        # the if part is the slow part, but MUCH faster if not the object, but just the key is compared
+        return [ex for node in nodes for ex in node.technosphere() if
+                ex["input"] in node_keys and ex["output"] in node_keys]
+
+    def new_graph(self, key):
+        self.activity = bw.get_activity(key)
+        up_nodes, down_nodes = self.upstream_and_downstream_nodes(key)
+        self.nodes = [self.activity]+up_nodes+down_nodes
+        print("NODES:", self.nodes)
+        self.edges = self.inner_exchanges(self.nodes)
+        print("EDGES:", self.edges)
+
+    def get_JSON_data(self):
+        """
+        Make the JSON graph data from a list of nodes and edges.
+
+        Args:
+            nodes: a list of nodes (Activity objects)
+            edges: a list of edges (Exchange objects)
+        Returns:
+            A JSON representation of this.
+            """
+        nodes = [
+                    {
+                        "key": node.key,
+                        "database": node.key[0],
+                        "id": node.key[1],
+                        "product": node.get("reference product"),
+                        "name": node.get("name"),
+                        "location": node.get("location"),
+                    }
+                    for node in self.nodes
+                ]
+
+        edges = [
+                    {
+                        "source": exc.input.key[1],
+                        "target": exc.output.key[1],
+                        "label": exc.input.get("reference product")
+                    }
+                    for exc in self.edges
+                ]
+        json_data = {
+            "nodes": nodes,
+            "edges": edges,
+            "title": self.activity.get("reference product"),
+        }
+
+        print("JSON-Data:", json.dumps(json_data))
+        return json.dumps(json_data)
+
 
     def get_json_graph(self, key: Tuple[str, str]):
         """Creates JSON graph for an activity
@@ -475,64 +547,68 @@ class Graph:
         Returns:
                 JSON data as a string
         """
-        activity = bw.get_activity(key)
-        print("Head:", activity)
-
-        # forget all nodes and edges
-        self.model.clear()
-
-        # all inputs
-        exchanges = activity.technosphere()
-        for exchange in exchanges:
-            edge = Edge(
-                exchange.input.key[1],
-                exchange.output.key[1],
-                exchange.input.get("reference product"))
-            self.model.add_edge(edge)
-            node = GraphNode(
-                exchange.input.key[1],
-                exchange.input.get("reference product"),
-                exchange.input.get("name"),
-                exchange.input.get("location"),
-                exchange.input.key[0])
-            node.type = "input"
-            self.model.add_node(node)
-
-        # all downstream consumers
-        for row, exchange in enumerate(activity.upstream()):
-            edge = Edge(
-                exchange.input.key[1],
-                exchange.output.key[1],
-                exchange.output.get("reference product"))
-            self.model.add_edge(edge)
-            node = GraphNode(
-                exchange.output.key[1],
-                exchange.output.get("reference product"),
-                exchange.output.get("name"),
-                exchange.output.get("location"),
-                exchange.output.key[0])
-            node.type = "downstream consumer"
-            self.model.add_node(node)
-
-        # and the receiving node
-        activity_id = activity.key[1]
-        activity_database = activity.key[0]
-        node = GraphNode(
-            activity_id,
-            activity.get("reference product"),
-            activity.get("name"),
-            activity.get("location"),
-            activity_database)
-        node.type = "receiver"
-        self.model.add_node(node)
-
-        self.model.title = activity.get("reference product")
-
-        json_data = self.model.json()
-
-        self.central_node = node
-        # print("JSON-Data:", json_data)
-        return json_data
+        self.clear_graph()
+        self.new_graph(key)
+        # pass
+        #
+        # activity = bw.get_activity(key)
+        # print("Head:", activity)
+        #
+        # # forget all nodes and edges
+        # # self.model.clear()
+        #
+        # # all inputs
+        # exchanges = activity.technosphere()
+        # for exchange in exchanges:
+        #     edge = Edge(
+        #         exchange.input.key[1],
+        #         exchange.output.key[1],
+        #         exchange.input.get("reference product"))
+        #     self.model.add_edge(edge)
+        #     node = GraphNode(
+        #         exchange.input.key[1],
+        #         exchange.input.get("reference product"),
+        #         exchange.input.get("name"),
+        #         exchange.input.get("location"),
+        #         exchange.input.key[0])
+        #     node.type = "input"
+        #     self.model.add_node(node)
+        #
+        # # all downstream consumers
+        # for row, exchange in enumerate(activity.upstream()):
+        #     edge = Edge(
+        #         exchange.input.key[1],
+        #         exchange.output.key[1],
+        #         exchange.output.get("reference product"))
+        #     self.model.add_edge(edge)
+        #     node = GraphNode(
+        #         exchange.output.key[1],
+        #         exchange.output.get("reference product"),
+        #         exchange.output.get("name"),
+        #         exchange.output.get("location"),
+        #         exchange.output.key[0])
+        #     node.type = "downstream consumer"
+        #     self.model.add_node(node)
+        #
+        # # and the receiving node
+        # activity_id = activity.key[1]
+        # activity_database = activity.key[0]
+        # node = GraphNode(
+        #     activity_id,
+        #     activity.get("reference product"),
+        #     activity.get("name"),
+        #     activity.get("location"),
+        #     activity_database)
+        # node.type = "receiver"
+        # self.model.add_node(node)
+        #
+        # self.model.title = activity.get("reference product")
+        #
+        # json_data = self.model.json()
+        #
+        # self.central_node = node
+        # # print("JSON-Data:", json_data)
+        return self.get_JSON_data()
 
     def get_json_expand_graph(self, key: Tuple[str, str]):
         """ Exploration Function: Expand graph saved in saved_json by adding downstream nodes to the ctrl+clicked node
