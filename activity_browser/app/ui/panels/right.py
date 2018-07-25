@@ -42,7 +42,7 @@ class RightPanel(Panel):
     def update_activity_panel(self):
         if len(activity_cache):
             self.addTab(self.act_panel, 'Activities')
-            self.select_tab(self.act_panel)
+            # self.select_tab(self.act_panel)
         else:
             self.removeTab(self.indexOf(self.act_panel))
             self.setCurrentIndex(0)

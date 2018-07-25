@@ -31,6 +31,8 @@ function windowSize() {
     return [x,y];
 };
 
+var max_string_length = 20
+
 /**
  * Build svg container and listen for zoom and drag calls
  */
@@ -61,7 +63,7 @@ function update_graph(json_data) {
 	  data.nodes.forEach(function(n) {
 
 	    graph.setNode(n['id'], {
-	      label: chunkString(n['name'], 40),
+	      label: chunkString(n['name'], max_string_length) + '\n' + n['location'],
 	      product: n['product'],
 	      location: n['location'],
 	      id: n['id'],
@@ -74,7 +76,7 @@ function update_graph(json_data) {
 	  // edges --> graph
 	  data.edges.forEach(function(e) {
 	  	// document.writeln(e['source']);
-	    graph.setEdge(e['source_id'], e['target_id'], {label: chunkString(e['label'], 40)
+	    graph.setEdge(e['source_id'], e['target_id'], {label: chunkString(e['label'], max_string_length)
 	    });
 	  });
 
@@ -97,7 +99,7 @@ function update_graph(json_data) {
 
             new QWebChannel(qt.webChannelTransport, function (channel) {
                 window.bridge = channel.objects.bridge;
-                window.bridge.node_clicked_expand(
+                window.bridge.node_shift_clicked(
                   graph.node(node).database + ";" + graph.node(node).id
                 );
                 window.bridge.graph_ready.connect(update_graph);
