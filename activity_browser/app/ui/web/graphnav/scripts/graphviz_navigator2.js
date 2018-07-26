@@ -1,7 +1,4 @@
-
-
-var jsondata = '{"nodes": [{"id": "eb3b15cfce031f9f7494882cccaa04bf", "product": "1,1-dimethylcyclopentane", "name": "market for 1,1-dimethylcyclopentane", "location": "GLO"}, {"id": "304d42eabdcfe000e76034a265f7aa6a", "product": "solvent, organic", "name": "1,1-dimethylcyclopentane to generic market for solvent, organic", "location": "GLO"}], "edges": [{"source": "eb3b15cfce031f9f7494882cccaa04bf", "target": "304d42eabdcfe000e76034a265f7aa6a", "label": "1,1-dimethylcyclopentane"}]}'
-console.log ("Hello World");
+console.log ("Starting Graph Navigator.");
 
 var heading = document.getElementById("heading");
 // document.getElementById("data").innerHTML = "no data yet";
@@ -91,47 +88,27 @@ function update_graph(json_data) {
 	      console.log ("click!");
 
 	// Function called on click
-
 	function handleMouseClick(node){
-        //launch downstream exploration on shift+clicked node
-		if (window.event.shiftKey){
-            console.log ('shift')
+        // make dictionary containing the node key and how the user clicked on it
+        // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
+        click_dict = {
+            "database": graph.node(node).database,
+             "id": graph.node(node).id
+        }
+        click_dict["mouse"] = event.button;
+        click_dict["keyboard"] = {
+            "shift": event.shiftKey,
+            "alt": event.altKey,
+        }
+        console.log(click_dict)
 
-            new QWebChannel(qt.webChannelTransport, function (channel) {
-                window.bridge = channel.objects.bridge;
-                window.bridge.node_shift_clicked(
-                  graph.node(node).database + ";" + graph.node(node).id
-                );
-                window.bridge.graph_ready.connect(update_graph);
-            });
-
-
-        //launch reduction on alt+clicked node
-		} else if (window.event.altKey){
-            console.log ('alt')
-
-            new QWebChannel(qt.webChannelTransport, function (channel) {
-                window.bridge = channel.objects.bridge;
-                window.bridge.node_clicked_reduce(
-                  graph.node(node).database + ";" + graph.node(node).id
-                );
-                window.bridge.graph_ready.connect(update_graph);
-            });
-
-
-        //launch navigation from clicked node
-		} else  {
-            console.log ('no additional key')
-            new QWebChannel(qt.webChannelTransport, function (channel) {
-                window.bridge = channel.objects.bridge;
-                window.bridge.node_clicked(
-                  graph.node(node).database + ";" + graph.node(node).id
-                );
+        // pass click_dict (as json text) to python via bridge
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            window.bridge = channel.objects.bridge;
+            window.bridge.node_clicked(JSON.stringify(click_dict));
             window.bridge.graph_ready.connect(update_graph);
-            });
-	}
-
-};
+        });
+    };
 };
 
 

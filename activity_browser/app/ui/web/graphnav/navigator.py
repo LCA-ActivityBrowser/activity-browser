@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-import string
 import json
 from typing import Tuple
+from copy import deepcopy
 
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from networkx import has_path, MultiDiGraph
 
-from .errorhandler import ErrorHandler
 from .signals import graphsignals
 from ....signals import signals
 
@@ -43,6 +41,14 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.button_toggle_help = QtWidgets.QPushButton("Help")
         self.button_toggle_help.clicked.connect(self.toggle_help)
 
+        # button back
+        self.button_back = QtWidgets.QPushButton('<<')
+        self.button_back.clicked.connect(self.go_back)
+
+        # button forward
+        self.button_forward = QtWidgets.QPushButton('>>')
+        self.button_forward.clicked.connect(self.go_forward)
+
         # button navigation/expansion mode
         self.navigation_label = {True: "Current mode: Navigation", False: "Current mode: Expansion"}
         self.button_navigation_mode = QtWidgets.QPushButton(self.navigation_label[self.navigation_mode])
@@ -52,7 +58,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.button_refresh = QtWidgets.QPushButton('Refresh')
         self.button_refresh.clicked.connect(self.draw_graph)
 
-        # button refresh
+        # button random
         self.button_random_activity = QtWidgets.QPushButton('Random Activity')
         self.button_random_activity.clicked.connect(self.update_graph_random)
 
@@ -72,10 +78,13 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
         # Controls Layout
         self.hlay = QtWidgets.QHBoxLayout()
+        self.hlay.addWidget(self.button_back)
+        self.hlay.addWidget(self.button_forward)
         self.hlay.addWidget(self.button_navigation_mode)
         self.hlay.addWidget(self.button_refresh)
         self.hlay.addWidget(self.button_random_activity)
         self.hlay.addWidget(self.button_toggle_help)
+        self.hlay.addStretch(1)
 
         # Layout
         self.vlay = QtWidgets.QVBoxLayout()
@@ -94,8 +103,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         signals.database_selected.connect(self.set_database)
         signals.add_activity_to_history.connect(self.new_graph)
         graphsignals.update_graph.connect(self.update_graph)
-        graphsignals.update_graph_reduce.connect(self.update_graph_reduce)
-        graphsignals.graph_ready.connect(self.draw_graph)
 
     def toggle_navigation_mode(self):
         self.navigation_mode = not self.navigation_mode
@@ -113,41 +120,58 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         """
         self.selected_db = name
 
+    def go_back(self):
+        if self.graph.back():
+            print("Going back.")
+            self.bridge.graph_ready.emit(self.graph.json_data)
+        else:
+            print("Cannot go back.")
+
+    def go_forward(self):
+        if self.graph.forward():
+            print("Going foroward.")
+            self.bridge.graph_ready.emit(self.graph.json_data)
+        else:
+            print("Cannot go forward.")
+
     def new_graph(self, key):
         print("New Graph for key: ", key)
-        json_data = self.graph.new_graph(key)
-        self.bridge.graph_ready.emit(json_data)
+        self.graph.new_graph(key)
+        self.bridge.graph_ready.emit(self.graph.json_data)
 
-    def update_graph(self, key, user_command=None):
-        # interpret user command in the context of navigation mode and checkbox_direct_only
+    def update_graph(self, click_dict):
+        """
+        Update graph based on user command (click+keyboard) and settings.
+        Settings:
+        - navigation or expansion mode
+        - add all or only direct up/downstream nodes
+        User commands:
+        - mouse (left or right button)
+        - additional keyboard keys (shift, alt)
+        Behaviour:
+        - left-click: move to node (navigation mode) or expand downstream (expansion mode)
+        - left click + shift: expand upstream (expansion mode)
+        - left click + alt: remove nodes
+        """
+        key = click_dict["key"]
+        keyboard = click_dict["keyboard"]
+
+        # interpret user command:
         if self.navigation_mode:  # do not expand
             self.new_graph(key)
-        else:  # expansion mode
-            print("Expanding graph for key: ", key)
-            if user_command:
-                print("USER COMMAND", user_command)
-                if user_command["shift"]:  # upstream expansion
+        else:
+            if keyboard["alt"]:  # delete node
+                print("Deleting node: ", key)
+                self.graph.reduce_graph(key, direct_only=self.checkbox_direct_only.isChecked())
+            else: # expansion mode
+                print("Expanding graph: ", key)
+                if keyboard["shift"]:  # upstream expansion
                     print("Adding upstream nodes.")
-                    json_data = self.graph.expand_graph(key, up=True, direct_only=self.checkbox_direct_only.isChecked())
-            else:  # downstream expansion
-                print("Adding downstream nodes.")
-                json_data = self.graph.expand_graph(key, down=True, direct_only=self.checkbox_direct_only.isChecked())
-
-            print("JSON DATA:", json_data)
-            self.bridge.graph_ready.emit(json_data)
-
-    def update_graph_reduce(self, key):  # not complete so far!
-        """Takes key, retrieves JSON data with reduced nodes, and sends it to js graph_ready func
-        Args:
-            key: tuple containing the key of the activity
-        """
-        print("Reducing graph upstream from key: ", key)
-        try:
-            json_data = self.graph.reduce_graph(key)
-            self.bridge.graph_ready.emit(json_data)
-        except Exception as e:
-            ErrorHandler.trace_error(e)
-            print("Removal not possible with this activity:", key)
+                    self.graph.expand_graph(key, up=True, direct_only=self.checkbox_direct_only.isChecked())
+                else:  # downstream expansion
+                    print("Adding downstream nodes.")
+                    self.graph.expand_graph(key, down=True, direct_only=self.checkbox_direct_only.isChecked())
+            self.bridge.graph_ready.emit(self.graph.json_data)
 
     def update_graph_random(self):
         """ Show graph for a random activity in the currently loaded database."""
@@ -161,52 +185,71 @@ class Bridge(QtCore.QObject):
     graph_ready = QtCore.pyqtSignal(str)
 
     @QtCore.pyqtSlot(str)
-    def node_clicked(self, js_string):
-        """ Is called when a node is clicked for navigation
+    def node_clicked(self, click_text):
+        """ Is called when a node is clicked in Javascript.
         Args:
-            js_string: string containing the node's database name and the ID of the clicked node
+            click_text: string of a serialized json dictionary describing
+            - the node that was clicked on
+            - mouse button and additional keys pressed
         """
-        print("Clicked on: ", js_string)
-        db_id = js_string.split(";")
-        key = tuple([db_id[0], db_id[1]])
-        graphsignals.update_graph.emit(key, dict())
-
-    @QtCore.pyqtSlot(str)
-    def node_shift_clicked(self, js_string):
-        """ is called when node is shift+clicked for expansion
-        Args:
-            js_string: string containing the node's database name and the ID of the clicked node
-        """
-        print("Shift clicked on: ", js_string)
-        db_id = js_string.split(";")
-        key = tuple([db_id[0], db_id[1]])
-        user_commands = {"shift": True}
-        graphsignals.update_graph.emit(key, user_commands)
-
-
-    @QtCore.pyqtSlot(str)
-    def node_clicked_reduce(self, js_string):
-        # TODO: make a mediating function for data selection on what to delete and check for orphaned funcs
-        """ is called when node is alt+clicked for reduction of graph
-        Args:
-            js_string: string containing the node's database name and the ID of the clicked node
-        """
-        print("Clicked on to remove node: ", js_string)
-        db_id = js_string.split(";")
-        key = tuple([db_id[0], db_id[1]])
-        graphsignals.update_graph_reduce.emit(key)
+        click_dict = json.loads(click_text)
+        click_dict["key"] = (click_dict["database"], click_dict["id"])
+        print("Click information: ", click_dict)
+        graphsignals.update_graph.emit(click_dict)
 
 
 class Graph:
 
     def __init__(self):
-        self.clear_graph()
-
-    def clear_graph(self):
         self.activity = None
         self.nodes = None
         self.edges = None
         self.json_data = None
+        self.stack = []  # stores previous graphs, if any, and enables back/forward buttons
+        self.forward_stack = []  # stores graphs that can be returned to after having used the "back" button
+
+    def update(self, delete_unstacked=True):
+        self.json_data = self.get_JSON_data()
+        self.stack.append((deepcopy(self.nodes), deepcopy(self.edges)))
+        print("Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
+        if delete_unstacked:
+            self.forward_stack = []
+
+    def forward(self):
+        print("Forward stack:", self.forward_stack)
+        if self.forward_stack:
+            print("in forward")
+            self.nodes, self.edges = self.forward_stack.pop()
+            self.update(delete_unstacked=False)
+            return True
+        else:
+            return False
+
+    def back(self):
+        if len(self.stack) > 1:
+            self.forward_stack.append(self.stack.pop())  # as the last element is always the current graph
+            print("Forward stack:", self.forward_stack)
+            self.nodes, self.edges = self.stack.pop()
+            print("Un-Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
+            self.update(delete_unstacked=False)
+            return True
+        else:
+            return False
+        # while True:  # go back through stack to see if there is a previous graph
+        #     if self.stack:
+        #         print("one back")
+        #         nodes, edges = self.stack.pop()
+        #         if nodes != self.nodes:
+        #             self.nodes = nodes
+        #             self.edges = edges
+        #             break
+        #     else:
+        #         self.stack.append((self.nodes, deepcopy(self.edges)))
+        #         return False
+        #
+        # print("Un-Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
+        # self.update()
+        # return True
 
     def upstream_and_downstream_nodes(self, key):
         """Returns the upstream and downstream activity objects for a key. """
@@ -234,8 +277,6 @@ class Graph:
         Returns:
                 JSON data as a string
         """
-        self.clear_graph()
-
         self.activity = bw.get_activity(key)
         # add nodes
         up_nodes, down_nodes = self.upstream_and_downstream_nodes(key)
@@ -245,8 +286,7 @@ class Graph:
         # self.edges = self.inner_exchanges(self.nodes)
         up_exs, down_exs = self.upstream_and_downstream_exchanges(key)
         self.edges = up_exs + down_exs
-
-        return self.get_JSON_data()
+        self.update()
 
     def expand_graph(self, key, up=False, down=False, direct_only=True):
         """
@@ -267,7 +307,6 @@ class Graph:
 
         # Add Edges / Exchanges
         if direct_only:
-            print(type(self.edges))
             up_exs, down_exs = self.upstream_and_downstream_exchanges(key)
             if up and not down:
                 self.edges += up_exs  # TODO: should use something like set() here (but it doesn't work)
@@ -275,49 +314,20 @@ class Graph:
                 self.edges += down_exs
             elif up and down:
                 self.edges += up_exs + down_exs
-        else:
+        else:  # all
             self.edges = self.inner_exchanges(self.nodes)
+        self.update()
 
-        return self.get_JSON_data()
+    def reduce_graph(self, key, direct_only=True):
+        act = bw.get_activity(key)
+        if not direct_only:
+            pass
+        else:
+            self.nodes.remove(act)
+            self.edges = self.inner_exchanges(self.nodes)
+        self.update()
 
-    def get_JSON_data(self):
-        """
-        Make the JSON graph data from a list of nodes and edges.
-
-        Args:
-            nodes: a list of nodes (Activity objects)
-            edges: a list of edges (Exchange objects)
-        Returns:
-            A JSON representation of this.
-            """
-        nodes = [
-                    {
-                        "key": node.key,
-                        "db": node.key[0],
-                        "id": node.key[1],
-                        "product": node.get("reference product"),
-                        "name": node.get("name"),
-                        "location": node.get("location"),
-                    }
-                    for node in self.nodes
-                ]
-        edges = [
-                    {
-                        "source_id": exc.input.key[1],
-                        "target_id": exc.output.key[1],
-                        "label": exc.input.get("reference product")
-                    }
-                    for exc in self.edges
-                ]
-        json_data = {
-            "nodes": nodes,
-            "edges": edges,
-            "title": self.activity.get("reference product"),
-        }
-        # print("JSON-Data:", json.dumps(json_data))
-        return json.dumps(json_data)
-
-    def reduce_graph(self, key: Tuple[str, str]):
+    def reduce_graph1(self, key: Tuple[str, str]):
         """ Exploration Function: Reduce graph saved in saved_json by removing the alt+clicked node and direct exchanges
             Removes specified node as well as any dependent nodes which become isolated and their edges
         Args:
@@ -368,6 +378,45 @@ class Graph:
         # print("JSON-Data:", json_data)
         return json_data
 
+    def get_JSON_data(self):
+        """
+        Make the JSON graph data from a list of nodes and edges.
+
+        Args:
+            nodes: a list of nodes (Activity objects)
+            edges: a list of edges (Exchange objects)
+        Returns:
+            A JSON representation of this.
+            """
+        nodes = [
+                    {
+                        "key": node.key,
+                        "db": node.key[0],
+                        "id": node.key[1],
+                        "product": node.get("reference product"),
+                        "name": node.get("name"),
+                        "location": node.get("location"),
+                    }
+                    for node in self.nodes
+                ]
+        edges = [
+                    {
+                        "source_id": exc.input.key[1],
+                        "target_id": exc.output.key[1],
+                        "label": exc.input.get("reference product")
+                    }
+                    for exc in self.edges
+                ]
+        json_data = {
+            "nodes": nodes,
+            "edges": edges,
+            # "title": self.activity.get("reference product"),
+            "title": "Graph",
+        }
+        print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
+        print(json_data)
+        return json.dumps(json_data)
+
     def save_json_to_file(self, filename="data.json"):
         """ Writes the current model´s JSON representation to the specifies file. """
 
@@ -376,37 +425,3 @@ class Graph:
             filepath = os.path.join(os.path.dirname(__file__), filename)
             with open(filepath, 'w') as outfile:
                 json.dump(json_data, outfile)
-
-    # def new_graph(self):
-    #     print("Sending new Graph Data")
-    #     graph_data = self.get_random_graph()
-    #     self.bridge.graph_ready.emit(graph_data)
-    #     print("Graph Data: ", graph_data)
-
-    # def get_activity_data_str(self, obj):
-    #     obj_str = "_".join([
-    #         obj.get("reference product"),
-    #         # obj.get("name"),
-    #         # obj.get("location")
-    #     ])
-    #     return obj_str
-
-    # def get_graph_data(self, key):
-    #     self.activity = bw.get_activity(key)
-    #     self.upstream = False
-    #
-    #     from_to_list = []
-    #     for row, exc in enumerate(self.activity.technosphere()):
-    #         from_act = self.get_activity_data_str(exc.input)
-    #         to_act = self.get_activity_data_str(exc.output)
-    #         from_to_list.append((from_act, to_act))
-    #     return from_to_list
-
-    # def format_as_dot(self, from_to_list):
-    #     graph = 'digraph inventories {\n'
-    #     graph += """node[rx = 5 ry = 5 labelStyle = "font: 300 14px 'Helvetica Neue', Helvetica"]
-    #     edge[labelStyle = "font: 300 14px 'Helvetica Neue', Helvetica"]"""
-    #     for from_act, to_act in from_to_list:
-    #         graph +='\n"'+from_act+'"'+' -> '+'"'+to_act+'"'+'; '
-    #     graph += '}'
-    #     return graph
