@@ -49,7 +49,7 @@ function update_graph(json_data) {
     console.log("Updating Graph")
 	data = JSON.parse(json_data)
 
-//	heading.innerHTML = data.title;
+	heading.innerHTML = data.title;
 
 	// reset graph
 	var graph = new dagre.graphlib.Graph({ multigraph: true });
