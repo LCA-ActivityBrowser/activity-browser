@@ -13,7 +13,7 @@ class ABSettings():
         ab_dir = appdirs.AppDirs('ActivityBrowser', 'ABData')
         self.data_dir = ab_dir.user_data_dir
         if not os.path.isdir(self.data_dir):
-            os.mkdir(self.data_dir)
+            os.mkdirs(self.data_dir)
         self.settings_file = os.path.join(self.data_dir, 'ABsettings.json')
         self.move_old_settings()
         if os.path.isfile(self.settings_file):
@@ -24,10 +24,7 @@ class ABSettings():
     def move_old_settings(self):
         if not os.path.exists(self.settings_file):
             old_settings = os.path.join(PACKAGE_DIRECTORY, 'ABsettings.json')
-            print(old_settings)
-            print(os.path.exists(old_settings))
             if os.path.exists(old_settings):
-                print('called')
                 shutil.copyfile(old_settings, self.settings_file)
 
     def load_settings(self):
