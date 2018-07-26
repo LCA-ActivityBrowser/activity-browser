@@ -10,7 +10,7 @@ from .. import PACKAGE_DIRECTORY
 
 class ABSettings():
     def __init__(self):
-        ab_dir = appdirs.AppDirs('ActivityBrowser', 'ABData')
+        ab_dir = appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser')
         self.data_dir = ab_dir.user_data_dir
         if not os.path.isdir(self.data_dir):
             os.mkdirs(self.data_dir)
