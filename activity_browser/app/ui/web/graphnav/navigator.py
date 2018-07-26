@@ -10,8 +10,28 @@ from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from .signals import graphsignals
 from ....signals import signals
 
+# TODO:
+# save image
+
 
 class GraphNavigatorWidget(QtWidgets.QWidget):
+    HELP_TEXT = """
+    How to use the Graph Navigator:
+    
+    EXPANSION MODE (DEFAULT):
+    Click on activities to expand graph. 
+    - click: expand upwards
+    - click + shift: expand downstream
+    - click + alt: delete activity
+
+    Checkbox "Add only direct up-/downstream exchanges" - there are two ways to expand the graph: 
+        1) adding direct up-/downstream nodes and connections (DEFAULT). 
+        2) adding direct up-/downstream nodes and connections AS WELL as ALL OTHER connections between the activities in the graph. 
+        The first option results in cleaner (but not complete) graphs.    
+    
+    NAVIGATION MODE:
+    Click on activities to jump to specific activities.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -22,18 +42,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.selected_db = None
 
         # Help label
-        self.help_text = """
-        QUICK HELP
-        
-        Expansion mode (default): clicking on nodes adds downstream (click) or upstream (shift-click) activities, and thus expands the graph 
-        Navigation mode: clicking on a node "navigates" to this node (only directly connected activities are shown) 
-        
-        Checkbox "Add only direct up-/downstream exchanges" - there are two ways to expand the graph: 
-            1) adding direct up-/downstream nodes and connections. 
-            2) adding direct up-/downstream nodes and connections AS WELL as connections between the added activities and the rest of the graph. 
-            The first option is the default as it results in cleaner (but not complete) graphs.    
-        """
-        self.label_help = QtWidgets.QLabel(self.help_text)
+        self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
         self.label_help.setVisible(False)
 
         # button toggle_help
@@ -148,10 +157,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         User commands:
         - mouse (left or right button)
         - additional keyboard keys (shift, alt)
-        Behaviour:
-        - left-click: move to node (navigation mode) or expand downstream (expansion mode)
-        - left click + shift: expand upstream (expansion mode)
-        - left click + alt: remove nodes
+        Behaviour: see HELP text
         """
         key = click_dict["key"]
         keyboard = click_dict["keyboard"]
@@ -165,12 +171,12 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
                 self.graph.reduce_graph(key, direct_only=self.checkbox_direct_only.isChecked())
             else: # expansion mode
                 print("Expanding graph: ", key)
-                if keyboard["shift"]:  # upstream expansion
-                    print("Adding upstream nodes.")
-                    self.graph.expand_graph(key, up=True, direct_only=self.checkbox_direct_only.isChecked())
-                else:  # downstream expansion
+                if keyboard["shift"]:  # downstream expansion
                     print("Adding downstream nodes.")
                     self.graph.expand_graph(key, down=True, direct_only=self.checkbox_direct_only.isChecked())
+                else:  # upstream expansion
+                    print("Adding upstream nodes.")
+                    self.graph.expand_graph(key, up=True, direct_only=self.checkbox_direct_only.isChecked())
             self.bridge.graph_ready.emit(self.graph.json_data)
 
     def update_graph_random(self):
@@ -320,8 +326,16 @@ class Graph:
 
     def reduce_graph(self, key, direct_only=True):
         act = bw.get_activity(key)
-        if not direct_only:
-            pass
+        if direct_only:
+            print("\nEntering DELETE.")
+            self.nodes.remove(act)
+            # remove edges that have previously linked to this activity
+            print(len(self.edges), self.edges)
+            print(self.edges[0].input)
+            self.edges = [e for e in self.edges if e.input in self.nodes and e.output in self.nodes]
+            # edges = [e for e in self.edges if e.input != act.key or e.output.key != act.key]
+            # self.edges = [e for e in self.edges if e["input"] == act or e["output"]!= act]
+            print(len(self.edges), self.edges)
         else:
             self.nodes.remove(act)
             self.edges = self.inner_exchanges(self.nodes)
@@ -411,7 +425,6 @@ class Graph:
             "nodes": nodes,
             "edges": edges,
             # "title": self.activity.get("reference product"),
-            "title": "Graph",
         }
         print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
         print(json_data)
@@ -419,7 +432,6 @@ class Graph:
 
     def save_json_to_file(self, filename="data.json"):
         """ Writes the current model´s JSON representation to the specifies file. """
-
         json_data = self.model.json()
         if json_data:
             filepath = os.path.join(os.path.dirname(__file__), filename)

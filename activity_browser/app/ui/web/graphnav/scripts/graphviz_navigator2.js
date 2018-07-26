@@ -1,6 +1,6 @@
 console.log ("Starting Graph Navigator.");
 
-var heading = document.getElementById("heading");
+//var heading = document.getElementById("heading");
 // document.getElementById("data").innerHTML = "no data yet";
 
 // SETUP GRAPH
@@ -16,7 +16,6 @@ var heading = document.getElementById("heading");
 
 // Create and configure the renderer
 // var render = dagreD3.render();
-
 
 function windowSize() {
     w = window,
@@ -50,7 +49,7 @@ function update_graph(json_data) {
     console.log("Updating Graph")
 	data = JSON.parse(json_data)
 
-	heading.innerHTML = data.title;
+//	heading.innerHTML = data.title;
 
 	// reset graph
 	var graph = new dagre.graphlib.Graph({ multigraph: true });
@@ -81,7 +80,6 @@ function update_graph(json_data) {
 	  // Render the graph into svg g
 	  svg.call(render, graph);
 
-
 	  // Adds click listener, calling handleMouseClick func
 	  var nodes = svg.selectAll("g .node")
 	      .on("click", handleMouseClick)
@@ -111,12 +109,10 @@ function update_graph(json_data) {
     };
 };
 
-
 // break strings into multiple lines after certain length if necessary
 function chunkString(str, length) {
     return str.match(new RegExp('.{1,' + length + '}', 'g')).join("\n");
 }
-
 
 new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
