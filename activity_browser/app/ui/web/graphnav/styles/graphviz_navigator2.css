@@ -1,25 +1,70 @@
 
 
 
-/*to make the svg resizable*/
+/*to make the svg resizable*/ /*
 .svg-container {
     display: inline-block;
     position: relative;
     width: 100%;
-    padding-bottom: 100%; /* aspect ratio */
+    /*padding-bottom: 100%; /* aspect ratio */ /*
     vertical-align: top;
-    /*overflow: hidden;*/
+    /*overflow: hidden;*/ /*
 }
+
 .svg-content-responsive {
     display: inline-block;
     position: absolute;
     top: 10px;
     left: 0;
-}
+} */ /*
 
 svg {
   border: 1px solid #999;
-  /*overflow: hidden;*/
+  /*overflow: hidden;*/ /*
+} */
+
+.canvas {
+  overflow: visible;
+}
+.canvas .wrapper.outer > .background {
+  fill: #000000;
+}
+.canvas .wrapper.inner > .background {
+  fill: #FFFFFF;
+  cursor: move;
+}
+.canvas .background {
+  fill: #FFFFFF;
+  stroke: #333333;
+  cursor: move;
+}
+.canvas .panCanvas {
+  cursor: move;
+}
+
+.canvas .minimap {
+  stroke: #000000; /* #111111 */
+  stroke-width: 1px;
+
+}
+
+.canvas .minimap .frame {
+  pointer-events: all;
+}
+
+.canvas .minimap .container {
+  stroke: #000000; /* #111111 */
+  stroke-width: 1px;
+}
+
+.canvas .minimap .frame .background {
+  stroke: #FF0000; /* #111111 */
+  stroke-width: 10px;
+  fill-opacity: 0.1;
+  fill: #000000; /* #FF0000 */
+  /*fill: url(#minimapGradient_qwpyza); */
+  filter: url(#minimapDropShadow_qwpyza);
+  cursor: move;
 }
 
 .node {
