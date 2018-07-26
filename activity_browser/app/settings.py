@@ -13,7 +13,7 @@ class ABSettings():
         ab_dir = appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser')
         self.data_dir = ab_dir.user_data_dir
         if not os.path.isdir(self.data_dir):
-            os.mkdirs(self.data_dir)
+            os.makedirs(self.data_dir, exist_ok=True)
         self.settings_file = os.path.join(self.data_dir, 'ABsettings.json')
         self.move_old_settings()
         if os.path.isfile(self.settings_file):
