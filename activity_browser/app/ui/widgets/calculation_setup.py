@@ -4,7 +4,7 @@ from ..tables.lca_results import InventoryTable
 from ..graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
-    ElementaryFlowContributionPlot,
+    InventoryCharacterisationPlot,
     CorrelationPlot,
 )
 from ...bwutils.multilca import MLCA
@@ -453,7 +453,7 @@ class ElementaryFlowContributions(AnalysisTab):
         self.name = "Elementary Flow Contributions"
         self.header.setText(self.name)
 
-        self.plot = ElementaryFlowContributionPlot(self.setup)
+        self.plot = InventoryCharacterisationPlot(self.setup)
 
         self.add_cutoff()
         self.cutoff_value = 5
