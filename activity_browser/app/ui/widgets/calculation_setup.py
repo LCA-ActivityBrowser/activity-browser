@@ -38,14 +38,6 @@ class CalculationSetupTab(QTabWidget):
 
         self.update_calculation()
 
-        '''
-        for i in self.mlca.lca.inventory:
-            funny = str(i)
-            for i in funny.split('\n'):
-                #print('element:')
-                #print(i)
-        '''
-
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
         self.elementary_flows_tab = ElementaryFlowContributions(self)
@@ -316,7 +308,7 @@ class AnalysisTab(QWidget):
     def add_combobox(self):
         self.combobox_menu = QHBoxLayout()
 
-        self.combobox_menu_label = QLabel("Assesment method: ")
+        self.combobox_menu_label = QLabel("Assessment method: ")
         self.combobox_menu_combobox = QComboBox()
         self.combobox_menu_combobox.scroll = False
 
@@ -511,9 +503,17 @@ class Inventory(AnalysisTab):
 
         self.table = InventoryTable(self.setup)
 
+        self.add_combobox()
         self.add_main_space()
         self.add_export()
 
         self.setup.addTab(self, self.name)
 
         self.connect_analysis_signals()
+
+    def update_table(self, method=None):
+        if method == None:
+            method = self.setup.mlca.methods[0]
+        else:
+            method = self.setup.method_dict[method]
+        self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
