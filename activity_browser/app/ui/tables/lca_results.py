@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 from brightway2 import get_activity, LCA, Database, methods
+import random
 
 from .dataframe_table import ABDataFrameTable
 
@@ -29,13 +30,13 @@ class ProcessContributionsTable(ABDataFrameTable):
 class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
     def sync(self, mlca):
-        #lca=LCA({Database('ecoinvent 3.4 cutoff').random(): 1.0}, method=methods.random())
-        #array = np.multiply(lca.supply_array, lca.technosphere_matrix.diagonal())
-        array = [1,2,3,4,5,6,7,8,9]
-        max_length = 4
+        random_key = random.choice(list(mlca.technosphere_flows))
+        array = mlca.technosphere_flows[random_key]
+        labels = [mlca.rev_activity_dict[i][1] for i in range(len(mlca.rev_activity_dict))]
+        max_length = 18
         length = min(max_length, len(array))
-        col_labels = ['tons CO2-eq.']
-        row_labels = [str(i) for i in range(len(array))[:length]]
+        col_labels = ['Amount']
+        row_labels = [str(i) for i in labels[:length]]
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
 
         # smooth scrolling instead of jumping from cell to cell

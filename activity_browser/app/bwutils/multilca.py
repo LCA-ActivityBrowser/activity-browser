@@ -58,8 +58,7 @@ class MLCA(object):
             })
 
             self.technosphere_flows.update({
-                str(func_unit):
-                    np.multiply(self.lca.supply_array, self.lca.technosphere_matrix.diagonal())
+                str(func_unit): np.multiply(self.lca.supply_array, self.lca.technosphere_matrix.diagonal())
             })
 
             for col, cf_matrix in enumerate(self.method_matrices):
