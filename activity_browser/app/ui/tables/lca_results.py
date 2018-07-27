@@ -14,17 +14,33 @@ class LCAResultsTable(ABDataFrameTable):
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
         self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
 
-        # smooth scrolling instead of jumping from cell to cell
         self.setVerticalScrollMode(1)
         self.setHorizontalScrollMode(1)
 
 
 class ProcessContributionsTable(ABDataFrameTable):
+    def __init__(self, parent):
+        super(ProcessContributionsTable, self).__init__(parent)
+        self.parent = parent
+
     @ABDataFrameTable.decorated_sync
-    def sync(self, lca):
-        col_labels = [] #
-        row_labels = []
-# How to deal with vastly different top 5's of processes?
+    def sync(self, dummy):
+        self.dataframe = self.parent.plot.df_tc
+
+        self.setVerticalScrollMode(1)
+        self.setHorizontalScrollMode(1)
+
+class InventoryCharacterisationTable(ABDataFrameTable):
+    def __init__(self, parent):
+        super(InventoryCharacterisationTable, self).__init__(parent)
+        self.parent = parent
+
+    @ABDataFrameTable.decorated_sync
+    def sync(self, dummy):
+        self.dataframe = self.parent.plot.df_tc
+
+        self.setVerticalScrollMode(1)
+        self.setHorizontalScrollMode(1)
 
 
 class InventoryTable(ABDataFrameTable):
@@ -40,6 +56,5 @@ class InventoryTable(ABDataFrameTable):
         row_labels = [str(i) for i in labels[:length]]
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
 
-        # smooth scrolling instead of jumping from cell to cell
         self.setVerticalScrollMode(1)
         self.setHorizontalScrollMode(1)
