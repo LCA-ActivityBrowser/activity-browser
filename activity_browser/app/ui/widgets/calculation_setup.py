@@ -1,6 +1,7 @@
+# TEMP
+
 from ..style import horizontal_line, vertical_line, header
-from ..tables import LCAResultsTable
-from ..tables.lca_results import InventoryTable
+from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable, InventoryCharacterisationTable
 from ..graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
@@ -17,11 +18,19 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScro
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-from ...signals import signals
-
 # TODO: fix box-in-box of the main space
 
-# TODO: add functionality for actually changing cutoff
+# TODO: implement parts of each analysis tab as class MM
+
+# TODO: Finish inventory tab (with techno/biosphere options MS
+# TODO: add relative/absolute option for plots in characterised inventory and process contributions MS
+# TODO: add rest+total row to tables in char. inv. and proc. cont. MM
+# TODO: add switch for characterised inventory and process contributions between func unit and method MM
+# TODO: Basic plot for LCIA Results + Combobox MS
+# TODO: LCIA Results > column specific colour gradients MS
+# TODO: LOW PRIORITY: add filtering for tables/graphs
+
+
 
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
@@ -38,11 +47,12 @@ class CalculationSetupTab(QTabWidget):
 
         self.update_calculation()
 
+        self.inventory_tab = Inventory(self)
+        self.inventory_characterisation_tab = InventoryCharacterisation(self)
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
-        self.elementary_flows_tab = ElementaryFlowContributions(self)
         self.correlations_tab = Correlations(self)
-        self.inventory_tab = Inventory(self)
+
         self.update_setup(calculate=False)
 
         self.connect_signals()
@@ -54,20 +64,38 @@ class CalculationSetupTab(QTabWidget):
         if calculate:
             self.update_calculation()
 
-        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+        self.inventory_tab.update_analysis_tab()
+
+        self.inventory_characterisation_tab.update_analysis_tab()
 
         self.lcia_results_tab.update_analysis_tab()
+        lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
 
         self.process_contributions_tab.update_analysis_tab()
 
-        self.elementary_flows_tab.update_analysis_tab()
-
         self.correlations_tab.update_analysis_tab()
+        correlations_tab_index = self.indexOf(self.correlations_tab)
 
-        self.inventory_tab.update_analysis_tab()
+        if not self.single_func_unit:
+            self.setTabEnabled(lcia_results_tab_index, True)
+            self.setTabEnabled(correlations_tab_index, True)
+        else:
+            self.setTabEnabled(lcia_results_tab_index, False)
+            self.setTabEnabled(correlations_tab_index, False)
 
     def update_calculation(self):
         self.mlca = MLCA(self.setup_name)
+
+        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+
+        if len(self.mlca.func_units) != 1:
+            self.single_func_unit = False
+        else:
+            self.single_func_unit = True
+        if len(self.mlca.methods) != 1:
+            self.single_method = False
+        else:
+            self.single_method = True
 
 class AnalysisTab(QWidget):
     def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, plot=None, export=None):
@@ -80,6 +108,7 @@ class AnalysisTab(QWidget):
         self.combobox_menu_combobox = combobox
         self.table = table
         self.plot = plot
+        self.limit_type = "percent"
         self.export_menu = export
 
         self.name = str()
@@ -98,20 +127,24 @@ class AnalysisTab(QWidget):
             self.cutoff_type_topx.clicked.connect(self.cutoff_type_topx_check)
             self.cutoff_type_relative.clicked.connect(self.cutoff_type_relative_check)
 
+            # Cut-off log slider
+            self.cutoff_slider_log_slider.valueChanged.connect(
+                lambda: self.cutoff_slider_relative_check("sl"))
+            self.cutoff_slider_line.textChanged.connect(
+                lambda: self.cutoff_slider_relative_check("le"))
             # Cut-off slider
             self.cutoff_slider_slider.valueChanged.connect(
-                lambda: self.cutoff_slider_relative_check("S"))
+                lambda: self.cutoff_slider_topx_check("sl"))
             self.cutoff_slider_line.textChanged.connect(
-                lambda: self.cutoff_slider_relative_check("L"))
-            self.cutoff_slider_slider.valueChanged.connect(
-                lambda: self.cutoff_slider_topx_check("S"))
-            self.cutoff_slider_line.textChanged.connect(
-                lambda: self.cutoff_slider_topx_check("L"))
+                lambda: self.cutoff_slider_topx_check("le"))
 
         # Combo box signal
         if self.combobox_menu_combobox != None:
-            self.combobox_menu_combobox.currentTextChanged.connect(
-                lambda name: self.update_plot(method=name))
+            if self.plot:
+                self.combobox_menu_combobox.currentTextChanged.connect(
+                    lambda name: self.update_plot(method=name))
+            if self.table:
+                self.combobox_menu_combobox.currentTextChanged.connect(self.update_table)
 
         # Mainspace Checkboxes
         self.main_space_tb_grph_table.stateChanged.connect(
@@ -134,59 +167,75 @@ class AnalysisTab(QWidget):
         """ Work in progress. """
         # set cutoff to some %
         self.cutoff_slider_slider.setVisible(False)
-        self.cutoff_slider_unit.setText("This feature is not functional yet")
+        self.cutoff_slider_unit.setText("%  of total")
+        self.cutoff_slider_min.setText("100%")
+        self.cutoff_slider_max.setText("0.001%")
+        self.limit_type = "percent"
         self.cutoff_slider_log_slider.setVisible(True)
 
     def cutoff_type_topx_check(self):
         """ Work in progress. """
         # set cutoff to some number
         self.cutoff_slider_log_slider.setVisible(False)
-        self.cutoff_slider_unit.setText("top # contributing unit processes")
+        self.cutoff_slider_unit.setText(" top #")
+        self.cutoff_slider_min.setText(str(self.cutoff_slider_slider.minimum()))
+        self.cutoff_slider_max.setText(str(self.cutoff_slider_slider.maximum()))
+        self.limit_type = "number"
         self.cutoff_slider_slider.setVisible(True)
 
     def cutoff_slider_relative_check(self, editor):
-        print("relative")
-        if self.cutoff_type_relative:
+        if self.cutoff_type_relative.isChecked():
             self.cutoff_validator = self.cutoff_validator_float
+            self.cutoff_slider_line.setValidator(self.cutoff_validator)
             cutoff = float
-            if editor == "S":
-                cutoff = abs(float(self.cutoff_slider_log_slider.value()))
+
+            # If called by slider
+            if editor == "sl":
+                self.cutoff_slider_line.blockSignals(True)
+                cutoff = abs(self.cutoff_slider_log_slider.logValue())
                 self.cutoff_slider_line.setText(str(cutoff))
-            elif editor == "L":
+                self.cutoff_slider_line.blockSignals(False)
+
+            # if called by line edit
+            elif editor == "le":
+                self.cutoff_slider_log_slider.blockSignals(True)
                 if self.cutoff_slider_line.text() == '-':
-                    cutoff = self.cutoff_slider_log_slider.minimum()
-                    self.cutoff_slider_line.setText(str(self.cutoff_slider_log_slider.minimum()))
+                    cutoff = 0.001
+                    self.cutoff_slider_line.setText("0.001")
                 elif self.cutoff_slider_line.text() == '':
-                    cutoff = self.cutoff_slider_log_slider.minimum()
+                    cutoff = 0.001
                 else:
                     cutoff = abs(float(self.cutoff_slider_line.text()))
 
-                if cutoff > self.cutoff_slider_log_slider.maximum():
-                    cutoff = self.cutoff_slider_log_slider.maximum()
+                if cutoff > 100:
+                    cutoff = 100
                     self.cutoff_slider_line.setText(str(cutoff))
-                self.cutoff_slider_log_slider.setValue(float(cutoff))
+                self.cutoff_slider_log_slider.setLogValue(float(cutoff))
+                self.cutoff_slider_log_slider.blockSignals(False)
 
-            # logic to move stuff around
-
-
-
-            # self.cutoff_value = 5
-
-            # if self.plot:
-            #     self.update_plot()
-            # if self.table:
-            #     self.update_table()
+            self.cutoff_value = (cutoff/100)
+            if self.plot:
+                self.update_plot()
+            if self.table:
+                self.update_table()
 
 
     def cutoff_slider_topx_check(self, editor):
-        print("topx")
-        if self.cutoff_type_topx:
+        if self.cutoff_type_topx.isChecked():
             self.cutoff_validator = self.cutoff_validator_int
+            self.cutoff_slider_line.setValidator(self.cutoff_validator)
             cutoff = int
-            if editor == "S":
+
+            # If called by slider
+            if editor == "sl":
+                self.cutoff_slider_line.blockSignals(True)
                 cutoff = abs(int(self.cutoff_slider_slider.value()))
                 self.cutoff_slider_line.setText(str(cutoff))
-            elif editor == "L":
+                self.cutoff_slider_line.blockSignals(False)
+
+            # if called by line edit
+            elif editor == "le":
+                self.cutoff_slider_slider.blockSignals(True)
                 if self.cutoff_slider_line.text() == '-':
                     cutoff = self.cutoff_slider_slider.minimum()
                     self.cutoff_slider_line.setText(str(self.cutoff_slider_slider.minimum()))
@@ -199,6 +248,8 @@ class AnalysisTab(QWidget):
                     cutoff = self.cutoff_slider_slider.maximum()
                     self.cutoff_slider_line.setText(str(cutoff))
                 self.cutoff_slider_slider.setValue(int(cutoff))
+                self.cutoff_slider_slider.blockSignals(False)
+
             self.cutoff_value = int(cutoff)
             if self.plot:
                 self.update_plot()
@@ -224,20 +275,28 @@ class AnalysisTab(QWidget):
             self.main_space_plot.setVisible(False)
 
     def update_analysis_tab(self):
-        if self.table:
-            self.update_table()
-        if self.plot:
-            self.update_plot()
         if self.combobox_menu_combobox != None:
             self.update_combobox()
+        if self.plot:
+            self.update_plot()
+        if self.table:
+            self.update_table()
 
     def update_table(self):
         self.table.sync(self.setup.mlca)
 
     def update_combobox(self):
-        self.combobox_menu_combobox.clear()
-        self.combobox_list = list(self.setup.method_dict.keys())
-        self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+        if not self.setup.single_method:
+            self.combobox_menu_combobox.clear()
+            self.combobox_list = list(self.setup.method_dict.keys())
+            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+            self.combobox_menu_combobox.setVisible(True)
+            self.combobox_menu_label.setVisible(True)
+            self.combobox_menu_horizontal.setVisible(True)
+        else:
+            self.combobox_menu_combobox.setVisible(False)
+            self.combobox_menu_label.setVisible(False)
+            self.combobox_menu_horizontal.setVisible(False)
 
     def add_cutoff(self):
         self.cutoff_menu = QHBoxLayout()
@@ -246,9 +305,9 @@ class AnalysisTab(QWidget):
         self.cutoff_type = QVBoxLayout()
         self.cutoff_type_label = QLabel("Cut-off type")
         self.cutoff_type_relative = QRadioButton("Relative")
-        # self.cutoff_type_relative.setChecked(True)
+        self.cutoff_type_relative.setChecked(True)
         self.cutoff_type_topx = QRadioButton("Top #")
-        self.cutoff_type_topx.setChecked(True)
+        # self.cutoff_type_topx.setChecked(True)
 
         # Cut-off slider
         self.cutoff_slider = QVBoxLayout()
@@ -258,13 +317,14 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_slider = QSlider(Qt.Horizontal)
         self.cutoff_slider_log_slider = LogarithmicSlider(self)
         self.cutoff_slider_log_slider.setInvertedAppearance(True)
-        self.cutoff_slider_slider.setMinimum(1)  # temporary
-        self.cutoff_slider_slider.setMaximum(50)  # temporary
+        self.cutoff_slider_slider.setMinimum(1)
+        self.cutoff_slider_slider.setMaximum(50)
         self.cutoff_slider_slider.setValue(self.cutoff_value)
-        self.cutoff_slider_slider.sizeHint()
+        # self.cutoff_slider_slider.sizeHint()
+        self.cutoff_slider_log_slider.setLogValue(0.01)
         self.cutoff_slider_minmax = QHBoxLayout()
-        self.cutoff_slider_min = QLabel(str(self.cutoff_slider_slider.minimum()))
-        self.cutoff_slider_max = QLabel(str(self.cutoff_slider_slider.maximum()))
+        self.cutoff_slider_min = QLabel("100%") # change to relative later
+        self.cutoff_slider_max = QLabel("0.001%")
         self.cutoff_slider_ledit = QHBoxLayout()
         self.cutoff_slider_line = QLineEdit()
         self.cutoff_validator_int = QIntValidator(self.cutoff_slider_line)
@@ -272,7 +332,7 @@ class AnalysisTab(QWidget):
         self.cutoff_validator = self.cutoff_validator_int
         self.cutoff_slider_line.setValidator(self.cutoff_validator)
 
-        self.cutoff_slider_unit = QLabel("unit")
+        self.cutoff_slider_unit = QLabel("%  of total")
 
         # Assemble types
         self.cutoff_type.addWidget(self.cutoff_type_label)
@@ -282,8 +342,8 @@ class AnalysisTab(QWidget):
         # Assemble slider set
         self.cutoff_slider_set.addWidget(self.cutoff_slider_label)
         self.cutoff_slider_set.addWidget(self.cutoff_slider_slider)
+        self.cutoff_slider_slider.setVisible(False)
         self.cutoff_slider_set.addWidget(self.cutoff_slider_log_slider)
-        self.cutoff_slider_log_slider.setVisible(False)
         self.cutoff_slider_minmax.addWidget(self.cutoff_slider_min)
         self.cutoff_slider_minmax.addStretch()
         self.cutoff_slider_minmax.addWidget(self.cutoff_slider_max)
@@ -308,16 +368,17 @@ class AnalysisTab(QWidget):
     def add_combobox(self):
         self.combobox_menu = QHBoxLayout()
 
-        self.combobox_menu_label = QLabel("Assessment method: ")
+        self.combobox_menu_label = QLabel("Assesment method: ")
         self.combobox_menu_combobox = QComboBox()
         self.combobox_menu_combobox.scroll = False
 
         self.combobox_menu.addWidget(self.combobox_menu_label)
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
+        self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
 
         self.layout.addLayout(self.combobox_menu)
-        self.layout.addWidget(horizontal_line())
+        self.layout.addWidget(self.combobox_menu_horizontal)
 
     def add_main_space(self):
         # Generate Table and Plot area
@@ -397,102 +458,6 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(horizontal_line())
         self.layout.addLayout(self.export_menu)
 
-class LCIAAnalysis(AnalysisTab):
-    def __init__(self, parent):
-        super(LCIAAnalysis, self).__init__(parent)
-        self.setup = parent
-
-        self.name = "LCIA Results"
-        self.header.setText(self.name)
-
-        self.table = LCAResultsTable()
-        self.plot = LCAResultsPlot(self.setup)
-
-        self.add_main_space()
-        self.add_export()
-
-        self.setup.addTab(self, self.name)
-
-        self.connect_analysis_signals()
-
-    def update_plot(self):
-        self.plot.plot(self.setup.mlca)
-
-class ProcessContributions(AnalysisTab):
-    def __init__(self, parent):
-        super(ProcessContributions, self).__init__(parent)
-        self.setup = parent
-
-        self.name = "Process Contributions"
-        self.header.setText(self.name)
-
-        self.plot = ProcessContributionPlot(self.setup)
-
-        self.add_cutoff()
-        self.cutoff_value = 5
-        self.add_combobox()
-        self.add_main_space()
-        self.add_export()
-
-        self.setup.addTab(self, self.name)
-
-        self.connect_analysis_signals()
-
-    def update_plot(self, method=None):
-        if method == None:
-            method = self.setup.mlca.methods[0]
-        else:
-            method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value)
-
-class ElementaryFlowContributions(AnalysisTab):
-    def __init__(self, parent):
-        super(ElementaryFlowContributions, self).__init__(parent)
-        self.setup = parent
-
-        self.name = "Elementary Flow Contributions"
-        self.header.setText(self.name)
-
-        self.plot = InventoryCharacterisationPlot(self.setup)
-
-        self.add_cutoff()
-        self.cutoff_value = 5
-        self.add_combobox()
-        self.add_main_space()
-        self.add_export()
-
-        self.setup.addTab(self, self.name)
-
-        self.connect_analysis_signals()
-
-    def update_plot(self, method=None):
-        if method == None:
-            method = self.setup.mlca.methods[0]
-        else:
-            method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value)
-
-class Correlations(AnalysisTab):
-    def __init__(self, parent):
-        super(Correlations, self).__init__(parent)
-        self.setup = parent
-
-        self.name = "Correlations"
-        self.header.setText(self.name)
-
-        self.plot = CorrelationPlot(self.setup)
-
-        self.add_main_space()
-        self.add_export()
-
-        self.setup.addTab(self, self.name)
-
-        self.connect_analysis_signals()
-
-    def update_plot(self):
-        labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
-        self.plot.plot(self.setup.mlca, labels)
-
 class Inventory(AnalysisTab):
     def __init__(self, parent):
         super(Inventory, self).__init__(parent)
@@ -517,3 +482,119 @@ class Inventory(AnalysisTab):
         else:
             method = self.setup.method_dict[method]
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
+
+class InventoryCharacterisation(AnalysisTab):
+    def __init__(self, parent):
+        super(InventoryCharacterisation, self).__init__(parent)
+        self.setup = parent
+
+        self.name = "Inventory Characterisation"
+        self.header.setText(self.name)
+
+        self.plot = InventoryCharacterisationPlot(self.setup)
+        self.table = InventoryCharacterisationTable(self)
+
+        self.add_cutoff()
+        self.cutoff_value = 0.01
+        self.add_combobox()
+        self.add_main_space()
+        self.add_export()
+
+        self.setup.addTab(self, self.name)
+
+        self.connect_analysis_signals()
+
+    def update_plot(self, method=None):
+        if method == None or method == '':
+            method = self.setup.mlca.methods[0]
+        else:
+            method = self.setup.method_dict[method]
+        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, limit_type=self.limit_type)
+
+class LCIAAnalysis(AnalysisTab):
+    def __init__(self, parent):
+        super(LCIAAnalysis, self).__init__(parent)
+        self.setup = parent
+
+        self.name = "LCIA Results"
+        self.header.setText(self.name)
+
+        if not self.setup.single_func_unit:
+            self.plot = LCAResultsPlot(self.setup)
+            self.table = LCAResultsTable()
+
+        self.add_main_space()
+        self.add_export()
+
+        self.setup.addTab(self, self.name)
+
+        self.connect_analysis_signals()
+
+    def update_plot(self):
+        if isinstance(self.plot, LCAResultsPlot):
+            self.plot.plot(self.setup.mlca)
+        else:
+            self.plot = LCAResultsPlot(self.setup)
+            self.plot.plot(self.setup.mlca)
+
+    def update_table(self):
+        if isinstance(self.table, LCAResultsTable):
+            self.table.sync(self.setup.mlca)
+        else:
+            self.table = LCAResultsTable()
+            self.table.sync(self.setup.mlca)
+
+class ProcessContributions(AnalysisTab):
+    def __init__(self, parent):
+        super(ProcessContributions, self).__init__(parent)
+        self.setup = parent
+
+        self.name = "Process Contributions"
+        self.header.setText(self.name)
+
+        self.plot = ProcessContributionPlot(self.setup)
+        self.table = ProcessContributionsTable(self)
+
+        self.add_cutoff()
+        self.cutoff_value = 0.05
+        self.add_combobox()
+        self.add_main_space()
+        self.add_export()
+
+        self.setup.addTab(self, self.name)
+
+        self.connect_analysis_signals()
+
+    def update_plot(self, method=None):
+        if method == None or method == '':
+            method = self.setup.mlca.methods[0]
+        else:
+            method = self.setup.method_dict[method]
+        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, limit_type=self.limit_type)
+
+class Correlations(AnalysisTab):
+    def __init__(self, parent):
+        super(Correlations, self).__init__(parent)
+        self.setup = parent
+
+        self.name = "Correlations"
+        self.header.setText(self.name)
+
+        if not self.setup.single_func_unit:
+            self.plot = CorrelationPlot(self.setup)
+
+        self.add_main_space()
+        self.add_export()
+
+        self.setup.addTab(self, self.name)
+
+        self.connect_analysis_signals()
+
+    def update_plot(self):
+        if isinstance(self.plot, CorrelationPlot):
+            labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
+            self.plot.plot(self.setup.mlca, labels)
+        else:
+            self.plot = CorrelationPlot(self.setup)
+            labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
+            self.plot.plot(self.setup.mlca, labels)
