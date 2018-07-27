@@ -34,13 +34,17 @@ class MLCA(object):
         self.method_matrices = []
         self.results = np.zeros((len(self.func_units), len(self.methods)))
 
-        # contribution matrices
+        # data to be stored
+        (self.rev_activity_dict, self.rev_product_dict,
+         self.rev_biosphere_dict) = self.lca.reverse_dict()
+        self.inventories = dict()  # Inventory (biosphere flows) for a given functional unit
+        self.technosphere_flows = dict()  # Technosphere product flows for a given functional unit
+        self.characterized_inventories = np.zeros(
+            (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
         self.elementary_flow_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
-        (self.rev_activity_dict, self.rev_product_dict,
-         self.rev_biosphere_dict) = self.lca.reverse_dict()
 
         for method in self.methods:
             self.lca.switch_method(method)
@@ -48,10 +52,21 @@ class MLCA(object):
 
         for row, func_unit in enumerate(self.func_units):
             self.lca.redo_lci(func_unit)
+
+            self.inventories.update({
+                str(func_unit): self.lca.biosphere_matrix
+            })
+
+            self.technosphere_flows.update({
+                str(func_unit):
+                    np.multiply(self.lca.supply_array, self.lca.technosphere_matrix.diagonal())
+            })
+
             for col, cf_matrix in enumerate(self.method_matrices):
                 self.lca.characterization_matrix = cf_matrix
                 self.lca.lcia_calculation()
                 self.results[row, col] = self.lca.score
+                #self.characterized_inventories[row, col] = self.lca.characterized_inventory
                 self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
                 self.elementary_flow_contributions[row, col] = np.array(
                     self.lca.characterized_inventory.sum(axis=1)).ravel()
@@ -105,3 +120,4 @@ class MLCA(object):
                 cont_per_fu.update({self.rev_biosphere_dict[index]: value})
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
         return topcontribution_dict
+

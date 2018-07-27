@@ -37,7 +37,15 @@ class CalculationSetupTab(QTabWidget):
         self.setTabPosition(1)  # South-facing Tabs
 
         self.update_calculation()
-        print(type(self.mlca.lca.inventory))
+
+        '''
+        for i in self.mlca.lca.inventory:
+            funny = str(i)
+            for i in funny.split('\n'):
+                #print('element:')
+                #print(i)
+        '''
+
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self)
         self.elementary_flows_tab = ElementaryFlowContributions(self)

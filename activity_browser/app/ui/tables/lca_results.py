@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-from brightway2 import get_activity
+import numpy as np
+from brightway2 import get_activity, LCA, Database, methods
 
 from .dataframe_table import ABDataFrameTable
 
@@ -28,9 +29,14 @@ class ProcessContributionsTable(ABDataFrameTable):
 class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
     def sync(self, mlca):
-        #col_labels = ['tons CO2-eq.', 'CTUe']
-        #row_labels = ["Process 1", "Process 2"]
-        self.dataframe = pd.DataFrame(i for i in mlca.lca.inventory) #, index=row_labels, columns=col_labels)
+        #lca=LCA({Database('ecoinvent 3.4 cutoff').random(): 1.0}, method=methods.random())
+        #array = np.multiply(lca.supply_array, lca.technosphere_matrix.diagonal())
+        array = [1,2,3,4,5,6,7,8,9]
+        max_length = 4
+        length = min(max_length, len(array))
+        col_labels = ['tons CO2-eq.']
+        row_labels = [str(i) for i in range(len(array))[:length]]
+        self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
 
         # smooth scrolling instead of jumping from cell to cell
         self.setVerticalScrollMode(1)
