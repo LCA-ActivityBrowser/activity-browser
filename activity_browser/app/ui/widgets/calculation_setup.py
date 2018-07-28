@@ -56,12 +56,8 @@ class CalculationSetupTab(QTabWidget):
 
         self.update_setup(calculate=False)
 
-        self.connect_signals()
-
-    def connect_signals(self):
-        pass
-
     def update_setup(self, calculate=True):
+        """ Update the calculation setup. """
         if calculate:
             self.update_calculation()
 
@@ -85,6 +81,7 @@ class CalculationSetupTab(QTabWidget):
             self.setTabEnabled(correlations_tab_index, False)
 
     def update_calculation(self):
+        """ Update the mlca calculation. """
         self.mlca = MLCA(self.setup_name)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
@@ -165,8 +162,7 @@ class AnalysisTab(QWidget):
             self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
 
     def cutoff_type_relative_check(self):
-        """ Work in progress. """
-        # set cutoff to some %
+        """ Set cutoff to process that contribute #% or more. """
         self.cutoff_slider_slider.setVisible(False)
         self.cutoff_slider_unit.setText("%  of total")
         self.cutoff_slider_min.setText("100%")
@@ -175,8 +171,7 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_log_slider.setVisible(True)
 
     def cutoff_type_topx_check(self):
-        """ Work in progress. """
-        # set cutoff to some number
+        """ Set cut-off to the top # of processes. """
         self.cutoff_slider_log_slider.setVisible(False)
         self.cutoff_slider_unit.setText(" top #")
         self.cutoff_slider_min.setText(str(self.cutoff_slider_slider.minimum()))
@@ -258,6 +253,7 @@ class AnalysisTab(QWidget):
                 self.update_table()
 
     def add_cutoff(self):
+        """ Add the cut-off menu to the tab. """
         self.cutoff_menu = QHBoxLayout()
 
         # Cut-off types
@@ -344,6 +340,10 @@ class AnalysisTab(QWidget):
 
 
     def add_main_space(self):
+        """ Add the main space to the tab. """
+        # Why is this a function and not implemented in the init?;
+        # This way, the main space can easily be altered for a specific use if required
+
         # Generate Table and Plot area
         self.main_space = QScrollArea()
         self.main_space_widget = QWidget()
@@ -392,6 +392,7 @@ class AnalysisTab(QWidget):
         self.table.sync(self.setup.mlca)
 
     def add_combobox_methods(self):
+        """ Add the combobox for methods to the tab. """
         self.combobox_menu = QHBoxLayout()
 
         self.combobox_menu_label = QLabel("Assesment method: ")
@@ -407,6 +408,7 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(self.combobox_menu_horizontal)
 
     def add_combobox_func_units(self):
+        """ Add the combobox for functional units to the tab. """
         self.combobox_menu = QHBoxLayout()
 
         self.combobox_menu_label = QLabel("Functional Unit: ")
@@ -456,6 +458,7 @@ class AnalysisTab(QWidget):
 
 
     def add_export(self):
+        """ Add the export menu to the tab. """
         self.export_menu = QHBoxLayout()
 
         # Export Plot
