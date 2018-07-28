@@ -13,7 +13,12 @@ class LCAResultsTable(ABDataFrameTable):
         col_labels = [" | ".join(x) for x in lca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
         self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
-        print(lca.func_units)
+        #print(lca.func_units)
+        #print([(((func_unit.keys())[0])) for func_unit in lca.func_units])
+        #print([str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units])
+        #print([str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units])
+        #for func_unit in lca.func_units:
+        #    print(func_unit.keys())
 
 
 class ProcessContributionsTable(ABDataFrameTable):
@@ -41,9 +46,9 @@ class InventoryTable(ABDataFrameTable):
         key = random.choice(list(mlca.technosphere_flows))
         #key = method
         array = mlca.technosphere_flows[key]
-        labels = [mlca.rev_activity_dict[i][1] for i in range(len(mlca.rev_activity_dict))]
         max_length = 18
         length = min(max_length, len(array))
+        labels = [get_activity(mlca.rev_activity_dict[i]) for i in range(length)]
         col_labels = ['Amount']
         row_labels = [str(i) for i in labels[:length]]
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)

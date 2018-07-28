@@ -96,6 +96,25 @@ class CorrelationPlot(Plot):
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
 
+class LCAResultsBarChart(Plot):
+    def __init__(self, parent=None, *args):
+        super(LCAResultsBarChart, self).__init__(parent, *args)
+
+    def plot(self, mlca):
+        Funtional_units = ['A', 'B', 'T', 'Q',
+        'G']  # Funtional_units = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
+        method = 'IMPACT 2002+ (Endpoint)', 'resources', 'total'
+        values = [0.000000005, 0.000000004, 0.000000003, 0.000000002,
+                  0.000000001]  # values = lca.results[:, lca.methods.index(method)]
+        y_pos = np.arange(len(Funtional_units))
+
+        plt.barh(y_pos, values, align='center', alpha=0.8)
+        plt.yticks(y_pos, Funtional_units)
+        plt.xlabel('Score')
+        plt.title('LCA scores compared')
+
+        plt.show()
+
 
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None, *args):

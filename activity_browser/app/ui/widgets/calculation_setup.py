@@ -542,10 +542,12 @@ class Inventory(AnalysisTab):
         if method == None:
             method = self.setup.mlca.func_units[0]
         else:
-            method = self.setup.mlca.func_units[method]
-            xa = self.setup.mlca.func_units
-            method = [str(get_activity(list(func_unit.keys())[0])) for func_unit in xa][method]
-            print(method)
+            pass
+            #method = self.setup.mlca.func_units[method]
+            #xa = self.setup.mlca.func_units
+            #method = [str(get_activity(list(func_unit.keys())[0])) for func_unit in xa][method]
+        #print('method: ', method)
+        #print('list:', [str(get_activity(list(method.keys())[0]))])
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
 
 
