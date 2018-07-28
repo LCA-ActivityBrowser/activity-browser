@@ -14,6 +14,9 @@ class LCAResultsTab(QTabWidget):
 
         self.calculation_setups = dict()
 
+        self.setMovable(True)
+        self.setTabsClosable(True)
+
         # Generate layout
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -26,6 +29,9 @@ class LCAResultsTab(QTabWidget):
 
         signals.lca_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
+
+        self.tabCloseRequested.connect(
+                lambda index: self.removeTab(index))
 
     def add_tab(self):
         """ Add the LCA Results tab to the right panel of AB. """
