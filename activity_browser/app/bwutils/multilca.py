@@ -79,7 +79,7 @@ class MLCA(object):
         return self.results / self.results.max(axis=0)
 
     # CONTRIBUTION ANALYSIS
-    def top_process_contributions(self, method_name=None, limit=5, normalised=True, limit_type="number"):
+    def top_process_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
         if method_name:
             method = self.method_dict[method_name]
         else:
@@ -99,13 +99,13 @@ class MLCA(object):
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
         return topcontribution_dict
 
-    def top_elementary_flow_contributions(self, method_name=None, limit=5, relative=True, limit_type="number"):
+    def top_elementary_flow_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
         if method_name:
             method = self.method_dict[method_name]
         else:
             method = 0
         contribution_array = self.elementary_flow_contributions[:, method, :]
-        if relative:
+        if normalised:
             fu_scores = contribution_array.sum(axis=1)
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
         topcontribution_dict = {}

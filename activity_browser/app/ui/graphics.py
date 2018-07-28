@@ -170,7 +170,7 @@ class ProcessContributionPlot(Plot):
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
 
-        tc = mlca.top_process_contributions(method_name=method, limit=limit, normalised=True, limit_type=limit_type)
+        tc = mlca.top_process_contributions_per_method(method_name=method, limit=limit, normalised=True, limit_type=limit_type)
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
@@ -201,7 +201,7 @@ class InventoryCharacterisationPlot(Plot):
         height = 3 + len(mlca.func_units) * 0.5
         self.figure.set_figheight(height)
 
-        tc = mlca.top_elementary_flow_contributions(method_name=method, limit=limit, relative=True, limit_type=limit_type)
+        tc = mlca.top_elementary_flow_contributions_per_method(method_name=method, limit=limit, normalised=True, limit_type=limit_type)
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='bio') for a in self.df_tc.index]
