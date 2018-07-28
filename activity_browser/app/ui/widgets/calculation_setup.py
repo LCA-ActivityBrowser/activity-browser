@@ -255,51 +255,6 @@ class AnalysisTab(QWidget):
             if self.table:
                 self.update_table()
 
-
-    def main_space_check(self, table_ch, plot_ch):
-        table_state = table_ch.isChecked()
-        plot_state = plot_ch.isChecked()
-
-        if table_state and plot_state:
-            self.main_space_table.setVisible(True)
-            self.main_space_plot.setVisible(True)
-
-        elif not table_state and plot_state:
-            self.main_space_table.setVisible(False)
-            self.main_space_plot.setVisible(True)
-
-        else:
-            self.main_space_tb_grph_table.setChecked(True)
-            self.main_space_table.setVisible(True)
-            self.main_space_plot.setVisible(False)
-
-    def update_analysis_tab(self):
-        if self.combobox_menu_combobox != None:
-            self.update_combobox()
-        if self.plot:
-            self.update_plot()
-        if self.table:
-            self.update_table()
-
-    def update_table(self):
-        self.table.sync(self.setup.mlca)
-
-    def update_combobox(self):
-        if not self.setup.single_method:
-            self.combobox_menu_combobox.clear()
-            self.combobox_list = list(self.setup.method_dict.keys())
-            self.combobox_menu_combobox.blockSignals(True)
-            # block is required as filling would trigger the signal and uselessly update tables
-            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
-            self.combobox_menu_combobox.blockSignals(False)
-            self.combobox_menu_combobox.setVisible(True)
-            self.combobox_menu_label.setVisible(True)
-            self.combobox_menu_horizontal.setVisible(True)
-        else:
-            self.combobox_menu_combobox.setVisible(False)
-            self.combobox_menu_label.setVisible(False)
-            self.combobox_menu_horizontal.setVisible(False)
-
     def add_cutoff(self):
         self.cutoff_menu = QHBoxLayout()
 
@@ -367,20 +322,24 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-    def add_combobox(self):
-        self.combobox_menu = QHBoxLayout()
 
-        self.combobox_menu_label = QLabel("Assesment method: ")
-        self.combobox_menu_combobox = QComboBox()
-        self.combobox_menu_combobox.scroll = False
+    def main_space_check(self, table_ch, plot_ch):
+        table_state = table_ch.isChecked()
+        plot_state = plot_ch.isChecked()
 
-        self.combobox_menu.addWidget(self.combobox_menu_label)
-        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
-        self.combobox_menu_horizontal = horizontal_line()
-        self.combobox_menu.addStretch(1)
+        if table_state and plot_state:
+            self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(True)
 
-        self.layout.addLayout(self.combobox_menu)
-        self.layout.addWidget(self.combobox_menu_horizontal)
+        elif not table_state and plot_state:
+            self.main_space_table.setVisible(False)
+            self.main_space_plot.setVisible(True)
+
+        else:
+            self.main_space_tb_grph_table.setChecked(True)
+            self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(False)
+
 
     def add_main_space(self):
         # Generate Table and Plot area
@@ -416,6 +375,51 @@ class AnalysisTab(QWidget):
         self.main_space_widget_layout.addStretch()
 
         self.layout.addWidget(self.main_space)
+
+
+    def update_analysis_tab(self):
+        if self.combobox_menu_combobox != None:
+            self.update_combobox()
+        if self.plot:
+            self.update_plot()
+        if self.table:
+            self.update_table()
+
+    def update_table(self):
+        self.table.sync(self.setup.mlca)
+
+    def add_combobox(self):
+        self.combobox_menu = QHBoxLayout()
+
+        self.combobox_menu_label = QLabel("Assesment method: ")
+        self.combobox_menu_combobox = QComboBox()
+        self.combobox_menu_combobox.scroll = False
+
+        self.combobox_menu.addWidget(self.combobox_menu_label)
+        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
+        self.combobox_menu_horizontal = horizontal_line()
+        self.combobox_menu.addStretch(1)
+
+        self.layout.addLayout(self.combobox_menu)
+        self.layout.addWidget(self.combobox_menu_horizontal)
+
+    def update_combobox(self):
+        if not self.setup.single_method:
+            self.combobox_menu_combobox.clear()
+            self.combobox_list = list(self.setup.method_dict.keys())
+            self.combobox_menu_combobox.blockSignals(True)
+            # block is required as insertItems would trigger the signal and uselessly update tables
+            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+            self.combobox_menu_combobox.blockSignals(False)
+            self.combobox_menu_combobox.setVisible(True)
+            self.combobox_menu_label.setVisible(True)
+            self.combobox_menu_horizontal.setVisible(True)
+        else:
+            self.combobox_menu_combobox.setVisible(False)
+            self.combobox_menu_label.setVisible(False)
+            self.combobox_menu_horizontal.setVisible(False)
+
+
 
     def add_export(self):
         self.export_menu = QHBoxLayout()
