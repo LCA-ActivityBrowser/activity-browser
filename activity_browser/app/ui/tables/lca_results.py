@@ -14,9 +14,6 @@ class LCAResultsTable(ABDataFrameTable):
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
         self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
 
-        self.setVerticalScrollMode(1)
-        self.setHorizontalScrollMode(1)
-
 
 class ProcessContributionsTable(ABDataFrameTable):
     def __init__(self, parent):
@@ -27,9 +24,6 @@ class ProcessContributionsTable(ABDataFrameTable):
     def sync(self, dummy):
         self.dataframe = self.parent.plot.df_tc
 
-        self.setVerticalScrollMode(1)
-        self.setHorizontalScrollMode(1)
-
 class InventoryCharacterisationTable(ABDataFrameTable):
     def __init__(self, parent):
         super(InventoryCharacterisationTable, self).__init__(parent)
@@ -38,9 +32,6 @@ class InventoryCharacterisationTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
     def sync(self, dummy):
         self.dataframe = self.parent.plot.df_tc
-
-        self.setVerticalScrollMode(1)
-        self.setHorizontalScrollMode(1)
 
 
 class InventoryTable(ABDataFrameTable):

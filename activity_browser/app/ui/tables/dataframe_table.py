@@ -3,6 +3,11 @@ from PyQt5 import QtCore, QtWidgets
 
 
 class ABDataFrameTable(QtWidgets.QTableView):
+    def __init__(self, parent=None, *args):
+        super(ABDataFrameTable, self).__init__(parent)
+        self.setVerticalScrollMode(1)
+        self.setHorizontalScrollMode(1)
+
     @classmethod
     def decorated_sync(cls, sync):
         def wrapper(self, *args, **kwargs):
