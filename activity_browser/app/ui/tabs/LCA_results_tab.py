@@ -47,10 +47,12 @@ class LCAResultsTab(QTabWidget):
             self.panel.removeTab(self.panel.indexOf(self))
 
     def remove_setup(self, name):
+        """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """
         self.removeTab(self.indexOf(self.calculation_setups[name]))
         del self.calculation_setups[name]
 
     def generate_setup(self, name):
+        """ Check if the calculation setup exists, if it does, update it, if it doesn't, create a new one. """
         if isinstance(self.calculation_setups.get(name), CalculationSetupTab):
             self.calculation_setups[name].update_setup()
         else:

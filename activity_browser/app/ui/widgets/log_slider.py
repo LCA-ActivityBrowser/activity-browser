@@ -8,6 +8,12 @@ from math import log10
 #       B^P = O -->        2^6 = 64 ||           10^3 = 1000
 
 class LogarithmicSlider(QSlider):
+    """ Makes a QSlider object that behaves logarithmically.
+
+    This slider adds two functions, setLogValue and Logvalue, named after the setValue and Value functions
+    of a QSlider.
+    """
+
     def __init__(self, parent):
         super(LogarithmicSlider, self).__init__(parent)
 

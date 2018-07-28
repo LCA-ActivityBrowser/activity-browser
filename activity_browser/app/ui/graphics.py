@@ -37,6 +37,7 @@ class Plot(QtWidgets.QWidget):
         return filepath
 
     def to_png(self):
+        """ Export to .png format. """
         filepath = self.savefilepath()
         if filepath:
             if not filepath.endswith('.png'):
@@ -44,6 +45,7 @@ class Plot(QtWidgets.QWidget):
             self.figure.savefig(filepath)
 
     def to_svg(self):
+        """ Export to .svg format. """
         filepath = self.savefilepath()
         if filepath:
             if not filepath.endswith('.svg'):
@@ -56,6 +58,7 @@ class CorrelationPlot(Plot):
         sns.set(style="darkgrid")
 
     def plot(self, mlca, labels):
+        """ Plot a heatmap of correlations between different functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.figure.clf()
@@ -99,6 +102,7 @@ class LCAResultsPlot(Plot):
         super(LCAResultsPlot, self).__init__(parent, *args)
 
     def plot(self, mlca):
+        """ Plot a heatmap grid of the different methods and functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.figure.clf()
@@ -142,6 +146,7 @@ class ProcessContributionPlot(Plot):
         self.df_tc = pd.DataFrame()
 
     def plot(self, mlca, method=None, limit=5, limit_type="number"):
+        """ Plot a horizontal bar chart of the process contributions. """
         self.ax.clear()
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
@@ -172,6 +177,7 @@ class InventoryCharacterisationPlot(Plot):
         super(InventoryCharacterisationPlot, self).__init__(parent, *args)
 
     def plot(self, mlca, method=None, limit=5, limit_type="number"):
+        """ Plot a horizontal bar chart of the inventory characterisation. """
         self.ax.clear()
         height = 3 + len(mlca.func_units) * 0.5
         self.figure.set_figheight(height)
