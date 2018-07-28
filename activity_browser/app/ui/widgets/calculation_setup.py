@@ -10,6 +10,7 @@ from ..graphics import (
 from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
 from .log_slider import LogarithmicSlider
+from brightway2 import get_activity
 
 
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, QSlider, \
@@ -27,7 +28,7 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 # TODO: add switch for characterised inventory and process contributions between func unit and method MM
 # TODO: Basic plot for LCIA Results + Combobox MS
 # TODO: LCIA Results > column specific colour gradients MS
-# TODO: LOW PRIORITY: add filtering for tables/graphs
+# TODO: LOW PRIORITY: add filtering for tables/graphs ANY
 
 
 
@@ -379,7 +380,8 @@ class AnalysisTab(QWidget):
 
     def update_analysis_tab(self):
         if self.combobox_menu_combobox != None:
-            self.update_combobox()
+            self.update_combobox_methods()
+            self. update_combobox_func_units()
         if self.plot:
             self.update_plot()
         if self.table:
@@ -388,7 +390,7 @@ class AnalysisTab(QWidget):
     def update_table(self):
         self.table.sync(self.setup.mlca)
 
-    def add_combobox(self):
+    def add_combobox_methods(self):
         self.combobox_menu = QHBoxLayout()
 
         self.combobox_menu_label = QLabel("Assesment method: ")
@@ -403,7 +405,22 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.combobox_menu)
         self.layout.addWidget(self.combobox_menu_horizontal)
 
-    def update_combobox(self):
+    def add_combobox_func_units(self):
+        self.combobox_menu = QHBoxLayout()
+
+        self.combobox_menu_label = QLabel("Functional Unit: ")
+        self.combobox_menu_combobox = QComboBox()
+        self.combobox_menu_combobox.scroll = False
+
+        self.combobox_menu.addWidget(self.combobox_menu_label)
+        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
+        self.combobox_menu_horizontal = horizontal_line()
+        self.combobox_menu.addStretch(1)
+
+        self.layout.addLayout(self.combobox_menu)
+        self.layout.addWidget(self.combobox_menu_horizontal)
+
+    def update_combobox_methods(self):
         if not self.setup.single_method:
             self.combobox_menu_combobox.clear()
             self.combobox_list = list(self.setup.method_dict.keys())
@@ -419,6 +436,22 @@ class AnalysisTab(QWidget):
             self.combobox_menu_label.setVisible(False)
             self.combobox_menu_horizontal.setVisible(False)
 
+    def update_combobox_func_units(self):
+        """ Update combobox with functional units as options """
+        if not self.setup.single_method:
+            self.combobox_menu_combobox.clear()
+            self.combobox_list = [str(get_activity(list(func_unit.keys())[0])) for func_unit in self.setup.mlca.func_units]
+            self.combobox_menu_combobox.blockSignals(True)
+            # block is required as insertItems would trigger the signal and uselessly update tables
+            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+            self.combobox_menu_combobox.blockSignals(False)
+            self.combobox_menu_combobox.setVisible(True)
+            self.combobox_menu_label.setVisible(True)
+            self.combobox_menu_horizontal.setVisible(True)
+        else:
+            self.combobox_menu_combobox.setVisible(False)
+            self.combobox_menu_label.setVisible(False)
+            self.combobox_menu_horizontal.setVisible(False)
 
 
     def add_export(self):
@@ -474,7 +507,7 @@ class Inventory(AnalysisTab):
 
         self.table = InventoryTable(self.setup)
 
-        self.add_combobox()
+        self.add_combobox_func_units()
         self.add_main_space()
         self.add_export()
 
@@ -502,7 +535,7 @@ class InventoryCharacterisation(AnalysisTab):
 
         self.add_cutoff()
         self.cutoff_value = 0.01
-        self.add_combobox()
+        self.add_combobox_methods()
         self.add_main_space()
         self.add_export()
 
@@ -563,7 +596,7 @@ class ProcessContributions(AnalysisTab):
 
         self.add_cutoff()
         self.cutoff_value = 0.05
-        self.add_combobox()
+        self.add_combobox_methods()
         self.add_main_space()
         self.add_export()
 

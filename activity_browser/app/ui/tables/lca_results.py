@@ -13,6 +13,7 @@ class LCAResultsTable(ABDataFrameTable):
         col_labels = [" | ".join(x) for x in lca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
         self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
+        print(lca.func_units)
 
 
 class ProcessContributionsTable(ABDataFrameTable):
