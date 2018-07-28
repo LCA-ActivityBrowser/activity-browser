@@ -47,6 +47,7 @@ class CalculationSetupTab(QTabWidget):
 
         self.update_calculation()
 
+        self.LCAscoreComparison_tab = LCAscoreComparison(self)
         self.inventory_tab = Inventory(self)
         self.inventory_characterisation_tab = InventoryCharacterisation(self)
         self.lcia_results_tab = LCIAAnalysis(self)
@@ -381,7 +382,7 @@ class AnalysisTab(QWidget):
     def update_analysis_tab(self):
         if self.combobox_menu_combobox != None:
             self.update_combobox_methods()
-            self. update_combobox_func_units()
+            self.update_combobox_func_units()
         if self.plot:
             self.update_plot()
         if self.table:
@@ -500,6 +501,25 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(horizontal_line())
         self.layout.addLayout(self.export_menu)
 
+class LCAscoreComparison(AnalysisTab):
+    def __init__(self, parent):
+        super(LCAscoreComparison, self).__init__(parent)
+        self.setup = parent
+
+        self.name = "LCA score comparison"
+        self.header.setText(self.name)
+
+        self.table = InventoryTable(self.setup)
+
+        self.add_combobox_func_units()
+        self.add_main_space()
+        self.add_export()
+
+        self.setup.addTab(self, self.name)
+
+        self.connect_analysis_signals()
+
+
 class Inventory(AnalysisTab):
     def __init__(self, parent):
         super(Inventory, self).__init__(parent)
@@ -520,10 +540,12 @@ class Inventory(AnalysisTab):
 
     def update_table(self, method=None):
         if method == None:
-            method = self.setup.mlca.methods[0]
+            method = self.setup.mlca.func_units[0]
         else:
-            method = self.setup.method_dict[method]
+            method = self.setup.mlca.func_units[method]
+            #[str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units][method]
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
+
 
 class InventoryCharacterisation(AnalysisTab):
     def __init__(self, parent):
