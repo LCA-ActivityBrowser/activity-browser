@@ -11,7 +11,9 @@ class ABDataFrameTable(QtWidgets.QTableView):
     @classmethod
     def decorated_sync(cls, sync):
         def wrapper(self, *args, **kwargs):
+
             sync(self, *args, **kwargs)
+
             self.model = PandasModel(self.dataframe)
             self.setModel(self.model)
             self.resizeColumnsToContents()

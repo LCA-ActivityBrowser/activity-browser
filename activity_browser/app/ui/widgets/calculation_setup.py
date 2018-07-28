@@ -1,4 +1,3 @@
-# TEMP
 
 from ..style import horizontal_line, vertical_line, header
 from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable, InventoryCharacterisationTable
@@ -289,7 +288,10 @@ class AnalysisTab(QWidget):
         if not self.setup.single_method:
             self.combobox_menu_combobox.clear()
             self.combobox_list = list(self.setup.method_dict.keys())
+            self.combobox_menu_combobox.blockSignals(True)
+            # block is required as filling would trigger the signal and uselessly update tables
             self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+            self.combobox_menu_combobox.blockSignals(False)
             self.combobox_menu_combobox.setVisible(True)
             self.combobox_menu_label.setVisible(True)
             self.combobox_menu_horizontal.setVisible(True)
