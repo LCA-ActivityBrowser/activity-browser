@@ -1,4 +1,5 @@
 
+
 from ..style import horizontal_line, vertical_line, header
 from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable, InventoryCharacterisationTable
 from ..graphics import (
@@ -31,7 +32,6 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 # TODO: LOW PRIORITY: add filtering for tables/graphs ANY
 
 
-
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
         super(CalculationSetupTab, self).__init__(parent)
@@ -61,16 +61,14 @@ class CalculationSetupTab(QTabWidget):
         if calculate:
             self.update_calculation()
 
+        self.LCAscoreComparison_tab.update_analysis_tab()
         self.inventory_tab.update_analysis_tab()
-
         self.inventory_characterisation_tab.update_analysis_tab()
-
         self.lcia_results_tab.update_analysis_tab()
-        lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
-
         self.process_contributions_tab.update_analysis_tab()
-
         self.correlations_tab.update_analysis_tab()
+
+        lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
         correlations_tab_index = self.indexOf(self.correlations_tab)
 
         if not self.single_func_unit:
@@ -138,9 +136,26 @@ class AnalysisTab(QWidget):
 
         # Combo box signal
         if self.combobox_menu_combobox != None:
-            if self.plot:
-                self.combobox_menu_combobox.currentTextChanged.connect(
-                    lambda name: self.update_plot(method=name))
+
+            if self.combobox_menu_method_bool and not self.combobox_menu_func_bool:
+                if self.plot:
+                    self.combobox_menu_combobox.currentTextChanged.connect(
+                        lambda name: self.update_plot(method=name))
+
+            elif not self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+                pass
+                # logic for only func
+
+            else:
+                self.combobox_menu_switch.clicked.connect(self.combo_switch_check)
+                # logic for updating when both are active
+
+                # THIS SHOULD BE REMOVED WHEN THERE IS FUNCTIONALITY FOR THE 'SWITCH' BUTTON
+                if self.plot:
+                    self.combobox_menu_combobox.currentTextChanged.connect(
+                        lambda name: self.update_plot(method=name))
+                # UP TO HERE
+
             if self.table:
                 self.combobox_menu_combobox.currentTextChanged.connect(self.update_table)
 
@@ -160,6 +175,16 @@ class AnalysisTab(QWidget):
         if self.plot and self.export_menu:
             self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
             self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+
+    def combo_switch_check(self):
+        if self.combobox_menu_switch.text() == "Methods":
+            self.combobox_menu_switch.setText("Functional Units") 
+            self.combobox_menu_label.setText(self.combobox_menu_method_label)
+            # functionality to actually change plots and tables
+        else:
+            self.combobox_menu_switch.setText("Methods")
+            self.combobox_menu_label.setText(self.combobox_menu_func_label)
+            # functionality to actually change plots and tables
 
     def cutoff_type_relative_check(self):
         """ Set cutoff to process that contribute #% or more. """
@@ -214,7 +239,6 @@ class AnalysisTab(QWidget):
                 self.update_plot()
             if self.table:
                 self.update_table()
-
 
     def cutoff_slider_topx_check(self, editor):
         if self.cutoff_type_topx.isChecked():
@@ -320,7 +344,6 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-
     def main_space_check(self, table_ch, plot_ch):
         table_state = table_ch.isChecked()
         plot_state = plot_ch.isChecked()
@@ -378,11 +401,9 @@ class AnalysisTab(QWidget):
 
         self.layout.addWidget(self.main_space)
 
-
     def update_analysis_tab(self):
         if self.combobox_menu_combobox != None:
-            self.update_combobox_methods()
-            self.update_combobox_func_units()
+            self.update_combobox()
         if self.plot:
             self.update_plot()
         if self.table:
@@ -391,71 +412,78 @@ class AnalysisTab(QWidget):
     def update_table(self):
         self.table.sync(self.setup.mlca)
 
-    def add_combobox_methods(self):
-        """ Add the combobox for methods to the tab. """
+    def add_combobox(self, method=True, func=False):
+        """ Add the combobox menu to the tab. """
         self.combobox_menu = QHBoxLayout()
 
-        self.combobox_menu_label = QLabel("Assesment method: ")
-        self.combobox_menu_combobox = QComboBox()
-        self.combobox_menu_combobox.scroll = False
+        self.combobox_menu_label = QLabel()
+
+        self.combobox_menu_combobox = None
+        self.combobox_menu_switch = None
+        self.combobox_menu_method_label = None
+        self.combobox_menu_method_bool = method
+        self.combobox_menu_func_bool = func
+
+        if self.combobox_menu_func_bool:
+            self.combobox_menu_func_label = "Functional Unit: "
+            self.combobox_menu_combobox_func = QComboBox()
+            self.combobox_menu_combobox_func.scroll = False
+            self.combobox_menu_combobox = self.combobox_menu_combobox_func
+            self.combobox_menu_label.setText(self.combobox_menu_func_label)
+
+        if self.combobox_menu_method_bool:
+            self.combobox_menu_method_label = "Assessment Method: "
+            self.combobox_menu_combobox_method = QComboBox()
+            self.combobox_menu_combobox_method.scroll = False
+            self.combobox_menu_combobox = self.combobox_menu_combobox_method
+            self.combobox_menu_label.setText(self.combobox_menu_method_label)
+
+        if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+            self.combobox_menu_switch = QPushButton("Functional Units")
 
         self.combobox_menu.addWidget(self.combobox_menu_label)
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
+
+        if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+            self.combobox_menu.addWidget(self.combobox_menu_switch)
+
         self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
 
         self.layout.addLayout(self.combobox_menu)
         self.layout.addWidget(self.combobox_menu_horizontal)
 
-    def add_combobox_func_units(self):
-        """ Add the combobox for functional units to the tab. """
-        self.combobox_menu = QHBoxLayout()
+    def update_combobox(self):
+        self.combobox_menu_combobox.clear()
+        visibility = True
+        self.combobox_menu_combobox.blockSignals(True)
 
-        self.combobox_menu_label = QLabel("Functional Unit: ")
-        self.combobox_menu_combobox = QComboBox()
-        self.combobox_menu_combobox.scroll = False
-
-        self.combobox_menu.addWidget(self.combobox_menu_label)
-        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
-        self.combobox_menu_horizontal = horizontal_line()
-        self.combobox_menu.addStretch(1)
-
-        self.layout.addLayout(self.combobox_menu)
-        self.layout.addWidget(self.combobox_menu_horizontal)
-
-    def update_combobox_methods(self):
-        if not self.setup.single_method:
-            self.combobox_menu_combobox.clear()
+        if self.combobox_menu_label.text() == self.combobox_menu_method_label: # if is assessment methods
             self.combobox_list = list(self.setup.method_dict.keys())
-            self.combobox_menu_combobox.blockSignals(True)
-            # block is required as insertItems would trigger the signal and uselessly update tables
-            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
-            self.combobox_menu_combobox.blockSignals(False)
-            self.combobox_menu_combobox.setVisible(True)
-            self.combobox_menu_label.setVisible(True)
-            self.combobox_menu_horizontal.setVisible(True)
-        else:
-            self.combobox_menu_combobox.setVisible(False)
-            self.combobox_menu_label.setVisible(False)
-            self.combobox_menu_horizontal.setVisible(False)
+            if self.setup.single_method:
+                visibility = False
 
-    def update_combobox_func_units(self):
-        """ Update combobox with functional units as options """
-        if not self.setup.single_method:
-            self.combobox_menu_combobox.clear()
-            self.combobox_list = [str(get_activity(list(func_unit.keys())[0])) for func_unit in self.setup.mlca.func_units]
-            self.combobox_menu_combobox.blockSignals(True)
-            # block is required as insertItems would trigger the signal and uselessly update tables
-            self.combobox_menu_combobox.insertItems(0, self.combobox_list)
-            self.combobox_menu_combobox.blockSignals(False)
-            self.combobox_menu_combobox.setVisible(True)
-            self.combobox_menu_label.setVisible(True)
-            self.combobox_menu_horizontal.setVisible(True)
         else:
-            self.combobox_menu_combobox.setVisible(False)
-            self.combobox_menu_label.setVisible(False)
-            self.combobox_menu_horizontal.setVisible(False)
+            self.combobox_list = [str(get_activity(list(func_unit.keys())[0])) for func_unit in
+                                  self.setup.mlca.func_units]
+            if self.setup.single_func_unit:
+                visibility = False
 
+        self.combobox_menu_combobox.insertItems(0, self.combobox_list)
+        self.combobox_menu_combobox.blockSignals(False)
+
+        if visibility:
+            self.combobox_menu_label.setVisible(True)
+            self.combobox_menu_combobox.setVisible(True)
+            self.combobox_menu_horizontal.setVisible(True)
+            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+                self.combobox_menu_switch.setVisible(True)
+        else:
+            self.combobox_menu_label.setVisible(False)
+            self.combobox_menu_combobox.setVisible(False)
+            self.combobox_menu_horizontal.setVisible(False)
+            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+                self.combobox_menu_switch.setVisible(False)
 
     def add_export(self):
         """ Add the export menu to the tab. """
@@ -501,6 +529,7 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(horizontal_line())
         self.layout.addLayout(self.export_menu)
 
+
 class LCAscoreComparison(AnalysisTab):
     def __init__(self, parent):
         super(LCAscoreComparison, self).__init__(parent)
@@ -511,7 +540,7 @@ class LCAscoreComparison(AnalysisTab):
 
         #self.table = InventoryTable(self.setup)
 
-        self.add_combobox_func_units()
+        self.add_combobox(method=False, func=True)
         self.add_main_space()
         #self.add_export()
 
@@ -530,7 +559,7 @@ class Inventory(AnalysisTab):
 
         self.table = InventoryTable(self.setup)
 
-        self.add_combobox_func_units()
+        self.add_combobox(method=False, func=True)
         self.add_main_space()
         self.add_export()
 
@@ -560,7 +589,7 @@ class InventoryCharacterisation(AnalysisTab):
 
         self.add_cutoff()
         self.cutoff_value = 0.01
-        self.add_combobox_methods()
+        self.add_combobox(method=True, func=True)
         self.add_main_space()
         self.add_export()
 
@@ -574,6 +603,7 @@ class InventoryCharacterisation(AnalysisTab):
         else:
             method = self.setup.method_dict[method]
         self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, limit_type=self.limit_type)
+
 
 class LCIAAnalysis(AnalysisTab):
     def __init__(self, parent):
@@ -608,6 +638,7 @@ class LCIAAnalysis(AnalysisTab):
             self.table = LCAResultsTable()
             self.table.sync(self.setup.mlca)
 
+
 class ProcessContributions(AnalysisTab):
     def __init__(self, parent):
         super(ProcessContributions, self).__init__(parent)
@@ -621,7 +652,7 @@ class ProcessContributions(AnalysisTab):
 
         self.add_cutoff()
         self.cutoff_value = 0.05
-        self.add_combobox_methods()
+        self.add_combobox()
         self.add_main_space()
         self.add_export()
 
@@ -635,6 +666,7 @@ class ProcessContributions(AnalysisTab):
         else:
             method = self.setup.method_dict[method]
         self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, limit_type=self.limit_type)
+
 
 class Correlations(AnalysisTab):
     def __init__(self, parent):
