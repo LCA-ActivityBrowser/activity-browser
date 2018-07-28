@@ -28,7 +28,7 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 # TODO: add switch for characterised inventory and process contributions between func unit and method MM
 # TODO: Basic plot for LCIA Results + Combobox MS
 # TODO: LCIA Results > column specific colour gradients MS
-# TODO: LOW PRIORITY: add filtering for tables/graphs
+# TODO: LOW PRIORITY: add filtering for tables/graphs ANY
 
 
 
