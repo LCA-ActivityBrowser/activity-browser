@@ -43,8 +43,8 @@ class InventoryCharacterisationTable(ABDataFrameTable):
 class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
     def sync(self, mlca, method=None):#, limit=5):
-        key = random.choice(list(mlca.technosphere_flows))
-        #key = method
+        #key = random.choice(list(mlca.technosphere_flows))
+        key = method
         array = mlca.technosphere_flows[key]
         max_length = 18
         length = min(max_length, len(array))

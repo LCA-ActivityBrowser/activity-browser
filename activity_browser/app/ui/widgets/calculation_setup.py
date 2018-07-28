@@ -540,14 +540,10 @@ class Inventory(AnalysisTab):
 
     def update_table(self, method=None):
         if method == None:
-            method = self.setup.mlca.func_units[0]
+            method = (list(self.setup.mlca.technosphere_flows))[0]
         else:
             pass
-            #method = self.setup.mlca.func_units[method]
-            #xa = self.setup.mlca.func_units
-            #method = [str(get_activity(list(func_unit.keys())[0])) for func_unit in xa][method]
-        #print('method: ', method)
-        #print('list:', [str(get_activity(list(method.keys())[0]))])
+        #print('translated: ', [str(get_activity(list(method.keys())[0]))])
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
 
 
