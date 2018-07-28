@@ -177,8 +177,9 @@ class AnalysisTab(QWidget):
             self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
 
     def combo_switch_check(self):
+        """ Show either the functional units or methods combo-box, dependent on button state. """
         if self.combobox_menu_switch.text() == "Methods":
-            self.combobox_menu_switch.setText("Functional Units") 
+            self.combobox_menu_switch.setText("Functional Units")
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
             # functionality to actually change plots and tables
         else:
@@ -205,6 +206,7 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_slider.setVisible(True)
 
     def cutoff_slider_relative_check(self, editor):
+        """ With relative selected, change the values for plots and tables to reflect the slider/line-edit. """
         if self.cutoff_type_relative.isChecked():
             self.cutoff_validator = self.cutoff_validator_float
             self.cutoff_slider_line.setValidator(self.cutoff_validator)
@@ -241,6 +243,7 @@ class AnalysisTab(QWidget):
                 self.update_table()
 
     def cutoff_slider_topx_check(self, editor):
+        """ With top # selected, change the values for plots and tables to reflect the slider/line-edit. """
         if self.cutoff_type_topx.isChecked():
             self.cutoff_validator = self.cutoff_validator_int
             self.cutoff_slider_line.setValidator(self.cutoff_validator)
@@ -345,6 +348,7 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(horizontal_line())
 
     def main_space_check(self, table_ch, plot_ch):
+        """ Show only table or graph, whichever is selected. """
         table_state = table_ch.isChecked()
         plot_state = plot_ch.isChecked()
 
@@ -410,6 +414,7 @@ class AnalysisTab(QWidget):
             self.update_table()
 
     def update_table(self):
+        """ Update the table. """
         self.table.sync(self.setup.mlca)
 
     def add_combobox(self, method=True, func=False):
@@ -454,6 +459,7 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(self.combobox_menu_horizontal)
 
     def update_combobox(self):
+        """ Update the combobox menu. """
         self.combobox_menu_combobox.clear()
         visibility = True
         self.combobox_menu_combobox.blockSignals(True)
