@@ -40,7 +40,6 @@ class InventoryTable(ABDataFrameTable):
     def sync(self, mlca, method=None):#, limit=5):
         key = random.choice(list(mlca.technosphere_flows))
         #key = method
-        #print(key)
         array = mlca.technosphere_flows[key]
         labels = [mlca.rev_activity_dict[i][1] for i in range(len(mlca.rev_activity_dict))]
         max_length = 18

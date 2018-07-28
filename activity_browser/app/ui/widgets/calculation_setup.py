@@ -506,11 +506,11 @@ class LCAscoreComparison(AnalysisTab):
         self.name = "LCA score comparison"
         self.header.setText(self.name)
 
-        self.table = InventoryTable(self.setup)
+        #self.table = InventoryTable(self.setup)
 
         self.add_combobox_func_units()
         self.add_main_space()
-        self.add_export()
+        #self.add_export()
 
         self.setup.addTab(self, self.name)
 
@@ -540,7 +540,9 @@ class Inventory(AnalysisTab):
             method = self.setup.mlca.func_units[0]
         else:
             method = self.setup.mlca.func_units[method]
-            #[str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units][method]
+            xa = self.setup.mlca.func_units
+            method = [str(get_activity(list(func_unit.keys())[0])) for func_unit in xa][method]
+            print(method)
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
 
 
