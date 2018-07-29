@@ -455,7 +455,7 @@ class AnalysisTab(QWidget):
         """ Update the table. """
         self.table.sync(self.setup.mlca)
 
-    def add_combobox(self, method=True, func=False):
+    def add_combobox(self, method=True, func=False, relativity=False):
         """ Add the combobox menu to the tab. """
         self.combobox_menu = QHBoxLayout()
 
@@ -466,6 +466,7 @@ class AnalysisTab(QWidget):
         self.combobox_menu_method_label = None
         self.combobox_menu_method_bool = method
         self.combobox_menu_func_bool = func
+        self.relativity = relativity
 
         if self.combobox_menu_func_bool:
             self.combobox_menu_func_label = "Functional Unit: "
@@ -487,6 +488,11 @@ class AnalysisTab(QWidget):
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
             self.combobox_menu_switch = QPushButton("Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
+
+        if self.relativity:
+            self.relativity_button = QPushButton("Relative")
+            self.combobox_menu.addWidget(self.relativity_button)
+
 
         self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
