@@ -102,8 +102,7 @@ class MLCA(object):
         contribution_array = self.process_contributions[:, method, :]
 
         if normalised:
-            fu_scores = contribution_array.sum(axis=1)
-            contribution_array = contribution_array / fu_scores[:, np.newaxis]
+            contribution_array = self.make_nomalised(contribution_array)
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
@@ -124,8 +123,7 @@ class MLCA(object):
         contribution_array = self.process_cont_T[:, func, :]
 
         if normalised:
-            m_scores = contribution_array.sum(axis=1)
-            contribution_array = contribution_array / m_scores[:, np.newaxis]
+            contribution_array = self.make_nomalised(contribution_array)
         topcontribution_dict = {}
         for col, m in enumerate(self.method_dict_list):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
@@ -134,7 +132,7 @@ class MLCA(object):
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
                 cont_per_m.update({self.rev_activity_dict[index]: value})
-            topcontribution_dict.update({next(iter(m.keys())): cont_per_fu})
+            topcontribution_dict.update({next(iter(m.keys())): cont_per_m})
         return topcontribution_dict
 
     def top_elementary_flow_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
@@ -144,8 +142,7 @@ class MLCA(object):
             method = 0
         contribution_array = self.elementary_flow_contributions[:, method, :]
         if normalised:
-            fu_scores = contribution_array.sum(axis=1)
-            contribution_array = contribution_array / fu_scores[:, np.newaxis]
+            contribution_array = self.make_nomalised(contribution_array)
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
@@ -166,18 +163,19 @@ class MLCA(object):
         self.process_cont_T = self.process_contributions.T
         contribution_array = self.process_cont_T[:, func, :]
 
-        # contribution_array = self.elementary_flow_contributions[:, method, :]
         if normalised:
-            fu_scores = contribution_array.sum(axis=1)
-            contribution_array = contribution_array / fu_scores[:, np.newaxis]
+            contribution_array = self.make_nomalised(contribution_array)
         topcontribution_dict = {}
-        for col, fu in enumerate(self.method_dict_list):
+        for col, m in enumerate(self.method_dict_list):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
-            cont_per_fu = {}
-            cont_per_fu.update(
+            cont_per_m = {}
+            cont_per_m.update(
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
-                cont_per_fu.update({self.rev_biosphere_dict[index]: value})
-            topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
+                cont_per_m.update({self.rev_biosphere_dict[index]: value})
+            topcontribution_dict.update({next(iter(m.keys())): cont_per_m})
         return topcontribution_dict
 
+    def make_nomalised(self, contribution_array):
+        scores = contribution_array.sum(axis=1)
+        return (contribution_array / scores[:, np.newaxis])
