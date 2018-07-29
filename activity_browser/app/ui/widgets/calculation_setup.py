@@ -639,7 +639,7 @@ class InventoryCharacterisation(AnalysisTab):
 
         self.add_cutoff()
         self.cutoff_value = 0.01
-        self.add_combobox()
+        self.add_combobox(method=True, func=True)
         self.add_main_space()
         self.add_export()
 
@@ -648,11 +648,22 @@ class InventoryCharacterisation(AnalysisTab):
         self.connect_analysis_signals()
 
     def update_plot(self, method=None):
-        if method == None or method == '':
-            method = self.setup.mlca.methods[0]
+        if self.combobox_menu_label.text() == self.combobox_menu_method_label:
+            if method == None or method == '':
+                method = self.setup.mlca.methods[0]
+            else:
+                method = self.setup.method_dict[method]
+            func = None
+            per = "method"
         else:
-            method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, limit_type=self.limit_type)
+            func = method
+            if func == None or func == '':
+                func = self.setup.mlca.func_key_list[0]
+            method = None
+            per = "func"
+
+        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_value,
+                       limit_type=self.limit_type, per=per)
 
 
 class LCIAAnalysis(AnalysisTab):
