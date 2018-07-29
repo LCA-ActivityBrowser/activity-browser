@@ -175,13 +175,13 @@ class ProcessContributionPlot(Plot):
         super(ProcessContributionPlot, self).__init__(parent, *args)
         self.df_tc = pd.DataFrame()
 
-    def plot(self, mlca, method=None, limit=5, limit_type="number"):
+    def plot(self, mlca, method=None, limit=5, limit_type="number", normalised=True):
         """ Plot a horizontal bar chart of the process contributions. """
         self.ax.clear()
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
 
-        tc = mlca.top_process_contributions_per_method(method_name=method, limit=limit, normalised=True, limit_type=limit_type)
+        tc = mlca.top_process_contributions_per_method(method_name=method, limit=limit, normalised=normalised, limit_type=limit_type)
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]

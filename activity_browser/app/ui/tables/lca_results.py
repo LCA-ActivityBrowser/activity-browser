@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-import numpy as np
-from brightway2 import get_activity, LCA, Database, methods
-import random
+from brightway2 import get_activity
 
 from .dataframe_table import ABDataFrameTable
 
@@ -13,12 +11,6 @@ class LCAResultsTable(ABDataFrameTable):
         col_labels = [" | ".join(x) for x in lca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
         self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
-        #print(lca.func_units)
-        #print([(((func_unit.keys())[0])) for func_unit in lca.func_units])
-        #print([str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units])
-        #print([str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units])
-        #for func_unit in lca.func_units:
-        #    print(func_unit.keys())
 
 
 class ProcessContributionsTable(ABDataFrameTable):
@@ -42,12 +34,10 @@ class InventoryCharacterisationTable(ABDataFrameTable):
 
 class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, method=None):#, limit=5):
-        #key = random.choice(list(mlca.technosphere_flows))
-        #test =
+    def sync(self, mlca, method=None, limit=18):
         key = method
         array = mlca.technosphere_flows[key]
-        max_length = 18
+        max_length = limit
         length = min(max_length, len(array))
         labels = [get_activity(mlca.rev_activity_dict[i]) for i in range(length)]
         col_labels = ['Amount']
