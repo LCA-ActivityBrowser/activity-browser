@@ -98,10 +98,13 @@ class CorrelationPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
 
 class LCAResultsBarChart(Plot):
+    """" Generate a bar chart comparing the absolute LCA scores of the products """
     def __init__(self, parent=None, *args):
         super(LCAResultsBarChart, self).__init__(parent, *args)
 
     def plot(self, mlca, method=None):
+
+        self.ax.clear()
 
         if method == None:
             method = mlca.methods[0]
@@ -110,12 +113,14 @@ class LCAResultsBarChart(Plot):
         values = mlca.results[:, mlca.methods.index(method)]
         y_pos = np.arange(len(functional_units))
 
-        a = self.figure.add_subplot(111)
-        a.barh(y_pos, values, align='center', alpha=0.8)
-        a.set_yticks(y_pos)
-        a.set_xlabel('Score')
-        a.set_title('LCA scores compared')
-        a.set_yticklabels(functional_units, minor= False)
+        color_iterate = iter(plt.rcParams['axes.prop_cycle'])
+        print(color_iterate)
+        for i in range(len(values)):
+            self.ax.barh(y_pos[i], values[i], align='center', color=next(color_iterate)['color'], alpha=0.8)
+        self.ax.set_yticks(y_pos)
+        self.ax.set_xlabel('Score')
+        self.ax.set_title('LCA scores compared')
+        self.ax.set_yticklabels(functional_units, minor= False)
 
 
         self.canvas.figure
@@ -170,17 +175,17 @@ class ProcessContributionPlot(Plot):
         super(ProcessContributionPlot, self).__init__(parent, *args)
         self.df_tc = pd.DataFrame()
 
-    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method"):
+    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalised=True):
         """ Plot a horizontal bar chart of the process contributions. """
         self.ax.clear()
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
 
         if per == "method":
-            tc = mlca.top_process_contributions_per_method(method_name=method, limit=limit, normalised=True,
+            tc = mlca.top_process_contributions_per_method(method_name=method, limit=limit, normalised=normalised,
                                                            limit_type=limit_type)
         elif per == "func":
-            tc = mlca.top_process_contributions_per_func(func_name=func, limit=limit, normalised=True,
+            tc = mlca.top_process_contributions_per_func(func_name=func, limit=limit, normalised=normalised,
                                                            limit_type=limit_type)
         else:
             print("Unknown type requested")

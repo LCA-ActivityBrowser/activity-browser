@@ -48,7 +48,7 @@ class CalculationSetupTab(QTabWidget):
 
         self.update_calculation()
 
-        self.LCAscoreComparison_tab = LCAscoreComparison(self)
+        self.LCAscoreComparison_tab = LCAScoreComparison(self)
         self.inventory_tab = Inventory(self)
         self.inventory_characterisation_tab = InventoryCharacterisation(self)
         self.lcia_results_tab = LCIAAnalysis(self)
@@ -573,9 +573,9 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.export_menu)
 
 
-class LCAscoreComparison(AnalysisTab):
+class LCAScoreComparison(AnalysisTab):
     def __init__(self, parent):
-        super(LCAscoreComparison, self).__init__(parent)
+        super(LCAScoreComparison, self).__init__(parent)
         self.setup = parent
 
         self.name = "LCA score comparison"
@@ -585,7 +585,7 @@ class LCAscoreComparison(AnalysisTab):
 
         self.add_combobox(method=True, func=False)
         self.add_main_space()
-        #self.add_export()
+        self.add_export()
 
         self.setup.addTab(self, self.name)
 
@@ -596,7 +596,7 @@ class LCAscoreComparison(AnalysisTab):
             method = self.setup.mlca.methods[0]
         else:
             method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca)
+        self.plot.plot(self.setup.mlca, method=method)
 
 
 class Inventory(AnalysisTab):
@@ -726,7 +726,7 @@ class ProcessContributions(AnalysisTab):
             per = "func"
 
         self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_value,
-                       limit_type=self.limit_type, per=per)
+                       limit_type=self.limit_type, per=per, normalised=False)
 
 
 class Correlations(AnalysisTab):
