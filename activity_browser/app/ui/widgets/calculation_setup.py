@@ -466,6 +466,7 @@ class AnalysisTab(QWidget):
     def relativity_button(self, layout):
         if self.relativity is not None:
             self.b = QPushButton('Relative')
+            layout.addStretch(1)
             layout.addWidget(self.b)
             self.b.clicked.connect(self.relativity_check)
 
@@ -505,13 +506,12 @@ class AnalysisTab(QWidget):
             self.combobox_menu_combobox = self.combobox_menu_combobox_method
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
 
-        if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-            self.combobox_menu_switch = QPushButton("Functional Units")
 
         self.combobox_menu.addWidget(self.combobox_menu_label)
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
 
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+            self.combobox_menu_switch = QPushButton("Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
 
         self.combobox_menu_horizontal = horizontal_line()
