@@ -123,6 +123,8 @@ class AnalysisTab(QWidget):
             # Cut-off types
             self.cutoff_type_topx.clicked.connect(self.cutoff_type_topx_check)
             self.cutoff_type_relative.clicked.connect(self.cutoff_type_relative_check)
+            self.cutoff_slider_lft_btn.clicked.connect(self.cutoff_increment_left_check)
+            self.cutoff_slider_rght_btn.clicked.connect(self.cutoff_increment_right_check)
 
             # Cut-off log slider
             self.cutoff_slider_log_slider.valueChanged.connect(
@@ -188,22 +190,52 @@ class AnalysisTab(QWidget):
             self.combobox_menu_label.setText(self.combobox_menu_func_label)
             # functionality to actually change plots and tables
 
+    def cutoff_increment_left_check(self):
+        """ Move the slider 1 increment when left button is clicked. """
+        if self.cutoff_type_relative.isChecked():
+            num = int(self.cutoff_slider_log_slider.value())
+            self.cutoff_slider_log_slider.setValue(num + 1)
+        else:
+            num = int(self.cutoff_slider_slider.value())
+            self.cutoff_slider_slider.setValue(num - 1)
+
+    def cutoff_increment_right_check(self):
+        """ Move the slider 1 increment when right button is clicked. """
+        if self.cutoff_type_relative.isChecked():
+            num = int(self.cutoff_slider_log_slider.value())
+            self.cutoff_slider_log_slider.setValue(num - 1)
+        else:
+            num = int(self.cutoff_slider_slider.value())
+            self.cutoff_slider_slider.setValue(num + 1)
+
     def cutoff_type_relative_check(self):
         """ Set cutoff to process that contribute #% or more. """
         self.cutoff_slider_slider.setVisible(False)
+        self.cutoff_slider_log_slider.blockSignals(True)
+        self.cutoff_slider_slider.blockSignals(True)
+        self.cutoff_slider_line.blockSignals(True)
         self.cutoff_slider_unit.setText("%  of total")
         self.cutoff_slider_min.setText("100%")
         self.cutoff_slider_max.setText("0.001%")
         self.limit_type = "percent"
+        self.cutoff_slider_log_slider.blockSignals(False)
+        self.cutoff_slider_slider.blockSignals(False)
+        self.cutoff_slider_line.blockSignals(False)
         self.cutoff_slider_log_slider.setVisible(True)
 
     def cutoff_type_topx_check(self):
         """ Set cut-off to the top # of processes. """
         self.cutoff_slider_log_slider.setVisible(False)
+        self.cutoff_slider_log_slider.blockSignals(True)
+        self.cutoff_slider_slider.blockSignals(True)
+        self.cutoff_slider_line.blockSignals(True)
         self.cutoff_slider_unit.setText(" top #")
         self.cutoff_slider_min.setText(str(self.cutoff_slider_slider.minimum()))
         self.cutoff_slider_max.setText(str(self.cutoff_slider_slider.maximum()))
         self.limit_type = "number"
+        self.cutoff_slider_log_slider.blockSignals(False)
+        self.cutoff_slider_slider.blockSignals(False)
+        self.cutoff_slider_line.blockSignals(False)
         self.cutoff_slider_slider.setVisible(True)
 
     def cutoff_slider_relative_check(self, editor):
@@ -290,7 +322,6 @@ class AnalysisTab(QWidget):
         self.cutoff_type_relative = QRadioButton("Relative")
         self.cutoff_type_relative.setChecked(True)
         self.cutoff_type_topx = QRadioButton("Top #")
-        # self.cutoff_type_topx.setChecked(True)
 
         # Cut-off slider
         self.cutoff_slider = QVBoxLayout()
@@ -303,10 +334,9 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_slider.setMinimum(1)
         self.cutoff_slider_slider.setMaximum(50)
         self.cutoff_slider_slider.setValue(self.cutoff_value)
-        # self.cutoff_slider_slider.sizeHint()
         self.cutoff_slider_log_slider.setLogValue(0.01)
         self.cutoff_slider_minmax = QHBoxLayout()
-        self.cutoff_slider_min = QLabel("100%") # change to relative later
+        self.cutoff_slider_min = QLabel("100%")
         self.cutoff_slider_max = QLabel("0.001%")
         self.cutoff_slider_ledit = QHBoxLayout()
         self.cutoff_slider_line = QLineEdit()
@@ -316,6 +346,11 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_line.setValidator(self.cutoff_validator)
 
         self.cutoff_slider_unit = QLabel("%  of total")
+
+        self.cutoff_slider_lft_btn = QPushButton("<")
+        self.cutoff_slider_lft_btn.setMaximumWidth(15)
+        self.cutoff_slider_rght_btn = QPushButton(">")
+        self.cutoff_slider_rght_btn.setMaximumWidth(15)
 
         # Assemble types
         self.cutoff_type.addWidget(self.cutoff_type_label)
@@ -333,6 +368,8 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_set.addLayout(self.cutoff_slider_minmax)
 
         self.cutoff_slider_ledit.addWidget(self.cutoff_slider_line)
+        self.cutoff_slider_ledit.addWidget(self.cutoff_slider_lft_btn)
+        self.cutoff_slider_ledit.addWidget(self.cutoff_slider_rght_btn)
         self.cutoff_slider_ledit.addWidget(self.cutoff_slider_unit)
         self.cutoff_slider_ledit.addStretch(1)
 
