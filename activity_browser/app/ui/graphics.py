@@ -101,26 +101,23 @@ class LCAResultsBarChart(Plot):
     def __init__(self, parent=None, *args):
         super(LCAResultsBarChart, self).__init__(parent, *args)
 
-    def plot(self, mlca):
-        #Functional_units = ['A', 'B', 'T', 'Q', 'G']
-        Functional_units = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
-        method = 'IMPACT 2002+ (Endpoint)', 'resources', 'total'
-        #values = [0.000000005, 0.000000004, 0.000000003, 0.000000002, 0.000000001]
+    def plot(self, mlca, method=None):
+
+        if method == None:
+            method = mlca.methods[0]
+
+        functional_units = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
         values = mlca.results[:, mlca.methods.index(method)]
-        y_pos = np.arange(len(Functional_units))
+        y_pos = np.arange(len(functional_units))
 
         a = self.figure.add_subplot(111)
         a.barh(y_pos, values, align='center', alpha=0.8)
-        a.set_yticks(y_pos, Functional_units)
+        a.set_yticks(y_pos, functional_units)
         a.set_xlabel('Score')
         a.set_title('LCA scores compared')
 
-
-
-
         self.canvas.figure
         self.canvas.draw()
-        plt.show()
 
 
 class LCAResultsPlot(Plot):
