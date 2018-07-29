@@ -114,7 +114,6 @@ class LCAResultsBarChart(Plot):
         y_pos = np.arange(len(functional_units))
 
         color_iterate = iter(plt.rcParams['axes.prop_cycle'])
-        print(color_iterate)
         for i in range(len(values)):
             self.ax.barh(y_pos[i], values[i], align='center', color=next(color_iterate)['color'], alpha=0.8)
         self.ax.set_yticks(y_pos)
