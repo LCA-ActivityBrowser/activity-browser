@@ -476,33 +476,6 @@ class AnalysisTab(QWidget):
             self.l.setText('Absolute')
             self.relative = False
         self.update_analysis_tab()
-        #     self.relativity_switch_button = QPushButton("Relative")
-        #     self.layout.addWidget(self.relativity_switch_button)
-        #     Relative/Absolute Button
-        #     self.relativity_switch_button.clicked.connect(self.relativity_check)
-        #     print('connected')
-        #     self.relative = True
-        #
-
-    # def relativity_check(self):
-    #     print('check')
-    #     if self.relativity_switch_button.text == 'Relative':
-    #         self.relativity_switch_button.setText('Absolute')
-    #         #self.relative = False
-    #     else:
-    #         self.relativity_switch_button.setText('Relative')
-    #         #self.relative = True
-    #
-
-
-    # def combo_switch_check(self):
-    #     """ Show either the functional units or methods combo-box, dependent on button state. """
-    #     if self.combobox_menu_switch.text() == "Methods":
-    #         self.combobox_menu_switch.setText("Functional Units")
-    #         self.combobox_menu_label.setText(self.combobox_menu_method_label)
-    #     else:
-    #         self.combobox_menu_switch.setText("Methods")
-    #         self.combobox_menu_label.setText(self.combobox_menu_func_label)
 
 
     def add_combobox(self, method=True, func=False):
