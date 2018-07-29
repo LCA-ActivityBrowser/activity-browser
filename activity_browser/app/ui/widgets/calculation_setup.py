@@ -12,7 +12,6 @@ from ..graphics import (
 from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
 from .log_slider import LogarithmicSlider
-from brightway2 import get_activity
 
 
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, QSlider, \
@@ -28,7 +27,6 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 # TODO: add relative/absolute option for plots in characterised inventory and process contributions MS
 # TODO: add rest+total row to tables in char. inv. and proc. cont. MM
 # TODO: add switch for characterised inventory and process contributions between func unit and method MM
-# TODO: Basic plot for LCIA Results + Combobox MS
 # TODO: LCIA Results > column specific colour gradients MS
 # TODO: LOW PRIORITY: add filtering for tables/graphs ANY
 
@@ -50,9 +48,9 @@ class CalculationSetupTab(QTabWidget):
 
         self.LCAscoreComparison_tab = LCAScoreComparison(self)
         self.inventory_tab = Inventory(self)
-        self.inventory_characterisation_tab = InventoryCharacterisation(self)
+        self.inventory_characterisation_tab = InventoryCharacterisation(self, relativity=True)
         self.lcia_results_tab = LCIAAnalysis(self)
-        self.process_contributions_tab = ProcessContributions(self)
+        self.process_contributions_tab = ProcessContributions(self, relativity=True)
         self.correlations_tab = Correlations(self)
 
         self.update_setup(calculate=False)
@@ -95,7 +93,9 @@ class CalculationSetupTab(QTabWidget):
             self.single_method = True
 
 class AnalysisTab(QWidget):
-    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, plot=None, export=None, relativity=True):
+    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, \
+                 plot=None, export=None, relativity=None, *args, **kwargs):
+        self.relativity = relativity
         super(AnalysisTab, self).__init__(parent)
         self.setup = parent
 
@@ -107,7 +107,6 @@ class AnalysisTab(QWidget):
         self.plot = plot
         self.limit_type = "percent"
         self.export_menu = export
-        self.relativity = relativity
         self.relative = True
 
         self.name = str()
@@ -116,9 +115,11 @@ class AnalysisTab(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
+        self.relativity_button()
+
         self.layout.addWidget(self.header)
         self.layout.addWidget(horizontal_line())
-        self.relativity_button()
+
 
 
 
@@ -461,19 +462,17 @@ class AnalysisTab(QWidget):
         self.table.sync(self.setup.mlca)
 
     def relativity_button(self):
-        if self.relativity:
-            self.b = QPushButton('Relative/Absolute')
-            self.l = QLabel('Relative')
-            self.layout.addWidget(self.l)
+        if self.relativity is not None:
+            self.b = QPushButton('Relative')
             self.layout.addWidget(self.b)
             self.b.clicked.connect(self.relativity_check)
 
     def relativity_check(self):
-        if self.l.text() == 'Absolute':
-            self.l.setText('Relative')
+        if self.relative == False:
+            self.b.setText('Relative')
             self.relative = True
         else:
-            self.l.setText('Absolute')
+            self.b.setText('Absolute')
             self.relative = False
         self.update_analysis_tab()
 
@@ -597,12 +596,13 @@ class AnalysisTab(QWidget):
 
 
 class LCAScoreComparison(AnalysisTab):
-    def __init__(self, parent):
-        super(LCAScoreComparison, self).__init__(parent)
+    def __init__(self, parent, **kwargs):
+        super(LCAScoreComparison, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "LCA score comparison"
         self.header.setText(self.name)
+
 
         self.plot = LCAResultsBarChart(self.setup)
 
@@ -623,8 +623,8 @@ class LCAScoreComparison(AnalysisTab):
 
 
 class Inventory(AnalysisTab):
-    def __init__(self, parent):
-        super(Inventory, self).__init__(parent)
+    def __init__(self, parent, **kwargs):
+        super(Inventory, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Inventory"
@@ -649,8 +649,8 @@ class Inventory(AnalysisTab):
 
 
 class InventoryCharacterisation(AnalysisTab):
-    def __init__(self, parent):
-        super(InventoryCharacterisation, self).__init__(parent)
+    def __init__(self, parent, **kwargs):
+        super(InventoryCharacterisation, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Inventory Characterisation"
@@ -689,8 +689,8 @@ class InventoryCharacterisation(AnalysisTab):
 
 
 class LCIAAnalysis(AnalysisTab):
-    def __init__(self, parent):
-        super(LCIAAnalysis, self).__init__(parent)
+    def __init__(self, parent, **kwargs):
+        super(LCIAAnalysis, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "LCIA Results"
@@ -723,8 +723,8 @@ class LCIAAnalysis(AnalysisTab):
 
 
 class ProcessContributions(AnalysisTab):
-    def __init__(self, parent):
-        super(ProcessContributions, self).__init__(parent)
+    def __init__(self, parent, **kwargs):
+        super(ProcessContributions, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Process Contributions"
@@ -763,8 +763,8 @@ class ProcessContributions(AnalysisTab):
 
 
 class Correlations(AnalysisTab):
-    def __init__(self, parent):
-        super(Correlations, self).__init__(parent)
+    def __init__(self, parent, **kwargs):
+        super(Correlations, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Correlations"
