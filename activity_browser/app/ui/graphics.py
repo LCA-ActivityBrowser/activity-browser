@@ -112,9 +112,11 @@ class LCAResultsBarChart(Plot):
 
         a = self.figure.add_subplot(111)
         a.barh(y_pos, values, align='center', alpha=0.8)
-        a.set_yticks(y_pos, functional_units)
+        a.set_yticks(y_pos)
         a.set_xlabel('Score')
         a.set_title('LCA scores compared')
+        a.set_yticklabels(functional_units, minor= False)
+
 
         self.canvas.figure
         self.canvas.draw()
