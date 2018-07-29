@@ -98,6 +98,7 @@ class CorrelationPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
 
 class LCAResultsBarChart(Plot):
+    """" Generate a bar chart comparing the absolute LCA scores of the products """
     def __init__(self, parent=None, *args):
         super(LCAResultsBarChart, self).__init__(parent, *args)
 
