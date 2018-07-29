@@ -586,7 +586,7 @@ class LCAscoreComparison(AnalysisTab):
 
         self.add_combobox(method=True, func=False)
         self.add_main_space()
-        #self.add_export()
+        self.add_export()
 
         self.setup.addTab(self, self.name)
 
