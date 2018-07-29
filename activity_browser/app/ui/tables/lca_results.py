@@ -44,6 +44,7 @@ class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
     def sync(self, mlca, method=None):#, limit=5):
         #key = random.choice(list(mlca.technosphere_flows))
+        #test =
         key = method
         array = mlca.technosphere_flows[key]
         max_length = 18
