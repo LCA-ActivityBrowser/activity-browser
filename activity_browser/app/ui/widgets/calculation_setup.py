@@ -7,6 +7,7 @@ from ..graphics import (
     ProcessContributionPlot,
     InventoryCharacterisationPlot,
     CorrelationPlot,
+    LCAResultsBarChart
 )
 from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
@@ -544,15 +545,22 @@ class LCAscoreComparison(AnalysisTab):
         self.name = "LCA score comparison"
         self.header.setText(self.name)
 
-        #self.table = InventoryTable(self.setup)
+        self.plot = LCAResultsBarChart(self.setup)
 
-        self.add_combobox(method=False, func=True)
+        self.add_combobox(method=True, func=False)
         self.add_main_space()
         #self.add_export()
 
         self.setup.addTab(self, self.name)
 
         self.connect_analysis_signals()
+
+    def update_plot(self, method=None):
+        if method == None or method == '':
+            method = self.setup.mlca.methods[0]
+        else:
+            method = self.setup.method_dict[method]
+        self.plot.plot(self.setup.mlca)
 
 
 class Inventory(AnalysisTab):
