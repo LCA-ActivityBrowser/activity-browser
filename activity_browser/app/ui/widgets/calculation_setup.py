@@ -645,7 +645,6 @@ class Inventory(AnalysisTab):
             method = (list(self.setup.mlca.technosphere_flows))[0]
         else:
             pass
-        #print('translated: ', [str(get_activity(list(method.keys())[0]))])
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
 
 
@@ -686,7 +685,7 @@ class InventoryCharacterisation(AnalysisTab):
             per = "func"
 
         self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_value,
-                       limit_type=self.limit_type, per=per)
+                       limit_type=self.limit_type, per=per, normalised=self.relative)
 
 
 class LCIAAnalysis(AnalysisTab):
