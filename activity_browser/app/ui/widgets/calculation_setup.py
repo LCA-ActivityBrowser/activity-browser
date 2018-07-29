@@ -597,7 +597,7 @@ class LCAscoreComparison(AnalysisTab):
             method = self.setup.mlca.methods[0]
         else:
             method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca)
+        self.plot.plot(self.setup.mlca, method=method)
 
 
 class Inventory(AnalysisTab):
