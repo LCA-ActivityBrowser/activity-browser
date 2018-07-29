@@ -95,7 +95,7 @@ class CalculationSetupTab(QTabWidget):
             self.single_method = True
 
 class AnalysisTab(QWidget):
-    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, plot=None, export=None):
+    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, plot=None, export=None, relativity=True):
         super(AnalysisTab, self).__init__(parent)
         self.setup = parent
 
@@ -107,6 +107,8 @@ class AnalysisTab(QWidget):
         self.plot = plot
         self.limit_type = "percent"
         self.export_menu = export
+        self.relativity = relativity
+        self.relative = True
 
         self.name = str()
         self.header = header(self.name)
@@ -116,6 +118,9 @@ class AnalysisTab(QWidget):
 
         self.layout.addWidget(self.header)
         self.layout.addWidget(horizontal_line())
+        self.relativity_button()
+
+
 
     def connect_analysis_signals(self):
         # Cut-off
@@ -161,6 +166,7 @@ class AnalysisTab(QWidget):
 
             if self.table:
                 self.combobox_menu_combobox.currentTextChanged.connect(self.update_table)
+
 
         # Mainspace Checkboxes
         self.main_space_tb_grph_table.stateChanged.connect(
@@ -455,7 +461,52 @@ class AnalysisTab(QWidget):
         """ Update the table. """
         self.table.sync(self.setup.mlca)
 
-    def add_combobox(self, method=True, func=False, relativity=False):
+    def relativity_button(self):
+        if self.relativity:
+            self.b = QPushButton('Relative/Absolute')
+            self.l = QLabel('Relative')
+            self.layout.addWidget(self.l)
+            self.layout.addWidget(self.b)
+            self.b.clicked.connect(self.relativity_check)
+
+    def relativity_check(self):
+        if self.l.text() == 'Absolute':
+            self.l.setText('Relative')
+            self.relative = True
+        else:
+            self.l.setText('Absolute')
+            self.relative = False
+        self.update_analysis_tab()
+        #     self.relativity_switch_button = QPushButton("Relative")
+        #     self.layout.addWidget(self.relativity_switch_button)
+        #     Relative/Absolute Button
+        #     self.relativity_switch_button.clicked.connect(self.relativity_check)
+        #     print('connected')
+        #     self.relative = True
+        #
+
+    # def relativity_check(self):
+    #     print('check')
+    #     if self.relativity_switch_button.text == 'Relative':
+    #         self.relativity_switch_button.setText('Absolute')
+    #         #self.relative = False
+    #     else:
+    #         self.relativity_switch_button.setText('Relative')
+    #         #self.relative = True
+    #
+
+
+    # def combo_switch_check(self):
+    #     """ Show either the functional units or methods combo-box, dependent on button state. """
+    #     if self.combobox_menu_switch.text() == "Methods":
+    #         self.combobox_menu_switch.setText("Functional Units")
+    #         self.combobox_menu_label.setText(self.combobox_menu_method_label)
+    #     else:
+    #         self.combobox_menu_switch.setText("Methods")
+    #         self.combobox_menu_label.setText(self.combobox_menu_func_label)
+
+
+    def add_combobox(self, method=True, func=False):
         """ Add the combobox menu to the tab. """
         self.combobox_menu = QHBoxLayout()
 
@@ -466,7 +517,6 @@ class AnalysisTab(QWidget):
         self.combobox_menu_method_label = None
         self.combobox_menu_method_bool = method
         self.combobox_menu_func_bool = func
-        self.relativity = relativity
 
         if self.combobox_menu_func_bool:
             self.combobox_menu_func_label = "Functional Unit: "
@@ -488,11 +538,6 @@ class AnalysisTab(QWidget):
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
             self.combobox_menu_switch = QPushButton("Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
-
-        if self.relativity:
-            self.relativity_button = QPushButton("Relative")
-            self.combobox_menu.addWidget(self.relativity_button)
-
 
         self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
@@ -721,7 +766,7 @@ class ProcessContributions(AnalysisTab):
         else:
             method = self.setup.method_dict[method]
         self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, \
-                       limit_type=self.limit_type, normalised=False)
+                       limit_type=self.limit_type, normalised=self.relative)
 
 
 class Correlations(AnalysisTab):
