@@ -24,7 +24,6 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 # TODO: implement parts of each analysis tab as class MM
 
 # TODO: Finish inventory tab (with techno/biosphere options MS
-# TODO: add relative/absolute option for plots in characterised inventory and process contributions MS
 # TODO: add rest+total row to tables in char. inv. and proc. cont. MM
 # TODO: add switch for characterised inventory and process contributions between func unit and method MM
 # TODO: LCIA Results > column specific colour gradients MS
@@ -47,7 +46,7 @@ class CalculationSetupTab(QTabWidget):
         self.update_calculation()
 
         self.LCAscoreComparison_tab = LCAScoreComparison(self)
-        self.inventory_tab = Inventory(self)
+        self.inventory_tab = Inventory(self, custom=True)
         self.inventory_characterisation_tab = InventoryCharacterisation(self, relativity=True)
         self.lcia_results_tab = LCIAAnalysis(self)
         self.process_contributions_tab = ProcessContributions(self, relativity=True)
@@ -94,11 +93,11 @@ class CalculationSetupTab(QTabWidget):
 
 class AnalysisTab(QWidget):
     def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, \
-                 plot=None, export=None, relativity=None, *args, **kwargs):
-        self.relativity = relativity
+                 plot=None, export=None, relativity=None, custom=False, *args, **kwargs):
         super(AnalysisTab, self).__init__(parent)
         self.setup = parent
 
+        self.custom = custom
         self.cutoff_menu = cutoff
         self.cutoff_func = func
 
@@ -107,6 +106,7 @@ class AnalysisTab(QWidget):
         self.plot = plot
         self.limit_type = "percent"
         self.export_menu = export
+        self.relativity = relativity
         self.relative = True
 
         self.name = str()
@@ -121,8 +121,6 @@ class AnalysisTab(QWidget):
 
         self.layout.addLayout(self.TopStrip)
         self.layout.addWidget(horizontal_line())
-
-
 
 
     def connect_analysis_signals(self):
@@ -424,6 +422,7 @@ class AnalysisTab(QWidget):
         self.main_space_widget.setLayout(self.main_space_widget_layout)
         self.main_space.setWidget(self.main_space_widget)
         self.main_space.setWidgetResizable(True)
+
         # Option switch
         self.main_space_tb_grph = QHBoxLayout()
         self.main_space_tb_grph_plot = QCheckBox("Plot")
@@ -447,9 +446,16 @@ class AnalysisTab(QWidget):
             self.main_space_widget_layout.addWidget(self.main_space_plot, 1)
         if self.table:
             self.main_space_widget_layout.addWidget(self.main_space_table)
+
         self.main_space_widget_layout.addStretch()
 
         self.layout.addWidget(self.main_space)
+
+        if self.custom:
+            self.second_space = QScrollArea()
+            self.layout.addWidget(self.second_space)
+            self.test = header('TEST')
+            self.second_space.setWidget(self.test)
 
     def update_analysis_tab(self):
         if self.combobox_menu_combobox != None:
