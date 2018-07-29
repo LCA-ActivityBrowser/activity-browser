@@ -111,7 +111,10 @@ class LCAResultsBarChart(Plot):
         y_pos = np.arange(len(functional_units))
 
         a = self.figure.add_subplot(111)
-        a.barh(y_pos, values, align='center', color='blue', alpha=0.8)
+        color_iterate = iter(plt.rcParams['axes.prop_cycle'])
+        print(color_iterate)
+        for i in range(len(values)):
+            a.barh(y_pos[i], values[i], align='center', color=next(color_iterate)['color'], alpha=0.8)
         a.set_yticks(y_pos)
         a.set_xlabel('Score')
         a.set_title('LCA scores compared')
