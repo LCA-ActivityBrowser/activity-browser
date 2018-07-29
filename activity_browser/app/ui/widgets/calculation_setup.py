@@ -113,11 +113,13 @@ class AnalysisTab(QWidget):
         self.header = header(self.name)
 
         self.layout = QVBoxLayout()
+        self.TopStrip = QHBoxLayout()
         self.setLayout(self.layout)
 
-        self.relativity_button()
+        self.TopStrip.addWidget(self.header)
+        self.relativity_button(self.TopStrip)
 
-        self.layout.addWidget(self.header)
+        self.layout.addLayout(self.TopStrip)
         self.layout.addWidget(horizontal_line())
 
 
@@ -461,10 +463,10 @@ class AnalysisTab(QWidget):
         """ Update the table. """
         self.table.sync(self.setup.mlca)
 
-    def relativity_button(self):
+    def relativity_button(self, layout):
         if self.relativity is not None:
             self.b = QPushButton('Relative')
-            self.layout.addWidget(self.b)
+            layout.addWidget(self.b)
             self.b.clicked.connect(self.relativity_check)
 
     def relativity_check(self):
