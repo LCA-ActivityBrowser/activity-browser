@@ -2,6 +2,7 @@
 import numpy as np
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
+from brightway2 import get_activity
 
 ca = ContributionAnalysis()
 
@@ -28,6 +29,15 @@ class MLCA(object):
         self.func_units = cs['inv']
         self.methods = cs['ia']
         self.method_dict = {m: i for i, m in enumerate(self.methods)}
+        self.method_dict_list = list(self.method_dict.keys())
+
+        self.method_dict = {}
+        self.method_dict_list = []
+        for i, m in enumerate(self.methods):
+            self.method_dict.update({m: i})
+            self.method_dict_list.append({m: i})
+
+
         self.lca = bw.LCA(demand=self.all, method=self.methods[0])
         self.lca.lci(factorize=True)
         self.method_matrices = []
@@ -69,6 +79,11 @@ class MLCA(object):
                 self.elementary_flow_contributions[row, col] = np.array(
                     self.lca.characterized_inventory.sum(axis=1)).ravel()
 
+        self.func_unit_translation_dict = {str(get_activity(list(func_unit.keys())[0])): func_unit
+                                           for func_unit in self.func_units}
+        self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
+        self.func_key_list = list(self.func_key_dict.keys())
+
     @property
     def all(self):
         """Get all possible databases by merging all functional units"""
@@ -79,12 +94,13 @@ class MLCA(object):
         return self.results / self.results.max(axis=0)
 
     # CONTRIBUTION ANALYSIS
-    def top_process_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
+    def top_process_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number" ):
         if method_name:
             method = self.method_dict[method_name]
         else:
             method = 0
         contribution_array = self.process_contributions[:, method, :]
+
         if normalised:
             fu_scores = contribution_array.sum(axis=1)
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
@@ -99,6 +115,28 @@ class MLCA(object):
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
         return topcontribution_dict
 
+    def top_process_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
+        if func_name:
+            func = self.func_key_dict[func_name]
+        else:
+            func = 0
+        self.process_cont_T = self.process_contributions.T
+        contribution_array = self.process_cont_T[:, func, :]
+
+        if normalised:
+            m_scores = contribution_array.sum(axis=1)
+            contribution_array = contribution_array / m_scores[:, np.newaxis]
+        topcontribution_dict = {}
+        for col, m in enumerate(self.method_dict_list):
+            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
+            cont_per_m = {}
+            cont_per_m.update(
+                {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
+            for value, index in top_contribution:
+                cont_per_m.update({self.rev_activity_dict[index]: value})
+            topcontribution_dict.update({next(iter(m.keys())): cont_per_fu})
+        return topcontribution_dict
+
     def top_elementary_flow_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
         if method_name:
             method = self.method_dict[method_name]
@@ -110,6 +148,30 @@ class MLCA(object):
             contribution_array = contribution_array / fu_scores[:, np.newaxis]
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
+            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
+            cont_per_fu = {}
+            cont_per_fu.update(
+                {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
+            for value, index in top_contribution:
+                cont_per_fu.update({self.rev_biosphere_dict[index]: value})
+            topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
+        return topcontribution_dict
+
+    def top_elementary_flow_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
+        if func_name:
+            func = self.func_key_dict[func_name]
+        else:
+            func = 0
+
+        self.process_cont_T = self.process_contributions.T
+        contribution_array = self.process_cont_T[:, func, :]
+
+        # contribution_array = self.elementary_flow_contributions[:, method, :]
+        if normalised:
+            fu_scores = contribution_array.sum(axis=1)
+            contribution_array = contribution_array / fu_scores[:, np.newaxis]
+        topcontribution_dict = {}
+        for col, fu in enumerate(self.method_dict_list):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
             cont_per_fu = {}
             cont_per_fu.update(

@@ -167,7 +167,6 @@ class AnalysisTab(QWidget):
             if self.table:
                 self.combobox_menu_combobox.currentTextChanged.connect(self.update_table)
 
-
         # Mainspace Checkboxes
         self.main_space_tb_grph_table.stateChanged.connect(
             lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
@@ -190,11 +189,11 @@ class AnalysisTab(QWidget):
         if self.combobox_menu_switch.text() == "Methods":
             self.combobox_menu_switch.setText("Functional Units")
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
-            # functionality to actually change plots and tables
         else:
             self.combobox_menu_switch.setText("Methods")
             self.combobox_menu_label.setText(self.combobox_menu_func_label)
-            # functionality to actually change plots and tables
+        self.update_analysis_tab()
+
 
     def cutoff_increment_left_check(self):
         """ Move the slider 1 increment when left button is clicked. """
@@ -532,11 +531,13 @@ class AnalysisTab(QWidget):
             self.combobox_menu_combobox = self.combobox_menu_combobox_method
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
 
+        if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+            self.combobox_menu_switch = QPushButton("Functional Units")
+
         self.combobox_menu.addWidget(self.combobox_menu_label)
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
 
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-            self.combobox_menu_switch = QPushButton("Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
 
         self.combobox_menu_horizontal = horizontal_line()
@@ -557,8 +558,7 @@ class AnalysisTab(QWidget):
                 visibility = False
 
         else:
-            self.combobox_list = [str(get_activity(list(func_unit.keys())[0])) for func_unit in
-                                  self.setup.mlca.func_units]
+            self.combobox_list = list(self.setup.mlca.func_unit_translation_dict.keys())
             if self.setup.single_func_unit:
                 visibility = False
 
@@ -698,11 +698,22 @@ class InventoryCharacterisation(AnalysisTab):
         self.connect_analysis_signals()
 
     def update_plot(self, method=None):
-        if method == None or method == '':
-            method = self.setup.mlca.methods[0]
+        if self.combobox_menu_label.text() == self.combobox_menu_method_label:
+            if method == None or method == '':
+                method = self.setup.mlca.methods[0]
+            else:
+                method = self.setup.method_dict[method]
+            func = None
+            per = "method"
         else:
-            method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, limit_type=self.limit_type)
+            func = method
+            if func == None or func == '':
+                func = self.setup.mlca.func_key_list[0]
+            method = None
+            per = "func"
+
+        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_value,
+                       limit_type=self.limit_type, per=per)
 
 
 class LCIAAnalysis(AnalysisTab):
@@ -752,7 +763,7 @@ class ProcessContributions(AnalysisTab):
 
         self.add_cutoff()
         self.cutoff_value = 0.05
-        self.add_combobox()
+        self.add_combobox(method=True, func=True)
         self.add_main_space()
         self.add_export()
 
@@ -761,12 +772,22 @@ class ProcessContributions(AnalysisTab):
         self.connect_analysis_signals()
 
     def update_plot(self, method=None):
-        if method == None or method == '':
-            method = self.setup.mlca.methods[0]
+        if self.combobox_menu_label.text() == self.combobox_menu_method_label:
+            if method == None or method == '':
+                method = self.setup.mlca.methods[0]
+            else:
+                method = self.setup.method_dict[method]
+            func = None
+            per = "method"
         else:
-            method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method, limit=self.cutoff_value, \
-                       limit_type=self.limit_type, normalised=self.relative)
+            func = method
+            if func == None or func == '':
+                func = self.setup.mlca.func_key_list[0]
+            method = None
+            per = "func"
+
+        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_value,
+                       limit_type=self.limit_type, per=per, normalised=self.relative)
 
 
 class Correlations(AnalysisTab):
