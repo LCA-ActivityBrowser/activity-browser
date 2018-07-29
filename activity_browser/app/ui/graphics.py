@@ -10,6 +10,7 @@ from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
+from brightway2 import get_activity
 
 
 class Plot(QtWidgets.QWidget):
@@ -101,11 +102,11 @@ class LCAResultsBarChart(Plot):
         super(LCAResultsBarChart, self).__init__(parent, *args)
 
     def plot(self, mlca):
-        Functional_units = ['A', 'B', 'T', 'Q', 'G']
-        # Funtional_units = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
+        #Functional_units = ['A', 'B', 'T', 'Q', 'G']
+        Functional_units = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
         method = 'IMPACT 2002+ (Endpoint)', 'resources', 'total'
-        values = [0.000000005, 0.000000004, 0.000000003, 0.000000002, 0.000000001]
-        # values = lca.results[:, lca.methods.index(method)]
+        #values = [0.000000005, 0.000000004, 0.000000003, 0.000000002, 0.000000001]
+        values = mlca.results[:, mlca.methods.index(method)]
         y_pos = np.arange(len(Functional_units))
 
         a = self.figure.add_subplot(111)
