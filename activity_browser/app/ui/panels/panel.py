@@ -94,5 +94,6 @@ class ActivitiesPanel(Panel):
         signals.activity_tabs_changed.emit()
 
     def close_all_activity_tabs(self):
-        for i in range(len(activity_cache)):
+        open_tab_count = len(activity_cache)
+        for i in reversed(range(open_tab_count)):
             self.close_tab(i)
