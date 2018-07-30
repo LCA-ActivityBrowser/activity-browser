@@ -59,12 +59,17 @@ class BiosphereTable(QtWidgets.QTableView):
     def sync(self, mlca, method=None, limit=100):
         if method is None:
             method = mlca.methods[0]
-        #matrix = mlca.inventories[method].toarray()
+        matrix = mlca.inventories[method]
 
+        x1 = matrix[:,:20]
+        matrix = x1[:20,:]
+
+        #print(matrix.toarray)
 
         table = QtWidgets.QTableWidget(self)
-        matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
+        #matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
 
+        matrix = matrix.toarray()
 
         table.setRowCount(matrix.shape[1])
         table.setColumnCount(matrix.shape[0])
@@ -73,6 +78,8 @@ class BiosphereTable(QtWidgets.QTableView):
                 table.setItem(nj, ni, QtWidgets.QTableWidgetItem(str(j)))
         table.setVerticalScrollMode(1)
         table.setHorizontalScrollMode(1)
+        table.resizeColumnsToContents()
+        table.resizeRowsToContents()
         return table
 
 

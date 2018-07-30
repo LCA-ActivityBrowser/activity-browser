@@ -114,7 +114,7 @@ class AnalysisTab(QWidget):
         if self.custom:
             self.Second_Space = QScrollArea()
             self.SecondWidget = QWidget()
-            self.test = header('TEST')
+            self.test = header('Biosphere Inventory')
             self.SecondTable = BiosphereTable(self.setup)
             self.SecondLayout = QVBoxLayout()
         self.layout = QVBoxLayout()
