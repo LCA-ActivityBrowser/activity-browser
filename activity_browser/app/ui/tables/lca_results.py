@@ -5,6 +5,7 @@ from brightway2 import get_activity
 from .dataframe_table import ABDataFrameTable
 
 
+
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
     def sync(self, lca):
@@ -34,16 +35,26 @@ class InventoryCharacterisationTable(ABDataFrameTable):
 
 class InventoryTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, method=None, limit=18):
-        key = method
-        array = mlca.technosphere_flows[key]
-        max_length = limit
-        length = min(max_length, len(array))
-        labels = [get_activity(mlca.rev_activity_dict[i]) for i in range(length)]
+    def sync(self, mlca, method=None, limit=100):
+        array = mlca.technosphere_flows[method]
+        length = min(limit, len(array))
+        labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
+        shortlabels = [((i[:98]+'..') if len(i)> 100 else i) for i in labels]
         col_labels = ['Amount']
-        row_labels = [str(i) for i in labels[:length]]
+        row_labels = [i for i in shortlabels[:length]]
 
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
 
-        self.setVerticalScrollMode(1)
-        self.setHorizontalScrollMode(1)
+
+class BiosphereTable(ABDataFrameTable):
+    @ABDataFrameTable.decorated_sync
+    def sync(self, mlca, method=None, limit=100):
+        length = min(limit, len(array))
+        labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
+        shortlabels = [((i[:48]+'..') if len(i)> 50 else i) for i in labels]
+        row_labels = [i for i in shortlabels[:length]]
+
+        #self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
+
+
+
