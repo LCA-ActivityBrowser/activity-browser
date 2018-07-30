@@ -400,7 +400,7 @@ class Graph:
                         "key": node.key,
                         "db": node.key[0],
                         "id": node.key[1],
-                        "product": node.get("reference product"),
+                        "product": node.get("reference product") or node.get("name"),
                         "name": node.get("name"),
                         "location": node.get("location"),
                     }
@@ -410,7 +410,8 @@ class Graph:
                     {
                         "source_id": exc.input.key[1],
                         "target_id": exc.output.key[1],
-                        "label": exc.input.get("reference product")
+                        "amount": exc.get("amount"),
+                        "label": exc.input.get("reference product") or exc.input.get("name"),
                     }
                     for exc in self.edges
                 ]

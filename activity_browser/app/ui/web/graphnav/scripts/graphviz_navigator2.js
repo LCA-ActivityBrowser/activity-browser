@@ -112,7 +112,7 @@ d3.demo.canvas = function() {
             .attr("width", width)
             .attr("height", height);
 
-        var filter = svgDefs.append("svg:filter")
+        var filter = svgDefs.append("svg:filter")  // frame of the mini-map
             .attr("id", "minimapDropShadow_qwpyza")
             .attr("x", "-20%")
             .attr("y", "-20%")
@@ -234,6 +234,8 @@ d3.demo.canvas = function() {
             updateDimensions();
             canvas.reset();
             panCanvas.call(render,graph);
+            // get panCanvas width here?
+            // pan to node (implement here)
             minimap.render();
         };
 
@@ -506,6 +508,10 @@ var svg = d3.select("body")
  })) */
 
 
+// Access graph size:
+//panCanvas.graph().width
+
+
 
 var render = dagreD3.render();
 var graph = {}
@@ -539,8 +545,14 @@ function update_graph(json_data) {
 	  // edges --> graph
 	  data.edges.forEach(function(e) {
 	  	// document.writeln(e['source']);
-	    graph.setEdge(e['source_id'], e['target_id'], {label: chunkString(e['label'], max_string_length)
-	    });
+	    graph.setEdge(
+                e['source_id'],
+                e['target_id'],
+                {
+                    label: chunkString(e['label'], max_string_length),
+                    weight: Math.abs(e['amount']),
+                }
+	        );
 	  });
 
     console.log("Edges successfully loaded...")
@@ -557,6 +569,11 @@ function update_graph(json_data) {
 	  var nodes = panCanvas.selectAll("g .node")
 	      .on("click", handleMouseClick)
 	      console.log ("click!");
+
+      // set the stroke-width of edges according to data of the edge (e.g. flow value or impact)
+      var edges = panCanvas.selectAll("g .edgePath")
+//          .attr("stroke-width", function(d) { return Math.random()*10; })
+        .attr("stroke-width", function(d) { return graph.edge(d).weight; })
 
 	// Function called on click
 	function handleMouseClick(node){
