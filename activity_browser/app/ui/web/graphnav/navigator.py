@@ -69,7 +69,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.button_navigation_mode.clicked.connect(self.toggle_navigation_mode)
 
         # button refresh
-        self.button_refresh = QtWidgets.QPushButton('Refresh/Resize')
+        self.button_refresh = QtWidgets.QPushButton('Refresh')
         self.button_refresh.clicked.connect(self.draw_graph)
 
         # button random

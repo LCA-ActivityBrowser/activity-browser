@@ -59,6 +59,7 @@ http://www.billdwhite.com/wordpress/2013/12/02/d3-force-layout-with-pan-and-zoom
 d3.demo = {};
 
 /** CANVAS **/
+// function object for the canvas
 d3.demo.canvas = function() {
 
     getWindowSize();
@@ -227,6 +228,7 @@ d3.demo.canvas = function() {
         svg.call(minimap);
 
         /** ADD SHAPE **/
+        // function to update dimensions, reset the canvas (with new dimensions), render the graph in canvas & minimap
         canvas.addItem = function() {
             //canvas.render();
             updateDimensions();
