@@ -442,11 +442,14 @@ class AnalysisTab(QWidget):
 
         if self.custom:
             self.main_space.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            self.layout.addWidget(self.Second_Space)
-            self.SecondWidget.setLayout(self.SecondLayout)
-            self.Second_Space.setWidget(self.SecondWidget)
+
             self.SecondLayout.addWidget(self.test)
             self.SecondLayout.addWidget(self.SecondTable)
+
+            self.SecondWidget.setLayout(self.SecondLayout)
+            self.Second_Space.setWidget(self.SecondWidget)
+            self.layout.addWidget(self.Second_Space)
+
 
 
     def make_layout(self, grid, scroll_space):
