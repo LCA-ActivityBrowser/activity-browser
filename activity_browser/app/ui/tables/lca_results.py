@@ -6,6 +6,8 @@ from brightway2 import get_activity
 from .dataframe_table import ABDataFrameTable
 from PyQt5 import QtCore, QtWidgets
 
+from operator import itemgetter
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -47,7 +49,17 @@ class InventoryTable(ABDataFrameTable):
         length = min(limit, len(array))
         labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
         shortlabels = [((i[:98]+'..') if len(i)> 100 else i) for i in labels]
-        array, shortlabels = (list(t) for t in zip(*sorted(zip(array, shortlabels))))
+
+        array, shortlabels = (list(t) for t in zip(*reversed(sorted(zip(array, shortlabels)))))
+
+        data_tuples = [
+            (float(i), shortlabels[n])
+            for n, i in enumerate(array)]
+
+        ordered_data = (sorted(data_tuples, key=itemgetter(0), reverse=True))
+        array = [i[0] for i in ordered_data]
+        shortlabels = [i[1] for i in ordered_data]
+
         col_labels = ['Amount']
         row_labels = [i for i in shortlabels[:length]]
 
