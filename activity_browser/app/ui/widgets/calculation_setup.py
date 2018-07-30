@@ -46,7 +46,7 @@ class CalculationSetupTab(QTabWidget):
         self.LCAscoreComparison_tab = LCAScoreComparison(self)
         self.inventory_tab = Inventory(self, custom=True)
         self.inventory_characterisation_tab = InventoryCharacterisation(self, relativity=True)
-        self.lcia_results_tab = LCIAAnalysis(self)
+        self.lcia_results_tab = LCIAAnalysis(self, relativity=True)
         self.process_contributions_tab = ProcessContributions(self, relativity=True)
         self.correlations_tab = Correlations(self)
 
@@ -714,10 +714,10 @@ class LCIAAnalysis(AnalysisTab):
 
     def update_plot(self):
         if isinstance(self.plot, LCAResultsPlot):
-            self.plot.plot(self.setup.mlca)
+            self.plot.plot(self.setup.mlca, normalised=self.relative)
         else:
             self.plot = LCAResultsPlot(self.setup)
-            self.plot.plot(self.setup.mlca)
+            self.plot.plot(self.setup.mlca, normalised=self.relative)
 
     def update_table(self):
         if isinstance(self.table, LCAResultsTable):

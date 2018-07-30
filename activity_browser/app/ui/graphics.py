@@ -129,7 +129,7 @@ class LCAResultsPlot(Plot):
     def __init__(self, parent=None, *args):
         super(LCAResultsPlot, self).__init__(parent, *args)
 
-    def plot(self, mlca):
+    def plot(self, mlca, normalised=False):
         """ Plot a heatmap grid of the different methods and functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
@@ -140,12 +140,18 @@ class LCAResultsPlot(Plot):
             format_activity_label(next(iter(f.keys())), style='pnl') for f in mlca.func_units
         ]
 
-
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         # cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
+
+        print(normalised)
+
+        if normalised:
+            mlca.use_results = mlca.results_normalized  # Normalize to get relative results
+        else:
+            mlca.use_results = mlca.results
+
         hm = sns.heatmap(
-            # mlca.results_normalized  # Normalize to get relative results
-            mlca.results,
+            mlca.use_results,
             annot=True,
             linewidths=.05,
             # cmap=cmap,
