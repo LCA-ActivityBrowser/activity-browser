@@ -28,15 +28,11 @@ class MLCA(object):
             )
         self.func_units = cs['inv']
         self.methods = cs['ia']
-        self.method_dict = {m: i for i, m in enumerate(self.methods)}
-        self.method_dict_list = list(self.method_dict.keys())
-
         self.method_dict = {}
         self.method_dict_list = []
         for i, m in enumerate(self.methods):
             self.method_dict.update({m: i})
             self.method_dict_list.append({m: i})
-
 
         self.lca = bw.LCA(demand=self.all, method=self.methods[0])
         self.lca.lci(factorize=True)
@@ -99,10 +95,15 @@ class MLCA(object):
             method = self.method_dict[method_name]
         else:
             method = 0
+
+        # Take slice for specific method from all contributions
         contribution_array = self.process_contributions[:, method, :]
 
+        # Make normalised if required
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
+
+        # Sort each functional unit column independently
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
@@ -119,11 +120,16 @@ class MLCA(object):
             func = self.func_key_dict[func_name]
         else:
             func = 0
-        self.process_cont_T = self.process_contributions.T
-        contribution_array = self.process_cont_T[:, func, :]
 
+        # Take slice for specific functional unit from all contributions
+        process_cont_T = self.process_contributions.T
+        contribution_array = process_cont_T[:, func, :]
+
+        # Make normalised if required
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
+
+        # Sort each method column independently
         topcontribution_dict = {}
         for col, m in enumerate(self.method_dict_list):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
@@ -140,9 +146,15 @@ class MLCA(object):
             method = self.method_dict[method_name]
         else:
             method = 0
+
+        # Take slice for specific method from all contributions
         contribution_array = self.elementary_flow_contributions[:, method, :]
+
+        # Make normalised if required
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
+
+        # Sort each functional unit column independently
         topcontribution_dict = {}
         for col, fu in enumerate(self.func_units):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
@@ -160,11 +172,15 @@ class MLCA(object):
         else:
             func = 0
 
-        self.process_cont_T = self.process_contributions.T
-        contribution_array = self.process_cont_T[:, func, :]
+        # Take slice for specific functional unit from all contributions
+        process_cont_T = self.process_contributions.T
+        contribution_array = process_cont_T[:, func, :]
 
+        # Make normalised if required
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
+
+        # Sort each method column independently
         topcontribution_dict = {}
         for col, m in enumerate(self.method_dict_list):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)

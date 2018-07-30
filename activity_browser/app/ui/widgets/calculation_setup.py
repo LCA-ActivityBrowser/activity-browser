@@ -17,12 +17,10 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScro
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-
 # TODO: Finish inventory tab (with techno/biosphere options MS
 # TODO: add rest+total row to tables in char. inv. and proc. cont. MM
 # TODO: LCIA Results > column specific colour gradients MS
 # TODO: LOW PRIORITY: add filtering for tables/graphs ANY
-
 
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
@@ -116,7 +114,6 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.TopStrip)
         self.layout.addWidget(horizontal_line())
 
-
     def connect_analysis_signals(self):
         # Cut-off
         if self.cutoff_menu:
@@ -174,8 +171,7 @@ class AnalysisTab(QWidget):
         else:
             self.combobox_menu_switch.setText("Methods")
             self.combobox_menu_label.setText(self.combobox_menu_func_label)
-        self.update_analysis_tab()
-
+        self.update_combobox()
 
     def cutoff_increment_left_check(self):
         """ Move the slider 1 increment when left button is clicked. """
@@ -390,7 +386,6 @@ class AnalysisTab(QWidget):
             self.main_space_table.setVisible(True)
             self.main_space_plot.setVisible(False)
 
-
     def add_main_space(self):
         """ Add the main space to the tab. """
         # Why is this a function and not implemented in the init?;
@@ -468,7 +463,6 @@ class AnalysisTab(QWidget):
             self.update_plot()
         if self.table:
             self.update_table()
-
 
     def add_combobox(self, method=True, func=False):
         """ Add the combobox menu to the tab. """

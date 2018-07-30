@@ -12,7 +12,6 @@ from PyQt5 import QtWidgets
 from ..bwutils.commontasks import format_activity_label, wrap_text
 from brightway2 import get_activity
 
-
 class Plot(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Plot, self).__init__(parent)
@@ -218,8 +217,6 @@ class InventoryCharacterisationPlot(Plot):
         self.ax.clear()
         height = 3 + len(mlca.func_units) * 0.5
         self.figure.set_figheight(height)
-
-        tc = mlca.top_elementary_flow_contributions_per_method(method_name=method, limit=limit, normalised=True, limit_type=limit_type)
 
         if per == "method":
             tc = mlca.top_elementary_flow_contributions_per_method(method_name=method, limit=limit, normalised=normalised,
