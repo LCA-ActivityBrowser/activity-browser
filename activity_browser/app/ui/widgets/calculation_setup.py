@@ -114,7 +114,7 @@ class AnalysisTab(QWidget):
         if self.custom:
             self.Second_Space = QScrollArea()
             self.SecondWidget = QWidget()
-            self.test = header('Biosphere Inventory')
+            self.Biosphere = header('Biosphere Inventory')
             self.SecondTable = BiosphereTable(self.setup)
             self.SecondLayout = QVBoxLayout()
         self.layout = QVBoxLayout()
@@ -443,7 +443,7 @@ class AnalysisTab(QWidget):
         if self.custom:
             self.main_space.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-            self.SecondLayout.addWidget(self.test)
+            self.SecondLayout.addWidget(self.Biosphere)
             self.SecondLayout.addWidget(self.SecondTable)
 
             self.SecondWidget.setLayout(self.SecondLayout)
