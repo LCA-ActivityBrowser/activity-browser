@@ -1,5 +1,3 @@
-
-
 from ..style import horizontal_line, vertical_line, header
 from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable, InventoryCharacterisationTable
 from ..graphics import (
@@ -19,13 +17,9 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScro
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-# TODO: fix box-in-box of the main space
-
-# TODO: implement parts of each analysis tab as class MM
 
 # TODO: Finish inventory tab (with techno/biosphere options MS
 # TODO: add rest+total row to tables in char. inv. and proc. cont. MM
-# TODO: add switch for characterised inventory and process contributions between func unit and method MM
 # TODO: LCIA Results > column specific colour gradients MS
 # TODO: LOW PRIORITY: add filtering for tables/graphs ANY
 
@@ -483,7 +477,10 @@ class AnalysisTab(QWidget):
         else:
             self.b.setText('Absolute')
             self.relative = False
-        self.update_analysis_tab()
+        if self.plot:
+            self.update_plot()
+        if self.table:
+            self.update_table()
 
 
     def add_combobox(self, method=True, func=False):
