@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-from scipy.sparse import csr_matrix
 from brightway2 import get_activity
 
 from .dataframe_table import ABDataFrameTable
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtWidgets
 
 from operator import itemgetter
 
-import matplotlib.pyplot as plt
-import numpy as np
 
 
 
@@ -86,6 +83,8 @@ class BiosphereTable(QtWidgets.QTableView):
                 table.setItem(nj, ni, QtWidgets.QTableWidgetItem(str(j)))
         table.setVerticalScrollMode(1)
         table.setHorizontalScrollMode(1)
+        #table.resize(800, 200)
+        #table.setMinimumWidth(400)
         return table
 
 
