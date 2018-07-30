@@ -639,8 +639,7 @@ class Inventory(AnalysisTab):
         self.name = "Inventory"
         self.header.setText(self.name)
 
-        self.table = InventoryTable(self.setup)
-        #self.table = BiosphereTable(self.setup)
+        self.table = InventoryTable(self.setup, maxheight=20)
 
         self.add_combobox(method=False, func=True)
         self.add_main_space()
