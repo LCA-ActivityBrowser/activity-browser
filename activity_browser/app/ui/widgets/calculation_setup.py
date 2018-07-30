@@ -459,7 +459,7 @@ class AnalysisTab(QWidget):
         if self.table:
             self.update_table()
 
-    def update_table(self):
+    def update_table(self, method=None):
         """ Update the table. """
         self.table.sync(self.setup.mlca)
 

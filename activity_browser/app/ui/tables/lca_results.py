@@ -70,13 +70,13 @@ class InventoryTable(ABDataFrameTable):
 class BiosphereTable(QtWidgets.QTableView):
     def __init__(self, parent):
         super(BiosphereTable, self).__init__(parent)
-    def sync(self, mlca, method=None, limit=100):
+    def sync(self, mlca, method=None, limit=20):
 
         if method not in mlca.technosphere_flows.keys():
             method = mlca.func_unit_translation_dict[str(method)]
 
         matrix = mlca.inventories[str(method)]
-        matrix = matrix[:20,:20]
+        matrix = matrix[:limit,:limit]
 
         table = QtWidgets.QTableWidget(self)
         #matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
