@@ -47,6 +47,7 @@ class InventoryTable(ABDataFrameTable):
         length = min(limit, len(array))
         labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
         shortlabels = [((i[:98]+'..') if len(i)> 100 else i) for i in labels]
+        array, shortlabels = (list(t) for t in zip(*sorted(zip(array, shortlabels))))
         col_labels = ['Amount']
         row_labels = [i for i in shortlabels[:length]]
 
@@ -60,7 +61,6 @@ class BiosphereTable(QtWidgets.QTableView):
         if method is None:
             method = mlca.methods[0]
         matrix = mlca.inventories[method]
-
         matrix = matrix[:20,:20]
 
         table = QtWidgets.QTableWidget(self)
@@ -77,24 +77,6 @@ class BiosphereTable(QtWidgets.QTableView):
         return table
 
 
-
-
-# class BiosphereTable(ABDataFrameTable):
-#     @ABDataFrameTable.decorated_sync
-#     def sync(self, mlca, method=None, limit=100):
-#         if method is None:
-#             method = mlca.methods[0]
-#         matrix = mlca.inventories[method]
-#         length = limit #min(limit, len(array))
-#         labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
-#         shortlabels = [((i[:48]+'..') if len(i)> 50 else i) for i in labels]
-#         row_labels = [i for i in shortlabels[:length]]
-#
-#         #self.dataframe = pd.DataFrame(matrix)#, index=row_labels)
-#         self.dataframe = pd.DataFrame([[1,2,1],[3,4,9]])
-#
-#
-#
 
 
 
