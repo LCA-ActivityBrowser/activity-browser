@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
+from scipy.sparse import csr_matrix
 from brightway2 import get_activity
 
 from .dataframe_table import ABDataFrameTable
 from PyQt5 import QtCore, QtWidgets
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 
@@ -49,32 +53,47 @@ class InventoryTable(ABDataFrameTable):
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
 
 
-class BiosphereTable2(QtWidgets.QTableView):
+class BiosphereTable(QtWidgets.QTableView):
     def __init__(self, parent):
         super(BiosphereTable, self).__init__(parent)
     def sync(self, mlca, method=None, limit=100):
         if method is None:
             method = mlca.methods[0]
+        #matrix = mlca.inventories[method].toarray()
+
+
+        table = QtWidgets.QTableWidget(self)
+        matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
+
+
+        table.setRowCount(matrix.shape[1])
+        table.setColumnCount(matrix.shape[0])
+        for ni, i in enumerate(matrix):
+            for nj, j in enumerate(i):
+                table.setItem(nj, ni, QtWidgets.QTableWidgetItem(str(j)))
+        table.setVerticalScrollMode(1)
+        table.setHorizontalScrollMode(1)
+        return table
 
 
 
 
-class BiosphereTable(ABDataFrameTable):
-    @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, method=None, limit=100):
-        if method is None:
-            method = mlca.methods[0]
-        matrix = mlca.inventories[method]
-        length = limit #min(limit, len(array))
-        labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
-        shortlabels = [((i[:48]+'..') if len(i)> 50 else i) for i in labels]
-        row_labels = [i for i in shortlabels[:length]]
-
-        #self.dataframe = pd.DataFrame(matrix)#, index=row_labels)
-        self.dataframe = pd.DataFrame([[1,2,1],[3,4,9]])
-
-
-
+# class BiosphereTable(ABDataFrameTable):
+#     @ABDataFrameTable.decorated_sync
+#     def sync(self, mlca, method=None, limit=100):
+#         if method is None:
+#             method = mlca.methods[0]
+#         matrix = mlca.inventories[method]
+#         length = limit #min(limit, len(array))
+#         labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
+#         shortlabels = [((i[:48]+'..') if len(i)> 50 else i) for i in labels]
+#         row_labels = [i for i in shortlabels[:length]]
+#
+#         #self.dataframe = pd.DataFrame(matrix)#, index=row_labels)
+#         self.dataframe = pd.DataFrame([[1,2,1],[3,4,9]])
+#
+#
+#
 
 
 
