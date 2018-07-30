@@ -42,7 +42,11 @@ class InventoryTable(ABDataFrameTable):
         super(InventoryTable, self).__init__(parent, **kwargs)
     @ABDataFrameTable.decorated_sync
     def sync(self, mlca, method=None, limit=1000):
-        array = mlca.technosphere_flows[method]
+
+        if method not in mlca.technosphere_flows.keys():
+            method = mlca.func_unit_translation_dict[str(method)]
+
+        array = mlca.technosphere_flows[str(method)]
         length = min(limit, len(array))
         labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
         shortlabels = [((i[:98]+'..') if len(i)> 100 else i) for i in labels]
@@ -67,9 +71,11 @@ class BiosphereTable(QtWidgets.QTableView):
     def __init__(self, parent):
         super(BiosphereTable, self).__init__(parent)
     def sync(self, mlca, method=None, limit=100):
-        if method is None:
-            method = mlca.methods[0]
-        matrix = mlca.inventories[method]
+
+        if method not in mlca.technosphere_flows.keys():
+            method = mlca.func_unit_translation_dict[str(method)]
+
+        matrix = mlca.inventories[str(method)]
         matrix = matrix[:20,:20]
 
         table = QtWidgets.QTableWidget(self)
@@ -83,7 +89,6 @@ class BiosphereTable(QtWidgets.QTableView):
                 table.setItem(nj, ni, QtWidgets.QTableWidgetItem(str(j)))
         table.setVerticalScrollMode(1)
         table.setHorizontalScrollMode(1)
-        #table.resize(800, 200)
         table.setMinimumWidth(700)
         return table
 

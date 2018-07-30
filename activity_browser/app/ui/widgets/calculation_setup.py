@@ -157,7 +157,8 @@ class AnalysisTab(QWidget):
                     lambda name: self.update_plot(method=name))
 
             if self.table:
-                self.combobox_menu_combobox.currentTextChanged.connect(self.update_table)
+                self.combobox_menu_combobox.currentTextChanged.connect(
+                    lambda name: self.update_table(method=name))
 
         # Mainspace Checkboxes
         self.main_space_tb_grph_table.stateChanged.connect(
