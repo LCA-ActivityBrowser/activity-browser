@@ -445,6 +445,7 @@ class AnalysisTab(QWidget):
             self.SecondLayout.addWidget(self.Biosphere)
             self.SecondLayout.addWidget(self.SecondTable)
             self.SecondWidget.setLayout(self.SecondLayout)
+            self.SecondWidget.setMinimumWidth(718)
             self.Second_Space.setWidget(self.SecondWidget)
             self.layout.addWidget(self.Second_Space)
 

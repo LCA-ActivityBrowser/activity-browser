@@ -84,7 +84,7 @@ class BiosphereTable(QtWidgets.QTableView):
         table.setVerticalScrollMode(1)
         table.setHorizontalScrollMode(1)
         #table.resize(800, 200)
-        #table.setMinimumWidth(400)
+        table.setMinimumWidth(700)
         return table
 
 
