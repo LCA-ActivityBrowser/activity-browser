@@ -80,6 +80,15 @@ class MLCA(object):
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_key_dict.keys())
 
+        # print("full process_contr shape:", self.process_contributions.shape)
+        # print("T test T", self.process_contributions.T.shape)
+        # print("T test T.T", self.process_contributions.T.T.shape)
+        # intermediate = self.process_contributions.T
+        # print("T test T intermediate T", intermediate.T.shape)
+        # print("T test 0", self.process_contributions.transpose(0).shape)
+        # print("T test 1", self.process_contributions.transpose(1).shape)
+        # print("T test 2", self.process_contributions.transpose(2).shape)
+
     @property
     def all(self):
         """Get all possible databases by merging all functional units"""
@@ -91,6 +100,7 @@ class MLCA(object):
 
     # CONTRIBUTION ANALYSIS
     def top_process_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number" ):
+        """ Return process contributions per assessment method. """
         if method_name:
             method = self.method_dict[method_name]
         else:
@@ -116,14 +126,14 @@ class MLCA(object):
         return topcontribution_dict
 
     def top_process_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
+        """ Return process contributions per functional unit. """
         if func_name:
             func = self.func_key_dict[func_name]
         else:
             func = 0
 
         # Take slice for specific functional unit from all contributions
-        process_cont_T = self.process_contributions.T
-        contribution_array = process_cont_T[:, func, :]
+        contribution_array = self.elementary_flow_contributions[func, :, :]
 
         # Make normalised if required
         if normalised:
@@ -142,6 +152,7 @@ class MLCA(object):
         return topcontribution_dict
 
     def top_elementary_flow_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
+        """ Return elementary flow (inventory characterisation) contributions per assessment method. """
         if method_name:
             method = self.method_dict[method_name]
         else:
@@ -149,6 +160,8 @@ class MLCA(object):
 
         # Take slice for specific method from all contributions
         contribution_array = self.elementary_flow_contributions[:, method, :]
+
+        print("method process_contr shape:", contribution_array.shape)
 
         # Make normalised if required
         if normalised:
@@ -167,14 +180,14 @@ class MLCA(object):
         return topcontribution_dict
 
     def top_elementary_flow_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
+        """ Return elementary flow (inventory characterisation) contributions per functional unit. """
         if func_name:
             func = self.func_key_dict[func_name]
         else:
             func = 0
 
         # Take slice for specific functional unit from all contributions
-        process_cont_T = self.process_contributions.T
-        contribution_array = process_cont_T[:, func, :]
+        contribution_array = self.elementary_flow_contributions[func, :, :]
 
         # Make normalised if required
         if normalised:
@@ -193,5 +206,6 @@ class MLCA(object):
         return topcontribution_dict
 
     def make_nomalised(self, contribution_array):
+        """ Normalise the contribution array. """
         scores = contribution_array.sum(axis=1)
         return (contribution_array / scores[:, np.newaxis])
