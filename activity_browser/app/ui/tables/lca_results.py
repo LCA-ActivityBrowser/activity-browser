@@ -42,6 +42,7 @@ class InventoryTable(ABDataFrameTable):
         labels = [get_activity(mlca.rev_activity_dict[i]) for i in range(length)]
         col_labels = ['Amount']
         row_labels = [str(i) for i in labels[:length]]
+
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
 
         self.setVerticalScrollMode(1)
