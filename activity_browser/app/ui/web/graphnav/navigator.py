@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
-import string
 import json
 from copy import deepcopy
 import networkx as nx
 
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-
 
 from .signals import graphsignals
 from ....signals import signals
@@ -378,10 +376,10 @@ class Graph:
             if not nx.has_path(G, node, self.central_activity.key):# and node != self.central_activity.key:
                 orphaned_node_ids.append(node)
 
-        #print("\nRemoving ORPHANED nodes:", len(orphaned_node_ids))
+        print("\nRemoving ORPHANED nodes:", len(orphaned_node_ids))
         for key in orphaned_node_ids:
             act = bw.get_activity(key)
-            #print(act["name"], act["location"])
+            print(act["name"], act["location"])
             self.nodes.remove(act)
 
         # update edges again to remove those that link to nodes that have been deleted
@@ -421,8 +419,8 @@ class Graph:
             "edges": edges,
             "title": self.central_activity.get("reference product"),
         }
-        #print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
-        #print(json_data)
+        print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
+        print(json_data)
         return json.dumps(json_data)
 
     def save_json_to_file(self, filename="data.json"):
