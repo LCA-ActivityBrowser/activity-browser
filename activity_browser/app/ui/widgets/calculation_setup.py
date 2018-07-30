@@ -1,5 +1,11 @@
 from ..style import horizontal_line, vertical_line, header
-from ..tables import LCAResultsTable, ProcessContributionsTable, InventoryTable, InventoryCharacterisationTable
+from ..tables import (
+    LCAResultsTable,
+    ProcessContributionsTable,
+    InventoryTable,
+    InventoryCharacterisationTable,
+    BiosphereTable
+)
 from ..graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
@@ -84,7 +90,7 @@ class CalculationSetupTab(QTabWidget):
             self.single_method = True
 
 class AnalysisTab(QWidget):
-    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None, \
+    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None,\
                  plot=None, export=None, relativity=None, custom=False, *args, **kwargs):
         super(AnalysisTab, self).__init__(parent)
         self.setup = parent
@@ -104,10 +110,17 @@ class AnalysisTab(QWidget):
         self.name = str()
         self.header = header(self.name)
 
+        #layout for custom tab (currently only InventoryTab)
+        if self.custom:
+            self.Second_Space = QScrollArea()
+            self.SecondWidget = QWidget()
+            self.test = header('TEST')
+            self.SecondTable = BiosphereTable(self.setup)
+            self.SecondLayout = QVBoxLayout()
         self.layout = QVBoxLayout()
+
         self.TopStrip = QHBoxLayout()
         self.setLayout(self.layout)
-
         self.TopStrip.addWidget(self.header)
         self.relativity_button(self.TopStrip)
 
@@ -428,14 +441,18 @@ class AnalysisTab(QWidget):
         self.layout.addWidget(self.main_space)
 
         if self.custom:
-
             self.main_space.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            #self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             self.main_space.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            self.second_space = QScrollArea()
-            self.layout.addWidget(self.second_space)
-            self.test = header('TEST')
-            self.second_space.setWidget(self.test)
+            self.layout.addWidget(self.Second_Space)
+            self.SecondWidget.setLayout(self.SecondLayout)
+            self.Second_Space.setWidget(self.SecondWidget)
+            self.SecondLayout.addWidget(self.test)
+            self.SecondLayout.addWidget(self.SecondTable)
+
+
+    def make_layout(self, grid, scroll_space):
+        pass
+
 
     def update_analysis_tab(self):
         if self.combobox_menu_combobox != None:
@@ -621,6 +638,7 @@ class Inventory(AnalysisTab):
         self.header.setText(self.name)
 
         self.table = InventoryTable(self.setup)
+        #self.table = BiosphereTable(self.setup)
 
         self.add_combobox(method=False, func=True)
         self.add_main_space()
@@ -636,7 +654,8 @@ class Inventory(AnalysisTab):
         else:
             pass
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
-
+        if self.custom:
+            self.SecondTable.sync(self.setup.mlca, method=method)
 
 class InventoryCharacterisation(AnalysisTab):
     def __init__(self, parent, **kwargs):
