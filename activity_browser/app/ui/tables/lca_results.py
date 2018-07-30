@@ -52,6 +52,10 @@ class InventoryTable(ABDataFrameTable):
 class BiosphereTable2(QtWidgets.QTableView):
     def __init__(self, parent):
         super(BiosphereTable, self).__init__(parent)
+    def sync(self, mlca, method=None, limit=100):
+        if method is None:
+            method = mlca.methods[0]
+
 
 
 
@@ -60,9 +64,7 @@ class BiosphereTable(ABDataFrameTable):
     def sync(self, mlca, method=None, limit=100):
         if method is None:
             method = mlca.methods[0]
-        print(mlca.methods[0])
         matrix = mlca.inventories[method]
-        print(matrix.shape)
         length = limit #min(limit, len(array))
         labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
         shortlabels = [((i[:48]+'..') if len(i)> 50 else i) for i in labels]
