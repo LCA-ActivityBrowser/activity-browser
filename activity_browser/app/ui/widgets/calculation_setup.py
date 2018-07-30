@@ -703,7 +703,7 @@ class LCIAAnalysis(AnalysisTab):
 
         if not self.setup.single_func_unit:
             self.plot = LCAResultsPlot(self.setup)
-            self.table = LCAResultsTable()
+            self.table = LCAResultsTable(self.setup)
 
         self.add_main_space()
         self.add_export()
@@ -711,6 +711,7 @@ class LCIAAnalysis(AnalysisTab):
         self.setup.addTab(self, self.name)
 
         self.connect_analysis_signals()
+        self.relative = False
 
     def update_plot(self):
         if isinstance(self.plot, LCAResultsPlot):
@@ -721,10 +722,10 @@ class LCIAAnalysis(AnalysisTab):
 
     def update_table(self):
         if isinstance(self.table, LCAResultsTable):
-            self.table.sync(self.setup.mlca)
+            self.table.sync(self.setup.mlca, relative=self.relative)
         else:
             self.table = LCAResultsTable()
-            self.table.sync(self.setup.mlca)
+            self.table.sync(self.setup.mlca, relative=self.relative)
 
 
 class ProcessContributions(AnalysisTab):

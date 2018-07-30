@@ -143,15 +143,13 @@ class LCAResultsPlot(Plot):
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         # cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
 
-        print(normalised)
-
         if normalised:
-            mlca.use_results = mlca.results_normalized  # Normalize to get relative results
+            self.use_results = mlca.results_normalized  # Normalize to get relative results
         else:
-            mlca.use_results = mlca.results
+            self.use_results = mlca.results
 
         hm = sns.heatmap(
-            mlca.use_results,
+            self.use_results,
             annot=True,
             linewidths=.05,
             # cmap=cmap,

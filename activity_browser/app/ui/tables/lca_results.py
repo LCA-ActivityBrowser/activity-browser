@@ -8,14 +8,16 @@ from PyQt5 import QtWidgets
 from operator import itemgetter
 
 
-
-
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
-    def sync(self, lca):
-        col_labels = [" | ".join(x) for x in lca.methods]
-        row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
-        self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
+    def sync(self, mlca, relative=False):
+        if relative:
+            data = mlca.results_normalized
+        else:
+            data = mlca.results
+        col_labels = [" | ".join(x) for x in mlca.methods]
+        row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
+        self.dataframe = pd.DataFrame(data, index=row_labels, columns=col_labels)
 
 
 class ProcessContributionsTable(ABDataFrameTable):
