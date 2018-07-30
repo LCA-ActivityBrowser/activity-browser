@@ -139,25 +139,12 @@ class AnalysisTab(QWidget):
 
         # Combo box signal
         if self.combobox_menu_combobox != None:
-
-            if self.combobox_menu_method_bool and not self.combobox_menu_func_bool:
-                if self.plot:
-                    self.combobox_menu_combobox.currentTextChanged.connect(
-                        lambda name: self.update_plot(method=name))
-
-            elif not self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-                pass
-                # logic for only func
-
-            else:
+            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
                 self.combobox_menu_switch.clicked.connect(self.combo_switch_check)
-                # logic for updating when both are active
 
-                # THIS SHOULD BE REMOVED WHEN THERE IS FUNCTIONALITY FOR THE 'SWITCH' BUTTON
-                if self.plot:
-                    self.combobox_menu_combobox.currentTextChanged.connect(
-                        lambda name: self.update_plot(method=name))
-                # UP TO HERE
+            if self.plot:
+                self.combobox_menu_combobox.currentTextChanged.connect(
+                    lambda name: self.update_plot(method=name))
 
             if self.table:
                 self.combobox_menu_combobox.currentTextChanged.connect(self.update_table)
