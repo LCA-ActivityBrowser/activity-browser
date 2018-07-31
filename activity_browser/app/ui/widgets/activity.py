@@ -41,10 +41,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
         )
         self.name_box.setPlaceholderText("Activity name")
 
-        # checkbox for enabling editing of activity, default=read-only
-        # lambda for user-check defined in Populate function, after required variables in scope
-        self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
-        self.read_only_ch.setChecked(True)
 
         #improvement todo: location to be selectable from dropdown rather than free-text
         #but this requires forming a list of valid locations based on selected db..
@@ -75,7 +71,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         self.grid.addWidget(QtWidgets.QLabel('Name'), 1, 1)
         self.grid.addWidget(self.name_box, 1, 2, 1, 3)
-        self.grid.addWidget(self.read_only_ch, 1, 5)
         self.grid.addWidget(QtWidgets.QLabel('Location'), 2, 1)
         self.grid.addWidget(self.location_box, 2, 2, 1, -1)
         self.grid.addWidget(self.database, 3, 2, 1, -1)
@@ -91,8 +86,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
         if activity:
             self.activity = activity
 
-        self.read_only_ch.clicked.connect(
-            lambda checked, key=self.activity.key: self.readOnlyStateChanged(checked, key))
         self.database.setText(self.activity['database'])
         self.name_box.setText(self.activity['name'])
         self.location_box.setText(self.activity.get('location', ''))
@@ -104,12 +97,3 @@ class ActivityDataGrid(QtWidgets.QWidget):
         )
         self.comment_box._before = self.activity.get('comment', '')
         self.comment_box.adjust_size()
-
-    def readOnlyStateChanged(self, checked, key):
-        """
-        When checked=False specific data fields in the tables below become editable
-        When checked=True these same fields become read-only
-        """
-        print("ro state change hit for:", checked, key)
-
-        #

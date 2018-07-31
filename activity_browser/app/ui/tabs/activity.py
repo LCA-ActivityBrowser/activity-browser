@@ -26,8 +26,15 @@ class ActivityDetailsTab(QtWidgets.QWidget):
         super(ActivityDetailsTab, self).__init__(parent)
         self.parent = parent
 
+        # checkbox for enabling editing of activity, default=read-only
+        # lambda for user-check defined in Populate function, after required variables are in scope
+        self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
+        self.read_only_ch.setChecked(True)
+
+        # activity-specific data as shown at the top
         self.activity_data = ActivityDataGrid()
 
+        # exchange data shown after the activity data which it relates to, in tables depending on exchange type
         self.production = ExchangeTable(self, tableType="products")
         self.inputs = ExchangeTable(self, tableType="technosphere")
         self.flows = ExchangeTable(self, tableType="biosphere")
@@ -40,7 +47,9 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             (self.upstream, "Downstream consumers:"),
         ]
 
+        # arrange activity data and exchange data into desired vertical layout
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.read_only_ch)
         layout.addWidget(self.activity_data)
         for table, label in tables:
             layout.addWidget(DetailsGroupBox(label, table))
@@ -55,9 +64,18 @@ class ActivityDetailsTab(QtWidgets.QWidget):
     def populate(self, key):
         self.activity = bw.get_activity(key)
 
+        self.read_only_ch.clicked.connect(
+            lambda checked, key=self.activity.key: self.readOnlyStateChanged(checked, key))
+
         self.activity_data.populate(self.activity)
         self.production.set_queryset(key[0], self.activity.production())
         self.inputs.set_queryset(key[0], self.activity.technosphere())
         self.flows.set_queryset(key[0], self.activity.biosphere())
         self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
 
+    def readOnlyStateChanged(self, checked, key):
+        """
+        When checked=False specific data fields in the tables below become editable
+        When checked=True these same fields become read-only
+        """
+        print("ro state change hit for:", checked, key)
