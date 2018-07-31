@@ -22,17 +22,17 @@ class ActivityDetailsTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, parent=None, activity=None):
+    def __init__(self, parent=None, activity=None, read_only=True):
         super(ActivityDetailsTab, self).__init__(parent)
         self.parent = parent
-
+        self.read_only = read_only
         # checkbox for enabling editing of activity, default=read-only
         # lambda for user-check defined in Populate function, after required variables are in scope
         self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
-        self.read_only_ch.setChecked(True)
+        self.read_only_ch.setChecked(self.read_only)
 
         # activity-specific data as shown at the top
-        self.activity_data = ActivityDataGrid()
+        self.activity_data = ActivityDataGrid(read_only=self.read_only)
 
         # exchange data shown after the activity data which it relates to, in tables depending on exchange type
         self.production = ExchangeTable(self, tableType="products")
@@ -52,6 +52,8 @@ class ActivityDetailsTab(QtWidgets.QWidget):
         layout.addWidget(self.read_only_ch)
         layout.addWidget(self.activity_data)
         for table, label in tables:
+            if read_only:
+                table.setEnabled(False)
             layout.addWidget(DetailsGroupBox(label, table))
 
         layout.addStretch()
@@ -79,3 +81,14 @@ class ActivityDetailsTab(QtWidgets.QWidget):
         When checked=True these same fields become read-only
         """
         print("ro state change hit for:", checked, key)
+        ActivityDataGrid.set_activity_fields_read_only(self.activity_data, read_only=checked)
+        self.set_exchange_tables_read_only(read_only=checked)
+        #todo: save RO state to file
+
+    def set_exchange_tables_read_only(self, read_only=True):
+        self.read_only = read_only
+        # user cannot edit these fields if they are read-only
+        self.production.setEnabled(not self.read_only)
+        self.inputs.setEnabled(not self.read_only)
+        self.flows.setEnabled(not self.read_only)
+        self.upstream.setEnabled(not self.read_only)

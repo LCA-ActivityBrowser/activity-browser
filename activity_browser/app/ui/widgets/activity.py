@@ -30,9 +30,10 @@ class ActivityDataGrid(QtWidgets.QWidget):
     Exchange data is displayed separately, below this grid, in tables.
     Includes the read-only checkbox which enables or disables user-editing of some activity and exchange data
     """
-    def __init__(self, parent=None, activity=None):
+    def __init__(self, parent=None, activity=None, read_only=True):
         super(ActivityDataGrid, self).__init__(parent)
         self.activity = activity
+        self.read_only = read_only
 
         self.name_box = SignalledLineEdit(
             key=getattr(self.activity, "key", None),
@@ -40,7 +41,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
             parent=self,
         )
         self.name_box.setPlaceholderText("Activity name")
-
 
         #improvement todo: location to be selectable from dropdown rather than free-text
         #but this requires forming a list of valid locations based on selected db..
@@ -64,6 +64,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
             'Description', self.comment_box)
         self.comment_groupbox.setChecked(False)
 
+        # do not allow user to edit fields if the activity is read-only
+        self.set_activity_fields_read_only(read_only=self.read_only)
+
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
         self.grid.setSpacing(5)
@@ -82,14 +85,27 @@ class ActivityDataGrid(QtWidgets.QWidget):
         if activity:
             self.populate()
 
+    def set_activity_fields_read_only(self, read_only=True):
+        # called on init after widgets instantiated
+        # also whenever a user clicks the read-only checkbox
+        self.read_only = read_only
+        # user cannot edit these fields if they are read-only
+        self.name_box.setReadOnly(self.read_only)
+        self.location_box.setReadOnly(self.read_only)
+        # self.database.setReadOnly(self.read_only) # read-only already for now
+        self.comment_box.setReadOnly(self.read_only)
+
     def populate(self, activity=None):
         if activity:
             self.activity = activity
 
         self.database.setText(self.activity['database'])
         self.name_box.setText(self.activity['name'])
+        self.name_box._key = self.activity.key
         self.location_box.setText(self.activity.get('location', ''))
+        self.location_box._key = self.activity.key
         self.comment_box.setPlainText(self.activity.get('comment', ''))
+        self.comment_box._key = self.activity.key
         # the <font> html-tag has no effect besides making the tooltip rich text
         # this is required for line breaks of long comments
         self.comment_groupbox.setToolTip(

@@ -60,7 +60,7 @@ class ActivitiesPanel(Panel):
         self.setTabsClosable(True)
         self.tabCloseRequested.connect(self.close_tab)
 
-        signals.open_activity_tab.connect(self.open_new_activity_tab)
+        signals.open_activity_tab.connect(self.open_activity_tab)
         signals.activity_modified.connect(self.update_activity_name)
         signals.project_selected.connect(self.close_all_activity_tabs)
 
@@ -72,12 +72,27 @@ class ActivitiesPanel(Panel):
             except:
                 pass
 
-    def open_new_activity_tab(self, side, key):
+    def open_activity_tab(self, side, key):
+        # check if it's open already and go to it if it is
+        # check if the activity is found in settings file as editable (default read_only)
+
+        # whilst WIP: use a placeholder to simulate a file.
+        # for testing, editable activities are first two Forwast, names:
+        # 100 Health and social work, EU27
+        # 100 Waste treatment, Biogasification of food waste, DK
+        read_only_file_placeholder = {'editable-activities': [('forwast', '1099994b5fb9dec17ce78eb9aa8fd66f'),
+                                                              ('forwast', '04569c83a5f561672dfb0e41b4636a67')]}
         if side == self.side:
             if key in activity_cache:
                 self.select_tab(activity_cache[key])
             else:
-                new_tab = ActivityDetailsTab(self)
+                editable_acts = read_only_file_placeholder['editable-activities']
+                if key in editable_acts:
+                    read_only = False
+                else:
+                    read_only = True
+                # print(key, "is read only?", read_only)
+                new_tab = ActivityDetailsTab(self, read_only=read_only)
                 new_tab.populate(key)
                 activity_cache[key] = new_tab
                 self.addTab(new_tab, get_name(bw.get_activity(key)))
