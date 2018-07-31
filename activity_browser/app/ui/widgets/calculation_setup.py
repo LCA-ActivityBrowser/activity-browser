@@ -24,8 +24,6 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
 # TODO: Finish inventory tab (with techno/biosphere options MS
-# TODO: add rest+total row to tables in char. inv. and proc. cont. MM
-# TODO: LCIA Results > column specific colour gradients MS
 # TODO: LOW PRIORITY: add filtering for tables/graphs ANY
 
 class CalculationSetupTab(QTabWidget):
