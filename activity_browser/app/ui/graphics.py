@@ -176,6 +176,7 @@ class ProcessContributionPlot(Plot):
     def __init__(self, parent=None, *args):
         super(ProcessContributionPlot, self).__init__(parent, *args)
         self.df_tc = pd.DataFrame()
+        self.parent = parent
 
     def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalised=True):
         """ Plot a horizontal bar chart of the process contributions. """
@@ -195,10 +196,7 @@ class ProcessContributionPlot(Plot):
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
-        if not normalised:
-            self.df_tc_plot = self.df_tc.drop("Total")
-        else:
-            self.df_tc_plot = self.df_tc
+        self.df_tc_plot = self.df_tc.drop("Total")
         plot = self.df_tc_plot.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
@@ -240,10 +238,7 @@ class InventoryCharacterisationPlot(Plot):
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='bio') for a in self.df_tc.index]
-        if not normalised:
-            self.df_tc_plot = self.df_tc.drop("Total")
-        else:
-            self.df_tc_plot = self.df_tc
+        self.df_tc_plot = self.df_tc.drop("Total")
         plot = self.df_tc_plot.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,

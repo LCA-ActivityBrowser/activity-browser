@@ -64,6 +64,7 @@ class CalculationSetupTab(QTabWidget):
         self.process_contributions_tab.update_analysis_tab()
         self.correlations_tab.update_analysis_tab()
 
+        lca_score_comparison_tab_index = self.indexOf(self.LCAscoreComparison_tab)
         lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
         correlations_tab_index = self.indexOf(self.correlations_tab)
 
@@ -73,6 +74,11 @@ class CalculationSetupTab(QTabWidget):
         else:
             self.setTabEnabled(lcia_results_tab_index, False)
             self.setTabEnabled(correlations_tab_index, False)
+
+        if not self.single_method:
+            self.setTabEnabled(lca_score_comparison_tab_index, True)
+        else:
+            self.setTabEnabled(lca_score_comparison_tab_index, False)
 
     def update_calculation(self):
         """ Update the mlca calculation. """
@@ -316,6 +322,7 @@ class AnalysisTab(QWidget):
         # Cut-off types
         self.cutoff_type = QVBoxLayout()
         self.cutoff_type_label = QLabel("Cut-off type")
+        self.cutoff_type_nocutoff = QRadioButton("No Cutoff")
         self.cutoff_type_relative = QRadioButton("Relative")
         self.cutoff_type_relative.setChecked(True)
         self.cutoff_type_topx = QRadioButton("Top #")
@@ -351,6 +358,7 @@ class AnalysisTab(QWidget):
 
         # Assemble types
         self.cutoff_type.addWidget(self.cutoff_type_label)
+        self.cutoff_type.addWidget(self.cutoff_type_nocutoff)
         self.cutoff_type.addWidget(self.cutoff_type_relative)
         self.cutoff_type.addWidget(self.cutoff_type_topx)
 
@@ -413,12 +421,17 @@ class AnalysisTab(QWidget):
         self.main_space.setWidget(self.main_space_widget)
         self.main_space.setWidgetResizable(True)
 
-        # Option switch
+        # Option switches
         self.main_space_tb_grph = QHBoxLayout()
         self.main_space_tb_grph_plot = QCheckBox("Plot")
         self.main_space_tb_grph_plot.setChecked(True)
         self.main_space_tb_grph_table = QCheckBox("Table")
         self.main_space_tb_grph_table.setChecked(True)
+
+        self.main_space_rel_abs_rel = QRadioButton("Relative")
+        self.main_space_rel_abs_rel.setChecked(True)
+        self.main_space_rel_abs_abs = QRadioButton("Absolute")
+
         # Plot
         self.main_space_plot = self.plot
         # Table
@@ -427,6 +440,9 @@ class AnalysisTab(QWidget):
         # Assemble option switch
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_plot)
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
+        self.main_space_tb_grph.addWidget(vertical_line())
+        self.main_space_tb_grph.addWidget(self.main_space_rel_abs_rel)
+        self.main_space_tb_grph.addWidget(self.main_space_rel_abs_abs)
         self.relativity_button(self.main_space_tb_grph)
         self.main_space_tb_grph.addStretch()
 
@@ -516,6 +532,13 @@ class AnalysisTab(QWidget):
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
             self.combobox_menu_switch = QPushButton("To Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
+
+            self.combobox_menu_switch_met = QRadioButton("Assessment Methods")
+            self.combobox_menu_switch_met.setChecked(True)
+            self.combobox_menu_switch_fun = QRadioButton("Functional Units")
+
+            self.combobox_menu.addWidget(self.combobox_menu_switch_met)
+            self.combobox_menu.addWidget(self.combobox_menu_switch_fun)
 
         self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
