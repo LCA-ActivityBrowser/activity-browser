@@ -77,6 +77,7 @@ class MLCA(object):
 
         self.func_unit_translation_dict = {str(get_activity(list(func_unit.keys())[0])): func_unit
                                            for func_unit in self.func_units}
+        #self.biosphere_flows_translation_dict =
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_key_dict.keys())
 

@@ -38,6 +38,10 @@ class InventoryCharacterisationTable(ABDataFrameTable):
     def sync(self, dummy):
         self.dataframe = self.parent.plot.df_tc
 
+def inventory_labels(length, mlca, labellength):
+    labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
+    shortlabels = [((i[:labellength-2] + '..') if len(i) > labellength else i) for i in labels]
+    return shortlabels
 
 class InventoryTable(ABDataFrameTable):
     def __init__(self, parent, **kwargs):
@@ -50,8 +54,7 @@ class InventoryTable(ABDataFrameTable):
 
         array = mlca.technosphere_flows[str(method)]
         length = min(limit, len(array))
-        labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
-        shortlabels = [((i[:98]+'..') if len(i)> 100 else i) for i in labels]
+        shortlabels= inventory_labels(length, mlca, 100)
 
         array, shortlabels = (list(t) for t in zip(*reversed(sorted(zip(array, shortlabels)))))
 
@@ -89,9 +92,13 @@ class BiosphereTable(QtWidgets.QTableView):
         for ni, i in enumerate(matrix):
             for nj, j in enumerate(i):
                 table.setItem(nj, ni, QtWidgets.QTableWidgetItem(str(j)))
+        length = limit
+        shortlabels= inventory_labels(length, mlca, 50)
+        table.setVerticalHeaderLabels(shortlabels)
         table.setVerticalScrollMode(1)
         table.setHorizontalScrollMode(1)
         table.setMinimumWidth(700)
+
         return table
 
 
