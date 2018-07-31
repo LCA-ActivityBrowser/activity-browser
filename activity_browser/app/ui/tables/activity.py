@@ -44,7 +44,6 @@ class ExchangeTable(ABTableWidget):
             QtWidgets.QSizePolicy.Maximum)
         )
 
-
     def setup_context_menu(self):
         self.delete_exchange_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete exchange(s)", None
@@ -130,13 +129,13 @@ class ExchangeTable(ABTableWidget):
             self.setDragEnabled(False)
             self.setAcceptDrops(False)
 
+        edit_flag = [QtCore.Qt.ItemIsEditable]
+
         for row, exc in enumerate(self.qs):
             act = exc.output if self.upstream else exc.input
             if row == limit:
                 # todo: use table paging rather than a hard limit
                 break
-
-            edit_flag = [QtCore.Qt.ItemIsEditable]
 
             if self.tableType == "products":  # "Amount", "Unit", "Name", "Location"
                 self.setItem(row, 0, ABTableItem(
@@ -189,6 +188,5 @@ class ExchangeTable(ABTableWidget):
 
                 self.setItem(row, 5, ABTableItem(
                     act.get('database'), color="database"))
-
 
         self.ignore_changes = False

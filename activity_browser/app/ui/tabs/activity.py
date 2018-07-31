@@ -32,7 +32,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.read_only_ch.setChecked(self.read_only)
 
         # activity-specific data as shown at the top
-        self.activity_data = ActivityDataGrid(read_only=self.read_only)
+        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only)
 
         # exchange data shown after the activity data which it relates to, in tables depending on exchange type
         self.production = ExchangeTable(self, tableType="products")
@@ -40,7 +40,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.flows = ExchangeTable(self, tableType="biosphere")
         self.upstream = ExchangeTable(self, tableType="technosphere")
 
-        tables = [
+        self.exchange_tables = [
             (self.production, "Products:"),
             (self.inputs, "Technosphere Inputs:"),
             (self.flows, "Biosphere flows:"),
@@ -50,11 +50,11 @@ class ActivityTab(QtWidgets.QWidget):
         # arrange activity data and exchange data into desired vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.read_only_ch)
-        layout.addWidget(self.activity_data)
-        for table, label in tables:
-            if read_only:
-                table.setEnabled(False)
+        layout.addWidget(self.activity_data_grid)
+        for table, label in self.exchange_tables:
             layout.addWidget(DetailsGroupBox(label, table))
+
+        self.set_exchange_tables_read_only(read_only=read_only)
 
         layout.addStretch()
         layout.setAlignment(QtCore.Qt.AlignTop)
@@ -65,11 +65,10 @@ class ActivityTab(QtWidgets.QWidget):
 
     def populate(self, key):
         self.activity = bw.get_activity(key)
-
         self.read_only_ch.clicked.connect(
             lambda checked, key=self.activity.key: self.readOnlyStateChanged(checked, key))
 
-        self.activity_data.populate(self.activity)
+        self.activity_data_grid.populate(self.activity)
         # todo: add count of results for each exchange table, to label above each table
         self.production.set_queryset(key[0], self.activity.production())
         self.inputs.set_queryset(key[0], self.activity.technosphere())
@@ -82,14 +81,19 @@ class ActivityTab(QtWidgets.QWidget):
         When checked=True these same fields become read-only
         """
         print("ro state change hit for:", checked, key)
-        ActivityDataGrid.set_activity_fields_read_only(self.activity_data, read_only=checked)
+        ActivityDataGrid.set_activity_fields_read_only(self.activity_data_grid, read_only=checked)
         self.set_exchange_tables_read_only(read_only=checked)
         #todo: save RO state to file
 
-    def set_exchange_tables_read_only(self, read_only=True):
+    def set_exchange_tables_read_only(self, read_only):
         self.read_only = read_only
-        # user cannot edit these fields if they are read-only
-        self.production.setEnabled(not self.read_only)
-        self.inputs.setEnabled(not self.read_only)
-        self.flows.setEnabled(not self.read_only)
-        self.upstream.setEnabled(not self.read_only)
+        # the user should not be able to edit the exchange tables when read_only
+        # EditTriggers turned off to prevent DoubleClick editing
+        # DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add
+        for table, label in self.exchange_tables:
+            if self.read_only:
+                table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
+                table.setDragDropMode(QtWidgets.QTableWidget.NoDragDrop)
+            else:
+                table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
+                table.setDragDropMode(QtWidgets.QTableWidget.DropOnly)
