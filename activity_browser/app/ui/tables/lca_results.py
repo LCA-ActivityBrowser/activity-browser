@@ -7,6 +7,8 @@ from PyQt5 import QtWidgets
 
 from operator import itemgetter
 
+from scipy.sparse import csr_matrix
+
 
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
@@ -80,11 +82,14 @@ class BiosphereTable(QtWidgets.QTableView):
         if method not in mlca.technosphere_flows.keys():
             method = mlca.func_unit_translation_dict[str(method)]
 
+        # print(mlca.inventories.shape())
+        # print(str(method))
         matrix = mlca.inventories[str(method)]
+        #print(mlca.rev_activity_dict)
         matrix = matrix[:limit,:limit]
 
         table = QtWidgets.QTableWidget(self)
-        #matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
+        matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
 
         matrix = matrix.toarray()
         table.setRowCount(matrix.shape[1])

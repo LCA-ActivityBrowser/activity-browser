@@ -122,7 +122,7 @@ class AnalysisTab(QWidget):
         self.TopStrip = QHBoxLayout()
         self.setLayout(self.layout)
         self.TopStrip.addWidget(self.header)
-        self.relativity_button(self.TopStrip)
+
 
         self.layout.addLayout(self.TopStrip)
         self.layout.addWidget(horizontal_line())
@@ -427,6 +427,7 @@ class AnalysisTab(QWidget):
         # Assemble option switch
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_plot)
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
+        self.relativity_button(self.main_space_tb_grph)
         self.main_space_tb_grph.addStretch()
 
         # Assemble Table and Plot area

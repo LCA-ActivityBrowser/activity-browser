@@ -59,7 +59,7 @@ class MLCA(object):
             self.lca.redo_lci(func_unit)
 
             self.inventories.update({
-                str(func_unit): self.lca.biosphere_matrix
+                str(func_unit): self.lca.inventory
             })
 
             self.technosphere_flows.update({
