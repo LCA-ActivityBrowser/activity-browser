@@ -670,8 +670,7 @@ class Inventory(AnalysisTab):
         else:
             pass
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
-        if self.custom:
-            self.SecondTable.sync(self.setup.mlca, method=method)
+        self.SecondTable.sync(self.setup.mlca, method=method)
 
 class InventoryCharacterisation(AnalysisTab):
     def __init__(self, parent, **kwargs):
@@ -739,11 +738,9 @@ class LCIAAnalysis(AnalysisTab):
         self.plot.plot(self.setup.mlca, normalised=self.relative)
 
     def update_table(self):
-        if isinstance(self.table, LCAResultsTable):
-            self.table.sync(self.setup.mlca, relative=self.relative)
-        else:
+        if not isinstance(self.table, LCAResultsTable):
             self.table = LCAResultsTable()
-            self.table.sync(self.setup.mlca, relative=self.relative)
+        self.table.sync(self.setup.mlca, relative=self.relative)
 
 
 class ProcessContributions(AnalysisTab):
