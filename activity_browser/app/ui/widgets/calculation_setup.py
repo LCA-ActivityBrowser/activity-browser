@@ -179,11 +179,11 @@ class AnalysisTab(QWidget):
 
     def combo_switch_check(self):
         """ Show either the functional units or methods combo-box, dependent on button state. """
-        if self.combobox_menu_switch.text() == "Methods":
-            self.combobox_menu_switch.setText("Functional Units")
+        if self.combobox_menu_switch.text() == "To Assessment Methods":
+            self.combobox_menu_switch.setText("To Functional Units")
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
         else:
-            self.combobox_menu_switch.setText("Methods")
+            self.combobox_menu_switch.setText("To Assessment Methods")
             self.combobox_menu_label.setText(self.combobox_menu_func_label)
         self.update_combobox()
 
@@ -465,17 +465,17 @@ class AnalysisTab(QWidget):
 
     def relativity_button(self, layout):
         if self.relativity is not None:
-            self.b = QPushButton('Relative')
+            self.b = QPushButton('To Absolute')
             layout.addStretch(1)
             layout.addWidget(self.b)
             self.b.clicked.connect(self.relativity_check)
 
     def relativity_check(self):
         if self.relative == False:
-            self.b.setText('Relative')
+            self.b.setText('To Absolute')
             self.relative = True
         else:
-            self.b.setText('Absolute')
+            self.b.setText('To Relative')
             self.relative = False
         if self.plot:
             self.update_plot()
@@ -513,7 +513,7 @@ class AnalysisTab(QWidget):
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
 
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-            self.combobox_menu_switch = QPushButton("Functional Units")
+            self.combobox_menu_switch = QPushButton("To Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
 
         self.combobox_menu_horizontal = horizontal_line()

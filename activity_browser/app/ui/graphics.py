@@ -195,7 +195,11 @@ class ProcessContributionPlot(Plot):
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
-        plot = self.df_tc.T.plot.barh(
+        if not normalised:
+            self.df_tc_plot = self.df_tc.drop("Total")
+        else:
+            self.df_tc_plot = self.df_tc
+        plot = self.df_tc_plot.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax
@@ -236,7 +240,11 @@ class InventoryCharacterisationPlot(Plot):
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='bio') for a in self.df_tc.index]
-        plot = self.df_tc.T.plot.barh(
+        if not normalised:
+            self.df_tc_plot = self.df_tc.drop("Total")
+        else:
+            self.df_tc_plot = self.df_tc
+        plot = self.df_tc_plot.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax

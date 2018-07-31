@@ -109,11 +109,15 @@ class MLCA(object):
         for col, fu in enumerate(self.func_units):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
             cont_per_fu = {}
+            if not normalised:
+                cont_per_fu.update(
+                    {('Total', ''): contribution_array[col, :].sum()})
             cont_per_fu.update(
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
                 cont_per_fu.update({self.rev_activity_dict[index]: value})
             topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
+
         return topcontribution_dict
 
     def top_process_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
@@ -135,6 +139,9 @@ class MLCA(object):
         for col, m in enumerate(self.method_dict_list):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
             cont_per_m = {}
+            if not normalised:
+                cont_per_m.update(
+                    {('Total', ''): contribution_array[col, :].sum()})
             cont_per_m.update(
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
@@ -161,6 +168,9 @@ class MLCA(object):
         for col, fu in enumerate(self.func_units):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
             cont_per_fu = {}
+            if not normalised:
+                cont_per_fu.update(
+                    {('Total', ''): contribution_array[col, :].sum()})
             cont_per_fu.update(
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
@@ -187,6 +197,9 @@ class MLCA(object):
         for col, m in enumerate(self.method_dict_list):
             top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
             cont_per_m = {}
+            if not normalised:
+                cont_per_m.update(
+                    {('Total', ''): contribution_array[col, :].sum()})
             cont_per_m.update(
                 {('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
             for value, index in top_contribution:
