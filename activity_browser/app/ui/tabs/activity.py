@@ -26,27 +26,12 @@ class ActivityDetailsTab(QtWidgets.QWidget):
         super(ActivityDetailsTab, self).__init__(parent)
         self.parent = parent
 
-        self.details_widget = self.get_details_widget()
-
-        vlayout = QtWidgets.QVBoxLayout()
-        vlayout.setAlignment(QtCore.Qt.AlignTop)
-        vlayout.addWidget(self.details_widget)
-
-        self.setLayout(vlayout)
-
-        if activity:
-            self.populate(activity)
-
-    def get_details_widget(self):
         self.activity_data = ActivityDataGrid()
 
         self.production = ExchangeTable(self, tableType="products")
         self.inputs = ExchangeTable(self, tableType="technosphere")
         self.flows = ExchangeTable(self, tableType="biosphere")
         self.upstream = ExchangeTable(self, tableType="technosphere")
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.activity_data)
 
         tables = [
             (self.production, "Products:"),
@@ -55,16 +40,17 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             (self.upstream, "Downstream consumers:"),
         ]
 
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.activity_data)
         for table, label in tables:
             layout.addWidget(DetailsGroupBox(label, table))
 
-        # layout.addWidget(splitter)
         layout.addStretch()
-        widget = QtWidgets.QWidget(self)
-        widget.setLayout(layout)
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        self.setLayout(layout)
 
-        return widget
-
+        if activity:
+            self.populate(activity)
 
     def populate(self, key):
         self.activity = bw.get_activity(key)

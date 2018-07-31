@@ -416,11 +416,6 @@ class Controller(object):
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
 
-        open_activities_for_db = [act_code for db, act_code in activity_cache if db == db_name]
-        for act_code in open_activities_for_db:
-            print("setting", db_name, "activity to read-only:", act_code)
-
-
     def database_writable_enabled(self, db_name, db_writable):
         """Set read-only checkbox of open panels to active (not greyed out)
         Activities inventory list: Options for “Edit activity” and “New activity”
