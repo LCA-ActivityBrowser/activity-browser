@@ -69,14 +69,12 @@ class CalculationSetupTab(QTabWidget):
         if not self.single_func_unit:
             self.setTabEnabled(lcia_results_tab_index, True)
             self.setTabEnabled(correlations_tab_index, True)
+            self.setTabEnabled(lca_score_comparison_tab_index, True)
         else:
             self.setTabEnabled(lcia_results_tab_index, False)
             self.setTabEnabled(correlations_tab_index, False)
-
-        if not self.single_method:
-            self.setTabEnabled(lca_score_comparison_tab_index, True)
-        else:
             self.setTabEnabled(lca_score_comparison_tab_index, False)
+
 
     def update_calculation(self):
         """ Update the mlca calculation. """
@@ -736,11 +734,9 @@ class LCIAAnalysis(AnalysisTab):
         self.relative = False
 
     def update_plot(self):
-        if isinstance(self.plot, LCAResultsPlot):
-            self.plot.plot(self.setup.mlca, normalised=self.relative)
-        else:
+        if not isinstance(self.plot, LCAResultsPlot):
             self.plot = LCAResultsPlot(self.setup)
-            self.plot.plot(self.setup.mlca, normalised=self.relative)
+        self.plot.plot(self.setup.mlca, normalised=self.relative)
 
     def update_table(self):
         if isinstance(self.table, LCAResultsTable):
