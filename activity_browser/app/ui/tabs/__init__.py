@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .activity import ActivityDetailsTab
+from .activity import ActivityTab
 from .LCA_setup import LCASetupTab
 from .history import HistoryTab
 from .impact_categories import CFsTab, MethodsTab

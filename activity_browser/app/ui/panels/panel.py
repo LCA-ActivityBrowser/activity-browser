@@ -3,7 +3,7 @@ import brightway2 as bw
 from PyQt5 import QtWidgets
 
 from .. import activity_cache
-from ..tabs import ActivityDetailsTab, CFsTab
+from ..tabs import ActivityTab, CFsTab
 from ..utils import get_name
 from ...signals import signals
 
@@ -92,7 +92,7 @@ class ActivitiesPanel(Panel):
                 else:
                     read_only = True
                 # print(key, "is read only?", read_only)
-                new_tab = ActivityDetailsTab(self, read_only=read_only)
+                new_tab = ActivityTab(self, read_only=read_only)
                 new_tab.populate(key)
                 activity_cache[key] = new_tab
                 self.addTab(new_tab, get_name(bw.get_activity(key)))
@@ -101,7 +101,7 @@ class ActivitiesPanel(Panel):
 
     def close_tab(self, index):
         widget = self.widget(index)
-        if isinstance(widget, ActivityDetailsTab):
+        if isinstance(widget, ActivityTab):
             assert widget.activity in activity_cache
             del activity_cache[widget.activity]
         widget.deleteLater()

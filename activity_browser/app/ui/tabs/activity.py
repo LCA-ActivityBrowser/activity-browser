@@ -6,7 +6,7 @@ from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox
 
 
-class ActivityDetailsTab(QtWidgets.QWidget):
+class ActivityTab(QtWidgets.QWidget):
     """The data relating to Brightway activities can be viewed and edited through this panel interface
     The interface is a GUI representation of the standard activity data format as determined by Brightway
     This is necessitated as AB does not save its own data structures to disk
@@ -23,7 +23,7 @@ class ActivityDetailsTab(QtWidgets.QWidget):
     """
 
     def __init__(self, parent=None, activity=None, read_only=True):
-        super(ActivityDetailsTab, self).__init__(parent)
+        super(ActivityTab, self).__init__(parent)
         self.parent = parent
         self.read_only = read_only
         # checkbox for enabling editing of activity, default=read-only
@@ -70,6 +70,7 @@ class ActivityDetailsTab(QtWidgets.QWidget):
             lambda checked, key=self.activity.key: self.readOnlyStateChanged(checked, key))
 
         self.activity_data.populate(self.activity)
+        # todo: add count of results for each exchange table, to label above each table
         self.production.set_queryset(key[0], self.activity.production())
         self.inputs.set_queryset(key[0], self.activity.technosphere())
         self.flows.set_queryset(key[0], self.activity.biosphere())
