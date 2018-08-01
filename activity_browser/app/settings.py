@@ -1,17 +1,31 @@
 # -*- coding: utf-8 -*-
 import os
 import json
+import shutil
+
+import appdirs
 
 from .. import PACKAGE_DIRECTORY
 
 
 class ABSettings():
     def __init__(self):
-        self.settings_file = os.path.join(PACKAGE_DIRECTORY, 'ABsettings.json')
+        ab_dir = appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser')
+        self.data_dir = ab_dir.user_data_dir
+        if not os.path.isdir(self.data_dir):
+            os.makedirs(self.data_dir, exist_ok=True)
+        self.settings_file = os.path.join(self.data_dir, 'ABsettings.json')
+        self.move_old_settings()
         if os.path.isfile(self.settings_file):
             self.load_settings()
         else:
             self.settings = {}
+
+    def move_old_settings(self):
+        if not os.path.exists(self.settings_file):
+            old_settings = os.path.join(PACKAGE_DIRECTORY, 'ABsettings.json')
+            if os.path.exists(old_settings):
+                shutil.copyfile(old_settings, self.settings_file)
 
     def load_settings(self):
         with open(self.settings_file, 'r') as infile:
