@@ -85,14 +85,10 @@ class DatabasesTable(ABTableWidget):
 
         project = bw.projects.current.lower().strip()
 
-        # access settings file for the project>dbs which the user has chosen to edit
-        # used to set state of in-table checkboxes on load
-        # todo: get settings only for current project.
-        settings_all_projects = ab_settings.settings.get("projects")
-        # return empty list/dict if project/setting not found in settings file
-        selected_project_settings = settings_all_projects.get(project, {})
-        writable_databases = selected_project_settings.get("writable_databases", [])
-
+        read_only_db_placeholder = {'writable-databases': ['forwast',
+                                                           'foo']
+                                    }
+        writable_dbs = read_only_db_placeholder['writable-databases']
         for row, name in enumerate(natural_sort(bw.databases)):
             self.setItem(row, 0, ABTableItem(name, db_name=name))
             depends = bw.databases[name].get('depends', [])
@@ -109,11 +105,11 @@ class DatabasesTable(ABTableWidget):
             )
             # final column includes active checkbox which shows read-only state of db
             # name = name.strip().lower()
-            database_read_only = False if name in writable_databases else True
+            database_writable = True if name in writable_dbs else False
             # checkbox widget for read-only column. Parent object of checkbox = DatabasesTable
             ch = QtWidgets.QCheckBox(parent=self)
             ch.clicked.connect(lambda checked, project=project, db=name: self.readOnlyStateChanged(checked, project, db))
-            ch.setChecked(database_read_only)
+            ch.setChecked(not database_writable)
             self.setCellWidget(row, 4, ch)
 
 

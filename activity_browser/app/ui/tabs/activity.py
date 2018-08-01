@@ -22,10 +22,11 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, parent=None, activity_key=None, read_only=True):
+    def __init__(self, parent=None, activity_key=None, read_only=True, db_read_only=True):
         super(ActivityTab, self).__init__(parent)
         self.parent = parent
         self.read_only = read_only
+        self.db_read_only = db_read_only
         self.activity_key=activity_key
         # checkbox for enabling editing of activity, default=read-only
         self.connect_signals()
@@ -35,6 +36,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.read_only_ch.clicked.connect(
             lambda checked, db_name=self.db_name: self.readOnlyStateChanged(db_name=db_name, read_only=checked))
 
+        self.activity_read_only_box_active(db_name=self.db_name, db_editable=not self.db_read_only)
         # activity-specific data as shown at the top
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only)
 
@@ -84,7 +86,10 @@ class ActivityTab(QtWidgets.QWidget):
         if db_name == self.activity_key[0]:
             ActivityDataGrid.set_activity_fields_read_only(self.activity_data_grid, read_only=read_only)
             self.set_exchange_tables_read_only(read_only=read_only)
-            self.read_only_ch.setChecked(read_only)
+            # Don't automatically force actuivity to editable even if activity in an editable database
+            # the user still ticks to choose when they want to edit a specific one
+            if read_only:
+                self.read_only_ch.setChecked(read_only)
             #todo: save activity RO state to settings file?
 
     def set_exchange_tables_read_only(self, read_only):
@@ -100,5 +105,12 @@ class ActivityTab(QtWidgets.QWidget):
                 table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
                 table.setDragDropMode(QtWidgets.QTableWidget.DropOnly)
 
+    def activity_read_only_box_active(self, db_name, db_editable):
+        """ If database is set to read-only, the read-only checkbox cannot be unchecked by user"""
+        # print(db_name, db_editable)
+        if db_name == self.activity_key[0]:
+            self.read_only_ch.setEnabled(db_editable)
+
     def connect_signals(self):
         signals.activity_read_only_changed.connect(self.readOnlyStateChanged)
+        signals.database_writable_enabled.connect(self.activity_read_only_box_active)

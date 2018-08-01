@@ -428,8 +428,8 @@ class Controller(object):
         # todo: also add a check for project of db for safety
         # though no activities from other projects can be open, in theory
 
-        print("database:", db_name, "writable:", db_writable)
+        # print("database:", db_name, "writable:", db_writable)
         signals.update_activity_table_context.emit(db_name, db_writable)
         signals.activity_read_only_changed.emit(db_name, not db_writable)
-        #todo: insert/update ab_settings
+        # todo: insert/update settings
 
