@@ -4,7 +4,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox
-
+from ...signals import signals
 
 class ActivityTab(QtWidgets.QWidget):
     """The data relating to Brightway activities can be viewed and edited through this panel interface
@@ -22,14 +22,18 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, parent=None, activity=None, read_only=True):
+    def __init__(self, parent=None, activity_key=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
         self.parent = parent
         self.read_only = read_only
+        self.activity_key=activity_key
         # checkbox for enabling editing of activity, default=read-only
-        # lambda for user-check defined in Populate function, after required variables are in scope
+        self.connect_signals()
         self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
         self.read_only_ch.setChecked(self.read_only)
+        self.db_name = self.activity_key[0]
+        self.read_only_ch.clicked.connect(
+            lambda checked, db_name=self.db_name: self.readOnlyStateChanged(db_name=db_name, read_only=checked))
 
         # activity-specific data as shown at the top
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only)
@@ -60,13 +64,11 @@ class ActivityTab(QtWidgets.QWidget):
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
-        if activity:
-            self.populate(activity)
+        if activity_key:
+            self.populate(activity_key)
 
     def populate(self, key):
         self.activity = bw.get_activity(key)
-        self.read_only_ch.clicked.connect(
-            lambda checked, key=self.activity.key: self.readOnlyStateChanged(checked, key))
 
         self.activity_data_grid.populate(self.activity)
         # todo: add count of results for each exchange table, to label above each table
@@ -75,15 +77,15 @@ class ActivityTab(QtWidgets.QWidget):
         self.flows.set_queryset(key[0], self.activity.biosphere())
         self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
 
-    def readOnlyStateChanged(self, checked, key):
-        """
-        When checked=False specific data fields in the tables below become editable
-        When checked=True these same fields become read-only
-        """
-        print("ro state change hit for:", checked, key)
-        ActivityDataGrid.set_activity_fields_read_only(self.activity_data_grid, read_only=checked)
-        self.set_exchange_tables_read_only(read_only=checked)
-        #todo: save RO state to file
+    def readOnlyStateChanged(self, db_name, read_only):
+        """ When checked=False specific data fields in the tables below become editable
+            When checked=True these same fields become read-only"""
+        # print("ro state change (if db_name=self.db_name):", db_name, self.activity_key)
+        if db_name == self.activity_key[0]:
+            ActivityDataGrid.set_activity_fields_read_only(self.activity_data_grid, read_only=read_only)
+            self.set_exchange_tables_read_only(read_only=read_only)
+            self.read_only_ch.setChecked(read_only)
+            #todo: save activity RO state to settings file?
 
     def set_exchange_tables_read_only(self, read_only):
         self.read_only = read_only
@@ -97,3 +99,6 @@ class ActivityTab(QtWidgets.QWidget):
             else:
                 table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
                 table.setDragDropMode(QtWidgets.QTableWidget.DropOnly)
+
+    def connect_signals(self):
+        signals.activity_read_only_changed.connect(self.readOnlyStateChanged)

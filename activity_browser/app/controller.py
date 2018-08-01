@@ -417,22 +417,19 @@ class Controller(object):
         signals.database_changed.emit(exchange['output'][0])
 
     def database_writable_enabled(self, db_name, db_writable):
-        """Set read-only checkbox of open panels to active (not greyed out)
-        Activities inventory list: Options for “Edit activity” and “New activity”
-        become active again (as above, may be handled on right-click)
-        Update settings file entry to read-only = false
-
+        """if db_writable:
+        Set read-only checkbox of open panels to active (not greyed out)
+        Activities list context menu: Options for “Edit activity” and “New activity” set enabled
+        Update settings file entry to writable
+        if not db_writable:
         Set tables/rows/cells to read-only and set the activity 'Read-Only checkbox' to greyed-out
-        Activities inventory context menu: Options for “Edit activity” and “New activity”
-        become greyed out (make this change here or on right-click?)
-        Insert or update entry in ab_settings file"""
+        Activities list context menu: Options for “Edit activity” and “New activity” set disabled
+        Insert or update entry in ab_settings file to not writable"""
         # todo: also add a check for project of db for safety
         # though no activities from other projects can be open, in theory
 
         print("database:", db_name, "writable:", db_writable)
-        open_activities_for_db = [act_code for db, act_code in activity_cache if db == db_name]
-        for act_code in open_activities_for_db:
-            print("setting", db_name, "activity:",  act_code, "to writable?:", db_writable)
-            signals.update_activity_table_context.emit(db_writable)
+        signals.update_activity_table_context.emit(db_name, db_writable)
+        signals.activity_read_only_changed.emit(db_name, not db_writable)
+        #todo: insert/update ab_settings
 
-        # send signal to ActivitiesTable.update_context_actions(db_writable)

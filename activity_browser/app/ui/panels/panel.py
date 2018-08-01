@@ -91,9 +91,8 @@ class ActivitiesPanel(Panel):
                     read_only = False
                 else:
                     read_only = True
-                # print(key, "is read only?", read_only)
-                new_tab = ActivityTab(self, read_only=read_only)
-                new_tab.populate(key)
+                new_tab = ActivityTab(self, activity_key=key, read_only=read_only)
+                #new_tab.populate()
                 activity_cache[key] = new_tab
                 self.addTab(new_tab, get_name(bw.get_activity(key)))
                 self.select_tab(new_tab)
