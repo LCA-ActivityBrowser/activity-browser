@@ -6,6 +6,7 @@ from .. import activity_cache
 from ..tabs import ActivityTab, CFsTab
 from ..utils import get_name
 from ...signals import signals
+from ...settings import user_project_settings
 
 
 class Panel(QtWidgets.QTabWidget):
@@ -80,6 +81,8 @@ class ActivitiesPanel(Panel):
         # for testing, editable activities are first two Forwast, names:
         # 100 Health and social work, EU27
         # 100 Waste treatment, Biogasification of food waste, DK
+        a = user_project_settings.settings
+        print("settings:\n", a)
         read_only_file_placeholder = {'writable-activities': [('forwast', '1099994b5fb9dec17ce78eb9aa8fd66f'),
                                                               ('forwast', '04569c83a5f561672dfb0e41b4636a67')]
                                       }
