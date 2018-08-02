@@ -90,7 +90,11 @@ class ActivityTab(QtWidgets.QWidget):
             # the user still ticks to choose when they want to edit a specific one
             if read_only:
                 self.read_only_ch.setChecked(read_only)
-            #todo: save activity RO state to settings file?
+
+            # act_key_tuple_as_string = str(self.activity_key)
+            # user_project_settings.settings['writable-activities'][act_key_tuple_as_string] = read_only
+            # user_project_settings.write_settings()
+
 
     def set_exchange_tables_read_only(self, read_only):
         self.read_only = read_only

@@ -13,7 +13,7 @@ from fuzzywuzzy import process
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
-from activity_browser.app.settings import ab_settings
+from activity_browser.app.settings import user_project_settings
 from .. import activity_cache
 
 class DatabasesTable(ABTableWidget):
@@ -85,10 +85,7 @@ class DatabasesTable(ABTableWidget):
 
         project = bw.projects.current.lower().strip()
 
-        read_only_db_placeholder = {'writable-databases': ['forwast',
-                                                           'foo']
-                                    }
-        writable_dbs = read_only_db_placeholder['writable-databases']
+        writable_databases = user_project_settings.settings.get('writable-databases', {})
         for row, name in enumerate(natural_sort(bw.databases)):
             self.setItem(row, 0, ABTableItem(name, db_name=name))
             depends = bw.databases[name].get('depends', [])
@@ -103,10 +100,9 @@ class DatabasesTable(ABTableWidget):
             self.setItem(
                 row, 3, ABTableItem(str(len(bw.Database(name))), db_name=name)
             )
-            # final column includes active checkbox which shows read-only state of db
-            # name = name.strip().lower()
-            database_writable = True if name in writable_dbs else False
-            # checkbox widget for read-only column. Parent object of checkbox = DatabasesTable
+            # final column includes interactive checkbox which shows read-only state of db
+            database_writable = writable_databases.get(name, False)
+
             ch = QtWidgets.QCheckBox(parent=self)
             ch.clicked.connect(lambda checked, project=project, db=name: self.readOnlyStateChanged(checked, project, db))
             ch.setChecked(not database_writable)

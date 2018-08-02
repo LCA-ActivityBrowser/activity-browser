@@ -7,6 +7,7 @@ import appdirs
 from activity_browser.app.bwutils import commontasks as bc
 from .. import PACKAGE_DIRECTORY
 import brightway2 as bw
+from activity_browser.app.signals import signals
 
 class ABSettings():
     def __init__(self):
@@ -37,6 +38,22 @@ class ABSettings():
 
 
 class UserProjectSettings():
+    """
+    Handles user settings which are specific to projects. Created initially to handle read-only/writable database status
+    Code based on ABSettings class, if more different types of settings are needed, could inherit from a base class
+
+    structure: singleton, loaded dependent on which project is selected.
+        Persisted on disc, Stored in the BW2 projects data folder for each project
+        a dictionary1 of dictionaries2
+        Dictionary1 keys are settings names (currently just 'writable-databases'), values are dictionary2s
+        Dictionary2 keys are database names, values are bools
+
+    For now, decided to not include saving writable-activities to settings.
+    As activities are identified by tuples, and saving them to json requires extra code
+    https://stackoverflow.com/questions/15721363/preserve-python-tuples-with-json
+    This is currently not worth the effort but could be returned to later
+
+    """
     def __init__(self):
         # on selection of a project (signal?), find the settings file for that project if it exists
         # it can be a custom location, based on ABsettings. So check that, and if not, use default?
@@ -64,28 +81,33 @@ class UserProjectSettings():
     def write_settings(self):
         with open(self.settings_file, 'w') as outfile:
             json.dump(self.settings, outfile, indent=4, sort_keys=True)
+            print("settings written to", str(self.settings_file), "\n", str(self.settings))
 
     def reset_for_project_selection(self):
-        # executes when new project selected on interface
-        # same code as __init__
-
+        # executes when new project selected
+        # same code as __init__ but without connect_signals()
         self.project_dir = bw.projects.dir
         # print("project_dir:", self.project_dir)
         # self.project_name = bw.projects._project_name
 
         self.settings_file = os.path.join(self.project_dir, 'AB_project_settings.json')
 
+        # load if found, else make empty dict and save as new file
         if os.path.isfile(self.settings_file):
             self.load_settings()
         else:
-            # make empty dict for settings
-            self.settings = {}
-            # and save just whilst testing it works
+            self.settings = self.get_default_settings()
             self.write_settings()
 
+    def get_default_settings(self):
+        # returns default empty settings dictionary
+        default = {
+            'writable-databases': {}
+            # ,'writable-activities': {}
+        }
+        return default
 
     def connect_signals(self):
-        from activity_browser.app.signals import signals
         signals.project_selected.connect(self.reset_for_project_selection)
 
 

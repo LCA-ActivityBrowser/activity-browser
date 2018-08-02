@@ -75,37 +75,21 @@ class ActivitiesPanel(Panel):
 
     def open_activity_tab(self, side, key):
         # check if it's open already and go to it if it is
-        # check if the activity is found in settings file as editable (default read_only)
+        # check if the database is found in settings as editable (default read_only)
 
-        # whilst WIP: use a placeholder to simulate a file.
-        # for testing, editable activities are first two Forwast, names:
-        # 100 Health and social work, EU27
-        # 100 Waste treatment, Biogasification of food waste, DK
         a = user_project_settings.settings
         print("settings:\n", a)
-        read_only_file_placeholder = {'writable-activities': [('forwast', '1099994b5fb9dec17ce78eb9aa8fd66f'),
-                                                              ('forwast', '04569c83a5f561672dfb0e41b4636a67')]
-                                      }
-        read_only_db_placeholder = {'writable-databases': ['forwast',
-                                                           'foo']
-                                    }
+
         if side == self.side:
             if key in activity_cache:
                 self.select_tab(activity_cache[key])
             else:
-                db_read_only = True
-                writable_dbs = read_only_db_placeholder['writable-databases']
-                if key[0] in writable_dbs:
-                    db_read_only = False
-
-                # activity can only be editable if db is, so only check if this is the case.
+                # for now, activity is always initially read-only.
                 act_read_only = True
-                if not db_read_only:
-                    editable_acts = read_only_file_placeholder['writable-activities']
-                    if key in editable_acts:
-                        act_read_only = False
+                writable_databases = user_project_settings.settings.get('writable-databases', {})
+                database_writable = writable_databases.get(key[0], False)
 
-                new_tab = ActivityTab(self, activity_key=key, read_only=act_read_only, db_read_only=db_read_only)
+                new_tab = ActivityTab(self, activity_key=key, read_only=act_read_only, db_read_only=not database_writable)
                 activity_cache[key] = new_tab
                 self.addTab(new_tab, get_name(bw.get_activity(key)))
                 self.select_tab(new_tab)

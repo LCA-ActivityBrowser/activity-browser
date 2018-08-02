@@ -12,7 +12,7 @@ from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
 from .bwutils import commontasks as bc
-from .settings import ab_settings
+from .settings import ab_settings, user_project_settings
 from .signals import signals
 from activity_browser.app.ui import activity_cache
 
@@ -431,5 +431,8 @@ class Controller(object):
         # print("database:", db_name, "writable:", db_writable)
         signals.update_activity_table_context.emit(db_name, db_writable)
         signals.activity_read_only_changed.emit(db_name, not db_writable)
-        # todo: insert/update settings
+
+        # update setting with new value and save
+        user_project_settings.settings['writable-databases'][db_name] = db_writable
+        user_project_settings.write_settings()
 
