@@ -47,7 +47,6 @@ class Controller(object):
         signals.copy_database.connect(self.copy_database)
         signals.install_default_data.connect(self.install_default_data)
         signals.import_database.connect(self.import_database_wizard)
-        signals.database_writable_enabled.connect(self.database_writable_enabled)
 
         # Activity
         signals.duplicate_activity.connect(self.duplicate_activity)
@@ -337,7 +336,7 @@ class Controller(object):
     def copy_to_db(self, activity_key):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
-        # TODO: Exclude read-only dbs from target_dbs as soon as they are implemented
+        # TODO: Exclude read-only dbs from target_dbs
         available_target_dbs = sorted(set(bw.databases).difference(
             {'biosphere3', origin_db}
         ))
@@ -359,7 +358,7 @@ class Controller(object):
             if ok:
                 new_code = self.generate_copy_code((target_db, activity['code']))
                 activity.copy(code=new_code, database=target_db)
-                # only process database immediatly if small
+                # only process database immediately if small
                 if len(bw.Database(target_db)) < 200:
                     bw.databases.clean()
                 signals.database_changed.emit(target_db)
@@ -415,5 +414,5 @@ class Controller(object):
         exchange['amount'] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
-        
+
 

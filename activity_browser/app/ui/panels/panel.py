@@ -76,13 +76,15 @@ class ActivitiesPanel(Panel):
             if key in activity_cache:
                 self.select_tab(activity_cache[key])
             else:
-                writable_databases = user_project_settings.settings.get('writable-databases', {})
-                database_writable = writable_databases.get(key[0], False)
+                databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
 
+                database_read_only = databases_read_only_settings.get(key[0], True)
+                # print(databases_read_only_settings)
+                # print(database_read_only)
                 act_dict = bw.get_activity(key).as_dict()
                 act_name = act_dict['name']
 
-                new_tab = ActivityTab(self, activity_key=key, read_only=True, db_read_only=not database_writable)
+                new_tab = ActivityTab(self, activity_key=key, read_only=True, db_read_only=database_read_only)
 
 
                 # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top

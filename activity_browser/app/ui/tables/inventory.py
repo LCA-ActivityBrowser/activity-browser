@@ -74,11 +74,10 @@ class DatabasesTable(ABTableWidget):
         signals.database_selected.emit(item.db_name)
 
     def read_only_changed(self, checked, project, db):
-        """User has clicked to update a db to either read-only or editable
-        the user sees clicks "read-only" but the code deals with the concept of "db_writable", hence inversion: 'not'"""
-        user_project_settings.settings['writable-databases'][db] = not checked
+        """User has clicked to update a db to either read-only or not"""
+        user_project_settings.settings['read-only-databases'][db] = checked
         user_project_settings.write_settings()
-        signals.database_writable_enabled.emit(db, not checked)
+        signals.database_read_only_changed.emit(db, checked)
 
 
     @ABTableWidget.decorated_sync
@@ -87,8 +86,8 @@ class DatabasesTable(ABTableWidget):
         self.setHorizontalHeaderLabels(self.HEADERS)
 
         project = bw.projects.current.lower().strip()
+        databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
 
-        writable_databases = user_project_settings.settings.get('writable-databases', {})
         for row, name in enumerate(natural_sort(bw.databases)):
             self.setItem(row, 0, ABTableItem(name, db_name=name))
             depends = bw.databases[name].get('depends', [])
@@ -104,11 +103,11 @@ class DatabasesTable(ABTableWidget):
                 row, 3, ABTableItem(str(len(bw.Database(name))), db_name=name)
             )
             # final column includes interactive checkbox which shows read-only state of db
-            database_writable = writable_databases.get(name, False)
+            database_read_only = databases_read_only_settings.get(name, True)
 
             ch = QtWidgets.QCheckBox(parent=self)
             ch.clicked.connect(lambda checked, project=project, db=name: self.read_only_changed(checked, project, db))
-            ch.setChecked(not database_writable)
+            ch.setChecked(database_read_only)
             self.setCellWidget(row, 4, ch)
 
 
@@ -166,16 +165,17 @@ class ActivitiesTable(ABTableWidget):
     }
     HEADERS = ["Name", "Reference Product", "Location", "Unit", "Key"]
 
-    def __init__(self, parent=None, db_writable=False):
+    def __init__(self, parent=None, db_read_only=True):
         super(ActivitiesTable, self).__init__(parent)
+        self.db_read_only = db_read_only
         self.database_name = None
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
-        self.setup_context_menu(db_writable)
+        self.setup_context_menu()
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
 
-    def setup_context_menu(self, db_writable=False):
+    def setup_context_menu(self):
         self.open_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open activity", None)
         self.new_activity_action = QtWidgets.QAction(
@@ -188,11 +188,11 @@ class ActivitiesTable(ABTableWidget):
             QtGui.QIcon(icons.delete), "Delete activity", None
         )
         self.copy_to_db_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add_db), 'Copy to database', None
+            QtGui.QIcon(icons.add_db), 'Duplicate to database', None
         )
         # context menu items are disabled if db is read-only
-        # defaults to false (db not writable)
-        self.update_activity_table_context(self.database_name, db_writable)
+
+        self.update_activity_table_context(self.database_name, db_read_only=self.db_read_only)
 
         self.addAction(self.open_activity_action)
         self.addAction(self.new_activity_action)
@@ -216,19 +216,19 @@ class ActivitiesTable(ABTableWidget):
             lambda: signals.copy_to_db.emit(self.currentItem().key)
         )
 
-    def update_activity_table_context(self, db, db_writable):
-        """[new, duplicate & delete] actions can only be selected for writable databases
+    def update_activity_table_context(self, db, db_read_only):
+        """[new, duplicate & delete] actions can only be selected for databases that are not read-only
                 user can change state of dbs other than the open one: so check first"""
         if self.database_name == db:
-            self.new_activity_action.setEnabled(db_writable)
-            # todo: add feature to duplicate to different (non-read-only) database (regardless of db_writable)
-            self.duplicate_activity_action.setEnabled(db_writable)
-            self.delete_activity_action.setEnabled(db_writable)
+            self.db_read_only = db_read_only
+            self.new_activity_action.setEnabled(not self.db_read_only)
+            self.duplicate_activity_action.setEnabled(not self.db_read_only)
+            self.delete_activity_action.setEnabled(not self.db_read_only)
 
     def connect_signals(self):
         signals.database_selected.connect(self.sync)
         signals.database_changed.connect(self.filter_database_changed)
-        signals.database_writable_enabled.connect(self.update_activity_table_context)
+        signals.database_read_only_changed.connect(self.update_activity_table_context)
 
         self.itemDoubleClicked.connect(
             lambda x: signals.open_activity_tab.emit("activities", x.key)

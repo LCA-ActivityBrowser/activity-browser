@@ -45,7 +45,7 @@ class UserProjectSettings():
     structure: singleton, loaded dependent on which project is selected.
         Persisted on disc, Stored in the BW2 projects data folder for each project
         a dictionary1 of dictionaries2
-        Dictionary1 keys are settings names (currently just 'writable-databases'), values are dictionary2s
+        Dictionary1 keys are settings names (currently just 'read-only-databases'), values are dictionary2s
         Dictionary2 keys are database names, values are bools
 
     For now, decided to not include saving writable-activities to settings.
@@ -71,7 +71,7 @@ class UserProjectSettings():
         else:
             # make empty dict for settings
             self.settings = {}
-            # and save just whilst testing it works
+            # save to ensure it's always accessible after first project select
             self.write_settings()
 
     def load_settings(self):
@@ -102,7 +102,7 @@ class UserProjectSettings():
     def get_default_settings(self):
         # returns default empty settings dictionary
         default = {
-            'writable-databases': {}
+            'read-only-databases': {}
             # ,'writable-activities': {}
         }
         return default

@@ -85,14 +85,12 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         self.setLayout(self.grid)
 
-
         if activity:
             self.populate()
 
     def set_activity_fields_read_only(self):
         """ called on init after widgets instantiated
-        also whenever a user clicks the read-only checkbox """
-
+            also whenever a user clicks the read-only checkbox """
         # user cannot edit these fields if they are read-only
         self.name_box.setReadOnly(self.read_only)
         self.location_box.setReadOnly(self.read_only)
