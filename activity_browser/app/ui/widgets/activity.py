@@ -3,7 +3,6 @@ from PyQt5 import QtCore, QtWidgets
 
 from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
 
-
 class DetailsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, label, widget):
         super().__init__(label)
@@ -13,6 +12,7 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
         self.setChecked(False)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(widget)
+        layout.setContentsMargins(0, 4, 0, 1)
         self.setLayout(layout)
         if isinstance(self.widget, QtWidgets.QTableWidget):
             self.widget.itemChanged.connect(self.toggle_empty_table)
@@ -66,7 +66,10 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
-        self.grid.setSpacing(5)
+
+        self.setContentsMargins(0, 0, 0, 0)
+        self.grid.setContentsMargins(5, 5, 0, 5)
+        self.grid.setSpacing(6)
         self.grid.setAlignment(QtCore.Qt.AlignTop)
 
         self.grid.addWidget(QtWidgets.QLabel('Name'), 1, 1)
@@ -79,7 +82,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         # do not allow user to edit fields if the ActivityDataGrid is read-only
         self.set_activity_fields_read_only()
+
         self.setLayout(self.grid)
+
 
         if activity:
             self.populate()

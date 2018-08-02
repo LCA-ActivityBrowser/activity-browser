@@ -7,7 +7,6 @@ from ..tabs import ActivityTab, CFsTab
 from ..utils import get_name
 from ...signals import signals
 from ...settings import user_project_settings
-from ..style import style_activity_panel
 
 class Panel(QtWidgets.QTabWidget):
     def __init__(self, parent=None):

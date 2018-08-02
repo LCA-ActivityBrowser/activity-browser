@@ -76,7 +76,7 @@ class TableItemStyle:
             })
 
 
-style_activity_panel = ActivitiesPanel()
+style_activity_panel = ActivitiesPanel
 style_activity_tab = ActivitiesTab
 style_table = TableStyle()
 style_item = TableItemStyle()

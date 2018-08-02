@@ -33,6 +33,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         # checkbox for enabling editing of activity, default=read-only
 
         self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
+        self.read_only_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.read_only_ch.setChecked(self.read_only)
         self.db_name = self.activity_key[0]
         self.read_only_ch.clicked.connect(
@@ -57,6 +58,7 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         # arrange activity data and exchange data into desired vertical layout
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(10, 10, 4, 1)
         layout.addWidget(self.read_only_ch)
         layout.addWidget(self.activity_data_grid)
         for table, label in self.exchange_tables:
