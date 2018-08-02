@@ -34,7 +34,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.read_only_ch.setChecked(self.read_only)
         self.db_name = self.activity_key[0]
         self.read_only_ch.clicked.connect(
-            lambda checked, db_name=self.db_name: self.readOnlyStateChanged(db_name=db_name, read_only=checked))
+            lambda checked, db_name=self.db_name: self.read_only_changed(db_name=db_name, read_only=checked))
 
         self.activity_read_only_box_active(db_name=self.db_name, db_editable=not self.db_read_only)
         # activity-specific data as shown at the top
@@ -79,7 +79,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.flows.set_queryset(key[0], self.activity.biosphere())
         self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
 
-    def readOnlyStateChanged(self, db_name, read_only):
+    def read_only_changed(self, db_name, read_only):
         """ When checked=False specific data fields in the tables below become editable
             When checked=True these same fields become read-only"""
         # print("ro state change (if db_name=self.db_name):", db_name, self.activity_key)
@@ -116,5 +116,5 @@ class ActivityTab(QtWidgets.QWidget):
             self.read_only_ch.setEnabled(db_editable)
 
     def connect_signals(self):
-        signals.activity_read_only_changed.connect(self.readOnlyStateChanged)
+        signals.activity_read_only_changed.connect(self.read_only_changed)
         signals.database_writable_enabled.connect(self.activity_read_only_box_active)

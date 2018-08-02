@@ -73,7 +73,7 @@ class DatabasesTable(ABTableWidget):
     def select_database(self, item):
         signals.database_selected.emit(item.db_name)
 
-    def readOnlyStateChanged(self, checked, project, db):
+    def read_only_changed(self, checked, project, db):
         """User has clicked to update a db to either read-only or editable
         the user sees clicks "read-only" but the code deals with the concept of "db_writable", hence inversion: 'not'"""
         signals.database_writable_enabled.emit(db, not checked)
@@ -104,7 +104,7 @@ class DatabasesTable(ABTableWidget):
             database_writable = writable_databases.get(name, False)
 
             ch = QtWidgets.QCheckBox(parent=self)
-            ch.clicked.connect(lambda checked, project=project, db=name: self.readOnlyStateChanged(checked, project, db))
+            ch.clicked.connect(lambda checked, project=project, db=name: self.read_only_changed(checked, project, db))
             ch.setChecked(not database_writable)
             self.setCellWidget(row, 4, ch)
 
