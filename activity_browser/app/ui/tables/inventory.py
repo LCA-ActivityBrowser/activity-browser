@@ -76,7 +76,10 @@ class DatabasesTable(ABTableWidget):
     def read_only_changed(self, checked, project, db):
         """User has clicked to update a db to either read-only or editable
         the user sees clicks "read-only" but the code deals with the concept of "db_writable", hence inversion: 'not'"""
+        user_project_settings.settings['writable-databases'][db] = not checked
+        user_project_settings.write_settings()
         signals.database_writable_enabled.emit(db, not checked)
+
 
     @ABTableWidget.decorated_sync
     def sync(self):
@@ -212,9 +215,10 @@ class ActivitiesTable(ABTableWidget):
         self.copy_to_db_action.triggered.connect(
             lambda: signals.copy_to_db.emit(self.currentItem().key)
         )
+
     def update_activity_table_context(self, db, db_writable):
-        # [new, duplicate & delete] actions can only be selected for writable databases
-        # user can change state of dbs other than the open one: so check first
+        """[new, duplicate & delete] actions can only be selected for writable databases
+                user can change state of dbs other than the open one: so check first"""
         if self.database_name == db:
             self.new_activity_action.setEnabled(db_writable)
             # todo: add feature to duplicate to different (non-read-only) database (regardless of db_writable)
@@ -224,7 +228,7 @@ class ActivitiesTable(ABTableWidget):
     def connect_signals(self):
         signals.database_selected.connect(self.sync)
         signals.database_changed.connect(self.filter_database_changed)
-        signals.update_activity_table_context.connect(self.update_activity_table_context)
+        signals.database_writable_enabled.connect(self.update_activity_table_context)
 
         self.itemDoubleClicked.connect(
             lambda x: signals.open_activity_tab.emit("activities", x.key)

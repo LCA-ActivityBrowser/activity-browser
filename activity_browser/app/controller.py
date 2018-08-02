@@ -427,10 +427,7 @@ class Controller(object):
         Insert or update entry in ab_settings file to not writable"""
 
         # print("database:", db_name, "writable:", db_writable)
-        signals.update_activity_table_context.emit(db_name, db_writable)
-        signals.activity_read_only_changed.emit(db_name, not db_writable)
 
         # update setting with new value and save
-        user_project_settings.settings['writable-databases'][db_name] = db_writable
-        user_project_settings.write_settings()
+
 

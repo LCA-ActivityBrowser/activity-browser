@@ -64,9 +64,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
             'Description', self.comment_box)
         self.comment_groupbox.setChecked(False)
 
-        # do not allow user to edit fields if the activity is read-only
-        self.set_activity_fields_read_only(read_only=self.read_only)
-
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
         self.grid.setSpacing(5)
@@ -80,19 +77,21 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.addWidget(QtWidgets.QLabel('Database'), 3, 1)
         self.grid.addWidget(self.comment_groupbox, 4, 1, 2, -1)
 
+        # do not allow user to edit fields if the ActivityDataGrid is read-only
+        self.set_activity_fields_read_only()
         self.setLayout(self.grid)
 
         if activity:
             self.populate()
 
-    def set_activity_fields_read_only(self, read_only=True):
+    def set_activity_fields_read_only(self):
         """ called on init after widgets instantiated
         also whenever a user clicks the read-only checkbox """
-        self.read_only = read_only
+
         # user cannot edit these fields if they are read-only
         self.name_box.setReadOnly(self.read_only)
         self.location_box.setReadOnly(self.read_only)
-        # self.database.setReadOnly(self.read_only) # read-only already for now
+        # self.database.setReadOnly(self.read_only) #  read-only always, for now
         self.comment_box.setReadOnly(self.read_only)
 
     def populate(self, activity=None):
