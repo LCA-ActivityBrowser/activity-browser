@@ -336,16 +336,12 @@ class Controller(object):
     def duplicate_activity_to_db(self, activity_key):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
-        available_target_dbs = []
-        databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
 
-        for db_name, read_only in databases_read_only_settings.items():
-            if not read_only:
-                available_target_dbs.append(db_name)
+        available_target_dbs = bc.get_editable_databases()
 
-        available_target_dbs = set(available_target_dbs).difference(
-            {'biosphere3', origin_db}
-        )
+        if origin_db in available_target_dbs:
+            available_target_dbs.remove(origin_db)
+
         if not available_target_dbs:
             QtWidgets.QMessageBox.information(
                 None,
@@ -370,7 +366,7 @@ class Controller(object):
                     bw.databases.clean()
 
                 signals.database_changed.emit(target_db)
-                signals.databases_changed.emit()
+                # signals.databases_changed.emit()
                 # open duplicated activity to new tab
                 signals.open_activity_tab.emit("activities", new_act_key)
 

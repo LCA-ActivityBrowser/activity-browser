@@ -2,6 +2,7 @@
 from PyQt5 import QtCore, QtWidgets
 
 from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
+from activity_browser.app.bwutils import commontasks as bc
 
 class DetailsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, label, widget):
@@ -52,8 +53,12 @@ class ActivityDataGrid(QtWidgets.QWidget):
         )
         self.location_box.setPlaceholderText("ISO 2-letter code or custom name")
 
-        #improvement todo: allow user to copy open activity to other db, via drop-down menu here
-        self.database = QtWidgets.QLabel('')
+        self.database_label = QtWidgets.QLabel('Database')
+        self.database_label.setToolTip("Use dropdown menu to duplicate activity to another database")
+
+        # the database of the activity is shown as a dropdown (ComboBox), which enables user to change it
+        self.database_dropdown = QtWidgets.QComboBox()
+        self.database_dropdown.setToolTip("Use dropdown menu to duplicate activity to another database")
 
         self.comment_box = SignalledPlainTextEdit(
             key=getattr(self.activity, "key", None),
@@ -76,8 +81,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.addWidget(self.name_box, 1, 2, 1, 3)
         self.grid.addWidget(QtWidgets.QLabel('Location'), 2, 1)
         self.grid.addWidget(self.location_box, 2, 2, 1, -1)
-        self.grid.addWidget(self.database, 3, 2, 1, -1)
-        self.grid.addWidget(QtWidgets.QLabel('Database'), 3, 1)
+        self.grid.addWidget(self.database_dropdown, 3, 2, 1, -1)
+        self.grid.addWidget(self.database_label, 3, 1)
         self.grid.addWidget(self.comment_groupbox, 4, 1, 2, -1)
 
         # do not allow user to edit fields if the ActivityDataGrid is read-only
@@ -94,18 +99,28 @@ class ActivityDataGrid(QtWidgets.QWidget):
         # user cannot edit these fields if they are read-only
         self.name_box.setReadOnly(self.read_only)
         self.location_box.setReadOnly(self.read_only)
-        # self.database.setReadOnly(self.read_only) #  read-only always, for now
         self.comment_box.setReadOnly(self.read_only)
 
     def populate(self, activity=None):
         if activity:
             self.activity = activity
 
-        self.database.setText(self.activity['database'])
         self.name_box.setText(self.activity['name'])
         self.name_box._key = self.activity.key
         self.location_box.setText(self.activity.get('location', ''))
         self.location_box._key = self.activity.key
+
+        # first item in db dropdown, shown by default, is the current database
+        self.database_dropdown.addItem(self.activity['database'])
+
+        available_target_dbs = bc.get_editable_databases()
+        if self.activity['database'] in available_target_dbs:
+            available_target_dbs.remove(self.activity['database'])
+        for db_name in available_target_dbs:
+            self.database_dropdown.addItem(db_name)
+
+        self.database_dropdown.currentIndexChanged()
+
         self.comment_box.setPlainText(self.activity.get('comment', ''))
         self.comment_box._key = self.activity.key
         # the <font> html-tag has no effect besides making the tooltip rich text
