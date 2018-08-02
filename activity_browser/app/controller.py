@@ -53,7 +53,7 @@ class Controller(object):
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
-        signals.copy_to_db.connect(self.copy_to_db)
+        signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
         # Exchange
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
@@ -333,18 +333,24 @@ class Controller(object):
         signals.database_changed.emit(act['database'])
         signals.open_activity_tab.emit("right", new_act.key)
 
-    def copy_to_db(self, activity_key):
+    def duplicate_activity_to_db(self, activity_key):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
-        # TODO: Exclude read-only dbs from target_dbs
-        available_target_dbs = sorted(set(bw.databases).difference(
+        available_target_dbs = []
+        databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
+
+        for db_name, read_only in databases_read_only_settings.items():
+            if not read_only:
+                available_target_dbs.append(db_name)
+
+        available_target_dbs = set(available_target_dbs).difference(
             {'biosphere3', origin_db}
-        ))
+        )
         if not available_target_dbs:
             QtWidgets.QMessageBox.information(
                 None,
                 "No target database",
-                "No valid target databases available. Create a new database first."
+                "No valid target databases available. Create a new database or set one to writable (not read-only)."
             )
         else:
             target_db, ok = QtWidgets.QInputDialog.getItem(
@@ -357,12 +363,16 @@ class Controller(object):
             )
             if ok:
                 new_code = self.generate_copy_code((target_db, activity['code']))
+                new_act_key = (target_db, new_code)
                 activity.copy(code=new_code, database=target_db)
                 # only process database immediately if small
-                if len(bw.Database(target_db)) < 200:
+                if len(bw.Database(target_db)) < 50:
                     bw.databases.clean()
+
                 signals.database_changed.emit(target_db)
                 signals.databases_changed.emit()
+                # open duplicated activity to new tab
+                signals.open_activity_tab.emit("activities", new_act_key)
 
     def modify_activity(self, key, field, value):
         activity = bw.get_activity(key)

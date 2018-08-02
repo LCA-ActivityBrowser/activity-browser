@@ -187,8 +187,8 @@ class ActivitiesTable(ABTableWidget):
         self.delete_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete activity", None
         )
-        self.copy_to_db_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add_db), 'Duplicate to database', None
+        self.duplicate_activity_to_db_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.add_db), 'Duplicate to other database', None
         )
         # context menu items are disabled if db is read-only
 
@@ -198,7 +198,7 @@ class ActivitiesTable(ABTableWidget):
         self.addAction(self.new_activity_action)
         self.addAction(self.duplicate_activity_action)
         self.addAction(self.delete_activity_action)
-        self.addAction(self.copy_to_db_action)
+        self.addAction(self.duplicate_activity_to_db_action)
 
         self.open_activity_action.triggered.connect(
             lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
@@ -212,8 +212,8 @@ class ActivitiesTable(ABTableWidget):
         self.delete_activity_action.triggered.connect(
             lambda x: signals.delete_activity.emit(self.currentItem().key)
         )
-        self.copy_to_db_action.triggered.connect(
-            lambda: signals.copy_to_db.emit(self.currentItem().key)
+        self.duplicate_activity_to_db_action.triggered.connect(
+            lambda: signals.duplicate_activity_to_db.emit(self.currentItem().key)
         )
 
     def update_activity_table_context(self, db, db_read_only):
