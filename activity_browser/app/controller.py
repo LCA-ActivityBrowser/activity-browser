@@ -415,19 +415,5 @@ class Controller(object):
         exchange['amount'] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
-
-    def database_writable_enabled(self, db_name, db_writable):
-        """if db_writable:
-        Set read-only checkbox of open panels to active (not greyed out)
-        Activities list context menu: Options for “Edit activity” and “New activity” set enabled
-        Update settings file entry to writable
-        if not db_writable:
-        Set tables/rows/cells to read-only and set the activity 'Read-Only checkbox' to greyed-out
-        Activities list context menu: Options for “Edit activity” and “New activity” set disabled
-        Insert or update entry in ab_settings file to not writable"""
-
-        # print("database:", db_name, "writable:", db_writable)
-
-        # update setting with new value and save
-
+        
 
