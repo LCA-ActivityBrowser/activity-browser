@@ -81,7 +81,7 @@ class UserProjectSettings():
     def write_settings(self):
         with open(self.settings_file, 'w') as outfile:
             json.dump(self.settings, outfile, indent=4, sort_keys=True)
-            print("settings written to", str(self.settings_file), "\n", str(self.settings))
+            print("user settings written to", str(self.settings_file), "\n\t", str(self.settings))
 
     def reset_for_project_selection(self):
         # executes when new project selected

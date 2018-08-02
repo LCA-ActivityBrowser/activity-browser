@@ -425,8 +425,6 @@ class Controller(object):
         Set tables/rows/cells to read-only and set the activity 'Read-Only checkbox' to greyed-out
         Activities list context menu: Options for “Edit activity” and “New activity” set disabled
         Insert or update entry in ab_settings file to not writable"""
-        # todo: also add a check for project of db for safety
-        # though no activities from other projects can be open, in theory
 
         # print("database:", db_name, "writable:", db_writable)
         signals.update_activity_table_context.emit(db_name, db_writable)

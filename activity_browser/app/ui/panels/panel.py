@@ -7,7 +7,7 @@ from ..tabs import ActivityTab, CFsTab
 from ..utils import get_name
 from ...signals import signals
 from ...settings import user_project_settings
-
+from ..style import style_activity_panel
 
 class Panel(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
@@ -59,11 +59,7 @@ class ActivitiesPanel(Panel):
         self.side = 'activities'
         self.setMovable(True)
         self.setTabsClosable(True)
-        self.tabCloseRequested.connect(self.close_tab)
-
-        signals.open_activity_tab.connect(self.open_activity_tab)
-        signals.activity_modified.connect(self.update_activity_name)
-        signals.project_selected.connect(self.close_all_activity_tabs)
+        self.connect_signals()
 
     def update_activity_name(self, key, field, value):
         if key in activity_cache and field == 'name':
@@ -74,25 +70,31 @@ class ActivitiesPanel(Panel):
                 pass
 
     def open_activity_tab(self, side, key):
-        # check if it's open already and go to it if it is
-        # check if the database is found in settings as editable (default read_only)
-
-        a = user_project_settings.settings
-        print("settings:\n", a)
+        """check if activity open as ActivityTab and focus if so
+        else create a new ActivityTab for activity and focus it"""
 
         if side == self.side:
             if key in activity_cache:
                 self.select_tab(activity_cache[key])
             else:
-                # for now, activity is always initially read-only.
-                act_read_only = True
                 writable_databases = user_project_settings.settings.get('writable-databases', {})
                 database_writable = writable_databases.get(key[0], False)
 
-                new_tab = ActivityTab(self, activity_key=key, read_only=act_read_only, db_read_only=not database_writable)
+                act_dict = bw.get_activity(key).as_dict()
+                act_name = act_dict['name']
+
+                new_tab = ActivityTab(self, activity_key=key, read_only=True, db_read_only=not database_writable)
+
+
+                # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
+                new_tab.setToolTip(act_name)
+
                 activity_cache[key] = new_tab
-                self.addTab(new_tab, get_name(bw.get_activity(key)))
+
+                # get_name returns the act name using bw-specific code, modified to return 30 chars.
+                self.addTab(new_tab, get_name(bw.get_activity(key), str_length=30))
                 self.select_tab(new_tab)
+
             signals.activity_tabs_changed.emit()
 
     def close_tab(self, index):
@@ -108,3 +110,9 @@ class ActivitiesPanel(Panel):
         open_tab_count = len(activity_cache)
         for i in reversed(range(open_tab_count)):
             self.close_tab(i)
+
+    def connect_signals(self):
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.open_activity_tab.connect(self.open_activity_tab)
+        signals.activity_modified.connect(self.update_activity_name)
+        signals.project_selected.connect(self.close_all_activity_tabs)

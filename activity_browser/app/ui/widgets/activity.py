@@ -40,7 +40,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             field="name",
             parent=self,
         )
-        self.name_box.setPlaceholderText("Activity name")
+        # self.name_box.setPlaceholderText("Activity name")
 
         #improvement todo: location to be selectable from dropdown rather than free-text
         #but this requires forming a list of valid locations based on selected db..
@@ -86,8 +86,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
             self.populate()
 
     def set_activity_fields_read_only(self, read_only=True):
-        # called on init after widgets instantiated
-        # also whenever a user clicks the read-only checkbox
+        """ called on init after widgets instantiated
+        also whenever a user clicks the read-only checkbox """
         self.read_only = read_only
         # user cannot edit these fields if they are read-only
         self.name_box.setReadOnly(self.read_only)
