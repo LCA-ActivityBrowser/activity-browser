@@ -3,6 +3,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
 from activity_browser.app.bwutils import commontasks as bc
+from ...signals import signals
 
 class DetailsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, label, widget):
@@ -43,8 +44,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
         )
         # self.name_box.setPlaceholderText("Activity name")
 
-        #improvement todo: location to be selectable from dropdown rather than free-text
-        #but this requires forming a list of valid locations based on selected db..
+        # improvement todo: location to be selectable from dropdown rather than free-text
+        # this could be handled via a list of valid locations, based on selected db..
 
         self.location_box = SignalledLineEdit(
             key=getattr(self.activity, "key", None),
@@ -110,16 +111,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.location_box.setText(self.activity.get('location', ''))
         self.location_box._key = self.activity.key
 
-        # first item in db dropdown, shown by default, is the current database
-        self.database_dropdown.addItem(self.activity['database'])
-
-        available_target_dbs = bc.get_editable_databases()
-        if self.activity['database'] in available_target_dbs:
-            available_target_dbs.remove(self.activity['database'])
-        for db_name in available_target_dbs:
-            self.database_dropdown.addItem(db_name)
-
-        self.database_dropdown.currentIndexChanged()
+        self.populate_database_combo()
 
         self.comment_box.setPlainText(self.activity.get('comment', ''))
         self.comment_box._key = self.activity.key
@@ -130,3 +122,17 @@ class ActivityDataGrid(QtWidgets.QWidget):
         )
         self.comment_box._before = self.activity.get('comment', '')
         self.comment_box.adjust_size()
+
+    def populate_database_combo(self):
+        # first item in db dropdown, shown by default, is the current database
+        self.database_dropdown.addItem(self.activity['database'])
+        available_target_dbs = bc.get_editable_databases()
+        if self.activity['database'] in available_target_dbs:
+            available_target_dbs.remove(self.activity['database'])
+
+        for db_name in available_target_dbs:
+            self.database_dropdown.addItem(db_name)
+
+        self.database_dropdown.currentTextChanged.connect(
+            #lambda currentText: signals.duplicate_activity_to_db(currentText, self.activity))
+            lambda selected_db: signals.duplicate_activity_to_db.emit(selected_db, self.activity))

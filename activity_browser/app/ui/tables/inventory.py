@@ -213,7 +213,7 @@ class ActivitiesTable(ABTableWidget):
             lambda x: signals.delete_activity.emit(self.currentItem().key)
         )
         self.duplicate_activity_to_db_action.triggered.connect(
-            lambda: signals.duplicate_activity_to_db.emit(self.currentItem().key)
+            lambda: signals.show_duplicate_to_db_interface.emit(self.currentItem().key)
         )
 
     def update_activity_table_context(self, db, db_read_only):

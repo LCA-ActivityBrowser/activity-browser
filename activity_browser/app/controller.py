@@ -54,6 +54,8 @@ class Controller(object):
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
+        signals.show_duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
+
         # Exchange
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
@@ -333,7 +335,7 @@ class Controller(object):
         signals.database_changed.emit(act['database'])
         signals.open_activity_tab.emit("right", new_act.key)
 
-    def duplicate_activity_to_db(self, activity_key):
+    def show_duplicate_to_db_interface(self, activity_key):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
 
@@ -358,17 +360,19 @@ class Controller(object):
                 False
             )
             if ok:
-                new_code = self.generate_copy_code((target_db, activity['code']))
-                new_act_key = (target_db, new_code)
-                activity.copy(code=new_code, database=target_db)
-                # only process database immediately if small
-                if len(bw.Database(target_db)) < 50:
-                    bw.databases.clean()
+                self.duplicate_activity_to_db(target_db, activity)
 
-                signals.database_changed.emit(target_db)
-                # signals.databases_changed.emit()
-                # open duplicated activity to new tab
-                signals.open_activity_tab.emit("activities", new_act_key)
+    def duplicate_activity_to_db(self, target_db, activity):
+        new_code = self.generate_copy_code((target_db, activity['code']))
+        new_act_key = (target_db, new_code)
+        activity.copy(code=new_code, database=target_db)
+        # only process database immediately if small
+        if len(bw.Database(target_db)) < 50:
+            bw.databases.clean()
+
+        signals.database_changed.emit(target_db)
+        signals.open_activity_tab.emit("activities", new_act_key)
+
 
     def modify_activity(self, key, field, value):
         activity = bw.get_activity(key)
