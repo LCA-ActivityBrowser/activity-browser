@@ -139,3 +139,17 @@ def get_LCIA_method_name_dict(keys):
     value: brightway2 method tuple
     """
     return {', '.join(key): key for key in keys}
+
+def identify_activity_type(activity):
+    """Return the activity type based on its naming."""
+    name = activity["name"]
+    if "treatment of" in name:
+        return "treatment"
+    elif "market for" in name:
+        # if not "to generic" in name:  # these are not markets, but also transferring activities
+        return "market"
+    elif "market group" in name:
+        # if not "to generic" in name:
+        return "marketgroup"
+    else:
+        return "production"

@@ -20,7 +20,7 @@ class SankeyWidget(QtWidgets.QWidget):
         self.grid_lay = QtWidgets.QGridLayout()
         self.grid_lay.addWidget(QtWidgets.QLabel('Activity: '), 0, 0)
         self.grid_lay.addWidget(QtWidgets.QLabel('Method: '), 1, 0)
-        self.cs = self.window().left_panel.LCA_setup_tab.list_widget.name
+        self.cs = self.window().right_panel.LCA_setup_tab.list_widget.name
         self.func_units = bw.calculation_setups[self.cs]['inv']
         self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
                            for fu in self.func_units]

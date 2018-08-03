@@ -9,9 +9,16 @@ from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 
 from .signals import graphsignals
 from ....signals import signals
+from ....bwutils.commontasks import identify_activity_type
 
 # TODO:
-# save image
+# save graph as image
+# zoom reverse direction between canvas and minimap
+# break long geographies into max length
+# enable other layouts (e.g. force)
+
+# ISSUES:
+# - tooltips show values, but these are not scaled to a product system, i.e. the do not make sense as a system
 
 
 class GraphNavigatorWidget(QtWidgets.QWidget):
@@ -89,7 +96,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.view = QtWebEngineWidgets.QWebEngineView()
         self.view.page().setWebChannel(self.channel)
         html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            'graphviz_navigator2.html')
+                            'navigator.html')
         self.url = QtCore.QUrl.fromLocalFile(html)
 
         # Controls Layout
@@ -142,7 +149,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
     def go_forward(self):
         if self.graph.forward():
-            print("Going foroward.")
+            print("Going forward.")
             self.bridge.graph_ready.emit(self.graph.json_data)
         else:
             print("Cannot go forward.")
@@ -217,6 +224,10 @@ class Bridge(QtCore.QObject):
 
 
 class Graph:
+    """Python side representation of the graph.
+    Functionality for graph navigation (e.g. adding and removing nodes).
+    A JSON representation of the graph (edges and nodes) enables its use in javascript/html/css.
+    """
 
     def __init__(self):
         self.central_activity = None
@@ -397,21 +408,28 @@ class Graph:
             """
         nodes = [
                     {
-                        "key": node.key,
-                        "db": node.key[0],
-                        "id": node.key[1],
-                        "product": node.get("reference product") or node.get("name"),
-                        "name": node.get("name"),
-                        "location": node.get("location"),
+                        # "key": node.key,
+                        "db": act.key[0],
+                        "id": act.key[1],
+                        "product": act.get("reference product") or act.get("name"),
+                        "name": act.get("name"),
+                        "location": act.get("location"),
+                        "class": identify_activity_type(act),
                     }
-                    for node in self.nodes
+                    for act in self.nodes
                 ]
         edges = [
                     {
                         "source_id": exc.input.key[1],
                         "target_id": exc.output.key[1],
                         "amount": exc.get("amount"),
-                        "label": exc.input.get("reference product") or exc.input.get("name"),
+                        "unit": exc.get("unit"),
+                        "product": exc.input.get("reference product") or exc.input.get("name"),
+                        "tooltip": '<b>{:.3g} {} of {}<b>'.format(
+                        # "tooltip": '{:.3g} {} of {}'.format(
+                            exc.get("amount"),
+                            exc.get('unit', ''),
+                            exc.input.get("reference product") or exc.input.get("name"))
                     }
                     for exc in self.edges
                 ]
@@ -426,8 +444,7 @@ class Graph:
 
     def save_json_to_file(self, filename="data.json"):
         """ Writes the current model´s JSON representation to the specifies file. """
-        json_data = self.model.json()
-        if json_data:
+        if self.json_data:
             filepath = os.path.join(os.path.dirname(__file__), filename)
             with open(filepath, 'w') as outfile:
-                json.dump(json_data, outfile)
+                json.dump(self.json_data, outfile)

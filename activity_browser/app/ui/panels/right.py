@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .panel import Panel, ActivitiesTab, MethodsTab
 from ..web.graphnav import GraphNavigatorWidget
+from ..web.graphnav import SankeyNavigatorWidget
 from ...signals import signals
 from .. import activity_cache
 from ..tabs import (
@@ -21,10 +22,12 @@ class RightPanel(Panel):
         self.LCA_setup_tab = LCASetupTab(self)
         self.lca_results_tab = ImpactAssessmentTab(self)
         self.graph_navigator_tab = GraphNavigatorWidget()
+        self.lca_graph_navigator_tab = SankeyNavigatorWidget()
 
         # add tabs to Panel
         self.addTab(self.LCA_setup_tab, 'LCA Setup')
         self.addTab(self.graph_navigator_tab, 'Graph-Navigator')
+        self.addTab(self.lca_graph_navigator_tab, 'LCA Graph')
 
         # Signals
         signals.activity_tabs_changed.connect(self.update_activity_panel)

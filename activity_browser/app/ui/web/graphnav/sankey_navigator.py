@@ -1,0 +1,309 @@
+# -*- coding: utf-8 -*-
+import os
+import json
+from copy import deepcopy
+import time
+
+import brightway2 as bw
+from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+
+from ....bwutils.commontasks import identify_activity_type
+from .signals import graphsignals
+from ....signals import signals
+
+# TODO:
+# save graph as image
+# mark functional unit in sankey
+# ability to select text from nodes (or navigate to those)
+# ability to expand (or reduce) the graph
+
+# in Javascript:
+# - zoom behaviour
+
+
+class SankeyNavigatorWidget(QtWidgets.QWidget):
+    HELP_TEXT = """
+    LCA Sankey:
+    
+    Red flows: Impacts
+    Green flows: Avoided impacts
+    
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.graph = Graph()
+        self.navigation_mode = False
+
+        self.connect_signals()
+        self.selected_db = None
+
+        # Help label
+        self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
+        self.label_help.setVisible(False)
+
+        # button toggle_help
+        self.help = False
+        self.button_toggle_help = QtWidgets.QPushButton("Help")
+        self.button_toggle_help.clicked.connect(self.toggle_help)
+
+        # button back
+        self.button_back = QtWidgets.QPushButton('<<')
+        self.button_back.clicked.connect(self.go_back)
+
+        # button forward
+        self.button_forward = QtWidgets.QPushButton('>>')
+        self.button_forward.clicked.connect(self.go_forward)
+
+        # button refresh
+        self.button_refresh = QtWidgets.QPushButton('Refresh')
+        self.button_refresh.clicked.connect(self.draw_graph)
+
+        # button random
+        self.button_random_activity = QtWidgets.QPushButton('Random Activity')
+        self.button_random_activity.clicked.connect(self.update_graph_random)
+
+        # checkbox cumulative impact
+        self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
+        self.checkbox_cumulative_impact.setChecked(True)
+
+        # qt js interaction
+        self.bridge = Bridge()
+        self.channel = QtWebChannel.QWebChannel()
+        self.channel.registerObject('bridge', self.bridge)
+        self.view = QtWebEngineWidgets.QWebEngineView()
+        self.view.page().setWebChannel(self.channel)
+        html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                            'sankey_navigator.html')
+        self.url = QtCore.QUrl.fromLocalFile(html)
+
+        # Controls Layout
+        self.hl_controls = QtWidgets.QHBoxLayout()
+        self.hl_controls.addWidget(self.button_back)
+        self.hl_controls.addWidget(self.button_forward)
+        self.hl_controls.addWidget(self.button_refresh)
+        self.hl_controls.addWidget(self.button_random_activity)
+        self.hl_controls.addWidget(self.button_toggle_help)
+        self.hl_controls.addStretch(1)
+
+        # Checkboxes Layout
+        self.hl_checkboxes = QtWidgets.QHBoxLayout()
+        self.hl_checkboxes.addWidget(self.checkbox_cumulative_impact)
+        self.hl_checkboxes.addStretch(1)
+
+        # Layout
+        self.vlay = QtWidgets.QVBoxLayout()
+        self.vlay.addLayout(self.hl_controls)
+        self.vlay.addLayout(self.hl_checkboxes)
+        self.vlay.addWidget(self.label_help)
+        self.vlay.addWidget(self.view)
+        self.setLayout(self.vlay)
+
+        # graph
+        self.draw_graph()
+
+    def connect_signals(self):
+        signals.database_selected.connect(self.set_database)
+        # signals.add_activity_to_history.connect(self.new_graph)
+        # graphsignals.update_graph.connect(self.update_graph)
+
+    def toggle_help(self):
+        self.help = not self.help
+        self.label_help.setVisible(self.help)
+
+    def go_back(self):
+        if self.graph.back():
+            print("Going back.")
+            self.bridge.graph_ready.emit(self.graph.json_data)
+        else:
+            print("Cannot go back.")
+
+    def go_forward(self):
+        if self.graph.forward():
+            print("Going forward.")
+            self.bridge.graph_ready.emit(self.graph.json_data)
+        else:
+            print("Cannot go forward.")
+
+    def new_graph(self, key):
+        print("New Sankey for key: ", key)
+        self.graph.new_graph(key)
+        self.bridge.graph_ready.emit(self.graph.json_data)
+
+    def set_database(self, name):
+        """Saves the currently selected database for graphing a random activity"""
+        self.selected_db = name
+
+    def update_graph_random(self):
+        """ Show graph for a random activity in the currently loaded database."""
+        method = bw.methods.random()
+        act = bw.Database(self.selected_db).random()
+        demand = {act: 1.0}
+        print("Demand:", demand)
+        lca = bw.LCA(demand, method=method)
+        lca.lci()
+        lca.lcia()
+        print("Calculated LCA results.")
+        start = time.time()
+        data = bw.GraphTraversal().calculate(demand, method, cutoff=0.05, max_calc=50)
+        print("Completed graph traversal (%s seconds)" %(time.time() - start) )
+        self.graph.new_graph(data)
+        self.bridge.graph_ready.emit(self.graph.json_data)
+
+        # self.new_graph(bw.Database(self.selected_db).random().key)
+
+    def draw_graph(self):
+        self.view.load(self.url)
+
+
+class Bridge(QtCore.QObject):
+    graph_ready = QtCore.pyqtSignal(str)
+
+    @QtCore.pyqtSlot(str)
+    def node_clicked(self, click_text):
+        """ Is called when a node is clicked in Javascript.
+        Args:
+            click_text: string of a serialized json dictionary describing
+            - the node that was clicked on
+            - mouse button and additional keys pressed
+        """
+        click_dict = json.loads(click_text)
+        click_dict["key"] = (click_dict["database"], click_dict["id"])  # since JSON does not know tuples
+        print("Click information: ", click_dict)
+        # graphsignals.update_graph.emit(click_dict)
+
+
+class Graph:
+    """
+    Python side representation of the graph.
+    Functionality for graph navigation (e.g. adding and removing nodes).
+    A JSON representation of the graph (edges and nodes) enables its use in javascript/html/css.
+    """
+
+    def __init__(self):
+        self.json_data = None
+        self.stack = []  # stores previous graphs, if any, and enables back/forward buttons
+        self.forward_stack = []  # stores graphs that can be returned to after having used the "back" button
+
+    def update(self, delete_unstacked=True):
+        self.stack.append((deepcopy(self.json_data)))
+        # print("Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
+        if delete_unstacked:
+            self.forward_stack = []
+
+    def forward(self):
+        """Go forward, if previously gone back."""
+        if self.forward_stack:
+            self.json_data = self.forward_stack.pop()
+            self.update(delete_unstacked=False)
+            return True
+        else:
+            return False
+
+    def back(self):
+        """Go back to previous graph, if any."""
+        if len(self.stack) > 1:
+            self.forward_stack.append(self.stack.pop())  # as the last element is always the current graph
+            # print("Forward stack:", self.forward_stack)
+            self.json_data = self.stack.pop()
+            # print("Un-Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
+            self.update(delete_unstacked=False)
+            return True
+        else:
+            return False
+
+    def new_graph(self, data):
+        self.json_data = self.get_JSON_from_graph_traversal_data(data)
+        self.update()
+
+    def get_JSON_from_graph_traversal_data(self, data):
+        """Transform bw.Graphtraversal() output to JSON data."""
+
+        def get_activity_by_index(ind):
+            if ind != -1:
+                return bw.get_activity(reverse_activity_dict[ind])
+            else:
+                return False
+
+        gnodes = data["nodes"]
+        gedges = data["edges"]
+        lca = data["lca"]
+        max_impact = lca.score
+
+        reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
+
+        nodes, edges = [], []
+
+        for node_index, values in gnodes.items():
+            act = get_activity_by_index(node_index)
+            if not act:
+                continue
+
+            nodes.append(
+                {
+                    # "key": act.key,
+                    "db": act.key[0],
+                    "id": act.key[1],
+                    "product": act.get("reference product") or act.get("name"),
+                    "name": act.get("name"),
+                    "location": act.get("location"),
+                    "amount": values.get("amount"),
+                    "ind": values.get("ind"),
+                    "cum": values.get("cum"),
+                    "class": identify_activity_type(act),
+                }
+            )
+
+        for gedge in gedges:
+            if gedge["from"] == -1 or gedge["to"] == -1:
+                continue
+
+            edges.append(
+                {
+                    "source_id": reverse_activity_dict[gedge["from"]][1],
+                    "target_id": reverse_activity_dict[gedge["to"]][1],
+                    "amount": gedge["exc_amount"],
+                    "product": get_activity_by_index(gedge["from"]).get("reference product")
+                             or get_activity_by_index(gedge["from"]).get("name"),
+                    "impact": gedge["impact"],
+                    "relative_impact": gedge["impact"] / max_impact,
+                    "unit": bw.Method(lca.method).metadata["unit"],
+                    "tooltip": '<b>{:.3g} {}<b>'.format(
+                        gedge["impact"],
+                        bw.Method(lca.method).metadata["unit"],
+                    )
+                }
+            )
+
+        def get_title():
+            demand = list(lca.demand.items())[0]
+            act, amount = demand[0], demand[1]
+            m = bw.Method(lca.method)
+
+            return 'Functional unit: {:.2g} {} {} | {} | {} <br>' \
+                   'LCIA method: {} [{}]'.format(
+                amount,
+                act.get("unit"),
+                act.get("reference product") or act.get("name"),
+                act.get("name"),
+                act.get("location"),
+                m.name,
+                m.metadata.get("unit"),
+            )
+
+        json_data = {
+            "nodes": nodes,
+            "edges": edges,
+            "title": get_title(),
+            # "title": "", #lca.demand[0], #"Title", #self.central_activity.get("reference product"),
+        }
+        print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
+        print(json_data)
+        return json.dumps(json_data)
+
+    def save_json_to_file(self, filename="sankey_data.json"):
+        """ Writes the current model´s JSON representation to the specifies file. """
+        if self.json_data:
+            filepath = os.path.join(os.path.dirname(__file__), filename)
+            with open(filepath, 'w') as outfile:
+                json.dump(self.json_data, outfile)

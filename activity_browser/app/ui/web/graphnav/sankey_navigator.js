@@ -1,6 +1,6 @@
 
 
-console.log ("Starting Graph Navigator.");
+console.log ("Starting Sankey Navigator.");
 
 //var heading = document.getElementById("heading");
 // document.getElementById("data").innerHTML = "no data yet";
@@ -41,6 +41,7 @@ function getWindowSize() {
 
 
 var max_string_length = 20
+var max_edge_width = 20
 
 var globalWidth = null;
 var globalHeight = null;
@@ -508,6 +509,11 @@ var svg = d3.select("body")
  })) */
 
 
+// Tooltip: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
+var div = d3.select("#canvasqPWKOg").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
 // Access graph size:
 //panCanvas.graph().width
 
@@ -528,33 +534,46 @@ function update_graph(json_data) {
 	graph = new dagre.graphlib.Graph({ multigraph: true });
 	graph.setGraph({});
 
-	  // nodes --> graph
-	  data.nodes.forEach(function(n) {
-
-	    graph.setNode(n['id'], {
-	      label: chunkString(n['name'], max_string_length) + '\n' + n['location'],
-	      product: n['product'],
-	      location: n['location'],
-	      id: n['id'],
-	      database: n['db'],
-	    });
-	  });
-
+    // nodes --> graph
+    data.nodes.forEach(function(n) {
+        graph.setNode(n['id'], {
+        //	      label: formatNodeText(n), //chunkString(n['name'], max_string_length) + '\n' + n['location'],
+          label: wrapText(n['name'], max_string_length) + '\n' + n['location'],
+          product: n['product'],
+          location: n['location'],
+          id: n['id'],
+          database: n['db'],
+          class: n['class'],
+        });
+    });
     console.log("Nodes successfully loaded...");
 
-	  // edges --> graph
-	  data.edges.forEach(function(e) {
-	  	// document.writeln(e['source']);
-	    graph.setEdge(
-                e['source_id'],
-                e['target_id'],
-                {
-                    label: chunkString(e['label'], max_string_length),
-                    weight: Math.abs(e['amount']),
-                }
-	        );
-	  });
+    // edges --> graph
+    data.edges.forEach(function(e) {
+        var impact_or_benefit = "impact"
+        if (e['relative_impact'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");}
 
+        graph.setEdge(e['source_id'], e['target_id'],
+                {
+                    label: wrapText(e['product'], max_string_length),
+//                    labelStyle: "font-size: 2em; font-style: italic; text-decoration: underline;",
+//                    labelStyle: "font-weight: bold;",
+                    amount: e['amount'],
+                    unit: e['unit'],
+                    product: e['product'],
+                    weight: Math.abs(e["relative_impact"] * max_edge_width),
+                    tooltip: e['tooltip'],
+//                    arrowhead: "vee",
+                    class: impact_or_benefit,
+                    curve: d3.curveBasis,
+//                    lineInterpolate: 'basis',
+//                    class: "negative",
+//                    style: "stroke: #f66; stroke-width: 3px; stroke-dasharray: 5, 5;",
+//                        style: "stroke: #f66;",
+//                    style: "stroke: #00b2ff; stroke-width: 2px;",
+                }
+            );
+    });
     console.log("Edges successfully loaded...")
 
 
@@ -563,17 +582,47 @@ function update_graph(json_data) {
     //draws graph into canvas
 	canvas.addItem();
 
-
-
 	  // Adds click listener, calling handleMouseClick func
 	  var nodes = panCanvas.selectAll("g .node")
 	      .on("click", handleMouseClick)
 	      console.log ("click!");
-
-      // set the stroke-width of edges according to data of the edge (e.g. flow value or impact)
+      // listener for mouse-hovers
       var edges = panCanvas.selectAll("g .edgePath")
+        .on("mouseover", handleMouseHover)
+        // set the stroke-width of edges according to data of the edge (e.g. flow value or impact)
 //          .attr("stroke-width", function(d) { return Math.random()*10; })
         .attr("stroke-width", function(d) { return graph.edge(d).weight; })
+//        .attr("viewBox", "0 0 50 50")
+        .on("mouseout", function(d) {
+//            d3.select(this).style("fill", "grey")
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);
+
+        });
+
+
+//    defs = edges.selectAll("g .defs"); //selectAll("g .marker").selectAll("*").remove();
+//    console.log("Defs:", defs)
+    markers = d3.selectAll("marker")
+    		    .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
+//    		    .attr()
+//    console.log("Markers:", markers)
+
+
+    function handleMouseHover(e){
+        console.log ("mouseover!");
+//        d3.select(this).style("fill", "magenta")
+        edge = graph.edge(e)
+
+        div.transition()
+            .duration(200)
+            .style("opacity", .9);
+        div	.html(edge.tooltip)
+//            .style("fill", )
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+    }
 
 	// Function called on click
 	function handleMouseClick(node){
@@ -600,10 +649,11 @@ function update_graph(json_data) {
 };
 
 // break strings into multiple lines after certain length if necessary
-function chunkString(str, length) {
-    return str.match(new RegExp('.{1,' + length + '}', 'g')).join("\n");
+function wrapText(str, length) {
+    //console.log(str.replace(/.{10}\S*\s+/g, "$&@").split(/\s+@/).join("\n"))
+    return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join("\n")
+//    return str.match(new RegExp('.{1,' + length + '}', 'g')).join("\n");
 }
-
 new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
     window.bridge.graph_ready.connect(update_graph);
