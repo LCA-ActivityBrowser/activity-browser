@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
 import tempfile
+import subprocess
 
 import bs4
 import requests
-import patoolib
 import brightway2 as bw
 from bw2io.extractors import Ecospold2DataExtractor
 from bw2io.importers.base_lci import LCIImporter
@@ -206,34 +205,8 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
             QtWidgets.QMessageBox.warning(self, 'File not found!', warning)
             return False
 
-    def initializePage(self):
-        warning = check_7z()
-        if warning:
-            QtWidgets.QMessageBox.warning(self, '7zip required!', warning)
-
     def nextId(self):
         return self.wizard.pages.index(self.wizard.db_name_page)
-
-
-def check_7z():
-    try:
-        patoolib.find_archive_program('7z', 'extract')
-    except patoolib.util.PatoolError as e:
-        warning = ('This step requires a working installation of the 7zip program. <br>' +
-                   'Please install 7zip on your system before continuing.<br>')
-        if sys.platform == 'win32':
-            warning += 'You can download it from <a href="http://www.7zip.org">www.7zip.org</a>.'
-        elif sys.platform == 'darwin':
-            warning += ('You can install 7zip with <a href="https://brew.sh">homebrew</a>.<br>' +
-                        'brew install p7zip')
-        elif sys.platform.startswith('linux'):
-            warning += ("Use your linux distribtion's package manager for the installation.<br>" +
-                        'eg: sudo apt install p7zip-full')
-        else:
-            warning += 'More infos here: <a href="http://www.7zip.org">www.7zip.org</a>'
-
-        return warning
-    return ''
 
 
 class DBNamePage(QtWidgets.QWizardPage):
@@ -501,7 +474,8 @@ class UnarchiveWorkerThread(QtCore.QThread):
         self.canceled = True
 
     def run(self):
-        patoolib.extract_archive(self.archivepath, outdir=self.tempdir.name)
+        extract = '7za x {} -o{}'.format(self.archivepath, self.tempdir.name)
+        subprocess.call(extract.split())
         if not self.canceled:
             import_signals.unarchive_finished.emit(self.tempdir.name)
 
