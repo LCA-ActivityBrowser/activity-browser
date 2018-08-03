@@ -566,11 +566,7 @@ function update_graph(json_data) {
 //                    arrowhead: "vee",
                     class: impact_or_benefit,
                     curve: d3.curveBasis,
-//                    lineInterpolate: 'basis',
-//                    class: "negative",
 //                    style: "stroke: #f66; stroke-width: 3px; stroke-dasharray: 5, 5;",
-//                        style: "stroke: #f66;",
-//                    style: "stroke: #00b2ff; stroke-width: 2px;",
                 }
             );
     });
@@ -601,13 +597,9 @@ function update_graph(json_data) {
 
         });
 
-
-//    defs = edges.selectAll("g .defs"); //selectAll("g .marker").selectAll("*").remove();
-//    console.log("Defs:", defs)
+    // re-scale arrowheads to fit into edge (they become really big otherwise)
     markers = d3.selectAll("marker")
     		    .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
-//    		    .attr()
-//    console.log("Markers:", markers)
 
 
     function handleMouseHover(e){
@@ -654,6 +646,7 @@ function wrapText(str, length) {
     return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join("\n")
 //    return str.match(new RegExp('.{1,' + length + '}', 'g')).join("\n");
 }
+
 new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
     window.bridge.graph_ready.connect(update_graph);

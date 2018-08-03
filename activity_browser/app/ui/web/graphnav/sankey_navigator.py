@@ -12,10 +12,13 @@ from .signals import graphsignals
 from ....signals import signals
 
 # TODO:
+# make this a subtab in the LCA Results Tab
 # save graph as image
 # mark functional unit in sankey
 # ability to select text from nodes (or navigate to those)
 # ability to expand (or reduce) the graph
+# when avoided impacts, then the scaling between 0-1 of relative impacts does not work properly
+# random_graph should not work for biosphere
 
 # in Javascript:
 # - zoom behaviour
@@ -29,14 +32,50 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
     Green flows: Avoided impacts
     
     """
-    def __init__(self, parent=None):
+    def __init__(self, cs_name, parent=None):
         super().__init__(parent)
 
         self.graph = Graph()
-        self.navigation_mode = False
 
-        self.connect_signals()
         self.selected_db = None
+
+        # Layout Functional Units and LCIA Methods
+        self.grid_lay = QtWidgets.QGridLayout()
+        self.grid_lay.addWidget(QtWidgets.QLabel('Functional unit: '), 0, 0)
+        self.grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
+        self.cs = cs_name  # TODO: just a workaround; needs to be adapted to always link to the FUs in the active LCA results tab
+        self.func_units = bw.calculation_setups[self.cs]['inv']
+        self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
+                           for fu in self.func_units]
+        self.methods = bw.calculation_setups[self.cs]['ia']
+        self.func_unit_cb = QtWidgets.QComboBox()
+        self.func_unit_cb.addItems(
+            [list(fu.keys())[0].__repr__() for fu in self.func_units])
+        self.method_cb = QtWidgets.QComboBox()
+        self.method_cb.addItems([m.__repr__() for m in self.methods])
+        self.grid_lay.addWidget(self.func_unit_cb, 0, 1)
+        self.grid_lay.addWidget(self.method_cb, 1, 1)
+        # self.reload_pb = QtWidgets.QPushButton('Reload')
+        # self.reload_pb.clicked.connect(self.new_sankey)
+        # self.grid_lay.addWidget(self.reload_pb, 2, 0)
+        # self.close_pb = QtWidgets.QPushButton('Close')
+        # self.close_pb.clicked.connect(self.switch_to_main)
+        self.grid_lay.setColumnStretch(4, 1)
+        # self.grid_lay.addWidget(self.close_pb, 0, 5)
+        # self.color_attr_cb = QtWidgets.QComboBox()
+        # self.color_attr_cb.addItems(['flow', 'location', 'name'])
+        # self.grid_lay.addWidget(QtWidgets.QLabel('color by: '), 0, 2)
+        # self.grid_lay.addWidget(self.color_attr_cb, 0, 3)
+        self.grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 1, 2)
+        self.cutoff_sb = QtWidgets.QDoubleSpinBox()
+        self.cutoff_sb.setRange(0.0, 1.0)
+        self.cutoff_sb.setSingleStep(0.001)
+        self.cutoff_sb.setDecimals(4)
+        self.cutoff_sb.setValue(0.05)
+        self.cutoff_sb.setKeyboardTracking(False)
+        self.grid_lay.addWidget(self.cutoff_sb, 1, 3)
+        self.hlay = QtWidgets.QHBoxLayout()
+        self.hlay.addLayout(self.grid_lay)
 
         # Help label
         self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
@@ -47,6 +86,10 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.button_toggle_help = QtWidgets.QPushButton("Help")
         self.button_toggle_help.clicked.connect(self.toggle_help)
 
+        # button calculate
+        self.button_calculate = QtWidgets.QPushButton('Reload Sankey')
+        self.button_calculate.clicked.connect(self.new_sankey)
+
         # button back
         self.button_back = QtWidgets.QPushButton('<<')
         self.button_back.clicked.connect(self.go_back)
@@ -56,16 +99,16 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.button_forward.clicked.connect(self.go_forward)
 
         # button refresh
-        self.button_refresh = QtWidgets.QPushButton('Refresh')
+        self.button_refresh = QtWidgets.QPushButton('Refresh HTML')
         self.button_refresh.clicked.connect(self.draw_graph)
 
         # button random
         self.button_random_activity = QtWidgets.QPushButton('Random Activity')
-        self.button_random_activity.clicked.connect(self.update_graph_random)
+        self.button_random_activity.clicked.connect(self.random_sankey)
 
         # checkbox cumulative impact
-        self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
-        self.checkbox_cumulative_impact.setChecked(True)
+        # self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
+        # self.checkbox_cumulative_impact.setChecked(True)
 
         # qt js interaction
         self.bridge = Bridge()
@@ -81,6 +124,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.hl_controls = QtWidgets.QHBoxLayout()
         self.hl_controls.addWidget(self.button_back)
         self.hl_controls.addWidget(self.button_forward)
+        self.hl_controls.addWidget(self.button_calculate)
         self.hl_controls.addWidget(self.button_refresh)
         self.hl_controls.addWidget(self.button_random_activity)
         self.hl_controls.addWidget(self.button_toggle_help)
@@ -88,24 +132,28 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
 
         # Checkboxes Layout
         self.hl_checkboxes = QtWidgets.QHBoxLayout()
-        self.hl_checkboxes.addWidget(self.checkbox_cumulative_impact)
+        # self.hl_checkboxes.addWidget(self.checkbox_cumulative_impact)
         self.hl_checkboxes.addStretch(1)
 
         # Layout
         self.vlay = QtWidgets.QVBoxLayout()
         self.vlay.addLayout(self.hl_controls)
+        self.vlay.addLayout(self.hlay)
         self.vlay.addLayout(self.hl_checkboxes)
         self.vlay.addWidget(self.label_help)
         self.vlay.addWidget(self.view)
         self.setLayout(self.vlay)
 
         # graph
+        self.connect_signals()
         self.draw_graph()
+        # self.new_sankey()  # does not show it...
 
     def connect_signals(self):
         signals.database_selected.connect(self.set_database)
-        # signals.add_activity_to_history.connect(self.new_graph)
-        # graphsignals.update_graph.connect(self.update_graph)
+        self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
+        self.method_cb.currentIndexChanged.connect(self.new_sankey)
+        self.cutoff_sb.valueChanged.connect(self.new_sankey)
 
     def toggle_help(self):
         self.help = not self.help
@@ -125,34 +173,47 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         else:
             print("Cannot go forward.")
 
-    def new_graph(self, key):
-        print("New Sankey for key: ", key)
-        self.graph.new_graph(key)
+    def new_sankey(self):
+        print("New Sankey for CS: ", self.cs)
+        demand = self.func_units[self.func_unit_cb.currentIndex()]
+        method = self.methods[self.method_cb.currentIndex()]
+        cutoff = self.cutoff_sb.value()
+        self.update_sankey(demand, method, cut_off=cutoff)
+
+    def update_sankey(self, demand, method, cut_off=0.05, max_iter=100):
+        """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
+        print("Demand / Method:", demand, method)
+        lca = bw.LCA(demand, method=method)
+        lca.lci()
+        lca.lcia()
+        print("Calculated LCA results.")
+        start = time.time()
+        try:
+            data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_iter)
+        except ValueError as e:
+            QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
+        print("Completed graph traversal (%s seconds)" %(time.time() - start) )
+
+        self.graph.new_graph(data)
+        print("emitting graph ready signal")
         self.bridge.graph_ready.emit(self.graph.json_data)
 
     def set_database(self, name):
         """Saves the currently selected database for graphing a random activity"""
         self.selected_db = name
 
-    def update_graph_random(self):
+    def random_sankey(self):
         """ Show graph for a random activity in the currently loaded database."""
-        method = bw.methods.random()
-        act = bw.Database(self.selected_db).random()
-        demand = {act: 1.0}
-        print("Demand:", demand)
-        lca = bw.LCA(demand, method=method)
-        lca.lci()
-        lca.lcia()
-        print("Calculated LCA results.")
-        start = time.time()
-        data = bw.GraphTraversal().calculate(demand, method, cutoff=0.05, max_calc=50)
-        print("Completed graph traversal (%s seconds)" %(time.time() - start) )
-        self.graph.new_graph(data)
-        self.bridge.graph_ready.emit(self.graph.json_data)
-
-        # self.new_graph(bw.Database(self.selected_db).random().key)
+        if self.selected_db:
+            method = bw.methods.random()
+            act = bw.Database(self.selected_db).random()
+            demand = {act: 1.0}
+            self.update_sankey(demand, method)
+        else:
+            QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
 
     def draw_graph(self):
+        print("Drawing graph, i.e. loading the view.")
         self.view.load(self.url)
 
 
@@ -268,9 +329,11 @@ class Graph:
                     "impact": gedge["impact"],
                     "relative_impact": gedge["impact"] / max_impact,
                     "unit": bw.Method(lca.method).metadata["unit"],
-                    "tooltip": '<b>{:.3g} {}<b>'.format(
+                    "tooltip": '<b>{:.3g} {} <br>'
+                               '{:.2g}% of total <b>'.format(
                         gedge["impact"],
                         bw.Method(lca.method).metadata["unit"],
+                        gedge["impact"] / lca.score * 100,
                     )
                 }
             )
@@ -281,7 +344,8 @@ class Graph:
             m = bw.Method(lca.method)
 
             return 'Functional unit: {:.2g} {} {} | {} | {} <br>' \
-                   'LCIA method: {} [{}]'.format(
+                   'LCIA method: {} [{}] <br>' \
+                   'Total impact: {:.2g} {}'.format(
                 amount,
                 act.get("unit"),
                 act.get("reference product") or act.get("name"),
@@ -289,13 +353,13 @@ class Graph:
                 act.get("location"),
                 m.name,
                 m.metadata.get("unit"),
+                lca.score, m.metadata.get("unit"),
             )
 
         json_data = {
             "nodes": nodes,
             "edges": edges,
             "title": get_title(),
-            # "title": "", #lca.demand[0], #"Title", #self.central_activity.get("reference product"),
         }
         print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
         print(json_data)

@@ -16,6 +16,8 @@ from ....bwutils.commontasks import identify_activity_type
 # zoom reverse direction between canvas and minimap
 # break long geographies into max length
 # enable other layouts (e.g. force)
+# random_graph should not work for biosphere
+# a selection possibility method would be nice if many nodes are to be added up/downstream (now the only way is to open all and close those that one is not interested in)
 
 # ISSUES:
 # - tooltips show values, but these are not scaled to a product system, i.e. the do not make sense as a system
@@ -36,11 +38,11 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         2) adding direct up-/downstream nodes and connections AS WELL as ALL OTHER connections between the activities in the graph. 
         The first option results in cleaner (but not complete) graphs.    
     
-    Checkbox "Remove orphaned nodes": Check to remove nodes that do not link to the central activity (see title) anymore after deleting a node.
+    Checkbox "Remove orphaned nodes": by default nodes that do not link to the central activity (see title) are removed (this may happen after deleting nodes). Uncheck to disable.
     
     
     NAVIGATION MODE:
-    Click on activities to jump to specific activities.
+    Click on activities to jump to specific activities (instead of expanding the graph).
     """
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -200,7 +202,10 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
     def update_graph_random(self):
         """ Show graph for a random activity in the currently loaded database."""
-        self.new_graph(bw.Database(self.selected_db).random().key)
+        if self.selected_db:
+            self.new_graph(bw.Database(self.selected_db).random().key)
+        else:
+            QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
 
     def draw_graph(self):
         self.view.load(self.url)

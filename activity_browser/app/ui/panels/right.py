@@ -22,16 +22,31 @@ class RightPanel(Panel):
         self.LCA_setup_tab = LCASetupTab(self)
         self.lca_results_tab = ImpactAssessmentTab(self)
         self.graph_navigator_tab = GraphNavigatorWidget()
-        self.lca_graph_navigator_tab = SankeyNavigatorWidget()
 
         # add tabs to Panel
         self.addTab(self.LCA_setup_tab, 'LCA Setup')
         self.addTab(self.graph_navigator_tab, 'Graph-Navigator')
-        self.addTab(self.lca_graph_navigator_tab, 'LCA Graph')
 
         # Signals
+        self.connect_signals()
+
+    def connect_signals(self):
         signals.activity_tabs_changed.connect(self.update_activity_panel)
         signals.method_tabs_changed.connect(self.update_method_panel)
+        signals.lca_calculation.connect(self.add_Sankey_Widget)
+        self.currentChanged.connect(self.calculate_first_sankey)
+
+    def add_Sankey_Widget(self, cs_name):
+        print("Adding Sankey Tab")
+        if not hasattr(self, "sankey_navigator_tab"):
+            self.sankey_navigator_tab = SankeyNavigatorWidget(cs_name)
+            self.addTab(self.sankey_navigator_tab, 'LCA Sankey')
+
+    def calculate_first_sankey(self):
+        if hasattr(self, "sankey_navigator_tab"):
+            if self.currentIndex() == self.indexOf(self.sankey_navigator_tab):
+                print("Changed to Sankey Tab")
+                self.sankey_navigator_tab.new_sankey()
 
     def update_method_panel(self):
         if self.method_panel.tab_dict:
