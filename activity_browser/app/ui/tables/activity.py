@@ -9,18 +9,7 @@ from ...signals import signals
 
 
 class ExchangeTable(ABTableWidget):
-    COLUMN_LABELS = { # (biosphere, production)
-        # Products
-        (False, True): ["Amount", "Unit", "Product", "Activity",
-                        "Location", "Database", "Uncertain"],
-        # technosphere & downstream consumers
-        (False, False): ["Amount", "Unit", "Product", "Activity",
-                         "Location", "Database", "Uncertain", "Formula"],
-        # Biosphere
-        (True, False): ["Amount", "Unit", "Name", "Compartments", "Database", "Uncertain"],
-    }
-
-    COLUMN_LABELS2 = {
+    COLUMN_LABELS = {
         # {exchangeTableName: headers}
         "products": ["Amount", "Unit", "Name", "Location"],
         # technosphere & downstream consumers
@@ -33,7 +22,7 @@ class ExchangeTable(ABTableWidget):
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
         self.tableType = tableType
-        self.column_labels = self.COLUMN_LABELS2[self.tableType]
+        self.column_labels = self.COLUMN_LABELS[self.tableType]
         self.setColumnCount(len(self.column_labels))
         self.qs, self.upstream, self.database = None, False, None
         self.ignore_changes = False
@@ -131,6 +120,8 @@ class ExchangeTable(ABTableWidget):
 
         edit_flag = [QtCore.Qt.ItemIsEditable]
 
+        # todo: add a setting which allows user to choose their preferred number formatting, for use in tables
+        # e.g. a choice between all standard form: {0:.3e} and current choice: {:.3g}. Or more flexibility
         for row, exc in enumerate(self.qs):
             act = exc.output if self.upstream else exc.input
             if row == limit:
@@ -139,7 +130,8 @@ class ExchangeTable(ABTableWidget):
 
             if self.tableType == "products":  # "Amount", "Unit", "Name", "Location"
                 self.setItem(row, 0, ABTableItem(
-                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+
+                    "{:.3g}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
                     act.get('unit', 'Unknown'), color="unit"))
@@ -154,7 +146,7 @@ class ExchangeTable(ABTableWidget):
 
             elif self.tableType == "technosphere":  # "Amount", "Unit", "Name", "Uncertainty", "Database",
                 self.setItem(row, 0, ABTableItem(
-                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+                    "{:.3g}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
                     act.get('unit', 'Unknown'), color="unit"))
@@ -172,7 +164,7 @@ class ExchangeTable(ABTableWidget):
 
             elif self.tableType == "biosphere":  # "Amount", "Unit", "Name", "Compartments", "Uncertainty", "Database"
                 self.setItem(row, 0, ABTableItem(
-                    "{0:.3e}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+                    "{:.3g}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
                     act.get('unit', 'Unknown'), color="unit"))

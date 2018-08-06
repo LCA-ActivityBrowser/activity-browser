@@ -12,9 +12,10 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
         self.setCheckable(True)
         self.toggled.connect(self.showhide)
         self.setChecked(False)
+        self.setStyleSheet("QGroupBox { border: none; }")
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(widget)
-        layout.setContentsMargins(0, 4, 0, 1)
+        layout.setContentsMargins(0, 22, 0, 5)
         self.setLayout(layout)
         if isinstance(self.widget, QtWidgets.QTableWidget):
             self.widget.itemChanged.connect(self.toggle_empty_table)

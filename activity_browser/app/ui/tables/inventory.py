@@ -73,11 +73,11 @@ class DatabasesTable(ABTableWidget):
     def select_database(self, item):
         signals.database_selected.emit(item.db_name)
 
-    def read_only_changed(self, checked, project, db):
+    def read_only_changed(self, read_only, project, db):
         """User has clicked to update a db to either read-only or not"""
-        user_project_settings.settings['read-only-databases'][db] = checked
+        user_project_settings.settings['read-only-databases'][db] = read_only
         user_project_settings.write_settings()
-        signals.database_read_only_changed.emit(db, checked)
+        signals.database_read_only_changed.emit(db, read_only)
 
 
     @ABTableWidget.decorated_sync

@@ -84,12 +84,10 @@ class UserProjectSettings():
             # print("user settings written to", str(self.settings_file), "\n\t", str(self.settings))
 
     def reset_for_project_selection(self):
+        # todo: better implementation? reinitialise settings object each time instead
         # executes when new project selected
         # same code as __init__ but without connect_signals()
         self.project_dir = bw.projects.dir
-        # print("project_dir:", self.project_dir)
-        # self.project_name = bw.projects._project_name
-
         self.settings_file = os.path.join(self.project_dir, 'AB_project_settings.json')
 
         # load if found, else make empty dict and save as new file
@@ -107,8 +105,14 @@ class UserProjectSettings():
         }
         return default
 
+    def remove_db(self, db_name):
+        # when a database is deleted from a project, the settings are also deleted
+        self.settings['read-only-databases'].pop(db_name, None)
+        self.write_settings()
+
     def connect_signals(self):
         signals.project_selected.connect(self.reset_for_project_selection)
+        signals.delete_project.connect(self.reset_for_project_selection)
 
 
 ab_settings = ABSettings()

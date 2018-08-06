@@ -225,6 +225,7 @@ class Controller(object):
                 name, len(bw.Database(name)))
         )
         if ok:
+            user_project_settings.remove_db(name)
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
 
@@ -333,7 +334,8 @@ class Controller(object):
                 product['input'] = new_act.key
         new_act.save()
         signals.database_changed.emit(act['database'])
-        signals.open_activity_tab.emit("right", new_act.key)
+        signals.databases_changed.emit()
+        signals.open_activity_tab.emit("activities", new_act.key)
 
     def show_duplicate_to_db_interface(self, activity_key):
         origin_db = activity_key[0]
@@ -372,6 +374,7 @@ class Controller(object):
 
         signals.database_changed.emit(target_db)
         signals.open_activity_tab.emit("activities", new_act_key)
+        signals.databases_changed.emit()
 
 
     def modify_activity(self, key, field, value):
