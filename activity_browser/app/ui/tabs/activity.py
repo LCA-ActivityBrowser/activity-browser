@@ -32,12 +32,12 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.activity_key=activity_key
         # checkbox for enabling editing of activity, default=read-only
 
-        self.read_only_ch = QtWidgets.QCheckBox('Read-Only', parent=self)
-        self.read_only_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
-        self.read_only_ch.setChecked(self.read_only)
+        self.edit_act_ch = QtWidgets.QCheckBox('Edit Activity', parent=self)
+        self.edit_act_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
+        self.edit_act_ch.setChecked(not self.read_only)
         self.db_name = self.activity_key[0]
-        self.read_only_ch.clicked.connect(
-            lambda checked: self.read_only_changed(read_only=checked))
+        self.edit_act_ch.clicked.connect(
+            lambda checked: self.read_only_changed(read_only=not checked))
 
         self.activity_read_only_box_active(db_name=self.db_name, db_read_only=self.db_read_only)
         # activity-specific data as shown at the top
@@ -59,7 +59,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         # arrange activity data and exchange data into desired vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
-        layout.addWidget(self.read_only_ch)
+        layout.addWidget(self.edit_act_ch)
         layout.addWidget(self.activity_data_grid)
         for table, label in self.exchange_tables:
             layout.addWidget(DetailsGroupBox(label, table))
@@ -89,9 +89,8 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
 
     def read_only_changed(self, read_only):
-        """ When checked=False specific data fields in the tables below become editable
-                When checked=True these same fields become read-only"""
-        # print("ro state change (if db_name=self.db_name):", db_name, self.activity_key)
+        """ When read_only=False specific data fields in the tables below become editable
+                When read_only=True these same fields become read-only"""
         self.read_only = read_only
         self.activity_data_grid.read_only = read_only
         self.activity_data_grid.set_activity_fields_read_only()
@@ -120,22 +119,22 @@ class ActivityTab(QtWidgets.QTabWidget):
 
             # if activity was editable, but now the database is read-only, read_only state must be changed to false.
             if not self.read_only and self.db_read_only:
-                self.read_only_ch.setChecked(True)
+                self.edit_act_ch.setChecked(False)
                 self.read_only_changed(read_only=True)
 
             # update checkbox to greyed-out or not
-            self.read_only_ch.setEnabled(not self.db_read_only)
+            self.edit_act_ch.setEnabled(not self.db_read_only)
             self.update_tooltips()
 
     def update_tooltips(self):
         if self.db_read_only:
-            self.read_only_ch.setToolTip("The database this activity belongs to is read-only."
+            self.edit_act_ch.setToolTip("The database this activity belongs to is read-only."
                                          " Enable database editing with checkbox in databases list")
         else:
             if self.read_only:
-                self.read_only_ch.setToolTip("Uncheck to enable editing. Edits are saved automatically")
+                self.edit_act_ch.setToolTip("Click to enable editing. Edits are saved automatically")
             else:
-                self.read_only_ch.setToolTip("Check to prevent further edits. Edits are saved automatically")
+                self.edit_act_ch.setToolTip("Click to prevent further edits. Edits are saved automatically")
 
     def update_style(self):
         if self.read_only:
