@@ -14,7 +14,7 @@ from activity_browser.app.ui.wizards.db_import_wizard import (
 from .bwutils import commontasks as bc
 from .settings import ab_settings, user_project_settings
 from .signals import signals
-from activity_browser.app.ui import activity_cache
+
 
 class Controller(object):
     def __init__(self):

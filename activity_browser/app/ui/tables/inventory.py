@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 import datetime
-import collections
 import itertools
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 import arrow
-
 import brightway2 as bw
+import collections
+from PyQt5 import QtGui, QtWidgets
 from bw2data.utils import natural_sort
 from fuzzywuzzy import process
 
+from activity_browser.app.settings import user_project_settings
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
-from activity_browser.app.settings import user_project_settings
-from .. import activity_cache
+
 
 class DatabasesTable(ABTableWidget):
     """Displays metadata for the databases found within the selected project

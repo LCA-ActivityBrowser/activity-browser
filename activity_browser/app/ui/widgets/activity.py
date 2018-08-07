@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
 
-from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
 from activity_browser.app.bwutils import commontasks as bc
+from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
 from ...signals import signals
+
 
 class DetailsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, label, widget):

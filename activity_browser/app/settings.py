@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-import os
 import json
+import os
 import shutil
 
 import appdirs
-from activity_browser.app.bwutils import commontasks as bc
-from .. import PACKAGE_DIRECTORY
 import brightway2 as bw
+
 from activity_browser.app.signals import signals
+from .. import PACKAGE_DIRECTORY
+
 
 class ABSettings():
     def __init__(self):

@@ -3,8 +3,8 @@ import textwrap
 
 import arrow
 import brightway2 as bw
-from bw2data.utils import natural_sort
 from bw2data import databases
+from bw2data.utils import natural_sort
 
 from ..settings import ab_settings, user_project_settings
 

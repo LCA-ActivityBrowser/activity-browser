@@ -2,10 +2,10 @@
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
 
+from ..style import style_activity_tab
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox
 from ...signals import signals
-from ..style import style_activity_tab
 
 
 class ActivityTab(QtWidgets.QTabWidget):
