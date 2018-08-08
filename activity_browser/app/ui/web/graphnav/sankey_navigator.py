@@ -13,11 +13,14 @@ from ....signals import signals
 
 # TODO:
 # make this a subtab in the LCA Results Tab
-# save graph as image
+# solve initial delay (Spinner) issue: Sankey is still empty if one selects the Sankey Tab very fast after CS calculation
 # mark functional unit in sankey
-# ability to select text from nodes (or navigate to those)
-# ability to expand (or reduce) the graph
 # when avoided impacts, then the scaling between 0-1 of relative impacts does not work properly
+# disable current right click menu
+# ability to navigate to activities
+# ability to calculate LCA for selected activities
+# ability to expand (or reduce) the graph
+# save graph as image
 # random_graph should not work for biosphere
 
 # in Javascript:

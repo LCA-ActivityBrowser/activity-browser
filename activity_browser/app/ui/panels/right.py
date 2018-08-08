@@ -46,7 +46,9 @@ class RightPanel(Panel):
         if hasattr(self, "sankey_navigator_tab"):
             if self.currentIndex() == self.indexOf(self.sankey_navigator_tab):
                 print("Changed to Sankey Tab")
-                self.sankey_navigator_tab.new_sankey()
+                if not self.sankey_navigator_tab.graph.json_data:
+                    print("Calculated first Sankey")
+                    self.sankey_navigator_tab.new_sankey()
 
     def update_method_panel(self):
         if self.method_panel.tab_dict:
