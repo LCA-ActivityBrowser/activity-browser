@@ -112,6 +112,7 @@ text{
 .node {
     fill: black;  /* text color of nodes*/
     white-space: nowrap;
+    cursor: pointer;
 }
 
 .node rect {

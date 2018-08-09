@@ -423,21 +423,30 @@ class Graph:
                     }
                     for act in self.nodes
                 ]
-        edges = [
+
+        edges = []
+        for exc in self.edges:
+            if exc.get("amount") >= 0:
+                from_act = exc.input
+                to_act = exc.output
+            else:
+                from_act = exc.output
+                to_act = exc.input
+            edges.append(
                     {
-                        "source_id": exc.input.key[1],
-                        "target_id": exc.output.key[1],
-                        "amount": exc.get("amount"),
+                        "source_id": from_act.key[1],
+                        "target_id": to_act.key[1],
+                        "amount": abs(exc.get("amount")),
                         "unit": exc.get("unit"),
-                        "product": exc.input.get("reference product") or exc.input.get("name"),
+                        "product": from_act.get("reference product") or from_act.get("name"),
                         "tooltip": '<b>{:.3g} {} of {}<b>'.format(
                         # "tooltip": '{:.3g} {} of {}'.format(
-                            exc.get("amount"),
+                            abs(exc.get("amount")),
                             exc.get('unit', ''),
-                            exc.input.get("reference product") or exc.input.get("name"))
+                            from_act.get("reference product") or from_act.get("name"))
                     }
-                    for exc in self.edges
-                ]
+                )
+
         json_data = {
             "nodes": nodes,
             "edges": edges,
