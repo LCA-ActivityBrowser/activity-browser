@@ -305,10 +305,19 @@ class Graph:
             else:
                 return False
 
+        def get_max_impact(nodes):
+            return max([abs(n["cum"]) for n in nodes.values()])
+
+
         gnodes = data["nodes"]
         gedges = data["edges"]
         lca = data["lca"]
-        max_impact = lca.score
+        lca_score = abs(lca.score)
+        max_impact = get_max_impact(gnodes)
+
+        LCIA_unit = bw.Method(lca.method).metadata["unit"]
+
+        print("Max impact:", max_impact)
         print("Graph Traversal iterations (counter):", data["counter"])
 
         reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
@@ -329,9 +338,11 @@ class Graph:
                     "name": act.get("name"),
                     "location": act.get("location"),
                     "amount": values.get("amount"),
+                    "LCIA_unit": LCIA_unit,
                     "ind": values.get("ind"),
-                    "relative_impact": values.get("ind") / max_impact,
+                    "ind_norm": values.get("ind") / lca_score,
                     "cum": values.get("cum"),
+                    "cum_norm": values.get("cum") / lca_score,
                     "class": identify_activity_type(act),
                 }
             )
@@ -340,20 +351,22 @@ class Graph:
             if gedge["from"] == -1 or gedge["to"] == -1:
                 continue
 
+            product = get_activity_by_index(gedge["from"]).get("reference product") or get_activity_by_index(gedge["from"]).get("name")
+
             edges.append(
                 {
                     "source_id": reverse_activity_dict[gedge["from"]][1],
                     "target_id": reverse_activity_dict[gedge["to"]][1],
                     "amount": gedge["exc_amount"],
-                    "product": get_activity_by_index(gedge["from"]).get("reference product")
-                             or get_activity_by_index(gedge["from"]).get("name"),
+                    "product": product,
                     "impact": gedge["impact"],
-                    "relative_impact": gedge["impact"] / max_impact,
+                    "ind_norm": gedge["impact"] / lca_score,
                     "unit": bw.Method(lca.method).metadata["unit"],
-                    "tooltip": '<b>{:.3g} {} <br>'
-                               '{:.2g}% of total <b>'.format(
+                    "tooltip": '<b>{}</b> '
+                               '<br>{:.3g} {} ({:.2g}%) '.format(
+                        product,
                         gedge["impact"],
-                        bw.Method(lca.method).metadata["unit"],
+                        LCIA_unit,
                         gedge["impact"] / lca.score * 100,
                     )
                 }
@@ -381,6 +394,7 @@ class Graph:
             "nodes": nodes,
             "edges": edges,
             "title": get_title(),
+            "max_impact": max_impact,
         }
         print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
         print(json_data)

@@ -163,7 +163,7 @@ text {
 .edgePath path {
   stroke: none;
   /*fill: black;*/
-  opacity: 1;
+  opacity: 0.3;
 }
 /*.edgePath marker {
   fill: darkgrey; /* Arrow head */
