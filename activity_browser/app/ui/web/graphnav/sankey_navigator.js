@@ -517,7 +517,9 @@ var div = d3.select("#canvasqPWKOg").append("div")
 // Access graph size:
 //panCanvas.graph().width
 
-
+var color = d3.scaleLinear()
+    .domain([-1, 0, 1])
+    .range(["green", "white", "red"]);
 
 var render = dagreD3.render();
 var graph = {}
@@ -538,12 +540,16 @@ function update_graph(json_data) {
     data.nodes.forEach(function(n) {
         graph.setNode(n['id'], {
         //	      label: formatNodeText(n), //chunkString(n['name'], max_string_length) + '\n' + n['location'],
-          label: wrapText(n['name'], max_string_length) + '\n' + n['location'],
+          label: wrapText(n['name'], max_string_length)
+                        + '\n' + n['location']
+                        + '\n(' + Math.round(n['relative_impact'] * 100) + '%)',
           product: n['product'],
           location: n['location'],
           id: n['id'],
           database: n['db'],
           class: n['class'],
+          relative_impact: n['relative_impact'],
+//          style: "fill: #f66; fill-opacity: 0.5",
         });
     });
     console.log("Nodes successfully loaded...");
@@ -579,9 +585,22 @@ function update_graph(json_data) {
 	canvas.addItem();
 
 	  // Adds click listener, calling handleMouseClick func
-	  var nodes = panCanvas.selectAll("g .node")
+      var nodes = panCanvas.selectAll("g .node")
 	      .on("click", handleMouseClick)
-	      console.log ("click!");
+	      // this would change the node text color
+//	      .style("fill", function(d) {
+//	        console.log(color(graph.node(d).relative_impact))
+//	        return color(graph.node(d).relative_impact);
+//	      })
+
+      // change node fill based on impact
+	  var node_rects = panCanvas.selectAll("g .node rect")
+	      .on("click", handleMouseClick)
+	      .style("fill", function(d) {
+    	      console.log(color(graph.node(d).relative_impact))
+	      return color(graph.node(d).relative_impact);
+	      })
+
       // listener for mouse-hovers
       var edges = panCanvas.selectAll("g .edgePath")
         .on("mouseover", handleMouseHover)
@@ -603,7 +622,7 @@ function update_graph(json_data) {
 
 
     function handleMouseHover(e){
-        console.log ("mouseover!");
+        console.log ("mouseover!")
 //        d3.select(this).style("fill", "magenta")
         edge = graph.edge(e)
 
@@ -620,6 +639,7 @@ function update_graph(json_data) {
 	function handleMouseClick(node){
         // make dictionary containing the node key and how the user clicked on it
         // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
+        console.log("click on:", node)
         click_dict = {
             "database": graph.node(node).database,
              "id": graph.node(node).id

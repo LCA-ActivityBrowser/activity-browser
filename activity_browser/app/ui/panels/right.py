@@ -38,9 +38,9 @@ class RightPanel(Panel):
 
     def add_Sankey_Widget(self, cs_name):
         print("Adding Sankey Tab")
-        if not hasattr(self, "sankey_navigator_tab"):
-            self.sankey_navigator_tab = SankeyNavigatorWidget(cs_name)
-            self.addTab(self.sankey_navigator_tab, 'LCA Sankey')
+        # if not hasattr(self, "sankey_navigator_tab"):
+        self.sankey_navigator_tab = SankeyNavigatorWidget(cs_name)
+        self.addTab(self.sankey_navigator_tab, 'LCA Sankey')
 
     def calculate_first_sankey(self):
         if hasattr(self, "sankey_navigator_tab"):

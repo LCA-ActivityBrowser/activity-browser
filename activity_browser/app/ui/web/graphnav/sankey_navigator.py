@@ -63,12 +63,14 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         # self.grid_lay.addWidget(self.reload_pb, 2, 0)
         # self.close_pb = QtWidgets.QPushButton('Close')
         # self.close_pb.clicked.connect(self.switch_to_main)
-        self.grid_lay.setColumnStretch(4, 1)
+
         # self.grid_lay.addWidget(self.close_pb, 0, 5)
         # self.color_attr_cb = QtWidgets.QComboBox()
         # self.color_attr_cb.addItems(['flow', 'location', 'name'])
         # self.grid_lay.addWidget(QtWidgets.QLabel('color by: '), 0, 2)
         # self.grid_lay.addWidget(self.color_attr_cb, 0, 3)
+
+        # cut-off
         self.grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 1, 2)
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.cutoff_sb.setRange(0.0, 1.0)
@@ -77,6 +79,18 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
         self.grid_lay.addWidget(self.cutoff_sb, 1, 3)
+
+        # max-iterations of graph traversal
+        self.grid_lay.addWidget(QtWidgets.QLabel('Calculation depth: '), 1, 4)
+        self.max_calc_sb = QtWidgets.QDoubleSpinBox()
+        self.max_calc_sb.setRange(1, 2000)
+        self.max_calc_sb.setSingleStep(50)
+        self.max_calc_sb.setDecimals(0)
+        self.max_calc_sb.setValue(500)
+        self.max_calc_sb.setKeyboardTracking(False)
+        self.grid_lay.addWidget(self.max_calc_sb, 1, 5)
+
+        self.grid_lay.setColumnStretch(6, 1)
         self.hlay = QtWidgets.QHBoxLayout()
         self.hlay.addLayout(self.grid_lay)
 
@@ -90,7 +104,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.button_toggle_help.clicked.connect(self.toggle_help)
 
         # button calculate
-        self.button_calculate = QtWidgets.QPushButton('Reload Sankey')
+        self.button_calculate = QtWidgets.QPushButton('Calculate')
         self.button_calculate.clicked.connect(self.new_sankey)
 
         # button back
@@ -156,7 +170,8 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         signals.database_selected.connect(self.set_database)
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
-        self.cutoff_sb.valueChanged.connect(self.new_sankey)
+        # self.cutoff_sb.valueChanged.connect(self.new_sankey)
+        # self.max_calc_sb.valueChanged.connect(self.new_sankey)
 
     def toggle_help(self):
         self.help = not self.help
@@ -181,9 +196,10 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         demand = self.func_units[self.func_unit_cb.currentIndex()]
         method = self.methods[self.method_cb.currentIndex()]
         cutoff = self.cutoff_sb.value()
-        self.update_sankey(demand, method, cut_off=cutoff)
+        max_calc = self.max_calc_sb.value()
+        self.update_sankey(demand, method, cut_off=cutoff, max_calc=max_calc)
 
-    def update_sankey(self, demand, method, cut_off=0.05, max_iter=100):
+    def update_sankey(self, demand, method, cut_off=0.05, max_calc=100):
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
         print("Demand / Method:", demand, method)
         lca = bw.LCA(demand, method=method)
@@ -192,7 +208,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         print("Calculated LCA results.")
         start = time.time()
         try:
-            data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_iter)
+            data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
         except ValueError as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
         print("Completed graph traversal (%s seconds)" %(time.time() - start) )
@@ -293,6 +309,7 @@ class Graph:
         gedges = data["edges"]
         lca = data["lca"]
         max_impact = lca.score
+        print("Graph Traversal iterations (counter):", data["counter"])
 
         reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
 
@@ -313,6 +330,7 @@ class Graph:
                     "location": act.get("location"),
                     "amount": values.get("amount"),
                     "ind": values.get("ind"),
+                    "relative_impact": values.get("ind") / max_impact,
                     "cum": values.get("cum"),
                     "class": identify_activity_type(act),
                 }
