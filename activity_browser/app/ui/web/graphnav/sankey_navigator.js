@@ -555,7 +555,7 @@ function update_graph(json_data) {
 
         graph.setEdge(e['source_id'], e['target_id'],
                 {
-                    label: wrapText(e['product'], max_string_length),
+                    label: wrapText(e['product'] + '\n(' + Math.round(e['relative_impact'] * 100) + '%)', max_string_length),
 //                    labelStyle: "font-size: 2em; font-style: italic; text-decoration: underline;",
 //                    labelStyle: "font-weight: bold;",
                     amount: e['amount'],
