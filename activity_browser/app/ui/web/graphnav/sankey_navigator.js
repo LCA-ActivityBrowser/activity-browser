@@ -40,9 +40,6 @@ function getWindowSize() {
 };
 
 
-var max_string_length = 20
-var max_edge_width = 20
-
 var globalWidth = null;
 var globalHeight = null;
 
@@ -525,6 +522,9 @@ var color = d3.scaleLinear()
 //    .domain([-1, 0, 1])
 //    .range(["green", "white", "red"]);
 
+var max_string_length = 20
+var max_edge_width = 40
+
 var render = dagreD3.render();
 var graph = {}
 
@@ -569,7 +569,7 @@ function update_graph(json_data) {
     // edges --> graph
     data.edges.forEach(function(e) {
         var impact_or_benefit = "impact"
-        if (e['ind_norm'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");}
+        if (e['impact'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");}
 
         graph.setEdge(e['source_id'], e['target_id'],
                 {
@@ -705,7 +705,7 @@ function wrapText(str, length) {
 
 function roundNumber(number) {
 //    return number.toFixed(2)
-    return number.toPrecision(2)
+    return number.toPrecision(3)
 //    return Math.round(number * 100)/100
 }
 

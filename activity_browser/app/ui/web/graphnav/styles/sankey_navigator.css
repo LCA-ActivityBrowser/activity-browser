@@ -122,15 +122,19 @@ text {
   stroke-width: 3px;
 }
 
+.node.demand {
+  /*stroke: #333;  */
+  font-weight: bold
+}
 
-.node.treatment rect {
-  stroke: #ff634c;
+.node.demand rect {
+  stroke: darkblue;
   fill: #fff;
-  stroke-width: 3px;
+  stroke-width: 4px;
 }
 
 .node.market rect {
-  stroke: #ff7b00;
+  stroke: #ed9736;
   fill: #fff;
   stroke-width: 3px;
 }
@@ -141,6 +145,11 @@ text {
   stroke-width: 3px;
 }
 
+.node.treatment rect {
+  stroke: #f4425c;
+  fill: #fff;
+  stroke-width: 3px;
+}
 
 /* Edges */
 /*.edgePath path.path {

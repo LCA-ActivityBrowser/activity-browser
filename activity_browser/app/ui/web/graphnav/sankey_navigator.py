@@ -202,16 +202,12 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
     def update_sankey(self, demand, method, cut_off=0.05, max_calc=100):
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
         print("Demand / Method:", demand, method)
-        lca = bw.LCA(demand, method=method)
-        lca.lci()
-        lca.lcia()
-        print("Calculated LCA results.")
         start = time.time()
         try:
             data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
         except ValueError as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
-        print("Completed graph traversal (%s seconds)" %(time.time() - start) )
+        print("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
 
         self.graph.new_graph(data)
         print("emitting graph ready signal")
@@ -312,14 +308,11 @@ class Graph:
         gnodes = data["nodes"]
         gedges = data["edges"]
         lca = data["lca"]
-        lca_score = abs(lca.score)
+        lca_score = lca.score #abs(lca.score)
         max_impact = get_max_impact(gnodes)
-
+        # print("Max impact:", max_impact)
         LCIA_unit = bw.Method(lca.method).metadata["unit"]
-
-        print("Max impact:", max_impact)
-        print("Graph Traversal iterations (counter):", data["counter"])
-
+        demand = list(lca.demand.items())[0]
         reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
 
         nodes, edges = [], []
@@ -343,7 +336,7 @@ class Graph:
                     "ind_norm": values.get("ind") / lca_score,
                     "cum": values.get("cum"),
                     "cum_norm": values.get("cum") / lca_score,
-                    "class": identify_activity_type(act),
+                    "class": "demand" if act == demand[0] else identify_activity_type(act),
                 }
             )
 
@@ -352,28 +345,27 @@ class Graph:
                 continue
 
             product = get_activity_by_index(gedge["from"]).get("reference product") or get_activity_by_index(gedge["from"]).get("name")
+            from_key = reverse_activity_dict[gedge["from"]]
+            to_key = reverse_activity_dict[gedge["to"]]
 
             edges.append(
                 {
-                    "source_id": reverse_activity_dict[gedge["from"]][1],
-                    "target_id": reverse_activity_dict[gedge["to"]][1],
-                    "amount": gedge["exc_amount"],
+                    "source_id": from_key[1],
+                    "target_id": to_key[1],
+                    "amount": gedge["amount"],
                     "product": product,
                     "impact": gedge["impact"],
                     "ind_norm": gedge["impact"] / lca_score,
                     "unit": bw.Method(lca.method).metadata["unit"],
-                    "tooltip": '<b>{}</b> '
+                    "tooltip": '<b>{}</b> ({:.2g} {})'
                                '<br>{:.3g} {} ({:.2g}%) '.format(
-                        product,
-                        gedge["impact"],
-                        LCIA_unit,
-                        gedge["impact"] / lca.score * 100,
+                        product, gedge["amount"], bw.get_activity(from_key).get("unit"),
+                        gedge["impact"], LCIA_unit, gedge["impact"] / lca.score * 100,
                     )
                 }
             )
 
         def get_title():
-            demand = list(lca.demand.items())[0]
             act, amount = demand[0], demand[1]
             m = bw.Method(lca.method)
 
