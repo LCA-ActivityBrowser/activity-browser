@@ -84,10 +84,10 @@ class LcoptWidget(QtWidgets.QWidget):
         self.update_options()
 
     def update_options(self):
-        self.models = [m for m in os.listdir('.') if m.endswith('.lcopt')]
-        self.model_dict = {m: os.path.join(os.path.abspath('.'), m) for m in self.models}
+        self.models = {os.path.split(m)[1].replace('.lcopt', ''):m for m in lcopt.storage.models}
+        self.models = {k:v for k,v in self.models.items() if not k in {'ecoinvent_example', 'forwast_example'}}
         self.load_combobox.clear()
-        self.load_combobox.addItems(self.models)
+        self.load_combobox.addItems(sorted(self.models))
         self.load_gb.setEnabled(bool(self.models))
         self.example_combobox.clear()
         self.example_combobox.addItems(['ecoinvent_example.lcopt'])  # TODO: include forwast
@@ -125,7 +125,7 @@ class LcoptWidget(QtWidgets.QWidget):
 
     def load_model(self):
         model_name = self.load_combobox.currentText()
-        model_path = self.model_dict[model_name]
+        model_path = self.models[model_name]
         model = lcopt.LcoptModel(load=model_path)
         self.run_lcopt(model)
 
