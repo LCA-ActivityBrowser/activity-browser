@@ -234,7 +234,7 @@ class DBNamePage(QtWidgets.QWizardPage):
             sys_mod = self.wizard.system_model
             self.name_edit.setText(sys_mod + version.replace('.', ''))
         elif self.wizard.import_type == 'forwast':
-            self.name_edit.setText('forwast')
+            self.name_edit.setText('Forwast')
 
     def validatePage(self):
         db_name = self.name_edit.text()
@@ -553,6 +553,8 @@ class ForwastWorkerThread(ImportWorkerThread):
         forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
         forwast_zip.extractall(self.dirpath)
         bw.BW2Package.import_file(os.path.join(self.dirpath, 'forwast.bw2package'))
+        if self.db_name != 'forwast':
+            bw.Database('forwast').rename(self.db_name)
         import_signals.db_progress.emit(1, 1)
         import_signals.finished.emit()
 
