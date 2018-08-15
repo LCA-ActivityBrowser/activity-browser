@@ -84,8 +84,9 @@ class LcoptWidget(QtWidgets.QWidget):
         self.update_options()
 
     def update_options(self):
-        self.models = {os.path.split(m)[1].replace('.lcopt', ''):m for m in lcopt.storage.models}
-        self.models = {k:v for k,v in self.models.items() if not k in {'ecoinvent_example', 'forwast_example'}}
+        self.models = {os.path.split(m)[1].replace('.lcopt', ''): m for m in lcopt.storage.models}
+        self.models = {k: v for k, v in self.models.items() if
+                       k not in {'ecoinvent_example', 'forwast_example'}}
         self.load_combobox.clear()
         self.load_combobox.addItems(sorted(self.models))
         self.load_gb.setEnabled(bool(self.models))
