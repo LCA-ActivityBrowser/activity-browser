@@ -557,8 +557,11 @@ class ForwastWorkerThread(ImportWorkerThread):
         bw.BW2Package.import_file(os.path.join(self.dirpath, 'forwast.bw2package'))
         if self.db_name != 'forwast':
             bw.Database('forwast').rename(self.db_name)
-        import_signals.db_progress.emit(1, 1)
-        import_signals.finished.emit()
+        if not self.canceled:
+            import_signals.db_progress.emit(1, 1)
+            import_signals.finished.emit()
+        else:
+            self.delete_canceled_db()
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
