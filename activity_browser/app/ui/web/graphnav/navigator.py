@@ -40,6 +40,8 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
     
     Checkbox "Remove orphaned nodes": by default nodes that do not link to the central activity (see title) are removed (this may happen after deleting nodes). Uncheck to disable.
     
+    Checkbox "Flip negative flows" (experimental): Arrows of negative product flows (e.g. from ecoinvent treatment activities or from substitution) can be flipped. The resulting representation can be more intuitive for understanding the physical product flows (e.g. that wastes are outputs of activities and not negative inputs).   
+    
     
     NAVIGATION MODE:
     Click on activities to jump to specific activities (instead of expanding the graph).
@@ -49,8 +51,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
         self.graph = Graph()
         self.navigation_mode = False
-
-        self.connect_signals()
         self.selected_db = None
 
         # Help label
@@ -76,7 +76,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.button_navigation_mode.clicked.connect(self.toggle_navigation_mode)
 
         # button refresh
-        self.button_refresh = QtWidgets.QPushButton('Refresh')
+        self.button_refresh = QtWidgets.QPushButton('Refresh HTML')
         self.button_refresh.clicked.connect(self.draw_graph)
 
         # button random
@@ -86,10 +86,20 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         # checkbox all_exchanges_in_graph
         self.checkbox_direct_only = QtWidgets.QCheckBox("Add only direct up-/downstream exchanges")
         self.checkbox_direct_only.setChecked(True)
+        self.checkbox_direct_only.setToolTip(
+            "When adding activities, show product flows between ALL activities or just selected up-/downstream flows")
 
         # checkbox remove orphaned nodes
         self.checkbox_remove_orphaned_nodes = QtWidgets.QCheckBox("Remove orphaned nodes")
         self.checkbox_remove_orphaned_nodes.setChecked(True)
+        self.checkbox_remove_orphaned_nodes.setToolTip(
+            "When removing activities, automatically remove those that have no further connection to the original product")
+
+        # checkbox flip negative edges
+        self.checkbox_flip_negative_edges = QtWidgets.QCheckBox("Flip negative flows")
+        self.checkbox_flip_negative_edges.setChecked(False)
+        self.checkbox_flip_negative_edges.setToolTip(
+            "Flip negative product flows (e.g. from ecoinvent treatment activities or from substitution)")
 
         # qt js interaction
         self.bridge = Bridge()
@@ -115,6 +125,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.hl_checkboxes = QtWidgets.QHBoxLayout()
         self.hl_checkboxes.addWidget(self.checkbox_direct_only)
         self.hl_checkboxes.addWidget(self.checkbox_remove_orphaned_nodes)
+        self.hl_checkboxes.addWidget(self.checkbox_flip_negative_edges)
         self.hl_checkboxes.addStretch(1)
 
         # Layout
@@ -125,6 +136,9 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.vlay.addWidget(self.view)
         self.setLayout(self.vlay)
 
+        self.connect_signals()
+        self.update_graph_settings()
+
         # graph
         self.draw_graph()
 
@@ -132,6 +146,17 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         signals.database_selected.connect(self.set_database)
         signals.add_activity_to_history.connect(self.new_graph)
         graphsignals.update_graph.connect(self.update_graph)
+        # checkboxes
+        self.checkbox_direct_only.stateChanged.connect(self.update_graph_settings)
+        self.checkbox_remove_orphaned_nodes.stateChanged.connect(self.update_graph_settings)
+        self.checkbox_flip_negative_edges.stateChanged.connect(self.update_graph_settings)
+        self.checkbox_flip_negative_edges.stateChanged.connect(self.reload_graph)
+
+    def update_graph_settings(self):
+        print("CHECKBOXES CHANGED")
+        self.graph.direct_only = self.checkbox_direct_only.isChecked()
+        self.graph.remove_orphaned = self.checkbox_remove_orphaned_nodes.isChecked()
+        self.graph.flip_negative_edges = self.checkbox_flip_negative_edges.isChecked()
 
     def toggle_navigation_mode(self):
         self.navigation_mode = not self.navigation_mode
@@ -161,6 +186,11 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.graph.new_graph(key)
         self.bridge.graph_ready.emit(self.graph.json_data)
 
+    def reload_graph(self):
+        print("Reloading graph")
+        self.graph.update(delete_unstacked=False)
+        self.bridge.graph_ready.emit(self.graph.json_data)
+
     def update_graph(self, click_dict):
         """
         Update graph based on user command (click+keyboard) and settings.
@@ -181,19 +211,15 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         else:
             if keyboard["alt"]:  # delete node
                 print("Deleting node: ", key)
-                self.graph.reduce_graph(
-                    key,
-                    direct_only=self.checkbox_direct_only.isChecked(),
-                    remove_orphaned=self.checkbox_remove_orphaned_nodes.isChecked()
-                )
+                self.graph.reduce_graph(key)
             else: # expansion mode
                 print("Expanding graph: ", key)
                 if keyboard["shift"]:  # downstream expansion
                     print("Adding downstream nodes.")
-                    self.graph.expand_graph(key, down=True, direct_only=self.checkbox_direct_only.isChecked())
+                    self.graph.expand_graph(key, down=True)
                 else:  # upstream expansion
                     print("Adding upstream nodes.")
-                    self.graph.expand_graph(key, up=True, direct_only=self.checkbox_direct_only.isChecked())
+                    self.graph.expand_graph(key, up=True)
             self.bridge.graph_ready.emit(self.graph.json_data)
 
     def set_database(self, name):
@@ -241,6 +267,11 @@ class Graph:
         self.json_data = None
         self.stack = []  # stores previous graphs, if any, and enables back/forward buttons
         self.forward_stack = []  # stores graphs that can be returned to after having used the "back" button
+
+        # some settings
+        self.direct_only = True  # for a graph expansion: add only direct up-/downstream nodes instead of all connections between the activities in the graph
+        self.remove_orphaned = True  # remove nodes that are isolated from the central_activity after a deletion
+        self.flip_negative_edges = False  # show true flow direction of edges (e.g. for ecoinvent treatment activities, or substitutions)
 
     def update(self, delete_unstacked=True):
         self.json_data = self.get_JSON_data()
@@ -315,7 +346,7 @@ class Graph:
         self.edges = up_exs + down_exs
         self.update()
 
-    def expand_graph(self, key, up=False, down=False, direct_only=True):
+    def expand_graph(self, key, up=False, down=False):
         """
         Adds up-, downstream, or both nodes to graph.
         Different behaviour for "direct nodes only" or "all nodes (inner exchanges)" modes.
@@ -331,7 +362,7 @@ class Graph:
             self.nodes = list(set(self.nodes + up_nodes + down_nodes))
 
         # Add Edges / Exchanges
-        if direct_only:
+        if self.direct_only:
             up_exs, down_exs = self.upstream_and_downstream_exchanges(key)
             if up and not down:
                 self.edges += up_exs
@@ -343,7 +374,7 @@ class Graph:
             self.edges = self.inner_exchanges(self.nodes)
         self.update()
 
-    def reduce_graph(self, key, direct_only=True, remove_orphaned=True):
+    def reduce_graph(self, key):
         """
         Deletes nodes from graph.
         Different behaviour for "direct nodes only" or "all nodes (inner exchanges)" modes.
@@ -353,14 +384,14 @@ class Graph:
         if act == self.central_activity:
             print("Cannot remove central activity.")
             return
-        if direct_only:
+        if self.direct_only:
             self.nodes.remove(act)
             self.remove_outside_exchanges()
         else:
             self.nodes.remove(act)
             self.edges = self.inner_exchanges(self.nodes)
 
-        if remove_orphaned:  # remove orphaned nodes
+        if self.remove_orphaned:  # remove orphaned nodes
             self.remove_orphaned_nodes()
 
         self.update()
@@ -411,6 +442,10 @@ class Graph:
         Returns:
             A JSON representation of this.
             """
+        if not self.nodes:
+            print("Graph has no nodes (activities).")
+            return
+
         nodes = [
                     {
                         # "key": node.key,
@@ -426,24 +461,30 @@ class Graph:
 
         edges = []
         for exc in self.edges:
-            if exc.get("amount") >= 0:
-                from_act = exc.input
-                to_act = exc.output
-            else:
+            if self.flip_negative_edges and exc.get("amount") < 0:
+                # this changes the direction of edges to represent the correct physical flow direction
+                # however, this is still experimental, as the product/flow displayed
                 from_act = exc.output
                 to_act = exc.input
+                product = to_act.get("reference product") or to_act.get("name")
+                amount = abs(exc.get("amount"))
+            else:
+                from_act = exc.input
+                to_act = exc.output
+                product = from_act.get("reference product") or from_act.get("name")
+                amount = exc.get("amount")
+
             edges.append(
                     {
                         "source_id": from_act.key[1],
                         "target_id": to_act.key[1],
-                        "amount": abs(exc.get("amount")),
+                        "amount": amount,
                         "unit": exc.get("unit"),
-                        "product": from_act.get("reference product") or from_act.get("name"),
+                        "product": product,
                         "tooltip": '<b>{:.3g} {} of {}<b>'.format(
-                        # "tooltip": '{:.3g} {} of {}'.format(
-                            abs(exc.get("amount")),
+                            amount,
                             exc.get('unit', ''),
-                            from_act.get("reference product") or from_act.get("name"))
+                            product)
                     }
                 )
 
