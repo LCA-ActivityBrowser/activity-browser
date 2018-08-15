@@ -276,8 +276,10 @@ class ConfirmationPage(QtWidgets.QWizardPage):
                 'Path to 7z archive:<br><b>{}</b>'.format(
                     self.field('archivepath')))
         elif self.wizard.import_type == 'forwast':
+            self.path_label.setOpenExternalLinks(True)
             self.path_label.setText(
-                'Download forwast from https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
+                'Download forwast from <a href="https://lca-net.com/projects/show/forwast/">' +
+                'https://lca-net.com/projects/show/forwast/</a>'
             )
         else:
             self.path_label.setText(
