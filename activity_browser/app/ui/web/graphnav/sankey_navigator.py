@@ -5,10 +5,11 @@ from copy import deepcopy
 import time
 
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtWebChannel
 
-from ....bwutils.commontasks import identify_activity_type
 from .signals import graphsignals
+from ...icons import icons
+from ....bwutils.commontasks import identify_activity_type
 from ....signals import signals
 
 # TODO:
@@ -108,12 +109,14 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.button_calculate.clicked.connect(self.new_sankey)
 
         # button back
-        self.button_back = QtWidgets.QPushButton('<<')
+        self.button_back = QtWidgets.QPushButton()
         self.button_back.clicked.connect(self.go_back)
+        self.button_back.setIcon(QtGui.QIcon(icons.backward))
 
         # button forward
-        self.button_forward = QtWidgets.QPushButton('>>')
+        self.button_forward = QtWidgets.QPushButton()
         self.button_forward.clicked.connect(self.go_forward)
+        self.button_forward.setIcon(QtGui.QIcon(icons.forward))
 
         # button refresh
         self.button_refresh = QtWidgets.QPushButton('Refresh HTML')
@@ -179,17 +182,17 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
 
     def go_back(self):
         if self.graph.back():
-            print("Going back.")
+            signals.new_statusbar_message.emit("Going back.")
             self.bridge.graph_ready.emit(self.graph.json_data)
         else:
-            print("Cannot go back.")
+            signals.new_statusbar_message.emit("Cannot go back.")
 
     def go_forward(self):
         if self.graph.forward():
-            print("Going forward.")
+            signals.new_statusbar_message.emit("Going forward.")
             self.bridge.graph_ready.emit(self.graph.json_data)
         else:
-            print("Cannot go forward.")
+            signals.new_statusbar_message.emit("Cannot go forward.")
 
     def new_sankey(self):
         print("New Sankey for CS: ", self.cs)

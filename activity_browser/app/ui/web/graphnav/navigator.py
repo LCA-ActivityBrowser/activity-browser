@@ -5,9 +5,10 @@ from copy import deepcopy
 import networkx as nx
 
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtWebChannel
 
 from .signals import graphsignals
+from ...icons import icons
 from ....signals import signals
 from ....bwutils.commontasks import identify_activity_type
 
@@ -63,12 +64,14 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.button_toggle_help.clicked.connect(self.toggle_help)
 
         # button back
-        self.button_back = QtWidgets.QPushButton('<<')
+        self.button_back = QtWidgets.QPushButton()
         self.button_back.clicked.connect(self.go_back)
+        self.button_back.setIcon(QtGui.QIcon(icons.backward))
 
         # button forward
-        self.button_forward = QtWidgets.QPushButton('>>')
+        self.button_forward = QtWidgets.QPushButton()
         self.button_forward.clicked.connect(self.go_forward)
+        self.button_forward.setIcon(QtGui.QIcon(icons.forward))
 
         # button navigation/expansion mode
         self.navigation_label = {True: "Current mode: Navigation", False: "Current mode: Expansion"}
@@ -153,7 +156,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.checkbox_flip_negative_edges.stateChanged.connect(self.reload_graph)
 
     def update_graph_settings(self):
-        print("CHECKBOXES CHANGED")
         self.graph.direct_only = self.checkbox_direct_only.isChecked()
         self.graph.remove_orphaned = self.checkbox_remove_orphaned_nodes.isChecked()
         self.graph.flip_negative_edges = self.checkbox_flip_negative_edges.isChecked()
@@ -162,6 +164,8 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.navigation_mode = not self.navigation_mode
         self.button_navigation_mode.setText(self.navigation_label[self.navigation_mode])
         print("Switched to:", self.navigation_label[self.navigation_mode])
+        self.checkbox_remove_orphaned_nodes.setVisible(not self.navigation_mode)
+        self.checkbox_direct_only.setVisible(not self.navigation_mode)
 
     def toggle_help(self):
         self.help = not self.help
@@ -169,17 +173,17 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
     def go_back(self):
         if self.graph.back():
-            print("Going back.")
+            signals.new_statusbar_message.emit("Going back.")
             self.bridge.graph_ready.emit(self.graph.json_data)
         else:
-            print("Cannot go back.")
+            signals.new_statusbar_message.emit("No data to go back to.")
 
     def go_forward(self):
         if self.graph.forward():
-            print("Going forward.")
+            signals.new_statusbar_message.emit("Going forward.")
             self.bridge.graph_ready.emit(self.graph.json_data)
         else:
-            print("Cannot go forward.")
+            signals.new_statusbar_message.emit("No data to go forward to.")
 
     def new_graph(self, key):
         print("New Graph for key: ", key)
@@ -187,7 +191,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.bridge.graph_ready.emit(self.graph.json_data)
 
     def reload_graph(self):
-        print("Reloading graph")
+        signals.new_statusbar_message.emit("Reloading graph")
         self.graph.update(delete_unstacked=False)
         self.bridge.graph_ready.emit(self.graph.json_data)
 
