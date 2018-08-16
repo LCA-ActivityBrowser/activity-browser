@@ -3,9 +3,14 @@ import os
 
 import requests
 import lcopt
+import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 
+from activity_browser.app.ui.wizards.db_import_wizard import (
+    EcoinventLoginPage, ConfirmationPage, ImportPage, EcoinventVersionPage
+)
 from ....signals import signals
+from activity_browser.app.ui.wizards.db_import_wizard import import_signals
 
 
 LCOPT_URL = 'http://127.0.0.1:5000/'
@@ -22,6 +27,21 @@ class LcoptWidget(QtWidgets.QWidget):
         self.view = QtWebEngineWidgets.QWebEngineView()
         self.view.setVisible(False)
 
+        # lcopt config
+        if lcopt.settings.model_storage.project != 'single':
+            lcopt.settings.model_storage.project = 'single'
+            print('Changed lcopt model storage to single project!')
+            # TODO: add option to disable this or revert to user config when AB is closed
+        lcopt_single_project = lcopt.storage.single_project_name
+        if lcopt_single_project not in bw.projects:
+            bw.projects.create_project(lcopt_single_project)
+        signals.change_project.emit(lcopt_single_project)
+
+        # setup options
+        self.ecoinvent_setup_button = QtWidgets.QPushButton('Setup LCOPT with Ecoinvent')
+        self.forwast_setup_button = QtWidgets.QPushButton('Setup LCOPT with Forwast')
+        self.forwast_setup_button.setEnabled(False)
+
         # load options
         self.create_edit = QtWidgets.QLineEdit()
         self.create_edit.setPlaceholderText('name of new model')
@@ -36,6 +56,9 @@ class LcoptWidget(QtWidgets.QWidget):
         self.close_button = QtWidgets.QPushButton('Return to Main Window')
 
         # layout
+        self.setup_gb = OptionGroupBox(
+            'Setup', self.ecoinvent_setup_button, self.forwast_setup_button
+        )
         self.create_gb = OptionGroupBox('Create a new model', self.create_edit,
                                         self.create_button)
         self.load_gb = OptionGroupBox('Load an existing model', self.load_combobox,
@@ -45,6 +68,7 @@ class LcoptWidget(QtWidgets.QWidget):
 
         self.option_layout = QtWidgets.QHBoxLayout()
         self.option_layout.addStretch()
+        self.option_layout.addWidget(self.setup_gb)
         self.option_layout.addWidget(self.create_gb)
         self.option_layout.addWidget(self.load_gb)
         self.option_layout.addWidget(self.example_gb)
@@ -77,6 +101,7 @@ class LcoptWidget(QtWidgets.QWidget):
         lcopt_signals.app_shutdown.connect(self.switch_options_view)
         lcopt_signals.app_shutdown.connect(self.global_updates)
         self.close_button.clicked.connect(self.return_main_window)
+        self.ecoinvent_setup_button.clicked.connect(self.ecoinvent_setup)
 
     def switch_options_view(self):
         self.view.setVisible(not self.view.isVisible())
@@ -145,6 +170,28 @@ class LcoptWidget(QtWidgets.QWidget):
         signals.projects_changed.emit()
         signals.databases_changed.emit()
 
+    def ecoinvent_setup(self):
+        if 'biosphere3' not in bw.databases:
+            signals.install_default_data.emit()
+            import_signals.biosphere_finished.connect(self.ecoinvent_setup2)
+        elif not [d for d in bw.databases if d.startswith('Ecoinvent')]:  # TODO: improve this check
+            self.ecoinvent_setup2(disconnect=False)
+        else:
+            QtWidgets.QMessageBox.information(
+                None,
+                'Lcopt already set up',
+                'Lcopt is ready to use with ecoinvent!'
+            )
+
+    def ecoinvent_setup2(self, disconnect=True):
+        """
+        biosphere_finished signal is used to queue bw2setup and the import,
+        it needs to be disconnected again otherwise double imports could occur
+        """
+        if disconnect:
+            import_signals.biosphere_finished.disconnect()
+        self.setup_wizard = LcoptSetupWizard()
+
 
 class OptionGroupBox(QtWidgets.QGroupBox):
     def __init__(self, title, option, button):
@@ -153,6 +200,39 @@ class OptionGroupBox(QtWidgets.QGroupBox):
         self.lay.addWidget(option)
         self.lay.addWidget(button)
         self.setLayout(self.lay)
+
+
+class LcoptSetupWizard(QtWidgets.QWizard):
+    def __init__(self):
+        super().__init__()
+        self.version = lcopt.settings.ecoinvent.version
+        self.system_model = lcopt.settings.ecoinvent.system_model
+        self.setWindowTitle('LCOPT Database Import Wizard')
+        self.ecoinvent_login_page = EcoinventLoginPage(self)
+        self.confirmation_page = ConfirmationPage(self)
+        self.import_page = ImportPage(self)
+        self.pages = [
+            self.ecoinvent_login_page,
+            self.confirmation_page,
+            self.import_page
+        ]
+        for page in self.pages:
+            self.addPage(page)
+        self.import_type = 'homepage'
+        self.version = lcopt.settings.ecoinvent.version
+        self.system_model = lcopt.settings.ecoinvent.system_model
+        self.confirmation_page.fake_line_edit = QtWidgets.QLineEdit()  # only needed to register db_name field
+        self.confirmation_page.registerField('db_name', self.confirmation_page.fake_line_edit)
+        ei_name = "Ecoinvent{}_{}_{}".format(*self.version.split('.'), self.system_model)
+        self.setField('db_name', ei_name)   # following the lcopt naming convention
+        self.show()
+
+    @property
+    def db_url(self):
+        url = 'https://v33.ecoquery.ecoinvent.org'
+        db_key = (self.version, self.system_model)
+        db_dict = EcoinventVersionPage.get_available_files(self.ecoinvent_login_page.session)
+        return url + db_dict[db_key]
 
 
 class LcoptThread(QtCore.QThread):

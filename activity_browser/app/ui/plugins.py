@@ -22,7 +22,6 @@ class PluginManager():
             QtWidgets.QMessageBox.warning(self.window, "ImportError", "Could not load plugin.")
             return
 
-        signals.change_project.emit('LCOPT_Setup')
         if not hasattr(self, 'lcopt_window'):
             self.lcopt_window = LcoptWidget()
         self.window.stacked.addWidget(self.lcopt_window)

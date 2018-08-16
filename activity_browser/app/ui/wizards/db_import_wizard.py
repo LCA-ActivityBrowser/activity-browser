@@ -623,7 +623,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         if not hasattr(self, 'db_dict'):
-            self.get_available_files()
+            self.db_dict = self.get_available_files(self.wizard.ecoinvent_login_page.session)
         self.versions = sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
         self.system_models = sorted({k[1] for k in self.db_dict.keys()}, reverse=True)
         self.version_combobox.clear()
@@ -631,16 +631,18 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.version_combobox.addItems(self.versions)
         self.system_model_combobox.addItems(self.system_models)
 
-    def get_available_files(self):
+    @classmethod
+    def get_available_files(cls, session):
         files_url = 'https://v33.ecoquery.ecoinvent.org/File/Files'
-        files_res = self.wizard.ecoinvent_login_page.session.get(files_url)
+        files_res = session.get(files_url)
         soup = bs4.BeautifulSoup(files_res.text, 'html.parser')
         file_list = [l for l in soup.find_all('a', href=True) if
                      l['href'].startswith('/File/File?')]
         link_dict = {f.contents[0]: f['href'] for f in file_list}
-        self.db_dict = {
+        db_dict = {
             tuple(k.replace('ecoinvent ', '').split('_')[:2:]): v for k, v in
             link_dict.items() if k.endswith('.7z') and 'lc' not in k.lower()}
+        return db_dict
 
     def nextId(self):
         return self.wizard.pages.index(self.wizard.db_name_page)
