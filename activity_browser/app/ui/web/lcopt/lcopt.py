@@ -3,6 +3,7 @@ import os
 
 import requests
 import lcopt
+from lcopt.settings_gui import FlaskSettingsGUI
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 
@@ -11,9 +12,6 @@ from activity_browser.app.ui.wizards.db_import_wizard import (
 )
 from ....signals import signals
 from activity_browser.app.ui.wizards.db_import_wizard import import_signals
-
-
-LCOPT_URL = 'http://127.0.0.1:5000/'
 
 
 class LcoptWidget(QtWidgets.QWidget):
@@ -37,7 +35,8 @@ class LcoptWidget(QtWidgets.QWidget):
             bw.projects.create_project(lcopt_single_project)
         signals.change_project.emit(lcopt_single_project)
 
-        # setup options
+        # settings/setup options
+        self.lcopt_settings_button = QtWidgets.QPushButton('Lcopt Settings')
         self.ecoinvent_setup_button = QtWidgets.QPushButton('Setup LCOPT with Ecoinvent')
         self.forwast_setup_button = QtWidgets.QPushButton('Setup LCOPT with Forwast')
         self.forwast_setup_button.setEnabled(False)
@@ -68,6 +67,8 @@ class LcoptWidget(QtWidgets.QWidget):
 
         self.option_layout = QtWidgets.QHBoxLayout()
         self.option_layout.addStretch()
+        self.option_layout.addWidget(self.lcopt_settings_button)
+        self.option_layout.setAlignment(self.lcopt_settings_button, QtCore.Qt.AlignTop)
         self.option_layout.addWidget(self.setup_gb)
         self.option_layout.addWidget(self.create_gb)
         self.option_layout.addWidget(self.load_gb)
@@ -86,7 +87,7 @@ class LcoptWidget(QtWidgets.QWidget):
         self.setLayout(self.layout)
 
         # view
-        self.url = QtCore.QUrl(LCOPT_URL)
+        self.url = 'http://127.0.0.1:5000'
 
         self.connect_signals()
         self.update_options()
@@ -102,6 +103,7 @@ class LcoptWidget(QtWidgets.QWidget):
         lcopt_signals.app_shutdown.connect(self.global_updates)
         self.close_button.clicked.connect(self.return_main_window)
         self.ecoinvent_setup_button.clicked.connect(self.ecoinvent_setup)
+        self.lcopt_settings_button.clicked.connect(self.run_lcopt)
 
     def switch_options_view(self):
         self.view.setVisible(not self.view.isVisible())
@@ -119,7 +121,7 @@ class LcoptWidget(QtWidgets.QWidget):
         self.example_combobox.addItems(['ecoinvent_example.lcopt'])  # TODO: include forwast
 
     def reload(self):
-        self.view.load(self.url)
+        self.view.load(QtCore.QUrl(self.url))
         print('reloading')
 
     def update_create(self):
@@ -138,29 +140,31 @@ class LcoptWidget(QtWidgets.QWidget):
         valid = bool(name) and name not in model_names
         return valid
 
-    def run_lcopt(self, model):
-        self.lcopt_thread = LcoptThread(model)
-        self.reload_helper_thread = ReloadHelperThread()
+    def run_lcopt(self, *args, model=None):
+        self.lcopt_port = lcopt.utils.find_port()
+        self.url = 'http://127.0.0.1:{}/'.format(self.lcopt_port)
+        self.lcopt_thread = LcoptThread(model, self.lcopt_port)
+        self.reload_helper_thread = ReloadHelperThread(self.url)
         self.reload_helper_thread.start()
         self.lcopt_thread.start()
 
     def create_model(self):
         model_name = self.create_edit.text()
         model = lcopt.LcoptModel(model_name)
-        self.run_lcopt(model)
+        self.run_lcopt(model=model)
 
     def load_model(self):
         model_name = self.load_combobox.currentText()
         model_path = self.models[model_name]
         model = lcopt.LcoptModel(load=model_path)
-        self.run_lcopt(model)
+        self.run_lcopt(model=model)
 
     def load_example(self):
         lcopt_asset_path = os.path.join(lcopt.__path__[0], 'assets')
         model_name = self.example_combobox.currentText()
         ecoinvent_example = os.path.join(lcopt_asset_path, model_name)
         model = lcopt.LcoptModel(load=ecoinvent_example)
-        self.run_lcopt(model)
+        self.run_lcopt(model=model)
 
     def return_main_window(self):
         window = self.window()
@@ -238,14 +242,19 @@ class LcoptSetupWizard(QtWidgets.QWizard):
 class LcoptThread(QtCore.QThread):
     """
     lcopt flask app must run in its own thread, because it's blocking
+    runs the settings gui if no model is provided
     """
-    def __init__(self, model):
+    def __init__(self, model, port):
         super().__init__()
+        self.port = port
         self.model = model
 
     def run(self):
-        my_flask = ABFlaskSandbox(self.model)
-        my_flask.run()
+        if self.model is None:
+            my_flask = ABFlaskSettingsGui()
+        else:
+            my_flask = ABFlaskSandbox(self.model)
+        my_flask.run(port=self.port, open_browser=False)
         self.quit()
 
 
@@ -254,10 +263,14 @@ class ReloadHelperThread(QtCore.QThread):
     this helper thread checks if lcopt is ready and sends the signal to update the ui,
     otherwise the "browser" shows a connection error and the user must manually reload the page
     """
+    def __init__(self, url):
+        super().__init__()
+        self.url = url
+
     def run(self):
         while True:
             try:
-                requests.get(LCOPT_URL)
+                requests.get(self.url)
                 lcopt_signals.app_running.emit()
                 break
             except requests.ConnectionError:
@@ -268,12 +281,14 @@ class ReloadHelperThread(QtCore.QThread):
 
 class ABFlaskSandbox(lcopt.interact.FlaskSandbox):
     """
-    subclassing the lcopt FlaskSandbox to not open a browser in addition to the AB
+    subclassing the lcopt FlaskSandbox to be able to emit shutdown signal
     """
-    def run(self):
-        app = self.create_app()
-        app.run()
+    def shutdown_server(self):
+        super().shutdown_server()
+        lcopt_signals.app_shutdown.emit()
 
+
+class ABFlaskSettingsGui(FlaskSettingsGUI):
     def shutdown_server(self):
         super().shutdown_server()
         lcopt_signals.app_shutdown.emit()
