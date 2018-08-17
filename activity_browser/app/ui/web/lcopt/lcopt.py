@@ -56,8 +56,9 @@ class LcoptWidget(QtWidgets.QWidget):
 
         # layout
         self.setup_gb = OptionGroupBox(
-            'Setup', self.ecoinvent_setup_button, self.forwast_setup_button
+            'Setup/Settings', self.ecoinvent_setup_button, self.forwast_setup_button
         )
+        self.setup_gb.lay.addWidget(self.lcopt_settings_button)
         self.create_gb = OptionGroupBox('Create a new model', self.create_edit,
                                         self.create_button)
         self.load_gb = OptionGroupBox('Load an existing model', self.load_combobox,
@@ -67,7 +68,6 @@ class LcoptWidget(QtWidgets.QWidget):
 
         self.option_layout = QtWidgets.QHBoxLayout()
         self.option_layout.addStretch()
-        self.option_layout.addWidget(self.lcopt_settings_button)
         self.option_layout.setAlignment(self.lcopt_settings_button, QtCore.Qt.AlignTop)
         self.option_layout.addWidget(self.setup_gb)
         self.option_layout.addWidget(self.create_gb)
