@@ -105,18 +105,8 @@ class MLCA(object):
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
 
-        # Sort each functional unit column independently
-        topcontribution_dict = {}
-        for col, fu in enumerate(self.func_units):
-            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
-            cont_per_fu = {}
-            cont_per_fu.update({
-                ('Total', ''): contribution_array[col, :].sum(),
-                ('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
-            for value, index in top_contribution:
-                cont_per_fu.update({self.rev_activity_dict[index]: value})
-            topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
-
+        topcontribution_dict = self.build_dict(contribution_array, self.func_units,
+                                                self.rev_activity_dict, limit, limit_type)
         return topcontribution_dict
 
     def top_process_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
@@ -133,17 +123,8 @@ class MLCA(object):
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
 
-        # Sort each method column independently
-        topcontribution_dict = {}
-        for col, m in enumerate(self.method_dict_list):
-            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
-            cont_per_m = {}
-            cont_per_m.update({
-                ('Total', ''): contribution_array[col, :].sum(),
-                ('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
-            for value, index in top_contribution:
-                cont_per_m.update({self.rev_activity_dict[index]: value})
-            topcontribution_dict.update({next(iter(m.keys())): cont_per_m})
+        topcontribution_dict = self.build_dict(contribution_array, self.method_dict_list,
+                                                self.rev_biosphere_dict, limit, limit_type)
         return topcontribution_dict
 
     def top_elementary_flow_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
@@ -160,17 +141,8 @@ class MLCA(object):
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
 
-        # Sort each functional unit column independently
-        topcontribution_dict = {}
-        for col, fu in enumerate(self.func_units):
-            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
-            cont_per_fu = {}
-            cont_per_fu.update({
-                ('Total', ''): contribution_array[col, :].sum(),
-                ('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
-            for value, index in top_contribution:
-                cont_per_fu.update({self.rev_biosphere_dict[index]: value})
-            topcontribution_dict.update({next(iter(fu.keys())): cont_per_fu})
+        topcontribution_dict = self.build_dict(contribution_array, self.func_units,
+                                                self.rev_activity_dict, limit, limit_type)
         return topcontribution_dict
 
     def top_elementary_flow_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
@@ -187,20 +159,25 @@ class MLCA(object):
         if normalised:
             contribution_array = self.make_nomalised(contribution_array)
 
-        # Sort each method column independently
-        topcontribution_dict = {}
-        for col, m in enumerate(self.method_dict_list):
-            top_contribution = ca.sort_array(contribution_array[col, :], limit=limit, limit_type=limit_type)
-            cont_per_m = {}
-            cont_per_m.update({
-                ('Total', ''): contribution_array[col, :].sum(),
-                ('Rest', ''): contribution_array[col, :].sum() - top_contribution[:, 0].sum()})
-            for value, index in top_contribution:
-                cont_per_m.update({self.rev_biosphere_dict[index]: value})
-            topcontribution_dict.update({next(iter(m.keys())): cont_per_m})
+        topcontribution_dict = self.build_dict(contribution_array, self.method_dict_list,
+                                                self.rev_biosphere_dict, limit, limit_type)
         return topcontribution_dict
 
     def make_nomalised(self, contribution_array):
         """ Normalise the contribution array. """
         scores = contribution_array.sum(axis=1)
         return (contribution_array / scores[:, np.newaxis])
+
+    def build_dict(self, cont_arr, dict_set, rev_dict, limit, limit_type):
+        """ Sort each method or functional unit column independently. """
+        topcontribution_dict = {}
+        for col, cont in enumerate(dict_set):
+            top_contribution = ca.sort_array(cont_arr[col, :], limit=limit, limit_type=limit_type)
+            cont_per = {}
+            cont_per.update({
+                ('Total', ''): cont_arr[col, :].sum(),
+                ('Rest', ''): cont_arr[col, :].sum() - top_contribution[:, 0].sum()})
+            for value, index in top_contribution:
+                cont_per.update({rev_dict[index]: value})
+            topcontribution_dict.update({next(iter(cont.keys())): cont_per})
+        return topcontribution_dict
