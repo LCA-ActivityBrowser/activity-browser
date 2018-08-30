@@ -424,10 +424,6 @@ class AnalysisTab(QWidget):
         self.main_space_tb_grph_table = QCheckBox("Table")
         self.main_space_tb_grph_table.setChecked(True)
 
-        self.main_space_rel_abs_rel = QRadioButton("Relative")
-        self.main_space_rel_abs_rel.setChecked(True)
-        self.main_space_rel_abs_abs = QRadioButton("Absolute")
-
         # Plot
         self.main_space_plot = self.plot
         # Table
@@ -437,8 +433,6 @@ class AnalysisTab(QWidget):
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_plot)
         self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
         self.main_space_tb_grph.addWidget(vertical_line())
-        self.main_space_tb_grph.addWidget(self.main_space_rel_abs_rel)
-        self.main_space_tb_grph.addWidget(self.main_space_rel_abs_abs)
         self.relativity_button(self.main_space_tb_grph)
         self.main_space_tb_grph.addStretch()
 
@@ -478,17 +472,23 @@ class AnalysisTab(QWidget):
 
     def relativity_button(self, layout):
         if self.relativity is not None:
-            self.b = QPushButton('To Absolute')
+            self.button1 = QRadioButton("Relative")
+            self.button1.setChecked(True)
+            self.button2 = QRadioButton("Absolute")
             layout.addStretch(1)
-            layout.addWidget(self.b)
-            self.b.clicked.connect(self.relativity_check)
+            layout.addWidget(self.button1)
+            layout.addWidget(self.button2)
+            self.button1.clicked.connect(self.relativity_check)
+            self.button2.clicked.connect(self.relativity_check)
 
     def relativity_check(self):
         if self.relative == False:
-            self.b.setText('To Absolute')
+            self.button1.setChecked(True)
+            self.button2.setChecked(False)
             self.relative = True
         else:
-            self.b.setText('To Relative')
+            self.button1.setChecked(False)
+            self.button2.setChecked(True)
             self.relative = False
         if self.plot:
             self.update_plot()

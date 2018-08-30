@@ -89,7 +89,7 @@ class BiosphereTable(QtWidgets.QTableView):
         matrix = matrix[:limit,:limit]
 
         table = QtWidgets.QTableWidget(self)
-        matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
+        #matrix = csr_matrix([[1,2,3],[5,6,7], [0,9,8], [1,2,3]])
 
         matrix = matrix.toarray()
         table.setRowCount(matrix.shape[1])
