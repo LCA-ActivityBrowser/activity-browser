@@ -21,7 +21,7 @@ class DatabasesTable(ABTableWidget):
     User double-clicks to see the activities and flows within a db
     A context menu (right click) provides further functionality"""
     # Column 4 header options: Size / Entries / Flows / Activities / Count / Activity Count..
-    #... 'Records' seems reasonable for a "database", and is quite short
+    # ... 'Records' seems reasonable for a "database", and is quite short
     HEADERS = ["Name", "Depends", "Modified", "Records", "Read-only"]
 
     def __init__(self):
@@ -72,7 +72,7 @@ class DatabasesTable(ABTableWidget):
     def select_database(self, item):
         signals.database_selected.emit(item.db_name)
 
-    def read_only_changed(self, read_only, project, db):
+    def read_only_changed(self, read_only, db):
         """User has clicked to update a db to either read-only or not"""
         user_project_settings.settings['read-only-databases'][db] = read_only
         user_project_settings.write_settings()
@@ -105,7 +105,7 @@ class DatabasesTable(ABTableWidget):
             database_read_only = databases_read_only_settings.get(name, True)
 
             ch = QtWidgets.QCheckBox(parent=self)
-            ch.clicked.connect(lambda checked, project=project, db=name: self.read_only_changed(checked, project, db))
+            ch.clicked.connect(lambda checked, db=name: self.read_only_changed(checked, db))
             ch.setChecked(database_read_only)
             self.setCellWidget(row, 4, ch)
 
@@ -164,17 +164,18 @@ class ActivitiesTable(ABTableWidget):
     }
     HEADERS = ["Name", "Reference Product", "Location", "Unit", "Key"]
 
-    def __init__(self, parent=None, db_read_only=True):
+    def __init__(self, parent=None):
         super(ActivitiesTable, self).__init__(parent)
-        self.db_read_only = db_read_only
         self.database_name = None
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
+        self.db_read_only = user_project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
         self.setup_context_menu()
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
 
     def setup_context_menu(self):
+        # context menu items are enabled/disabled elsewhere, in update_activity_table_read_only()
         self.open_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open activity", None)
         self.new_activity_action = QtWidgets.QAction(
@@ -189,9 +190,6 @@ class ActivitiesTable(ABTableWidget):
         self.duplicate_activity_to_db_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add_db), 'Duplicate to other database', None
         )
-        # context menu items are disabled if db is read-only
-
-        self.update_activity_table_context(self.database_name, db_read_only=self.db_read_only)
 
         self.addAction(self.open_activity_action)
         self.addAction(self.new_activity_action)
@@ -215,7 +213,7 @@ class ActivitiesTable(ABTableWidget):
             lambda: signals.show_duplicate_to_db_interface.emit(self.currentItem().key)
         )
 
-    def update_activity_table_context(self, db, db_read_only):
+    def update_activity_table_read_only(self, db, db_read_only):
         """[new, duplicate & delete] actions can only be selected for databases that are not read-only
                 user can change state of dbs other than the open one: so check first"""
         if self.database_name == db:
@@ -227,7 +225,7 @@ class ActivitiesTable(ABTableWidget):
     def connect_signals(self):
         signals.database_selected.connect(self.sync)
         signals.database_changed.connect(self.filter_database_changed)
-        signals.database_read_only_changed.connect(self.update_activity_table_context)
+        signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
         self.itemDoubleClicked.connect(
             lambda x: signals.open_activity_tab.emit("activities", x.key)
@@ -248,6 +246,7 @@ class ActivitiesTable(ABTableWidget):
 
     @ABTableWidget.decorated_sync
     def sync(self, name, data=None):
+        # fills activity table with data contained in selected database
         self.database_name = name
         if not data:
             self.database = bw.Database(name)
@@ -261,6 +260,8 @@ class ActivitiesTable(ABTableWidget):
                 self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
                 if value == "key":
                     self.setItem(row, col, ABTableItem(str(ds.key), key=ds.key, color=value))
+        self.db_read_only = user_project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
+        self.update_activity_table_read_only(self.database_name, db_read_only=self.db_read_only)
 
     def filter_database_changed(self, database_name):
         if not hasattr(self, "database") or self.database.name != database_name:
