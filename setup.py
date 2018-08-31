@@ -25,6 +25,7 @@ setup(
     license=open('LICENSE').read(),
     install_requires=[
         'brightway2',
+        'bw2io >=0.7.dev1'
         'pyqt5',
         'seaborn',
         'arrow',

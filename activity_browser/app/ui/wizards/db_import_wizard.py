@@ -9,8 +9,7 @@ import bs4
 import requests
 import brightway2 as bw
 from bw2io.extractors import Ecospold2DataExtractor
-from bw2io.importers.base_lci import LCIImporter
-from bw2io import strategies
+from bw2io import strategies, SingleOutputEcospold2Importer
 from bw2data import config
 from bw2data.backends import SQLiteBackend
 from PyQt5 import QtWidgets, QtCore
@@ -523,7 +522,12 @@ class ImportWorkerThread(QtCore.QThread):
     def run(self):
         import_signals.cancel_sentinel = False
         try:
-            importer = ActivityBrowserImporter(self.dirpath, self.db_name)
+            importer = SingleOutputEcospold2Importer(
+                self.dirpath,
+                self.db_name,
+                extractor=ActivityBrowserExtractor,
+                signal=import_signals.strategy_progress
+            )
             if not self.canceled:
                 importer.apply_strategies()
             if not self.canceled:
@@ -725,36 +729,6 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
             import_signals.extraction_progress.emit(i, total)
 
         return data
-
-
-class ActivityBrowserImporter(LCIImporter):
-    def __init__(self, dirpath, db_name):
-        self.dirpath = dirpath
-        self.db_name = db_name
-        self.strategies = [
-            strategies.normalize_units,
-            strategies.remove_zero_amount_coproducts,
-            strategies.remove_zero_amount_inputs_with_no_activity,
-            strategies.remove_unnamed_parameters,
-            strategies.es2_assign_only_product_with_amount_as_reference_product,
-            strategies.assign_single_product_as_activity,
-            strategies.create_composite_code,
-            strategies.drop_unspecified_subcategories,
-            strategies.link_biosphere_by_flow_uuid,
-            strategies.link_internal_technosphere_by_composite_code,
-            strategies.delete_exchanges_missing_activity,
-            strategies.delete_ghost_exchanges,
-            strategies.remove_uncertainty_from_negative_loss_exchanges,
-            strategies.fix_unreasonably_high_lognormal_uncertainties,
-            strategies.set_lognormal_loc_value
-        ]
-        self.data = ActivityBrowserExtractor.extract(self.dirpath, self.db_name)
-
-    def apply_strategies(self):
-        total = len(self.strategies)
-        for i, strategy in enumerate(self.strategies, start=1):
-            self.apply_strategy(strategy, False)
-            import_signals.strategy_progress.emit(i, total)
 
 
 class ActivityBrowserBackend(SQLiteBackend):
