@@ -35,6 +35,7 @@ class TableStyle:
 
 class TableItemStyle:
     COLOR_CODE = {
+        'default': (0, 0, 0),  # black
         'product': (0, 132, 130),
         'reference product': (0, 132, 130),
         'name': (0, 2, 140),
@@ -45,6 +46,7 @@ class TableItemStyle:
         'location': (72, 0, 140),
         'database': (96, 96, 96),
         'categories': (0, 0, 0),
+        'key': (0, 0, 0),
     }
 
     def __init__(self):

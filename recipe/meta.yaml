@@ -1,4 +1,4 @@
-{% set version = "2.2.2" %}
+{% set version = "2.2.4" %}
 
 package:
   name: activity-browser
@@ -10,7 +10,7 @@ source:
 
 build:
   noarch: python
-  number: 1
+  number: 0
   script: python setup.py install --single-version-externally-managed --record record.txt
   entry_points:
     - activity-browser = activity_browser.app:run_activity_browser 
@@ -21,14 +21,15 @@ requirements:
     - setuptools
   run:
     - python
-    - brightway2
-    - matplotlib
+    - brightway2 >=2.1.2
+    - matplotlib >=2.2.2
     - seaborn
     - arrow
     - pandas
-    - patool
     - beautifulsoup4
-    - pyqt >=5.9
+    - fuzzywuzzy
+    - pyqt==5.9.2
+    - eidl7zip
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

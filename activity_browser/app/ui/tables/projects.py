@@ -24,7 +24,6 @@ class ProjectListWidget(QtWidgets.QComboBox):
         index = self.project_names.index(projects.current)
         self.setCurrentIndex(index)
 
-
     def on_activated(self, index):
         signals.change_project.emit(self.project_names[index])
 

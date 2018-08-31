@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from .icons import icons
 from .utils import abt1
 from ..signals import signals
+from .wizards.settings_wizard import SettingsWizard
 
 
 class MenuBar(object):
@@ -15,34 +16,43 @@ class MenuBar(object):
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
         # self.menubar.addMenu(self.setup_extensions_menu())
+        self.menubar.addMenu(self.setup_windows_menu())
         self.menubar.addMenu(self.setup_help_menu())
         window.setMenuBar(self.menubar)
+        self.connect_signals()
 
+    def connect_signals(self):
+        signals.update_windows.connect(self.update_windows_menu)
+
+    # FILE
     def setup_file_menu(self):
         menu = QtWidgets.QMenu('&File', self.window)
-        # Switch BW2 directory
-        # switch_bw2_dir = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Database directory...', self.window)
-        # # switch_bw2_dir.setShortcut('Ctrl+Q')
-        # switch_bw2_dir.setStatusTip('Change database directory')
-        # switch_bw2_dir.triggered.connect(signals.switch_bw2_dir_path.emit)
-        # menu.addAction(switch_bw2_dir)
-        menu.addAction(
-            '&Database directory...',
-            signals.switch_bw2_dir_path.emit
-        )
         menu.addAction(
             '&Import database...',
             signals.import_database.emit
         )
+        menu.addAction(
+            '&Settings...',
+            self.open_settings_wizard
+        )
         return menu
 
-    # def setup_extensions_menu(self):
-    #     extensions_menu = QtWidgets.QMenu('&Extensions', self.window)
-    #     # extensions_menu.addAction(
-    #     #     self.add_metaprocess_menu_item()
-    #     # )
-    #     return extensions_menu
+    # WINDOWS
+    def setup_windows_menu(self):
+        self.windows_menu = QtWidgets.QMenu('&Windows', self.window)
+        self.update_windows_menu()
+        return self.windows_menu
 
+    def update_windows_menu(self):
+        self.windows_menu.clear()
+        for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
+            widget = self.window.stacked.widget(index)
+            self.windows_menu.addAction(
+                widget.name,
+                lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
+            )
+
+    # HELP
     def setup_help_menu(self):
         bug_icon = QtGui.QIcon(icons.debug)
         help_menu = QtWidgets.QMenu('&Help', self.window)
@@ -126,3 +136,6 @@ You should have received a copy of the GNU General Public License along with thi
             content = text + '\n\nLog Output:\n```\n{}```'.format(self.window.log.toPlainText())
             self.raise_issue_api(content)
             print(content)
+
+    def open_settings_wizard(self):
+        self.settings_wizard = SettingsWizard()

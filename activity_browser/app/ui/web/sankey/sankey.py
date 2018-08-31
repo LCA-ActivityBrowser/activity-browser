@@ -15,11 +15,12 @@ from .worker_threads import gt_worker_thread
 class SankeyWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.name = "&Sankey Diagram"
         self.label = QtWidgets.QLabel('hello')
         self.grid_lay = QtWidgets.QGridLayout()
         self.grid_lay.addWidget(QtWidgets.QLabel('Activity: '), 0, 0)
         self.grid_lay.addWidget(QtWidgets.QLabel('Method: '), 1, 0)
-        self.cs = self.window().left_panel.cs_tab.list_widget.name
+        self.cs = self.window().left_panel.LCA_setup_tab.list_widget.name
         self.func_units = bw.calculation_setups[self.cs]['inv']
         self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
                            for fu in self.func_units]
@@ -130,8 +131,10 @@ class Bridge(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def link_selected(self, link):
-        target_key = int(link.split('-')[-2])
-        self.link_clicked.emit(target_key)
+        target_key = link.split('-')[-2]
+        if target_key.startswith('__'):
+            target_key = target_key.split('_')[-2]
+        self.link_clicked.emit(int(target_key))
 
     @QtCore.pyqtSlot()
     def viewer_ready(self):
@@ -198,11 +201,12 @@ class SankeyGraphTraversal:
         impact = edge['impact']
         tooltip_text = \
             '<b>{}</b> Consuming activity: {} | {}<br>'.format(
-                edge['to'], consumer['name'], consumer['location']) +\
+                edge['to'], consumer['name'], consumer.get('location', '')) +\
             '<b>{}</b> Producing activity: {} | {}<br>'.format(
-                edge['from'], producer['name'], producer['location']) +\
+                edge['from'], producer['name'], producer.get('location', '')) +\
             'Flow: {} {} of {}<br>'.format(
-                edge['amount'], producer.get('unit', ''), producer.get('reference product', '')) +\
+                edge['amount'], producer.get('unit', ''),
+                producer.get('reference product', producer.get('name', ''))) +\
             'Score: <b>{}</b><br>'.format(str(impact)) +\
             'Contribution: <b>{}%</b>'.format(np.round(impact/self.root_score*100, 3))
         return tooltip_text
@@ -215,13 +219,21 @@ class SankeyGraphTraversal:
 
     def colors(self):
         options = sorted(
-            {self.get_bw_activity_by_index(n).get(self.color_attr) for
-             n in self.nodes_set.difference({-1})})
+            {self.get_bw_activity_by_index(n).get(
+                self.color_attr,
+                self.get_bw_activity_by_index(n).get('name')
+            ) for n in self.nodes_set.difference({-1})
+            }
+        )
         color_dict = {o: self.viridis_r_hex(v) for o, v in
                       zip(options, np.linspace(0, 1, len(options)))}
         for link in self.links:
-            link['color'] = color_dict[self.get_bw_activity_by_index(
-                link['target']).get(self.color_attr)]
+            link['color'] = color_dict[
+                self.get_bw_activity_by_index(link['target']).get(
+                    self.color_attr,
+                    self.get_bw_activity_by_index(link['target']).get('name', '')
+                )
+            ]
 
     @staticmethod
     def viridis_r_hex(v):

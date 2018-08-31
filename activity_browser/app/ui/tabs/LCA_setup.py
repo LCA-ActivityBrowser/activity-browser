@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from brightway2 import calculation_setups
 from PyQt5 import QtWidgets
+from brightway2 import calculation_setups
 
+from activity_browser.app.ui.web.sankey import SankeyWidget
 from ..style import horizontal_line, header
-from ..network import SankeyWidget
 from ..tables import (
     CSActivityTable,
     CSList,
@@ -76,9 +76,9 @@ The currently selected calculation setup is retrieved by getting the currently s
 """
 
 
-class CalculationSetupTab(QtWidgets.QWidget):
+class LCASetupTab(QtWidgets.QWidget):
     def __init__(self, parent):
-        super(CalculationSetupTab, self).__init__(parent)
+        super(LCASetupTab, self).__init__(parent)
         self.window = self.window()
 
         self.activities_table = CSActivityTable()
@@ -124,14 +124,30 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.sankey_button.clicked.connect(self.open_sankey)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
-        self.delete_cs_button.clicked.connect(signals.delete_calculation_setup.emit)
-        self.rename_cs_button.clicked.connect(signals.rename_calculation_setup.emit)
+        self.delete_cs_button.clicked.connect(
+            lambda x: signals.delete_calculation_setup.emit(
+            self.list_widget.currentText()
+        ))
+        self.rename_cs_button.clicked.connect(
+            lambda x: signals.rename_calculation_setup.emit(
+                self.list_widget.currentText()
+        ))
+        signals.calculation_setup_changed.connect(self.save_cs_changes)
 
         # Slots
+        signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
         signals.project_selected.connect(self.set_default_calculation_setup)
         signals.calculation_setup_selected.connect(self.show_details)
         signals.calculation_setup_selected.connect(self.enable_calculations)
         signals.calculation_setup_changed.connect(self.enable_calculations)
+
+    def save_cs_changes(self):
+        name = self.list_widget.currentText()
+        if name:
+            calculation_setups[name] = {
+                'inv': self.activities_table.to_python(),
+                'ia': self.methods_table.to_python()
+            }
 
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)
@@ -172,3 +188,4 @@ class CalculationSetupTab(QtWidgets.QWidget):
         self.sankey = SankeyWidget(self)
         self.window.stacked.addWidget(self.sankey)
         self.window.stacked.setCurrentWidget(self.sankey)
+        signals.update_windows.emit()

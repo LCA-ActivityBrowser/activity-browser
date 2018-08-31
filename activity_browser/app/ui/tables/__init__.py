@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .inventory import ActivitiesTable   # ActivitiesTableNew
 from .inventory import BiosphereFlowsTable
-from .calculation_setups import (
+from .LCA_setup import (
     CSActivityTable,
     CSList,
     CSMethodsTable,
@@ -9,7 +9,7 @@ from .calculation_setups import (
 from .inventory import DatabasesTable
 from .activity import ExchangeTable
 from .history import ActivitiesHistoryTable
-from .ia import CFTable, MethodsTable
+from .impact_categories import CFTable, MethodsTable
 from .lca_results import LCAResultsTable
 from .projects import ProjectTable, ProjectListWidget
 from .table import ABTableWidget, ABTableItem

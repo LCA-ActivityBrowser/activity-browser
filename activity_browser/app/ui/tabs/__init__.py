@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .activity import ActivityDetailsTab
-from .calculation_setups import CalculationSetupTab
+from .LCA_setup import LCASetupTab
 from .history import HistoryTab
-from .ia import CFsTab, MethodsTab
-from .lca_results import LCAResultsTab
-from .inventory import InventoryTab
+from .impact_categories import CFsTab, MethodsTab
+from .lca_results import ImpactAssessmentTab
+from .project_manager import ProjectTab

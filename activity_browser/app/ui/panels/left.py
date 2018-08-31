@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from .panel import Panel, ActivitiesPanel
+from .panel import Panel, ActivitiesPanel, MethodsPanel
+from ..web.webutils import RestrictedWebViewWidget
 from .. import activity_cache
-from ..graphics import DefaultGraph
-from ..tabs import CalculationSetupTab, CFsTab
+from ..tabs import LCASetupTab
 from ...signals import signals
+from .... import PACKAGE_DIRECTORY
 
 
 class LeftPanel(Panel):
@@ -11,16 +12,31 @@ class LeftPanel(Panel):
 
     def __init__(self, *args):
         super(LeftPanel, self).__init__(*args)
-
-        self.chart_tab = DefaultGraph(self)
-        self.cfs_tab = CFsTab(self)
-        self.cs_tab = CalculationSetupTab(self)
+        # Tabs
+        self.welcome_tab = RestrictedWebViewWidget(
+            html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'
+        )
+        self.method_panel = MethodsPanel(self)
+        self.LCA_setup_tab = LCASetupTab(self)
         self.act_panel = ActivitiesPanel(self)
-        self.addTab(self.chart_tab, 'Splash screen')
-        self.addTab(self.cfs_tab, 'LCIA CFs')
-        self.addTab(self.cs_tab, 'LCA Calculations')
 
+        # add tabs
+        self.addTab(self.welcome_tab, 'Welcome')
+        self.addTab(self.LCA_setup_tab, 'LCA Setup')
+
+        # signals
         signals.activity_tabs_changed.connect(self.update_activity_panel)
+        self.currentChanged.connect(self.remove_welcome_tab)
+        signals.method_tabs_changed.connect(self.update_method_panel)
+
+    def update_method_panel(self):
+        if self.method_panel.tab_dict:
+            if self.indexOf(self.method_panel) == -1:
+                self.addTab(self.method_panel, 'Characterization Factors')
+            self.select_tab(self.method_panel)
+        else:
+            self.removeTab(self.indexOf(self.method_panel))
+            self.setCurrentIndex(0)
 
     def update_activity_panel(self):
         if len(activity_cache):
@@ -29,3 +45,7 @@ class LeftPanel(Panel):
         else:
             self.removeTab(self.indexOf(self.act_panel))
             self.setCurrentIndex(0)
+
+    def remove_welcome_tab(self):
+        if self.indexOf(self.welcome_tab) != -1:
+            self.removeTab(self.indexOf(self.welcome_tab))
