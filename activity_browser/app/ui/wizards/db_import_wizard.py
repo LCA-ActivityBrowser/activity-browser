@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
+import io
 import tempfile
+import subprocess
+import zipfile
 
 import bs4
 import requests
-import patoolib
 import brightway2 as bw
 from bw2io.extractors import Ecospold2DataExtractor
 from bw2io.importers.base_lci import LCIImporter
@@ -95,9 +96,10 @@ class ImportTypePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.wizard = self.parent()
-        options = ['ecoinvent homepage',
-                   'local 7z-archive',
-                   'local directory with ecospold2 files']
+        options = ['Ecoinvent: download',
+                   'Ecoinvent: local 7z-archive',
+                   'Ecoinvent: local directory with ecospold2 files',
+                   'Forwast: download']
         self.radio_buttons = [QtWidgets.QRadioButton(o) for o in options]
         self.option_box = QtWidgets.QGroupBox('Choose type of database import')
         box_layout = QtWidgets.QVBoxLayout()
@@ -113,6 +115,9 @@ class ImportTypePage(QtWidgets.QWizardPage):
 
     def nextId(self):
         option_id = [b.isChecked() for b in self.radio_buttons].index(True)
+        if option_id == 3:
+            self.wizard.import_type = 'forwast'
+            return self.wizard.pages.index(self.wizard.db_name_page)
         if option_id == 2:
             self.wizard.import_type = 'directory'
             return self.wizard.pages.index(self.wizard.choose_dir_page)
@@ -206,34 +211,8 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
             QtWidgets.QMessageBox.warning(self, 'File not found!', warning)
             return False
 
-    def initializePage(self):
-        warning = check_7z()
-        if warning:
-            QtWidgets.QMessageBox.warning(self, '7zip required!', warning)
-
     def nextId(self):
         return self.wizard.pages.index(self.wizard.db_name_page)
-
-
-def check_7z():
-    try:
-        patoolib.find_archive_program('7z', 'extract')
-    except patoolib.util.PatoolError as e:
-        warning = ('This step requires a working installation of the 7zip program. <br>' +
-                   'Please install 7zip on your system before continuing.<br>')
-        if sys.platform == 'win32':
-            warning += 'You can download it from <a href="http://www.7zip.org">www.7zip.org</a>.'
-        elif sys.platform == 'darwin':
-            warning += ('You can install 7zip with <a href="https://brew.sh">homebrew</a>.<br>' +
-                        'brew install p7zip')
-        elif sys.platform.startswith('linux'):
-            warning += ("Use your linux distribtion's package manager for the installation.<br>" +
-                        'eg: sudo apt install p7zip-full')
-        else:
-            warning += 'More infos here: <a href="http://www.7zip.org">www.7zip.org</a>'
-
-        return warning
-    return ''
 
 
 class DBNamePage(QtWidgets.QWizardPage):
@@ -254,6 +233,8 @@ class DBNamePage(QtWidgets.QWizardPage):
             version = self.wizard.version
             sys_mod = self.wizard.system_model
             self.name_edit.setText(sys_mod + version.replace('.', ''))
+        elif self.wizard.import_type == 'forwast':
+            self.name_edit.setText('Forwast')
 
     def validatePage(self):
         db_name = self.name_edit.text()
@@ -294,6 +275,12 @@ class ConfirmationPage(QtWidgets.QWizardPage):
             self.path_label.setText(
                 'Path to 7z archive:<br><b>{}</b>'.format(
                     self.field('archivepath')))
+        elif self.wizard.import_type == 'forwast':
+            self.path_label.setOpenExternalLinks(True)
+            self.path_label.setText(
+                'Download forwast from <a href="https://lca-net.com/projects/show/forwast/">' +
+                'https://lca-net.com/projects/show/forwast/</a>'
+            )
         else:
             self.path_label.setText(
                 'Ecoinvent version: <b>{}</b><br>Ecoinvent system model: <b>{}</b>'.format(
@@ -357,6 +344,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.download_thread = DownloadWorkerThread()
         self.unarchive_thread_list = []
         self.import_thread = ImportWorkerThread()
+        self.forwast_thread = ForwastWorkerThread()
 
     @QtCore.pyqtSlot(str)
     def unarchive_finished_check(self, extract_tempdir):
@@ -383,6 +371,17 @@ class ImportPage(QtWidgets.QWizardPage):
         elif self.wizard.import_type == 'archive':
             self.archivepath = self.field('archivepath')
             self.unarchive()
+        elif self.wizard.import_type == 'forwast':
+            self.unarchive_label.hide()
+            self.unarchive_progressbar.hide()
+            self.extraction_progressbar.setMaximum(1)
+            self.extraction_progressbar.setValue(1)
+            self.strategy_progressbar.setMaximum(1)
+            self.strategy_progressbar.setValue(1)
+            self.download_tempdir = tempfile.TemporaryDirectory()
+            db_name = self.field('db_name')
+            self.forwast_thread.update(self.download_tempdir.name, db_name)
+            self.forwast_thread.start()
         else:
             self.download_label.setVisible(True)
             self.download_progressbar.setVisible(True)
@@ -419,7 +418,7 @@ class ImportPage(QtWidgets.QWizardPage):
     def update_db_progress(self, i, tot):
         self.db_progressbar.setMaximum(tot)
         self.db_progressbar.setValue(i)
-        if i == tot:
+        if i == tot and tot != 0:
             import_signals.finalizing.emit()
 
     def update_finalizing(self):
@@ -501,7 +500,8 @@ class UnarchiveWorkerThread(QtCore.QThread):
         self.canceled = True
 
     def run(self):
-        patoolib.extract_archive(self.archivepath, outdir=self.tempdir.name)
+        extract = '7za x {} -o{}'.format(self.archivepath, self.tempdir.name)
+        subprocess.call(extract.split())
         if not self.canceled:
             import_signals.unarchive_finished.emit(self.tempdir.name)
 
@@ -539,6 +539,29 @@ class ImportWorkerThread(QtCore.QThread):
         if self.db_name in bw.databases:
             del bw.databases[self.db_name]
             print(f'Database {self.db_name} deleted!')
+
+
+class ForwastWorkerThread(ImportWorkerThread):
+    def __init__(self):
+        super().__init__()
+        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
+
+    def run(self):
+        """
+        adapted from pjamesjoyce/lcopt
+        """
+        import_signals.db_progress.emit(0, 0)
+        response = requests.get(self.forwast_url)
+        forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
+        forwast_zip.extractall(self.dirpath)
+        bw.BW2Package.import_file(os.path.join(self.dirpath, 'forwast.bw2package'))
+        if self.db_name != 'forwast':
+            bw.Database('forwast').rename(self.db_name)
+        if not self.canceled:
+            import_signals.db_progress.emit(1, 1)
+            import_signals.finished.emit()
+        else:
+            self.delete_canceled_db()
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
