@@ -4,12 +4,18 @@ import json
 import shutil
 
 import appdirs
+
+import appdirs
 from activity_browser.app.bwutils import commontasks as bc
 from .. import PACKAGE_DIRECTORY
 import brightway2 as bw
 from activity_browser.app.signals import signals
 
 class ABSettings():
+    """
+    Interface to the json settings file. Will create a userdata directory via appdirs if not
+    already present.
+    """
     def __init__(self):
         ab_dir = appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser')
         self.data_dir = ab_dir.user_data_dir
@@ -23,6 +29,10 @@ class ABSettings():
             self.settings = {}
 
     def move_old_settings(self):
+        """
+        legacy code: This function is only required for compatibility with the old settings file and
+        can be removed in a future release
+        """
         if not os.path.exists(self.settings_file):
             old_settings = os.path.join(PACKAGE_DIRECTORY, 'ABsettings.json')
             if os.path.exists(old_settings):
