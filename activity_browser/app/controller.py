@@ -298,6 +298,7 @@ class Controller(object):
                 Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             )
         else:
+            # todo: check if activity is open, close if it is
             act.delete()
             signals.database_changed.emit(act['database'])
 

@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtGui import QIcon
 
 from activity_browser.app.bwutils import commontasks as bc
 from .line_edit import SignalledLineEdit, SignalledPlainTextEdit
+from ..icons import icons
+from ...settings import user_project_settings
 from ...signals import signals
 
 
@@ -133,8 +137,26 @@ class ActivityDataGrid(QtWidgets.QWidget):
             available_target_dbs.remove(self.activity['database'])
 
         for db_name in available_target_dbs:
-            self.database_dropdown.addItem(db_name)
+            self.database_dropdown.addItem(QIcon(icons.duplicate), db_name)
 
         self.database_dropdown.currentTextChanged.connect(
-            #lambda currentText: signals.duplicate_activity_to_db(currentText, self.activity))
-            lambda selected_db: signals.duplicate_activity_to_db.emit(selected_db, self.activity))
+            lambda target_db: self.duplicate_confirm_dialog(target_db))
+
+    def duplicate_confirm_dialog(self, target_db):
+        """ Get user confirmation for duplication action
+        """
+        title = "Duplicate activity to new database"
+        text = "Copy {} to {} and open as new tab?".format(self.activity["name"], target_db)
+
+        user_choice = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if user_choice == QMessageBox.Yes:
+            signals.duplicate_activity_to_db.emit(target_db, self.activity)
+        # todo: give user more options in the dialog:
+        #   * retain / delete version in current db
+        #   * open / don't open new tab
+
+        # change selected database item back to original (index=0), to avoid confusing user
+        # block and unblock signals to prevent unwanted extra emits from the automated change
+        self.database_dropdown.blockSignals(True)
+        self.database_dropdown.setCurrentIndex(0)
+        self.database_dropdown.blockSignals(False)
