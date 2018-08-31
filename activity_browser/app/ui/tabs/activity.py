@@ -142,5 +142,11 @@ class ActivityTab(QtWidgets.QTabWidget):
         else:
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
 
+    def update_activity_values(self, key, field, value):
+        # ensures when user updates a field, the activityTab property is also updated (else de-synced)
+        if key == self.activity_key:
+            self.activity[field] = value
+
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.activity_read_only_box_active)
+        signals.activity_modified.connect(self.update_activity_values)

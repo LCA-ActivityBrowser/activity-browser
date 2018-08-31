@@ -143,8 +143,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             lambda target_db: self.duplicate_confirm_dialog(target_db))
 
     def duplicate_confirm_dialog(self, target_db):
-        """ Get user confirmation for duplication action
-        """
+        """ Get user confirmation for duplication action """
         title = "Duplicate activity to new database"
         text = "Copy {} to {} and open as new tab?".format(self.activity["name"], target_db)
 
