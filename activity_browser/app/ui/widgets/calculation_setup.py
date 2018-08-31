@@ -153,6 +153,7 @@ class AnalysisTab(QWidget):
         if self.combobox_menu_combobox != None:
             if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
                 self.combobox_menu_switch.clicked.connect(self.combo_switch_check)
+                self.combobox_menu_switch_met.clicked.connect(self.combo_switch_check)
 
             if self.plot:
                 self.combobox_menu_combobox.currentTextChanged.connect(
@@ -181,12 +182,16 @@ class AnalysisTab(QWidget):
 
     def combo_switch_check(self):
         """ Show either the functional units or methods combo-box, dependent on button state. """
-        if self.combobox_menu_switch.text() == "To Assessment Methods":
-            self.combobox_menu_switch.setText("To Functional Units")
+        if self.combo_box_menu_options == "Assessment Methods":
+            self.combo_box_menu_options = "Functional Units"
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
+            self.combobox_menu_switch.setChecked(True)
+            self.combobox_menu_switch_met.setChecked(False)
         else:
-            self.combobox_menu_switch.setText("To Assessment Methods")
+            self.combo_box_menu_options = "Assessment Methods"
             self.combobox_menu_label.setText(self.combobox_menu_func_label)
+            self.combobox_menu_switch.setChecked(False)
+            self.combobox_menu_switch_met.setChecked(True)
         self.update_combobox()
 
     def cutoff_increment_left_check(self):
@@ -526,7 +531,9 @@ class AnalysisTab(QWidget):
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
 
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-            self.combobox_menu_switch = QRadioButton("To Functional Units")
+            self.combobox_menu.addStretch(1)
+            self.combo_box_menu_options = "Assessment Methods"
+            self.combobox_menu_switch = QRadioButton("Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
 
             self.combobox_menu_switch_met = QRadioButton("Assessment Methods")
