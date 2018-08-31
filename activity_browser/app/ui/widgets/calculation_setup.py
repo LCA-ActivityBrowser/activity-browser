@@ -526,15 +526,13 @@ class AnalysisTab(QWidget):
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
 
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-            self.combobox_menu_switch = QPushButton("To Functional Units")
+            self.combobox_menu_switch = QRadioButton("To Functional Units")
             self.combobox_menu.addWidget(self.combobox_menu_switch)
 
             self.combobox_menu_switch_met = QRadioButton("Assessment Methods")
             self.combobox_menu_switch_met.setChecked(True)
-            self.combobox_menu_switch_fun = QRadioButton("Functional Units")
 
             self.combobox_menu.addWidget(self.combobox_menu_switch_met)
-            self.combobox_menu.addWidget(self.combobox_menu_switch_fun)
 
         self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
