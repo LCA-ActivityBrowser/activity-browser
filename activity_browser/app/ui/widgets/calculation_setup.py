@@ -182,13 +182,13 @@ class AnalysisTab(QWidget):
 
     def combo_switch_check(self):
         """ Show either the functional units or methods combo-box, dependent on button state. """
-        if self.combo_box_menu_options == "Assessment Methods":
-            self.combo_box_menu_options = "Functional Units"
+        if self.combo_box_menu_options == "Compare LCIA Methods":
+            self.combo_box_menu_options = "Compare Functional Units"
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
             self.combobox_menu_switch_met.setChecked(False)
             self.combobox_menu_switch_fun.setChecked(True)
         else:
-            self.combo_box_menu_options = "Assessment Methods"
+            self.combo_box_menu_options = "Compare LCIA Methods"
             self.combobox_menu_label.setText(self.combobox_menu_func_label)
             self.combobox_menu_switch_met.setChecked(True)
             self.combobox_menu_switch_fun.setChecked(False)
@@ -513,33 +513,35 @@ class AnalysisTab(QWidget):
         self.combobox_menu_func_bool = func
 
         if self.combobox_menu_func_bool:
-            self.combobox_menu_func_label = "Functional Unit: "
+            self.combobox_menu_func_label = "Choose Functional Unit: "
             self.combobox_menu_combobox_func = QComboBox()
             self.combobox_menu_combobox_func.scroll = False
             self.combobox_menu_combobox = self.combobox_menu_combobox_func
             self.combobox_menu_label.setText(self.combobox_menu_func_label)
 
         if self.combobox_menu_method_bool:
-            self.combobox_menu_method_label = "Assessment Method: "
+            self.combobox_menu_method_label = "Choose LCIA Method: "
             self.combobox_menu_combobox_method = QComboBox()
             self.combobox_menu_combobox_method.scroll = False
             self.combobox_menu_combobox = self.combobox_menu_combobox_method
             self.combobox_menu_label.setText(self.combobox_menu_method_label)
 
-
-        self.combobox_menu.addWidget(self.combobox_menu_label)
-        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
-
         if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
             self.combobox_menu.addStretch(1)
             self.combo_box_menu_options = "Functional Units"
-            self.combobox_menu_switch_met = QRadioButton("Functional Units")
+            self.combobox_menu_switch_met = QRadioButton("Compare LCIA Methods")
             self.combobox_menu.addWidget(self.combobox_menu_switch_met)
 
-            self.combobox_menu_switch_fun = QRadioButton("Assessment Methods")
+            self.combobox_menu_switch_fun = QRadioButton("Compare Functional Units")
             self.combobox_menu_switch_fun.setChecked(True)
 
             self.combobox_menu.addWidget(self.combobox_menu_switch_fun)
+
+
+        self.combobox_menu.addWidget(vertical_line())
+
+        self.combobox_menu.addWidget(self.combobox_menu_label)
+        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
 
         self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
