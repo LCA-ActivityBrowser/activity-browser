@@ -119,6 +119,7 @@ class LCAResultsBarChart(Plot):
         self.ax.set_xlabel('Score')
         self.ax.set_title('LCA scores compared')
         self.ax.set_yticklabels(functional_units, minor= False)
+        self.ax.grid()
 
 
         self.canvas.figure

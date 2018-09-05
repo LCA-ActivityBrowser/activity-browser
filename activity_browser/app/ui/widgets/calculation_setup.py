@@ -23,8 +23,8 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScro
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-# TODO: Finish inventory tab (with techno/biosphere options MS
-# TODO: LOW PRIORITY: add filtering for tables/graphs ANY
+# TODO: Finish inventory tab (with techno/biosphere options
+# TODO: LOW PRIORITY: add filtering for tables/graphs
 
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):

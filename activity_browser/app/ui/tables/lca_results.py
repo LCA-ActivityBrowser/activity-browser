@@ -74,6 +74,7 @@ class InventoryTable(ABDataFrameTable):
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
 
 
+
 class BiosphereTable(QtWidgets.QTableView):
     def __init__(self, parent):
         super(BiosphereTable, self).__init__(parent)
