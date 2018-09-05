@@ -365,9 +365,8 @@ class AnalysisTab(QWidget):
         self.cutoff_slider_set.addWidget(self.cutoff_slider_label)
         self.cutoff_slider_set.addWidget(self.cutoff_slider_slider)
         self.cutoff_slider_slider.setVisible(False)
-        self.cutoff_slider_set.addWidget(self.cutoff_slider_log_slider)
         self.cutoff_slider_minmax.addWidget(self.cutoff_slider_min)
-        self.cutoff_slider_minmax.addStretch()
+        self.cutoff_slider_minmax.addWidget(self.cutoff_slider_log_slider)
         self.cutoff_slider_minmax.addWidget(self.cutoff_slider_max)
         self.cutoff_slider_set.addLayout(self.cutoff_slider_minmax)
 
