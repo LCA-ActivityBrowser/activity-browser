@@ -323,7 +323,6 @@ class AnalysisTab(QWidget):
         # Cut-off types
         self.cutoff_type = QVBoxLayout()
         self.cutoff_type_label = QLabel("Cut-off type")
-        self.cutoff_type_nocutoff = QRadioButton("No Cutoff")
         self.cutoff_type_relative = QRadioButton("Relative")
         self.cutoff_type_relative.setChecked(True)
         self.cutoff_type_topx = QRadioButton("Top #")
@@ -359,7 +358,6 @@ class AnalysisTab(QWidget):
 
         # Assemble types
         self.cutoff_type.addWidget(self.cutoff_type_label)
-        self.cutoff_type.addWidget(self.cutoff_type_nocutoff)
         self.cutoff_type.addWidget(self.cutoff_type_relative)
         self.cutoff_type.addWidget(self.cutoff_type_topx)
 
