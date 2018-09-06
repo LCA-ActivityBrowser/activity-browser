@@ -1,4 +1,5 @@
 brightway2
+bw2io >= 0.7.dev1
 pyqt
 seaborn
 arrow
