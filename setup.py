@@ -23,17 +23,7 @@ setup(
     author="Bernhard Steubing",
     author_email="b.steubing@cml.leidenuniv.nl",
     license=open('LICENSE').read(),
-    install_requires=[
-        'brightway2',
-        'bw2io >=0.7.dev1'
-        'pyqt5',
-        'seaborn',
-        'arrow',
-        'pandas',
-        'beautifulsoup4',
-        'patool',
-        'fuzzywuzzy'
-    ],
+    install_requires=[], # dependency management in conda recipe
     url="https://github.com/LCA-ActivityBrowser/activity-browser",
     long_description=open('README.md').read(),
     description=('Brightway2 GUI'),
