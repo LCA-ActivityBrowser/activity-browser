@@ -13,7 +13,7 @@ class ExchangeTable(ABTableWidget):
         # {exchangeTableName: headers}
         "products": ["Amount", "Unit", "Name", "Location"],
         # technosphere & downstream consumers
-        "technosphere": ["Amount", "Unit", "Name", "Uncertainty", "Database"],
+        "technosphere": ["Amount", "Unit", "Product", "Location", "Uncertainty", "Product db"],
         "biosphere": ["Amount", "Unit", "Name", "Compartments", "Uncertainty", "Database"],
     }
     def __init__(self, parent, tableType):
@@ -144,7 +144,7 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 4, ABTableItem(
                     act.get('location', 'Unknown'), color="location"))
 
-            elif self.tableType == "technosphere":  # "Amount", "Unit", "Name", "Uncertainty", "Database",
+            elif self.tableType == "technosphere":  # "Amount","Unit","Product","Location","Uncertainty","Product db"
                 self.setItem(row, 0, ABTableItem(
                     "{:.3g}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
@@ -152,15 +152,21 @@ class ExchangeTable(ABTableWidget):
                     act.get('unit', 'Unknown'), color="unit"))
 
                 self.setItem(row, 2, ABTableItem(
+                    # correct reference product name is stored in the exchange itself, not the activity
+                    # todo: clarify and document this code
                     act.get('reference product') or act.get("name") if self.upstream else
-                    exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
+                    exc.get('reference product') or exc.get("name"),
                     exchange=exc, color="reference product"))
 
                 self.setItem(row, 3, ABTableItem(
-                    str(exc.get("uncertainty type", ""))))
+                    exc.get('location', 'Unknown'), color="location"))
 
                 self.setItem(row, 4, ABTableItem(
-                    act.get('database'), color="database"))
+                    str(exc.get("uncertainty type", ""))))
+
+                # todo: can exchanges be in a different db to the activity?
+                self.setItem(row, 5, ABTableItem(
+                    exc.get('database'), color="database"))
 
             elif self.tableType == "biosphere":  # "Amount", "Unit", "Name", "Compartments", "Uncertainty", "Database"
                 self.setItem(row, 0, ABTableItem(

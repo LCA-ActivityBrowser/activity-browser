@@ -36,7 +36,7 @@ class TableStyle:
 class ActivitiesTab:
     style_sheet_read_only ="""
         QTabWidget::pane {
-            border-top: 3px solid rgb(128,0,0);
+            border-top: 0px solid rgb(128,0,0); /*red line (read-only indicator) - removed due to request */
             /*border-bottom: 3px solid rgb(128,0,0);*/
         }        
     """
