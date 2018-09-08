@@ -39,7 +39,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.edit_act_ch.clicked.connect(
             lambda checked: self.read_only_changed(read_only=not checked))
 
-        self.activity_read_only_box_active(db_name=self.db_name, db_read_only=self.db_read_only)
+        self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
         # activity-specific data as shown at the top
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only)
 
@@ -88,13 +88,14 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.flows.set_queryset(key[0], self.activity.biosphere())
         self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
 
-    def read_only_changed(self, read_only):
+    def act_read_only_changed(self, read_only):
         """ When read_only=False specific data fields in the tables below become editable
                 When read_only=True these same fields become read-only"""
         self.read_only = read_only
         self.activity_data_grid.read_only = read_only
         self.activity_data_grid.set_activity_fields_read_only()
         self.set_exchange_tables_read_only()
+        self.activity_data_grid.populate_database_combo()
 
         self.update_tooltips()
         self.update_style()
@@ -112,19 +113,24 @@ class ActivityTab(QtWidgets.QTabWidget):
                 table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
                 table.setDragDropMode(QtWidgets.QTableWidget.DropOnly)
 
-    def activity_read_only_box_active(self, db_name, db_read_only):
-        """ If database is set to read-only, the read-only checkbox cannot be unchecked by user"""
+    def db_read_only_changed(self, db_name, db_read_only):
+        """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
         if db_name == self.activity_key[0]:
             self.db_read_only = db_read_only
 
             # if activity was editable, but now the database is read-only, read_only state must be changed to false.
             if not self.read_only and self.db_read_only:
                 self.edit_act_ch.setChecked(False)
-                self.read_only_changed(read_only=True)
+                self.act_read_only_changed(read_only=True)
 
             # update checkbox to greyed-out or not
             self.edit_act_ch.setEnabled(not self.db_read_only)
             self.update_tooltips()
+
+        else:  # on read-only state change for a database different to the open activity...
+            # update values in database list to ensure activity cannot be duplicated to read-only db
+            self.activity_data_grid.populate_database_combo()
+
 
     def update_tooltips(self):
         if self.db_read_only:
@@ -148,5 +154,5 @@ class ActivityTab(QtWidgets.QTabWidget):
             self.activity[field] = value
 
     def connect_signals(self):
-        signals.database_read_only_changed.connect(self.activity_read_only_box_active)
+        signals.database_read_only_changed.connect(self.db_read_only_changed)
         signals.activity_modified.connect(self.update_activity_values)

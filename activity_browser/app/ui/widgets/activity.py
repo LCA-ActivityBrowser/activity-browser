@@ -65,6 +65,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         # the database of the activity is shown as a dropdown (ComboBox), which enables user to change it
         self.database_dropdown = QtWidgets.QComboBox()
+        self.database_dropdown.currentTextChanged.connect(
+            lambda target_db: self.duplicate_confirm_dialog(target_db))
         self.database_dropdown.setToolTip("Use dropdown menu to duplicate activity to another database")
 
         self.comment_box = SignalledPlainTextEdit(
@@ -130,17 +132,23 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.comment_box.adjust_size()
 
     def populate_database_combo(self):
+        """ this widget acts as a label to show current db of act and also allows copying to others editable dbs """
+        # clear any existing items first
+        self.database_dropdown.blockSignals(True)
+        self.database_dropdown.clear()
+
         # first item in db dropdown, shown by default, is the current database
         self.database_dropdown.addItem(self.activity['database'])
+
+        # other items are the dbs that the activity can be duplicated to: find them and add
         available_target_dbs = bc.get_editable_databases()
         if self.activity['database'] in available_target_dbs:
             available_target_dbs.remove(self.activity['database'])
 
         for db_name in available_target_dbs:
             self.database_dropdown.addItem(QIcon(icons.duplicate), db_name)
+        self.database_dropdown.blockSignals(False)
 
-        self.database_dropdown.currentTextChanged.connect(
-            lambda target_db: self.duplicate_confirm_dialog(target_db))
 
     def duplicate_confirm_dialog(self, target_db):
         """ Get user confirmation for duplication action """

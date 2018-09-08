@@ -153,7 +153,7 @@ class ExchangeTable(ABTableWidget):
 
                 self.setItem(row, 2, ABTableItem(
                     # correct reference product name is stored in the exchange itself, not the activity
-                    # todo: clarify and document this code
+                    # todo: clarify and document what this code does
                     act.get('reference product') or act.get("name") if self.upstream else
                     exc.get('reference product') or exc.get("name"),
                     exchange=exc, color="reference product"))
