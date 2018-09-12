@@ -218,9 +218,12 @@ class ActivitiesTable(ABTableWidget):
         self.setHorizontalHeaderLabels(self.HEADERS)
         for row, ds in enumerate(data):
             for col, value in self.COLUMNS.items():
-                self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
                 if value == "key":
                     self.setItem(row, col, ABTableItem(str(ds.key), key=ds.key, color=value))
+                elif value == "location":
+                    self.setItem(row, col, ABTableItem(str(ds.get(value, '')), key=ds.key, color=value))
+                else:
+                    self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
 
     def filter_database_changed(self, database_name):
         if not hasattr(self, "database") or self.database.name != database_name:

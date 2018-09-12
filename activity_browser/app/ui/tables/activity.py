@@ -164,7 +164,7 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 3, ABTableItem(
                     obj.get('name'), exchange=exc, direction=direction, color="name")
                 )
-                self.setItem(row, 4, ABTableItem(obj.get('location', 'Unknown'), color="location"))
+                self.setItem(row, 4, ABTableItem(str(obj.get('location', 'Unknown')), color="location"))
                 self.setItem(row, 5, ABTableItem(obj.get('database'), color="database"))
                 self.setItem(row, 6, ABTableItem(
                     "True" if exc.get("uncertainty type", 0) > 1 else "False")
