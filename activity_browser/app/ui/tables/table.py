@@ -89,7 +89,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
                             s += str(self.item(r, c).text()) + "\t"
                         except AttributeError:
                             s += "\t"
-                    s = s[:-1] + "\n"  # eliminate last '\t'
+                    s = (s[:-1]).strip()
                 signals.copy_selection_to_clipboard.emit(s)
 
             elif e.key() == QtCore.Qt.Key_V:  # paste
