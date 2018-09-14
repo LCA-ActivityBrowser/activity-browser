@@ -3,7 +3,7 @@ import datetime
 import collections
 import itertools
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 import arrow
 
 import brightway2 as bw

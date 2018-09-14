@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from .. import activity_cache
 from ..tabs import ActivityDetailsTab, CFsTab

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from .style import header
 from .icons import icons
@@ -140,6 +140,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         return response == QtWidgets.QMessageBox.Yes
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def set_clipboard_text(self, clipboard_text):
         self.clipboard.setText(clipboard_text)

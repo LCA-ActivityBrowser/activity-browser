@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from ..style import horizontal_line, header
 from ..tables import LCAResultsTable

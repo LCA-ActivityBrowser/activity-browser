@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
 

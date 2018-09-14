@@ -2,7 +2,7 @@
 import json
 
 import requests
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PySide2 import QtCore, QtWidgets, QtGui
 
 from .icons import icons
 from .utils import abt1

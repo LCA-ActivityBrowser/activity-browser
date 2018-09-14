@@ -6,7 +6,7 @@ import collections
 import numpy as np
 import brightway2 as bw
 import matplotlib.pyplot as plt
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 
 from .signals import sankeysignals
 from .worker_threads import gt_worker_thread
@@ -124,19 +124,19 @@ class SankeyWidget(QtWidgets.QWidget):
 
 
 class Bridge(QtCore.QObject):
-    link_clicked = QtCore.pyqtSignal(int)
-    lca_calc_finished = QtCore.pyqtSignal(str)
-    viewer_waiting = QtCore.pyqtSignal()
-    sankey_ready = QtCore.pyqtSignal(str)
+    link_clicked = QtCore.Signal(int)
+    lca_calc_finished = QtCore.Signal(str)
+    viewer_waiting = QtCore.Signal()
+    sankey_ready = QtCore.Signal(str)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def link_selected(self, link):
         target_key = link.split('-')[-2]
         if target_key.startswith('__'):
             target_key = target_key.split('_')[-2]
         self.link_clicked.emit(int(target_key))
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def viewer_ready(self):
         self.viewer_waiting.emit()
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numbers
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 import brightway2 as bw
 
