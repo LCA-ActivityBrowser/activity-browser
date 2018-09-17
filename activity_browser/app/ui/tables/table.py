@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 from ..style import style_item
 from ...signals import signals
 
@@ -76,7 +76,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
         else:
             return QtCore.QSize(self.width(), 50)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def keyPressEvent(self, e):
         if e.modifiers() and QtCore.Qt.ControlModifier:
             selected = self.selectedRanges()

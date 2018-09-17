@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
+from PySide2 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
 import os
 
 

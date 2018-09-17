@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 
 from ...signals import signals
 
 
 class SignalledLineEdit(QtWidgets.QLineEdit):
-    """Adapted from http://stackoverflow.com/questions/12182133/PyQt5-combine-textchanged-and-editingfinished-for-qlineedit"""
+    """Adapted from http://stackoverflow.com/questions/12182133/PySide2-combine-textchanged-and-editingfinished-for-qlineedit"""
     def __init__(self, key, field, contents='', parent=None):
         super(SignalledLineEdit, self).__init__(contents, parent)
         self.editingFinished.connect(self._editing_finished)

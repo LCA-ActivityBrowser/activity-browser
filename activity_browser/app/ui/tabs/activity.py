@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox

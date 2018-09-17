@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from bw2data import projects
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from .table import ABTableWidget, ABTableItem
 from ...signals import signals

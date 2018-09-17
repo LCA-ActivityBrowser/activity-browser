@@ -4,7 +4,7 @@ import os
 import uuid
 
 import brightway2 as bw
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 from bw2data.backends.peewee import Exchange
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 

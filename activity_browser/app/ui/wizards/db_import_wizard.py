@@ -12,7 +12,7 @@ from bw2io.extractors import Ecospold2DataExtractor
 from bw2io import strategies, SingleOutputEcospold2Importer
 from bw2data import config
 from bw2data.backends import SQLiteBackend
-from PyQt5 import QtWidgets, QtCore
+from PySide2 import QtWidgets, QtCore
 
 from activity_browser.app.signals import signals
 
@@ -345,7 +345,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.import_thread = ImportWorkerThread()
         self.forwast_thread = ForwastWorkerThread()
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def unarchive_finished_check(self, extract_tempdir):
         if self.tempdir.name == extract_tempdir:
             self.update_unarchive()
@@ -403,17 +403,17 @@ class ImportPage(QtWidgets.QWizardPage):
         self.unarchive_thread_list[-1].update(self.archivepath, self.tempdir)
         self.unarchive_thread_list[-1].start()
 
-    @QtCore.pyqtSlot(int, int)
+    @QtCore.Slot(int, int)
     def update_extraction_progress(self, i, tot):
         self.extraction_progressbar.setMaximum(tot)
         self.extraction_progressbar.setValue(i)
 
-    @QtCore.pyqtSlot(int, int)
+    @QtCore.Slot(int, int)
     def update_strategy_progress(self, i, tot):
         self.strategy_progressbar.setMaximum(tot)
         self.strategy_progressbar.setValue(i)
 
-    @QtCore.pyqtSlot(int, int)
+    @QtCore.Slot(int, int)
     def update_db_progress(self, i, tot):
         self.db_progressbar.setMaximum(tot)
         self.db_progressbar.setValue(i)
@@ -621,7 +621,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         import_signals.login_success.connect(self.login_response)
         self.login_thread.start()
 
-    @QtCore.pyqtSlot(bool)
+    @QtCore.Slot(bool)
     def login_response(self, success):
         if not success:
             self.success_label.setText('Login failed!')
@@ -757,18 +757,18 @@ class ImportCanceledError(Exception):
 
 
 class ImportSignals(QtCore.QObject):
-    extraction_progress = QtCore.pyqtSignal(int, int)
-    strategy_progress = QtCore.pyqtSignal(int, int)
-    db_progress = QtCore.pyqtSignal(int, int)
-    finalizing = QtCore.pyqtSignal()
-    finished = QtCore.pyqtSignal()
-    unarchive_finished = QtCore.pyqtSignal(str)
-    download_complete = QtCore.pyqtSignal()
-    biosphere_finished = QtCore.pyqtSignal()
-    copydb_finished = QtCore.pyqtSignal()
-    import_canceled = QtCore.pyqtSignal()
+    extraction_progress = QtCore.Signal(int, int)
+    strategy_progress = QtCore.Signal(int, int)
+    db_progress = QtCore.Signal(int, int)
+    finalizing = QtCore.Signal()
+    finished = QtCore.Signal()
+    unarchive_finished = QtCore.Signal(str)
+    download_complete = QtCore.Signal()
+    biosphere_finished = QtCore.Signal()
+    copydb_finished = QtCore.Signal()
+    import_canceled = QtCore.Signal()
     cancel_sentinel = False
-    login_success = QtCore.pyqtSignal(bool)
+    login_success = QtCore.Signal(bool)
 
 
 import_signals = ImportSignals()

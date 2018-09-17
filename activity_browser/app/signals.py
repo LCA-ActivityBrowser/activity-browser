@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 
 class Signals(QtCore.QObject):
@@ -7,68 +7,68 @@ class Signals(QtCore.QObject):
     While arguments can be passed to signals, it is good practice not to do this if possible. """
 
     # General Settings
-    switch_bw2_dir_path = QtCore.pyqtSignal(str)
+    switch_bw2_dir_path = QtCore.Signal(str)
 
     # Copy Text (Clipboard)
-    copy_selection_to_clipboard = QtCore.pyqtSignal(str)
+    copy_selection_to_clipboard = QtCore.Signal(str)
 
     # bw2 directory
-    # directory_changed = QtCore.pyqtSignal()
+    # directory_changed = QtCore.Signal()
 
     # Project
-    change_project = QtCore.pyqtSignal(str)
-    change_project_dialog = QtCore.pyqtSignal()
-    new_project = QtCore.pyqtSignal()
-    copy_project = QtCore.pyqtSignal()
-    delete_project = QtCore.pyqtSignal()
-    project_selected = QtCore.pyqtSignal()
-    projects_changed = QtCore.pyqtSignal()
+    change_project = QtCore.Signal(str)
+    change_project_dialog = QtCore.Signal()
+    new_project = QtCore.Signal()
+    copy_project = QtCore.Signal()
+    delete_project = QtCore.Signal()
+    project_selected = QtCore.Signal()
+    projects_changed = QtCore.Signal()
 
     # Database
-    add_database = QtCore.pyqtSignal()
-    delete_database = QtCore.pyqtSignal(str)
-    copy_database = QtCore.pyqtSignal(str)
-    install_default_data = QtCore.pyqtSignal()
-    import_database = QtCore.pyqtSignal()
+    add_database = QtCore.Signal()
+    delete_database = QtCore.Signal(str)
+    copy_database = QtCore.Signal(str)
+    install_default_data = QtCore.Signal()
+    import_database = QtCore.Signal()
 
-    database_selected = QtCore.pyqtSignal(str)
-    databases_changed = QtCore.pyqtSignal()
-    database_changed = QtCore.pyqtSignal(str)
+    database_selected = QtCore.Signal(str)
+    databases_changed = QtCore.Signal()
+    database_changed = QtCore.Signal(str)
 
     # Activity (key, field, new value)
-    new_activity = QtCore.pyqtSignal(str)
-    add_activity_to_history = QtCore.pyqtSignal(tuple)
+    new_activity = QtCore.Signal(str)
+    add_activity_to_history = QtCore.Signal(tuple)
 
-    activity_modified = QtCore.pyqtSignal(tuple, str, object)
-    copy_activity = QtCore.pyqtSignal(tuple)
-    open_activity_tab = QtCore.pyqtSignal(str, tuple)
-    activity_tabs_changed = QtCore.pyqtSignal()
-    delete_activity = QtCore.pyqtSignal(tuple)
-    copy_to_db = QtCore.pyqtSignal(tuple)
+    activity_modified = QtCore.Signal(tuple, str, object)
+    copy_activity = QtCore.Signal(tuple)
+    open_activity_tab = QtCore.Signal(str, tuple)
+    activity_tabs_changed = QtCore.Signal()
+    delete_activity = QtCore.Signal(tuple)
+    copy_to_db = QtCore.Signal(tuple)
 
     # Exchanges
-    exchanges_output_modified = QtCore.pyqtSignal(list, tuple)
-    exchanges_deleted = QtCore.pyqtSignal(list)
-    exchanges_add = QtCore.pyqtSignal(list, tuple)
-    exchange_amount_modified = QtCore.pyqtSignal(object, float)
+    exchanges_output_modified = QtCore.Signal(list, tuple)
+    exchanges_deleted = QtCore.Signal(list)
+    exchanges_add = QtCore.Signal(list, tuple)
+    exchange_amount_modified = QtCore.Signal(object, float)
 
     # Calculation Setups
-    new_calculation_setup = QtCore.pyqtSignal()
-    delete_calculation_setup = QtCore.pyqtSignal(str)
-    rename_calculation_setup = QtCore.pyqtSignal(str)
-    set_default_calculation_setup = QtCore.pyqtSignal()
+    new_calculation_setup = QtCore.Signal()
+    delete_calculation_setup = QtCore.Signal(str)
+    rename_calculation_setup = QtCore.Signal(str)
+    set_default_calculation_setup = QtCore.Signal()
 
-    calculation_setup_changed = QtCore.pyqtSignal()
-    calculation_setup_selected = QtCore.pyqtSignal(str)
+    calculation_setup_changed = QtCore.Signal()
+    calculation_setup_selected = QtCore.Signal(str)
 
     # LCA Calculation
-    lca_calculation = QtCore.pyqtSignal(str)
+    lca_calculation = QtCore.Signal(str)
 
-    method_selected = QtCore.pyqtSignal(tuple)
-    method_tabs_changed = QtCore.pyqtSignal()
+    method_selected = QtCore.Signal(tuple)
+    method_tabs_changed = QtCore.Signal()
 
     # Qt Windows
-    update_windows = QtCore.pyqtSignal()
+    update_windows = QtCore.Signal()
 
 
 signals = Signals()
