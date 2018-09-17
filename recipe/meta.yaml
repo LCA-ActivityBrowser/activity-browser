@@ -30,7 +30,7 @@ requirements:
     - beautifulsoup4
     - fuzzywuzzy
     - pyqt==5.9.2
-    - eidl7zip
+    - eidl
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
