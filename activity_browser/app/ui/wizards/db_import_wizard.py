@@ -66,12 +66,6 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.downloader.version = self.version
         self.downloader.system_model = self.system_model
 
-    @property
-    def db_url(self):
-        url = 'https://v33.ecoquery.ecoinvent.org'
-        db_key = (self.version, self.system_model)
-        return url + self.ecoinvent_version_page.db_dict[db_key]
-
     def closeEvent(self, event):
         '''
         close event now behaves similarly to cancel, because of self.reject
