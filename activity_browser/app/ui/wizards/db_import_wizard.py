@@ -478,10 +478,11 @@ class WorkerThread(QtCore.QThread):
             print(f'Database {self.db_name} deleted!')
 
 
-class ImportWorkerThread(QtCore.QThread):
+class ForwastWorkerThread(QtCore.QThread):
     def __init__(self):
         super().__init__()
         import_signals.import_canceled.connect(self.cancel)
+        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
 
     def update(self, dirpath, db_name):
         self.dirpath = dirpath
@@ -490,38 +491,6 @@ class ImportWorkerThread(QtCore.QThread):
 
     def cancel(self):
         self.canceled = True
-        import_signals.cancel_sentinel = True
-
-    def run(self):
-        import_signals.cancel_sentinel = False
-        try:
-            importer = SingleOutputEcospold2Importer(
-                self.dirpath,
-                self.db_name,
-                extractor=ActivityBrowserExtractor,
-                signal=import_signals.strategy_progress
-            )
-            if not self.canceled:
-                importer.apply_strategies()
-            if not self.canceled:
-                importer.write_database(backend='activitybrowser')
-            if not self.canceled:
-                import_signals.finished.emit()
-            else:
-                self.delete_canceled_db()
-        except ImportCanceledError:
-            self.delete_canceled_db()
-
-    def delete_canceled_db(self):
-        if self.db_name in bw.databases:
-            del bw.databases[self.db_name]
-            print(f'Database {self.db_name} deleted!')
-
-
-class ForwastWorkerThread(ImportWorkerThread):
-    def __init__(self):
-        super().__init__()
-        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
 
     def run(self):
         """
@@ -539,6 +508,11 @@ class ForwastWorkerThread(ImportWorkerThread):
             import_signals.finished.emit()
         else:
             self.delete_canceled_db()
+
+    def delete_canceled_db(self):
+        if self.db_name in bw.databases:
+            del bw.databases[self.db_name]
+            print(f'Database {self.db_name} deleted!')
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
