@@ -289,8 +289,7 @@ class ConfirmationPage(QtWidgets.QWizardPage):
         while a worker thread is running, it's not possible to proceed to the import page.
         this is required because there is only one sentinel value for canceled imports
         """
-        running = (self.wizard.import_page.main_worker_thread.isRunning() or
-                   self.wizard.import_page.forwast_thread.isRunning())
+        running = self.wizard.import_page.main_worker_thread.isRunning()
         return not running
 
 
@@ -345,8 +344,7 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.unarchive_finished.connect(self.update_unarchive)
 
         # Threads
-        self.main_worker_thread = WorkerThread(self.wizard.downloader)
-        self.forwast_thread = ForwastWorkerThread()
+        self.main_worker_thread = MainWorkerThread(self.wizard.downloader)
 
     def reset_progressbars(self):
         for pb in [self.extraction_progressbar, self.strategy_progressbar,
@@ -377,17 +375,14 @@ class ImportPage(QtWidgets.QWizardPage):
         if self.wizard.import_type == 'directory':
             self.main_worker_thread.update(db_name=self.field('db_name'),
                                            datasets_path=self.field('dirpath'))
-            self.main_worker_thread.start()
         elif self.wizard.import_type == 'archive':
             self.main_worker_thread.update(db_name=self.field('db_name'),
                                            archive_path=self.field('archive_path'))
-            self.main_worker_thread.start()
         elif self.wizard.import_type == 'forwast':
-            self.forwast_thread.update(self.field('db_name'))
-            self.forwast_thread.start()
+            self.main_worker_thread.update(db_name=self.field('db_name'), use_forwast=True)
         else:
             self.main_worker_thread.update(db_name=self.field('db_name'))
-            self.main_worker_thread.start()
+        self.main_worker_thread.start()
 
     @QtCore.pyqtSlot(int, int)
     def update_extraction_progress(self, i, tot):
@@ -428,17 +423,25 @@ class ImportPage(QtWidgets.QWizardPage):
         self.unarchive_progressbar.setValue(0)
 
 
-class WorkerThread(QtCore.QThread):
+class MainWorkerThread(QtCore.QThread):
     def __init__(self, downloader):
         super().__init__()
         self.downloader = downloader
+        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
 
-    def update(self, db_name, archive_path=None, datasets_path=None):
+    def update(self, db_name, archive_path=None, datasets_path=None, use_forwast=False):
         self.db_name = db_name
         self.archive_path = archive_path
         self.datasets_path = datasets_path
+        self.use_forwast = use_forwast
 
     def run(self):
+        if self.use_forwast:
+            self.run_forwast()
+        else:
+            self.run_ecoinvent()
+
+    def run_ecoinvent(self):
         import_signals.cancel_sentinel = False
         with tempfile.TemporaryDirectory() as self.tempdir:
             if self.datasets_path is None:
@@ -451,6 +454,33 @@ class WorkerThread(QtCore.QThread):
                     self.run_extract()
             if not import_signals.cancel_sentinel:
                 self.run_import()
+
+    def run_forwast(self):
+        """
+        adapted from pjamesjoyce/lcopt
+        """
+        import_signals.cancel_sentinel = False
+        response = requests.get(self.forwast_url)
+        forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
+        import_signals.download_complete.emit()
+        with tempfile.TemporaryDirectory() as tempdir:
+            if not import_signals.cancel_sentinel:
+                forwast_zip.extractall(tempdir)
+                import_signals.unarchive_finished.emit()
+            if not import_signals.cancel_sentinel:
+                import_signals.extraction_progress.emit(0, 0)
+                import_signals.strategy_progress.emit(0, 0)
+                import_signals.db_progress.emit(0, 0)
+                bw.BW2Package.import_file(os.path.join(tempdir, 'forwast.bw2package'))
+            if self.db_name != 'forwast':
+                bw.Database('forwast').rename(self.db_name)
+            if not import_signals.cancel_sentinel:
+                import_signals.extraction_progress.emit(1, 1)
+                import_signals.strategy_progress.emit(1, 1)
+                import_signals.db_progress.emit(1, 1)
+                import_signals.finished.emit()
+            else:
+                self.delete_canceled_db()
 
     def run_download(self):
         self.downloader.download()
@@ -478,41 +508,6 @@ class WorkerThread(QtCore.QThread):
                 self.delete_canceled_db()
         except ImportCanceledError:
             self.delete_canceled_db()
-
-    def delete_canceled_db(self):
-        if self.db_name in bw.databases:
-            del bw.databases[self.db_name]
-            print(f'Database {self.db_name} deleted!')
-
-
-class ForwastWorkerThread(QtCore.QThread):
-    def __init__(self):
-        super().__init__()
-        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
-
-    def update(self, db_name):
-        self.db_name = db_name
-
-    def run(self):
-        """
-        adapted from pjamesjoyce/lcopt
-        """
-        import_signals.cancel_sentinel = False
-        import_signals.db_progress.emit(0, 0)
-        response = requests.get(self.forwast_url)
-        forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
-        with tempfile.TemporaryDirectory() as tempdir:
-            if not import_signals.cancel_sentinel:
-                forwast_zip.extractall(tempdir)
-            if not import_signals.cancel_sentinel:
-                bw.BW2Package.import_file(os.path.join(tempdir, 'forwast.bw2package'))
-            if self.db_name != 'forwast':
-                bw.Database('forwast').rename(self.db_name)
-            if not import_signals.cancel_sentinel:
-                import_signals.db_progress.emit(1, 1)
-                import_signals.finished.emit()
-            else:
-                self.delete_canceled_db()
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
