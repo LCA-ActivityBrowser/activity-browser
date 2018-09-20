@@ -386,7 +386,6 @@ class ImportPage(QtWidgets.QWizardPage):
             self.forwast_thread.update(self.field('db_name'))
             self.forwast_thread.start()
         else:
-            print(self.download_progressbar.minimum(), self.download_progressbar.maximum())
             self.main_worker_thread.update(db_name=self.field('db_name'))
             self.main_worker_thread.start()
 
@@ -720,7 +719,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
             'Adding default biosphere and LCIA methods to project <b>{}</b>:'.format(
                 bw.projects.current)
         )
-        self.Range(0, 0)
+        self.setRange(0, 0)
         self.show()
 
         self.biosphere_thread = DefaultBiosphereThread()
