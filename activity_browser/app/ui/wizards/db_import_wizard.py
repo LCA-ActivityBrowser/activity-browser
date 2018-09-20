@@ -76,7 +76,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         event.accept()
 
     def cancel_thread(self):
-        print('cancel_thread called')
+        print('\nDatabase import interrupted!')
         import_signals.cancel_sentinel = True
         self.cleanup()
 
@@ -88,9 +88,6 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     def cleanup(self):
         self.reject()
         self.import_page.complete = False
-        self.import_page.reset_progressbars()
-        if hasattr(self.import_page, 'download_tempdir'):
-            self.import_page.download_tempdir.cleanup()
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
@@ -317,7 +314,6 @@ class ImportPage(QtWidgets.QWizardPage):
         self.download_label = QtWidgets.QLabel('Downloading data from ecoinvent homepage:')
         self.download_label.setVisible(False)
         self.download_progressbar = QtWidgets.QProgressBar()
-        self.download_progressbar.setVisible(False)
         self.unarchive_label = QtWidgets.QLabel('Decompressing the 7z archive:')
         self.unarchive_progressbar = QtWidgets.QProgressBar()
         layout.addWidget(self.download_label)
@@ -362,38 +358,36 @@ class ImportPage(QtWidgets.QWizardPage):
     def isComplete(self):
         return self.complete
 
+    def init_progressbars(self):
+        show_download = self.wizard.import_type not in {'directory', 'archive'}
+        self.download_label.setVisible(show_download)
+        self.download_progressbar.setVisible(show_download)
+        show_unarchive = self.wizard.import_type != 'directory'
+        self.unarchive_label.setVisible(show_unarchive)
+        self.unarchive_progressbar.setVisible(show_unarchive)
+        if self.wizard.import_type in {'homepage', 'forwast'}:
+            self.download_progressbar.setRange(0, 0)
+        elif self.wizard.import_type == 'archive':
+            self.unarchive_progressbar.setRange(0, 0)
+
     def initializePage(self):
         self.reset_progressbars()
+        self.init_progressbars()
         self.wizard.update_downloader()
         if self.wizard.import_type == 'directory':
-            self.unarchive_label.hide()
-            self.unarchive_progressbar.hide()
             self.main_worker_thread.update(db_name=self.field('db_name'),
                                            datasets_path=self.field('dirpath'))
             self.main_worker_thread.start()
         elif self.wizard.import_type == 'archive':
-            self.unarchive_progressbar.setMaximum(0)
-            self.unarchive_progressbar.setValue(0)
             self.main_worker_thread.update(db_name=self.field('db_name'),
                                            archive_path=self.field('archive_path'))
             self.main_worker_thread.start()
         elif self.wizard.import_type == 'forwast':
-            self.unarchive_label.hide()
-            self.unarchive_progressbar.hide()
-            self.extraction_progressbar.setMaximum(1)
-            self.extraction_progressbar.setValue(1)
-            self.strategy_progressbar.setMaximum(1)
-            self.strategy_progressbar.setValue(1)
             self.forwast_thread.update(self.field('db_name'))
             self.forwast_thread.start()
         else:
-            self.download_label.setVisible(True)
-            self.download_progressbar.setVisible(True)
-            self.unarchive_progressbar.setMaximum(1)
+            print(self.download_progressbar.minimum(), self.download_progressbar.maximum())
             self.main_worker_thread.update(db_name=self.field('db_name'))
-
-            self.download_progressbar.setMaximum(0)
-            self.download_progressbar.setMinimum(0)
             self.main_worker_thread.start()
 
     @QtCore.pyqtSlot(int, int)
@@ -414,8 +408,7 @@ class ImportPage(QtWidgets.QWizardPage):
             import_signals.finalizing.emit()
 
     def update_finalizing(self):
-        self.finalizing_progressbar.setMinimum(0)
-        self.finalizing_progressbar.setMaximum(0)
+        self.finalizing_progressbar.setRange(0, 0)
 
     def update_finished(self):
         self.finalizing_progressbar.setMaximum(1)
@@ -727,8 +720,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
             'Adding default biosphere and LCIA methods to project <b>{}</b>:'.format(
                 bw.projects.current)
         )
-        self.setMinimum(0)
-        self.setMaximum(0)
+        self.Range(0, 0)
         self.show()
 
         self.biosphere_thread = DefaultBiosphereThread()
@@ -761,8 +753,7 @@ class CopyDatabaseDialog(QtWidgets.QProgressDialog):
             'Copying existing database <b>{}</b> to new database <b>{}</b>:'.format(
                 copy_from, copy_to)
         )
-        self.setMinimum(0)
-        self.setMaximum(0)
+        self.setRange(0, 0)
         self.show()
 
         self.copydb_thread = CopyDatabaseThread(copy_from, copy_to)
