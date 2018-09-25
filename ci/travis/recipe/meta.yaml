@@ -26,10 +26,9 @@ requirements:
     - seaborn
     - arrow
     - pandas
-    - beautifulsoup4
     - fuzzywuzzy
     - pyqt==5.9.2
-    - eidl7zip
+    - eidl >=1.2.0
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

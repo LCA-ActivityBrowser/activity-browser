@@ -2,14 +2,13 @@
 import os
 import io
 import tempfile
-import subprocess
 import zipfile
 
-import bs4
+import eidl
 import requests
 import brightway2 as bw
 from bw2io.extractors import Ecospold2DataExtractor
-from bw2io import strategies, SingleOutputEcospold2Importer
+from bw2io import SingleOutputEcospold2Importer
 from bw2data import config
 from bw2data.backends import SQLiteBackend
 from PyQt5 import QtWidgets, QtCore
@@ -20,6 +19,7 @@ from activity_browser.app.signals import signals
 class DatabaseImportWizard(QtWidgets.QWizard):
     def __init__(self):
         super().__init__()
+        self.downloader = ABEcoinventDownloader()
         self.setWindowTitle('Database Import Wizard')
         self.import_type_page = ImportTypePage(self)
         self.choose_dir_page = ChooseDirPage(self)
@@ -49,6 +49,9 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
         # thread management
         self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_thread)
+        self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_extraction)
+
+        import_signals.connection_problem.connect(self.show_info)
 
     @property
     def version(self):
@@ -58,11 +61,9 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     def system_model(self):
         return self.ecoinvent_version_page.system_model_combobox.currentText()
 
-    @property
-    def db_url(self):
-        url = 'https://v33.ecoquery.ecoinvent.org'
-        db_key = (self.version, self.system_model)
-        return url + self.ecoinvent_version_page.db_dict[db_key]
+    def update_downloader(self):
+        self.downloader.version = self.version
+        self.downloader.system_model = self.system_model
 
     def closeEvent(self, event):
         '''
@@ -70,33 +71,34 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         like this the db wizard can be reused, ie starts from the beginning
         '''
         self.cancel_thread()
+        self.cancel_extraction()
         event.accept()
 
     def cancel_thread(self):
-        import_signals.import_canceled.emit()
+        print('\nDatabase import interrupted!')
+        import_signals.cancel_sentinel = True
         self.cleanup()
+
+    def cancel_extraction(self):
+        if hasattr(self.downloader, 'extraction_process'):
+            self.downloader.extraction_process.kill()
+            self.downloader.extraction_process.communicate()
 
     def cleanup(self):
         self.reject()
         self.import_page.complete = False
-        self.import_page.reset_progressbars()
-        if hasattr(self.import_page, 'download_tempdir'):
-            self.import_page.download_tempdir.cleanup()
-        running_threads = []
-        for thread in self.import_page.unarchive_thread_list:
-            if thread.isRunning():
-                running_threads.append(thread)
-            else:
-                thread.tempdir.cleanup()
-        self.import_page.unarchive_thread_list = running_threads
+
+    def show_info(self, info):
+        title, message = info
+        QtWidgets.QMessageBox.information(self, title, message)
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.wizard = self.parent()
-        options = ['Ecoinvent: download',
-                   'Ecoinvent: local 7z-archive',
+        options = ['Ecoinvent: download (login required)',
+                   'Ecoinvent: local 7z-archive or previously downloaded database',
                    'Ecoinvent: local directory with ecospold2 files',
                    'Forwast: download']
         self.radio_buttons = [QtWidgets.QRadioButton(o) for o in options]
@@ -175,9 +177,11 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = self.parent()
         self.path_edit = QtWidgets.QLineEdit()
-        self.registerField('archivepath*', self.path_edit)
+        self.registerField('archive_path*', self.path_edit)
         self.browse_button = QtWidgets.QPushButton('Browse')
         self.browse_button.clicked.connect(self.get_archive)
+        self.stored_combobox = QtWidgets.QComboBox()
+        self.stored_combobox.activated.connect(self.update_stored)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(QtWidgets.QLabel(
@@ -187,7 +191,17 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         browse_lay.addWidget(self.browse_button)
         browse_lay.addStretch(1)
         layout.addLayout(browse_lay)
+        layout.addWidget(QtWidgets.QLabel('Previous downloads:'))
+        layout.addWidget(self.stored_combobox)
         self.setLayout(layout)
+
+    def initializePage(self):
+        self.stored_dbs = eidl.eidlstorage.stored_dbs
+        self.stored_combobox.clear()
+        self.stored_combobox.addItems(sorted(self.stored_dbs.keys()))
+
+    def update_stored(self, index):
+        self.path_edit.setText(self.stored_dbs[self.stored_combobox.currentText()])
 
     def get_archive(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -196,7 +210,7 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
             self.path_edit.setText(path)
 
     def validatePage(self):
-        path = self.field('archivepath')
+        path = self.field('archive_path')
         if os.path.isfile(path):
             if path.lower().endswith('.7z'):
                 return True
@@ -273,7 +287,7 @@ class ConfirmationPage(QtWidgets.QWizardPage):
         elif self.wizard.import_type == 'archive':
             self.path_label.setText(
                 'Path to 7z archive:<br><b>{}</b>'.format(
-                    self.field('archivepath')))
+                    self.field('archive_path')))
         elif self.wizard.import_type == 'forwast':
             self.path_label.setOpenExternalLinks(True)
             self.path_label.setText(
@@ -284,6 +298,14 @@ class ConfirmationPage(QtWidgets.QWizardPage):
             self.path_label.setText(
                 'Ecoinvent version: <b>{}</b><br>Ecoinvent system model: <b>{}</b>'.format(
                     self.wizard.version, self.wizard.system_model))
+
+    def validatePage(self):
+        """
+        while a worker thread is running, it's not possible to proceed to the import page.
+        this is required because there is only one sentinel value for canceled imports
+        """
+        running = self.wizard.import_page.main_worker_thread.isRunning()
+        return not running
 
 
 class ImportPage(QtWidgets.QWizardPage):
@@ -306,7 +328,6 @@ class ImportPage(QtWidgets.QWizardPage):
         self.download_label = QtWidgets.QLabel('Downloading data from ecoinvent homepage:')
         self.download_label.setVisible(False)
         self.download_progressbar = QtWidgets.QProgressBar()
-        self.download_progressbar.setVisible(False)
         self.unarchive_label = QtWidgets.QLabel('Decompressing the 7z archive:')
         self.unarchive_progressbar = QtWidgets.QProgressBar()
         layout.addWidget(self.download_label)
@@ -335,21 +356,10 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.finalizing.connect(self.update_finalizing)
         import_signals.finished.connect(self.update_finished)
         import_signals.download_complete.connect(self.update_download)
-
-        import_signals.unarchive_finished.connect(self.unarchive_finished_check)
-        import_signals.download_complete.connect(self.unarchive)
+        import_signals.unarchive_finished.connect(self.update_unarchive)
 
         # Threads
-        self.download_thread = DownloadWorkerThread()
-        self.unarchive_thread_list = []
-        self.import_thread = ImportWorkerThread()
-        self.forwast_thread = ForwastWorkerThread()
-
-    @QtCore.pyqtSlot(str)
-    def unarchive_finished_check(self, extract_tempdir):
-        if self.tempdir.name == extract_tempdir:
-            self.update_unarchive()
-            self.import_dir()
+        self.main_worker_thread = MainWorkerThread(self.wizard.downloader)
 
     def reset_progressbars(self):
         for pb in [self.extraction_progressbar, self.strategy_progressbar,
@@ -361,47 +371,33 @@ class ImportPage(QtWidgets.QWizardPage):
     def isComplete(self):
         return self.complete
 
+    def init_progressbars(self):
+        show_download = self.wizard.import_type not in {'directory', 'archive'}
+        self.download_label.setVisible(show_download)
+        self.download_progressbar.setVisible(show_download)
+        show_unarchive = self.wizard.import_type != 'directory'
+        self.unarchive_label.setVisible(show_unarchive)
+        self.unarchive_progressbar.setVisible(show_unarchive)
+        if self.wizard.import_type in {'homepage', 'forwast'}:
+            self.download_progressbar.setRange(0, 0)
+        elif self.wizard.import_type == 'archive':
+            self.unarchive_progressbar.setRange(0, 0)
+
     def initializePage(self):
         self.reset_progressbars()
+        self.init_progressbars()
+        self.wizard.update_downloader()
         if self.wizard.import_type == 'directory':
-            self.import_dir()
-            self.unarchive_label.hide()
-            self.unarchive_progressbar.hide()
+            self.main_worker_thread.update(db_name=self.field('db_name'),
+                                           datasets_path=self.field('dirpath'))
         elif self.wizard.import_type == 'archive':
-            self.archivepath = self.field('archivepath')
-            self.unarchive()
+            self.main_worker_thread.update(db_name=self.field('db_name'),
+                                           archive_path=self.field('archive_path'))
         elif self.wizard.import_type == 'forwast':
-            self.unarchive_label.hide()
-            self.unarchive_progressbar.hide()
-            self.extraction_progressbar.setMaximum(1)
-            self.extraction_progressbar.setValue(1)
-            self.strategy_progressbar.setMaximum(1)
-            self.strategy_progressbar.setValue(1)
-            self.download_tempdir = tempfile.TemporaryDirectory()
-            db_name = self.field('db_name')
-            self.forwast_thread.update(self.download_tempdir.name, db_name)
-            self.forwast_thread.start()
+            self.main_worker_thread.update(db_name=self.field('db_name'), use_forwast=True)
         else:
-            self.download_label.setVisible(True)
-            self.download_progressbar.setVisible(True)
-            self.unarchive_progressbar.setMaximum(1)
-            self.download_tempdir = tempfile.TemporaryDirectory()
-            self.archivepath = os.path.join(self.download_tempdir.name, 'db.7z')
-            self.download_thread.update(
-                self.wizard.ecoinvent_login_page.username,
-                self.wizard.ecoinvent_login_page.password,
-                self.wizard.db_url,
-                self.download_tempdir.name
-            )
-            self.download_progressbar.setMaximum(0)
-            self.download_progressbar.setMinimum(0)
-            self.download_thread.start()
-
-    def unarchive(self):
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.unarchive_thread_list.append(UnarchiveWorkerThread())
-        self.unarchive_thread_list[-1].update(self.archivepath, self.tempdir)
-        self.unarchive_thread_list[-1].start()
+            self.main_worker_thread.update(db_name=self.field('db_name'))
+        self.main_worker_thread.start()
 
     @QtCore.pyqtSlot(int, int)
     def update_extraction_progress(self, i, tot):
@@ -421,8 +417,7 @@ class ImportPage(QtWidgets.QWizardPage):
             import_signals.finalizing.emit()
 
     def update_finalizing(self):
-        self.finalizing_progressbar.setMinimum(0)
-        self.finalizing_progressbar.setMaximum(0)
+        self.finalizing_progressbar.setRange(0, 0)
 
     def update_finished(self):
         self.finalizing_progressbar.setMaximum(1)
@@ -442,97 +437,90 @@ class ImportPage(QtWidgets.QWizardPage):
         self.unarchive_progressbar.setMaximum(0)
         self.unarchive_progressbar.setValue(0)
 
-    def import_dir(self):
-        db_name = self.field('db_name')
-        if self.wizard.import_type == 'directory':
-            dirpath = self.field('dirpath')
-        else:
-            dirpath = os.path.join(self.tempdir.name, 'datasets')
-        self.import_thread.update(dirpath, db_name)
-        self.import_thread.start()
 
-
-class DownloadWorkerThread(QtCore.QThread):
-    def __init__(self):
+class MainWorkerThread(QtCore.QThread):
+    def __init__(self, downloader):
         super().__init__()
-        import_signals.import_canceled.connect(self.cancel)
+        self.downloader = downloader
+        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
 
-    def update(self, username, password, db_url, tempdir):
-        self.username = username
-        self.password = password
-        self.db_url = db_url
-        self.tempdir = tempdir
-        self.canceled = False
-
-    def cancel(self):
-        self.canceled = True
-
-    def run(self):
-        session = requests.Session()
-        logon_url = 'https://v33.ecoquery.ecoinvent.org/Account/LogOn'
-        post_data = {'UserName': self.username,
-                     'Password': self.password,
-                     'IsEncrypted': 'false',
-                     'ReturnUrl': '/'}
-        session.post(logon_url, post_data)
-        if not len(session.cookies):
-            # TODO: implement retry
-            print('Login somehow failed!')
-        file_content = session.get(self.db_url).content
-        with open(os.path.join(self.tempdir, 'db.7z'), 'wb') as outfile:
-            outfile.write(file_content)
-        if not self.canceled:
-            import_signals.download_complete.emit()
-
-
-class UnarchiveWorkerThread(QtCore.QThread):
-    def __init__(self):
-        super().__init__()
-        import_signals.import_canceled.connect(self.cancel)
-
-    def update(self, archivepath, tempdir):
-        self.archivepath = archivepath
-        self.tempdir = tempdir
-        self.canceled = False
-
-    def cancel(self):
-        self.canceled = True
-
-    def run(self):
-        extract = '7za x {} -o{}'.format(self.archivepath, self.tempdir.name)
-        subprocess.call(extract.split())
-        if not self.canceled:
-            import_signals.unarchive_finished.emit(self.tempdir.name)
-
-
-class ImportWorkerThread(QtCore.QThread):
-    def __init__(self):
-        super().__init__()
-        import_signals.import_canceled.connect(self.cancel)
-
-    def update(self, dirpath, db_name):
-        self.dirpath = dirpath
+    def update(self, db_name, archive_path=None, datasets_path=None, use_forwast=False):
         self.db_name = db_name
-        self.canceled = False
-
-    def cancel(self):
-        self.canceled = True
-        import_signals.cancel_sentinel = True
+        self.archive_path = archive_path
+        self.datasets_path = datasets_path
+        self.use_forwast = use_forwast
 
     def run(self):
+        if self.use_forwast:
+            self.run_forwast()
+        else:
+            self.run_ecoinvent()
+
+    def run_ecoinvent(self):
         import_signals.cancel_sentinel = False
+        with tempfile.TemporaryDirectory() as self.tempdir:
+            if self.datasets_path is None:
+                if self.archive_path is None:
+                    self.downloader.outdir = eidl.eidlstorage.eidl_dir
+                    if self.downloader.check_stored():
+                        import_signals.download_complete.emit()
+                    else:
+                        self.run_download()
+                else:
+                    self.downloader.out_path = self.archive_path
+                if not import_signals.cancel_sentinel:
+                    self.run_extract()
+            if not import_signals.cancel_sentinel:
+                self.run_import()
+
+    def run_forwast(self):
+        """
+        adapted from pjamesjoyce/lcopt
+        """
+        import_signals.cancel_sentinel = False
+        response = requests.get(self.forwast_url)
+        forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
+        import_signals.download_complete.emit()
+        with tempfile.TemporaryDirectory() as tempdir:
+            if not import_signals.cancel_sentinel:
+                forwast_zip.extractall(tempdir)
+                import_signals.unarchive_finished.emit()
+            if not import_signals.cancel_sentinel:
+                import_signals.extraction_progress.emit(0, 0)
+                import_signals.strategy_progress.emit(0, 0)
+                import_signals.db_progress.emit(0, 0)
+                bw.BW2Package.import_file(os.path.join(tempdir, 'forwast.bw2package'))
+            if self.db_name != 'forwast':
+                bw.Database('forwast').rename(self.db_name)
+            if not import_signals.cancel_sentinel:
+                import_signals.extraction_progress.emit(1, 1)
+                import_signals.strategy_progress.emit(1, 1)
+                import_signals.db_progress.emit(1, 1)
+                import_signals.finished.emit()
+            else:
+                self.delete_canceled_db()
+
+    def run_download(self):
+        self.downloader.download()
+        import_signals.download_complete.emit()
+
+    def run_extract(self):
+        self.downloader.extract(target_dir=self.tempdir)
+        import_signals.unarchive_finished.emit()
+
+    def run_import(self):
+        if self.datasets_path is None:
+            self.datasets_path = os.path.join(self.tempdir, 'datasets')
         try:
             importer = SingleOutputEcospold2Importer(
-                self.dirpath,
+                self.datasets_path,
                 self.db_name,
                 extractor=ActivityBrowserExtractor,
                 signal=import_signals.strategy_progress
             )
-            if not self.canceled:
-                importer.apply_strategies()
-            if not self.canceled:
-                importer.write_database(backend='activitybrowser')
-            if not self.canceled:
+            importer.apply_strategies()
+            importer.write_database(backend='activitybrowser')
+            if not import_signals.cancel_sentinel:
                 import_signals.finished.emit()
             else:
                 self.delete_canceled_db()
@@ -543,29 +531,6 @@ class ImportWorkerThread(QtCore.QThread):
         if self.db_name in bw.databases:
             del bw.databases[self.db_name]
             print(f'Database {self.db_name} deleted!')
-
-
-class ForwastWorkerThread(ImportWorkerThread):
-    def __init__(self):
-        super().__init__()
-        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
-
-    def run(self):
-        """
-        adapted from pjamesjoyce/lcopt
-        """
-        import_signals.db_progress.emit(0, 0)
-        response = requests.get(self.forwast_url)
-        forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
-        forwast_zip.extractall(self.dirpath)
-        bw.BW2Package.import_file(os.path.join(self.dirpath, 'forwast.bw2package'))
-        if self.db_name != 'forwast':
-            bw.Database('forwast').rename(self.db_name)
-        if not self.canceled:
-            import_signals.db_progress.emit(1, 1)
-            import_signals.finished.emit()
-        else:
-            self.delete_canceled_db()
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
@@ -595,7 +560,8 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         layout.addWidget(self.success_label)
         self.setLayout(layout)
 
-        self.login_thread = LoginThread()
+        self.login_thread = LoginThread(self.wizard.downloader)
+        import_signals.login_success.connect(self.login_response)
 
     @property
     def username(self):
@@ -616,9 +582,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
 
     def login(self):
         self.success_label.setText('Trying to login ...')
-        self.session = requests.Session()
-        self.login_thread.update(self.session, self.username, self.password)
-        import_signals.login_success.connect(self.login_response)
+        self.login_thread.update(self.username, self.password)
         self.login_thread.start()
 
     @QtCore.pyqtSlot(bool)
@@ -638,24 +602,20 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
             self.complete = True
             self.completeChanged.emit()
             self.login_button.setChecked(False)
+            self.wizard.next()
 
 
 class LoginThread(QtCore.QThread):
-    def __init__(self):
+    def __init__(self, downloader):
         super().__init__()
-        self.logon_url = 'https://v33.ecoquery.ecoinvent.org/Account/LogOn'
+        self.downloader = downloader
 
-    def update(self, session, username, password):
-        self.session = session
-        self.post_data = {'UserName': username,
-                          'Password': password,
-                          'IsEncrypted': 'false',
-                          'ReturnUrl': '/'}
+    def update(self, username, password):
+        self.downloader.username = username
+        self.downloader.password = password
 
     def run(self):
-        self.session.post(self.logon_url, self.post_data)
-        success = bool(len(self.session.cookies))
-        import_signals.login_success.emit(success)
+        self.downloader.login()
 
 
 class EcoinventVersionPage(QtWidgets.QWizardPage):
@@ -676,24 +636,14 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         if not hasattr(self, 'db_dict'):
-            self.get_available_files()
+            self.wizard.downloader.db_dict = self.wizard.downloader.get_available_files()
+            self.db_dict = self.wizard.downloader.db_dict
         self.versions = sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
         self.system_models = sorted({k[1] for k in self.db_dict.keys()}, reverse=True)
         self.version_combobox.clear()
         self.system_model_combobox.clear()
         self.version_combobox.addItems(self.versions)
         self.system_model_combobox.addItems(self.system_models)
-
-    def get_available_files(self):
-        files_url = 'https://v33.ecoquery.ecoinvent.org/File/Files'
-        files_res = self.wizard.ecoinvent_login_page.session.get(files_url)
-        soup = bs4.BeautifulSoup(files_res.text, 'html.parser')
-        file_list = [l for l in soup.find_all('a', href=True) if
-                     l['href'].startswith('/File/File?')]
-        link_dict = {f.contents[0]: f['href'] for f in file_list}
-        self.db_dict = {
-            tuple(k.replace('ecoinvent ', '').split('_')[:2:]): v for k, v in
-            link_dict.items() if k.endswith('.7z') and 'lc' not in k.lower()}
 
     def nextId(self):
         return self.wizard.pages.index(self.wizard.db_name_page)
@@ -762,13 +712,13 @@ class ImportSignals(QtCore.QObject):
     db_progress = QtCore.pyqtSignal(int, int)
     finalizing = QtCore.pyqtSignal()
     finished = QtCore.pyqtSignal()
-    unarchive_finished = QtCore.pyqtSignal(str)
+    unarchive_finished = QtCore.pyqtSignal()
     download_complete = QtCore.pyqtSignal()
     biosphere_finished = QtCore.pyqtSignal()
     copydb_finished = QtCore.pyqtSignal()
-    import_canceled = QtCore.pyqtSignal()
     cancel_sentinel = False
     login_success = QtCore.pyqtSignal(bool)
+    connection_problem = QtCore.pyqtSignal(tuple)
 
 
 import_signals = ImportSignals()
@@ -782,8 +732,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
             'Adding default biosphere and LCIA methods to project <b>{}</b>:'.format(
                 bw.projects.current)
         )
-        self.setMinimum(0)
-        self.setMaximum(0)
+        self.setRange(0, 0)
         self.show()
 
         self.biosphere_thread = DefaultBiosphereThread()
@@ -816,8 +765,7 @@ class CopyDatabaseDialog(QtWidgets.QProgressDialog):
             'Copying existing database <b>{}</b> to new database <b>{}</b>:'.format(
                 copy_from, copy_to)
         )
-        self.setMinimum(0)
-        self.setMaximum(0)
+        self.setRange(0, 0)
         self.show()
 
         self.copydb_thread = CopyDatabaseThread(copy_from, copy_to)
@@ -840,3 +788,15 @@ class CopyDatabaseThread(QtCore.QThread):
         bw.Database(self.copy_from).copy(self.copy_to)
         import_signals.copydb_finished.emit()
         signals.databases_changed.emit()
+
+
+class ABEcoinventDownloader(eidl.EcoinventDownloader):
+    def login_success(self, success):
+        import_signals.login_success.emit(success)
+
+    def handle_connection_timeout(self):
+        msg = "The request timed out, please check your internet connection!"
+        if eidl.eidlstorage.stored_dbs:
+            msg += ("\n\nIf you work offline you can use your previously downloaded databases" +
+                    " via the archive option of the import wizard.")
+        import_signals.connection_problem.emit(('Connection problem', msg))
