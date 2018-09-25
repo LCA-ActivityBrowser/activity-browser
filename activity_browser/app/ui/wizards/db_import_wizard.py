@@ -19,10 +19,7 @@ from activity_browser.app.signals import signals
 class DatabaseImportWizard(QtWidgets.QWizard):
     def __init__(self):
         super().__init__()
-
-        # ecoinvent downloader
         self.downloader = ABEcoinventDownloader()
-
         self.setWindowTitle('Database Import Wizard')
         self.import_type_page = ImportTypePage(self)
         self.choose_dir_page = ChooseDirPage(self)
@@ -94,8 +91,8 @@ class ImportTypePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.wizard = self.parent()
-        options = ['Ecoinvent: download',
-                   'Ecoinvent: local 7z-archive',
+        options = ['Ecoinvent: download (login required)',
+                   'Ecoinvent: local 7z-archive or previously downloaded database',
                    'Ecoinvent: local directory with ecospold2 files',
                    'Forwast: download']
         self.radio_buttons = [QtWidgets.QRadioButton(o) for o in options]
@@ -177,6 +174,8 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.registerField('archive_path*', self.path_edit)
         self.browse_button = QtWidgets.QPushButton('Browse')
         self.browse_button.clicked.connect(self.get_archive)
+        self.stored_combobox = QtWidgets.QComboBox()
+        self.stored_combobox.activated.connect(self.update_stored)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(QtWidgets.QLabel(
@@ -186,7 +185,17 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         browse_lay.addWidget(self.browse_button)
         browse_lay.addStretch(1)
         layout.addLayout(browse_lay)
+        layout.addWidget(QtWidgets.QLabel('Previous downloads:'))
+        layout.addWidget(self.stored_combobox)
         self.setLayout(layout)
+
+    def initializePage(self):
+        self.stored_dbs = eidl.eidlstorage.stored_dbs
+        self.stored_combobox.clear()
+        self.stored_combobox.addItems(sorted(self.stored_dbs.keys()))
+
+    def update_stored(self, index):
+        self.path_edit.setText(self.stored_dbs[self.stored_combobox.currentText()])
 
     def get_archive(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
