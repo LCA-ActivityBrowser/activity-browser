@@ -602,6 +602,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
             self.complete = True
             self.completeChanged.emit()
             self.login_button.setChecked(False)
+            self.wizard.next()
 
 
 class LoginThread(QtCore.QThread):
@@ -615,8 +616,6 @@ class LoginThread(QtCore.QThread):
 
     def run(self):
         self.downloader.login()
-        success = bool(len(self.downloader.session.cookies))
-        import_signals.login_success.emit(success)
 
 
 class EcoinventVersionPage(QtWidgets.QWizardPage):
