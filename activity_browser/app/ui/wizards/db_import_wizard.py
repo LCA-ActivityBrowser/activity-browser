@@ -51,6 +51,8 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_thread)
         self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_extraction)
 
+        import_signals.connection_problem.connect(self.show_info)
+
     @property
     def version(self):
         return self.ecoinvent_version_page.version_combobox.currentText()
@@ -85,6 +87,10 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     def cleanup(self):
         self.reject()
         self.import_page.complete = False
+
+    def show_info(self, info):
+        title, message = info
+        QtWidgets.QMessageBox.information(self, title, message)
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
@@ -713,6 +719,7 @@ class ImportSignals(QtCore.QObject):
     copydb_finished = QtCore.pyqtSignal()
     cancel_sentinel = False
     login_success = QtCore.pyqtSignal(bool)
+    connection_problem = QtCore.pyqtSignal(tuple)
 
 
 import_signals = ImportSignals()
@@ -787,3 +794,10 @@ class CopyDatabaseThread(QtCore.QThread):
 class ABEcoinventDownloader(eidl.EcoinventDownloader):
     def login_success(self, success):
         import_signals.login_success.emit(success)
+
+    def handle_connection_timeout(self):
+        msg = "The request timed out, please check your internet connection!"
+        if eidl.eidlstorage.stored_dbs:
+            msg += ("\n\nIf you work offline you can use your previously downloaded databases" +
+                    " via the archive option of the import wizard.")
+        import_signals.connection_problem.emit(('Connection problem', msg))
