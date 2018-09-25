@@ -5,7 +5,7 @@ import uuid
 
 import brightway2 as bw
 from PyQt5 import QtWidgets
-from bw2data.backends.peewee import Exchange
+from bw2data.backends.peewee import Exchange, sqlite3_lci_db
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 from activity_browser.app.ui.wizards.db_import_wizard import (
@@ -36,6 +36,7 @@ class Controller(object):
     def connect_signals(self):
         # SLOTS
         # Project
+        signals.project_selected.connect(self.ensure_sqlite_indices)
         signals.new_project.connect(self.new_project)
         signals.change_project.connect(self.change_project)
         signals.change_project_dialog.connect(self.change_project_dialog)
@@ -106,6 +107,15 @@ class Controller(object):
         )
         if ok:
             self.change_project(name)
+
+    def ensure_sqlite_indices(self):
+        """
+        - fix for https://github.com/LCA-ActivityBrowser/activity-browser/issues/189
+        - also see bw2data issue: https://bitbucket.org/cmutel/brightway2-data/issues/60/massive-sqlite-query-performance-decrease
+        """
+        if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
+            print('creating missing sqlite indices')
+            bw.Database(list(bw.databases)[-1])._add_indices()
 
     def change_project(self, name=None, reload=False):
         # TODO: what should happen if a new project is opened? (all activities, etc. closed?)
