@@ -561,6 +561,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.login_thread = LoginThread(self.wizard.downloader)
+        import_signals.login_success.connect(self.login_response)
 
     @property
     def username(self):
@@ -582,7 +583,6 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
     def login(self):
         self.success_label.setText('Trying to login ...')
         self.login_thread.update(self.username, self.password)
-        import_signals.login_success.connect(self.login_response)
         self.login_thread.start()
 
     @QtCore.pyqtSlot(bool)
