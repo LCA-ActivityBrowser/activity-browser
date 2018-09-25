@@ -447,7 +447,10 @@ class MainWorkerThread(QtCore.QThread):
             if self.datasets_path is None:
                 if self.archive_path is None:
                     self.downloader.outdir = eidl.eidlstorage.eidl_dir
-                    self.run_download()
+                    if self.downloader.check_stored():
+                        import_signals.download_complete.emit()
+                    else:
+                        self.run_download()
                 else:
                     self.downloader.out_path = self.archive_path
                 if not import_signals.cancel_sentinel:
