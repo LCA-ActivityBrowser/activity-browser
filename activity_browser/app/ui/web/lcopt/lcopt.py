@@ -33,10 +33,13 @@ class LcoptWidget(QtWidgets.QWidget):
             lcopt.settings.model_storage.project = 'single'
             print('Changed lcopt model storage to single project!')
             # TODO: add option to disable this or revert to user config when AB is closed
+            # or just ask for user confirmation
         lcopt_single_project = lcopt.storage.single_project_name
         if lcopt_single_project not in bw.projects:
             bw.projects.create_project(lcopt_single_project)
         signals.change_project.emit(lcopt_single_project)
+        if 'biosphere3' not in bw.databases:
+            signals.install_default_data.emit()
 
         # settings/setup options
         self.lcopt_settings_button = QtWidgets.QPushButton('Lcopt Settings')
@@ -51,8 +54,6 @@ class LcoptWidget(QtWidgets.QWidget):
         self.create_button.setEnabled(False)
         self.load_combobox = QtWidgets.QComboBox()
         self.load_button = QtWidgets.QPushButton('Load Model')
-        self.example_combobox = QtWidgets.QComboBox()
-        self.example_button = QtWidgets.QPushButton('Load Example')
 
         # return to main window
         self.close_button = QtWidgets.QPushButton('Return to Main Window')
@@ -66,8 +67,6 @@ class LcoptWidget(QtWidgets.QWidget):
                                         self.create_button)
         self.load_gb = OptionGroupBox('Load an existing model', self.load_combobox,
                                       self.load_button)
-        self.example_gb = OptionGroupBox('Load an example model', self.example_combobox,
-                                         self.example_button)
 
         self.option_layout = QtWidgets.QHBoxLayout()
         self.option_layout.addStretch()
@@ -75,7 +74,6 @@ class LcoptWidget(QtWidgets.QWidget):
         self.option_layout.addWidget(self.setup_gb)
         self.option_layout.addWidget(self.create_gb)
         self.option_layout.addWidget(self.load_gb)
-        self.option_layout.addWidget(self.example_gb)
         self.option_layout.addStretch()
         self.option_layout.addWidget(self.close_button)
         self.option_layout.setAlignment(self.close_button, QtCore.Qt.AlignTop)
@@ -100,13 +98,13 @@ class LcoptWidget(QtWidgets.QWidget):
         self.create_edit.textEdited.connect(self.update_create)
         self.create_button.clicked.connect(self.create_model)
         self.load_button.clicked.connect(self.load_model)
-        self.example_button.clicked.connect(self.load_example)
         lcopt_signals.app_running.connect(self.switch_options_view)
         lcopt_signals.app_shutdown.connect(self.switch_options_view)
         lcopt_signals.app_shutdown.connect(self.global_updates)
         self.close_button.clicked.connect(self.return_main_window)
         self.ecoinvent_setup_button.clicked.connect(self.ecoinvent_setup)
         self.lcopt_settings_button.clicked.connect(self.run_lcopt)
+        lcopt_signals.model_ready.connect(self.run_model)
 
     def switch_options_view(self):
         self.view.setVisible(not self.view.isVisible())
@@ -115,13 +113,9 @@ class LcoptWidget(QtWidgets.QWidget):
 
     def update_options(self):
         self.models = {os.path.split(m)[1].replace('.lcopt', ''): m for m in lcopt.storage.models}
-        self.models = {k: v for k, v in self.models.items() if
-                       k not in {'ecoinvent_example', 'forwast_example'}}
         self.load_combobox.clear()
         self.load_combobox.addItems(sorted(self.models))
         self.load_gb.setEnabled(bool(self.models))
-        self.example_combobox.clear()
-        self.example_combobox.addItems(['ecoinvent_example.lcopt'])  # TODO: include forwast
 
     def reload(self):
         self.view.load(QtCore.QUrl(self.url))
@@ -153,21 +147,20 @@ class LcoptWidget(QtWidgets.QWidget):
 
     def create_model(self):
         model_name = self.create_edit.text()
-        model = lcopt.LcoptModel(model_name)
-        self.run_lcopt(model=model)
+        self.model = lcopt.LcoptModel(model_name, ei_setup=self.ab_ei_setup)
+        if not hasattr(self, 'setup_wizard'):
+            lcopt_signals.model_ready.emit()
 
     def load_model(self):
         model_name = self.load_combobox.currentText()
         model_path = self.models[model_name]
-        model = lcopt.LcoptModel(load=model_path)
-        self.run_lcopt(model=model)
+        self.model = lcopt.LcoptModel(load=model_path, ei_setup=self.ab_ei_setup)
+        if not hasattr(self, 'setup_wizard'):
+            lcopt_signals.model_ready.emit()
 
-    def load_example(self):
-        lcopt_asset_path = os.path.join(lcopt.__path__[0], 'assets')
-        model_name = self.example_combobox.currentText()
-        ecoinvent_example = os.path.join(lcopt_asset_path, model_name)
-        model = lcopt.LcoptModel(load=ecoinvent_example)
-        self.run_lcopt(model=model)
+    def run_model(self):
+        self.run_lcopt(model=self.model)
+
 
     def return_main_window(self):
         window = self.window()
@@ -177,27 +170,16 @@ class LcoptWidget(QtWidgets.QWidget):
         signals.projects_changed.emit()
         signals.databases_changed.emit()
 
-    def ecoinvent_setup(self):
-        if 'biosphere3' not in bw.databases:
-            signals.install_default_data.emit()
-            import_signals.biosphere_finished.connect(self.ecoinvent_setup2)
-        elif not [d for d in bw.databases if d.startswith('Ecoinvent')]:  # TODO: improve this check
-            self.ecoinvent_setup2(disconnect=False)
+    def ab_ei_setup(self, **kwargs):
+        print(f'kwargs:\n{kwargs}')
+        print('ask for confirmation to start setup here')
+        ei_name = "Ecoinvent{}_{}_{}".format(*kwargs['ecoinvent_version'].split('.'),
+                                             kwargs['ecoinvent_system_model'])
+        if ei_name in bw.databases and not kwargs['overwrite']:
+            if hasattr(self, 'setup_wizard'):
+                del self.setup_wizard
         else:
-            QtWidgets.QMessageBox.information(
-                None,
-                'Lcopt already set up',
-                'Lcopt is ready to use with ecoinvent!'
-            )
-
-    def ecoinvent_setup2(self, disconnect=True):
-        """
-        biosphere_finished signal is used to queue bw2setup and the import,
-        it needs to be disconnected again otherwise double imports could occur
-        """
-        if disconnect:
-            import_signals.biosphere_finished.disconnect()
-        self.setup_wizard = LcoptSetupWizard()
+            self.setup_wizard = LcoptSetupWizard()
 
 
 class OptionGroupBox(QtWidgets.QGroupBox):
@@ -217,6 +199,7 @@ class LcoptSetupWizard(DatabaseImportWizard):
         self.confirmation_page.registerField('db_name', self.confirmation_page.fake_line_edit)
         ei_name = "Ecoinvent{}_{}_{}".format(*self.version.split('.'), self.system_model)
         self.setField('db_name', ei_name)   # following the lcopt naming convention
+        import_signals.finished.connect(self.emit_model_ready)
 
     def add_pages(self):
         self.ecoinvent_login_page = EcoinventLoginPage(self)
@@ -237,6 +220,9 @@ class LcoptSetupWizard(DatabaseImportWizard):
     @property
     def system_model(self):
         return lcopt.settings.ecoinvent.system_model
+
+    def emit_model_ready(self):
+        lcopt_signals.model_ready.emit()
 
 
 class LcoptThread(QtCore.QThread):
@@ -300,6 +286,7 @@ class LcoptSignals(QtCore.QObject):
     """
     app_running = QtCore.pyqtSignal()
     app_shutdown = QtCore.pyqtSignal()
+    model_ready = QtCore.pyqtSignal()
 
 
 lcopt_signals = LcoptSignals()
