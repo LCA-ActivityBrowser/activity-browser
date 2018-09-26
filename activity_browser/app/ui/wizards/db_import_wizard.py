@@ -19,6 +19,7 @@ from activity_browser.app.signals import signals
 class DatabaseImportWizard(QtWidgets.QWizard):
     def __init__(self):
         super().__init__()
+        self.setModal(True)
         self.downloader = ABEcoinventDownloader()
         self.setWindowTitle('Database Import Wizard')
         self.add_pages()
