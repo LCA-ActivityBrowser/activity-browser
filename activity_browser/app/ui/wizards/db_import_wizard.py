@@ -732,6 +732,7 @@ import_signals = ImportSignals()
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def __init__(self):
         super().__init__()
+        self.setModal(True)
         self.setWindowTitle('Biosphere and LCIA methods')
         self.setLabelText(
             'Adding default biosphere and LCIA methods to project <b>{}</b>:'.format(
