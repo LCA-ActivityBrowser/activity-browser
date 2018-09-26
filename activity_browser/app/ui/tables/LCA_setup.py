@@ -72,7 +72,7 @@ class CSActivityTable(ABTableWidget):
             self.setItem(new_row, 2, ABTableItem(act.get('reference product'),
                                                  key=key, color="product"))
             self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
-            self.setItem(new_row, 4, ABTableItem(act.get('location'), key=key, color="location"))
+            self.setItem(new_row, 4, ABTableItem(str(act.get('location')), key=key, color="location"))
             self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
         except:
             print("Could not load key in Calculation Setup: ", key)

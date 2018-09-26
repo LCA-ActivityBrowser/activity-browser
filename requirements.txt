@@ -1,8 +1,0 @@
-brightway2
-pyqt
-seaborn
-arrow
-pandas
-beautifulsoup4
-patool
-fuzzywuzzy

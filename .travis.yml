@@ -55,7 +55,7 @@ install:
   - conda install -q --use-local activity-browser-dev
   - conda install -q 'pytest<3.5' pytest-qt pytest-mock
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
-      conda install -q pytest-cov python-coveralls;
+      conda install -q "pytest-cov<2.6" python-coveralls;
     fi
 
 before_script:

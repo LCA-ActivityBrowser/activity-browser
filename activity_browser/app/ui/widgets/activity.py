@@ -95,7 +95,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database.setText(self.activity['database'])
         self.name_box.setText(self.activity['name'])
         self.name_box._key = self.activity.key
-        self.location_box.setText(self.activity.get('location', ''))
+        self.location_box.setText(str(self.activity.get('location', '')))
         self.location_box._key = self.activity.key
         self.comment_box.setPlainText(self.activity.get('comment', ''))
         # the <font> html-tag has no effect besides making the tooltip rich text
