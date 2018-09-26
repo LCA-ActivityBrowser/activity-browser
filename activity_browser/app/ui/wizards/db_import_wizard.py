@@ -21,6 +21,11 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         super().__init__()
         self.downloader = ABEcoinventDownloader()
         self.setWindowTitle('Database Import Wizard')
+        self.add_pages()
+        self.connect_signals()
+        self.show()
+
+    def add_pages(self):
         self.import_type_page = ImportTypePage(self)
         self.choose_dir_page = ChooseDirPage(self)
         self.db_name_page = DBNamePage(self)
@@ -41,8 +46,8 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         ]
         for page in self.pages:
             self.addPage(page)
-        self.show()
 
+    def connect_signals(self):
         # with this line, finish behaves like cancel and the wizard can be reused
         # db import is done when finish button becomes active
         self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.cleanup)

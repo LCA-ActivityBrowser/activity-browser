@@ -8,7 +8,10 @@ import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets
 
 from activity_browser.app.ui.wizards.db_import_wizard import (
-    EcoinventLoginPage, ConfirmationPage, ImportPage, EcoinventVersionPage
+    DatabaseImportWizard,
+    EcoinventLoginPage,
+    ConfirmationPage,
+    ImportPage
 )
 from ....signals import signals
 from activity_browser.app.ui.wizards.db_import_wizard import import_signals
@@ -206,12 +209,16 @@ class OptionGroupBox(QtWidgets.QGroupBox):
         self.setLayout(self.lay)
 
 
-class LcoptSetupWizard(QtWidgets.QWizard):
+class LcoptSetupWizard(DatabaseImportWizard):
     def __init__(self):
         super().__init__()
-        self.version = lcopt.settings.ecoinvent.version
-        self.system_model = lcopt.settings.ecoinvent.system_model
-        self.setWindowTitle('LCOPT Database Import Wizard')
+        self.import_type = 'homepage'
+        self.confirmation_page.fake_line_edit = QtWidgets.QLineEdit()  # only needed to register db_name field
+        self.confirmation_page.registerField('db_name', self.confirmation_page.fake_line_edit)
+        ei_name = "Ecoinvent{}_{}_{}".format(*self.version.split('.'), self.system_model)
+        self.setField('db_name', ei_name)   # following the lcopt naming convention
+
+    def add_pages(self):
         self.ecoinvent_login_page = EcoinventLoginPage(self)
         self.confirmation_page = ConfirmationPage(self)
         self.import_page = ImportPage(self)
@@ -222,21 +229,14 @@ class LcoptSetupWizard(QtWidgets.QWizard):
         ]
         for page in self.pages:
             self.addPage(page)
-        self.import_type = 'homepage'
-        self.version = lcopt.settings.ecoinvent.version
-        self.system_model = lcopt.settings.ecoinvent.system_model
-        self.confirmation_page.fake_line_edit = QtWidgets.QLineEdit()  # only needed to register db_name field
-        self.confirmation_page.registerField('db_name', self.confirmation_page.fake_line_edit)
-        ei_name = "Ecoinvent{}_{}_{}".format(*self.version.split('.'), self.system_model)
-        self.setField('db_name', ei_name)   # following the lcopt naming convention
-        self.show()
 
     @property
-    def db_url(self):
-        url = 'https://v33.ecoquery.ecoinvent.org'
-        db_key = (self.version, self.system_model)
-        db_dict = EcoinventVersionPage.get_available_files(self.ecoinvent_login_page.session)
-        return url + db_dict[db_key]
+    def version(self):
+        return lcopt.settings.ecoinvent.version
+
+    @property
+    def system_model(self):
+        return lcopt.settings.ecoinvent.system_model
 
 
 class LcoptThread(QtCore.QThread):
