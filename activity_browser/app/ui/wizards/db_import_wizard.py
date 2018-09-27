@@ -507,6 +507,8 @@ class MainWorkerThread(QtCore.QThread):
                 self.delete_canceled_db()
 
     def run_download(self):
+        if not hasattr(self.downloader, 'db_dict'):
+            self.downloader.db_dict = self.downloader.get_available_files()
         self.downloader.download()
         import_signals.download_complete.emit()
 

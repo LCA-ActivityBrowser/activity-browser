@@ -102,7 +102,6 @@ class LcoptWidget(QtWidgets.QWidget):
         lcopt_signals.app_shutdown.connect(self.switch_options_view)
         lcopt_signals.app_shutdown.connect(self.global_updates)
         self.close_button.clicked.connect(self.return_main_window)
-        self.ecoinvent_setup_button.clicked.connect(self.ecoinvent_setup)
         self.lcopt_settings_button.clicked.connect(self.run_lcopt)
         lcopt_signals.model_ready.connect(self.run_model)
 
@@ -161,7 +160,6 @@ class LcoptWidget(QtWidgets.QWidget):
     def run_model(self):
         self.run_lcopt(model=self.model)
 
-
     def return_main_window(self):
         window = self.window()
         window.stacked.setCurrentWidget(window.main_widget)
@@ -172,14 +170,15 @@ class LcoptWidget(QtWidgets.QWidget):
 
     def ab_ei_setup(self, **kwargs):
         print(f'kwargs:\n{kwargs}')
+        version = kwargs['ecoinvent_version']
+        system_model = kwargs['ecoinvent_system_model']
         print('ask for confirmation to start setup here')
-        ei_name = "Ecoinvent{}_{}_{}".format(*kwargs['ecoinvent_version'].split('.'),
-                                             kwargs['ecoinvent_system_model'])
+        ei_name = "Ecoinvent{}_{}_{}".format(*version.split('.'), system_model)
         if ei_name in bw.databases and not kwargs['overwrite']:
             if hasattr(self, 'setup_wizard'):
                 del self.setup_wizard
         else:
-            self.setup_wizard = LcoptSetupWizard()
+            self.setup_wizard = LcoptSetupWizard(version=version, system_model=system_model)
 
 
 class OptionGroupBox(QtWidgets.QGroupBox):
@@ -192,14 +191,32 @@ class OptionGroupBox(QtWidgets.QGroupBox):
 
 
 class LcoptSetupWizard(DatabaseImportWizard):
-    def __init__(self):
+    def __init__(self, version=None, system_model=None):
+        self._version = version
+        self._system_model = system_model
         super().__init__()
-        self.import_type = 'homepage'
-        self.confirmation_page.fake_line_edit = QtWidgets.QLineEdit()  # only needed to register db_name field
+        self.update_downloader()
+        # fake_line_edit only needed to register db_name field
+        self.confirmation_page.fake_line_edit = QtWidgets.QLineEdit()
+        self.confirmation_page.fake_line_edit2 = QtWidgets.QLineEdit()
         self.confirmation_page.registerField('db_name', self.confirmation_page.fake_line_edit)
         ei_name = "Ecoinvent{}_{}_{}".format(*self.version.split('.'), self.system_model)
         self.setField('db_name', ei_name)   # following the lcopt naming convention
+
+        self.determine_import_type()
         import_signals.finished.connect(self.emit_model_ready)
+
+    def determine_import_type(self):
+        if self.downloader.check_stored():
+            self.import_type = 'archive'
+            self.confirmation_page.registerField(
+                'archive_path', self.confirmation_page.fake_line_edit2
+            )
+            self.setField('archive_path', self.downloader.out_path)
+            import_signals.login_success.emit(True)
+        else:
+            self.import_type = 'homepage'
+        print(self.import_type)
 
     def add_pages(self):
         self.ecoinvent_login_page = EcoinventLoginPage(self)
@@ -215,11 +232,17 @@ class LcoptSetupWizard(DatabaseImportWizard):
 
     @property
     def version(self):
-        return lcopt.settings.ecoinvent.version
+        if self._version is None:
+            return lcopt.settings.ecoinvent.version
+        else:
+            return self._version
 
     @property
     def system_model(self):
-        return lcopt.settings.ecoinvent.system_model
+        if self._system_model is None:
+            return lcopt.settings.ecoinvent.system_model
+        else:
+            return self._system_model
 
     def emit_model_ready(self):
         lcopt_signals.model_ready.emit()
