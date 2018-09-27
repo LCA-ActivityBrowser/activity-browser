@@ -141,6 +141,7 @@ def get_default_project_name():
     else:
         return None
 
+
 def get_LCIA_method_name_dict(keys):
     """LCIA methods in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
     Returns a dictionary with
@@ -148,3 +149,11 @@ def get_LCIA_method_name_dict(keys):
     value: brightway2 method tuple
     """
     return {', '.join(key): key for key in keys}
+
+
+def get_locations_in_db(db_name):
+    """returns the set of locations in a database"""
+    db = bw.Database(db_name)
+    loc_set = set()
+    [loc_set.add(act.get("location")) for act in db]
+    return loc_set

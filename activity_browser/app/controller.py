@@ -377,7 +377,6 @@ class Controller(object):
         signals.open_activity_tab.emit("activities", new_act_key)
         signals.databases_changed.emit()
 
-
     def modify_activity(self, key, field, value):
         activity = bw.get_activity(key)
         activity[field] = value

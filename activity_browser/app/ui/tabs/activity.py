@@ -24,24 +24,25 @@ class ActivityTab(QtWidgets.QTabWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, parent=None, activity_key=None, read_only=True, db_read_only=True):
+    def __init__(self, activity_key, parent=None, read_only=True, db_read_only=True):
         super(ActivityTab, self).__init__(parent)
         self.parent = parent
         self.read_only = read_only
         self.db_read_only = db_read_only
-        self.activity_key=activity_key
-        # checkbox for enabling editing of activity, default=read-only
+        self.activity_key = activity_key
+        self.activity = bw.get_activity(activity_key)
 
+        # checkbox for enabling editing of activity, default=read-only
         self.edit_act_ch = QtWidgets.QCheckBox('Edit Activity', parent=self)
         self.edit_act_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.edit_act_ch.setChecked(not self.read_only)
         self.db_name = self.activity_key[0]
         self.edit_act_ch.clicked.connect(
-            lambda checked: self.read_only_changed(read_only=not checked))
+            lambda checked: self.act_read_only_changed(read_only=not checked))
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
         # activity-specific data as shown at the top
-        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only)
+        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
 
         # exchange data shown after the activity data which it relates to, in tables depending on exchange type
         self.production = ExchangeTable(self, tableType="products")
@@ -70,18 +71,14 @@ class ActivityTab(QtWidgets.QTabWidget):
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
-        if activity_key:
-            self.populate(activity_key)
+        self.populate(self.activity_key)
 
         self.update_tooltips()
         self.update_style()
         self.connect_signals()
 
-
     def populate(self, key):
-        self.activity = bw.get_activity(key)
-
-        self.activity_data_grid.populate(self.activity)
+        #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
         self.production.set_queryset(key[0], self.activity.production())
         self.inputs.set_queryset(key[0], self.activity.technosphere())
@@ -95,7 +92,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.activity_data_grid.read_only = read_only
         self.activity_data_grid.set_activity_fields_read_only()
         self.set_exchange_tables_read_only()
-        self.activity_data_grid.populate_database_combo()
+        self.activity_data_grid.populate_database_combo(parent=self)
 
         self.update_tooltips()
         self.update_style()
@@ -129,7 +126,7 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         else:  # on read-only state change for a database different to the open activity...
             # update values in database list to ensure activity cannot be duplicated to read-only db
-            self.activity_data_grid.populate_database_combo()
+            self.activity_data_grid.populate_database_combo(parent=self)
 
 
     def update_tooltips(self):

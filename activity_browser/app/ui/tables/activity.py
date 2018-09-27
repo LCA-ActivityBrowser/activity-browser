@@ -130,15 +130,15 @@ class ExchangeTable(ABTableWidget):
 
             if self.tableType == "products":  # "Amount", "Unit", "Name", "Location"
                 self.setItem(row, 0, ABTableItem(
-
                     "{:.3g}".format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
                     act.get('unit', 'Unknown'), color="unit"))
 
                 self.setItem(row, 2, ABTableItem(
+                    # correct reference product name is stored in the exchange itself and not the activity
                     act.get('reference product') or act.get("name") if self.upstream else
-                    exc.get('reference product') or exc.get("name"),  # correct reference product name is stored in the exchange itself and not the activity
+                    exc.get('reference product') or exc.get("name"),
                     exchange=exc, color="reference product"))
 
                 self.setItem(row, 4, ABTableItem(

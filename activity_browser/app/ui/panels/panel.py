@@ -84,7 +84,7 @@ class ActivitiesPanel(Panel):
                 act_dict = bw.get_activity(key).as_dict()
                 act_name = act_dict['name']
 
-                new_tab = ActivityTab(self, activity_key=key, read_only=True, db_read_only=database_read_only)
+                new_tab = ActivityTab(key, parent=self, read_only=True, db_read_only=database_read_only)
 
 
                 # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
