@@ -17,7 +17,7 @@ for dirpath, dirnames, filenames in os.walk('activity_browser'):
 
 setup(
     name='activity-browser',
-    version="2.2.4",
+    version="2.2.5",
     packages=packages,
     include_package_data=True,
     author="Bernhard Steubing",
