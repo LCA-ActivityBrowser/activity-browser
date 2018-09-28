@@ -187,7 +187,7 @@ class Controller(object):
             return
         buttonReply = self.confirm_project_deletion_dialog()
         if buttonReply == QtWidgets.QMessageBox.Yes:
-            bw.projects.delete_project(bw.projects.current)
+            bw.projects.delete_project(bw.projects.current, delete_dir=True)
             self.change_project(bc.get_startup_project_name(), reload=True)
             signals.projects_changed.emit()
 
