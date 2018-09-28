@@ -167,7 +167,7 @@ class Controller(object):
                                                   "A project with this name already exists.")
 
     def confirm_project_deletion_dialog(self):
-        confirm = QtWidgets.QMessageBox.question(
+        buttonReply = QtWidgets.QMessageBox.question(
             None,
             'Confirm project deletion',
             ("Are you sure you want to delete project '{}'? It has {} databases" +
@@ -177,7 +177,7 @@ class Controller(object):
                 len(bw.methods)
             )
         )
-        return confirm
+        return buttonReply
 
     def delete_project(self):
         if len(bw.projects) == 1:
@@ -185,8 +185,8 @@ class Controller(object):
                                               "Not possible",
                                               "Can't delete last project.")
             return
-        ok = self.confirm_project_deletion_dialog()
-        if ok:
+        buttonReply = self.confirm_project_deletion_dialog()
+        if buttonReply == QtWidgets.QMessageBox.Yes:
             bw.projects.delete_project(bw.projects.current)
             self.change_project(bc.get_startup_project_name(), reload=True)
             signals.projects_changed.emit()
