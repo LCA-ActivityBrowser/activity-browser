@@ -9,22 +9,36 @@ from ...signals import signals
 
 
 class ExchangeTable(ABTableWidget):
-    COLUMN_LABELS = {
-        # {exchangeTableName: headers}
-        "products": ["Amount", "Unit", "Name", "Location"],
-        # technosphere & downstream consumers
-        "technosphere": ["Amount", "Unit", "Product", "Location", "Uncertainty", "Product db"],
-        "biosphere": ["Amount", "Unit", "Name", "Compartments", "Uncertainty", "Database"],
+    """ All tables shown in the ActivityTab are instances of this class (inc. non-exchange types)
+    Differing Views and Behaviours of tables are handled based on their tableType
+    todo(?): possibly preferable to subclass for distinct table functionality, rather than conditionals in one class
+    The tables include functionalities: drag-drop, context menus, in-line value editing
+    The read-only/editable status of tables is handled in ActivityTab.set_exchange_tables_read_only()
+    Instantiated with headers but without row-data
+    Then set_queryset() called from ActivityTab with params
+    set_queryset calls Sync() to fill and format table data items
+    todo(?): the variables which are initiated as defaults then later populated in set_queryset() can be passed at init
+       Therefore this class could be simplified by removing self.qs,upstream,database defaults etc.
+    """
+    COLUMN_LABELS = {  # {exchangeTableName: headers}
+        "products": ["Amount", "Unit", "Output Name", "Location"],
+        # todo(?) should the table functionality for downstream activities really be identical to technosphere inputs?
+        # technosphere inputs & Downstream product-consuming activities that consume the
+        "technosphere": ["Amount", "Unit", "Input Name", "Location", "Uncertainty", "Product DB"],
+        "biosphere": ["Amount", "Unit", "Flow Name", "Compartments", "Uncertainty", "Flow DB"],
     }
     def __init__(self, parent, tableType):
         super(ExchangeTable, self).__init__()
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
+
         self.tableType = tableType
         self.column_labels = self.COLUMN_LABELS[self.tableType]
         self.setColumnCount(len(self.column_labels))
+        # default values, updated later in set_queryset()
         self.qs, self.upstream, self.database = None, False, None
+        # ignore_changes set to True whilst sync() executes to prevent conflicts(?)
         self.ignore_changes = False
         self.setup_context_menu()
         self.connect_signals()
@@ -34,6 +48,7 @@ class ExchangeTable(ABTableWidget):
         )
 
     def setup_context_menu(self):
+        # todo: different table types require different context menu actions
         self.delete_exchange_action = QtWidgets.QAction(
             QtGui.QIcon(icons.delete), "Delete exchange(s)", None
         )
@@ -41,6 +56,7 @@ class ExchangeTable(ABTableWidget):
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
 
     def connect_signals(self):
+        # todo: different table types require different signals connected
         signals.database_changed.connect(self.filter_database_changed)
         self.cellChanged.connect(self.filter_amount_change)
         self.cellDoubleClicked.connect(self.filter_clicks)
@@ -93,6 +109,7 @@ class ExchangeTable(ABTableWidget):
 
     def filter_clicks(self, row, col):
         item = self.item(row, col)
+        # todo(?): series of ORs seems overly inclusive - intended purpose unclear
         if self.tableType == "products" or self.tableType == "biosphere" or (item.flags() & QtCore.Qt.ItemIsEditable):
             return
 
@@ -105,6 +122,8 @@ class ExchangeTable(ABTableWidget):
             signals.add_activity_to_history.emit(key)
 
     def set_queryset(self, database, qs, limit=100, upstream=False):
+        # todo(?): as this function calls sync() - it appears to do more than just setting the queryset
+        # ...purpose of calling this function (in ActivityTab) would be clearer if renamed
         self.database, self.qs, self.upstream = database, qs, upstream
         self.sync(limit)
 
@@ -115,9 +134,12 @@ class ExchangeTable(ABTableWidget):
         self.setHorizontalHeaderLabels(self.column_labels)
 
         if self.upstream:
+            # todo(?): move to init
             self.setDragEnabled(False)
             self.setAcceptDrops(False)
 
+        # edit_flag is passed to table items which should be user-editable.
+        # Default flag for cells is uneditable - which still allows cell-selection/highlight
         edit_flag = [QtCore.Qt.ItemIsEditable]
 
         # todo: add a setting which allows user to choose their preferred number formatting, for use in tables

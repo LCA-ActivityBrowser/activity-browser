@@ -41,10 +41,11 @@ class ActivityTab(QtWidgets.QTabWidget):
             lambda checked: self.act_read_only_changed(read_only=not checked))
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
-        # activity-specific data as shown at the top
+
+        # activity-specific data displayed and editable near the top of the tab
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
 
-        # exchange data shown after the activity data which it relates to, in tables depending on exchange type
+        # 4 data tables displayed after the activity data
         self.production = ExchangeTable(self, tableType="products")
         self.inputs = ExchangeTable(self, tableType="technosphere")
         self.flows = ExchangeTable(self, tableType="biosphere")
@@ -53,11 +54,11 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.exchange_tables = [
             (self.production, "Products:"),
             (self.inputs, "Technosphere Inputs:"),
-            (self.flows, "Biosphere flows:"),
-            (self.upstream, "Downstream consumers:"),
+            (self.flows, "Biosphere Flows:"),
+            # todo: standardise / clarify(document) the usage of upstream and downstream
+            (self.upstream, "Downstream Consumers:"),
         ]
-
-        # arrange activity data and exchange data into desired vertical layout
+        # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
         layout.addWidget(self.edit_act_ch)
@@ -80,13 +81,14 @@ class ActivityTab(QtWidgets.QTabWidget):
     def populate(self, key):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
+        # todo use self.db_name rather than passing the key and using zero-th item
         self.production.set_queryset(key[0], self.activity.production())
         self.inputs.set_queryset(key[0], self.activity.technosphere())
         self.flows.set_queryset(key[0], self.activity.biosphere())
         self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
 
     def act_read_only_changed(self, read_only):
-        """ When read_only=False specific data fields in the tables below become editable
+        """ When read_only=False specific data fields in the tables below become user-editable
                 When read_only=True these same fields become read-only"""
         self.read_only = read_only
         self.activity_data_grid.read_only = read_only
