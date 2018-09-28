@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
 
 from activity_browser.app.controller import Controller
 
@@ -32,7 +32,8 @@ def test_change_project(qtbot, ab_app):
 def test_delete_project(qtbot, mock, ab_app):
     qtbot.waitForWindowShown(ab_app.main_window)
     assert bw.projects.current == 'pytest_project_del'
-    mock.patch.object(Controller, 'confirm_project_deletion_dialog', return_value=True)
+    mock.patch.object(Controller, 'confirm_project_deletion_dialog',
+                      return_value=QtWidgets.QMessageBox.Yes)
     qtbot.mouseClick(
         ab_app.main_window.right_panel.project_tab.projects_widget.delete_project_button,
         QtCore.Qt.LeftButton
