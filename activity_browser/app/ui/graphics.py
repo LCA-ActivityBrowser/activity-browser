@@ -12,6 +12,7 @@ from PyQt5 import QtWidgets
 from ..bwutils.commontasks import format_activity_label, wrap_text
 from brightway2 import get_activity
 
+
 class Plot(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Plot, self).__init__(parent)
@@ -51,6 +52,7 @@ class Plot(QtWidgets.QWidget):
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
             self.figure.savefig(filepath)
+
 
 class CorrelationPlot(Plot):
     def __init__(self, parent=None, *args):
@@ -95,6 +97,7 @@ class CorrelationPlot(Plot):
         self.canvas.draw()
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+
 
 class LCAResultsBarChart(Plot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """

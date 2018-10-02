@@ -6,6 +6,8 @@ from .dataframe_table import ABDataFrameTable
 from PyQt5 import QtWidgets
 
 from operator import itemgetter
+import numpy as np
+from ...bwutils.commontasks import format_activity_label
 
 
 class LCAResultsTable(ABDataFrameTable):
@@ -47,41 +49,63 @@ def inventory_labels(length, mlca, labellength):
     return shortlabels
 
 
+# class InventoryTable(ABDataFrameTable):
+#     def __init__(self, parent, **kwargs):
+#         super(InventoryTable, self).__init__(parent, **kwargs)
+#
+#     @ABDataFrameTable.decorated_sync
+#     def sync(self, mlca, method=None, limit=100):
+#
+#         if method not in mlca.technosphere_flows.keys():
+#             method = mlca.func_unit_translation_dict[str(method)]
+#
+#         arrays = (mlca.technosphere_flows.values())
+#         #print(arrays)
+#
+#         array = mlca.technosphere_flows[str(method)]
+#         length = min(limit, len(array))
+#         shortlabels = inventory_labels(length, mlca, 100)
+#
+#         array, shortlabels = (list(t) for t in zip(*reversed(sorted(zip(array, shortlabels)))))
+#
+#         data_tuples = [
+#             (float(i), shortlabels[n])
+#             for n, i in enumerate(array)]
+#
+#         ordered_data = (sorted(data_tuples, key=itemgetter(0), reverse=True))
+#         array = [i[0] for i in ordered_data]
+#         shortlabels = [i[1] for i in ordered_data]
+#
+#         col_labels = ['Amount']
+#         row_labels = [i for i in shortlabels[:length]]
+#
+#         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
+
+
 class InventoryTable(ABDataFrameTable):
     def __init__(self, parent, **kwargs):
         super(InventoryTable, self).__init__(parent, **kwargs)
+
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, method=None, limit=100):
+    def sync(self, mlca, method=None):
+        arrays = list(mlca.technosphere_flows.values())
+        output = []
+        for array in arrays:
+            s = ' '.join([str(i) for i in array])
+            output.append(s)
+        joined = '; '.join(output)
+        matrix = np.rot90(np.matrix(joined))
 
-        if method not in mlca.technosphere_flows.keys():
-            method = mlca.func_unit_translation_dict[str(method)]
+        col_labels = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
+        row_labels = inventory_labels(len(mlca.rev_activity_dict), mlca, 75)
 
-        arrays = (mlca.technosphere_flows.values())
-        #print(arrays)
-
-        array = mlca.technosphere_flows[str(method)]
-        length = min(limit, len(array))
-        shortlabels= inventory_labels(length, mlca, 100)
-
-        array, shortlabels = (list(t) for t in zip(*reversed(sorted(zip(array, shortlabels)))))
-
-        data_tuples = [
-            (float(i), shortlabels[n])
-            for n, i in enumerate(array)]
-
-        ordered_data = (sorted(data_tuples, key=itemgetter(0), reverse=True))
-        array = [i[0] for i in ordered_data]
-        shortlabels = [i[1] for i in ordered_data]
-
-        col_labels = ['Amount']
-        row_labels = [i for i in shortlabels[:length]]
-
-        self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
+        self.dataframe = pd.DataFrame(matrix, index=row_labels, columns=col_labels)
 
 
 class BiosphereTable(QtWidgets.QTableView):
     def __init__(self, parent):
         super(BiosphereTable, self).__init__(parent)
+
     def sync(self, mlca, method=None, limit=20):
 
         if method not in mlca.technosphere_flows.keys():
@@ -100,7 +124,7 @@ class BiosphereTable(QtWidgets.QTableView):
             for nj, j in enumerate(i):
                 table.setItem(nj, ni, QtWidgets.QTableWidgetItem(str(j)))
         length = limit
-        shortlabels= inventory_labels(length, mlca, 50)
+        shortlabels = inventory_labels(length, mlca, 50)
         table.setVerticalHeaderLabels(shortlabels)
         table.setVerticalScrollMode(1)
         table.setHorizontalScrollMode(1)
