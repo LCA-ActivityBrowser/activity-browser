@@ -7,8 +7,6 @@ from PyQt5 import QtWidgets
 
 from operator import itemgetter
 
-from scipy.sparse import csr_matrix
-
 
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
@@ -31,6 +29,7 @@ class ProcessContributionsTable(ABDataFrameTable):
     def sync(self, dummy):
         self.dataframe = self.parent.plot.df_tc
 
+
 class InventoryCharacterisationTable(ABDataFrameTable):
     def __init__(self, parent):
         super(InventoryCharacterisationTable, self).__init__(parent)
@@ -40,10 +39,13 @@ class InventoryCharacterisationTable(ABDataFrameTable):
     def sync(self, dummy):
         self.dataframe = self.parent.plot.df_tc
 
+
 def inventory_labels(length, mlca, labellength):
     labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
+    #labels = [format_activity_label((ac), style='pnl') for ac in labels]
     shortlabels = [((i[:labellength-2] + '..') if len(i) > labellength else i) for i in labels]
     return shortlabels
+
 
 class InventoryTable(ABDataFrameTable):
     def __init__(self, parent, **kwargs):
@@ -53,6 +55,9 @@ class InventoryTable(ABDataFrameTable):
 
         if method not in mlca.technosphere_flows.keys():
             method = mlca.func_unit_translation_dict[str(method)]
+
+        arrays = (mlca.technosphere_flows.values())
+        #print(arrays)
 
         array = mlca.technosphere_flows[str(method)]
         length = min(limit, len(array))
@@ -72,7 +77,6 @@ class InventoryTable(ABDataFrameTable):
         row_labels = [i for i in shortlabels[:length]]
 
         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
-
 
 
 class BiosphereTable(QtWidgets.QTableView):
