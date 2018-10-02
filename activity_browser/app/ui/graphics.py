@@ -108,7 +108,10 @@ class LCAResultsBarChart(Plot):
         if method == None:
             method = mlca.methods[0]
 
-        functional_units = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
+        #functional_units = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
+
+        functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
+
         values = mlca.results[:, mlca.methods.index(method)]
         y_pos = np.arange(len(functional_units))
 

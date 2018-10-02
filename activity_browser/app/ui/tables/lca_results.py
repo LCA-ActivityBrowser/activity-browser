@@ -49,7 +49,7 @@ class InventoryTable(ABDataFrameTable):
     def __init__(self, parent, **kwargs):
         super(InventoryTable, self).__init__(parent, **kwargs)
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, method=None, limit=1000):
+    def sync(self, mlca, method=None, limit=100):
 
         if method not in mlca.technosphere_flows.keys():
             method = mlca.func_unit_translation_dict[str(method)]
