@@ -113,19 +113,17 @@ class AnalysisTab(QWidget):
         self.header = header(self.name)
 
         #layout for custom tab (currently only InventoryTab)
-        if self.custom:
-            self.Second_Space = QScrollArea()
-            self.SecondWidget = QWidget()
-            self.Biosphere = header('Biosphere Inventory')
-            self.SecondTable = BiosphereTable(self.setup)
-            self.SecondLayout = QVBoxLayout()
+        # if self.custom:
+        #     self.Second_Space = QScrollArea()
+        #     self.SecondWidget = QWidget()
+        #     self.Biosphere = header('Biosphere Inventory')
+        #     self.SecondTable = BiosphereTable(self.setup)
+        #     self.SecondLayout = QVBoxLayout()
         self.layout = QVBoxLayout()
 
         self.TopStrip = QHBoxLayout()
         self.setLayout(self.layout)
         self.TopStrip.addWidget(self.header)
-
-
         self.layout.addLayout(self.TopStrip)
         self.layout.addWidget(horizontal_line())
 
@@ -446,18 +444,19 @@ class AnalysisTab(QWidget):
         if self.table:
             self.main_space_widget_layout.addWidget(self.main_space_table)
 
-        self.main_space_widget_layout.addStretch()
+        if not self.custom:
+            self.main_space_widget_layout.addStretch()
 
         self.layout.addWidget(self.main_space)
 
-        if self.custom:
-            self.main_space.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            self.SecondLayout.addWidget(self.Biosphere)
-            self.SecondLayout.addWidget(self.SecondTable)
-            self.SecondWidget.setLayout(self.SecondLayout)
-            self.SecondWidget.setMinimumWidth(718)
-            self.Second_Space.setWidget(self.SecondWidget)
-            self.layout.addWidget(self.Second_Space)
+        # if self.custom:
+        #     self.main_space.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        #     self.SecondLayout.addWidget(self.Biosphere)
+        #     self.SecondLayout.addWidget(self.SecondTable)
+        #     self.SecondWidget.setLayout(self.SecondLayout)
+        #     self.SecondWidget.setMinimumWidth(718)
+        #     self.Second_Space.setWidget(self.SecondWidget)
+        #     self.layout.addWidget(self.Second_Space)
 
 
     def update_analysis_tab(self):
@@ -674,7 +673,8 @@ class Inventory(AnalysisTab):
         else:
             pass
         self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
-        self.SecondTable.sync(self.setup.mlca, method=method)
+        # self.SecondTable.sync(self.setup.mlca, method=method)
+
 
 class InventoryCharacterisation(AnalysisTab):
     def __init__(self, parent, **kwargs):
