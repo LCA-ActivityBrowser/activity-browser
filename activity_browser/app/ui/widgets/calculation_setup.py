@@ -23,8 +23,8 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScro
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-# TODO: Finish inventory tab (with techno/biosphere options
 # TODO: LOW PRIORITY: add filtering for tables/graphs
+
 
 class CalculationSetupTab(QTabWidget):
     def __init__(self, parent, name):
@@ -75,7 +75,6 @@ class CalculationSetupTab(QTabWidget):
             self.setTabEnabled(correlations_tab_index, False)
             self.setTabEnabled(lca_score_comparison_tab_index, False)
 
-
     def update_calculation(self):
         """ Update the mlca calculation. """
         self.mlca = MLCA(self.setup_name)
@@ -90,6 +89,7 @@ class CalculationSetupTab(QTabWidget):
             self.single_method = False
         else:
             self.single_method = True
+
 
 class AnalysisTab(QWidget):
     def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None,\
@@ -457,7 +457,6 @@ class AnalysisTab(QWidget):
         #     self.SecondWidget.setMinimumWidth(718)
         #     self.Second_Space.setWidget(self.SecondWidget)
         #     self.layout.addWidget(self.Second_Space)
-
 
     def update_analysis_tab(self):
         if self.combobox_menu_combobox != None:

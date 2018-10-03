@@ -5,7 +5,6 @@ from brightway2 import get_activity
 from .dataframe_table import ABDataFrameTable
 from PyQt5 import QtWidgets
 
-from operator import itemgetter
 import numpy as np
 from ...bwutils.commontasks import format_activity_label
 
@@ -44,7 +43,6 @@ class InventoryCharacterisationTable(ABDataFrameTable):
 
 def inventory_labels(length, mlca, labellength):
     labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
-    #labels = [format_activity_label((ac), style='pnl') for ac in labels]
     shortlabels = [((i[:labellength-2] + '..') if len(i) > labellength else i) for i in labels]
     return shortlabels
 
