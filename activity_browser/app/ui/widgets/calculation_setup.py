@@ -659,7 +659,6 @@ class Inventory(AnalysisTab):
 
         self.table = InventoryTable(self.setup, maxheight=20)
 
-        self.add_combobox(method=False, func=True)
         self.add_main_space()
         self.add_export()
 
