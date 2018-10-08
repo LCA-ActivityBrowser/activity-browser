@@ -49,13 +49,13 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.production = ExchangeTable(self, tableType="products")
         self.inputs = ExchangeTable(self, tableType="technosphere")
         self.flows = ExchangeTable(self, tableType="biosphere")
+        # self.upstream refers to the open activity: it is upstream of the downstream consumers shown in the table...
         self.upstream = ExchangeTable(self, tableType="technosphere")
 
         self.exchange_tables = [
             (self.production, "Products:"),
             (self.inputs, "Technosphere Inputs:"),
             (self.flows, "Biosphere Flows:"),
-            # todo: standardise / clarify(document) the usage of upstream and downstream
             (self.upstream, "Downstream Consumers:"),
         ]
         # arrange activity data and exchange data into vertical layout
@@ -81,11 +81,11 @@ class ActivityTab(QtWidgets.QTabWidget):
     def populate(self, key):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
-        # todo use self.db_name rather than passing the key and using zero-th item
-        self.production.set_queryset(key[0], self.activity.production())
-        self.inputs.set_queryset(key[0], self.activity.technosphere())
-        self.flows.set_queryset(key[0], self.activity.biosphere())
-        self.upstream.set_queryset(key[0], self.activity.upstream(), upstream=True)
+        db_name = key[0]
+        self.production.set_queryset(db_name, self.activity.production())
+        self.inputs.set_queryset(db_name, self.activity.technosphere())
+        self.flows.set_queryset(db_name, self.activity.biosphere())
+        self.upstream.set_queryset(db_name, self.activity.upstream(), upstream=True)
 
     def act_read_only_changed(self, read_only):
         """ When read_only=False specific data fields in the tables below become user-editable
@@ -101,16 +101,19 @@ class ActivityTab(QtWidgets.QTabWidget):
 
     def set_exchange_tables_read_only(self):
         """the user should not be able to edit the exchange tables when read_only
-                EditTriggers turned off to prevent DoubleClick editing
+                EditTriggers turned off to prevent DoubleClick-selection editing
                 DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add"""
 
         for table, label in self.exchange_tables:
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
-                table.setDragDropMode(QtWidgets.QTableWidget.NoDragDrop)
+                self.setAcceptDrops(False)
+                # table.setDragDropMode(QtWidgets.QTableWidget.NoDragDrop)
             else:
                 table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
-                table.setDragDropMode(QtWidgets.QTableWidget.DropOnly)
+                if not self.upstream:  # downstream consumers table never accepts drops
+                    self.setAcceptDrops(True)
+                    # table.setDragDropMode(QtWidgets.QTableWidget.DropOnly)
 
     def db_read_only_changed(self, db_name, db_read_only):
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
