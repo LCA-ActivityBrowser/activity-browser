@@ -262,7 +262,7 @@ class ActivitiesTable(ABTableWidget):
                 elif value == "location":
                     self.setItem(row, col, ABTableItem(str(ds.get(value, '')), key=ds.key, color=value))
                 else:
-                    self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))<<<<<<< redesign_act_tab
+                    self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
         
         self.db_read_only = user_project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
         self.update_activity_table_read_only(self.database_name, db_read_only=self.db_read_only)
