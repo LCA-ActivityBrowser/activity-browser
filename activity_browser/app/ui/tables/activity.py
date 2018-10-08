@@ -180,7 +180,7 @@ class ExchangeTable(ABTableWidget):
                     # todo: remove? it makes no sense to show the (open) activity location...
                     # showing exc locations (as now) makes sense. But they rarely have one...
                     # I believe they usually implicitly inherit the location of the producing activity
-                    exc.get('location', ''), color="location"))
+                    str(exc.get('location', '')), color="location"))
 
                 # todo: can both outputs and inputs of a process both have uncertainty data?
                 self.setItem(row, 4, ABTableItem(
@@ -207,7 +207,7 @@ class ExchangeTable(ABTableWidget):
                     adj_act.get('name'), exchange=exc, color="name"))
 
                 self.setItem(row, 4, ABTableItem(
-                    adj_act.get('location', ''), color="location"))
+                    str(adj_act.get('location', '')), color="location"))
 
                 self.setItem(row, 5, ABTableItem(
                     adj_act.get('database'), color="database"))

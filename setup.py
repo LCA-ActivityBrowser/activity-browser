@@ -17,22 +17,13 @@ for dirpath, dirnames, filenames in os.walk('activity_browser'):
 
 setup(
     name='activity-browser',
-    version="2.2.4",
+    version="2.2.5",
     packages=packages,
     include_package_data=True,
     author="Bernhard Steubing",
     author_email="b.steubing@cml.leidenuniv.nl",
     license=open('LICENSE').read(),
-    install_requires=[
-        'brightway2',
-        'pyqt5',
-        'seaborn',
-        'arrow',
-        'pandas',
-        'beautifulsoup4',
-        'patool',
-        'fuzzywuzzy'
-    ],
+    install_requires=[], # dependency management in conda recipe
     url="https://github.com/LCA-ActivityBrowser/activity-browser",
     long_description=open('README.md').read(),
     description=('Brightway2 GUI'),

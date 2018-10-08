@@ -110,6 +110,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         self.comment_box.setPlainText(parent.activity.get('comment', ''))
         self.comment_box._key = parent.activity.key
+
         # the <font> html-tag has no effect besides making the tooltip rich text
         # this is required for line breaks of long comments
         self.comment_groupbox.setToolTip(
@@ -119,17 +120,17 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.comment_box.adjust_size()
 
     def populate_location_combo(self, parent):
-        """ acts as both: a label to show current location of act, and
+        """ acts as both of: a label to show current location of act, and
                 auto-completes with all other locations in the database, to enable selection """
         self.location_combo.blockSignals(True)
         self.location_combo.clear()
-        location = parent.activity.get('location', '')
+        location = str(parent.activity.get('location', ''))
         self.location_combo._before = location
 
         # get unique set of locations in db
         loc_set = bc.get_locations_in_db(parent.activity.get('database', ''))
         for loc in loc_set:
-            self.location_combo.addItem(loc) # perhaps add an icon? QIcon(icons.switch)
+            self.location_combo.addItem(str(loc)) # perhaps add an icon? QIcon(icons.switch)
 
         self.location_combo.model().sort(0)
         self.location_combo.setCurrentText(location)

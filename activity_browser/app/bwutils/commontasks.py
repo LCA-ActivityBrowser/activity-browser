@@ -24,10 +24,10 @@ def format_activity_label(act, style='pnl', max_length=40):
         if style == 'pnl':
             label = wrap_text(
                 '\n'.join([a.get('reference product', ''), a.get('name', ''),
-                           a.get('location', '')]), max_length=max_length)
+                           str(a.get('location', ''))]), max_length=max_length)
         elif style == 'pl':
             label = wrap_text(', '.join([a.get('reference product', '') or a.get('name', ''),
-                                         a.get('location', ''),
+                                         str(a.get('location', '')),
                                          ]), max_length=40)
         elif style == 'key':
             label = wrap_text(str(a.key))  # safer to use key, code does not always exist
@@ -39,7 +39,7 @@ def format_activity_label(act, style='pnl', max_length=40):
         else:
             label = wrap_text(
                 '\n'.join([a.get('reference product', ''), a.get('name', ''),
-                           a.get('location', '')]))
+                           str(a.get('location', ''))]))
     except:
         if isinstance(act, tuple):
             return wrap_text(str(''.join(act)))

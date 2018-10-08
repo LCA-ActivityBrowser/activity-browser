@@ -1,4 +1,4 @@
-{% set version = "2.2.4.dev" %}
+{% set version = "2.2.5.dev" %}
 
 package:
   name: activity-browser-dev
@@ -21,14 +21,15 @@ requirements:
   run:
     - python
     - brightway2 >=2.1.2
+    - bw2io >=0.7.dev1
+    - bw2data >=3.4.3
     - matplotlib >=2.2.2
     - seaborn
     - arrow
     - pandas
-    - beautifulsoup4
     - fuzzywuzzy
     - pyqt==5.9.2
-    - eidl7zip
+    - eidl >=1.2.0
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
