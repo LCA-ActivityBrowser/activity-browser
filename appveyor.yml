@@ -4,10 +4,10 @@ build: false
 environment:
   matrix:
     - JOB: "Python 3.6, 64bit"
-      PYTHON: "C:\\Python36_64"
-      PYTHON_VERSION: "3.6"
+      PYTHON: "C:\\Python37_64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
-      CONDA_PY: "36"
+      CONDA_PY: "37"
       CONDA_ENV_PY: "3.6"
 
 install:
