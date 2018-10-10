@@ -4,7 +4,7 @@ build: false
 environment:
   matrix:
     - JOB: "Python 3.6, 64bit"
-      PYTHON: "C:\\Python36_64"
+      PYTHON: "C:\\Python37_64"
       PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "37"
@@ -15,7 +15,6 @@ install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "conda info"
   - "DIR"
-  - "DIR C:\\projects\\activity-browser"
   - "conda update conda"
   - "conda config --set always_yes yes --set changeps1 no"
   - "conda config --append channels conda-forge"
