@@ -12,9 +12,10 @@ environment:
 
 install:
   - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "conda info"
   - "DIR"
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "DIR C:\\projects\\activity-browser"
   - "conda update conda"
   - "conda config --set always_yes yes --set changeps1 no"
   - "conda config --append channels conda-forge"
