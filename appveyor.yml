@@ -12,6 +12,8 @@ environment:
 
 install:
   - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
+  - "conda info"
+  - "DIR"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "conda update conda"
   - "conda config --set always_yes yes --set changeps1 no"
