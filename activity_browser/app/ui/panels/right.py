@@ -6,9 +6,15 @@ from ...signals import signals
 from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
-    ActivityDetailsTab,
+    # ActivityDetailsTab,
     LCAResultsTab,
+    ActivityTab,
+    HistoryTab,
+    # ImpactAssessmentTab,
+    MethodsTab,
+    ProjectTab,
 )
+
 
 class RightPanel(Panel):
     side = "right"
@@ -72,7 +78,7 @@ class RightPanel(Panel):
         if index >= 3:
             # TODO: Should look up by tab class, not index, as tabs are movable
             widget = self.widget(index)
-            if isinstance(widget, ActivityDetailsTab):
+            if isinstance(widget, ActivityTab):
                 assert widget.activity in activity_cache
                 del activity_cache[widget.activity]
             widget.deleteLater()

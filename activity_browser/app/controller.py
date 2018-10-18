@@ -12,7 +12,7 @@ from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
 from .bwutils import commontasks as bc
-from .settings import ab_settings
+from .settings import ab_settings, user_project_settings
 from .signals import signals
 
 
@@ -49,11 +49,12 @@ class Controller(object):
         signals.install_default_data.connect(self.install_default_data)
         signals.import_database.connect(self.import_database_wizard)
         # Activity
-        signals.copy_activity.connect(self.copy_activity)
+        signals.duplicate_activity.connect(self.duplicate_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
-        signals.copy_to_db.connect(self.copy_to_db)
+        signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
+        signals.show_duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
         # Exchange
         signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
@@ -232,6 +233,7 @@ class Controller(object):
                 name, len(bw.Database(name)))
         )
         if ok:
+            user_project_settings.remove_db(name)
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
 
@@ -304,6 +306,7 @@ class Controller(object):
                 Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             )
         else:
+            # todo: check if activity is open, close if it is
             act.delete()
             signals.database_changed.emit(act['database'])
 
@@ -321,7 +324,11 @@ class Controller(object):
             new_code = code + '_copy1'
         return new_code
 
-    def copy_activity(self, key):
+    def duplicate_activity(self, key):
+        """duplicates the selected activity in the same db, with a new BW code
+        for creating a copy in a different db, use copy_to_db"""
+        # todo: add "copy of" (or similar) to name of activity for easy identification in new db
+        # todo: some interface feedback so user knows the copy has succeeded
         act = bw.get_activity(key)
         new_code = self.generate_copy_code(key)
         new_act = act.copy(new_code)
@@ -336,20 +343,23 @@ class Controller(object):
                 product['input'] = new_act.key
         new_act.save()
         signals.database_changed.emit(act['database'])
-        signals.open_activity_tab.emit("right", new_act.key)
+        signals.databases_changed.emit()
+        signals.open_activity_tab.emit("activities", new_act.key)
 
-    def copy_to_db(self, activity_key):
+    def show_duplicate_to_db_interface(self, activity_key):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
-        # TODO: Exclude read-only dbs from target_dbs as soon as they are implemented
-        available_target_dbs = sorted(set(bw.databases).difference(
-            {'biosphere3', origin_db}
-        ))
+
+        available_target_dbs = bc.get_editable_databases()
+
+        if origin_db in available_target_dbs:
+            available_target_dbs.remove(origin_db)
+
         if not available_target_dbs:
             QtWidgets.QMessageBox.information(
                 None,
                 "No target database",
-                "No valid target databases available. Create a new database first."
+                "No valid target databases available. Create a new database or set one to writable (not read-only)."
             )
         else:
             target_db, ok = QtWidgets.QInputDialog.getItem(
@@ -361,13 +371,19 @@ class Controller(object):
                 False
             )
             if ok:
-                new_code = self.generate_copy_code((target_db, activity['code']))
-                activity.copy(code=new_code, database=target_db)
-                # only process database immediately if small
-                if len(bw.Database(target_db)) < 200:
-                    bw.databases.clean()
-                signals.database_changed.emit(target_db)
-                signals.databases_changed.emit()
+                self.duplicate_activity_to_db(target_db, activity)
+
+    def duplicate_activity_to_db(self, target_db, activity):
+        new_code = self.generate_copy_code((target_db, activity['code']))
+        new_act_key = (target_db, new_code)
+        activity.copy(code=new_code, database=target_db)
+        # only process database immediately if small
+        if len(bw.Database(target_db)) < 50:
+            bw.databases.clean()
+
+        signals.database_changed.emit(target_db)
+        signals.open_activity_tab.emit("activities", new_act_key)
+        signals.databases_changed.emit()
 
     def modify_activity(self, key, field, value):
         activity = bw.get_activity(key)

@@ -236,6 +236,8 @@ class ActivitiesWidget(HeaderTableTemplate):
     TABLE = ActivitiesTable
     HEADER = 'Activities:'
     searchable = True
+    #def __init__(self, parent):
+    #    super(ActivitiesWidget, self).__init__(parent)
 
 
 class BiosphereFlowsWidget(HeaderTableTemplate):
