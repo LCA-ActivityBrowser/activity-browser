@@ -1,21 +1,22 @@
-from ..style import horizontal_line, vertical_line, header
-from ..tables import (
+# -*- coding: utf-8 -*-
+from activity_browser.app.ui.style import horizontal_line, vertical_line, header
+from activity_browser.app.ui.tables import (
     LCAResultsTable,
     ProcessContributionsTable,
     InventoryTable,
     InventoryCharacterisationTable,
     BiosphereTable
 )
-from ..graphics import (
+from activity_browser.app.ui.graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
     InventoryCharacterisationPlot,
     CorrelationPlot,
     LCAResultsBarChart
 )
-from ...bwutils.multilca import MLCA
-from ...bwutils import commontasks as bc
-from .log_slider import LogarithmicSlider
+from activity_browser.app.bwutils.multilca import MLCA
+from activity_browser.app.bwutils import commontasks as bc
+from activity_browser.app.ui.widgets.log_slider import LogarithmicSlider
 
 
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, QSlider, \
@@ -26,9 +27,9 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 # TODO: LOW PRIORITY: add filtering for tables/graphs
 
 
-class CalculationSetupTab(QTabWidget):
+class LCAResultsSubTab(QTabWidget):
     def __init__(self, parent, name):
-        super(CalculationSetupTab, self).__init__(parent)
+        super(LCAResultsSubTab, self).__init__(parent)
         self.panel = parent
         self.setup_name = name
         self.method_dict = dict()
@@ -42,7 +43,7 @@ class CalculationSetupTab(QTabWidget):
         self.update_calculation()
 
         self.LCAscoreComparison_tab = LCAScoreComparisonTab(self)
-        self.inventory_tab = InventoryTab(self, custom=True)
+        # self.inventory_tab = InventoryTab(self, custom=True)
         self.inventory_characterisation_tab = CharacterisationTab(self, relativity=True)
         self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
