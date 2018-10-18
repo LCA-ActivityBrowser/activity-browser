@@ -1,29 +1,24 @@
 # -*- coding: utf-8 -*-
-from .panel import Panel, ActivitiesTab, MethodsTab
+from .panel import ABTab, ActivitiesTab, CharacterizationFactorsTab
 from ..web.graphnav import GraphNavigatorWidget
 from ..web.graphnav import SankeyNavigatorWidget
 from ...signals import signals
 from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
-    # ActivityDetailsTab,
     LCAResultsTab,
     ActivityTab,
-    HistoryTab,
-    # ImpactAssessmentTab,
-    MethodsTab,
-    ProjectTab,
 )
 
 
-class RightPanel(Panel):
+class RightPanel(ABTab):
     side = "right"
 
     def __init__(self, *args):
         super(RightPanel, self).__init__(*args)
 
         # instantiate tabs
-        self.method_panel = MethodsTab(self)
+        self.CF_tab = CharacterizationFactorsTab(self)
         self.act_panel = ActivitiesTab(self)
         self.LCA_setup_tab = LCASetupTab(self)
         self.graph_navigator_tab = GraphNavigatorWidget()
@@ -57,12 +52,12 @@ class RightPanel(Panel):
                     self.sankey_navigator_tab.new_sankey()
 
     def update_method_panel(self):
-        if self.method_panel.tab_dict:
-            if self.indexOf(self.method_panel) == -1:
-                self.addTab(self.method_panel, 'Characterization Factors')
-            self.select_tab(self.method_panel)
+        if self.CF_tab.tab_dict:
+            if self.indexOf(self.CF_tab) == -1:
+                self.addTab(self.CF_tab, 'Characterization Factors')
+            self.select_tab(self.CF_tab)
         else:
-            self.removeTab(self.indexOf(self.method_panel))
+            self.removeTab(self.indexOf(self.CF_tab))
             self.setCurrentIndex(0)
 
     def update_activity_panel(self):

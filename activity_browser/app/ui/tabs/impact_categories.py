@@ -13,19 +13,12 @@ class CFsTab(QtWidgets.QWidget):
         self.method = method
         # Not visible when instantiated
         self.cf_table = CFTable()
-        self.method_label = QtWidgets.QLabel()
         container = QtWidgets.QVBoxLayout()
-        container.addWidget(header('Characterization Factors:'))
-        container.addWidget(horizontal_line())
-        container.addWidget(self.method_label)
+        container.addWidget(header("Method: " + " - ".join(method)))
         container.addWidget(self.cf_table)
         container.setAlignment(QtCore.Qt.AlignTop)
-
         self.setLayout(container)
 
-        self.method_label.setText(
-            "Method: " + " - ".join(method)
-        )
         self.cf_table.sync(method)
         self.cf_table.show()
         self.panel.select_tab(self)

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from .panel import Panel
+from .panel import ABTab
 from ..web.webutils import RestrictedWebViewWidget
 from ..tabs import (ProjectTab, MethodsTab, HistoryTab)
 from .... import PACKAGE_DIRECTORY
 
-class LeftPanel(Panel):
+class LeftPanel(ABTab):
     side = "left"
 
     def __init__(self, *args):

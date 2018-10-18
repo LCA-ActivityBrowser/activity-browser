@@ -18,8 +18,8 @@ def vertical_line():
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
     return line
 
-def header(label):
-    label = QtWidgets.QLabel(label)
+def header(text):
+    label = QtWidgets.QLabel(text)
     label.setFont(bold_font)
     return label
 

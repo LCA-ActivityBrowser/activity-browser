@@ -8,16 +8,16 @@ from ..utils import get_name
 from ...signals import signals
 from ...settings import user_project_settings
 
-class Panel(QtWidgets.QTabWidget):
+class ABTab(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
-        super(Panel, self).__init__(parent)
+        super(ABTab, self).__init__(parent)
         self.setMovable(True)
 
     def select_tab(self, obj):
         self.setCurrentIndex(self.indexOf(obj))
 
 
-class MethodsTab(Panel):
+class CharacterizationFactorsTab(ABTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMovable(True)
@@ -52,9 +52,9 @@ class MethodsTab(Panel):
         signals.method_tabs_changed.emit()
 
 
-class ActivitiesTab(Panel):
+class ActivitiesTab(ABTab):
     def __init__(self, parent=None):
-        super(Panel, self).__init__(parent)
+        super(ABTab, self).__init__(parent)
         self.side = 'activities'
         self.setMovable(True)
         self.setTabsClosable(True)
