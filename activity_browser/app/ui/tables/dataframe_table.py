@@ -3,23 +3,35 @@ from PyQt5 import QtCore, QtWidgets
 
 
 class ABDataFrameTable(QtWidgets.QTableView):
+    def __init__(self, parent=None, maxheight=None, *args, **kwargs):
+        super(ABDataFrameTable, self).__init__(parent)
+        self.setVerticalScrollMode(1)
+        self.setHorizontalScrollMode(1)
+        self.maxheight = maxheight
+
     @classmethod
     def decorated_sync(cls, sync):
         def wrapper(self, *args, **kwargs):
+
             sync(self, *args, **kwargs)
+
             self.model = PandasModel(self.dataframe)
             self.setModel(self.model)
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
-            if self.model.rowCount() > 0:
+            if self.maxheight is not None:
+                self.setMaximumHeight(
+                    self.rowHeight(0) * (self.maxheight + 1) + self.autoScrollMargin())
+            elif self.model.rowCount() > 0:
                 self.setMaximumHeight(
                     self.rowHeight(0) * (self.model.rowCount() + 1) + self.autoScrollMargin()
                 )
             else:
                 self.setMaximumHeight(50)
-            self.setMinimumHeight(
-                self.rowHeight(0) * (min(self.model.rowCount()+1.5, 20)) + self.autoScrollMargin()
-            )
+            if self.maxheight is None:
+                self.setMinimumHeight(
+                    self.rowHeight(0) * (min(self.model.rowCount()+1.5, 20)) + self.autoScrollMargin()
+                )
 
         return wrapper
 

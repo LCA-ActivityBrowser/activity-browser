@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from ..style import horizontal_line, vertical_line, header
 from ..tables import LCAResultsTable
-from ..tables.lca_results import InventoryTable
+from activity_browser.app.ui.tables.lca_results import InventoryTable
 from ..graphics import (
     CorrelationPlot,
     LCAResultsPlot,
@@ -71,7 +71,8 @@ class ImpactAssessmentTab(QWidget):
                  graph=self.correlation_plot)
         TabPanel(self.tabs, "Inventory",
                  table=self.Inventory_table,
-                 graph=self.Inventory_plot)
+                 graph=self.Inventory_plot,
+                 export=False)
 
         # Generate layout
         self.layout = QVBoxLayout()
