@@ -29,6 +29,27 @@ class Plot(QtWidgets.QWidget):
         print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
+    def savefilepath(self):
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            'Choose location to save lca results'
+        )
+        return filepath
+
+    def to_png(self):
+        filepath = self.savefilepath()
+        if filepath:
+            if not filepath.endswith('.png'):
+                filepath += '.png'
+            self.figure.savefig(filepath)
+
+    def to_svg(self):
+        filepath = self.savefilepath()
+        if filepath:
+            if not filepath.endswith('.svg'):
+                filepath += '.svg'
+            self.figure.savefig(filepath)
+
 class CorrelationPlot(Plot):
     def __init__(self, parent=None, *args):
         super(CorrelationPlot, self).__init__(parent, *args)
@@ -124,7 +145,7 @@ class ProcessContributionPlot(Plot):
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
 
-        tc = mlca.top_process_contributions(method_name=method, limit=5, relative=True)
+        tc = mlca.top_process_contributions(method_name=method, limit=5, relative=True) #change limit as new cut-off
         df_tc = pd.DataFrame(tc)
         df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in df_tc.index]

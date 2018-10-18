@@ -12,6 +12,11 @@ def horizontal_line():
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
     return line
 
+def vertical_line():
+    line = QtWidgets.QFrame()
+    line.setFrameShape(QtWidgets.QFrame.VLine)
+    line.setFrameShadow(QtWidgets.QFrame.Sunken)
+    return line
 
 def header(label):
     label = QtWidgets.QLabel(label)

@@ -63,12 +63,14 @@ class Signals(QtCore.QObject):
 
     # LCA Calculation
     lca_calculation = QtCore.pyqtSignal(str)
+    mlca_results =  QtCore.pyqtSignal(object)
 
     method_selected = QtCore.pyqtSignal(tuple)
     method_tabs_changed = QtCore.pyqtSignal()
 
     # Qt Windows
     update_windows = QtCore.pyqtSignal()
+    new_statusbar_message = QtCore.pyqtSignal(str)
 
 
 signals = Signals()
