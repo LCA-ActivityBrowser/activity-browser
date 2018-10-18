@@ -10,7 +10,6 @@ from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
-from brightway2 import get_activity
 
 
 class Plot(QtWidgets.QWidget):

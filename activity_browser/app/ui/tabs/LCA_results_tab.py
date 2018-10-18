@@ -24,14 +24,15 @@ class LCAResultsTab(QTabWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.project_selected.connect(self.remove_tab)
+        # todo: check what self.remove_tab etc. really does, I think it is outdated...
+        # signals.project_selected.connect(self.remove_tab)
         signals.lca_calculation.connect(self.add_tab)
-
         signals.lca_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
 
         self.tabCloseRequested.connect(
-                lambda index: self.removeTab(index))
+                lambda index: self.removeTab(index)
+        )
 
     def add_tab(self):
         """ Add the LCA Results tab to the right panel of AB. """
@@ -40,15 +41,14 @@ class LCAResultsTab(QTabWidget):
             self.panel.addTab(self, "LCIA Results")
         self.panel.select_tab(self)  # put tab to front after LCA calculation
 
-    def remove_tab(self):
-        """ Remove the LCA results tab. """
-        if self.visible:
-            self.visible = False
-            self.panel.removeTab(self.panel.indexOf(self))
+    # def remove_tab(self):
+    #     """ Remove the LCA results tab. """
+    #     if self.visible:
+    #         self.visible = False
+    #         self.panel.removeTab(self.panel.indexOf(self))
 
     def remove_setup(self, name):
         """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """
-        self.removeTab(self.indexOf(self.calculation_setups[name]))
         del self.calculation_setups[name]
 
     def generate_setup(self, name):

@@ -6,7 +6,7 @@ from ..graphics import (
     CorrelationPlot,
     LCAResultsPlot,
     ProcessContributionPlot,
-    ElementaryFlowContributionPlot
+    # ElementaryFlowContributionPlot,
 )
 from ...bwutils.multilca import MLCA
 from ...bwutils import commontasks as bc
@@ -39,7 +39,7 @@ class ImpactAssessmentTab(QWidget):
         self.process_contribution_plot = ProcessContributionPlot(self)
 
         self.elementary_flow_contribution_table = None
-        self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
+        # self.elementary_flow_contribution_plot = ElementaryFlowContributionPlot(self)
 
         self.correlation_table = None
         self.correlation_plot = CorrelationPlot(self)
@@ -53,26 +53,26 @@ class ImpactAssessmentTab(QWidget):
         self.tabs.setTabPosition(1)  # South-facing Tabs
 
         # Default tab settings: combobox_list=False, cutoff=False, export=True
-        TabPanel(self.tabs, "LCIA Results",
-                 table=self.results_table,
-                 graph=self.results_plot)
-        TabPanel(self.tabs, "Process Contributions",
-                 table=self.process_contribution_table,
-                 graph=self.process_contribution_plot,
-                 combobox_list=True,
-                 cutoff=True,)
-        TabPanel(self.tabs, "Elementary Flow Contributions",
-                 table=self.elementary_flow_contribution_table,
-                 graph=self.elementary_flow_contribution_plot,
-                 combobox_list=True,
-                 cutoff=True)
-        TabPanel(self.tabs, "Correlations",
-                 table=self.correlation_table,
-                 graph=self.correlation_plot)
-        TabPanel(self.tabs, "Inventory",
-                 table=self.Inventory_table,
-                 graph=self.Inventory_plot,
-                 export=False)
+        # TabPanel(self.tabs, "LCIA Results",
+        #          table=self.results_table,
+        #          graph=self.results_plot)
+        # TabPanel(self.tabs, "Process Contributions",
+        #          table=self.process_contribution_table,
+        #          graph=self.process_contribution_plot,
+        #          combobox_list=True,
+        #          cutoff=True,)
+        # # TabPanel(self.tabs, "Elementary Flow Contributions",
+        # #          table=self.elementary_flow_contribution_table,
+        # #          graph=self.elementary_flow_contribution_plot,
+        # #          combobox_list=True,
+        # #          cutoff=True)
+        # TabPanel(self.tabs, "Correlations",
+        #          table=self.correlation_table,
+        #          graph=self.correlation_plot)
+        # TabPanel(self.tabs, "Inventory",
+        #          table=self.Inventory_table,
+        #          graph=self.Inventory_plot,
+        #          export=False)
 
         # Generate layout
         self.layout = QVBoxLayout()
@@ -112,7 +112,7 @@ class ImpactAssessmentTab(QWidget):
         self.mlca = MLCA(name)
         self.single_lca = len(self.mlca.func_units) == 1
         self.single_method = len(self.mlca.methods) == 1
-        signals.mlca_results.emit(self.mlca)
+        # signals.mlca_results.emit(self.mlca)
 
 
 class TabPanel(QTabWidget):
@@ -301,7 +301,8 @@ class TabPanel(QTabWidget):
 
         elif self.name == "Inventory":
             if self.table:
-                self.table.sync(self.mlca)
+                pass
+                # self.table.sync(self.mlca)
             if self.graph:
                 self.graph = None
                 #labels = [str(x + 1) for x in range(len(self.mlca.func_units))]
@@ -478,24 +479,23 @@ class TabPanel(QTabWidget):
             self.export_menu.addWidget(self.export_menu_vert_line)
         if self.graph:
             self.export_menu.addLayout(self.export_graph)
-        """self.export_menu.addLayout(self.export_table)
-        self.export_menu_vert_line = vertical_line()
-        self.export_menu.addWidget(self.export_menu_vert_line)
-        self.export_menu.addLayout(self.export_graph)
-        if self.main_space_tb_grph_table.isChecked():
-            self.export_table.setVisible(True)
-            self.export_menu_vert_line.setVisible(False)
-            self.export_graph.setVisible(False)
-        elif self.main_space_tb_grph_table.isChecked() and \
-                self.main_space_tb_grph_graph.isChecked():
-            self.export_table.setVisible(True)
-            self.export_menu_vert_line.setVisible(True)
-            self.export_graph.setVisible(True)
-        elif self.main_space_tb_grph_table.isChecked():
-            self.export_table.setVisible(False)
-            self.export_menu_vert_line.setVisible(False)
-            self.export_graph.setVisible(True)"""
-
+        # self.export_menu.addLayout(self.export_table)
+        # self.export_menu_vert_line = vertical_line()
+        # self.export_menu.addWidget(self.export_menu_vert_line)
+        # self.export_menu.addLayout(self.export_graph)
+        # if self.main_space_tb_grph_table.isChecked():
+        #     self.export_table.setVisible(True)
+        #     self.export_menu_vert_line.setVisible(False)
+        #     self.export_graph.setVisible(False)
+        # elif self.main_space_tb_grph_table.isChecked() and \
+        #         self.main_space_tb_grph_graph.isChecked():
+        #     self.export_table.setVisible(True)
+        #     self.export_menu_vert_line.setVisible(True)
+        #     self.export_graph.setVisible(True)
+        # elif self.main_space_tb_grph_table.isChecked():
+        #     self.export_table.setVisible(False)
+        #     self.export_menu_vert_line.setVisible(False)
+        #     self.export_graph.setVisible(True)
 
         self.export_menu.addStretch()
 

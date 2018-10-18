@@ -41,12 +41,12 @@ class CalculationSetupTab(QTabWidget):
 
         self.update_calculation()
 
-        self.LCAscoreComparison_tab = LCAScoreComparison(self)
-        self.inventory_tab = Inventory(self, custom=True)
-        self.inventory_characterisation_tab = InventoryCharacterisation(self, relativity=True)
-        self.lcia_results_tab = LCIAAnalysis(self, relativity=True)
-        self.process_contributions_tab = ProcessContributions(self, relativity=True)
-        self.correlations_tab = Correlations(self)
+        self.LCAscoreComparison_tab = LCAScoreComparisonTab(self)
+        self.inventory_tab = InventoryTab(self, custom=True)
+        self.inventory_characterisation_tab = CharacterisationTab(self, relativity=True)
+        self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
+        self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
+        self.correlations_tab = CorrelationsTab(self)
 
         self.update_setup(calculate=False)
 
@@ -56,7 +56,7 @@ class CalculationSetupTab(QTabWidget):
             self.update_calculation()
 
         self.LCAscoreComparison_tab.update_analysis_tab()
-        self.inventory_tab.update_analysis_tab()
+        # self.inventory_tab.update_analysis_tab()
         self.inventory_characterisation_tab.update_analysis_tab()
         self.lcia_results_tab.update_analysis_tab()
         self.process_contributions_tab.update_analysis_tab()
@@ -621,9 +621,9 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.export_menu)
 
 
-class LCAScoreComparison(AnalysisTab):
+class LCAScoreComparisonTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(LCAScoreComparison, self).__init__(parent, **kwargs)
+        super(LCAScoreComparisonTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "LCA score comparison"
@@ -648,9 +648,9 @@ class LCAScoreComparison(AnalysisTab):
         self.plot.plot(self.setup.mlca, method=method)
 
 
-class Inventory(AnalysisTab):
+class InventoryTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(Inventory, self).__init__(parent, **kwargs)
+        super(InventoryTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Inventory"
@@ -674,9 +674,9 @@ class Inventory(AnalysisTab):
         # self.SecondTable.sync(self.setup.mlca, method=method)
 
 
-class InventoryCharacterisation(AnalysisTab):
+class CharacterisationTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(InventoryCharacterisation, self).__init__(parent, **kwargs)
+        super(CharacterisationTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Inventory Characterisation"
@@ -714,9 +714,9 @@ class InventoryCharacterisation(AnalysisTab):
                        limit_type=self.limit_type, per=per, normalised=self.relative)
 
 
-class LCIAAnalysis(AnalysisTab):
+class LCIAAnalysisTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(LCIAAnalysis, self).__init__(parent, **kwargs)
+        super(LCIAAnalysisTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "LCIA Results"
@@ -745,9 +745,9 @@ class LCIAAnalysis(AnalysisTab):
         self.table.sync(self.setup.mlca, relative=self.relative)
 
 
-class ProcessContributions(AnalysisTab):
+class ProcessContributionsTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(ProcessContributions, self).__init__(parent, **kwargs)
+        super(ProcessContributionsTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Process Contributions"
@@ -785,9 +785,9 @@ class ProcessContributions(AnalysisTab):
                        limit_type=self.limit_type, per=per, normalised=self.relative)
 
 
-class Correlations(AnalysisTab):
+class CorrelationsTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(Correlations, self).__init__(parent, **kwargs)
+        super(CorrelationsTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
         self.name = "Correlations"
