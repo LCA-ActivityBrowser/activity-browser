@@ -10,6 +10,7 @@ from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
+from brightway2 import get_activity
 
 
 class Plot(QtWidgets.QWidget):
@@ -29,12 +30,37 @@ class Plot(QtWidgets.QWidget):
         print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
+    def savefilepath(self):
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            'Choose location to save lca results'
+        )
+        return filepath
+
+    def to_png(self):
+        """ Export to .png format. """
+        filepath = self.savefilepath()
+        if filepath:
+            if not filepath.endswith('.png'):
+                filepath += '.png'
+            self.figure.savefig(filepath)
+
+    def to_svg(self):
+        """ Export to .svg format. """
+        filepath = self.savefilepath()
+        if filepath:
+            if not filepath.endswith('.svg'):
+                filepath += '.svg'
+            self.figure.savefig(filepath)
+
+
 class CorrelationPlot(Plot):
     def __init__(self, parent=None, *args):
         super(CorrelationPlot, self).__init__(parent, *args)
         sns.set(style="darkgrid")
 
     def plot(self, mlca, labels):
+        """ Plot a heatmap of correlations between different functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.figure.clf()
@@ -73,11 +99,43 @@ class CorrelationPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
 
 
+class LCAResultsBarChart(Plot):
+    """" Generate a bar chart comparing the absolute LCA scores of the products """
+    def __init__(self, parent=None, *args):
+        super(LCAResultsBarChart, self).__init__(parent, *args)
+
+    def plot(self, mlca, method=None):
+
+        self.ax.clear()
+
+        if method == None:
+            method = mlca.methods[0]
+
+        functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
+
+        values = mlca.results[:, mlca.methods.index(method)]
+        y_pos = np.arange(len(functional_units))
+
+        color_iterate = iter(plt.rcParams['axes.prop_cycle'])
+        for i in range(len(values)):
+            self.ax.barh(y_pos[i], values[i], align='center', color=next(color_iterate)['color'], alpha=0.8)
+        self.ax.set_yticks(y_pos)
+        self.ax.set_xlabel('Score')
+        self.ax.set_title('LCA scores compared')
+        self.ax.set_yticklabels(functional_units, minor= False)
+        self.ax.grid()
+
+
+        self.canvas.figure
+        self.canvas.draw()
+
+
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None, *args):
         super(LCAResultsPlot, self).__init__(parent, *args)
 
-    def plot(self, mlca):
+    def plot(self, mlca, normalised=False):
+        """ Plot a heatmap grid of the different methods and functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.figure.clf()
@@ -87,12 +145,16 @@ class LCAResultsPlot(Plot):
             format_activity_label(next(iter(f.keys())), style='pnl') for f in mlca.func_units
         ]
 
-
         # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
         # cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
+
+        if normalised:
+            self.use_results = mlca.results_normalized  # Normalize to get relative results
+        else:
+            self.use_results = mlca.results
+
         hm = sns.heatmap(
-            # mlca.results_normalized  # Normalize to get relative results
-            mlca.results,
+            self.use_results,
             annot=True,
             linewidths=.05,
             # cmap=cmap,
@@ -118,17 +180,29 @@ class LCAResultsPlot(Plot):
 class ProcessContributionPlot(Plot):
     def __init__(self, parent=None, *args):
         super(ProcessContributionPlot, self).__init__(parent, *args)
+        self.df_tc = pd.DataFrame()
+        self.parent = parent
 
-    def plot(self, mlca, method=None):
+    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalised=True):
+        """ Plot a horizontal bar chart of the process contributions. """
         self.ax.clear()
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
 
-        tc = mlca.top_process_contributions(method_name=method, limit=5, relative=True)
-        df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-        df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in df_tc.index]
-        plot = df_tc.T.plot.barh(
+        if per == "method":
+            tc = mlca.top_process_contributions_per_method(method_name=method, limit=limit, normalised=normalised,
+                                                           limit_type=limit_type)
+        elif per == "func":
+            tc = mlca.top_process_contributions_per_func(func_name=func, limit=limit, normalised=normalised,
+                                                           limit_type=limit_type)
+        else:
+            print("Unknown type requested")
+            return None
+        self.df_tc = pd.DataFrame(tc)
+        self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
+        self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
+        self.df_tc_plot = self.df_tc.drop("Total")
+        plot = self.df_tc_plot.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax
@@ -136,7 +210,7 @@ class ProcessContributionPlot(Plot):
         plot.tick_params(labelsize=8)
         plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
         plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                    ncol=math.ceil((len(df_tc.index) * 0.22) / height))
+                    ncol=math.ceil((len(self.df_tc.index) * 0.22) / height))
         plot.grid(b=False)
 
         # refresh canvas
@@ -145,20 +219,32 @@ class ProcessContributionPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
 
 
-class ElementaryFlowContributionPlot(Plot):
+class InventoryCharacterisationPlot(Plot):
     def __init__(self, parent=None, *args):
-        super(ElementaryFlowContributionPlot, self).__init__(parent, *args)
+        super(InventoryCharacterisationPlot, self).__init__(parent, *args)
 
-    def plot(self, mlca, method=None):
+    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalised=True):
+        """ Plot a horizontal bar chart of the inventory characterisation. """
         self.ax.clear()
         height = 3 + len(mlca.func_units) * 0.5
         self.figure.set_figheight(height)
 
-        tc = mlca.top_elementary_flow_contributions(method_name=method, limit=5, relative=True)
-        df_tc = pd.DataFrame(tc)
-        df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-        df_tc.index = [format_activity_label(a, style='bio') for a in df_tc.index]
-        plot = df_tc.T.plot.barh(
+        if per == "method":
+            tc = mlca.top_elementary_flow_contributions_per_method(method_name=method, limit=limit, normalised=normalised,
+                                                           limit_type=limit_type)
+        elif per == "func":
+            tc = mlca.top_elementary_flow_contributions_per_func(func_name=func, limit=limit, normalised=normalised,
+                                                           limit_type=limit_type)
+        else:
+            print("Unknown type requested")
+            return None
+
+
+        self.df_tc = pd.DataFrame(tc)
+        self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
+        self.df_tc.index = [format_activity_label(a, style='bio') for a in self.df_tc.index]
+        self.df_tc_plot = self.df_tc.drop("Total")
+        plot = self.df_tc_plot.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax

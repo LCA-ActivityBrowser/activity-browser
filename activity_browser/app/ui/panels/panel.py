@@ -17,7 +17,7 @@ class Panel(QtWidgets.QTabWidget):
         self.setCurrentIndex(self.indexOf(obj))
 
 
-class MethodsPanel(Panel):
+class MethodsTab(Panel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMovable(True)
@@ -52,7 +52,7 @@ class MethodsPanel(Panel):
         signals.method_tabs_changed.emit()
 
 
-class ActivitiesPanel(Panel):
+class ActivitiesTab(Panel):
     def __init__(self, parent=None):
         super(Panel, self).__init__(parent)
         self.side = 'activities'
