@@ -3,10 +3,10 @@ import textwrap
 
 import arrow
 import brightway2 as bw
-from bw2data.utils import natural_sort
 from bw2data import databases
+from bw2data.utils import natural_sort
 
-from ..settings import ab_settings
+from ..settings import ab_settings, user_project_settings
 
 
 def wrap_text(string, max_length=80):
@@ -66,6 +66,15 @@ def get_databases_data(databases):
     for row, name in enumerate(natural_sort(databases)):
         data.append(get_database_metadata(name))
     yield data
+
+
+def get_editable_databases():
+    editable_dbs = []
+    databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
+    for db_name, read_only in databases_read_only_settings.items():
+        if not read_only and db_name != 'biosphere3':
+            editable_dbs.append(db_name)
+    return editable_dbs
 
 
 def get_activity_data(datasets):
@@ -132,6 +141,7 @@ def get_default_project_name():
     else:
         return None
 
+
 def get_LCIA_method_name_dict(keys):
     """LCIA methods in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
     Returns a dictionary with
@@ -139,3 +149,11 @@ def get_LCIA_method_name_dict(keys):
     value: brightway2 method tuple
     """
     return {', '.join(key): key for key in keys}
+
+
+def get_locations_in_db(db_name):
+    """returns the set of locations in a database"""
+    db = bw.Database(db_name)
+    loc_set = set()
+    [loc_set.add(act.get("location")) for act in db]
+    return loc_set

@@ -64,3 +64,22 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
         # print('TextEdit Width/Height: {}/{}'.format(self.width(), self.height()))
         # print('Text Width/Height: {}/{}'.format(textWidth, textHeight))
         # print('DocSize:', self.document().size())
+
+
+class SignalledComboEdit(QtWidgets.QComboBox):
+    # based on SignalledPlainTextEdit.
+    # Could be moved to new file. Or better: this file renamed to be more inclusive
+    # needed to effectively implement the location dropdown list
+
+    def __init__(self, key, field, contents='', parent=None):
+        super().__init__()
+        self._before = contents
+        self._key = key
+        self._field = field
+
+    def focusOutEvent(self, event):
+        after = self.currentText()
+        if self._before != after:
+            self._before = after
+            signals.activity_modified.emit(self._key, self._field, after)
+        super(SignalledComboEdit, self).focusOutEvent(event)

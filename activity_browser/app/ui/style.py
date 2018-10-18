@@ -33,6 +33,25 @@ class TableStyle:
         """
 
 
+class ActivitiesTab:
+    style_sheet_read_only ="""
+        QTabWidget::pane {
+            border-top: 0px solid rgb(128,0,0); /*red line (read-only indicator) - removed due to request */
+            /*border-bottom: 3px solid rgb(128,0,0);*/
+        }        
+    """
+    style_sheet_editable = """
+        QTabWidget::pane {
+            border-top: 3px solid rgb(0,128,0);
+            /* border-bottom: 3px solid rgb(0,128,0);*/
+        }        
+        """
+
+
+class ActivitiesPanel:
+    style_sheet = """
+    """
+
 class TableItemStyle:
     COLOR_CODE = {
         'default': (0, 0, 0),  # black
@@ -57,38 +76,7 @@ class TableItemStyle:
             })
 
 
+style_activity_panel = ActivitiesPanel
+style_activity_tab = ActivitiesTab
 style_table = TableStyle()
 style_item = TableItemStyle()
-
-
-# self.setAutoFillBackground(True)
-# p = self.palette()
-# p.setColor(self.backgroundRole(), QtCore.Qt.gray)
-# self.setPalette(p)
-
-
-# class IconsContextMenu():
-#     to_multi_lca = 'icons/context/add.png'
-#     to_edited_activity = 'icons/context/to_edited_activity.png'
-#     delete = 'icons/context/delete.png'
-#
-# class IconsMetaProcess():
-#     new = 'icons/metaprocess/new_metaprocess.png'
-#     save_mp = 'icons/metaprocess/save_metaprocess.png'
-#     load_db = 'icons/metaprocess/open_database.png'
-#     add_db = 'icons/metaprocess/add_database.png'
-#     save_db = 'icons/metaprocess/save_database.png'
-#     close_db = 'icons/metaprocess/close_database.png'
-#     graph_mp = 'icons/metaprocess/graph_metaprocess.png'
-#     graph_lmp = 'icons/metaprocess/graph_linkedmetaprocess.png'
-#
-#     # Context Menus
-#     metaprocess = 'icons/metaprocess/metaprocess.png'
-#     cut = 'icons/metaprocess/cut.png'
-#     duplicate = 'icons/metaprocess/duplicate.png'
-#
-# class MyIcons():
-#     context = IconsContextMenu()
-#     mp = IconsMetaProcess()
-#
-# icons = MyIcons()

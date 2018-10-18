@@ -2,7 +2,7 @@
 from .panel import Panel
 from .. import activity_cache
 from ..tabs import (
-    ActivityDetailsTab,
+    ActivityTab,
     HistoryTab,
     ImpactAssessmentTab,
     MethodsTab,
@@ -30,7 +30,7 @@ class RightPanel(Panel):
         if index >= 3:
             # TODO: Should look up by tab class, not index, as tabs are movable
             widget = self.widget(index)
-            if isinstance(widget, ActivityDetailsTab):
+            if isinstance(widget, ActivityTab):
                 assert widget.activity in activity_cache
                 del activity_cache[widget.activity]
             widget.deleteLater()
