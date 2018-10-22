@@ -8,10 +8,11 @@ from math import log10
 from activity_browser.app.ui.style import vertical_line
 
 class CutoffMenu(QWidget):
-    def __init__(self, tab):
+    def __init__(self, parent_widget, cutoff_value=0.01, limit_type="percent"):
         super(CutoffMenu, self).__init__()
-        self.tab = tab
-        # self.cutoff_value = 0.01
+        self.parent = parent_widget
+        self.cutoff_value = cutoff_value
+        self.limit_type = limit_type
         self.make_layout()
         self.connect_signals()
 
@@ -34,12 +35,13 @@ class CutoffMenu(QWidget):
             lambda: self.cutoff_slider_topx_check("le"))
 
     def update_plot_table(self):
-        self.tab.cutoff_value = self.cutoff_value
-        self.tab.limit_type = self.limit_type
-        if self.tab.plot:
-            self.tab.update_plot()
-        if self.tab.table:
-            self.tab.update_table()
+        """Updates tables and plots in parent widget.
+        Could also be implemented with signals/slots and
+        a check for the specific parent (e.g. isinstance(receiver, self.parent))"""
+        if self.parent.plot:
+            self.parent.update_plot()
+        if self.parent.table:
+            self.parent.update_table()
 
     def cutoff_increment_left_check(self):
         """ Move the slider 1 increment when left button is clicked. """
@@ -172,14 +174,13 @@ class CutoffMenu(QWidget):
         self.cutoff_slider = QVBoxLayout()
         self.cutoff_slider_set = QVBoxLayout()
         self.cutoff_slider_label = QLabel("Cut-off level")
-        self.cutoff_value = 5
         self.cutoff_slider_slider = QSlider(Qt.Horizontal)
         self.cutoff_slider_log_slider = LogarithmicSlider(self)
         self.cutoff_slider_log_slider.setInvertedAppearance(True)
         self.cutoff_slider_slider.setMinimum(1)
         self.cutoff_slider_slider.setMaximum(50)
         self.cutoff_slider_slider.setValue(self.cutoff_value)
-        self.cutoff_slider_log_slider.setLogValue(0.01)
+        self.cutoff_slider_log_slider.setLogValue(self.cutoff_value)
         self.cutoff_slider_minmax = QHBoxLayout()
         self.cutoff_slider_min = QLabel("100%")
         self.cutoff_slider_max = QLabel("0.001%")

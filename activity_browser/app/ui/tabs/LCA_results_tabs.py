@@ -91,14 +91,12 @@ class LCAResultsSubTab(QTabWidget):
 
 
 class AnalysisTab(QWidget):
-    def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None,\
+    def __init__(self, parent, combobox=None, table=None,\
                  plot=None, export=None, relativity=None, custom=False, *args, **kwargs):
         super(AnalysisTab, self).__init__(parent)
         self.setup = parent
 
         self.custom = custom
-        self.cutoff_menu = cutoff
-        self.cutoff_func = func
 
         self.combobox_menu_combobox = combobox
         self.table = table
@@ -169,7 +167,6 @@ class AnalysisTab(QWidget):
             self.combobox_menu_switch_met.setChecked(True)
             self.combobox_menu_switch_fun.setChecked(False)
         self.update_combobox()
-
 
     def main_space_check(self, table_ch, plot_ch):
         """ Show only table or graph, whichever is selected. """
@@ -455,9 +452,8 @@ class CharacterisationTab(AnalysisTab):
         self.header_text = "Inventory Characterisation"
         self.add_header(self.header_text)
 
-        self.cutoff_menu = CutoffMenu(self)
+        self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.layout.addWidget(self.cutoff_menu)
-        self.cutoff_value = 0.01
 
         self.plot = InventoryCharacterisationPlot(self.setup)
         self.table = InventoryCharacterisationTable(self)
@@ -485,8 +481,8 @@ class CharacterisationTab(AnalysisTab):
             method = None
             per = "func"
 
-        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_value,
-                       limit_type=self.limit_type, per=per, normalised=self.relative)
+        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
+                       limit_type=self.cutoff_menu.limit_type, per=per, normalised=self.relative)
 
 
 class LCIAAnalysisTab(AnalysisTab):
@@ -528,9 +524,8 @@ class ProcessContributionsTab(AnalysisTab):
         self.header_text = "Process Contributions"
         self.add_header(self.header_text)
 
-        self.cutoff_menu = CutoffMenu(self)
+        self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.layout.addWidget(self.cutoff_menu)
-        self.cutoff_value = 0.05
 
         self.plot = ProcessContributionPlot(self.setup)
         self.table = ProcessContributionsTable(self)
@@ -558,8 +553,8 @@ class ProcessContributionsTab(AnalysisTab):
             method = None
             per = "func"
 
-        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_value,
-                       limit_type=self.limit_type, per=per, normalised=self.relative)
+        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
+                       limit_type=self.cutoff_menu.limit_type, per=per, normalised=self.relative)
 
 
 class CorrelationsTab(AnalysisTab):
