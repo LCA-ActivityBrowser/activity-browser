@@ -30,8 +30,8 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator
 class LCAResultsSubTab(QTabWidget):
     def __init__(self, parent, name):
         super(LCAResultsSubTab, self).__init__(parent)
-        self.panel = parent
-        self.setup_name = name
+        # self.panel = parent
+        self.cs_name = name
         self.method_dict = dict()
 
         self.setVisible(False)
@@ -50,6 +50,21 @@ class LCAResultsSubTab(QTabWidget):
         self.correlations_tab = CorrelationsTab(self)
 
         self.update_setup(calculate=False)
+
+    def update_calculation(self):
+        """ Update the mlca calculation. """
+        self.mlca = MLCA(self.cs_name)
+
+        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+
+        if len(self.mlca.func_units) != 1:
+            self.single_func_unit = False
+        else:
+            self.single_func_unit = True
+        if len(self.mlca.methods) != 1:
+            self.single_method = False
+        else:
+            self.single_method = True
 
     def update_setup(self, calculate=True):
         """ Update the calculation setup. """
@@ -76,21 +91,6 @@ class LCAResultsSubTab(QTabWidget):
             self.setTabEnabled(correlations_tab_index, False)
             self.setTabEnabled(lca_score_comparison_tab_index, False)
 
-    def update_calculation(self):
-        """ Update the mlca calculation. """
-        self.mlca = MLCA(self.setup_name)
-
-        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
-
-        if len(self.mlca.func_units) != 1:
-            self.single_func_unit = False
-        else:
-            self.single_func_unit = True
-        if len(self.mlca.methods) != 1:
-            self.single_method = False
-        else:
-            self.single_method = True
-
 
 class AnalysisTab(QWidget):
     def __init__(self, parent, cutoff=None, func=None, combobox=None, table=None,\
@@ -110,8 +110,7 @@ class AnalysisTab(QWidget):
         self.relativity = relativity
         self.relative = True
 
-        self.name = str()
-        self.header = header(self.name)
+        self.header = header("Description of the tab")
 
         #layout for custom tab (currently only InventoryTab)
         # if self.custom:
@@ -128,7 +127,9 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.TopStrip)
         self.layout.addWidget(horizontal_line())
 
-    def connect_analysis_signals(self):
+        # self.connect_signals()
+
+    def connect_signals(self):
         # Cut-off
         if self.cutoff_menu:
             # Cut-off types
@@ -178,6 +179,10 @@ class AnalysisTab(QWidget):
         if self.plot and self.export_menu:
             self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
             self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+
+    def add_header(self, header_text):
+        if isinstance(header_text, str):
+            self.header.setText(header_text)
 
     def combo_switch_check(self):
         """ Show either the functional units or methods combo-box, dependent on button state. """
@@ -471,6 +476,10 @@ class AnalysisTab(QWidget):
         """ Update the table. """
         self.table.sync(self.setup.mlca)
 
+    def update_plot(self, method=None):
+        """Updates the plot. Method will be added in subclass."""
+        pass
+
     def relativity_button(self, layout):
         if self.relativity is not None:
             self.button1 = QRadioButton("Relative")
@@ -627,9 +636,8 @@ class LCAScoreComparisonTab(AnalysisTab):
         super(LCAScoreComparisonTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
-        self.name = "LCA score comparison"
-        self.header.setText(self.name)
-
+        self.header_text = "LCA score comparison"
+        self.add_header(self.header_text)
 
         self.plot = LCAResultsBarChart(self.setup)
 
@@ -637,9 +645,9 @@ class LCAScoreComparisonTab(AnalysisTab):
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.name)
+        self.setup.addTab(self, self.header_text)
 
-        self.connect_analysis_signals()
+        self.connect_signals()
 
     def update_plot(self, method=None):
         if method == None or method == '':
@@ -654,17 +662,17 @@ class InventoryTab(AnalysisTab):
         super(InventoryTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
-        self.name = "Inventory"
-        self.header.setText(self.name)
+        self.header_text = "Inventory"
+        self.add_header(self.header_text)
 
         self.table = InventoryTable(self.setup, maxheight=20)
 
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.name)
+        self.setup.addTab(self, self.header_text)
 
-        self.connect_analysis_signals()
+        self.connect_signals()
 
     def update_table(self, method=None):
         if method == None:
@@ -680,8 +688,8 @@ class CharacterisationTab(AnalysisTab):
         super(CharacterisationTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
-        self.name = "Inventory Characterisation"
-        self.header.setText(self.name)
+        self.header_text = "Inventory Characterisation"
+        self.add_header(self.header_text)
 
         self.plot = InventoryCharacterisationPlot(self.setup)
         self.table = InventoryCharacterisationTable(self)
@@ -692,9 +700,9 @@ class CharacterisationTab(AnalysisTab):
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.name)
+        self.setup.addTab(self, self.header_text)
 
-        self.connect_analysis_signals()
+        self.connect_signals()
 
     def update_plot(self, method=None):
         if self.combobox_menu_label.text() == self.combobox_menu_method_label:
@@ -720,8 +728,8 @@ class LCIAAnalysisTab(AnalysisTab):
         super(LCIAAnalysisTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
-        self.name = "LCIA Results"
-        self.header.setText(self.name)
+        self.header_text = "LCIA Results"
+        self.add_header(self.header_text)
 
         if not self.setup.single_func_unit:
             self.plot = LCAResultsPlot(self.setup)
@@ -730,9 +738,9 @@ class LCIAAnalysisTab(AnalysisTab):
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.name)
+        self.setup.addTab(self, self.header_text)
 
-        self.connect_analysis_signals()
+        self.connect_signals()
         self.relative = False
 
     def update_plot(self):
@@ -751,8 +759,8 @@ class ProcessContributionsTab(AnalysisTab):
         super(ProcessContributionsTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
-        self.name = "Process Contributions"
-        self.header.setText(self.name)
+        self.header_text = "Process Contributions"
+        self.add_header(self.header_text)
 
         self.plot = ProcessContributionPlot(self.setup)
         self.table = ProcessContributionsTable(self)
@@ -763,9 +771,9 @@ class ProcessContributionsTab(AnalysisTab):
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.name)
+        self.setup.addTab(self, self.header_text)
 
-        self.connect_analysis_signals()
+        self.connect_signals()
 
     def update_plot(self, method=None):
         if self.combobox_menu_label.text() == self.combobox_menu_method_label:
@@ -791,8 +799,8 @@ class CorrelationsTab(AnalysisTab):
         super(CorrelationsTab, self).__init__(parent, **kwargs)
         self.setup = parent
 
-        self.name = "Correlations"
-        self.header.setText(self.name)
+        self.tab_text = "Correlations"
+        self.add_header("Correlation Analysis")
 
         if not self.setup.single_func_unit:
             self.plot = CorrelationPlot(self.setup)
@@ -800,9 +808,9 @@ class CorrelationsTab(AnalysisTab):
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.name)
+        self.setup.addTab(self, self.tab_text)
 
-        self.connect_analysis_signals()
+        self.connect_signals()
 
     def update_plot(self):
         if isinstance(self.plot, CorrelationPlot):
