@@ -17,11 +17,9 @@ from activity_browser.app.ui.graphics import (
 from activity_browser.app.bwutils.multilca import MLCA
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.ui.widgets import CutoffMenu
-# from activity_browser.app.ui.widgets.log_slider import LogarithmicSlider
 
-
-from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, QSlider, \
-    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox
+from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
+    QLabel, QCheckBox, QPushButton, QComboBox
 
 
 # TODO: LOW PRIORITY: add filtering for tables/graphs
@@ -112,13 +110,6 @@ class AnalysisTab(QWidget):
 
         self.header = header("Description of the tab")
 
-        #layout for custom tab (currently only InventoryTab)
-        # if self.custom:
-        #     self.Second_Space = QScrollArea()
-        #     self.SecondWidget = QWidget()
-        #     self.Biosphere = header('Biosphere Inventory')
-        #     self.SecondTable = BiosphereTable(self.setup)
-        #     self.SecondLayout = QVBoxLayout()
         self.layout = QVBoxLayout()
 
         self.TopStrip = QHBoxLayout()
@@ -130,25 +121,6 @@ class AnalysisTab(QWidget):
         # self.connect_signals()
 
     def connect_signals(self):
-        # Cut-off
-        # if self.cutoff_menu.py:
-        #     # Cut-off types
-        #     self.cutoff_type_topx.clicked.connect(self.cutoff_type_topx_check)
-        #     self.cutoff_type_relative.clicked.connect(self.cutoff_type_relative_check)
-        #     self.cutoff_slider_lft_btn.clicked.connect(self.cutoff_increment_left_check)
-        #     self.cutoff_slider_rght_btn.clicked.connect(self.cutoff_increment_right_check)
-        #
-        #     # Cut-off log slider
-        #     self.cutoff_slider_log_slider.valueChanged.connect(
-        #         lambda: self.cutoff_slider_relative_check("sl"))
-        #     self.cutoff_slider_line.textChanged.connect(
-        #         lambda: self.cutoff_slider_relative_check("le"))
-        #     # Cut-off slider
-        #     self.cutoff_slider_slider.valueChanged.connect(
-        #         lambda: self.cutoff_slider_topx_check("sl"))
-        #     self.cutoff_slider_line.textChanged.connect(
-        #         lambda: self.cutoff_slider_topx_check("le"))
-
         # Combo box signal
         if self.combobox_menu_combobox != None:
             if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
@@ -261,15 +233,6 @@ class AnalysisTab(QWidget):
             self.main_space_widget_layout.addStretch()
 
         self.layout.addWidget(self.main_space)
-
-        # if self.custom:
-        #     self.main_space.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        #     self.SecondLayout.addWidget(self.Biosphere)
-        #     self.SecondLayout.addWidget(self.SecondTable)
-        #     self.SecondWidget.setLayout(self.SecondLayout)
-        #     self.SecondWidget.setMinimumWidth(718)
-        #     self.Second_Space.setWidget(self.SecondWidget)
-        #     self.layout.addWidget(self.Second_Space)
 
     def update_analysis_tab(self):
         if self.combobox_menu_combobox != None:
@@ -398,31 +361,25 @@ class AnalysisTab(QWidget):
         self.export_menu = QHBoxLayout()
 
         # Export Plot
-        self.export_plot = QVBoxLayout()
-        self.export_plot_label = QLabel("Export plot")
-        self.export_plot_buttons = QHBoxLayout()
+        self.export_plot = QHBoxLayout()
+        self.export_plot_label = QLabel("Export plot:")
         self.export_plot_buttons_png = QPushButton(".png")
         self.export_plot_buttons_svg = QPushButton(".svg")
         # Export Table
-        self.export_table = QVBoxLayout()
-        self.export_table_label = QLabel("Export table")
-        self.export_table_buttons = QHBoxLayout()
+        self.export_table = QHBoxLayout()
+        self.export_table_label = QLabel("Export table:")
         self.export_table_buttons_copy = QPushButton("Copy")
         self.export_table_buttons_csv = QPushButton(".csv")
         self.export_table_buttons_excel = QPushButton("Excel")
-
         # Assemble export plot
         self.export_plot.addWidget(self.export_plot_label)
-        self.export_plot_buttons.addWidget(self.export_plot_buttons_png)
-        self.export_plot_buttons.addWidget(self.export_plot_buttons_svg)
-        self.export_plot.addLayout(self.export_plot_buttons)
-
+        self.export_plot.addWidget(self.export_plot_buttons_png)
+        self.export_plot.addWidget(self.export_plot_buttons_svg)
         # Assemble export table
         self.export_table.addWidget(self.export_table_label)
-        self.export_table_buttons.addWidget(self.export_table_buttons_copy)
-        self.export_table_buttons.addWidget(self.export_table_buttons_csv)
-        self.export_table_buttons.addWidget(self.export_table_buttons_excel)
-        self.export_table.addLayout(self.export_table_buttons)
+        self.export_table.addWidget(self.export_table_buttons_copy)
+        self.export_table.addWidget(self.export_table_buttons_csv)
+        self.export_table.addWidget(self.export_table_buttons_excel)
 
         # Assemble export menu
         if self.plot:

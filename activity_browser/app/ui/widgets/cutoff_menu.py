@@ -35,6 +35,7 @@ class CutoffMenu(QWidget):
 
     def update_plot_table(self):
         self.tab.cutoff_value = self.cutoff_value
+        self.tab.limit_type = self.limit_type
         if self.tab.plot:
             self.tab.update_plot()
         if self.tab.table:
