@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .panel import ABTab, ActivitiesTab, CharacterizationFactorsTab
 from ..web.graphnav import GraphNavigatorWidget
-from ..web.graphnav import SankeyNavigatorWidget
+# from ..web.graphnav import SankeyNavigatorWidget
 from ...signals import signals
 from .. import activity_cache
 from ..tabs import (
@@ -34,22 +34,22 @@ class RightPanel(ABTab):
     def connect_signals(self):
         signals.activity_tabs_changed.connect(self.update_activity_panel)
         signals.method_tabs_changed.connect(self.update_method_panel)
-        signals.lca_calculation.connect(self.add_Sankey_Widget)
-        self.currentChanged.connect(self.calculate_first_sankey)
+        # signals.lca_calculation.connect(self.add_Sankey_Widget)
+        # self.currentChanged.connect(self.calculate_first_sankey)
 
-    def add_Sankey_Widget(self, cs_name):
-        print("Adding Sankey Tab")
-        # if not hasattr(self, "sankey_navigator_tab"):
-        self.sankey_navigator_tab = SankeyNavigatorWidget(cs_name)
-        self.addTab(self.sankey_navigator_tab, 'LCA Sankey')
+    # def add_Sankey_Widget(self, cs_name):
+    #     print("Adding Sankey Tab")
+    #     # if not hasattr(self, "sankey_navigator_tab"):
+    #     self.sankey_navigator_tab = SankeyNavigatorWidget(cs_name)
+    #     self.addTab(self.sankey_navigator_tab, 'LCA Sankey')
 
-    def calculate_first_sankey(self):
-        if hasattr(self, "sankey_navigator_tab"):
-            if self.currentIndex() == self.indexOf(self.sankey_navigator_tab):
-                print("Changed to Sankey Tab")
-                if not self.sankey_navigator_tab.graph.json_data:
-                    print("Calculated first Sankey")
-                    self.sankey_navigator_tab.new_sankey()
+    # def calculate_first_sankey(self):
+    #     if hasattr(self, "sankey_navigator_tab"):
+    #         if self.currentIndex() == self.indexOf(self.sankey_navigator_tab):
+    #             print("Changed to Sankey Tab")
+    #             if not self.sankey_navigator_tab.graph.json_data:
+    #                 print("Calculated first Sankey")
+    #                 self.sankey_navigator_tab.new_sankey()
 
     def update_method_panel(self):
         if self.CF_tab.tab_dict:

@@ -47,16 +47,12 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.grid_lay = QtWidgets.QGridLayout()
         self.grid_lay.addWidget(QtWidgets.QLabel('Functional unit: '), 0, 0)
         self.grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
+
         self.cs = cs_name  # TODO: just a workaround; needs to be adapted to always link to the FUs in the active LCA results tab
-        self.func_units = bw.calculation_setups[self.cs]['inv']
-        self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
-                           for fu in self.func_units]
-        self.methods = bw.calculation_setups[self.cs]['ia']
         self.func_unit_cb = QtWidgets.QComboBox()
-        self.func_unit_cb.addItems(
-            [list(fu.keys())[0].__repr__() for fu in self.func_units])
         self.method_cb = QtWidgets.QComboBox()
-        self.method_cb.addItems([m.__repr__() for m in self.methods])
+        self.update_calculation_setup(cs_name=self.cs)
+
         self.grid_lay.addWidget(self.func_unit_cb, 0, 1)
         self.grid_lay.addWidget(self.method_cb, 1, 1)
         # self.reload_pb = QtWidgets.QPushButton('Reload')
@@ -175,6 +171,32 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
         # self.cutoff_sb.valueChanged.connect(self.new_sankey)
         # self.max_calc_sb.valueChanged.connect(self.new_sankey)
+
+    def update_calculation_setup(self, cs_name=None):
+        """Update Calculation Setup, functional units and methods, and dropdown menus."""
+        # block signals
+        self.func_unit_cb.blockSignals(True)
+        self.method_cb.blockSignals(True)
+
+        if not cs_name:
+            cs_name = self.cs
+
+        self.cs = cs_name
+
+        self.func_unit_cb.clear()
+        self.func_units = bw.calculation_setups[cs_name]['inv']
+        self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
+                           for fu in self.func_units]
+        self.func_unit_cb.addItems(
+            [list(fu.keys())[0].__repr__() for fu in self.func_units])
+
+        self.method_cb.clear()
+        self.methods = bw.calculation_setups[cs_name]['ia']
+        self.method_cb.addItems([m.__repr__() for m in self.methods])
+
+        # unblock signals
+        self.func_unit_cb.blockSignals(False)
+        self.method_cb.blockSignals(False)
 
     def toggle_help(self):
         self.help = not self.help

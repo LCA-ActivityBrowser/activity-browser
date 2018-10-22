@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
+    QLabel, QCheckBox, QPushButton, QComboBox
+
 from activity_browser.app.ui.style import horizontal_line, vertical_line, header
 from activity_browser.app.ui.tables import (
     LCAResultsTable,
@@ -17,9 +20,7 @@ from activity_browser.app.ui.graphics import (
 from activity_browser.app.bwutils.multilca import MLCA
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.ui.widgets import CutoffMenu
-
-from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
-    QLabel, QCheckBox, QPushButton, QComboBox
+from ..web.graphnav import SankeyNavigatorWidget
 
 
 # TODO: LOW PRIORITY: add filtering for tables/graphs
@@ -45,9 +46,12 @@ class LCAResultsSubTab(QTabWidget):
         self.inventory_characterisation_tab = CharacterisationTab(self, relativity=True)
         self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
-        self.correlations_tab = CorrelationsTab(self)
+        # self.correlations_tab = CorrelationsTab(self)
+        self.sankey_tab = SankeyNavigatorWidget(self.cs_name, parent=self)
+        self.addTab(self.sankey_tab, "Sankey")
 
         self.update_setup(calculate=False)
+        # self.currentChanged.connect(self.sankey_tab.update_sankey)
 
     def update_calculation(self):
         """ Update the mlca calculation. """
@@ -74,19 +78,20 @@ class LCAResultsSubTab(QTabWidget):
         self.inventory_characterisation_tab.update_analysis_tab()
         self.lcia_results_tab.update_analysis_tab()
         self.process_contributions_tab.update_analysis_tab()
-        self.correlations_tab.update_analysis_tab()
+        # self.correlations_tab.update_analysis_tab()
 
         lca_score_comparison_tab_index = self.indexOf(self.LCAscoreComparison_tab)
         lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
-        correlations_tab_index = self.indexOf(self.correlations_tab)
+        # correlations_tab_index = self.indexOf(self.correlations_tab)
+        self.sankey_tab.update_calculation_setup(cs_name=self.cs_name)
 
         if not self.single_func_unit:
             self.setTabEnabled(lcia_results_tab_index, True)
-            self.setTabEnabled(correlations_tab_index, True)
+            # self.setTabEnabled(correlations_tab_index, True)
             self.setTabEnabled(lca_score_comparison_tab_index, True)
         else:
             self.setTabEnabled(lcia_results_tab_index, False)
-            self.setTabEnabled(correlations_tab_index, False)
+            # self.setTabEnabled(correlations_tab_index, False)
             self.setTabEnabled(lca_score_comparison_tab_index, False)
 
 
@@ -94,14 +99,13 @@ class AnalysisTab(QWidget):
     def __init__(self, parent, combobox=None, table=None,\
                  plot=None, export=None, relativity=None, custom=False, *args, **kwargs):
         super(AnalysisTab, self).__init__(parent)
-        self.setup = parent
+        self.parent = parent
 
         self.custom = custom
 
         self.combobox_menu_combobox = combobox
         self.table = table
         self.plot = plot
-        self.limit_type = "percent"
         self.export_menu = export
         self.relativity = relativity
         self.relative = True
@@ -241,7 +245,7 @@ class AnalysisTab(QWidget):
 
     def update_table(self, method=None):
         """ Update the table. """
-        self.table.sync(self.setup.mlca)
+        self.table.sync(self.parent.mlca)
 
     def update_plot(self, method=None):
         """Updates the plot. Method will be added in subclass."""
@@ -328,13 +332,13 @@ class AnalysisTab(QWidget):
         self.combobox_menu_combobox.blockSignals(True)
 
         if self.combobox_menu_label.text() == self.combobox_menu_method_label: # if is assessment methods
-            self.combobox_list = list(self.setup.method_dict.keys())
-            if self.setup.single_method:
+            self.combobox_list = list(self.parent.method_dict.keys())
+            if self.parent.single_method:
                 visibility = False
 
         else:
-            self.combobox_list = list(self.setup.mlca.func_unit_translation_dict.keys())
-            if self.setup.single_func_unit:
+            self.combobox_list = list(self.parent.mlca.func_unit_translation_dict.keys())
+            if self.parent.single_func_unit:
                 visibility = False
 
         self.combobox_menu_combobox.insertItems(0, self.combobox_list)
@@ -395,192 +399,207 @@ class AnalysisTab(QWidget):
 class LCAScoreComparisonTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(LCAScoreComparisonTab, self).__init__(parent, **kwargs)
-        self.setup = parent
+        self.parent = parent
 
-        self.header_text = "LCA score comparison"
+        self.header_text = "LCA scores comparison"
         self.add_header(self.header_text)
 
-        self.plot = LCAResultsBarChart(self.setup)
+        self.plot = LCAResultsBarChart(self.parent)
 
         self.add_combobox(method=True, func=False)
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.header_text)
+        self.parent.addTab(self, "LCA scores")
 
         self.connect_signals()
 
     def update_plot(self, method=None):
         if method == None or method == '':
-            method = self.setup.mlca.methods[0]
+            method = self.parent.mlca.methods[0]
         else:
-            method = self.setup.method_dict[method]
-        self.plot.plot(self.setup.mlca, method=method)
+            method = self.parent.method_dict[method]
+        self.plot.plot(self.parent.mlca, method=method)
 
 
 class InventoryTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(InventoryTab, self).__init__(parent, **kwargs)
-        self.setup = parent
+        self.parent = parent
 
         self.header_text = "Inventory"
         self.add_header(self.header_text)
 
-        self.table = InventoryTable(self.setup, maxheight=20)
+        self.table = InventoryTable(self.parent, maxheight=20)
 
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.header_text)
+        self.parent.addTab(self, self.header_text)
 
         self.connect_signals()
 
     def update_table(self, method=None):
         if method == None:
-            method = (list(self.setup.mlca.technosphere_flows))[0]
+            method = (list(self.parent.mlca.technosphere_flows))[0]
         else:
             pass
-        self.table.sync(self.setup.mlca, method=method)#, limit=self.cutoff_value)
+        self.table.sync(self.parent.mlca, method=method)#, limit=self.cutoff_value)
         # self.SecondTable.sync(self.setup.mlca, method=method)
 
 
 class CharacterisationTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(CharacterisationTab, self).__init__(parent, **kwargs)
-        self.setup = parent
+        self.parent = parent
 
         self.header_text = "Inventory Characterisation"
         self.add_header(self.header_text)
 
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.layout.addWidget(self.cutoff_menu)
+        self.layout.addWidget(horizontal_line())
 
-        self.plot = InventoryCharacterisationPlot(self.setup)
+        self.plot = InventoryCharacterisationPlot(self.parent)
         self.table = InventoryCharacterisationTable(self)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.header_text)
+        self.parent.addTab(self, self.header_text)
 
         self.connect_signals()
 
     def update_plot(self, method=None):
         if self.combobox_menu_label.text() == self.combobox_menu_method_label:
             if method == None or method == '':
-                method = self.setup.mlca.methods[0]
+                method = self.parent.mlca.methods[0]
             else:
-                method = self.setup.method_dict[method]
+                method = self.parent.method_dict[method]
             func = None
             per = "method"
         else:
             func = method
             if func == None or func == '':
-                func = self.setup.mlca.func_key_list[0]
+                func = self.parent.mlca.func_key_list[0]
             method = None
             per = "func"
 
-        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
+        self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
                        limit_type=self.cutoff_menu.limit_type, per=per, normalised=self.relative)
 
 
 class LCIAAnalysisTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(LCIAAnalysisTab, self).__init__(parent, **kwargs)
-        self.setup = parent
+        self.parent = parent
 
         self.header_text = "LCIA Results"
         self.add_header(self.header_text)
 
-        if not self.setup.single_func_unit:
-            self.plot = LCAResultsPlot(self.setup)
-            self.table = LCAResultsTable(self.setup)
+        if not self.parent.single_func_unit:
+            self.plot = LCAResultsPlot(self.parent)
+            self.table = LCAResultsTable(self.parent)
 
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.header_text)
+        self.parent.addTab(self, self.header_text)
 
         self.connect_signals()
         self.relative = False
 
     def update_plot(self):
         if not isinstance(self.plot, LCAResultsPlot):
-            self.plot = LCAResultsPlot(self.setup)
-        self.plot.plot(self.setup.mlca, normalised=self.relative)
+            self.plot = LCAResultsPlot(self.parent)
+        self.plot.plot(self.parent.mlca, normalised=self.relative)
 
     def update_table(self):
         if not isinstance(self.table, LCAResultsTable):
             self.table = LCAResultsTable()
-        self.table.sync(self.setup.mlca, relative=self.relative)
+        self.table.sync(self.parent.mlca, relative=self.relative)
 
 
 class ProcessContributionsTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(ProcessContributionsTab, self).__init__(parent, **kwargs)
-        self.setup = parent
+        self.parent = parent
 
         self.header_text = "Process Contributions"
         self.add_header(self.header_text)
 
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.layout.addWidget(self.cutoff_menu)
+        self.layout.addWidget(horizontal_line())
 
-        self.plot = ProcessContributionPlot(self.setup)
+        self.plot = ProcessContributionPlot(self.parent)
         self.table = ProcessContributionsTable(self)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.header_text)
+        self.parent.addTab(self, self.header_text)
 
         self.connect_signals()
 
     def update_plot(self, method=None):
         if self.combobox_menu_label.text() == self.combobox_menu_method_label:
             if method == None or method == '':
-                method = self.setup.mlca.methods[0]
+                method = self.parent.mlca.methods[0]
             else:
-                method = self.setup.method_dict[method]
+                method = self.parent.method_dict[method]
             func = None
             per = "method"
         else:
             func = method
             if func == None or func == '':
-                func = self.setup.mlca.func_key_list[0]
+                func = self.parent.mlca.func_key_list[0]
             method = None
             per = "func"
 
-        self.plot.plot(self.setup.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
+        self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
                        limit_type=self.cutoff_menu.limit_type, per=per, normalised=self.relative)
 
 
 class CorrelationsTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(CorrelationsTab, self).__init__(parent, **kwargs)
-        self.setup = parent
+        self.parent = parent
 
         self.tab_text = "Correlations"
         self.add_header("Correlation Analysis")
 
-        if not self.setup.single_func_unit:
-            self.plot = CorrelationPlot(self.setup)
+        if not self.parent.single_func_unit:
+            self.plot = CorrelationPlot(self.parent)
 
         self.add_main_space()
         self.add_export()
 
-        self.setup.addTab(self, self.tab_text)
+        self.parent.addTab(self, self.tab_text)
 
         self.connect_signals()
 
     def update_plot(self):
         if isinstance(self.plot, CorrelationPlot):
-            labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
-            self.plot.plot(self.setup.mlca, labels)
+            labels = [str(x + 1) for x in range(len(self.parent.mlca.func_units))]
+            self.plot.plot(self.parent.mlca, labels)
         else:
-            self.plot = CorrelationPlot(self.setup)
-            labels = [str(x + 1) for x in range(len(self.setup.mlca.func_units))]
-            self.plot.plot(self.setup.mlca, labels)
+            self.plot = CorrelationPlot(self.parent)
+            labels = [str(x + 1) for x in range(len(self.parent.mlca.func_units))]
+            self.plot.plot(self.parent.mlca, labels)
 
+
+class SankeyTab(QWidget):
+    def __init__(self, parent):
+        super(SankeyTab, self).__init__(parent)
+        self.parent = parent
+
+        def update_sankey(self):
+            if hasattr(self, "sankey_tab"):
+                if self.currentIndex() == self.indexOf(self.sankey_tab):
+                    print("Changed to Sankey Tab")
+                    if not self.sankey_tab.graph.json_data:
+                        print("Calculated first Sankey")
+                        self.sankey_tab.new_sankey()
