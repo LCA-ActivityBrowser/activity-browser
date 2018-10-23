@@ -122,6 +122,9 @@ You should have received a copy of the GNU General Public License along with thi
         if response.status_code != 201:
             print(response)
             print(response.text)
+        else:
+            issue_url = json.loads(response.text)['html_url']
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl(issue_url))
 
     def raise_issue_from_app(self):
         text, _ = QtWidgets.QInputDialog.getMultiLineText(
