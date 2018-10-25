@@ -13,8 +13,6 @@ class LCAResultsTab(ABTab):
         self.setVisible(False)
         self.visible = False
 
-        self.calculation_setups = dict()
-
         self.setMovable(True)
         # self.setTabShape(1)  # Triangular-shaped Tabs
         self.setTabsClosable(True)  # todo: does not yet work properly
@@ -28,22 +26,33 @@ class LCAResultsTab(ABTab):
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
-
+        self.tabCloseRequested.connect(self.close_tab)
+        # self.tabCloseRequested.connect(signals.lca_results_tabs_changed)
         self.tabCloseRequested.connect(
                 lambda index: self.removeTab(index)
         )
 
     def remove_setup(self, name):
         """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """
-        del self.calculation_setups[name]
+        del self.tabs[name]
 
     def generate_setup(self, name):
         """ Check if the calculation setup exists, if it does, update it, if it doesn't, create a new one. """
-        if isinstance(self.calculation_setups.get(name), LCAResultsSubTab):  # update
-            self.calculation_setups[name].update_setup()
+        if isinstance(self.tabs.get(name), LCAResultsSubTab):  # update
+            self.tabs[name].update_setup()
         else:  # add
-            self.calculation_setups[name] = LCAResultsSubTab(self, name)
-            self.addTab(self.calculation_setups[name], name)
-        self.setCurrentIndex(self.indexOf(self.calculation_setups[name]))
+            self.tabs[name] = LCAResultsSubTab(self, name)
+            self.addTab(self.tabs[name], name)
+        self.setCurrentIndex(self.indexOf(self.tabs[name]))
+        signals.lca_results_tabs_changed.emit()
 
-
+    def close_tab(self, index):
+        widget = self.widget(index)
+        tab_name = self.get_tab_name(widget)
+        print("Tab_name:", tab_name)
+        if isinstance(widget, LCAResultsSubTab):
+            assert widget in self.tabs.values()
+            del self.tabs[tab_name]
+        widget.deleteLater()
+        self.removeTab(index)
+        signals.lca_results_tabs_changed.emit()

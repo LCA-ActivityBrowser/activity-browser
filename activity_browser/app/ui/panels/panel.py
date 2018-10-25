@@ -9,11 +9,12 @@ class ABTab(QtWidgets.QTabWidget):
         super(ABTab, self).__init__(parent)
         self.setMovable(True)
         self.tabs = dict()  # keys: tab name; values: tab widget
-
         # signals
         signals.toggle_show_or_hide_tab.connect(self.toggle_tab_visibility)
         signals.show_tab.connect(self.show_tab)
         signals.hide_tab.connect(self.hide_tab)
+        # self.tabCloseRequested.connect(signals.hide_if_no_tabs.emit)
+        # signals.hide_if_no_tabs.connect(self.hide_if_no_tabs)
 
     def select_tab(self, obj):
         self.setCurrentIndex(self.indexOf(obj))
@@ -50,3 +51,15 @@ class ABTab(QtWidgets.QTabWidget):
     def remove_tab(self):
         pass
 
+    def get_tab_name(self, obj):
+        tab_names = [name for name, o in self.tabs.items() if o == obj]
+        if len(tab_names) == 1:
+            return tab_names[0]
+        else:
+            print("Warning: found", len(tab_names), "occurences of this object.")
+
+    # def hide_if_no_tabs(self):
+    #     print("Hide if no tabs:", self.tabText(self.currentIndex()))
+    #     for tab_name, tab in self.tabs.items():
+    #         if hasattr(tab, "tabs"):
+    #             print("Tab:", tab_name, "Subtabs:", tab.tabs)

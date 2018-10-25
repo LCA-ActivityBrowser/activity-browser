@@ -63,8 +63,9 @@ class Signals(QtCore.QObject):
     calculation_setup_changed = QtCore.pyqtSignal()
     calculation_setup_selected = QtCore.pyqtSignal(str)
 
-    # LCA Calculation
+    # LCA Results
     lca_calculation = QtCore.pyqtSignal(str)
+    lca_results_tabs_changed = QtCore.pyqtSignal()
 
     method_selected = QtCore.pyqtSignal(tuple)
     method_tabs_changed = QtCore.pyqtSignal()
@@ -73,10 +74,11 @@ class Signals(QtCore.QObject):
     update_windows = QtCore.pyqtSignal()
     new_statusbar_message = QtCore.pyqtSignal(str)
 
-    # Tools
+    # Tabs
     toggle_show_or_hide_tab = QtCore.pyqtSignal(str)
     show_tab = QtCore.pyqtSignal(str)
     hide_tab = QtCore.pyqtSignal(str)
+    hide_if_no_tabs = QtCore.pyqtSignal()
 
 
 signals = Signals()
