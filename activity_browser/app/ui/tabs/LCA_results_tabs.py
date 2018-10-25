@@ -36,8 +36,8 @@ class LCAResultsSubTab(QTabWidget):
         self.setVisible(False)
         self.visible = False
 
-        self.setTabShape(1)  # Triangular-shaped Tabs
-        self.setTabPosition(1)  # South-facing Tabs
+        # self.setTabShape(2)  # Triangular-shaped Tabs
+        # self.setTabPosition(1)  # South-facing Tabs
 
         self.update_calculation()
 

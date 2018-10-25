@@ -1,22 +1,22 @@
-from .LCA_results_tabs import LCAResultsSubTab
-
 from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
 
-
+from .LCA_results_tabs import LCAResultsSubTab
+from ..panels import ABTab
 from ...signals import signals
 
-class LCAResultsTab(QTabWidget):
+
+class LCAResultsTab(ABTab):
     def __init__(self, parent):
         super(LCAResultsTab, self).__init__(parent)
-        self.panel = parent  # e.g. right panel
+        # self.panel = parent  # e.g. right panel
         self.setVisible(False)
         self.visible = False
 
         self.calculation_setups = dict()
 
         self.setMovable(True)
-        self.setTabShape(1)  # Triangular-shaped Tabs
-        self.setTabsClosable(False)  # todo: does not yet work properly
+        # self.setTabShape(1)  # Triangular-shaped Tabs
+        self.setTabsClosable(True)  # todo: does not yet work properly
 
         # Generate layout
         self.layout = QVBoxLayout()
@@ -25,8 +25,6 @@ class LCAResultsTab(QTabWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.project_selected.connect(self.remove_tab)
-        signals.lca_calculation.connect(self.add_tab)
         signals.lca_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
 
@@ -34,28 +32,15 @@ class LCAResultsTab(QTabWidget):
                 lambda index: self.removeTab(index)
         )
 
-    def add_tab(self):
-        """ Add the LCA Results tab to the right panel of AB. """
-        if not self.visible:
-            self.visible = True
-            self.panel.addTab(self, "LCA Results")
-        self.panel.select_tab(self)  # put tab to front after LCA calculation
-
-    def remove_tab(self):
-        """ Remove the LCA results tab. """
-        if self.visible:
-            self.visible = False
-            self.panel.removeTab(self.panel.indexOf(self))
-
     def remove_setup(self, name):
         """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """
         del self.calculation_setups[name]
 
     def generate_setup(self, name):
         """ Check if the calculation setup exists, if it does, update it, if it doesn't, create a new one. """
-        if isinstance(self.calculation_setups.get(name), LCAResultsSubTab):
+        if isinstance(self.calculation_setups.get(name), LCAResultsSubTab):  # update
             self.calculation_setups[name].update_setup()
-        else:
+        else:  # add
             self.calculation_setups[name] = LCAResultsSubTab(self, name)
             self.addTab(self.calculation_setups[name], name)
         self.setCurrentIndex(self.indexOf(self.calculation_setups[name]))

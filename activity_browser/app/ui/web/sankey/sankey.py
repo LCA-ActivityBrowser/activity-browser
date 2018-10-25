@@ -13,14 +13,15 @@ from .worker_threads import gt_worker_thread
 
 
 class SankeyWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, cs=None):
         super().__init__(parent)
         self.name = "&Sankey Diagram"
         self.label = QtWidgets.QLabel('hello')
         self.grid_lay = QtWidgets.QGridLayout()
         self.grid_lay.addWidget(QtWidgets.QLabel('Activity: '), 0, 0)
         self.grid_lay.addWidget(QtWidgets.QLabel('Method: '), 1, 0)
-        self.cs = self.window().right_panel.LCA_setup_tab.list_widget.name
+        # self.cs = self.window().right_panel.LCA_setup_tab.list_widget.name
+        self.cs = cs
         self.func_units = bw.calculation_setups[self.cs]['inv']
         self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
                            for fu in self.func_units]

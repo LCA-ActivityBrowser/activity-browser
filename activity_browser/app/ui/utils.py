@@ -37,10 +37,6 @@ class StdRedirector(StringIO):
         pass
 
 
-def get_name(obj, str_length=22):
-    return ','.join(obj.get('name', '').split(',')[:3])[:str_length]
-
-
 def new_id():
     return uuid.uuid4().hex
 

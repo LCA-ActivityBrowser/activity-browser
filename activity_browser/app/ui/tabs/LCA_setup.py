@@ -182,10 +182,12 @@ class LCASetupTab(QtWidgets.QWidget):
         self.sankey_button.setEnabled(valid_cs)
 
     def open_sankey(self):
-        if hasattr(self, 'sankey'):
-            self.window.stacked.removeWidget(self.sankey)
-            self.sankey.deleteLater()
-        self.sankey = SankeyWidget(self)
-        self.window.stacked.addWidget(self.sankey)
-        self.window.stacked.setCurrentWidget(self.sankey)
-        signals.update_windows.emit()
+        if self.list_widget.currentText():
+            cs = self.list_widget.currentText()
+            if hasattr(self, 'sankey'):
+                self.window.stacked.removeWidget(self.sankey)
+                self.sankey.deleteLater()
+            self.sankey = SankeyWidget(self, cs=cs)
+            self.window.stacked.addWidget(self.sankey)
+            self.window.stacked.setCurrentWidget(self.sankey)
+            signals.update_windows.emit()

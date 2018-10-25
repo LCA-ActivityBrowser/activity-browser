@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets
 
 from .. import activity_cache
 from ..tabs import ActivityTab, CFsTab
-from ..utils import get_name
+from ...bwutils.commontasks import get_activity_name
 from ...signals import signals
 from ...settings import user_project_settings
 
@@ -12,10 +12,12 @@ class ABTab(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
         super(ABTab, self).__init__(parent)
         self.setMovable(True)
-        self.tabs = {}  # keys: tab name; values: tab widget
+        self.tabs = dict()  # keys: tab name; values: tab widget
 
         # signals
-        signals.show_or_hide_tab.connect(self.toggle_tab_visibility)
+        signals.toggle_show_or_hide_tab.connect(self.toggle_tab_visibility)
+        signals.show_tab.connect(self.show_tab)
+        signals.hide_tab.connect(self.hide_tab)
 
     def select_tab(self, obj):
         self.setCurrentIndex(self.indexOf(obj))
@@ -28,14 +30,14 @@ class ABTab(QtWidgets.QTabWidget):
             else:
                 self.show_tab(tab_name)
 
-    def hide_tab(self, tab_name):
+    def hide_tab(self, tab_name, current_index=0):
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
             if self.indexOf(tab) != -1:
                 print("hiding tab:", tab_name)
                 tab.setVisible(False)
+                self.setCurrentIndex(current_index)
                 self.removeTab(self.indexOf(tab))
-                self.setCurrentIndex(0)
 
     def show_tab(self, tab_name):
         if tab_name in self.tabs:
@@ -44,6 +46,13 @@ class ABTab(QtWidgets.QTabWidget):
             tab.setVisible(True)
             self.addTab(tab, tab_name)
             self.select_tab(tab)
+
+    def add_tab(self):
+        """To add some functionality on top of the default addTab by Qt."""
+        pass
+
+    def remove_tab(self):
+        pass
 
 
 class CharacterizationFactorsTab(ABTab):
@@ -94,8 +103,7 @@ class ActivitiesTab(ABTab):
         signals.project_selected.connect(self.close_all_activity_tabs)
 
     def open_activity_tab(self, key):
-        """check if activity open as ActivityTab and focus if so
-        else create a new ActivityTab for activity and focus it"""
+        """Opens new ActivityTab of focuses on already open one."""
 
         if key in activity_cache:
             self.select_tab(activity_cache[key])
@@ -106,7 +114,7 @@ class ActivitiesTab(ABTab):
             activity_cache[key] = new_tab
 
             # get_name returns the act name using bw-specific code, modified to return 30 chars.
-            self.addTab(new_tab, get_name(bw.get_activity(key), str_length=30))
+            self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
             self.select_tab(new_tab)
 
             # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top

@@ -98,6 +98,10 @@ def get_activity_data(datasets):
         yield obj
 
 
+def get_activity_name(key, str_length=22):
+    return ','.join(key.get('name', '').split(',')[:3])[:str_length]
+
+
 def get_exchanges_data(exchanges):
     # TODO: not finished
     results = []

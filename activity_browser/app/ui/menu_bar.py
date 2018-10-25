@@ -42,8 +42,8 @@ class MenuBar(object):
     def setup_tools_menu(self):
         menu = QtWidgets.QMenu('&Tools', self.window)
         menu.addAction(
-            '&Graph Navigator',
-            signals.import_database.emit
+            '&Graph Explorer',
+            lambda x="Graph Explorer": signals.show_tab.emit(x)
         )
         # menu.addAction(
         #     '&Show/hide history',
@@ -57,21 +57,18 @@ class MenuBar(object):
     # WINDOWS
     def setup_windows_menu(self):
         self.windows_menu = QtWidgets.QMenu('&Windows', self.window)
-        self.update_windows_menu()
+
         self.show_hide_menu = QtWidgets.QMenu('&Show/hide...', self.window)
         self.show_hide_menu.addAction(
             '&Project History',
-            lambda x="Project History": signals.show_or_hide_tab.emit(x)
+            lambda x="Project History": signals.toggle_show_or_hide_tab.emit(x)
         )
         self.show_hide_menu.addAction(
             '&Graph Explorer',
-            lambda x="Project History": signals.show_or_hide_tab.emit(x)
+            lambda x="Graph Explorer": signals.toggle_show_or_hide_tab.emit(x)
         )
-        self.windows_menu.addMenu(self.show_hide_menu)
-        # self.windows_menu.addAction(
-        #     '&Show/hide history',
-        #     lambda x="Project History": signals.show_or_hide_tab.emit(x)
-        # )
+        # self.windows_menu.addMenu(self.show_hide_menu)
+        self.update_windows_menu()
         return self.windows_menu
 
     def update_windows_menu(self):
@@ -82,7 +79,7 @@ class MenuBar(object):
                 widget.name,
                 lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
             )
-
+        self.windows_menu.addMenu(self.show_hide_menu)
 
     # HELP
     def setup_help_menu(self):

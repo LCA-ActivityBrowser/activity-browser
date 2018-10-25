@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 from .panel import ABTab, ActivitiesTab, CharacterizationFactorsTab
 from ..web.graphnav import GraphNavigatorWidget
-# from ..web.graphnav import SankeyNavigatorWidget
 from ...signals import signals
 from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
     LCAResultsTab,
-    ActivityTab,
 )
 
 
@@ -29,7 +27,7 @@ class RightPanel(ABTab):
             self.addTab(tab, tab_name)
 
         # tabs hidden at start
-        for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", "LCA results"]:
+        for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", ]:
             self.hide_tab(tab_name)
 
     #     # Signals
@@ -38,6 +36,7 @@ class RightPanel(ABTab):
     def connect_signals(self):
         signals.activity_tabs_changed.connect(self.update_activity_panel)
         signals.method_tabs_changed.connect(self.update_method_panel)
+        signals.lca_calculation.connect(self.update_LCA_results_panel)
 
     def update_method_panel(self):
         """Show or hide Characterization Factors."""
@@ -49,12 +48,20 @@ class RightPanel(ABTab):
                 self.hide_tab("Characterization Factors")
 
     def update_activity_panel(self):
-        """Show or hide Characterization Factors."""
-        if activity_cache is not None:
+        """Show or hide Activity Panel."""
+        if activity_cache:
             self.show_tab("Activities")
         else:
             self.hide_tab("Activities")
 
+    def update_LCA_results_panel(self):
+        """Show or hide LCA Results Panel"""
+        if "LCA Results" in self.tabs:
+            tab = self.tabs["LCA results"]
+            if tab.calculation_setups:
+                self.show_tab("LCA Results")
+            else:
+                self.hide_tab("LCA Results")
 
 
 

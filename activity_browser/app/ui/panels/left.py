@@ -28,6 +28,6 @@ class LeftPanel(ABTab):
 
     def connect_signals(self):
         self.currentChanged.connect(
-            lambda i, x="Welcome": self.hide_tab(x)
+            lambda i, x="Welcome": self.hide_tab(x, current_index=i)
         )
 
