@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
 
 from .LCA_results_tabs import LCAResultsSubTab

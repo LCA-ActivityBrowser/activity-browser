@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-from .panel import ABTab, ActivitiesTab, CharacterizationFactorsTab
+from .panel import ABTab
 from ..web.graphnav import GraphNavigatorWidget
 from ...signals import signals
 from .. import activity_cache
 from ..tabs import (
     LCASetupTab,
     LCAResultsTab,
+    CharacterizationFactorsTab,
+    ActivitiesTab
 )
 
 
