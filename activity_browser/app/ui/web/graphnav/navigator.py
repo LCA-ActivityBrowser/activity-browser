@@ -147,7 +147,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
     def connect_signals(self):
         signals.database_selected.connect(self.set_database)
-        signals.add_activity_to_history.connect(self.new_graph)
+        # signals.add_activity_to_history.connect(self.new_graph)
         graphsignals.update_graph.connect(self.update_graph)
         # checkboxes
         self.checkbox_direct_only.stateChanged.connect(self.update_graph_settings)

@@ -74,6 +74,6 @@ class Signals(QtCore.QObject):
     new_statusbar_message = QtCore.pyqtSignal(str)
 
     # Tools
-    show_history = QtCore.pyqtSignal()
+    show_or_hide_tab = QtCore.pyqtSignal(str)
 
 signals = Signals()
