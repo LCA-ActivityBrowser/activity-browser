@@ -15,6 +15,7 @@ class MenuBar(object):
         self.window = window
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
+        self.menubar.addMenu(self.setup_tools_menu())
         # self.menubar.addMenu(self.setup_extensions_menu())
         self.menubar.addMenu(self.setup_windows_menu())
         self.menubar.addMenu(self.setup_help_menu())
@@ -35,6 +36,22 @@ class MenuBar(object):
             '&Settings...',
             self.open_settings_wizard
         )
+        return menu
+
+    # TOOLS
+    def setup_tools_menu(self):
+        menu = QtWidgets.QMenu('&Tools', self.window)
+        menu.addAction(
+            '&Graph Navigator',
+            signals.import_database.emit
+        )
+        menu.addAction(
+            '&Show/hide history',
+            signals.show_history.emit
+        )
+
+        # self.graph_navigator = QtWidgets.QMenu('&Windows', self.window)
+        # self.update_windows_menu()
         return menu
 
     # WINDOWS

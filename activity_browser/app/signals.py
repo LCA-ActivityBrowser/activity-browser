@@ -73,5 +73,7 @@ class Signals(QtCore.QObject):
     update_windows = QtCore.pyqtSignal()
     new_statusbar_message = QtCore.pyqtSignal(str)
 
+    # Tools
+    show_history = QtCore.pyqtSignal()
 
 signals = Signals()
