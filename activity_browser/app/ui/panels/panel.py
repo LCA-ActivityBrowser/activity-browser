@@ -13,8 +13,8 @@ class ABTab(QtWidgets.QTabWidget):
         signals.toggle_show_or_hide_tab.connect(self.toggle_tab_visibility)
         signals.show_tab.connect(self.show_tab)
         signals.hide_tab.connect(self.hide_tab)
-        # self.tabCloseRequested.connect(signals.hide_if_no_tabs.emit)
-        # signals.hide_if_no_tabs.connect(self.hide_if_no_tabs)
+        # signals.lca_results_tabs_changed.connect(self.update_self)
+        signals.show_tab_or_hide_when_empty.connect(self.show_tab_or_hide_when_empty)
 
     def select_tab(self, obj):
         self.setCurrentIndex(self.indexOf(obj))
@@ -31,7 +31,7 @@ class ABTab(QtWidgets.QTabWidget):
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
             if self.indexOf(tab) != -1:
-                print("hiding tab:", tab_name)
+                print("-hiding tab:", tab_name)
                 tab.setVisible(False)
                 self.setCurrentIndex(current_index)
                 self.removeTab(self.indexOf(tab))
@@ -39,7 +39,7 @@ class ABTab(QtWidgets.QTabWidget):
     def show_tab(self, tab_name):
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
-            print("showing tab:", tab_name)
+            print("+showing tab:", tab_name)
             tab.setVisible(True)
             self.addTab(tab, tab_name)
             self.select_tab(tab)
@@ -57,6 +57,18 @@ class ABTab(QtWidgets.QTabWidget):
             return tab_names[0]
         else:
             print("Warning: found", len(tab_names), "occurences of this object.")
+
+    def show_tab_or_hide_when_empty(self):
+        print("\nChecking for empty tabs:")
+        for tab_name, tab in self.tabs.items():
+            print("Tab:", self.get_tab_name(tab), "...")
+            if hasattr(tab, "tabs"):
+                print("Subtabs:", tab.tabs.keys())
+                if not tab.tabs:
+                    self.hide_tab(tab_name)
+                else:
+                    self.show_tab(tab_name)
+
 
     # def hide_if_no_tabs(self):
     #     print("Hide if no tabs:", self.tabText(self.currentIndex()))

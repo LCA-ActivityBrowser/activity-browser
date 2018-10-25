@@ -61,33 +61,45 @@ class CharacterizationFactorsTab(ABTab):
         super().__init__(parent)
         self.setMovable(True)
         self.setTabsClosable(True)
-        self.tabCloseRequested.connect(self.close_tab)
-        self.tab_dict = {}
+
+        # signals
         signals.method_selected.connect(self.open_method_tab)
+        self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
 
     def open_method_tab(self, method):
-        if method not in self.tab_dict:
+        if method not in self.tabs:
             tab = CFsTab(self, method)
             full_tab_label = ' '.join(method)
             label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
-            self.tab_dict[method] = tab
+            self.tabs[method] = tab
             self.addTab(tab, label)
         else:
-            tab = self.tab_dict[method]
+            tab = self.tabs[method]
 
         self.select_tab(tab)
-        signals.method_tabs_changed.emit()
+        signals.show_tab_or_hide_when_empty.emit()
 
     def close_tab(self, index):
         tab = self.widget(index)
-        del self.tab_dict[tab.method]
+        del self.tabs[tab.method]
         self.removeTab(index)
-        signals.method_tabs_changed.emit()
+        signals.show_tab_or_hide_when_empty.emit()
+
+    # def close_tab(self, index):
+    #     widget = self.widget(index)
+    #     tab_name = self.get_tab_name(widget)
+    #     print("Closing tab:", tab_name)
+    #     if isinstance(widget, CFsTab):
+    #         assert widget in self.tabs.values()
+    #         del self.tabs[tab_name]
+    #     widget.deleteLater()
+    #     self.removeTab(index)
+    #     signals.hide_if_no_tabs.emit()
 
     def close_all(self):
         self.clear()
-        self.tab_dict = {}
-        signals.method_tabs_changed.emit()
+        self.tabs = {}
+        signals.show_tab_or_hide_when_empty.emit()
 
 

@@ -28,9 +28,9 @@ class LCAResultsTab(ABTab):
         signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         # self.tabCloseRequested.connect(signals.lca_results_tabs_changed)
-        self.tabCloseRequested.connect(
-                lambda index: self.removeTab(index)
-        )
+        # self.tabCloseRequested.connect(
+        #         lambda index: self.removeTab(index)
+        # )
 
     def remove_setup(self, name):
         """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """
@@ -44,8 +44,9 @@ class LCAResultsTab(ABTab):
             self.tabs[name] = LCAResultsSubTab(self, name)
             self.addTab(self.tabs[name], name)
         self.setCurrentIndex(self.indexOf(self.tabs[name]))
-        signals.lca_results_tabs_changed.emit()
-
+        signals.show_tab_or_hide_when_empty.emit()
+        # signals.lca_results_tabs_changed.emit()
+    #
     def close_tab(self, index):
         widget = self.widget(index)
         tab_name = self.get_tab_name(widget)
@@ -55,4 +56,5 @@ class LCAResultsTab(ABTab):
             del self.tabs[tab_name]
         widget.deleteLater()
         self.removeTab(index)
-        signals.lca_results_tabs_changed.emit()
+        signals.show_tab_or_hide_when_empty.emit()
+        # signals.lca_results_tabs_changed.emit()
