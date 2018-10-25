@@ -198,7 +198,7 @@ class ActivitiesTable(ABTableWidget):
         self.addAction(self.duplicate_activity_to_db_action)
 
         self.open_activity_action.triggered.connect(
-            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+            lambda x: signals.open_activity_tab.emit(self.currentItem().key)
         )
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database.name)
@@ -228,7 +228,7 @@ class ActivitiesTable(ABTableWidget):
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
         self.itemDoubleClicked.connect(
-            lambda x: signals.open_activity_tab.emit("activities", x.key)
+            lambda x: signals.open_activity_tab.emit(x.key)
         )
         self.itemDoubleClicked.connect(
             lambda x: signals.add_activity_to_history.emit(x.key)

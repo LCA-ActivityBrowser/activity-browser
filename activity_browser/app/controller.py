@@ -290,7 +290,7 @@ class Controller(object):
             production_exchange = new_act.new_exchange(amount=1, type="production")
             production_exchange.input = new_act
             production_exchange.save()
-            signals.open_activity_tab.emit("right", new_act.key)
+            signals.open_activity_tab.emit(new_act.key)
             signals.database_changed.emit(database_name)
 
     def delete_activity(self, key):
@@ -344,7 +344,7 @@ class Controller(object):
         new_act.save()
         signals.database_changed.emit(act['database'])
         signals.databases_changed.emit()
-        signals.open_activity_tab.emit("activities", new_act.key)
+        signals.open_activity_tab.emit(new_act.key)
 
     def show_duplicate_to_db_interface(self, activity_key):
         origin_db = activity_key[0]
@@ -382,7 +382,7 @@ class Controller(object):
             bw.databases.clean()
 
         signals.database_changed.emit(target_db)
-        signals.open_activity_tab.emit("activities", new_act_key)
+        signals.open_activity_tab.emit(new_act_key)
         signals.databases_changed.emit()
 
     def modify_activity(self, key, field, value):

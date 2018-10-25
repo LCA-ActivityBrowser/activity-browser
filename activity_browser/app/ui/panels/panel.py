@@ -12,7 +12,7 @@ class ABTab(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
         super(ABTab, self).__init__(parent)
         self.setMovable(True)
-        self.tabs = None
+        self.tabs = {}  # keys: tab name; values: tab widget
 
         # signals
         signals.show_or_hide_tab.connect(self.toggle_tab_visibility)
@@ -84,10 +84,35 @@ class CharacterizationFactorsTab(ABTab):
 class ActivitiesTab(ABTab):
     def __init__(self, parent=None):
         super(ABTab, self).__init__(parent)
-        self.side = 'activities'
-        self.setMovable(True)
         self.setTabsClosable(True)
         self.connect_signals()
+
+    def connect_signals(self):
+        signals.open_activity_tab.connect(self.open_activity_tab)
+        signals.activity_modified.connect(self.update_activity_name)
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.project_selected.connect(self.close_all_activity_tabs)
+
+    def open_activity_tab(self, key):
+        """check if activity open as ActivityTab and focus if so
+        else create a new ActivityTab for activity and focus it"""
+
+        if key in activity_cache:
+            self.select_tab(activity_cache[key])
+        else:
+            databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
+            database_read_only = databases_read_only_settings.get(key[0], True)
+            new_tab = ActivityTab(key, parent=self, read_only=True, db_read_only=database_read_only)
+            activity_cache[key] = new_tab
+
+            # get_name returns the act name using bw-specific code, modified to return 30 chars.
+            self.addTab(new_tab, get_name(bw.get_activity(key), str_length=30))
+            self.select_tab(new_tab)
+
+            # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
+            # new_tab.setToolTip(bw.get_activity(key).as_dict()['name'])
+
+        signals.activity_tabs_changed.emit()
 
     def update_activity_name(self, key, field, value):
         if key in activity_cache and field == 'name':
@@ -96,36 +121,6 @@ class ActivitiesTab(ABTab):
                 self.setTabText(index, value)
             except:
                 pass
-
-    def open_activity_tab(self, side, key):
-        """check if activity open as ActivityTab and focus if so
-        else create a new ActivityTab for activity and focus it"""
-
-        if side == self.side:
-            if key in activity_cache:
-                self.select_tab(activity_cache[key])
-            else:
-                databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
-
-                database_read_only = databases_read_only_settings.get(key[0], True)
-                # print(databases_read_only_settings)
-                # print(database_read_only)
-                act_dict = bw.get_activity(key).as_dict()
-                act_name = act_dict['name']
-
-                new_tab = ActivityTab(key, parent=self, read_only=True, db_read_only=database_read_only)
-
-
-                # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
-                new_tab.setToolTip(act_name)
-
-                activity_cache[key] = new_tab
-
-                # get_name returns the act name using bw-specific code, modified to return 30 chars.
-                self.addTab(new_tab, get_name(bw.get_activity(key), str_length=30))
-                self.select_tab(new_tab)
-
-            signals.activity_tabs_changed.emit()
 
     def close_tab(self, index):
         widget = self.widget(index)
@@ -140,9 +135,3 @@ class ActivitiesTab(ABTab):
         open_tab_count = len(activity_cache)
         for i in reversed(range(open_tab_count)):
             self.close_tab(i)
-
-    def connect_signals(self):
-        self.tabCloseRequested.connect(self.close_tab)
-        signals.open_activity_tab.connect(self.open_activity_tab)
-        signals.activity_modified.connect(self.update_activity_name)
-        signals.project_selected.connect(self.close_all_activity_tabs)

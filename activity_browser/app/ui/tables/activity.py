@@ -123,7 +123,7 @@ class ExchangeTable(ABTableWidget):
                 key = item.exchange['output']
             else:
                 key = item.exchange['input']
-            signals.open_activity_tab.emit("activities", key)
+            signals.open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
 
     def set_queryset(self, database, qs, limit=100, upstream=False):
