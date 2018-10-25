@@ -22,27 +22,22 @@ class ActivitiesTab(ABTab):
         signals.open_activity_tab.connect(self.open_activity_tab)
         signals.activity_modified.connect(self.update_activity_name)
         self.tabCloseRequested.connect(self.close_tab)
-        signals.project_selected.connect(self.close_all_activity_tabs)
+        signals.project_selected.connect(self.close_all)
 
     def open_activity_tab(self, key):
         """Opens new ActivityTab of focuses on already open one."""
-
-        if key in self.tabs:
-            self.select_tab(self.tabs[key])
-        else:
+        if not key in self.tabs:
             databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
             database_read_only = databases_read_only_settings.get(key[0], True)
             new_tab = ActivityTab(key, parent=self, read_only=True, db_read_only=database_read_only)
             self.tabs[key] = new_tab
-
-            # get_name returns the act name using bw-specific code, modified to return 30 chars.
             self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
-            self.select_tab(new_tab)
 
             # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
             # new_tab.setToolTip(bw.get_activity(key).as_dict()['name'])
 
-        signals.show_tab_or_hide_when_empty.emit()
+        self.select_tab(self.tabs[key])
+        signals.show_tab.emit("Activities")
 
     def update_activity_name(self, key, field, value):
         if key in self.tabs and field == 'name':
@@ -52,19 +47,6 @@ class ActivitiesTab(ABTab):
             except:
                 pass
 
-    def close_tab(self, index):
-        widget = self.widget(index)
-        if isinstance(widget, ActivityTab):
-            assert widget.activity in self.tabs
-            del self.tabs[widget.activity]
-        widget.deleteLater()
-        self.removeTab(index)
-        signals.show_tab_or_hide_when_empty.emit()
-
-    def close_all_activity_tabs(self):
-        open_tab_count = len(self.tabs)
-        for i in reversed(range(open_tab_count)):
-            self.close_tab(i)
 
 
 class ActivityTab(QtWidgets.QTabWidget):

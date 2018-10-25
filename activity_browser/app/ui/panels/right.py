@@ -27,7 +27,7 @@ class RightPanel(ABTab):
             self.addTab(tab, tab_name)
 
         # tabs hidden at start
-        for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", ]:
+        for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", "LCA results"]:
             self.hide_tab(tab_name)
 
 

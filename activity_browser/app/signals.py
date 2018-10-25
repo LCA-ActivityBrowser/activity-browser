@@ -78,7 +78,7 @@ class Signals(QtCore.QObject):
     toggle_show_or_hide_tab = QtCore.pyqtSignal(str)
     show_tab = QtCore.pyqtSignal(str)
     hide_tab = QtCore.pyqtSignal(str)
-    show_tab_or_hide_when_empty = QtCore.pyqtSignal()
+    hide_when_empty = QtCore.pyqtSignal()
 
 
 signals = Signals()

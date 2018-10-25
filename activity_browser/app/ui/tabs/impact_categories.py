@@ -69,37 +69,11 @@ class CharacterizationFactorsTab(ABTab):
 
     def open_method_tab(self, method):
         if method not in self.tabs:
-            tab = CFsTab(self, method)
+            new_tab = CFsTab(self, method)
             full_tab_label = ' '.join(method)
             label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
-            self.tabs[method] = tab
-            self.addTab(tab, label)
-        else:
-            tab = self.tabs[method]
+            self.tabs[method] = new_tab
+            self.addTab(new_tab, label)
 
-        self.select_tab(tab)
-        signals.show_tab_or_hide_when_empty.emit()
-
-    def close_tab(self, index):
-        tab = self.widget(index)
-        del self.tabs[tab.method]
-        self.removeTab(index)
-        signals.show_tab_or_hide_when_empty.emit()
-
-    # def close_tab(self, index):
-    #     widget = self.widget(index)
-    #     tab_name = self.get_tab_name(widget)
-    #     print("Closing tab:", tab_name)
-    #     if isinstance(widget, CFsTab):
-    #         assert widget in self.tabs.values()
-    #         del self.tabs[tab_name]
-    #     widget.deleteLater()
-    #     self.removeTab(index)
-    #     signals.hide_if_no_tabs.emit()
-
-    def close_all(self):
-        self.clear()
-        self.tabs = {}
-        signals.show_tab_or_hide_when_empty.emit()
-
-
+        self.select_tab(self.tabs[method])
+        signals.show_tab.emit("Characterization Factors")
