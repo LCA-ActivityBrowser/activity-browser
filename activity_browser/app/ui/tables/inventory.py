@@ -22,7 +22,14 @@ class DatabasesTable(ABTableWidget):
     A context menu (right click) provides further functionality"""
     # Column 4 header options: Size / Entries / Flows / Activities / Count / Activity Count..
     # ... 'Records' seems reasonable for a "database", and is quite short
-    HEADERS = ["Name", "Depends", "Modified", "Records", "Read-only"]
+    HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified", ]
+    # HEADERS = {
+    #     "Name": 0,
+    #     "Depends": 1,
+    #     "Modified": 2,
+    #     "Records": 3,
+    #     "Read-only": 4,
+    # }
 
     def __init__(self):
         super(DatabasesTable, self).__init__()
@@ -83,23 +90,24 @@ class DatabasesTable(ABTableWidget):
     def sync(self):
         self.setRowCount(len(bw.databases))
         self.setHorizontalHeaderLabels(self.HEADERS)
+        # self.setHorizontalHeaderLabels(sorted(self.HEADERS.items(), key=lambda kv: kv[1]))
 
         project = bw.projects.current.lower().strip()
         databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
 
         for row, name in enumerate(natural_sort(bw.databases)):
-            self.setItem(row, 0, ABTableItem(name, db_name=name))
+            self.setItem(row, self.HEADERS.index("Name"), ABTableItem(name, db_name=name))
             depends = bw.databases[name].get('depends', [])
-            self.setItem(row, 1, ABTableItem(", ".join(depends), db_name=name))
+            self.setItem(row, self.HEADERS.index("Depends"), ABTableItem(", ".join(depends), db_name=name))
             dt = bw.databases[name].get('modified', '')
             # code below is based on the assumption that bw uses utc timestamps
             tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
             time_shift = - tz.utcoffset().total_seconds()
             if dt:
                 dt = arrow.get(dt).shift(seconds=time_shift).humanize()
-            self.setItem(row, 2, ABTableItem(dt, db_name=name))
+            self.setItem(row, self.HEADERS.index("Modified"), ABTableItem(dt, db_name=name))
             self.setItem(
-                row, 3, ABTableItem(str(len(bw.Database(name))), db_name=name)
+                row, self.HEADERS.index("Records"), ABTableItem(str(len(bw.Database(name))), db_name=name)
             )
             # final column includes interactive checkbox which shows read-only state of db
             database_read_only = databases_read_only_settings.get(name, True)
@@ -107,7 +115,7 @@ class DatabasesTable(ABTableWidget):
             ch = QtWidgets.QCheckBox(parent=self)
             ch.clicked.connect(lambda checked, db=name: self.read_only_changed(checked, db))
             ch.setChecked(database_read_only)
-            self.setCellWidget(row, 4, ch)
+            self.setCellWidget(row, self.HEADERS.index("Read-only"), ch)
 
 
 class BiosphereFlowsTable(ABTableWidget):
