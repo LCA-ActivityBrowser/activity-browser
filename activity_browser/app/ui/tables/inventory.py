@@ -178,6 +178,10 @@ class ActivitiesTable(ABTableWidget):
         # context menu items are enabled/disabled elsewhere, in update_activity_table_read_only()
         self.open_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.left), "Open activity", None)
+
+        self.open_graph_action = QtWidgets.QAction(
+            QtGui.QIcon(icons.graph_explorer), "Open in Graph Explorer", None)
+
         self.new_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add), "Add new activity", None
         )
@@ -192,6 +196,7 @@ class ActivitiesTable(ABTableWidget):
         )
 
         self.addAction(self.open_activity_action)
+        self.addAction(self.open_graph_action)
         self.addAction(self.new_activity_action)
         self.addAction(self.duplicate_activity_action)
         self.addAction(self.delete_activity_action)
@@ -199,6 +204,9 @@ class ActivitiesTable(ABTableWidget):
 
         self.open_activity_action.triggered.connect(
             lambda x: signals.open_activity_tab.emit(self.currentItem().key)
+        )
+        self.open_graph_action.triggered.connect(
+            lambda x: signals.open_activity_graph_tab.emit(self.currentItem().key)
         )
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database.name)

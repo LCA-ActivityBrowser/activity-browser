@@ -9,13 +9,10 @@ from ...signals import signals
 class LCAResultsTab(ABTab):
     def __init__(self, parent):
         super(LCAResultsTab, self).__init__(parent)
-        # self.panel = parent  # e.g. right panel
-        self.setVisible(False)
-        self.visible = False
 
         self.setMovable(True)
         # self.setTabShape(1)  # Triangular-shaped Tabs
-        self.setTabsClosable(True)  # todo: does not yet work properly
+        self.setTabsClosable(True)
 
         # Generate layout
         self.layout = QVBoxLayout()

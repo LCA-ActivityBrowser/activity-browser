@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import brightway2 as bw
+from PyQt5.QtWidgets import QVBoxLayout
+
 from .panel import ABTab
 from ..web.graphnav import GraphNavigatorWidget
 from ..tabs import (
@@ -7,6 +10,8 @@ from ..tabs import (
     CharacterizationFactorsTab,
     ActivitiesTab
 )
+from ...signals import signals
+from ...bwutils.commontasks import get_activity_name
 
 
 class RightPanel(ABTab):
@@ -19,7 +24,7 @@ class RightPanel(ABTab):
             "Characterization Factors": CharacterizationFactorsTab(self),
             "Activities": ActivitiesTab(self),
             "LCA Setup": LCASetupTab(self),
-            "Graph Explorer": GraphNavigatorWidget(),
+            "Graph Explorer": GraphExplorerTab(self),
             "LCA results": LCAResultsTab(self),
         }
 
@@ -31,7 +36,45 @@ class RightPanel(ABTab):
             self.hide_tab(tab_name)
 
 
+class GraphExplorerTab(ABTab):
+    def __init__(self, parent):
+        super(GraphExplorerTab, self).__init__(parent)
 
+        self.setMovable(True)
+        self.setTabsClosable(True)
+        # self.setTabShape(1)  # Triangular-shaped Tabs
+
+        # Generate layout
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.project_selected.connect(self.close_all)
+        # signals.show_tab.connect(self.add_first_tab)
+        signals.open_activity_graph_tab.connect(self.add_tab)
+
+    # def add_first_tab(self):
+    #     if not self.tabs:
+    #         self.add_tab("empty", select=False)
+
+    def add_tab(self, key, select=True):
+        """Opens new tab or focuses on already open one."""
+        if key not in self.tabs:
+            print("adding graph tab")
+            new_tab = GraphNavigatorWidget(self, key=key)
+            # new_tab.new_graph(key)
+            self.tabs[key] = new_tab
+            self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
+        else:
+            tab = self.tabs[key]
+            tab.new_graph(key)
+
+        if select:
+            self.select_tab(self.tabs[key])
+            signals.show_tab.emit("Graph Explorer")
 
 
 # Delete once Sankey stuff has been resolved

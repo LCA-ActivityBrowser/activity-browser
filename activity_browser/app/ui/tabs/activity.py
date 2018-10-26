@@ -25,8 +25,8 @@ class ActivitiesTab(ABTab):
         signals.project_selected.connect(self.close_all)
 
     def open_activity_tab(self, key):
-        """Opens new ActivityTab of focuses on already open one."""
-        if not key in self.tabs:
+        """Opens new tab or focuses on already open one."""
+        if key not in self.tabs:
             databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
             database_read_only = databases_read_only_settings.get(key[0], True)
             new_tab = ActivityTab(key, parent=self, read_only=True, db_read_only=database_read_only)

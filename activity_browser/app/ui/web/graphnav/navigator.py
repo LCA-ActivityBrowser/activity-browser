@@ -6,6 +6,7 @@ import networkx as nx
 
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtWebChannel
+from PyQt5.QtCore import QTimer
 
 from .signals import graphsignals
 from ...icons import icons
@@ -41,25 +42,70 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
     
     Checkbox "Remove orphaned nodes": by default nodes that do not link to the central activity (see title) are removed (this may happen after deleting nodes). Uncheck to disable.
     
-    Checkbox "Flip negative flows" (experimental): Arrows of negative product flows (e.g. from ecoinvent treatment activities or from substitution) can be flipped. The resulting representation can be more intuitive for understanding the physical product flows (e.g. that wastes are outputs of activities and not negative inputs).   
+    Checkbox "Flip negative flows" (experimental): Arrows of negative product flows (e.g. from ecoinvent treatment activities or from substitution) can be flipped. 
+    The resulting representation can be more intuitive for understanding the physical product flows (e.g. that wastes are outputs of activities and not negative inputs).   
     
     
     NAVIGATION MODE:
     Click on activities to jump to specific activities (instead of expanding the graph).
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, key=None):
         super().__init__(parent)
 
         self.graph = Graph()
+
+        # qt js interaction
+        self.bridge = Bridge()
+        self.channel = QtWebChannel.QWebChannel()
+        self.channel.registerObject('bridge', self.bridge)
+        self.view = QtWebEngineWidgets.QWebEngineView()
+        self.view.page().setWebChannel(self.channel)
+        html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                            'navigator.html')
+        self.url = QtCore.QUrl.fromLocalFile(html)
+
+        # graph
+        self.draw_graph()
+
+        # default settings
         self.navigation_mode = False
+        self.help = False
         self.selected_db = None
 
+        # layout
+        self.make_layout()
+        self.update_graph_settings()
+
+        self.connect_signals()
+
+
+
+        # update graph if initialized with a key
+        if key:
+            timer = QTimer()
+            timer.timeout.connect(lambda x=key: self.new_graph(x))
+            timer.start(5000)
+            # self.selected_db = key[0]
+            # for i in range(50):
+            #     self.new_graph(key)
+
+
+    def connect_signals(self):
+        # signals.database_selected.connect(self.set_database)
+        graphsignals.update_graph.connect(self.update_graph)
+        # checkboxes
+        self.checkbox_direct_only.stateChanged.connect(self.update_graph_settings)
+        self.checkbox_remove_orphaned_nodes.stateChanged.connect(self.update_graph_settings)
+        self.checkbox_flip_negative_edges.stateChanged.connect(self.update_graph_settings)
+        self.checkbox_flip_negative_edges.stateChanged.connect(self.reload_graph)
+
+    def make_layout(self):
+        """Layout of Graph Navigator"""
         # Help label
         self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
         self.label_help.setVisible(False)
 
         # button toggle_help
-        self.help = False
         self.button_toggle_help = QtWidgets.QPushButton("Help")
         self.button_toggle_help.clicked.connect(self.toggle_help)
 
@@ -103,17 +149,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.checkbox_flip_negative_edges.setChecked(False)
         self.checkbox_flip_negative_edges.setToolTip(
             "Flip negative product flows (e.g. from ecoinvent treatment activities or from substitution)")
-
-        # qt js interaction
-        self.bridge = Bridge()
-        self.channel = QtWebChannel.QWebChannel()
-        self.channel.registerObject('bridge', self.bridge)
-        self.view = QtWebEngineWidgets.QWebEngineView()
-        self.view.page().setWebChannel(self.channel)
-        html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            'navigator.html')
-        self.url = QtCore.QUrl.fromLocalFile(html)
-
         # Controls Layout
         self.hl_controls = QtWidgets.QHBoxLayout()
         self.hl_controls.addWidget(self.button_back)
@@ -138,22 +173,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.vlay.addWidget(self.label_help)
         self.vlay.addWidget(self.view)
         self.setLayout(self.vlay)
-
-        self.connect_signals()
-        self.update_graph_settings()
-
-        # graph
-        self.draw_graph()
-
-    def connect_signals(self):
-        signals.database_selected.connect(self.set_database)
-        # signals.add_activity_to_history.connect(self.new_graph)
-        graphsignals.update_graph.connect(self.update_graph)
-        # checkboxes
-        self.checkbox_direct_only.stateChanged.connect(self.update_graph_settings)
-        self.checkbox_remove_orphaned_nodes.stateChanged.connect(self.update_graph_settings)
-        self.checkbox_flip_negative_edges.stateChanged.connect(self.update_graph_settings)
-        self.checkbox_flip_negative_edges.stateChanged.connect(self.reload_graph)
 
     def update_graph_settings(self):
         self.graph.direct_only = self.checkbox_direct_only.isChecked()
