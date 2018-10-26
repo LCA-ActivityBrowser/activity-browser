@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..style import style_activity_tab
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox
 from ..panels import ABTab
+from ..icons import icons
 from ...bwutils.commontasks import get_activity_name
 from ...signals import signals
 from ...settings import user_project_settings
@@ -73,6 +74,9 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.activity_key = activity_key
         self.activity = bw.get_activity(activity_key)
 
+        # Toolbar Layout
+        self.toolbarHL = QtWidgets.QHBoxLayout()
+
         # checkbox for enabling editing of activity, default=read-only
         self.edit_act_ch = QtWidgets.QCheckBox('Edit Activity', parent=self)
         self.edit_act_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
@@ -82,6 +86,16 @@ class ActivityTab(QtWidgets.QTabWidget):
             lambda checked: self.act_read_only_changed(read_only=not checked))
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
+
+        # Graph button
+        self.button_graph = QtWidgets.QPushButton(
+            QtGui.QIcon(icons.graph_explorer), "", self)
+        self.button_graph.clicked.connect(self.open_graph)
+        self.button_graph.setToolTip("Show graph")
+
+        self.toolbarHL.addWidget(self.edit_act_ch)
+        self.toolbarHL.addWidget(self.button_graph, stretch=0)
+        self.toolbarHL.addStretch(0)
 
         # activity-specific data displayed and editable near the top of the tab
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
@@ -102,7 +116,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
-        layout.addWidget(self.edit_act_ch)
+        layout.addLayout(self.toolbarHL)
         layout.addWidget(self.activity_data_grid)
         for table, label in self.exchange_tables:
             layout.addWidget(DetailsGroupBox(label, table))
@@ -199,3 +213,6 @@ class ActivityTab(QtWidgets.QTabWidget):
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
         signals.activity_modified.connect(self.update_activity_values)
+
+    def open_graph(self):
+        signals.open_activity_graph_tab.emit(self.activity_key)
