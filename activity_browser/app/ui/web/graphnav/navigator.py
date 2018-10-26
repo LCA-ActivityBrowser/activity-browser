@@ -6,7 +6,6 @@ import networkx as nx
 
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtWebChannel
-from PyQt5.QtCore import QTimer
 
 from .signals import graphsignals
 from ...icons import icons
@@ -59,6 +58,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.channel = QtWebChannel.QWebChannel()
         self.channel.registerObject('bridge', self.bridge)
         self.view = QtWebEngineWidgets.QWebEngineView()
+        self.view.loadFinished.connect(self.loadFinishedHandler)
         self.view.page().setWebChannel(self.channel)
         html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                             'navigator.html')
@@ -78,17 +78,16 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
         self.connect_signals()
 
-
-
-        # update graph if initialized with a key
         if key:
-            timer = QTimer()
-            timer.timeout.connect(lambda x=key: self.new_graph(x))
-            timer.start(5000)
-            # self.selected_db = key[0]
-            # for i in range(50):
-            #     self.new_graph(key)
+            self.selected_db = key[0]
+            self.new_graph(key)
 
+    @QtCore.pyqtSlot()
+    def loadFinishedHandler(self):
+        """Executed when webpage has been loaded for the first time or refreshed.
+        This is needed to resend the json data the first time after the page has completely loaded."""
+        # print(time.time(), ": load finished")
+        self.send_json()
 
     def connect_signals(self):
         # signals.database_selected.connect(self.set_database)
@@ -193,26 +192,25 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
     def go_back(self):
         if self.graph.back():
             signals.new_statusbar_message.emit("Going back.")
-            self.bridge.graph_ready.emit(self.graph.json_data)
+            self.send_json()
         else:
             signals.new_statusbar_message.emit("No data to go back to.")
 
     def go_forward(self):
         if self.graph.forward():
             signals.new_statusbar_message.emit("Going forward.")
-            self.bridge.graph_ready.emit(self.graph.json_data)
+            self.send_json()
         else:
             signals.new_statusbar_message.emit("No data to go forward to.")
 
     def new_graph(self, key):
         print("New Graph for key: ", key)
         self.graph.new_graph(key)
-        self.bridge.graph_ready.emit(self.graph.json_data)
+        self.send_json()
 
     def reload_graph(self):
         signals.new_statusbar_message.emit("Reloading graph")
         self.graph.update(delete_unstacked=False)
-        self.bridge.graph_ready.emit(self.graph.json_data)
 
     def update_graph(self, click_dict):
         """
@@ -243,7 +241,11 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
                 else:  # upstream expansion
                     print("Adding upstream nodes.")
                     self.graph.expand_graph(key, up=True)
-            self.bridge.graph_ready.emit(self.graph.json_data)
+            self.send_json()
+
+    def send_json(self):
+        # print("Sending JSON data")
+        self.bridge.graph_ready.emit(self.graph.json_data)
 
     def set_database(self, name):
         """Saves the currently selected database for graphing a random activity"""
@@ -516,8 +518,8 @@ class Graph:
             "edges": edges,
             "title": self.central_activity.get("reference product"),
         }
-        print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
-        print(json_data)
+        # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
+        # print(json_data)
         return json.dumps(json_data)
 
     def save_json_to_file(self, filename="data.json"):

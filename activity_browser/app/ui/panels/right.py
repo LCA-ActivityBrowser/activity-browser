@@ -65,9 +65,11 @@ class GraphExplorerTab(ABTab):
         if key not in self.tabs:
             print("adding graph tab")
             new_tab = GraphNavigatorWidget(self, key=key)
+            # new_tab = GraphNavigatorWidget(self)
             # new_tab.new_graph(key)
             self.tabs[key] = new_tab
             self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
+            # new_tab.new_graph(key)
         else:
             tab = self.tabs[key]
             tab.new_graph(key)

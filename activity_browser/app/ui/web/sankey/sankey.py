@@ -8,6 +8,7 @@ import brightway2 as bw
 import matplotlib.pyplot as plt
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 
+from .. import wait_html
 from .signals import sankeysignals
 from .worker_threads import gt_worker_thread
 
@@ -67,8 +68,6 @@ class SankeyWidget(QtWidgets.QWidget):
         html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                             'activity-browser-sankey.html')
         self.url = QtCore.QUrl.fromLocalFile(html)
-        wait_html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                 'spinner.html')
         self.wait_url = QtCore.QUrl.fromLocalFile(wait_html)
         self.view.load(self.wait_url)
         self.vlay = QtWidgets.QVBoxLayout()
@@ -93,12 +92,15 @@ class SankeyWidget(QtWidgets.QWidget):
         sankeysignals.initial_sankey_ready.connect(self.draw_sankey)
 
     def new_sankey(self):
+        # print("Entering new_sankey")
         sankeysignals.calculating_gt.emit()
         demand = self.func_units[self.func_unit_cb.currentIndex()]
         method = self.methods[self.method_cb.currentIndex()]
         color_attr = self.color_attr_cb.currentText()
         cutoff = self.cutoff_sb.value()
+        # print("calling SankeyGraphTraversal")
         self.sankey = SankeyGraphTraversal(demand, method, cutoff, color_attr)
+        # print("finished SankeyGraphTraversal")
 
     def update_colors(self):
         self.sankey.color_attr = self.color_attr_cb.currentText()
@@ -107,16 +109,19 @@ class SankeyWidget(QtWidgets.QWidget):
         self.bridge.lca_calc_finished.emit(self.sankey.json_data)
 
     def draw_sankey(self):
+        # print("drawing sankey")
         self.view.load(self.url)
 
     def busy_indicator(self):
         self.view.load(self.wait_url)
 
     def expand_sankey(self, target_key):
+        # print("expanding sankey")
         self.sankey.expand(target_key)
         self.bridge.lca_calc_finished.emit(self.sankey.json_data)
 
     def send_json(self):
+        # print("sending json")
         self.bridge.sankey_ready.emit(self.sankey.json_data)
 
     def switch_to_main(self):
@@ -139,6 +144,7 @@ class Bridge(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def viewer_ready(self):
+        # print("Viewer ready!")
         self.viewer_waiting.emit()
 
 
