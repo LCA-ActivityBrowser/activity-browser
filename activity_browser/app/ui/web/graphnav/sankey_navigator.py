@@ -120,7 +120,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
-        self.max_calc_sb.setValue(500)
+        self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
         self.grid_lay.addWidget(self.max_calc_sb, 1, 5)
 

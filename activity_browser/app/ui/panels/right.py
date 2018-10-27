@@ -53,23 +53,15 @@ class GraphExplorerTab(ABTab):
     def connect_signals(self):
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
-        # signals.show_tab.connect(self.add_first_tab)
         signals.open_activity_graph_tab.connect(self.add_tab)
-
-    # def add_first_tab(self):
-    #     if not self.tabs:
-    #         self.add_tab("empty", select=False)
 
     def add_tab(self, key, select=True):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             print("adding graph tab")
             new_tab = GraphNavigatorWidget(self, key=key)
-            # new_tab = GraphNavigatorWidget(self)
-            # new_tab.new_graph(key)
             self.tabs[key] = new_tab
             self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
-            # new_tab.new_graph(key)
         else:
             tab = self.tabs[key]
             tab.new_graph(key)
@@ -77,23 +69,3 @@ class GraphExplorerTab(ABTab):
         if select:
             self.select_tab(self.tabs[key])
             signals.show_tab.emit("Graph Explorer")
-
-
-# Delete once Sankey stuff has been resolved
-
-        # signals.lca_calculation.connect(self.add_Sankey_Widget)
-        # self.currentChanged.connect(self.calculate_first_sankey)
-
-    # def add_Sankey_Widget(self, cs_name):
-    #     print("Adding Sankey Tab")
-    #     # if not hasattr(self, "sankey_navigator_tab"):
-    #     self.sankey_navigator_tab = SankeyNavigatorWidget(cs_name)
-    #     self.addTab(self.sankey_navigator_tab, 'LCA Sankey')
-
-    # def calculate_first_sankey(self):
-    #     if hasattr(self, "sankey_navigator_tab"):
-    #         if self.currentIndex() == self.indexOf(self.sankey_navigator_tab):
-    #             print("Changed to Sankey Tab")
-    #             if not self.sankey_navigator_tab.graph.json_data:
-    #                 print("Calculated first Sankey")
-    #                 self.sankey_navigator_tab.new_sankey()
