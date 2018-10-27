@@ -5,10 +5,12 @@ import traceback
 from PyQt5 import QtWidgets
 
 from .application import Application
+from .ui.style import default_font
 
 
 def run_activity_browser():
     qapp = QtWidgets.QApplication(sys.argv)
+    qapp.setFont(default_font)
     application = Application()
     application.show()
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtGui, QtWidgets
 
+default_font = QtGui.QFont('Arial', 8)
 
 bold_font = QtGui.QFont()
 bold_font.setBold(True)

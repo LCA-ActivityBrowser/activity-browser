@@ -74,9 +74,6 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.activity_key = activity_key
         self.activity = bw.get_activity(activity_key)
 
-        # Toolbar Layout
-        self.toolbarHL = QtWidgets.QHBoxLayout()
-
         # checkbox for enabling editing of activity, default=read-only
         self.edit_act_ch = QtWidgets.QCheckBox('Edit Activity', parent=self)
         self.edit_act_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
@@ -93,6 +90,8 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.button_graph.clicked.connect(self.open_graph)
         self.button_graph.setToolTip("Show graph")
 
+        # Toolbar Layout
+        self.toolbarHL = QtWidgets.QHBoxLayout()
         self.toolbarHL.addWidget(self.edit_act_ch)
         self.toolbarHL.addWidget(self.button_graph, stretch=0)
         self.toolbarHL.addStretch(0)
@@ -132,6 +131,13 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.update_tooltips()
         self.update_style()
         self.connect_signals()
+
+    def connect_signals(self):
+        signals.database_read_only_changed.connect(self.db_read_only_changed)
+        signals.activity_modified.connect(self.update_activity_values)
+
+    def open_graph(self):
+        signals.open_activity_graph_tab.emit(self.activity_key)
 
     def populate(self, key):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
@@ -210,9 +216,3 @@ class ActivityTab(QtWidgets.QTabWidget):
         if key == self.activity_key:
             self.activity[field] = value
 
-    def connect_signals(self):
-        signals.database_read_only_changed.connect(self.db_read_only_changed)
-        signals.activity_modified.connect(self.update_activity_values)
-
-    def open_graph(self):
-        signals.open_activity_graph_tab.emit(self.activity_key)
