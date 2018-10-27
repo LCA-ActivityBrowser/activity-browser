@@ -6,6 +6,7 @@ import networkx as nx
 
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtWebChannel
+from PyQt5.QtCore import Qt
 
 from .signals import graphsignals
 from ...icons import icons
@@ -59,6 +60,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.channel.registerObject('bridge', self.bridge)
         self.view = QtWebEngineWidgets.QWebEngineView()
         self.view.loadFinished.connect(self.loadFinishedHandler)
+        self.view.setContextMenuPolicy(Qt.PreventContextMenu)
         self.view.page().setWebChannel(self.channel)
         html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                             'navigator.html')

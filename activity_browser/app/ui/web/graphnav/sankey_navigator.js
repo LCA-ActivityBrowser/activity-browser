@@ -69,13 +69,13 @@ d3.demo.canvas = function() {
         base            = null,
         wrapperBorder   = 0,
         minimap         = null,
-        minimapPadding  = 20,
+        minimapPadding  = 10,
         minimapScale    = 0.1; //reduced minimap scale to (help) prevent graph to exceed panel size
 
     //introduced function to reset width/height according to new window sizes
     updateDimensions = function() {
         getWindowSize();
-        width           = globalWidth*0.9;
+        width           = globalWidth*0.99;
         height          = globalHeight*0.6;
     }
 

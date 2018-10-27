@@ -51,7 +51,12 @@ class LCAResultsSubTab(QTabWidget):
         self.addTab(self.sankey_tab, "Sankey")
 
         self.update_setup(calculate=False)
-        # self.currentChanged.connect(self.sankey_tab.update_sankey)
+        self.currentChanged.connect(self.calculate_first_sankey)
+
+    def calculate_first_sankey(self, index):
+        if index == self.indexOf(self.sankey_tab):
+            if not self.sankey_tab.has_sankey:
+                self.sankey_tab.new_sankey()
 
     def update_calculation(self):
         """ Update the mlca calculation. """

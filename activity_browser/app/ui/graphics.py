@@ -26,7 +26,7 @@ class Plot(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def get_canvas_size_in_inches(self):
-        print("Canvas size:", self.canvas.get_width_height())
+        # print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
     def savefilepath(self):
@@ -65,7 +65,7 @@ class CorrelationPlot(Plot):
         self.figure.clf()
         self.ax = self.figure.add_subplot(111)
         canvas_size = self.canvas.get_width_height()
-        print("Canvas size:", canvas_size)
+        # print("Canvas size:", canvas_size)
         size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
         self.figure.set_size_inches(size[0], size[1])
 

@@ -6,6 +6,7 @@ import time
 
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtWebChannel
+from PyQt5.QtCore import Qt
 
 from .signals import graphsignals
 from ...icons import icons
@@ -13,11 +14,8 @@ from ....bwutils.commontasks import identify_activity_type
 from ....signals import signals
 
 # TODO:
-# make this a subtab in the LCA Results Tab
-# solve initial delay (Spinner) issue: Sankey is still empty if one selects the Sankey Tab very fast after CS calculation
-# mark functional unit in sankey
+# switch between percent and absolute values
 # when avoided impacts, then the scaling between 0-1 of relative impacts does not work properly
-# disable current right click menu
 # ability to navigate to activities
 # ability to calculate LCA for selected activities
 # ability to expand (or reduce) the graph
@@ -39,16 +37,55 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
     def __init__(self, cs_name, parent=None):
         super().__init__(parent)
 
+        self.cs = cs_name
+        self.selected_db = None
+        self.has_sankey = False
         self.graph = Graph()
 
-        self.selected_db = None
+        # qt js interaction
+        self.bridge = Bridge()
+        self.channel = QtWebChannel.QWebChannel()
+        self.channel.registerObject('bridge', self.bridge)
+        self.view = QtWebEngineWidgets.QWebEngineView()
+        self.view.loadFinished.connect(self.loadFinishedHandler)
+        self.view.setContextMenuPolicy(Qt.PreventContextMenu)
+        self.view.page().setWebChannel(self.channel)
+        html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                            'sankey_navigator.html')
+        self.url = QtCore.QUrl.fromLocalFile(html)
 
+
+        # graph
+        self.draw_graph()
+
+        # layout
+        self.make_layout()
+
+        self.connect_signals()
+
+    @QtCore.pyqtSlot()
+    def loadFinishedHandler(self):
+        """Executed when webpage has been loaded for the first time or refreshed.
+        Can be used to trigger a calculation after the webpage has been completely loaded."""
+        pass
+        # print(time.time(), ": load finished")
+        # self.new_sankey()
+
+    def connect_signals(self):
+        signals.database_selected.connect(self.set_database)
+        # checkboxes
+        self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
+        self.method_cb.currentIndexChanged.connect(self.new_sankey)
+        # self.cutoff_sb.valueChanged.connect(self.new_sankey)
+        # self.max_calc_sb.valueChanged.connect(self.new_sankey)
+
+    def make_layout(self):
+        """Layout of Sankey Navigator"""
         # Layout Functional Units and LCIA Methods
         self.grid_lay = QtWidgets.QGridLayout()
         self.grid_lay.addWidget(QtWidgets.QLabel('Functional unit: '), 0, 0)
         self.grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
 
-        self.cs = cs_name  # TODO: just a workaround; needs to be adapted to always link to the FUs in the active LCA results tab
         self.func_unit_cb = QtWidgets.QComboBox()
         self.method_cb = QtWidgets.QComboBox()
         self.update_calculation_setup(cs_name=self.cs)
@@ -126,16 +163,6 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         # self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
         # self.checkbox_cumulative_impact.setChecked(True)
 
-        # qt js interaction
-        self.bridge = Bridge()
-        self.channel = QtWebChannel.QWebChannel()
-        self.channel.registerObject('bridge', self.bridge)
-        self.view = QtWebEngineWidgets.QWebEngineView()
-        self.view.page().setWebChannel(self.channel)
-        html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            'sankey_navigator.html')
-        self.url = QtCore.QUrl.fromLocalFile(html)
-
         # Controls Layout
         self.hl_controls = QtWidgets.QHBoxLayout()
         self.hl_controls.addWidget(self.button_back)
@@ -160,17 +187,6 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.vlay.addWidget(self.view)
         self.setLayout(self.vlay)
 
-        # graph
-        self.connect_signals()
-        self.draw_graph()
-        # self.new_sankey()  # does not show it...
-
-    def connect_signals(self):
-        signals.database_selected.connect(self.set_database)
-        self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
-        self.method_cb.currentIndexChanged.connect(self.new_sankey)
-        # self.cutoff_sb.valueChanged.connect(self.new_sankey)
-        # self.max_calc_sb.valueChanged.connect(self.new_sankey)
 
     def update_calculation_setup(self, cs_name=None):
         """Update Calculation Setup, functional units and methods, and dropdown menus."""
@@ -205,14 +221,14 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
     def go_back(self):
         if self.graph.back():
             signals.new_statusbar_message.emit("Going back.")
-            self.bridge.graph_ready.emit(self.graph.json_data)
+            self.send_json()
         else:
             signals.new_statusbar_message.emit("Cannot go back.")
 
     def go_forward(self):
         if self.graph.forward():
             signals.new_statusbar_message.emit("Going forward.")
-            self.bridge.graph_ready.emit(self.graph.json_data)
+            self.send_json()
         else:
             signals.new_statusbar_message.emit("Cannot go forward.")
 
@@ -235,8 +251,13 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         print("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
 
         self.graph.new_graph(data)
-        print("emitting graph ready signal")
+        # print("emitting graph ready signal")
+        self.send_json()
+
+    def send_json(self):
+        # print("Sending JSON data")
         self.bridge.graph_ready.emit(self.graph.json_data)
+        self.has_sankey = True
 
     def set_database(self, name):
         """Saves the currently selected database for graphing a random activity"""
@@ -394,16 +415,16 @@ class Graph:
             act, amount = demand[0], demand[1]
             m = bw.Method(lca.method)
 
+            # 'LCIA method: {} [{}] <br>' \
             return 'Functional unit: {:.2g} {} {} | {} | {} <br>' \
-                   'LCIA method: {} [{}] <br>' \
                    'Total impact: {:.2g} {}'.format(
                 amount,
                 act.get("unit"),
                 act.get("reference product") or act.get("name"),
                 act.get("name"),
                 act.get("location"),
-                m.name,
-                m.metadata.get("unit"),
+                # m.name,
+                # m.metadata.get("unit"),
                 lca.score, m.metadata.get("unit"),
             )
 
@@ -413,8 +434,8 @@ class Graph:
             "title": get_title(),
             "max_impact": max_impact,
         }
-        print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
-        print(json_data)
+        # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
+        # print(json_data)
         return json.dumps(json_data)
 
     def save_json_to_file(self, filename="sankey_data.json"):

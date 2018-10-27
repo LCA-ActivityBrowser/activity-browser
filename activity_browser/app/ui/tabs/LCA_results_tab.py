@@ -7,6 +7,7 @@ from ...signals import signals
 
 
 class LCAResultsTab(ABTab):
+    """Tab that contains subtabs for each calculation setup."""
     def __init__(self, parent):
         super(LCAResultsTab, self).__init__(parent)
 
