@@ -42,6 +42,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         super(ActivityDataGrid, self).__init__(parent)
 
         self.read_only = read_only
+        self.parent = parent
 
         self.name_box = SignalledLineEdit(
             key=getattr(parent.activity, "key", None),
@@ -69,7 +70,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         # the database of the activity is shown as a dropdown (ComboBox), which enables user to change it
         self.database_combo = QtWidgets.QComboBox()
         self.database_combo.currentTextChanged.connect(
-            lambda target_db: self.duplicate_confirm_dialog(target_db, parent=parent))
+            lambda target_db: self.duplicate_confirm_dialog(target_db))
         self.database_combo.setToolTip("Use dropdown menu to duplicate activity to another database")
 
         self.comment_box = SignalledPlainTextEdit(
@@ -99,59 +100,62 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         self.setLayout(self.grid)
 
-        self.populate(parent)
+        self.populate()
 
         # do not allow user to edit fields if the ActivityDataGrid is read-only
         self.set_activity_fields_read_only()
         self.connect_signals()
 
     def connect_signals(self):
-        pass
         # self.location_combo.view().pressed.connect(self.populate_location_combo_on_click)
+        signals.edit_activity.connect(self.update_location_combo)
 
-    def populate(self, parent):
+    def populate(self):
         # fill in the values of the ActivityDataGrid widgets
-        self.name_box.setText(parent.activity.get('name', ''))
-        self.name_box._key = parent.activity.key
+        self.name_box.setText(self.parent.activity.get('name', ''))
+        self.name_box._key = self.parent.activity.key
 
-        self.populate_location_combo(parent)
-        self.populate_database_combo(parent)
+        self.populate_location_combo()
+        self.populate_database_combo()
 
-        self.comment_box.setPlainText(parent.activity.get('comment', ''))
-        self.comment_box._key = parent.activity.key
+        self.comment_box.setPlainText(self.parent.activity.get('comment', ''))
+        self.comment_box._key = self.parent.activity.key
 
         # the <font> html-tag has no effect besides making the tooltip rich text
         # this is required for line breaks of long comments
         self.comment_groupbox.setToolTip(
             '<font>{}</font>'.format(self.comment_box.toPlainText())
         )
-        self.comment_box._before = parent.activity.get('comment', '')
+        self.comment_box._before = self.parent.activity.get('comment', '')
         self.comment_box.adjust_size()
 
-    def populate_location_combo(self, parent):
+    def populate_location_combo(self):
         """ acts as both of: a label to show current location of act, and
                 auto-completes with all other locations in the database, to enable selection """
         self.location_combo.blockSignals(True)
-        self.location_combo.clear()
-        location = str(parent.activity.get('location', ''))
+        location = str(self.parent.activity.get('location', ''))
+        self.location_combo.addItem(location)
+        self.location_combo.setCurrentText(location)
+        self.location_combo.blockSignals(False)
+
+    def update_location_combo(self):
+        """Update when in edit mode"""
+        self.location_combo.blockSignals(True)
+        location = str(self.parent.activity.get('location', ''))
         self.location_combo._before = location
 
-        # get unique set of locations in db
-        # loc_set = bc.get_locations_in_db(parent.activity.get('database', ''))
-        db = parent.activity.get('database', '')
-        convenience_data.get_convenience_data(db)  # todo: wrong location... should be triggered by edit checkbox
-        for loc in convenience_data.data[db]["locations"]:
-            self.location_combo.addItem(str(loc))  # perhaps add an icon? QIcon(icons.switch)
+        # get all locations in db
+        self.location_combo.clear()
+        db = self.parent.activity.get('database', '')
+        if convenience_data.data[db]:
+            for loc in convenience_data.data[db]["locations"]:
+                self.location_combo.addItem(str(loc))  # perhaps add an icon? QIcon(icons.switch)
 
         self.location_combo.model().sort(0)
         self.location_combo.setCurrentText(location)
         self.location_combo.blockSignals(False)
 
-    def populate_location_combo_on_click(self, current_selection):
-        print("populating location combobox", current_selection)
-
-
-    def populate_database_combo(self, parent):
+    def populate_database_combo(self):
         """ acts as both: a label to show current db of act, and
                 allows copying to others editable dbs via populated drop-down list """
         # clear any existing items first
@@ -159,7 +163,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.clear()
 
         # first item in db combo, shown by default, is the current database
-        current_db = parent.activity.get('database', 'Error: db of Act not found')
+        current_db = self.parent.activity.get('database', 'Error: db of Act not found')
         self.database_combo.addItem(current_db)
 
         # other items are the dbs that the activity can be duplicated to: find them and add
@@ -171,7 +175,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             self.database_combo.addItem(QIcon(icons.duplicate), db_name)
         self.database_combo.blockSignals(False)
 
-    def duplicate_confirm_dialog(self, target_db, parent):
+    def duplicate_confirm_dialog(self, target_db):
         """ Get user confirmation for duplication action """
         title = "Duplicate activity to new database"
         text = "Copy {} to {} and open as new tab?".format(
@@ -179,7 +183,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         user_choice = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if user_choice == QMessageBox.Yes:
-            signals.duplicate_activity_to_db.emit(target_db, parent.activity)
+            signals.duplicate_activity_to_db.emit(target_db, self.parent.activity)
         # todo: give user more options in the dialog:
         #   * retain / delete version in current db
         #   * open / don't open new tab

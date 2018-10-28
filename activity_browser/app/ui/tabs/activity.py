@@ -154,7 +154,7 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
         self.exchange_tables_read_only_changed()
-        self.activity_data_grid.populate_database_combo(parent=self)
+        self.activity_data_grid.populate_database_combo()
 
         self.update_tooltips()
         self.update_style()
@@ -189,7 +189,7 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         else:  # on read-only state change for a database different to the open activity...
             # update values in database list to ensure activity cannot be duplicated to read-only db
-            self.activity_data_grid.populate_database_combo(parent=self)
+            self.activity_data_grid.populate_database_combo()
 
     def update_tooltips(self):
         if self.db_read_only:
