@@ -7,6 +7,7 @@ from activity_browser.app.bwutils import commontasks as bc
 from .line_edit import SignalledLineEdit, SignalledPlainTextEdit, SignalledComboEdit
 from ..icons import icons
 from ...signals import signals
+from ...bwutils import convenience_data
 
 
 class DetailsGroupBox(QtWidgets.QGroupBox):
@@ -136,9 +137,11 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.location_combo._before = location
 
         # get unique set of locations in db
-        loc_set = bc.get_locations_in_db(parent.activity.get('database', ''))
-        for loc in loc_set:
-            self.location_combo.addItem(str(loc)) # perhaps add an icon? QIcon(icons.switch)
+        # loc_set = bc.get_locations_in_db(parent.activity.get('database', ''))
+        db = parent.activity.get('database', '')
+        convenience_data.get_convenience_data(db)  # todo: wrong location... should be triggered by edit checkbox
+        for loc in convenience_data.data[db]["locations"]:
+            self.location_combo.addItem(str(loc))  # perhaps add an icon? QIcon(icons.switch)
 
         self.location_combo.model().sort(0)
         self.location_combo.setCurrentText(location)

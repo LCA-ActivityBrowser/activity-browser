@@ -7,7 +7,8 @@ from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox
 from ..panels import ABTab
 from ..icons import icons
-from ...bwutils import commontasks as bc 
+from ...bwutils import commontasks as bc
+from ...bwutils import convenience_data
 from ...signals import signals
 
 
@@ -147,7 +148,10 @@ class ActivityTab(QtWidgets.QTabWidget):
         """ When read_only=False specific data fields in the tables below become user-editable
                 When read_only=True these same fields become read-only"""
         self.read_only = not read_only
-        print("Read-only:", self.read_only)
+
+        if not self.read_only:  # update unique locations, units, etc. for editing (convenience_data)
+            signals.edit_activity.emit(self.db_name)
+
         self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
         self.exchange_tables_read_only_changed()
         self.activity_data_grid.populate_database_combo(parent=self)

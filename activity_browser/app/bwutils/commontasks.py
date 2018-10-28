@@ -8,7 +8,7 @@ from bw2data.utils import natural_sort
 
 from ..settings import ab_settings, project_settings
 
-
+# Formatting
 def wrap_text(string, max_length=80):
     """wrap the label making sure that key and name are in 2 rows"""
     # idea from https://stackoverflow.com/a/39134215/4929813
@@ -48,6 +48,7 @@ def format_activity_label(act, style='pnl', max_length=40):
     return label
 
 
+# Database
 def get_database_metadata(name):
     """ Returns a dictionary with database meta-information. """
     d = dict()
@@ -77,6 +78,12 @@ def get_editable_databases():
     return editable_dbs
 
 
+def is_database_read_only(db_name):
+    if "read-only-databases" in project_settings.settings:
+        return project_settings.settings["read-only-databases"].get(db_name, True)
+
+
+# Activity and Exchanges
 def get_activity_data(datasets):
     # if not fields:
     #     fields = ["name", "reference product", "amount", "location", "unit", "database"]
@@ -111,6 +118,22 @@ def get_exchanges_data(exchanges):
         print(r)
 
 
+def identify_activity_type(activity):
+    """Return the activity type based on its naming."""
+    name = activity["name"]
+    if "treatment of" in name:
+        return "treatment"
+    elif "market for" in name:
+        # if not "to generic" in name:  # these are not markets, but also transferring activities
+        return "market"
+    elif "market group" in name:
+        # if not "to generic" in name:
+        return "marketgroup"
+    else:
+        return "production"
+
+
+# Settings (directory, project, etc.)
 def get_startup_bw_dir():
     """Returns the brightway directory as defined in the settings file.
     If it has not been defined here, it returns the brightway default directory."""
@@ -146,37 +169,20 @@ def get_default_project_name():
         return None
 
 
+# LCIA
 def get_LCIA_method_name_dict(keys):
     """LCIA methods in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
     Returns a dictionary with
-    key: comma separated string
-    value: brightway2 method tuple
+    keys: comma separated strings
+    values: brightway2 method tuples
     """
     return {', '.join(key): key for key in keys}
 
-def identify_activity_type(activity):
-    """Return the activity type based on its naming."""
-    name = activity["name"]
-    if "treatment of" in name:
-        return "treatment"
-    elif "market for" in name:
-        # if not "to generic" in name:  # these are not markets, but also transferring activities
-        return "market"
-    elif "market group" in name:
-        # if not "to generic" in name:
-        return "marketgroup"
-    else:
-        return "production"
 
-
-def get_locations_in_db(db_name):
-    """returns the set of locations in a database"""
-    db = bw.Database(db_name)
-    loc_set = set()
-    [loc_set.add(act.get("location")) for act in db]
-    return loc_set
-
-
-def is_database_read_only(db_name):
-    if "read-only-databases" in project_settings.settings:
-        return project_settings.settings["read-only-databases"].get(db_name, True)
+#
+# def get_locations_in_db(db_name):
+#     """returns the set of locations in a database"""
+#     db = bw.Database(db_name)
+#     loc_set = set()
+#     [loc_set.add(act.get("location")) for act in db]
+#     return loc_set

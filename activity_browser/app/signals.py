@@ -48,6 +48,7 @@ class Signals(QtCore.QObject):
     delete_activity = QtCore.pyqtSignal(tuple)
     duplicate_activity_to_db = QtCore.pyqtSignal(str, object)
     show_duplicate_to_db_interface = QtCore.pyqtSignal(tuple)
+    edit_activity = QtCore.pyqtSignal(str)  # db_name
 
     # Exchanges
     exchanges_output_modified = QtCore.pyqtSignal(list, tuple)
