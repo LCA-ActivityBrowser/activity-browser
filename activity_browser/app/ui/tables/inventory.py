@@ -9,7 +9,7 @@ from PyQt5 import QtGui, QtWidgets
 from bw2data.utils import natural_sort
 from fuzzywuzzy import process
 
-from activity_browser.app.settings import user_project_settings
+from activity_browser.app.settings import project_settings
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
@@ -81,8 +81,8 @@ class DatabasesTable(ABTableWidget):
 
     def read_only_changed(self, read_only, db):
         """User has clicked to update a db to either read-only or not"""
-        user_project_settings.settings['read-only-databases'][db] = read_only
-        user_project_settings.write_settings()
+        project_settings.settings['read-only-databases'][db] = read_only
+        project_settings.write_settings()
         signals.database_read_only_changed.emit(db, read_only)
 
 
@@ -93,7 +93,7 @@ class DatabasesTable(ABTableWidget):
         # self.setHorizontalHeaderLabels(sorted(self.HEADERS.items(), key=lambda kv: kv[1]))
 
         project = bw.projects.current.lower().strip()
-        databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
+        databases_read_only_settings = project_settings.settings.get('read-only-databases', {})
 
         for row, name in enumerate(natural_sort(bw.databases)):
             self.setItem(row, self.HEADERS.index("Name"), ABTableItem(name, db_name=name))
@@ -177,7 +177,7 @@ class ActivitiesTable(ABTableWidget):
         self.database_name = None
         self.setDragEnabled(True)
         self.setColumnCount(len(self.HEADERS))
-        self.db_read_only = user_project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
+        self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
         self.setup_context_menu()
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
@@ -280,7 +280,7 @@ class ActivitiesTable(ABTableWidget):
                 else:
                     self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
         
-        self.db_read_only = user_project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
+        self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
         self.update_activity_table_read_only(self.database_name, db_read_only=self.db_read_only)
 
     def filter_database_changed(self, database_name):

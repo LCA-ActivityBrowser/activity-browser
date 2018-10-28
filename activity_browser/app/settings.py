@@ -46,7 +46,7 @@ class ABSettings():
             json.dump(self.settings, outfile, indent=4, sort_keys=True)
 
 
-class UserProjectSettings():
+class ProjectSettings():
     """
     Handles user settings which are specific to projects. Created initially to handle read-only/writable database status
     Code based on ABSettings class, if more different types of settings are needed, could inherit from a base class
@@ -83,6 +83,17 @@ class UserProjectSettings():
             # save to ensure it's always accessible after first project select
             self.write_settings()
 
+    def connect_signals(self):
+        signals.project_selected.connect(self.reset_for_project_selection)
+        signals.delete_project.connect(self.reset_for_project_selection)
+
+    def get_default_settings(self):
+        # returns default empty settings dictionary
+        default = {
+            'read-only-databases': {}
+        }
+        return default
+
     def load_settings(self):
         with open(self.settings_file, 'r') as infile:
             self.settings = json.load(infile)
@@ -106,24 +117,12 @@ class UserProjectSettings():
             self.settings = self.get_default_settings()
             self.write_settings()
 
-    def get_default_settings(self):
-        # returns default empty settings dictionary
-        default = {
-            'read-only-databases': {}
-            # ,'writable-activities': {}
-        }
-        return default
-
     def remove_db(self, db_name):
         # when a database is deleted from a project, the settings are also deleted
         self.settings['read-only-databases'].pop(db_name, None)
         self.write_settings()
 
-    def connect_signals(self):
-        signals.project_selected.connect(self.reset_for_project_selection)
-        signals.delete_project.connect(self.reset_for_project_selection)
-
 
 ab_settings = ABSettings()
-user_project_settings = UserProjectSettings()
+project_settings = ProjectSettings()
 

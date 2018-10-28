@@ -6,7 +6,7 @@ import brightway2 as bw
 from bw2data import databases
 from bw2data.utils import natural_sort
 
-from ..settings import ab_settings, user_project_settings
+from ..settings import ab_settings, project_settings
 
 
 def wrap_text(string, max_length=80):
@@ -70,7 +70,7 @@ def get_databases_data(databases):
 
 def get_editable_databases():
     editable_dbs = []
-    databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
+    databases_read_only_settings = project_settings.settings.get('read-only-databases', {})
     for db_name, read_only in databases_read_only_settings.items():
         if not read_only and db_name != 'biosphere3':
             editable_dbs.append(db_name)
@@ -175,3 +175,8 @@ def get_locations_in_db(db_name):
     loc_set = set()
     [loc_set.add(act.get("location")) for act in db]
     return loc_set
+
+
+def is_database_read_only(db_name):
+    if "read-only-databases" in project_settings.settings:
+        return project_settings.settings["read-only-databases"].get(db_name, True)

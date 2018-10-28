@@ -7,9 +7,8 @@ from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox
 from ..panels import ABTab
 from ..icons import icons
-from ...bwutils.commontasks import get_activity_name
+from ...bwutils import commontasks as bc 
 from ...signals import signals
-from ...settings import user_project_settings
 
 
 class ActivitiesTab(ABTab):
@@ -28,11 +27,9 @@ class ActivitiesTab(ABTab):
     def open_activity_tab(self, key):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
-            databases_read_only_settings = user_project_settings.settings.get('read-only-databases', {})
-            database_read_only = databases_read_only_settings.get(key[0], True)
-            new_tab = ActivityTab(key, parent=self, read_only=True, db_read_only=database_read_only)
+            new_tab = ActivityTab(key, parent=self)
             self.tabs[key] = new_tab
-            self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
+            self.addTab(new_tab, bc.get_activity_name(bw.get_activity(key), str_length=30))
 
             # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
             # new_tab.setToolTip(bw.get_activity(key).as_dict()['name'])
@@ -47,7 +44,6 @@ class ActivitiesTab(ABTab):
                 self.setTabText(index, value)
             except:
                 pass
-
 
 
 class ActivityTab(QtWidgets.QTabWidget):
@@ -66,21 +62,20 @@ class ActivityTab(QtWidgets.QTabWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, activity_key, parent=None, read_only=True, db_read_only=True):
+    def __init__(self, key, parent=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
         self.parent = parent
         self.read_only = read_only
-        self.db_read_only = db_read_only
-        self.activity_key = activity_key
-        self.activity = bw.get_activity(activity_key)
+        self.db_read_only = bc.is_database_read_only(db_name=key[0])
+        self.key = key
+        self.activity = bw.get_activity(key)
 
-        # checkbox for enabling editing of activity, default=read-only
+        # Edit Activity checkbox
         self.edit_act_ch = QtWidgets.QCheckBox('Edit Activity', parent=self)
         self.edit_act_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.edit_act_ch.setChecked(not self.read_only)
-        self.db_name = self.activity_key[0]
-        self.edit_act_ch.clicked.connect(
-            lambda checked: self.act_read_only_changed(read_only=not checked))
+        self.db_name = self.key[0]
+        self.edit_act_ch.clicked.connect(self.act_read_only_changed)
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
@@ -120,13 +115,13 @@ class ActivityTab(QtWidgets.QTabWidget):
         for table, label in self.exchange_tables:
             layout.addWidget(DetailsGroupBox(label, table))
 
-        self.set_exchange_tables_read_only()
+        self.exchange_tables_read_only_changed()
 
         layout.addStretch()
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
-        self.populate(self.activity_key)
+        self.populate(self.key)
 
         self.update_tooltips()
         self.update_style()
@@ -137,7 +132,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         signals.activity_modified.connect(self.update_activity_values)
 
     def open_graph(self):
-        signals.open_activity_graph_tab.emit(self.activity_key)
+        signals.open_activity_graph_tab.emit(self.key)
 
     def populate(self, key):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
@@ -151,16 +146,16 @@ class ActivityTab(QtWidgets.QTabWidget):
     def act_read_only_changed(self, read_only):
         """ When read_only=False specific data fields in the tables below become user-editable
                 When read_only=True these same fields become read-only"""
-        self.read_only = read_only
-        self.activity_data_grid.read_only = read_only
-        self.activity_data_grid.set_activity_fields_read_only()
-        self.set_exchange_tables_read_only()
+        self.read_only = not read_only
+        print("Read-only:", self.read_only)
+        self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
+        self.exchange_tables_read_only_changed()
         self.activity_data_grid.populate_database_combo(parent=self)
 
         self.update_tooltips()
         self.update_style()
 
-    def set_exchange_tables_read_only(self):
+    def exchange_tables_read_only_changed(self):
         """the user should not be able to edit the exchange tables when read_only
                 EditTriggers turned off to prevent DoubleClick-selection editing
                 DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add"""
@@ -169,16 +164,14 @@ class ActivityTab(QtWidgets.QTabWidget):
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
                 self.setAcceptDrops(False)
-                # table.setDragDropMode(QtWidgets.QTableWidget.NoDragDrop)
             else:
                 table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
                 if not self.upstream:  # downstream consumers table never accepts drops
                     self.setAcceptDrops(True)
-                    # table.setDragDropMode(QtWidgets.QTableWidget.DropOnly)
 
     def db_read_only_changed(self, db_name, db_read_only):
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
-        if db_name == self.activity_key[0]:
+        if db_name == self.key[0]:
             self.db_read_only = db_read_only
 
             # if activity was editable, but now the database is read-only, read_only state must be changed to false.
@@ -193,7 +186,6 @@ class ActivityTab(QtWidgets.QTabWidget):
         else:  # on read-only state change for a database different to the open activity...
             # update values in database list to ensure activity cannot be duplicated to read-only db
             self.activity_data_grid.populate_database_combo(parent=self)
-
 
     def update_tooltips(self):
         if self.db_read_only:
@@ -212,7 +204,7 @@ class ActivityTab(QtWidgets.QTabWidget):
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
 
     def update_activity_values(self, key, field, value):
-        # ensures when user updates a field, the activityTab property is also updated (else de-synced)
-        if key == self.activity_key:
+        """Update activity values."""
+        if key == self.key:
             self.activity[field] = value
 

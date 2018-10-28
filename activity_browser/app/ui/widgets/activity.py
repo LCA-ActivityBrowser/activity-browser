@@ -34,8 +34,8 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
 class ActivityDataGrid(QtWidgets.QWidget):
     """ Displayed at the top of each activity panel to show the user basic data related to the activity
     Expects to find the following data for each activity displayed: name, location, database, comment
-    Exchange data is displayed separately, below this grid, in tables.
     Includes the read-only checkbox which enables or disables user-editing of some activity and exchange data
+    Exchange data is displayed separately, below this grid, in tables.
     """
     def __init__(self, parent, read_only=True):
         super(ActivityDataGrid, self).__init__(parent)
@@ -49,6 +49,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         )
         # self.name_box.setPlaceholderText("Activity name")
 
+        # location combobox
         self.location_combo = SignalledComboEdit(
             key=getattr(parent.activity, "key", None),
             field="location",
@@ -59,9 +60,11 @@ class ActivityDataGrid(QtWidgets.QWidget):
                                           " Or add new location")
         self.location_combo.setEditable(True)  # always 'editable', but not always 'enabled'
 
+        # database label
         self.database_label = QtWidgets.QLabel('Database')
         self.database_label.setToolTip("Select a different database to duplicate activity to it")
 
+        # database combobox
         # the database of the activity is shown as a dropdown (ComboBox), which enables user to change it
         self.database_combo = QtWidgets.QComboBox()
         self.database_combo.currentTextChanged.connect(
@@ -99,6 +102,11 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         # do not allow user to edit fields if the ActivityDataGrid is read-only
         self.set_activity_fields_read_only()
+        self.connect_signals()
+
+    def connect_signals(self):
+        pass
+        # self.location_combo.view().pressed.connect(self.populate_location_combo_on_click)
 
     def populate(self, parent):
         # fill in the values of the ActivityDataGrid widgets
@@ -135,6 +143,10 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.location_combo.model().sort(0)
         self.location_combo.setCurrentText(location)
         self.location_combo.blockSignals(False)
+
+    def populate_location_combo_on_click(self, current_selection):
+        print("populating location combobox", current_selection)
+
 
     def populate_database_combo(self, parent):
         """ acts as both: a label to show current db of act, and
@@ -175,10 +187,11 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.setCurrentIndex(0)
         self.database_combo.blockSignals(False)
 
-    def set_activity_fields_read_only(self):
+    def set_activity_fields_read_only(self, read_only=True):
         """ called on init after widgets instantiated
             also whenever a user clicks the read-only checkbox """
         # user cannot edit these fields if they are read-only
+        self.read_only = read_only
         self.name_box.setReadOnly(self.read_only)
         self.location_combo.setEnabled(not self.read_only)
         self.comment_box.setReadOnly(self.read_only)

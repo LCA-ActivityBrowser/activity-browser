@@ -12,7 +12,7 @@ from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
 from .bwutils import commontasks as bc
-from .settings import ab_settings, user_project_settings
+from .settings import ab_settings, project_settings
 from .signals import signals
 
 
@@ -233,7 +233,7 @@ class Controller(object):
                 name, len(bw.Database(name)))
         )
         if ok:
-            user_project_settings.remove_db(name)
+            project_settings.remove_db(name)
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
 

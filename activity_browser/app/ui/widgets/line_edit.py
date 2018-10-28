@@ -83,3 +83,8 @@ class SignalledComboEdit(QtWidgets.QComboBox):
             self._before = after
             signals.activity_modified.emit(self._key, self._field, after)
         super(SignalledComboEdit, self).focusOutEvent(event)
+
+    # def showPopup(self):
+    #     """Overrides the base class function."""
+    #     self.populate_combobox.emit()
+    #     super(SignalledComboEdit, self).showPopup()

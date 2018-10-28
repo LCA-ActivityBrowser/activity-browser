@@ -60,9 +60,9 @@ class ABTab(QtWidgets.QTabWidget):
         """Show tab if it has sub-tabs (not empty) or hide if it has no sub-tabs (empty)."""
         print("\nChecking for empty tabs:")
         for tab_name, tab in self.tabs.items():
-            print("Tab:", self.get_tab_name(tab), "...")
+            # print("Tab:", self.get_tab_name(tab), "...")
             if hasattr(tab, "tabs"):
-                print("Subtabs:", tab.tabs.keys())
+                # print("Subtabs:", tab.tabs.keys())
                 if not tab.tabs:
                     self.hide_tab(tab_name)
                 # else:  # leads to strange behaviour of setCurrentIndex/select_tab
@@ -72,7 +72,7 @@ class ABTab(QtWidgets.QTabWidget):
         """Close tab by index."""
         widget = self.widget(index)
         tab_name = self.get_tab_name(widget)
-        print("Closing tab:", tab_name)
+        # print("Closing tab:", tab_name)
         assert widget in self.tabs.values()
         del self.tabs[tab_name]
         widget.deleteLater()
