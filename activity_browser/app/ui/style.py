@@ -37,7 +37,10 @@ class TableStyle:
             margin:0px;
             }
         """
-
+        # does not need to have widths for all columns, but starts at col 0
+        custom_column_widths = {
+            "ActivitiesTable": [150, 200, 100],
+        }
 
 class ActivitiesTab:
     style_sheet_read_only ="""

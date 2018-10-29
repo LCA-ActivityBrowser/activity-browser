@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
-from ..style import style_item
+from ..style import style_item, style_table
 from ...signals import signals
 
 
@@ -51,6 +51,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
         """ A wrapper for the tables' sync method to do generic stuff
         before and after the individual tables' sync method."""
         def wrapper(self, *args, **kwargs):
+            # print(args, kwargs)
             # before making the table
             self.clear()
             self.setSortingEnabled(False)
@@ -66,6 +67,11 @@ class ABTableWidget(QtWidgets.QTableWidget):
                 )
             else:
                 self.setMaximumHeight(50)
+
+            # limit column width for certain tables
+            if kwargs.get("limit_width", None) in style_table.custom_column_widths:
+                for col, width in enumerate(style_table.custom_column_widths[kwargs.get("limit_width", None)]):
+                    self.setColumnWidth(col, width)
         return wrapper
 
     def sizeHint(self):

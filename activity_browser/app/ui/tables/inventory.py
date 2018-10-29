@@ -92,7 +92,6 @@ class DatabasesTable(ABTableWidget):
         self.setHorizontalHeaderLabels(self.HEADERS)
         # self.setHorizontalHeaderLabels(sorted(self.HEADERS.items(), key=lambda kv: kv[1]))
 
-        project = bw.projects.current.lower().strip()
         databases_read_only_settings = project_settings.settings.get('read-only-databases', {})
 
         for row, name in enumerate(natural_sort(bw.databases)):
@@ -181,6 +180,7 @@ class ActivitiesTable(ABTableWidget):
         self.setup_context_menu()
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
+        self.maximum_column_width = 100
 
     def setup_context_menu(self):
         # context menu items are enabled/disabled elsewhere, in update_activity_table_read_only()
@@ -239,7 +239,9 @@ class ActivitiesTable(ABTableWidget):
             self.delete_activity_action.setEnabled(not self.db_read_only)
 
     def connect_signals(self):
-        signals.database_selected.connect(self.sync)
+        signals.database_selected.connect(
+            lambda name, limit_width="ActivitiesTable": self.sync(name, limit_width=limit_width)
+        )
         signals.database_changed.connect(self.filter_database_changed)
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
@@ -258,10 +260,8 @@ class ActivitiesTable(ABTableWidget):
                 name_activity_dict[act['name']].append(self.database.get(act['code']))
             self.fuzzy_search_index = (self.database, name_activity_dict)
 
-
-
     @ABTableWidget.decorated_sync
-    def sync(self, name, data=None):
+    def sync(self, name, data=None, **kwargs):
         # fills activity table with data contained in selected database
         self.database_name = name
         if not data:
@@ -279,7 +279,7 @@ class ActivitiesTable(ABTableWidget):
                     self.setItem(row, col, ABTableItem(str(ds.get(value, '')), key=ds.key, color=value))
                 else:
                     self.setItem(row, col, ABTableItem(ds.get(value, ''), key=ds.key, color=value))
-        
+
         self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
         self.update_activity_table_read_only(self.database_name, db_read_only=self.db_read_only)
 
