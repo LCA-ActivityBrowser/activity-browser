@@ -6,6 +6,7 @@ from .inventory import BiosphereFlowsTable
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
+from ...bwutils.commontasks import bw_keys_to_AB_names
 
 
 class ExchangeTable(ABTableWidget):
@@ -24,13 +25,13 @@ class ExchangeTable(ABTableWidget):
         and flexible editing based on assumptions about data types etc.
     """
     COLUMN_LABELS = {  # {exchangeTableName: headers}
-        "products": ["Amount", "Unit", "Product", "Location", "Uncertainty"],
+        "products": ["Amount", "Unit", "Product"], #, "Location", "Uncertainty"],
         # technosphere inputs & Downstream product-consuming activities included as "technosphere"
         # todo(?) should the table functionality for downstream activities really be identical to technosphere inputs?
         "technosphere": ["Amount", "Unit", "Product", "Activity", "Location", "Database", "Uncertainty", "Formula"],
         "biosphere": ["Amount", "Unit", "Flow Name", "Compartments", "Database", "Uncertainty"],
     }
-    def __init__(self, parent, tableType):
+    def __init__(self, parent=None, tableType=None):
         super(ExchangeTable, self).__init__()
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
@@ -60,8 +61,8 @@ class ExchangeTable(ABTableWidget):
 
     def connect_signals(self):
         # todo: different table types require different signals connected
-        signals.database_changed.connect(self.filter_database_changed)
-        self.cellChanged.connect(self.filter_amount_change)
+        signals.database_changed.connect(self.update_when_database_has_changed)
+        self.cellChanged.connect(self.filter_change)
         self.cellDoubleClicked.connect(self.handle_double_clicks)
 
     def delete_exchanges(self, event):
@@ -90,22 +91,31 @@ class ExchangeTable(ABTableWidget):
             )
         event.accept()
 
-    def filter_database_changed(self, database):
+    def update_when_database_has_changed(self, database):
         if self.database == database:
             self.sync()
 
-    def filter_amount_change(self, row, col):
+    def filter_change(self, row, col):
         try:
             item = self.item(row, col)
-            if self.ignore_changes:
+            if self.ignore_changes:  # todo: check or remove
                 return
             elif item.text() == item.previous:
                 return
             else:
-                value = float(item.text())
-                item.previous = item.text()
-                exchange = item.exchange
-                signals.exchange_amount_modified.emit(exchange, value)
+                print("row:", row)
+                if col == 0:  # expect number todo: improve substantially!
+                    value = float(item.text())
+                    item.previous = item.text()
+                    exchange = item.exchange
+                    signals.exchange_amount_modified.emit(exchange, value)
+                else:  # exepct string
+                    fields = {1: "unit", 2: "reference product"}
+                    print("here 2")
+                    act = item.exchange.output.key
+                    value = str(item.text())
+                    item.previous = item.text()
+                    signals.activity_modified.emit(act, fields[col], value)
         except ValueError:
             print('You can only enter numbers here.')
             item.setText(item.previous)
@@ -169,23 +179,23 @@ class ExchangeTable(ABTableWidget):
                     amount_format_string.format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
-                    adj_act.get('unit', 'Unknown'), set_flags=edit_flag, color="unit"))
+                    adj_act.get('unit', 'Unknown'), exchange=exc, set_flags=edit_flag, color="unit"))
 
                 self.setItem(row, 2, ABTableItem(
                     # correct reference product name is stored in the exchange itself and not the activity
-                    adj_act.get('reference product') or adj_act.get("name") if self.upstream else
-                    exc.get('reference product') or exc.get("name"),
-                    exchange=exc, color="reference product"))
+                    # adj_act.get('reference product') or adj_act.get("name") if self.upstream else
+                    adj_act.get('reference product') or adj_act.get("name"),
+                    exchange=exc, set_flags=edit_flag, color="reference product"))
 
-                self.setItem(row, 3, ABTableItem(
-                    # todo: remove? it makes no sense to show the (open) activity location...
-                    # showing exc locations (as now) makes sense. But they rarely have one...
-                    # I believe they usually implicitly inherit the location of the producing activity
-                    str(exc.get('location', '')), color="location"))
+                # self.setItem(row, 3, ABTableItem(
+                #     # todo: remove? it makes no sense to show the (open) activity location...
+                #     # showing exc locations (as now) makes sense. But they rarely have one...
+                #     # I believe they usually implicitly inherit the location of the producing activity
+                #     str(exc.get('location', '')), color="location"))
 
-                # todo: can both outputs and inputs of a process both have uncertainty data?
-                self.setItem(row, 4, ABTableItem(
-                    str(exc.get("uncertainty type", ""))))
+                # # todo: can both outputs and inputs of a process both have uncertainty data?
+                # self.setItem(row, 3, ABTableItem(
+                #     str(exc.get("uncertainty type", ""))))
 
             elif self.tableType == "technosphere":
                 # headers: "Amount", "Unit", "Product", "Activity", "Location", "Database", "Uncertainty", "Formula"
@@ -245,3 +255,62 @@ class ExchangeTable(ABTableWidget):
                 # if not - optimal behaviour of this table is: show Formula instead of amount in 1st col when present?
                 self.setItem(row, 6, ABTableItem(exc.get('formula', '')))
         self.ignore_changes = False
+
+
+# start of a simplified way to handle these tables...
+
+class ExchangesTablePrototype(ABTableWidget):
+    amount_format_string = "{:.3g}"
+
+
+    def __init__(self, parent=None):
+        super(ExchangesTablePrototype, self).__init__()
+        self.column_labels = [bw_keys_to_AB_names[val] for val in self.COLUMNS.values()]
+        self.setColumnCount(len(self.column_labels))
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
+    def set_queryset(self, database, qs, limit=100, upstream=False):
+        self.database, self.qs, self.upstream = database, qs, upstream
+        # print("Queryset:", self.database, self.qs, self.upstream)
+        self.sync(limit)
+
+class ProductTable(ExchangesTablePrototype):
+    COLUMNS = {
+        0: "amount",
+        1: "unit",
+        2: "reference product",
+    }
+
+
+    def __init__(self, parent=None):
+        super(ProductTable, self).__init__()
+
+    @ABTableWidget.decorated_sync
+    def sync(self, limit=100):
+        self.setRowCount(min(len(self.qs), limit))
+        self.setHorizontalHeaderLabels(self.column_labels)
+
+        edit_flag = [QtCore.Qt.ItemIsEditable]
+
+        for row, exc in enumerate(self.qs):
+            adj_act = exc.input
+            print(adj_act)
+            if row == limit:
+                break
+
+            # self.setItem(row, 0, ABTableItem(
+
+            self.setItem(row, 0, ABTableItem(
+                self.amount_format_string.format(
+                    exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+
+            self.setItem(row, 1, ABTableItem(
+                adj_act.get('unit', 'Unknown'),  exchange=exc, set_flags=edit_flag, color="unit"))
+
+            self.setItem(row, 2, ABTableItem(
+                # correct reference product name is stored in the exchange itself and not the activity
+                adj_act.get('reference product') or adj_act.get("name"), exchange=exc, set_flags=edit_flag, color="reference product"))
+

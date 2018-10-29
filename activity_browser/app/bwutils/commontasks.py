@@ -92,6 +92,18 @@ def is_database_read_only(db_name):
 
 
 # Activity and Exchanges
+AB_names_to_bw_keys = {
+    "Amount": "amount",
+    "Product": "reference product",
+    "Activity": "name",
+    "Unit": "unit",
+    "Location": "location",
+    "Database": "database",
+    "Uncertainty": "uncertainty type",
+}
+
+bw_keys_to_AB_names = {v: k for k, v in AB_names_to_bw_keys.items()}
+
 def get_activity_data(datasets):
     # if not fields:
     #     fields = ["name", "reference product", "amount", "location", "unit", "database"]

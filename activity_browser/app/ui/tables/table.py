@@ -71,7 +71,8 @@ class ABTableWidget(QtWidgets.QTableWidget):
             # limit column width for certain tables
             if kwargs.get("limit_width", None) in style_table.custom_column_widths:
                 for col, width in enumerate(style_table.custom_column_widths[kwargs.get("limit_width", None)]):
-                    self.setColumnWidth(col, width)
+                    if width < self.columnWidth(col):
+                        self.setColumnWidth(col, width)
         return wrapper
 
     def sizeHint(self):

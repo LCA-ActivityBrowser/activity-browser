@@ -3,7 +3,7 @@ import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..style import style_activity_tab
-from ..tables import ExchangeTable
+from ..tables import ExchangeTable, ProductTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
 from ..icons import icons
@@ -113,6 +113,7 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         # 4 data tables displayed after the activity data
         self.production = ExchangeTable(self, tableType="products")
+        # self.production = ProductTable(self)
         self.inputs = ExchangeTable(self, tableType="technosphere")
         self.flows = ExchangeTable(self, tableType="biosphere")
         # self.upstream refers to the open activity: it is upstream of the downstream consumers shown in the table...

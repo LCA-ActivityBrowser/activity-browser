@@ -39,7 +39,7 @@ class TableStyle:
         """
         # does not need to have widths for all columns, but starts at col 0
         custom_column_widths = {
-            "ActivitiesTable": [150, 200, 100],
+            "ActivitiesTable": [200, 250, 50],
         }
 
 class ActivitiesTab:

@@ -7,7 +7,7 @@ from .LCA_setup import (
     CSMethodsTable,
 )
 from .inventory import DatabasesTable
-from .activity import ExchangeTable
+from .activity import ExchangeTable, ProductTable
 from .history import ActivitiesHistoryTable
 from .impact_categories import CFTable, MethodsTable
 from .lca_results import LCAResultsTable, ProcessContributionsTable, InventoryTable, \
