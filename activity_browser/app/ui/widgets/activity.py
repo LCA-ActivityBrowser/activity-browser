@@ -179,7 +179,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         """ Get user confirmation for duplication action """
         title = "Duplicate activity to new database"
         text = "Copy {} to {} and open as new tab?".format(
-            parent.activity.get('name', 'Error: Name of Act not found'), target_db)
+            self.parent.activity.get('name', 'Error: Name of Act not found'), target_db)
 
         user_choice = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if user_choice == QMessageBox.Yes:

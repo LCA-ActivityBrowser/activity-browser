@@ -168,7 +168,7 @@ class ExchangeTable(ABTableWidget):
                     amount_format_string.format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
-                    adj_act.get('unit', 'Unknown'), color="unit"))
+                    adj_act.get('unit', 'Unknown'), set_flags=edit_flag, color="unit"))
 
                 self.setItem(row, 2, ABTableItem(
                     # correct reference product name is stored in the exchange itself and not the activity

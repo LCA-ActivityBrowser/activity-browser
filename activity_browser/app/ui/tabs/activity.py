@@ -23,6 +23,7 @@ class ActivitiesTab(ABTab):
         signals.open_activity_tab.connect(self.open_activity_tab)
         signals.activity_modified.connect(self.update_activity_name)
         self.tabCloseRequested.connect(self.close_tab)
+        signals.delete_activity.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
 
     def open_activity_tab(self, key):
@@ -72,11 +73,11 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.activity = bw.get_activity(key)
 
         # Edit Activity checkbox
-        self.edit_act_ch = QtWidgets.QCheckBox('Edit Activity', parent=self)
-        self.edit_act_ch.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
-        self.edit_act_ch.setChecked(not self.read_only)
+        self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity', parent=self)
+        self.checkbox_edit_act.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
+        self.checkbox_edit_act.setChecked(not self.read_only)
         self.db_name = self.key[0]
-        self.edit_act_ch.clicked.connect(self.act_read_only_changed)
+        self.checkbox_edit_act.clicked.connect(self.act_read_only_changed)
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
@@ -87,10 +88,10 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.button_graph.setToolTip("Show graph")
 
         # Toolbar Layout
-        self.toolbarHL = QtWidgets.QHBoxLayout()
-        self.toolbarHL.addWidget(self.edit_act_ch)
-        self.toolbarHL.addWidget(self.button_graph, stretch=0)
-        self.toolbarHL.addStretch(0)
+        self.HL_toolbar = QtWidgets.QHBoxLayout()
+        self.HL_toolbar.addWidget(self.checkbox_edit_act)
+        self.HL_toolbar.addWidget(self.button_graph, stretch=0)
+        self.HL_toolbar.addStretch(0)
 
         # activity-specific data displayed and editable near the top of the tab
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
@@ -111,7 +112,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
-        layout.addLayout(self.toolbarHL)
+        layout.addLayout(self.HL_toolbar)
         layout.addWidget(self.activity_data_grid)
         for table, label in self.exchange_tables:
             layout.addWidget(DetailsGroupBox(label, table))
@@ -130,7 +131,7 @@ class ActivityTab(QtWidgets.QTabWidget):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
-        signals.activity_modified.connect(self.update_activity_values)
+        # signals.activity_modified.connect(self.update_activity_values)
 
     def open_graph(self):
         signals.open_activity_graph_tab.emit(self.key)
@@ -180,11 +181,11 @@ class ActivityTab(QtWidgets.QTabWidget):
 
             # if activity was editable, but now the database is read-only, read_only state must be changed to false.
             if not self.read_only and self.db_read_only:
-                self.edit_act_ch.setChecked(False)
+                self.checkbox_edit_act.setChecked(False)
                 self.act_read_only_changed(read_only=True)
 
             # update checkbox to greyed-out or not
-            self.edit_act_ch.setEnabled(not self.db_read_only)
+            self.checkbox_edit_act.setEnabled(not self.db_read_only)
             self.update_tooltips()
 
         else:  # on read-only state change for a database different to the open activity...
@@ -193,13 +194,13 @@ class ActivityTab(QtWidgets.QTabWidget):
 
     def update_tooltips(self):
         if self.db_read_only:
-            self.edit_act_ch.setToolTip("The database this activity belongs to is read-only."
+            self.checkbox_edit_act.setToolTip("The database this activity belongs to is read-only."
                                          " Enable database editing with checkbox in databases list")
         else:
             if self.read_only:
-                self.edit_act_ch.setToolTip("Click to enable editing. Edits are saved automatically")
+                self.checkbox_edit_act.setToolTip("Click to enable editing. Edits are saved automatically")
             else:
-                self.edit_act_ch.setToolTip("Click to prevent further edits. Edits are saved automatically")
+                self.checkbox_edit_act.setToolTip("Click to prevent further edits. Edits are saved automatically")
 
     def update_style(self):
         if self.read_only:
@@ -207,8 +208,8 @@ class ActivityTab(QtWidgets.QTabWidget):
         else:
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
 
-    def update_activity_values(self, key, field, value):
-        """Update activity values."""
-        if key == self.key:
-            self.activity[field] = value
+    # def update_activity_values(self, key, field, value):
+    #     """Update activity values."""
+    #     if key == self.key:
+    #         self.activity[field] = value
 

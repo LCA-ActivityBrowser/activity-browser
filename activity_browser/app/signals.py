@@ -17,7 +17,7 @@ class Signals(QtCore.QObject):
 
     # Project
     change_project = QtCore.pyqtSignal(str)
-    change_project_dialog = QtCore.pyqtSignal()
+    # change_project_dialog = QtCore.pyqtSignal()
     new_project = QtCore.pyqtSignal()
     copy_project = QtCore.pyqtSignal()
     delete_project = QtCore.pyqtSignal()
@@ -39,16 +39,16 @@ class Signals(QtCore.QObject):
     # Activity (key, field, new value)
     new_activity = QtCore.pyqtSignal(str)
     add_activity_to_history = QtCore.pyqtSignal(tuple)
-
-    activity_modified = QtCore.pyqtSignal(tuple, str, object)
     duplicate_activity = QtCore.pyqtSignal(tuple)
-    open_activity_tab = QtCore.pyqtSignal(tuple)
-    open_activity_graph_tab = QtCore.pyqtSignal(tuple)
-    activity_tabs_changed = QtCore.pyqtSignal()
-    delete_activity = QtCore.pyqtSignal(tuple)
     duplicate_activity_to_db = QtCore.pyqtSignal(str, object)
     show_duplicate_to_db_interface = QtCore.pyqtSignal(tuple)
+    open_activity_tab = QtCore.pyqtSignal(tuple)
+    open_activity_graph_tab = QtCore.pyqtSignal(tuple)
+    delete_activity = QtCore.pyqtSignal(tuple)
+
+    # Activity editing
     edit_activity = QtCore.pyqtSignal(str)  # db_name
+    activity_modified = QtCore.pyqtSignal(tuple, str, object)
 
     # Exchanges
     exchanges_output_modified = QtCore.pyqtSignal(list, tuple)

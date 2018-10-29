@@ -39,7 +39,7 @@ class Controller(object):
         signals.project_selected.connect(self.ensure_sqlite_indices)
         signals.new_project.connect(self.new_project)
         signals.change_project.connect(self.change_project)
-        signals.change_project_dialog.connect(self.change_project_dialog)
+        # signals.change_project_dialog.connect(self.change_project_dialog)
         signals.copy_project.connect(self.copy_project)
         signals.delete_project.connect(self.delete_project)
         # Database

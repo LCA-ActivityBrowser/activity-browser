@@ -58,7 +58,7 @@ class ABTab(QtWidgets.QTabWidget):
 
     def hide_when_empty(self):
         """Show tab if it has sub-tabs (not empty) or hide if it has no sub-tabs (empty)."""
-        print("\nChecking for empty tabs:")
+        # print("\nChecking for empty tabs:")
         for tab_name, tab in self.tabs.items():
             # print("Tab:", self.get_tab_name(tab), "...")
             if hasattr(tab, "tabs"):
@@ -78,6 +78,11 @@ class ABTab(QtWidgets.QTabWidget):
         widget.deleteLater()
         self.removeTab(index)
         signals.hide_when_empty.emit()  # needs to be a signal as we want the super-tab to receive this...
+
+    def close_tab_by_tab_name(self, tab_name):
+        """Close tab by tab name (key in self.tabs)."""
+        if tab_name in self.tabs:
+            self.close_tab(self.indexOf(self.tabs[tab_name]))
 
     def close_all(self):
         """Close all tabs."""
