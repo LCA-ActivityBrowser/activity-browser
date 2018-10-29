@@ -34,7 +34,7 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
 
 class ActivityDataGrid(QtWidgets.QWidget):
     """ Displayed at the top of each activity panel to show the user basic data related to the activity
-    Expects to find the following data for each activity displayed: name, location, database, comment
+    Expects to find the following data for each activity displayed: name, location, database
     Includes the read-only checkbox which enables or disables user-editing of some activity and exchange data
     Exchange data is displayed separately, below this grid, in tables.
     """
@@ -73,15 +73,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
             lambda target_db: self.duplicate_confirm_dialog(target_db))
         self.database_combo.setToolTip("Use dropdown menu to duplicate activity to another database")
 
-        self.comment_box = SignalledPlainTextEdit(
-            key=getattr(parent.activity, "key", None),
-            field="comment",
-            parent=self,
-        )
-        self.comment_groupbox = DetailsGroupBox(
-            'Description', self.comment_box)
-        self.comment_groupbox.setChecked(False)
-
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
 
@@ -96,7 +87,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.addWidget(self.location_combo, 2, 2, 1, -1)
         self.grid.addWidget(self.database_combo, 3, 2, 1, -1)
         self.grid.addWidget(self.database_label, 3, 1)
-        self.grid.addWidget(self.comment_groupbox, 4, 1, 2, -1)
 
         self.setLayout(self.grid)
 
@@ -117,17 +107,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         self.populate_location_combo()
         self.populate_database_combo()
-
-        self.comment_box.setPlainText(self.parent.activity.get('comment', ''))
-        self.comment_box._key = self.parent.activity.key
-
-        # the <font> html-tag has no effect besides making the tooltip rich text
-        # this is required for line breaks of long comments
-        self.comment_groupbox.setToolTip(
-            '<font>{}</font>'.format(self.comment_box.toPlainText())
-        )
-        self.comment_box._before = self.parent.activity.get('comment', '')
-        self.comment_box.adjust_size()
 
     def populate_location_combo(self):
         """ acts as both of: a label to show current location of act, and
@@ -201,4 +180,3 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.read_only = read_only
         self.name_box.setReadOnly(self.read_only)
         self.location_combo.setEnabled(not self.read_only)
-        self.comment_box.setReadOnly(self.read_only)

@@ -4,7 +4,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..style import style_activity_tab
 from ..tables import ExchangeTable
-from ..widgets import ActivityDataGrid, DetailsGroupBox
+from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
 from ..icons import icons
 from ...bwutils import commontasks as bc
@@ -70,14 +70,28 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.read_only = read_only
         self.db_read_only = bc.is_database_read_only(db_name=key[0])
         self.key = key
+        self.db_name = self.key[0]
         self.activity = bw.get_activity(key)
 
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity', parent=self)
-        self.checkbox_edit_act.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.checkbox_edit_act.setChecked(not self.read_only)
         self.db_name = self.key[0]
         self.checkbox_edit_act.clicked.connect(self.act_read_only_changed)
+
+        # Activity Description
+        self.activity_description = SignalledPlainTextEdit(
+            key=getattr(self.activity, "key", None),
+            field="comment",
+            parent=self,
+        )
+
+        # Activity Description checkbox
+        self.checkbox_activity_description = QtWidgets.QCheckBox('Description', parent=self)
+        self.checkbox_activity_description.clicked.connect(self.toggle_activity_description_visibility)
+        # self.checkbox_description.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
+        self.checkbox_activity_description.setChecked(not self.read_only)
+        self.toggle_activity_description_visibility()
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
@@ -90,6 +104,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         # Toolbar Layout
         self.HL_toolbar = QtWidgets.QHBoxLayout()
         self.HL_toolbar.addWidget(self.checkbox_edit_act)
+        self.HL_toolbar.addWidget(self.checkbox_activity_description)
         self.HL_toolbar.addWidget(self.button_graph, stretch=0)
         self.HL_toolbar.addStretch(0)
 
@@ -114,6 +129,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         layout.setContentsMargins(10, 10, 4, 1)
         layout.addLayout(self.HL_toolbar)
         layout.addWidget(self.activity_data_grid)
+        layout.addWidget(self.activity_description)
         for table, label in self.exchange_tables:
             layout.addWidget(DetailsGroupBox(label, table))
 
@@ -145,13 +161,35 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.flows.set_queryset(db_name, self.activity.biosphere())
         self.upstream.set_queryset(db_name, self.activity.upstream(), upstream=True)
 
+        self.populate_description_box()
+
+    def populate_description_box(self):
+        # activity description
+        self.activity_description.setPlainText(self.activity.get('comment', ''))
+        self.activity_description.setReadOnly(self.read_only)
+        self.activity_description._key = self.activity.key
+
+        # the <font> html-tag has no effect besides making the tooltip rich text
+        # this is required for line breaks of long comments
+        self.checkbox_activity_description.setToolTip(
+            '<font>{}</font>'.format(self.activity_description.toPlainText())
+        )
+        self.activity_description._before = self.activity.get('comment', '')
+        self.activity_description.adjust_size()
+
+    def toggle_activity_description_visibility(self):
+        """Show only if checkbox is checked."""
+        self.activity_description.setVisible(self.checkbox_activity_description.isChecked())
+
     def act_read_only_changed(self, read_only):
         """ When read_only=False specific data fields in the tables below become user-editable
                 When read_only=True these same fields become read-only"""
         self.read_only = not read_only
+        self.activity_description.setReadOnly(self.read_only)
 
         if not self.read_only:  # update unique locations, units, etc. for editing (convenience_data)
             signals.edit_activity.emit(self.db_name)
+            self.comment_box.setReadOnly(self.read_only)
 
         self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
         self.exchange_tables_read_only_changed()
