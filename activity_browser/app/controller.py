@@ -292,6 +292,7 @@ class Controller(object):
             production_exchange.save()
             signals.open_activity_tab.emit(new_act.key)
             signals.database_changed.emit(database_name)
+            signals.databases_changed.emit()
 
     def delete_activity(self, key):
         act = bw.get_activity(key)
@@ -309,6 +310,7 @@ class Controller(object):
             # todo: check if activity is open, close if it is
             act.delete()
             signals.database_changed.emit(act['database'])
+            signals.databases_changed.emit()
 
     def generate_copy_code(self, key):
         if '_copy' in key[1]:
