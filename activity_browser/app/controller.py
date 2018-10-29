@@ -17,6 +17,15 @@ from .signals import signals
 
 
 class Controller(object):
+    """The Controller is a central object in the Activity Browser. It groups methods that may be required in different
+    parts of the AB to access, modify, or delete:
+    - settings
+    - projects
+    - databases
+    - calculation setups
+    - activities/exchanges
+    It is different from bwutils in that it also contains Qt elements such as dialogs.
+    - """
     def __init__(self):
         self.connect_signals()
         signals.project_selected.emit()
@@ -24,14 +33,6 @@ class Controller(object):
         self.db_wizard = None
         print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
-
-    def load_settings(self):
-        if ab_settings.settings:
-            print("Loading user settings:")
-            if ab_settings.settings.get('custom_bw_dir'):
-                self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
-            if ab_settings.settings.get('startup_project'):
-                self.change_project(ab_settings.settings['startup_project'])
 
     def connect_signals(self):
         # SLOTS
@@ -67,6 +68,15 @@ class Controller(object):
         # Other
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
 
+# SETTINGS
+    def load_settings(self):
+        if ab_settings.settings:
+            print("Loading user settings:")
+            if ab_settings.settings.get('custom_bw_dir'):
+                self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
+            if ab_settings.settings.get('startup_project'):
+                self.change_project(ab_settings.settings['startup_project'])
+
     def import_database_wizard(self):
         if self.db_wizard is None:
             self.db_wizard = DatabaseImportWizard()
@@ -96,6 +106,7 @@ class Controller(object):
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
 
+# PROJECT
     def change_project_dialog(self):
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
@@ -108,15 +119,6 @@ class Controller(object):
         )
         if ok:
             self.change_project(name)
-
-    def ensure_sqlite_indices(self):
-        """
-        - fix for https://github.com/LCA-ActivityBrowser/activity-browser/issues/189
-        - also see bw2data issue: https://bitbucket.org/cmutel/brightway2-data/issues/60/massive-sqlite-query-performance-decrease
-        """
-        if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
-            print('creating missing sqlite indices')
-            bw.Database(list(bw.databases)[-1])._add_indices()
 
     def change_project(self, name=None, reload=False):
         # TODO: what should happen if a new project is opened? (all activities, etc. closed?)
@@ -192,6 +194,17 @@ class Controller(object):
             self.change_project(bc.get_startup_project_name(), reload=True)
             signals.projects_changed.emit()
 
+# DATABASE
+    def ensure_sqlite_indices(self):
+        """
+        - fix for https://github.com/LCA-ActivityBrowser/activity-browser/issues/189
+        - also see bw2data issue: https://bitbucket.org/cmutel/brightway2-data/issues/60/massive-sqlite-query-performance-decrease
+        @LegacyCode?
+        """
+        if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
+            print('creating missing sqlite indices')
+            bw.Database(list(bw.databases)[-1])._add_indices()
+
     def install_default_data(self):
         self.default_biosphere_dialog = DefaultBiosphereDialog()
 
@@ -237,6 +250,7 @@ class Controller(object):
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
 
+# CALCULATION SETUP
     def new_calculation_setup(self):
         name, ok = QtWidgets.QInputDialog.getText(
             None,
@@ -272,6 +286,7 @@ class Controller(object):
             signals.calculation_setup_selected.emit(new_name)
             print("Renamed calculation setup from {} to {}".format(current, new_name))
 
+# ACTIVITY
     def new_activity(self, database_name):
         # TODO: let user define product
         name, ok = QtWidgets.QInputDialog.getText(
@@ -307,7 +322,6 @@ class Controller(object):
                 Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             )
         else:
-            # todo: check if activity is open, close if it is
             act.delete()
             signals.database_changed.emit(act['database'])
             signals.databases_changed.emit()

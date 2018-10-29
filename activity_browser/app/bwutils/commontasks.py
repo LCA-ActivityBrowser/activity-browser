@@ -8,6 +8,14 @@ from bw2data.utils import natural_sort
 
 from ..settings import ab_settings, project_settings
 
+"""
+bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
+re-typing the same code in different parts of the Activity Browser.
+
+When adding new methods, please use the sections below (or add a new section, if required).
+"""
+
+
 # Formatting
 def wrap_text(string, max_length=80):
     """wrap the label making sure that key and name are in 2 rows"""

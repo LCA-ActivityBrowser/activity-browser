@@ -6,7 +6,7 @@ from ..signals import signals
 
 class ConvenienceData(object):
     """Stores data that may be re-used within one session, e.g.:
-    - locations and units of a database."""
+    - sets of locations and units that occur with in different databases."""
     def __init__(self):
         self.data = dict()
 
