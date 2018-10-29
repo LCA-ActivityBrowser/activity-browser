@@ -164,13 +164,13 @@ class BiosphereFlowsTable(ABTableWidget):
 class ActivitiesTable(ABTableWidget):
     MAX_LENGTH = 500
     COLUMNS = {
-        0: "name",
-        1: "reference product",
+        0: "reference product",
+        1: "name",
         2: "location",
         3: "unit",
         4: "key",
     }
-    HEADERS = ["Name", "Reference Product", "Location", "Unit", "Key"]
+    HEADERS = ["Product", "Activity", "Location", "Unit", "Key"]
 
     def __init__(self, parent=None):
         super(ActivitiesTable, self).__init__(parent)

@@ -61,8 +61,10 @@ class ActivitiesPanel:
 class TableItemStyle:
     COLOR_CODE = {
         'default': (0, 0, 0),  # black
-        'product': (0, 132, 130),
-        'reference product': (0, 132, 130),
+        # 'product': (0, 132, 130),
+        'product': (0, 0, 0),
+        # 'reference product': (0, 132, 130),
+        'reference product': (0, 0, 0),
         'name': (0, 2, 140),
         'activity': (0, 72, 216),
         'amount': (0, 0, 0),

@@ -175,7 +175,7 @@ class ActivityTab(QtWidgets.QTabWidget):
             '<font>{}</font>'.format(self.activity_description.toPlainText())
         )
         self.activity_description._before = self.activity.get('comment', '')
-        self.activity_description.adjust_size()
+        # self.activity_description.adjust_size()
 
     def toggle_activity_description_visibility(self):
         """Show only if checkbox is checked."""
@@ -189,11 +189,10 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         if not self.read_only:  # update unique locations, units, etc. for editing (convenience_data)
             signals.edit_activity.emit(self.db_name)
-            self.comment_box.setReadOnly(self.read_only)
 
         self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
-        self.exchange_tables_read_only_changed()
         self.activity_data_grid.populate_database_combo()
+        self.exchange_tables_read_only_changed()
 
         self.update_tooltips()
         self.update_style()

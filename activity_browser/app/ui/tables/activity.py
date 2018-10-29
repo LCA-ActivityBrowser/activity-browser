@@ -62,7 +62,7 @@ class ExchangeTable(ABTableWidget):
         # todo: different table types require different signals connected
         signals.database_changed.connect(self.filter_database_changed)
         self.cellChanged.connect(self.filter_amount_change)
-        self.cellDoubleClicked.connect(self.filter_double_clicks)
+        self.cellDoubleClicked.connect(self.handle_double_clicks)
 
     def delete_exchanges(self, event):
         signals.exchanges_deleted.emit(
@@ -110,9 +110,10 @@ class ExchangeTable(ABTableWidget):
             print('You can only enter numbers here.')
             item.setText(item.previous)
 
-    def filter_double_clicks(self, row, col):
+    def handle_double_clicks(self, row, col):
         """ handles double-click events rather than clicks... rename? """
         item = self.item(row, col)
+        print("double-clicked on:", row, col, item.text())
         # double clicks ignored for these table types and item flags (until an 'exchange edit' interface is written)
         if self.tableType == "products" or self.tableType == "biosphere" or (item.flags() & QtCore.Qt.ItemIsEditable):
             return
@@ -227,7 +228,7 @@ class ExchangeTable(ABTableWidget):
                     adj_act.get('unit', 'Unknown'), color="unit"))
 
                 self.setItem(row, 2, ABTableItem(
-                    adj_act.get('name'), exchange=exc, color="name"))
+                    adj_act.get('name'), exchange=exc, color="product"))
 
                 self.setItem(row, 3, ABTableItem(
                     " - ".join(adj_act.get('categories', [])), color="categories"))

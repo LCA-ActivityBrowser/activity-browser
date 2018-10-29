@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QIcon
 
 from activity_browser.app.bwutils import commontasks as bc
-from .line_edit import SignalledLineEdit, SignalledPlainTextEdit, SignalledComboEdit
+from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import icons
 from ...signals import signals
 from ...bwutils import convenience_data
@@ -97,7 +97,6 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        # self.location_combo.view().pressed.connect(self.populate_location_combo_on_click)
         signals.edit_activity.connect(self.update_location_combo)
 
     def populate(self):
