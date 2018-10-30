@@ -42,9 +42,11 @@ class LCAResultsSubTab(QTabWidget):
         self.update_calculation()
 
         self.LCAscoreComparison_tab = LCAScoreComparisonTab(self)
+        self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
+
         # self.inventory_tab = InventoryTab(self, custom=True)
         self.inventory_characterisation_tab = CharacterisationTab(self, relativity=True)
-        self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
+
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
         # self.correlations_tab = CorrelationsTab(self)
         self.sankey_tab = SankeyNavigatorWidget(self.cs_name, parent=self)

@@ -117,7 +117,6 @@ class LCAResultsBarChart(Plot):
 
         # color_iterate = iter(plt.rcParams['axes.prop_cycle'])
         for i in range(len(values)):
-            print(i)
             self.ax.barh(y_pos[i], values[i], align='center', alpha=1)  # color=next(color_iterate)['color'],
 
         # labels
