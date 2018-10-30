@@ -115,15 +115,20 @@ class LCAResultsBarChart(Plot):
         values = mlca.results[:, mlca.methods.index(method)]
         y_pos = np.arange(len(functional_units))
 
-        color_iterate = iter(plt.rcParams['axes.prop_cycle'])
+        # color_iterate = iter(plt.rcParams['axes.prop_cycle'])
         for i in range(len(values)):
-            self.ax.barh(y_pos[i], values[i], align='center', color=next(color_iterate)['color'], alpha=0.8)
+            print(i)
+            self.ax.barh(y_pos[i], values[i], align='center', alpha=1)  # color=next(color_iterate)['color'],
+
+        # labels
         self.ax.set_yticks(y_pos)
         self.ax.set_xlabel('Score')
         self.ax.set_title('LCA scores compared')
         self.ax.set_yticklabels(functional_units, minor= False)
-        self.ax.grid()
 
+        # grid
+        self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
+        self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
         self.canvas.figure
         self.canvas.draw()
