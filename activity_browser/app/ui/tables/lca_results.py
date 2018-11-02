@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 from brightway2 import get_activity
+from operator import itemgetter
 
 from .dataframe_table import ABDataFrameTable
 from PyQt5 import QtWidgets
@@ -47,57 +48,57 @@ def inventory_labels(length, mlca, labellength):
     return shortlabels
 
 
-# class InventoryTable(ABDataFrameTable):
-#     def __init__(self, parent, **kwargs):
-#         super(InventoryTable, self).__init__(parent, **kwargs)
-#
-#     @ABDataFrameTable.decorated_sync
-#     def sync(self, mlca, method=None, limit=100):
-#
-#         if method not in mlca.technosphere_flows.keys():
-#             method = mlca.func_unit_translation_dict[str(method)]
-#
-#         arrays = (mlca.technosphere_flows.values())
-#         #print(arrays)
-#
-#         array = mlca.technosphere_flows[str(method)]
-#         length = min(limit, len(array))
-#         shortlabels = inventory_labels(length, mlca, 100)
-#
-#         array, shortlabels = (list(t) for t in zip(*reversed(sorted(zip(array, shortlabels)))))
-#
-#         data_tuples = [
-#             (float(i), shortlabels[n])
-#             for n, i in enumerate(array)]
-#
-#         ordered_data = (sorted(data_tuples, key=itemgetter(0), reverse=True))
-#         array = [i[0] for i in ordered_data]
-#         shortlabels = [i[1] for i in ordered_data]
-#
-#         col_labels = ['Amount']
-#         row_labels = [i for i in shortlabels[:length]]
-#
-#         self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
-
-
 class InventoryTable(ABDataFrameTable):
     def __init__(self, parent, **kwargs):
         super(InventoryTable, self).__init__(parent, **kwargs)
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, method=None):
-        arrays = list(mlca.technosphere_flows.values())
-        output = []
-        for array in arrays:
-            s = ' '.join([str(i) for i in array])
-            output.append(s)
-        joined = '; '.join(output)
-        matrix = np.rot90(np.matrix(joined))
+    def sync(self, mlca, method=None, limit=100):
 
-        col_labels = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
-        row_labels = inventory_labels(len(mlca.rev_activity_dict), mlca, 75)
+        if method not in mlca.technosphere_flows.keys():
+            method = mlca.func_unit_translation_dict[str(method)]
 
-        self.dataframe = pd.DataFrame(matrix, index=row_labels, columns=col_labels)
+        arrays = (mlca.technosphere_flows.values())
+        #print(arrays)
+
+        array = mlca.technosphere_flows[str(method)]
+        length = min(limit, len(array))
+        shortlabels = inventory_labels(length, mlca, 100)
+
+        array, shortlabels = (list(t) for t in zip(*reversed(sorted(zip(array, shortlabels)))))
+
+        data_tuples = [
+            (float(i), shortlabels[n])
+            for n, i in enumerate(array)]
+
+        ordered_data = (sorted(data_tuples, key=itemgetter(0), reverse=True))
+        array = [i[0] for i in ordered_data]
+        shortlabels = [i[1] for i in ordered_data]
+
+        col_labels = ['Amount']
+        row_labels = [i for i in shortlabels[:length]]
+
+        self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
+
+
+# class InventoryTable(ABDataFrameTable):
+#     def __init__(self, parent, **kwargs):
+#         super(InventoryTable, self).__init__(parent, **kwargs)
+#
+#     @ABDataFrameTable.decorated_sync
+#     def sync(self, mlca, method=None):
+#         arrays = list(mlca.technosphere_flows.values())
+#         output = []
+#         for array in arrays:
+#             s = ' '.join([str(i) for i in array])
+#             output.append(s)
+#         joined = '; '.join(output)
+#         matrix = np.rot90(np.matrix(joined))
+#
+#         col_labels = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
+#         row_labels = inventory_labels(len(mlca.rev_activity_dict), mlca, 75)
+#
+#         self.dataframe = pd.DataFrame(matrix, index=row_labels, columns=col_labels)
 
 
 class BiosphereTable(QtWidgets.QTableView):

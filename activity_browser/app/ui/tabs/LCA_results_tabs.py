@@ -44,7 +44,7 @@ class LCAResultsSubTab(QTabWidget):
         self.LCAscoreComparison_tab = LCAScoreComparisonTab(self)
         self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
 
-        # self.inventory_tab = InventoryTab(self, custom=True)
+        self.inventory_tab = InventoryTab(self, custom=True)
         self.inventory_characterisation_tab = CharacterisationTab(self, relativity=True)
 
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
@@ -81,7 +81,7 @@ class LCAResultsSubTab(QTabWidget):
             self.update_calculation()
 
         self.LCAscoreComparison_tab.update_analysis_tab()
-        # self.inventory_tab.update_analysis_tab()
+        self.inventory_tab.update_analysis_tab()
         self.inventory_characterisation_tab.update_analysis_tab()
         self.lcia_results_tab.update_analysis_tab()
         self.process_contributions_tab.update_analysis_tab()
