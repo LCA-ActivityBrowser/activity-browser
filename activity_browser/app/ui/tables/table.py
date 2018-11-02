@@ -41,6 +41,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setSortingEnabled(True)
         self.verticalHeader().setVisible(False)
+        self.verticalHeader().setDefaultSectionSize(22)  # this is much faster
         # self.setSizePolicy(QtWidgets.QSizePolicy(
         #     QtWidgets.QSizePolicy.Preferred,
         #     QtWidgets.QSizePolicy.Maximum)
@@ -58,8 +59,11 @@ class ABTableWidget(QtWidgets.QTableWidget):
             # the actual sync
             sync(self, *args, **kwargs)
             # after syncing
-            self.resizeColumnsToContents()
-            self.resizeRowsToContents()
+
+            # the resizing operations take a lot of time
+            # self.resizeColumnsToContents()
+            # self.resizeRowsToContents()
+
             self.setSortingEnabled(True)
             if self.rowCount() > 0:
                 self.setMaximumHeight(

@@ -8,6 +8,7 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.setVerticalScrollMode(1)
         self.setHorizontalScrollMode(1)
         self.maxheight = maxheight
+        self.verticalHeader().setDefaultSectionSize(22)  # row height
 
     @classmethod
     def decorated_sync(cls, sync):
@@ -17,8 +18,8 @@ class ABDataFrameTable(QtWidgets.QTableView):
 
             self.model = PandasModel(self.dataframe)
             self.setModel(self.model)
-            self.resizeColumnsToContents()
-            self.resizeRowsToContents()
+            # self.resizeColumnsToContents()
+            # self.resizeRowsToContents()
             if self.maxheight is not None:
                 self.setMaximumHeight(
                     self.rowHeight(0) * (self.maxheight + 1) + self.autoScrollMargin())
