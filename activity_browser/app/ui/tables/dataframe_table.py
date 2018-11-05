@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
 
+from ...signals import signals
 
 class ABDataFrameTable(QtWidgets.QTableView):
     def __init__(self, parent=None, maxheight=None, *args, **kwargs):
@@ -9,6 +10,8 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.setHorizontalScrollMode(1)
         self.maxheight = maxheight
         self.verticalHeader().setDefaultSectionSize(22)  # row height
+        self.setSortingEnabled(True)
+        self.verticalHeader().setVisible(True)
 
     @classmethod
     def decorated_sync(cls, sync):
@@ -60,6 +63,16 @@ class ABDataFrameTable(QtWidgets.QTableView):
                 filepath += '.xlsx'
             self.dataframe.to_excel(filepath)
 
+    @QtCore.pyqtSlot()
+    def keyPressEvent(self, e):
+        if e.modifiers() and QtCore.Qt.ControlModifier:
+
+            if e.key() == QtCore.Qt.Key_C:  # copy
+                selection = self.selectedIndexes()
+                rows = sorted(list(set(index.row() for index in selection)))
+                columns = sorted(list(set(index.column() for index in selection)))
+                self.model._dataframe.iloc[rows, columns].to_clipboard()
+
 
 class PandasModel(QtCore.QAbstractTableModel):
     """
@@ -79,11 +92,19 @@ class PandasModel(QtCore.QAbstractTableModel):
         if index.isValid():
             if role == QtCore.Qt.DisplayRole:
                 return "{:.5g}".format(self._dataframe.iloc[index.row(), index.column()])
+                # return str(self._dataframe.iloc[index.row(), index.column()])
         return None
 
-    def headerData(self, pos, orientation, role):
+    def headerData(self, section, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return self._dataframe.columns[pos]
+            return self._dataframe.columns[section]
         elif orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
-            return self._dataframe.index[pos]
+            return self._dataframe.index[section]
         return None
+
+    def sort(self, p_int, order=None):
+        self.layoutAboutToBeChanged.emit()
+        self._dataframe.sort_values(by=self._dataframe.columns[p_int],
+                                    ascending=False if order==1 else True,
+                                    inplace=True)
+        self.layoutChanged.emit()

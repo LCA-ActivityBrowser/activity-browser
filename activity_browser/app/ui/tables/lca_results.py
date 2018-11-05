@@ -20,6 +20,8 @@ class LCAResultsTable(ABDataFrameTable):
         col_labels = [" | ".join(x) for x in mlca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
         self.dataframe = pd.DataFrame(data, index=row_labels, columns=col_labels)
+        # self.dataframe = pd.DataFrame(data, columns=col_labels)
+        # self.dataframe.insert(loc=0, column="Name", value=row_labels)
 
 
 class ProcessContributionsTable(ABDataFrameTable):
