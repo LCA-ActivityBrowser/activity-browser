@@ -10,7 +10,7 @@ from .inventory import DatabasesTable
 from .activity import ExchangeTable, ProductTable
 from .history import ActivitiesHistoryTable
 from .impact_categories import CFTable, MethodsTable
-from .lca_results import LCAResultsTable, ProcessContributionsTable, InventoryTable, \
+from .lca_results import LCAResultsTable, ProcessContributionsTable, ContributionTable, \
     InventoryCharacterisationTable, BiosphereTable
 from .projects import ProjectTable, ProjectListWidget
 from .table import ABTableWidget, ABTableItem

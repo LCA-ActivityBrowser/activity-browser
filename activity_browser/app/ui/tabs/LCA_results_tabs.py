@@ -6,7 +6,7 @@ from activity_browser.app.ui.style import horizontal_line, vertical_line, header
 from activity_browser.app.ui.tables import (
     LCAResultsTable,
     ProcessContributionsTable,
-    InventoryTable,
+    ContributionTable,
     InventoryCharacterisationTable,
     BiosphereTable
 )
@@ -437,7 +437,7 @@ class InventoryTab(AnalysisTab):
         self.header_text = "Inventory"
         self.add_header(self.header_text)
 
-        self.table = InventoryTable(self.parent, maxheight=20)
+        self.table = ContributionTable(self.parent, maxheight=20)
 
         self.add_main_space()
         self.add_export()

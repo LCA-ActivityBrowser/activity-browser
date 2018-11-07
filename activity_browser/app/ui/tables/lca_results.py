@@ -59,10 +59,45 @@ class InventoryTable(ABDataFrameTable):
                                                  keys=["name", "categories", "unit"])
         df_description = pd.DataFrame(description)
         df_description = df_description.astype(str)
-        FU_names = [bc.format_activity_label(key=list(fu.keys())[0], style="pnl_") for fu in mlca.func_units]
+        FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
         df_inventory = pd.DataFrame(mlca.inventory)
         df_inventory.columns = FU_names
         self.dataframe = df_description.join(df_inventory)
+
+        # sort ignoring case sensitivity
+        self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
+        # self.dataframe.sort_values(by="name", ascending=True, inplace=True)
+        self.dataframe.reset_index(inplace=True, drop=True)
+
+
+class ContributionTable(ABDataFrameTable):
+    def __init__(self, parent, **kwargs):
+        super(ContributionTable, self).__init__(parent, **kwargs)
+
+    @ABDataFrameTable.decorated_sync
+    def sync(self, mlca, type="process"):
+        if type == "elementary":
+            description = bc.get_activity_data_as_lists(act_keys=mlca.rev_biosphere_dict.values(),
+                                                        keys=["name", "categories", "unit"])
+            df_description = pd.DataFrame(description)
+            df_description = df_description.astype(str)
+            FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
+            df_contribution = pd.DataFrame(mlca.elementary_flow_contributions[:, 0]).T
+            df_contribution.columns = FU_names
+            print(df_contribution.head())
+            # df_inventory = pd.DataFrame(mlca.inventory)
+            # df_inventory.columns = FU_names
+            self.dataframe = df_description.join(df_contribution)
+
+        elif type == "process":
+            description = bc.get_activity_data_as_lists(act_keys=mlca.rev_activity_dict.values(),
+                                                        keys=["reference product", "name", "location"])
+            df_description = pd.DataFrame(description)
+            df_description = df_description.astype(str)
+            FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
+            df_contribution = pd.DataFrame(mlca.process_contributions[:, 0]).T
+            df_contribution.columns = FU_names
+            self.dataframe = df_description.join(df_contribution)
 
         # sort ignoring case sensitivity
         self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]

@@ -27,6 +27,8 @@ class MLCA(object):
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
         self.func_units = cs['inv']
+        self.fu_activity_keys = [list(fu.keys())[0] for fu in self.func_units]
+
         self.methods = cs['ia']
         self.method_dict = {}
         self.method_dict_list = []
@@ -42,33 +44,42 @@ class MLCA(object):
         # data to be stored
         (self.rev_activity_dict, self.rev_product_dict,
          self.rev_biosphere_dict) = self.lca.reverse_dict()
-        self.inventories = dict()  # Inventory (biosphere flows) by activity (e.g. 2000x15000) and functional unit.
-        self.inventory = dict()  # Life cycle inventory (biosphere flows) by functional unit
+
+        self.scaling_factors = dict()
         self.technosphere_flows = dict()  # Technosphere product flows for a given functional unit
-        self.characterized_inventories = np.zeros(
+
+        self.inventory = dict()  # Life cycle inventory (biosphere flows) by functional unit
+        self.inventories = dict()  # Inventory (biosphere flows) by activity (e.g. 2000x15000) and functional unit.
+
+        # self.characterized_inventories = np.zeros(
+        #     (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
+        self.elementary_flow_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
-        self.elementary_flow_contributions = np.zeros(
-            (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
 
         for method in self.methods:
             self.lca.switch_method(method)
             self.method_matrices.append(self.lca.characterization_matrix)
 
         for row, func_unit in enumerate(self.func_units):
-            self.lca.redo_lci(func_unit)
+            self.lca.redo_lci(func_unit)  # lca calculation
 
-            self.inventories.update({
-                str(func_unit): self.lca.inventory
-            })
+            # scaling factors
+            self.scaling_factors.update({str(func_unit): self.lca.supply_array})
 
-            self.inventory.update({
-                str(func_unit): self.lca.inventory.sum(axis=1).flatten().tolist()[0]  #.todense()
-            })
-
+            # technosphere flows
             self.technosphere_flows.update({
                 str(func_unit): np.multiply(self.lca.supply_array, self.lca.technosphere_matrix.diagonal())
+            })
+
+            # the life cycle inventory
+            self.inventory.update({
+                str(func_unit): np.array(self.lca.inventory.sum(axis=1)).ravel() #flatten().tolist()[0]  #.todense()
+            })
+            # the life cycle inventory disaggregated by contributing process
+            self.inventories.update({
+                str(func_unit): self.lca.inventory
             })
 
             for col, cf_matrix in enumerate(self.method_matrices):
@@ -76,9 +87,10 @@ class MLCA(object):
                 self.lca.lcia_calculation()
                 self.results[row, col] = self.lca.score
                 #self.characterized_inventories[row, col] = self.lca.characterized_inventory
-                self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
                 self.elementary_flow_contributions[row, col] = np.array(
                     self.lca.characterized_inventory.sum(axis=1)).ravel()
+                self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
+
 
         self.func_unit_translation_dict = {str(get_activity(list(func_unit.keys())[0])): func_unit
                                            for func_unit in self.func_units}
