@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
+import appdirs
 
 class ABDataFrameTable(QtWidgets.QTableView):
     def __init__(self, parent=None, maxheight=None, *args, **kwargs):
@@ -45,22 +46,25 @@ class ABDataFrameTable(QtWidgets.QTableView):
     def to_clipboard(self):
         self.dataframe.to_clipboard()
 
-    def savefilepath(self):
+    def savefilepath(self, default_file_name="LCA results", filter="All Files (*.*)"):
+
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            'Choose location to save lca results'
+            caption='Choose location to save lca results',
+            directory=appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser').user_data_dir+"\\" + default_file_name,
+            filter=filter,
         )
         return filepath
 
     def to_csv(self):
-        filepath = self.savefilepath()
+        filepath = self.savefilepath(default_file_name="LCA results.csv", filter="CSV (*.csv);; All Files (*.*)")
         if filepath:
             if not filepath.endswith('.csv'):
                 filepath += '.csv'
             self.dataframe.to_csv(filepath)
 
     def to_excel(self):
-        filepath = self.savefilepath()
+        filepath = self.savefilepath(default_file_name="LCA results.xlsx", filter="Excel (*.xlsx);; All Files (*.*)")
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'
