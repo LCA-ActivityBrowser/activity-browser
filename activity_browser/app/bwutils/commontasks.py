@@ -25,35 +25,33 @@ def wrap_text(string, max_length=80):
     return '\n'.join([fold(line, wrapArgs) for line in string.splitlines()])
 
 
-def format_activity_label(act, style='pnl', max_length=40):
+def format_activity_label(key, style='pnl', max_length=40):
     try:
-        a = bw.get_activity(act)
+        act = bw.get_activity(key)
 
         if style == 'pnl':
-            label = wrap_text(
-                '\n'.join([a.get('reference product', ''), a.get('name', ''),
-                           str(a.get('location', ''))]), max_length=max_length)
+            label = '\n'.join([act.get('reference product', ''), act.get('name', ''),
+                           str(act.get('location', ''))])
+        elif style == 'pnl_':
+            label = ' | '.join([act.get('reference product', ''), act.get('name', ''),
+                           str(act.get('location', ''))])
         elif style == 'pl':
-            label = wrap_text(', '.join([a.get('reference product', '') or a.get('name', ''),
-                                         str(a.get('location', '')),
-                                         ]), max_length=40)
+            label = ', '.join([act.get('reference product', '') or act.get('name', ''),
+                                         str(act.get('location', '')),])
         elif style == 'key':
-            label = wrap_text(str(a.key))  # safer to use key, code does not always exist
+            label = str(act.key)  # safer to use key, code does not always exist
 
         elif style == 'bio':
-            label = wrap_text(',\n'.join(
-                [a.get('name', ''), str(a.get('categories', ''))]), max_length=30
-            )
+            label = ',\n'.join([act.get('name', ''), str(act.get('categories', ''))])
         else:
-            label = wrap_text(
-                '\n'.join([a.get('reference product', ''), a.get('name', ''),
-                           str(a.get('location', ''))]))
+            label = '\n'.join([act.get('reference product', ''), act.get('name', ''),
+                           str(act.get('location', ''))])
     except:
-        if isinstance(act, tuple):
-            return wrap_text(str(''.join(act)))
+        if isinstance(key, tuple):
+            return wrap_text(str(''.join(key)))
         else:
-            return wrap_text(str(act))
-    return label
+            return wrap_text(str(key))
+    return wrap_text(label, max_length=max_length)
 
 
 # Database
@@ -91,7 +89,7 @@ def is_database_read_only(db_name):
         return project_settings.settings["read-only-databases"].get(db_name, True)
 
 
-# Activity and Exchanges
+# Activity
 AB_names_to_bw_keys = {
     "Amount": "amount",
     "Product": "reference product",
@@ -129,13 +127,17 @@ def get_activity_name(key, str_length=22):
     return ','.join(key.get('name', '').split(',')[:3])[:str_length]
 
 
-def get_exchanges_data(exchanges):
-    # TODO: not finished
-    results = []
-    for exc in exchanges:
-        results.append(exc)
-    for r in results:
-        print(r)
+def get_activity_data_as_lists(act_keys, keys=None):
+    results = dict()
+    for key in keys:
+        results[key] = []
+
+    for act_key in act_keys:
+        act = bw.get_activity(act_key)
+        for key in keys:
+            results[key].append(act.get(key, 'Unknown'))
+
+    return  results
 
 
 def identify_activity_type(activity):
@@ -151,6 +153,16 @@ def identify_activity_type(activity):
         return "marketgroup"
     else:
         return "production"
+
+
+# Exchanges
+def get_exchanges_data(exchanges):
+    # TODO: not finished
+    results = []
+    for exc in exchanges:
+        results.append(exc)
+    for r in results:
+        print(r)
 
 
 # Settings (directory, project, etc.)

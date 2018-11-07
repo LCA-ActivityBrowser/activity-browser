@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
-
-from ...signals import signals
+import numpy as np
 
 class ABDataFrameTable(QtWidgets.QTableView):
     def __init__(self, parent=None, maxheight=None, *args, **kwargs):
@@ -20,22 +19,26 @@ class ABDataFrameTable(QtWidgets.QTableView):
             sync(self, *args, **kwargs)
 
             self.model = PandasModel(self.dataframe)
-            self.setModel(self.model)
+            self.proxy_model = QtCore.QSortFilterProxyModel()  # see: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
+            self.proxy_model.setSourceModel(self.model)
+            self.proxy_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+            self.setModel(self.proxy_model)
+
             # self.resizeColumnsToContents()
             # self.resizeRowsToContents()
-            if self.maxheight is not None:
-                self.setMaximumHeight(
-                    self.rowHeight(0) * (self.maxheight + 1) + self.autoScrollMargin())
-            elif self.model.rowCount() > 0:
-                self.setMaximumHeight(
-                    self.rowHeight(0) * (self.model.rowCount() + 1) + self.autoScrollMargin()
-                )
-            else:
-                self.setMaximumHeight(50)
-            if self.maxheight is None:
-                self.setMinimumHeight(
-                    self.rowHeight(0) * (min(self.model.rowCount()+1.5, 20)) + self.autoScrollMargin()
-                )
+            # if self.maxheight is not None:
+            #     self.setMaximumHeight(
+            #         self.rowHeight(0) * (self.maxheight + 1) + self.autoScrollMargin())
+            # elif self.model.rowCount() > 0:
+            #     self.setMaximumHeight(
+            #         self.rowHeight(0) * (self.model.rowCount() + 1) + self.autoScrollMargin()
+            #     )
+            # else:
+            #     self.setMaximumHeight(50)
+            # if self.maxheight is None:
+            #     self.setMinimumHeight(
+            #         self.rowHeight(0) * (min(self.model.rowCount()+1.5, 20)) + self.autoScrollMargin()
+            #     )
 
         return wrapper
 
@@ -74,6 +77,8 @@ class ABDataFrameTable(QtWidgets.QTableView):
                 self.model._dataframe.iloc[rows, columns].to_clipboard()
 
 
+
+
 class PandasModel(QtCore.QAbstractTableModel):
     """
     adapted from https://stackoverflow.com/a/42955764
@@ -91,8 +96,11 @@ class PandasModel(QtCore.QAbstractTableModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if index.isValid():
             if role == QtCore.Qt.DisplayRole:
-                return "{:.5g}".format(self._dataframe.iloc[index.row(), index.column()])
-                # return str(self._dataframe.iloc[index.row(), index.column()])
+                value = self._dataframe.iloc[index.row(), index.column()]
+                if type(value) == np.float64:  # QVariant cannot use the pandas/numpy float64 type
+                    value = float(value)
+                return QtCore.QVariant(value)
+
         return None
 
     def headerData(self, section, orientation, role):
@@ -102,9 +110,10 @@ class PandasModel(QtCore.QAbstractTableModel):
             return self._dataframe.index[section]
         return None
 
-    def sort(self, p_int, order=None):
-        self.layoutAboutToBeChanged.emit()
-        self._dataframe.sort_values(by=self._dataframe.columns[p_int],
-                                    ascending=False if order==1 else True,
-                                    inplace=True)
-        self.layoutChanged.emit()
+    # not needed anymore due to the use of QSortFilterProxyModel
+    # def sort(self, p_int, order=None):
+    #     self.layoutAboutToBeChanged.emit()
+    #     self._dataframe.sort_values(by=self._dataframe.columns[p_int],
+    #                                 ascending=False if order==1 else True,
+    #                                 inplace=True)
+    #     self.layoutChanged.emit()

@@ -451,7 +451,8 @@ class InventoryTab(AnalysisTab):
             method = (list(self.parent.mlca.technosphere_flows))[0]
         else:
             pass
-        self.table.sync(self.parent.mlca, method=method)#, limit=self.cutoff_value)
+        # self.table.sync(self.parent.mlca, method=method)#, limit=self.cutoff_value)
+        self.table.sync(self.parent.mlca)  # , limit=self.cutoff_value)
         # self.SecondTable.sync(self.setup.mlca, method=method)
 
 

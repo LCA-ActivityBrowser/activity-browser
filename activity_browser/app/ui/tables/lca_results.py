@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
+from PyQt5 import QtWidgets
 import pandas as pd
 from brightway2 import get_activity
 from operator import itemgetter
 
 from .dataframe_table import ABDataFrameTable
-from PyQt5 import QtWidgets
 
-import numpy as np
-from ...bwutils.commontasks import format_activity_label
+from ...bwutils import commontasks as bc
+
+
+def inventory_labels(length, mlca, labellength):
+    labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
+    shortlabels = [((i[:labellength-2] + '..') if len(i) > labellength else i) for i in labels]
+    return shortlabels
 
 
 class LCAResultsTable(ABDataFrameTable):
@@ -44,43 +49,25 @@ class InventoryCharacterisationTable(ABDataFrameTable):
         self.dataframe = self.parent.plot.df_tc
 
 
-def inventory_labels(length, mlca, labellength):
-    labels = [str(get_activity(mlca.rev_activity_dict[i])) for i in range(length)]
-    shortlabels = [((i[:labellength-2] + '..') if len(i) > labellength else i) for i in labels]
-    return shortlabels
-
-
 class InventoryTable(ABDataFrameTable):
     def __init__(self, parent, **kwargs):
         super(InventoryTable, self).__init__(parent, **kwargs)
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, method=None, limit=100):
+    def sync(self, mlca, limit=100):
+        description = bc.get_activity_data_as_lists(act_keys=mlca.rev_biosphere_dict.values(),
+                                                 keys=["name", "categories", "unit"])
+        df_description = pd.DataFrame(description)
+        df_description = df_description.astype(str)
+        FU_names = [bc.format_activity_label(key=list(fu.keys())[0], style="pnl_") for fu in mlca.func_units]
+        df_inventory = pd.DataFrame(mlca.inventory)
+        df_inventory.columns = FU_names
+        self.dataframe = df_description.join(df_inventory)
 
-        if method not in mlca.technosphere_flows.keys():
-            method = mlca.func_unit_translation_dict[str(method)]
-
-        arrays = (mlca.technosphere_flows.values())
-        #print(arrays)
-
-        array = mlca.technosphere_flows[str(method)]
-        length = min(limit, len(array))
-        shortlabels = inventory_labels(length, mlca, 100)
-
-        array, shortlabels = (list(t) for t in zip(*reversed(sorted(zip(array, shortlabels)))))
-
-        data_tuples = [
-            (float(i), shortlabels[n])
-            for n, i in enumerate(array)]
-
-        ordered_data = (sorted(data_tuples, key=itemgetter(0), reverse=True))
-        array = [i[0] for i in ordered_data]
-        shortlabels = [i[1] for i in ordered_data]
-
-        col_labels = ['Amount']
-        row_labels = [i for i in shortlabels[:length]]
-
-        self.dataframe = pd.DataFrame(array[:length], index=row_labels, columns=col_labels)
+        # sort ignoring case sensitivity
+        self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
+        # self.dataframe.sort_values(by="name", ascending=True, inplace=True)
+        self.dataframe.reset_index(inplace=True, drop=True)
 
 
 # class InventoryTable(ABDataFrameTable):

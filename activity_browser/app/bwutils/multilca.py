@@ -42,7 +42,8 @@ class MLCA(object):
         # data to be stored
         (self.rev_activity_dict, self.rev_product_dict,
          self.rev_biosphere_dict) = self.lca.reverse_dict()
-        self.inventories = dict()  # Inventory (biosphere flows) for a given functional unit
+        self.inventories = dict()  # Inventory (biosphere flows) by activity (e.g. 2000x15000) and functional unit.
+        self.inventory = dict()  # Life cycle inventory (biosphere flows) by functional unit
         self.technosphere_flows = dict()  # Technosphere product flows for a given functional unit
         self.characterized_inventories = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
@@ -60,6 +61,10 @@ class MLCA(object):
 
             self.inventories.update({
                 str(func_unit): self.lca.inventory
+            })
+
+            self.inventory.update({
+                str(func_unit): self.lca.inventory.sum(axis=1).flatten().tolist()[0]  #.todense()
             })
 
             self.technosphere_flows.update({
