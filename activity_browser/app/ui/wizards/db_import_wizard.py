@@ -656,7 +656,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
     - need to display progress in gui
     """
     @classmethod
-    def extract(cls, dirpath, db_name):
+    def extract(cls, dirpath, db_name, *args, **kwargs):
         assert os.path.exists(dirpath), dirpath
         if os.path.isdir(dirpath):
             filelist = [filename for filename in os.listdir(dirpath)
