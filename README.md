@@ -48,6 +48,8 @@ channels:
 
 ### Install the activity browser
 
+**_Temporary update: please use the development version at this moment (see further below)_**
+
 After configuring your conda channels, the activity browser can be installed with this command:
 ```
 conda create --yes --name ab activity-browser
