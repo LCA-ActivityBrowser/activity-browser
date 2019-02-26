@@ -114,16 +114,16 @@ class ActivityTab(QtWidgets.QTabWidget):
         # 4 data tables displayed after the activity data
         self.production = ExchangeTable(self, tableType="products")
         # self.production = ProductTable(self)
-        self.inputs = ExchangeTable(self, tableType="technosphere")
-        self.flows = ExchangeTable(self, tableType="biosphere")
+        self.technosphere = ExchangeTable(self, tableType="technosphere")
+        self.biosphere = ExchangeTable(self, tableType="biosphere")
         # self.upstream refers to the open activity: it is upstream of the downstream consumers shown in the table...
-        self.upstream = ExchangeTable(self, tableType="technosphere")
+        self.downstream = ExchangeTable(self, tableType="technosphere")
 
         self.exchange_tables = [
             (self.production, "Products:"),
-            (self.inputs, "Technosphere Inputs:"),
-            (self.flows, "Biosphere Flows:"),
-            (self.upstream, "Downstream Consumers:"),
+            (self.technosphere, "Technosphere Inputs:"),
+            (self.biosphere, "Biosphere Flows:"),
+            (self.downstream, "Downstream Consumers:"),
         ]
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
@@ -158,9 +158,9 @@ class ActivityTab(QtWidgets.QTabWidget):
         # todo: add count of results for each exchange table, to label above each table
         db_name = key[0]
         self.production.set_queryset(db_name, self.activity.production())
-        self.inputs.set_queryset(db_name, self.activity.technosphere())
-        self.flows.set_queryset(db_name, self.activity.biosphere())
-        self.upstream.set_queryset(db_name, self.activity.upstream(), upstream=True)
+        self.technosphere.set_queryset(db_name, self.activity.technosphere())
+        self.biosphere.set_queryset(db_name, self.activity.biosphere())
+        self.downstream.set_queryset(db_name, self.activity.upstream(), upstream=True)
 
         self.populate_description_box()
 
@@ -206,11 +206,11 @@ class ActivityTab(QtWidgets.QTabWidget):
         for table, label in self.exchange_tables:
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
-                self.setAcceptDrops(False)
+                table.setAcceptDrops(False)
             else:
                 table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
-                if not self.upstream:  # downstream consumers table never accepts drops
-                    self.setAcceptDrops(True)
+                if table != self.downstream:  # downstream consumers table never accepts drops
+                    table.setAcceptDrops(True)
 
     def db_read_only_changed(self, db_name, db_read_only):
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """

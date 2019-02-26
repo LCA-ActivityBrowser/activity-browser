@@ -34,7 +34,7 @@ class ExchangeTable(ABTableWidget):
     def __init__(self, parent=None, tableType=None):
         super(ExchangeTable, self).__init__()
         self.setDragEnabled(True)
-        self.setAcceptDrops(True)
+        self.setAcceptDrops(False)
         self.setSortingEnabled(True)
 
         self.tableType = tableType

@@ -292,7 +292,7 @@ class Controller(object):
         name, ok = QtWidgets.QInputDialog.getText(
             None,
             "Create new technosphere activity",
-            "Name of new technosphere activity:" + " " * 10
+            "Please specify an activity name:" + " " * 10,
         )
         if ok and name:
             new_act = bw.Database(database_name).new_activity(

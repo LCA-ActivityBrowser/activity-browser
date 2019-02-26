@@ -108,6 +108,7 @@ class ProjectSettings():
         # executes when new project selected
         # same code as __init__ but without connect_signals()
         self.project_dir = bw.projects.dir
+        print('Reset project settings directory to:', self.project_dir)
         self.settings_file = os.path.join(self.project_dir, 'AB_project_settings.json')
 
         # load if found, else make empty dict and save as new file
