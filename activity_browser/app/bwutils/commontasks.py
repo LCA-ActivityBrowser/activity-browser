@@ -137,7 +137,7 @@ def get_activity_data_as_lists(act_keys, keys=None):
         for key in keys:
             results[key].append(act.get(key, 'Unknown'))
 
-    return  results
+    return results
 
 
 def identify_activity_type(activity):

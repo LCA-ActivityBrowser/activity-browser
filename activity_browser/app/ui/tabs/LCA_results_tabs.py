@@ -7,6 +7,7 @@ from activity_browser.app.ui.tables import (
     LCAResultsTable,
     ProcessContributionsTable,
     ContributionTable,
+    InventoryTable,
     InventoryCharacterisationTable,
     BiosphereTable
 )
@@ -60,8 +61,8 @@ class LCAResultsSubTab(QTabWidget):
             if not self.sankey_tab.has_sankey:
                 self.sankey_tab.new_sankey()
         elif index == self.indexOf(self.inventory_tab):
-            print('Generating Inventory Tab')
             if not self.inventory_tab.first_time_calculated:
+                print('Generating Inventory Tab')
                 self.inventory_tab.update_analysis_tab()
 
     def update_calculation(self):
@@ -256,9 +257,9 @@ class AnalysisTab(QWidget):
             self.update_table()
             self.first_time_calculated = True
 
-    def update_table(self, method=None):
+    def update_table(self, method=None, *args, **kwargs):
         """ Update the table. """
-        self.table.sync(self.parent.mlca)
+        self.table.sync(self.parent.mlca, *args, **kwargs)
 
     def update_plot(self, method=None):
         """Updates the plot. Method will be added in subclass."""
@@ -439,27 +440,56 @@ class InventoryTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(InventoryTab, self).__init__(parent, **kwargs)
         self.parent = parent
+        self.biosphere = True
 
         self.header_text = "Inventory"
         self.add_header(self.header_text)
 
-        self.table = ContributionTable(self.parent, maxheight=20)
+        # self.table = ContributionTable(self.parent, maxheight=20)
+        self.table = InventoryTable(self.parent, maxheight=20)
 
+        self.add_buttons()
         self.add_main_space()
+
+
         self.add_export()
 
         self.parent.addTab(self, self.header_text)
 
         self.connect_signals()
 
-    def update_table(self, method=None):
-        if method == None:
-            method = (list(self.parent.mlca.technosphere_flows))[0]
+    def add_buttons(self):
+        """ Add the buttons."""
+        # buttons
+        self.radio_button_biosphere = QRadioButton("Biosphere flows")
+        self.radio_button_technosphere = QRadioButton("Technosphere flows")
+
+        self.radio_button_biosphere.setChecked(True)
+        self.radio_button_technosphere.setChecked(False)
+
+        # signals
+        self.radio_button_biosphere.clicked.connect(self.button_clicked)
+        self.radio_button_technosphere.clicked.connect(self.button_clicked)
+
+        # layout
+        self.combobox_menu = QHBoxLayout()
+        self.combobox_menu.addWidget(self.radio_button_biosphere)
+        self.combobox_menu.addWidget(self.radio_button_technosphere)
+        self.combobox_menu.addStretch(1)
+
+        self.layout.addLayout(self.combobox_menu)
+
+    def button_clicked(self):
+        """Update table according to radiobutton selected."""
+        if self.radio_button_technosphere.isChecked():
+            print('Showing technosphere flows.')
+            self.update_table(type='technosphere')
         else:
-            pass
-        # self.table.sync(self.parent.mlca, method=method)#, limit=self.cutoff_value)
-        self.table.sync(self.parent.mlca)  # , limit=self.cutoff_value)
-        # self.SecondTable.sync(self.setup.mlca, method=method)
+            print('Showing biosphere flows.')
+            self.update_table(type='biosphere')
+
+    def update_table(self, type='biosphere', *args, **kwargs):
+        self.table.sync(self.parent.mlca, type=type) 
 
 
 class CharacterisationTab(AnalysisTab):
