@@ -53,12 +53,16 @@ class LCAResultsSubTab(QTabWidget):
         self.addTab(self.sankey_tab, "Sankey")
 
         self.update_setup(calculate=False)
-        self.currentChanged.connect(self.calculate_first_sankey)
+        self.currentChanged.connect(self.generate_content_on_click)
 
-    def calculate_first_sankey(self, index):
+    def generate_content_on_click(self, index):
         if index == self.indexOf(self.sankey_tab):
             if not self.sankey_tab.has_sankey:
                 self.sankey_tab.new_sankey()
+        elif index == self.indexOf(self.inventory_tab):
+            print('Generating Inventory Tab')
+            if not self.inventory_tab.first_time_calculated:
+                self.inventory_tab.update_analysis_tab()
 
     def update_calculation(self):
         """ Update the mlca calculation. """
@@ -81,7 +85,7 @@ class LCAResultsSubTab(QTabWidget):
             self.update_calculation()
 
         self.LCAscoreComparison_tab.update_analysis_tab()
-        self.inventory_tab.update_analysis_tab()
+        # self.inventory_tab.update_analysis_tab()
         self.inventory_characterisation_tab.update_analysis_tab()
         self.lcia_results_tab.update_analysis_tab()
         self.process_contributions_tab.update_analysis_tab()
@@ -107,6 +111,7 @@ class AnalysisTab(QWidget):
                  plot=None, export=None, relativity=None, custom=False, *args, **kwargs):
         super(AnalysisTab, self).__init__(parent)
         self.parent = parent
+        self.first_time_calculated = False
 
         self.custom = custom
 
@@ -249,6 +254,7 @@ class AnalysisTab(QWidget):
             self.update_plot()
         if self.table:
             self.update_table()
+            self.first_time_calculated = True
 
     def update_table(self, method=None):
         """ Update the table. """
@@ -604,10 +610,10 @@ class SankeyTab(QWidget):
         super(SankeyTab, self).__init__(parent)
         self.parent = parent
 
-        def update_sankey(self):
-            if hasattr(self, "sankey_tab"):
-                if self.currentIndex() == self.indexOf(self.sankey_tab):
-                    print("Changed to Sankey Tab")
-                    if not self.sankey_tab.graph.json_data:
-                        print("Calculated first Sankey")
-                        self.sankey_tab.new_sankey()
+        # def update_sankey(self):
+        #     if hasattr(self, "sankey_tab"):
+        #         if self.currentIndex() == self.indexOf(self.sankey_tab):
+        #             print("Changed to Sankey Tab")
+        #             if not self.sankey_tab.graph.json_data:
+        #                 print("Calculated first Sankey")
+        #                 self.sankey_tab.new_sankey()
