@@ -108,79 +108,53 @@ class MLCA(object):
         return self.results / self.results.max(axis=0)
 
     # CONTRIBUTION ANALYSIS
-    def top_process_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number" ):
-        """ Return process contributions per assessment method. """
-        if method_name:
-            method = self.method_dict[method_name]
-        else:
-            method = 0
+    # def
 
-        # Take slice for specific method from all contributions
-        contribution_array = self.process_contributions[:, method, :]
+    def top_process_contributions(self, functional_unit=None, method=None, limit=5, normalize=True, limit_type="number"):
+        """ Return process contributions either
+            * for one impact assessment method and a number of processes or
+            * for one process and a number of impact assessment methods. """
+        if (functional_unit and method) or (not functional_unit and not method):
+            raise ValueError('It must be either by functional unit or by method.')
+        if method:
+            contribution_array = self.process_contributions[:, self.method_dict[method], :]
+        elif functional_unit:
+            contribution_array = self.process_contributions[self.func_key_dict[functional_unit], :, :]
 
-        # Make normalised if required
-        if normalised:
-            contribution_array = self.make_nomalised(contribution_array)
+        # Normalise if required
+        if normalize:
+            contribution_array = self.normalize(contribution_array)
 
-        topcontribution_dict = self.build_dict(contribution_array, self.func_units,
-                                                self.rev_activity_dict, limit, limit_type)
-        return topcontribution_dict
+        if method:
+            return self.build_dict(contribution_array, self.method_dict_list,
+                                   self.rev_activity_dict, limit, limit_type)
+        elif functional_unit:
+            return self.build_dict(contribution_array, self.func_units,
+                                   self.rev_activity_dict, limit, limit_type)
 
-    def top_process_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
-        """ Return process contributions per functional unit. """
-        if func_name:
-            func = self.func_key_dict[func_name]
-        else:
-            func = 0
+    def top_elementary_flow_contributions(self, functional_unit=None, method=None, limit=5, normalize=True, limit_type="number"):
+        """ Return elementary flow contributions either
+            * for one impact assessment method and a number of processes or
+            * for one process and a number of impact assessment methods. """
+        if (functional_unit and method) or (not functional_unit and not method):
+            raise ValueError('It must be either by functional unit or by method.')
+        if method:
+            contribution_array = self.elementary_flow_contributions[:, self.method_dict[method], :]
+        elif functional_unit:
+            contribution_array = self.elementary_flow_contributions[self.func_key_dict[functional_unit], :, :]
 
-        # Take slice for specific functional unit from all contributions
-        contribution_array = self.elementary_flow_contributions[func, :, :]
+        # Normalised if required
+        if normalize:
+            contribution_array = self.normalize(contribution_array)
 
-        # Make normalised if required
-        if normalised:
-            contribution_array = self.make_nomalised(contribution_array)
+        if method:
+            return self.build_dict(contribution_array, self.func_units,
+                                   self.rev_biosphere_dict, limit, limit_type)
+        elif functional_unit:
+            return self.build_dict(contribution_array, self.method_dict_list,
+                                   self.rev_biosphere_dict, limit, limit_type)
 
-        topcontribution_dict = self.build_dict(contribution_array, self.method_dict_list,
-                                                self.rev_biosphere_dict, limit, limit_type)
-        return topcontribution_dict
-
-    def top_elementary_flow_contributions_per_method(self, method_name=None, limit=5, normalised=True, limit_type="number"):
-        """ Return elementary flow (inventory characterisation) contributions per assessment method. """
-        if method_name:
-            method = self.method_dict[method_name]
-        else:
-            method = 0
-
-        # Take slice for specific method from all contributions
-        contribution_array = self.elementary_flow_contributions[:, method, :]
-
-        # Make normalised if required
-        if normalised:
-            contribution_array = self.make_nomalised(contribution_array)
-
-        topcontribution_dict = self.build_dict(contribution_array, self.func_units,
-                                                self.rev_activity_dict, limit, limit_type)
-        return topcontribution_dict
-
-    def top_elementary_flow_contributions_per_func(self, func_name=None, limit=5, normalised=True, limit_type="number"):
-        """ Return elementary flow (inventory characterisation) contributions per functional unit. """
-        if func_name:
-            func = self.func_key_dict[func_name]
-        else:
-            func = 0
-
-        # Take slice for specific functional unit from all contributions
-        contribution_array = self.elementary_flow_contributions[func, :, :]
-
-        # Make normalised if required
-        if normalised:
-            contribution_array = self.make_nomalised(contribution_array)
-
-        topcontribution_dict = self.build_dict(contribution_array, self.method_dict_list,
-                                                self.rev_biosphere_dict, limit, limit_type)
-        return topcontribution_dict
-
-    def make_nomalised(self, contribution_array):
+    def normalize(self, contribution_array):
         """ Normalise the contribution array. """
         scores = contribution_array.sum(axis=1)
         return (contribution_array / scores[:, np.newaxis])

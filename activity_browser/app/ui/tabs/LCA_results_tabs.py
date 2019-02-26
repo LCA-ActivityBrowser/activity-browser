@@ -14,7 +14,7 @@ from activity_browser.app.ui.tables import (
 from activity_browser.app.ui.graphics import (
     LCAResultsPlot,
     ProcessContributionPlot,
-    InventoryCharacterisationPlot,
+    ElementaryFlowContributionPlot,
     CorrelationPlot,
     LCAResultsBarChart
 )
@@ -34,6 +34,7 @@ class LCAResultsSubTab(QTabWidget):
         self.cs_name = name
         self.method_dict = dict()
 
+        self.setMovable(True)
         self.setVisible(False)
         self.visible = False
 
@@ -42,11 +43,12 @@ class LCAResultsSubTab(QTabWidget):
 
         self.update_calculation()
 
+        # the LCA results tabs (order matters)
+        self.inventory_tab = InventoryTab(self, custom=True)
         self.LCAscoreComparison_tab = LCAScoreComparisonTab(self)
         self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
 
-        self.inventory_tab = InventoryTab(self, custom=True)
-        self.inventory_characterisation_tab = CharacterisationTab(self, relativity=True)
+        self.inventory_characterisation_tab = ElementaryFlowContributionTab(self, relativity=True)
 
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
         # self.correlations_tab = CorrelationsTab(self)
@@ -54,6 +56,7 @@ class LCAResultsSubTab(QTabWidget):
         self.addTab(self.sankey_tab, "Sankey")
 
         self.update_setup(calculate=False)
+        self.setCurrentWidget(self.LCAscoreComparison_tab)
         self.currentChanged.connect(self.generate_content_on_click)
 
     def generate_content_on_click(self, index):
@@ -448,7 +451,7 @@ class InventoryTab(AnalysisTab):
         # self.table = ContributionTable(self.parent, maxheight=20)
         self.table = InventoryTable(self.parent, maxheight=20)
 
-        self.add_buttons()
+        self.add_radio_buttons()
         self.add_main_space()
 
 
@@ -458,8 +461,8 @@ class InventoryTab(AnalysisTab):
 
         self.connect_signals()
 
-    def add_buttons(self):
-        """ Add the buttons."""
+    def add_radio_buttons(self):
+        """ Add the radio buttons."""
         # buttons
         self.radio_button_biosphere = QRadioButton("Biosphere flows")
         self.radio_button_technosphere = QRadioButton("Technosphere flows")
@@ -489,29 +492,29 @@ class InventoryTab(AnalysisTab):
             self.update_table(type='biosphere')
 
     def update_table(self, type='biosphere', *args, **kwargs):
-        self.table.sync(self.parent.mlca, type=type) 
+        self.table.sync(self.parent.mlca, type=type)
 
 
-class CharacterisationTab(AnalysisTab):
+class ElementaryFlowContributionTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(CharacterisationTab, self).__init__(parent, **kwargs)
+        super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
         self.parent = parent
 
-        self.header_text = "Inventory Characterisation"
+        self.header_text = "Elementary Flow Contributions"
         self.add_header(self.header_text)
 
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-        self.plot = InventoryCharacterisationPlot(self.parent)
+        self.plot = ElementaryFlowContributionPlot(self.parent)
         self.table = InventoryCharacterisationTable(self)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
         self.add_export()
 
-        self.parent.addTab(self, self.header_text)
+        self.parent.addTab(self, 'Substance Contributions')
 
         self.connect_signals()
 
@@ -531,7 +534,7 @@ class CharacterisationTab(AnalysisTab):
             per = "func"
 
         self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
-                       limit_type=self.cutoff_menu.limit_type, per=per, normalised=self.relative)
+                       limit_type=self.cutoff_menu.limit_type, per=per, normalize=self.relative)
 
 
 class LCIAAnalysisTab(AnalysisTab):
@@ -579,6 +582,7 @@ class ProcessContributionsTab(AnalysisTab):
 
         self.plot = ProcessContributionPlot(self.parent)
         self.table = ProcessContributionsTable(self)
+        # self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
@@ -604,7 +608,7 @@ class ProcessContributionsTab(AnalysisTab):
             per = "func"
 
         self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
-                       limit_type=self.cutoff_menu.limit_type, per=per, normalised=self.relative)
+                       limit_type=self.cutoff_menu.limit_type, per=per, normalize=self.relative)
 
 
 class CorrelationsTab(AnalysisTab):

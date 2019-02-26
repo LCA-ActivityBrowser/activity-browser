@@ -186,21 +186,15 @@ class ProcessContributionPlot(Plot):
         self.df_tc = pd.DataFrame()
         self.parent = parent
 
-    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalised=True):
+    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalize=True):
         """ Plot a horizontal bar chart of the process contributions. """
         self.ax.clear()
         height = 4 + len(mlca.func_units) * 1
         self.figure.set_figheight(height)
 
-        if per == "method":
-            tc = mlca.top_process_contributions_per_method(method_name=method, limit=limit, normalised=normalised,
-                                                           limit_type=limit_type)
-        elif per == "func":
-            tc = mlca.top_process_contributions_per_func(func_name=func, limit=limit, normalised=normalised,
-                                                           limit_type=limit_type)
-        else:
-            print("Unknown type requested")
-            return None
+        tc = mlca.top_process_contributions(functional_unit=func, method=method, limit=limit, normalize=normalize,
+                                            limit_type=limit_type)
+
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
@@ -222,26 +216,18 @@ class ProcessContributionPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
 
 
-class InventoryCharacterisationPlot(Plot):
+class ElementaryFlowContributionPlot(Plot):
     def __init__(self, parent=None, *args):
-        super(InventoryCharacterisationPlot, self).__init__(parent, *args)
+        super(ElementaryFlowContributionPlot, self).__init__(parent, *args)
 
-    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalised=True):
+    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalize=True):
         """ Plot a horizontal bar chart of the inventory characterisation. """
         self.ax.clear()
         height = 3 + len(mlca.func_units) * 0.5
         self.figure.set_figheight(height)
 
-        if per == "method":
-            tc = mlca.top_elementary_flow_contributions_per_method(method_name=method, limit=limit, normalised=normalised,
-                                                           limit_type=limit_type)
-        elif per == "func":
-            tc = mlca.top_elementary_flow_contributions_per_func(func_name=func, limit=limit, normalised=normalised,
-                                                           limit_type=limit_type)
-        else:
-            print("Unknown type requested")
-            return None
-
+        tc = mlca.top_elementary_flow_contributions(functional_unit=func, method=method, limit=limit, normalize=normalize,
+                                            limit_type=limit_type)
 
         self.df_tc = pd.DataFrame(tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]

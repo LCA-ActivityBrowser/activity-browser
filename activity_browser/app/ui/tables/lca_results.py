@@ -130,26 +130,6 @@ class ContributionTable(ABDataFrameTable):
         self.dataframe.reset_index(inplace=True, drop=True)
 
 
-# class InventoryTable(ABDataFrameTable):
-#     def __init__(self, parent, **kwargs):
-#         super(InventoryTable, self).__init__(parent, **kwargs)
-#
-#     @ABDataFrameTable.decorated_sync
-#     def sync(self, mlca, method=None):
-#         arrays = list(mlca.technosphere_flows.values())
-#         output = []
-#         for array in arrays:
-#             s = ' '.join([str(i) for i in array])
-#             output.append(s)
-#         joined = '; '.join(output)
-#         matrix = np.rot90(np.matrix(joined))
-#
-#         col_labels = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
-#         row_labels = inventory_labels(len(mlca.rev_activity_dict), mlca, 75)
-#
-#         self.dataframe = pd.DataFrame(matrix, index=row_labels, columns=col_labels)
-
-
 class BiosphereTable(QtWidgets.QTableView):
     def __init__(self, parent):
         super(BiosphereTable, self).__init__(parent)
