@@ -129,10 +129,10 @@ class MLCA(object):
             contribution_array = self.normalize(contribution_array)
 
         if method:
-            return self.build_dict(contribution_array, self.method_dict_list,
+            return self.build_dict(contribution_array, self.func_units,
                                    self.rev_activity_dict, limit, limit_type)
         elif functional_unit:
-            return self.build_dict(contribution_array, self.func_units,
+            return self.build_dict(contribution_array, self.method_dict_list,
                                    self.rev_activity_dict, limit, limit_type)
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None, limit=5, normalize=True, limit_type="number"):
