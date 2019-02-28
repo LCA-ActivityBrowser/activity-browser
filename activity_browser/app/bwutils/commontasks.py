@@ -116,7 +116,7 @@ def get_activity_data(datasets):
             'Location': ds.get('location', 'unknown'),
             # 'Amount': "{:.4g}".format(key['amount']),
             'Unit': ds.get('unit', 'unknown'),
-            'Database': ds['database'],
+            'Database': ds.get(['database'], 'unknown'),
             'Uncertain': "True" if ds.get("uncertainty type", 0) > 1 else "False",
             'key': ds,
         }

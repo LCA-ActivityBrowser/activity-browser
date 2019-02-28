@@ -26,14 +26,20 @@ class MLCA(object):
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
+        # functional units
         self.func_units = cs['inv']
         self.fu_activity_keys = [list(fu.keys())[0] for fu in self.func_units]
+        self.fu_index = {k: i for i, k in enumerate(self.fu_activity_keys)}
+        self.rev_fu_index = {v: k for k, v in self.fu_index.items()}
 
+        # methods
         self.methods = cs['ia']
-        self.method_dict = {}
+        self.method_index = {m: i for i, m in enumerate(self.methods)}
+        self.rev_method_index = {v: k for k, v in self.method_index.items()}
+
+        # todo: get rid of the below
         self.method_dict_list = []
         for i, m in enumerate(self.methods):
-            self.method_dict.update({m: i})
             self.method_dict_list.append({m: i})
 
         self.lca = bw.LCA(demand=self.all, method=self.methods[0])
@@ -42,8 +48,7 @@ class MLCA(object):
         self.results = np.zeros((len(self.func_units), len(self.methods)))
 
         # data to be stored
-        (self.rev_activity_dict, self.rev_product_dict,
-         self.rev_biosphere_dict) = self.lca.reverse_dict()
+        (self.rev_activity_dict, self.rev_product_dict, self.rev_biosphere_dict) = self.lca.reverse_dict()
 
         self.scaling_factors = dict()
         self.technosphere_flows = dict()  # Technosphere product flows for a given functional unit
@@ -91,7 +96,7 @@ class MLCA(object):
                     self.lca.characterized_inventory.sum(axis=1)).ravel()
                 self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
 
-
+        # todo: get rid of the below
         self.func_unit_translation_dict = {str(get_activity(list(func_unit.keys())[0])): func_unit
                                            for func_unit in self.func_units}
         #self.biosphere_flows_translation_dict =
@@ -108,8 +113,6 @@ class MLCA(object):
         return self.results / self.results.max(axis=0)
 
     # CONTRIBUTION ANALYSIS
-    # def
-
     def top_process_contributions(self, functional_unit=None, method=None, limit=5, normalize=True, limit_type="number"):
         """ Return process contributions either
             * for one impact assessment method and a number of processes or
@@ -117,7 +120,7 @@ class MLCA(object):
         if (functional_unit and method) or (not functional_unit and not method):
             raise ValueError('It must be either by functional unit or by method.')
         if method:
-            contribution_array = self.process_contributions[:, self.method_dict[method], :]
+            contribution_array = self.process_contributions[:, self.method_index[method], :]
         elif functional_unit:
             contribution_array = self.process_contributions[self.func_key_dict[functional_unit], :, :]
 
@@ -139,7 +142,7 @@ class MLCA(object):
         if (functional_unit and method) or (not functional_unit and not method):
             raise ValueError('It must be either by functional unit or by method.')
         if method:
-            contribution_array = self.elementary_flow_contributions[:, self.method_dict[method], :]
+            contribution_array = self.elementary_flow_contributions[:, self.method_index[method], :]
         elif functional_unit:
             contribution_array = self.elementary_flow_contributions[self.func_key_dict[functional_unit], :, :]
 

@@ -10,7 +10,7 @@ from .ui.style import default_font
 
 def run_activity_browser():
     qapp = QtWidgets.QApplication(sys.argv)
-    qapp.setFont(default_font)
+    # qapp.setFont(default_font)
     application = Application()
     application.show()
     print("PyQt Version:", QtCore.PYQT_VERSION_STR)

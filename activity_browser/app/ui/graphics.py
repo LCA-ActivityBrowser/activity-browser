@@ -194,8 +194,9 @@ class ProcessContributionPlot(Plot):
 
         tc = mlca.top_process_contributions(functional_unit=func, method=method, limit=limit, normalize=normalize,
                                             limit_type=limit_type)
-
+        # print(tc)
         self.df_tc = pd.DataFrame(tc)
+        # print(self.df_tc)
         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
         self.df_tc_plot = self.df_tc.drop("Total")
