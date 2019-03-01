@@ -33,43 +33,50 @@ class InventoryTable(ABDataFrameTable):
         self.technosphere_df = None
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, type="biosphere"):
-        if type == "biosphere":
-            if self.biosphere_df is None:
-                # biosphere flows description
-                fields = ["name", "categories", "unit", "database"]
-                data_description = bc.get_activity_data_as_lists(act_keys=mlca.rev_biosphere_dict.values(),
-                                                         keys=fields)
-                df_description = pd.DataFrame(data_description)
-                df_description = df_description.astype(str)
-                # biosphere flows
-                FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
-                df_inventory = pd.DataFrame(mlca.inventory)
-                df_inventory.columns = FU_names
-                self.dataframe = df_description.join(df_inventory)
-                self.biosphere_df = self.dataframe
-            else:
-                self.dataframe = self.biosphere_df
-        elif type == "technosphere":
-            if self.technosphere_df is None:
-                # technosphere flows description
-                fields = ["reference product", "name", "location", "database"]
-                description = bc.get_activity_data_as_lists(act_keys=mlca.rev_activity_dict.values(),
-                                                            keys=fields)
-                df_description = pd.DataFrame(description)
-                df_description = df_description.astype(str)
-                # technosphere flows
-                FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
-                df_contribution = pd.DataFrame(mlca.technosphere_flows)
-                df_contribution.columns = FU_names
-                self.dataframe = df_description.join(df_contribution)
-                self.technosphere_df = self.dataframe
-            else:
-                self.dataframe = self.technosphere_df
-
+    def sync(self, df):
+        self.dataframe = df
         # sort ignoring case sensitivity
-        self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
-        self.dataframe.reset_index(inplace=True, drop=True)
+        # self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
+        # self.dataframe.reset_index(inplace=True, drop=True)
+
+    # @ABDataFrameTable.decorated_sync
+    # def sync(self, mlca, type="biosphere"):
+    #     if type == "biosphere":
+    #         if self.biosphere_df is None:
+    #             # biosphere flows description
+    #             fields = ["name", "categories", "unit", "database"]
+    #             data_description = bc.get_activity_data_as_lists(act_keys=mlca.rev_biosphere_dict.values(),
+    #                                                      keys=fields)
+    #             df_description = pd.DataFrame(data_description)
+    #             df_description = df_description.astype(str)
+    #             # biosphere flows
+    #             FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
+    #             df_inventory = pd.DataFrame(mlca.inventory)
+    #             df_inventory.columns = FU_names
+    #             self.dataframe = df_description.join(df_inventory)
+    #             self.biosphere_df = self.dataframe
+    #         else:
+    #             self.dataframe = self.biosphere_df
+    #     elif type == "technosphere":
+    #         if self.technosphere_df is None:
+    #             # technosphere flows description
+    #             fields = ["reference product", "name", "location", "database"]
+    #             description = bc.get_activity_data_as_lists(act_keys=mlca.rev_activity_dict.values(),
+    #                                                         keys=fields)
+    #             df_description = pd.DataFrame(description)
+    #             df_description = df_description.astype(str)
+    #             # technosphere flows
+    #             FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
+    #             df_contribution = pd.DataFrame(mlca.technosphere_flows)
+    #             df_contribution.columns = FU_names
+    #             self.dataframe = df_description.join(df_contribution)
+    #             self.technosphere_df = self.dataframe
+    #         else:
+    #             self.dataframe = self.technosphere_df
+    #
+    #     # sort ignoring case sensitivity
+    #     self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
+    #     self.dataframe.reset_index(inplace=True, drop=True)
 
 
 class ContributionTable(ABDataFrameTable):

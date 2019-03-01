@@ -411,37 +411,13 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.export_menu)
 
 
-class LCAScoresTab(AnalysisTab):
-    def __init__(self, parent, **kwargs):
-        super(LCAScoresTab, self).__init__(parent, **kwargs)
-        self.parent = parent
-
-        self.header_text = "LCA scores comparison"
-        self.add_header(self.header_text)
-
-        self.plot = LCAResultsBarChart(self.parent)
-
-        self.add_combobox(method=True, func=False)
-        self.add_main_space()
-        self.add_export()
-
-        self.parent.addTab(self, "LCA scores")
-
-        self.connect_signals()
-
-    def update_plot(self, method=None):
-        if method == None or method == '':
-            method = self.parent.mlca.methods[0]
-        else:
-            method = self.parent.method_dict[method]
-        self.plot.plot(self.parent.mlca, method=method)
-
-
 class InventoryTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(InventoryTab, self).__init__(parent, **kwargs)
         self.parent = parent
         self.biosphere = True
+        self.df_biosphere = None
+        self.df_technosphere = None
 
         self.header_text = "Inventory"
         self.add_header(self.header_text)
@@ -490,7 +466,40 @@ class InventoryTab(AnalysisTab):
             self.update_table(type='biosphere')
 
     def update_table(self, type='biosphere', *args, **kwargs):
-        self.table.sync(self.parent.mlca, type=type)
+        if type == 'biosphere':
+            if self.df_biosphere == None:
+                self.df_biosphere = self.parent.ca.inventory_df(type='biosphere')
+        # self.table.sync(self.parent.mlca, type=type)
+            self.table.sync(self.df_biosphere)
+        else:
+            if self.df_technosphere == None:
+                self.df_technosphere = self.parent.ca.inventory_df(type='technosphere')
+            self.table.sync(self.df_technosphere)
+
+class LCAScoresTab(AnalysisTab):
+    def __init__(self, parent, **kwargs):
+        super(LCAScoresTab, self).__init__(parent, **kwargs)
+        self.parent = parent
+
+        self.header_text = "LCA scores comparison"
+        self.add_header(self.header_text)
+
+        self.plot = LCAResultsBarChart(self.parent)
+
+        self.add_combobox(method=True, func=False)
+        self.add_main_space()
+        self.add_export()
+
+        self.parent.addTab(self, "LCA scores")
+
+        self.connect_signals()
+
+    def update_plot(self, method=None):
+        if method == None or method == '':
+            method = self.parent.mlca.methods[0]
+        else:
+            method = self.parent.method_dict[method]
+        self.plot.plot(self.parent.mlca, method=method)
 
 
 class LCIAResultsTab(AnalysisTab):
@@ -606,7 +615,6 @@ class ProcessContributionsTab(AnalysisTab):
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         self.plot.plot(self.df)
-
 
 
 class CorrelationsTab(AnalysisTab):

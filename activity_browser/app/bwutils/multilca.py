@@ -186,6 +186,30 @@ class Contributions(object):
         df.index = self.get_labels(self.mlca.df_meta, df.index, fields=x_fields)
         return df
 
+    def inventory_df(self, type='biosphere'):
+        if type == 'biosphere':
+            fields = ["name", "categories", "unit", "database"]
+            df = pd.DataFrame(self.mlca.inventory)
+            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
+            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys)
+            metadata = self.mlca.df_meta.loc[list(self.mlca.rev_biosphere_dict.values())][fields]
+            joined = metadata.join(df)
+            joined.reset_index(inplace=True, drop=True)
+            # joined.index = get_labels(mlca.df_meta, mlca.rev_biosphere_dict)
+        elif type == 'technosphere':
+            fields = ["reference product", "name", "location", "database"]
+            df = pd.DataFrame(self.mlca.technosphere_flows)
+            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
+            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys)
+            metadata = self.mlca.df_meta.loc[list(self.mlca.rev_activity_dict.values())][fields]
+            joined = metadata.join(df)
+            joined.reset_index(inplace=True, drop=True)
+        print(df.shape)
+        print(metadata.shape)
+        print(joined.shape)
+
+        return joined
+
     def top_elementary_flow_contributions(self, functional_unit=None, method=None, limit=5, normalize=False,
                                   limit_type="number"):
         """ Return process contributions for either
