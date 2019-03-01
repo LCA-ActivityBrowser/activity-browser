@@ -180,27 +180,20 @@ class LCAResultsPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
 
 
-class ProcessContributionPlot(Plot):
+class ContributionPlot(Plot):
     def __init__(self, parent=None, *args):
-        super(ProcessContributionPlot, self).__init__(parent, *args)
-        self.df_tc = pd.DataFrame()
+        super(ContributionPlot, self).__init__(parent, *args)
+        # self.df_tc = pd.DataFrame()
         self.parent = parent
 
-    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalize=True):
+    def plot(self, df):
         """ Plot a horizontal bar chart of the process contributions. """
         self.ax.clear()
-        height = 4 + len(mlca.func_units) * 1
+        height = 4 + df.shape[1] * 1
         self.figure.set_figheight(height)
 
-        tc = mlca.top_process_contributions(functional_unit=func, method=method, limit=limit, normalize=normalize,
-                                            limit_type=limit_type)
-        # print(tc)
-        self.df_tc = pd.DataFrame(tc)
-        # print(self.df_tc)
-        self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-        self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
-        self.df_tc_plot = self.df_tc.drop("Total")
-        plot = self.df_tc_plot.T.plot.barh(
+        self.dfp = df.drop("Total")
+        plot = self.dfp.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax
@@ -208,13 +201,50 @@ class ProcessContributionPlot(Plot):
         plot.tick_params(labelsize=8)
         plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
         plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                    ncol=math.ceil((len(self.df_tc.index) * 0.22) / height))
+                    ncol=math.ceil((len(self.dfp.index) * 0.22) / height))
         plot.grid(b=False)
 
         # refresh canvas
         self.canvas.draw()
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+
+
+# class ProcessContributionPlot(Plot):
+#     def __init__(self, parent=None, *args):
+#         super(ProcessContributionPlot, self).__init__(parent, *args)
+#         self.df_tc = pd.DataFrame()
+#         self.parent = parent
+#
+#     def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalize=True):
+#         """ Plot a horizontal bar chart of the process contributions. """
+#         self.ax.clear()
+#         height = 4 + len(mlca.func_units) * 1
+#         self.figure.set_figheight(height)
+#
+#         tc = mlca.top_process_contributions(functional_unit=func, method=method, limit=limit, normalize=normalize,
+#                                             limit_type=limit_type)
+#         # print(tc)
+#         self.df_tc = pd.DataFrame(tc)
+#         # print(self.df_tc)
+#         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
+#         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
+#         self.df_tc_plot = self.df_tc.drop("Total")
+#         plot = self.df_tc_plot.T.plot.barh(
+#             stacked=True,
+#             cmap=plt.cm.nipy_spectral_r,
+#             ax=self.ax
+#         )
+#         plot.tick_params(labelsize=8)
+#         plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
+#         plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+#                     ncol=math.ceil((len(self.df_tc.index) * 0.22) / height))
+#         plot.grid(b=False)
+#
+#         # refresh canvas
+#         self.canvas.draw()
+#         size_pixels = self.figure.get_size_inches() * self.figure.dpi
+#         self.setMinimumHeight(size_pixels[1])
 
 
 class ElementaryFlowContributionPlot(Plot):

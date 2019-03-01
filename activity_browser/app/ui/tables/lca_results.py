@@ -36,7 +36,8 @@ class ProcessContributionsTable(ABDataFrameTable):
 
     @ABDataFrameTable.decorated_sync
     def sync(self, dummy):
-        self.dataframe = self.parent.plot.df_tc
+        # self.dataframe = self.parent.plot.df_tc
+        self.dataframe = self.parent.df
 
 
 class InventoryCharacterisationTable(ABDataFrameTable):
@@ -114,15 +115,16 @@ class ContributionTable(ABDataFrameTable):
             self.dataframe = df_description.join(df_contribution)
 
         elif type == "process":
+            print('Updating Process Contribution Table')
             # process description
-            description = bc.get_activity_data_as_lists(act_keys=mlca.rev_activity_dict.values(),
-                                                        keys=["reference product", "name", "location", "database"])
-            df_description = pd.DataFrame(description)
-            df_description = df_description.astype(str)
-            FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
-            df_contribution = pd.DataFrame(mlca.process_contributions[:, 0]).T
-            df_contribution.columns = FU_names
-            self.dataframe = df_description.join(df_contribution)
+            # description = bc.get_activity_data_as_lists(act_keys=mlca.rev_activity_dict.values(),
+            #                                             keys=["reference product", "name", "location", "database"])
+            # df_description = pd.DataFrame(description)
+            # df_description = df_description.astype(str)
+            # FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
+            # df_contribution = pd.DataFrame(mlca.process_contributions[:, 0]).T
+            # df_contribution.columns = FU_names
+            # self.dataframe = df_description.join(df_contribution)
 
         # sort ignoring case sensitivity
         self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]

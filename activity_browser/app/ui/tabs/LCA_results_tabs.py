@@ -13,12 +13,13 @@ from activity_browser.app.ui.tables import (
 )
 from activity_browser.app.ui.graphics import (
     LCAResultsPlot,
-    ProcessContributionPlot,
+    # ProcessContributionPlot,
+    ContributionPlot,
     ElementaryFlowContributionPlot,
     CorrelationPlot,
     LCAResultsBarChart
 )
-from activity_browser.app.bwutils.multilca import MLCA
+from activity_browser.app.bwutils.multilca import MLCA, Contributions
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.ui.widgets import CutoffMenu
 from ..web.graphnav import SankeyNavigatorWidget
@@ -71,6 +72,7 @@ class LCAResultsSubTab(QTabWidget):
     def update_calculation(self):
         """ Update the mlca calculation. """
         self.mlca = MLCA(self.cs_name)
+        self.ca = Contributions(self.mlca)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
@@ -82,6 +84,15 @@ class LCAResultsSubTab(QTabWidget):
             self.single_method = False
         else:
             self.single_method = True
+
+    def generate_content_on_click(self, index):
+        if index == self.indexOf(self.sankey_tab):
+            if not self.sankey_tab.has_sankey:
+                self.sankey_tab.new_sankey()
+        elif index == self.indexOf(self.inventory_tab):
+            if not self.inventory_tab.first_time_calculated:
+                print('Generating Inventory Tab')
+                self.inventory_tab.update_analysis_tab()
 
     def update_setup(self, calculate=True):
         """ Update the calculation setup. """
@@ -495,6 +506,37 @@ class InventoryTab(AnalysisTab):
         self.table.sync(self.parent.mlca, type=type)
 
 
+class LCIAAnalysisTab(AnalysisTab):
+    def __init__(self, parent, **kwargs):
+        super(LCIAAnalysisTab, self).__init__(parent, **kwargs)
+        self.parent = parent
+
+        self.header_text = "LCIA Results"
+        self.add_header(self.header_text)
+
+        if not self.parent.single_func_unit:
+            self.plot = LCAResultsPlot(self.parent)
+            self.table = LCAResultsTable(self.parent)
+
+        self.add_main_space()
+        self.add_export()
+
+        self.parent.addTab(self, self.header_text)
+
+        self.connect_signals()
+        self.relative = False
+
+    def update_plot(self):
+        if not isinstance(self.plot, LCAResultsPlot):
+            self.plot = LCAResultsPlot(self.parent)
+        self.plot.plot(self.parent.mlca, normalised=self.relative)
+
+    def update_table(self):
+        if not isinstance(self.table, LCAResultsTable):
+            self.table = LCAResultsTable()
+        self.table.sync(self.parent.mlca, relative=self.relative)
+
+
 class ElementaryFlowContributionTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
@@ -537,37 +579,6 @@ class ElementaryFlowContributionTab(AnalysisTab):
                        limit_type=self.cutoff_menu.limit_type, per=per, normalize=self.relative)
 
 
-class LCIAAnalysisTab(AnalysisTab):
-    def __init__(self, parent, **kwargs):
-        super(LCIAAnalysisTab, self).__init__(parent, **kwargs)
-        self.parent = parent
-
-        self.header_text = "LCIA Results"
-        self.add_header(self.header_text)
-
-        if not self.parent.single_func_unit:
-            self.plot = LCAResultsPlot(self.parent)
-            self.table = LCAResultsTable(self.parent)
-
-        self.add_main_space()
-        self.add_export()
-
-        self.parent.addTab(self, self.header_text)
-
-        self.connect_signals()
-        self.relative = False
-
-    def update_plot(self):
-        if not isinstance(self.plot, LCAResultsPlot):
-            self.plot = LCAResultsPlot(self.parent)
-        self.plot.plot(self.parent.mlca, normalised=self.relative)
-
-    def update_table(self):
-        if not isinstance(self.table, LCAResultsTable):
-            self.table = LCAResultsTable()
-        self.table.sync(self.parent.mlca, relative=self.relative)
-
-
 class ProcessContributionsTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(ProcessContributionsTab, self).__init__(parent, **kwargs)
@@ -580,9 +591,10 @@ class ProcessContributionsTab(AnalysisTab):
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-        self.plot = ProcessContributionPlot(self.parent)
+        # self.plot = ProcessContributionPlot(self.parent)
+        self.plot = ContributionPlot(self.parent)
         self.table = ProcessContributionsTable(self)
-        # self.table = ContributionTable(self)
+        self.table = ContributionTable(self.parent)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
@@ -607,8 +619,18 @@ class ProcessContributionsTab(AnalysisTab):
             method = None
             per = "func"
 
-        self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
-                       limit_type=self.cutoff_menu.limit_type, per=per, normalize=self.relative)
+        self.df = self.parent.ca.top_process_contributions(
+            functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+
+        # print(self.df)
+        # self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
+        #                limit_type=self.cutoff_menu.limit_type, per=per, normalize=self.relative)
+        self.plot.plot(self.df)
+
+    # def update_table(self, method=None, type='process', message='Hi', *args, **kwargs):
+    #     """ Update the table. """
+    #     self.table.sync(self.parent.mlca, *args, **kwargs)
 
 
 class CorrelationsTab(AnalysisTab):
@@ -643,11 +665,3 @@ class SankeyTab(QWidget):
     def __init__(self, parent):
         super(SankeyTab, self).__init__(parent)
         self.parent = parent
-
-        # def update_sankey(self):
-        #     if hasattr(self, "sankey_tab"):
-        #         if self.currentIndex() == self.indexOf(self.sankey_tab):
-        #             print("Changed to Sankey Tab")
-        #             if not self.sankey_tab.graph.json_data:
-        #                 print("Calculated first Sankey")
-        #                 self.sankey_tab.new_sankey()
