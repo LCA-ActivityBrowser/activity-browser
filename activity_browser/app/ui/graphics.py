@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
+import appdirs
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
 
@@ -29,10 +30,20 @@ class Plot(QtWidgets.QWidget):
         # print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
-    def savefilepath(self):
+    # def savefilepath(self):
+    #     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+    #         self,
+    #         'Choose location to save lca results'
+    #     )
+    #     return filepath
+
+    def savefilepath(self, default_file_name="LCA results", filter="All Files (*.*)"):
+
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            'Choose location to save lca results'
+            caption='Choose location to save lca results',
+            directory=appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser').user_data_dir+"\\" + default_file_name,
+            filter=filter,
         )
         return filepath
 
@@ -188,12 +199,16 @@ class ContributionPlot(Plot):
 
     def plot(self, df):
         """ Plot a horizontal bar chart of the process contributions. """
+        dfp = df.drop("Total")
         self.ax.clear()
-        height = 4 + df.shape[1] * 1
+        height = 4 + dfp.shape[1] * 1
         self.figure.set_figheight(height)
 
-        self.dfp = df.drop("Total")
-        plot = self.dfp.T.plot.barh(
+        # avoid figures getting too large horizontally
+        dfp.columns = [str(c).replace(' | ', '\n') for c in dfp.columns]
+        dfp.index = [str(c).replace(' | ', '\n') for c in dfp.index]
+
+        plot = dfp.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax
@@ -201,77 +216,7 @@ class ContributionPlot(Plot):
         plot.tick_params(labelsize=8)
         plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
         plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                    ncol=math.ceil((len(self.dfp.index) * 0.22) / height))
-        plot.grid(b=False)
-
-        # refresh canvas
-        self.canvas.draw()
-        size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumHeight(size_pixels[1])
-
-
-# class ProcessContributionPlot(Plot):
-#     def __init__(self, parent=None, *args):
-#         super(ProcessContributionPlot, self).__init__(parent, *args)
-#         self.df_tc = pd.DataFrame()
-#         self.parent = parent
-#
-#     def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalize=True):
-#         """ Plot a horizontal bar chart of the process contributions. """
-#         self.ax.clear()
-#         height = 4 + len(mlca.func_units) * 1
-#         self.figure.set_figheight(height)
-#
-#         tc = mlca.top_process_contributions(functional_unit=func, method=method, limit=limit, normalize=normalize,
-#                                             limit_type=limit_type)
-#         # print(tc)
-#         self.df_tc = pd.DataFrame(tc)
-#         # print(self.df_tc)
-#         self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-#         self.df_tc.index = [format_activity_label(a, style='pnl', max_length=30) for a in self.df_tc.index]
-#         self.df_tc_plot = self.df_tc.drop("Total")
-#         plot = self.df_tc_plot.T.plot.barh(
-#             stacked=True,
-#             cmap=plt.cm.nipy_spectral_r,
-#             ax=self.ax
-#         )
-#         plot.tick_params(labelsize=8)
-#         plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
-#         plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-#                     ncol=math.ceil((len(self.df_tc.index) * 0.22) / height))
-#         plot.grid(b=False)
-#
-#         # refresh canvas
-#         self.canvas.draw()
-#         size_pixels = self.figure.get_size_inches() * self.figure.dpi
-#         self.setMinimumHeight(size_pixels[1])
-
-
-class ElementaryFlowContributionPlot(Plot):
-    def __init__(self, parent=None, *args):
-        super(ElementaryFlowContributionPlot, self).__init__(parent, *args)
-
-    def plot(self, mlca, method=None, func=None, limit=5, limit_type="number", per="method", normalize=True):
-        """ Plot a horizontal bar chart of the inventory characterisation. """
-        self.ax.clear()
-        height = 3 + len(mlca.func_units) * 0.5
-        self.figure.set_figheight(height)
-
-        tc = mlca.top_elementary_flow_contributions(functional_unit=func, method=method, limit=limit, normalize=normalize,
-                                            limit_type=limit_type)
-
-        self.df_tc = pd.DataFrame(tc)
-        self.df_tc.columns = [format_activity_label(a, style='pnl') for a in tc.keys()]
-        self.df_tc.index = [format_activity_label(a, style='bio') for a in self.df_tc.index]
-        self.df_tc_plot = self.df_tc.drop("Total")
-        plot = self.df_tc_plot.T.plot.barh(
-            stacked=True,
-            cmap=plt.cm.nipy_spectral_r,
-            ax=self.ax
-        )
-        plot.tick_params(labelsize=8)
-        plot.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.rc('legend', **{'fontsize': 8})
+                    ncol=math.ceil((len(dfp.index) * 0.22) / height))
         plot.grid(b=False)
 
         # refresh canvas

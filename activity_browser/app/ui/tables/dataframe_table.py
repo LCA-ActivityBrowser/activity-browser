@@ -25,8 +25,8 @@ class ABDataFrameTable(QtWidgets.QTableView):
             self.proxy_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
             self.setModel(self.proxy_model)
 
-            # self.resizeColumnsToContents()
-            # self.resizeRowsToContents()
+            self.resizeColumnsToContents()
+            self.resizeRowsToContents()
             # if self.maxheight is not None:
             #     self.setMaximumHeight(
             #         self.rowHeight(0) * (self.maxheight + 1) + self.autoScrollMargin())
@@ -79,8 +79,6 @@ class ABDataFrameTable(QtWidgets.QTableView):
                 rows = sorted(list(set(index.row() for index in selection)))
                 columns = sorted(list(set(index.column() for index in selection)))
                 self.model._dataframe.iloc[rows, columns].to_clipboard()
-
-
 
 
 class PandasModel(QtCore.QAbstractTableModel):

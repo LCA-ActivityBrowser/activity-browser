@@ -5,17 +5,13 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScro
 from activity_browser.app.ui.style import horizontal_line, vertical_line, header
 from activity_browser.app.ui.tables import (
     LCAResultsTable,
-    ProcessContributionsTable,
     ContributionTable,
     InventoryTable,
-    InventoryCharacterisationTable,
     BiosphereTable
 )
 from activity_browser.app.ui.graphics import (
     LCAResultsPlot,
-    # ProcessContributionPlot,
     ContributionPlot,
-    ElementaryFlowContributionPlot,
     CorrelationPlot,
     LCAResultsBarChart
 )
@@ -46,10 +42,10 @@ class LCAResultsSubTab(QTabWidget):
 
         # the LCA results tabs (order matters)
         self.inventory_tab = InventoryTab(self, custom=True)
-        self.LCAscoreComparison_tab = LCAScoreComparisonTab(self)
-        self.lcia_results_tab = LCIAAnalysisTab(self, relativity=True)
+        self.LCA_scores_tab = LCAScoresTab(self)
+        self.lcia_results_tab = LCIAResultsTab(self, relativity=True)
 
-        self.inventory_characterisation_tab = ElementaryFlowContributionTab(self, relativity=True)
+        self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
 
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
         # self.correlations_tab = CorrelationsTab(self)
@@ -57,17 +53,8 @@ class LCAResultsSubTab(QTabWidget):
         self.addTab(self.sankey_tab, "Sankey")
 
         self.update_setup(calculate=False)
-        self.setCurrentWidget(self.LCAscoreComparison_tab)
+        self.setCurrentWidget(self.LCA_scores_tab)
         self.currentChanged.connect(self.generate_content_on_click)
-
-    def generate_content_on_click(self, index):
-        if index == self.indexOf(self.sankey_tab):
-            if not self.sankey_tab.has_sankey:
-                self.sankey_tab.new_sankey()
-        elif index == self.indexOf(self.inventory_tab):
-            if not self.inventory_tab.first_time_calculated:
-                print('Generating Inventory Tab')
-                self.inventory_tab.update_analysis_tab()
 
     def update_calculation(self):
         """ Update the mlca calculation. """
@@ -85,28 +72,19 @@ class LCAResultsSubTab(QTabWidget):
         else:
             self.single_method = True
 
-    def generate_content_on_click(self, index):
-        if index == self.indexOf(self.sankey_tab):
-            if not self.sankey_tab.has_sankey:
-                self.sankey_tab.new_sankey()
-        elif index == self.indexOf(self.inventory_tab):
-            if not self.inventory_tab.first_time_calculated:
-                print('Generating Inventory Tab')
-                self.inventory_tab.update_analysis_tab()
-
     def update_setup(self, calculate=True):
         """ Update the calculation setup. """
         if calculate:
             self.update_calculation()
 
-        self.LCAscoreComparison_tab.update_analysis_tab()
+        self.LCA_scores_tab.update_analysis_tab()
         # self.inventory_tab.update_analysis_tab()
-        self.inventory_characterisation_tab.update_analysis_tab()
+        self.EF_contribution_tab.update_analysis_tab()
         self.lcia_results_tab.update_analysis_tab()
         self.process_contributions_tab.update_analysis_tab()
         # self.correlations_tab.update_analysis_tab()
 
-        lca_score_comparison_tab_index = self.indexOf(self.LCAscoreComparison_tab)
+        lca_score_comparison_tab_index = self.indexOf(self.LCA_scores_tab)
         lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
         # correlations_tab_index = self.indexOf(self.correlations_tab)
         self.sankey_tab.update_calculation_setup(cs_name=self.cs_name)
@@ -119,6 +97,15 @@ class LCAResultsSubTab(QTabWidget):
             self.setTabEnabled(lcia_results_tab_index, False)
             # self.setTabEnabled(correlations_tab_index, False)
             self.setTabEnabled(lca_score_comparison_tab_index, False)
+
+    def generate_content_on_click(self, index):
+        if index == self.indexOf(self.sankey_tab):
+            if not self.sankey_tab.has_sankey:
+                self.sankey_tab.new_sankey()
+        elif index == self.indexOf(self.inventory_tab):
+            if not self.inventory_tab.first_time_calculated:
+                print('Generating Inventory Tab')
+                self.inventory_tab.update_analysis_tab()
 
 
 class AnalysisTab(QWidget):
@@ -424,9 +411,9 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.export_menu)
 
 
-class LCAScoreComparisonTab(AnalysisTab):
+class LCAScoresTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(LCAScoreComparisonTab, self).__init__(parent, **kwargs)
+        super(LCAScoresTab, self).__init__(parent, **kwargs)
         self.parent = parent
 
         self.header_text = "LCA scores comparison"
@@ -506,9 +493,9 @@ class InventoryTab(AnalysisTab):
         self.table.sync(self.parent.mlca, type=type)
 
 
-class LCIAAnalysisTab(AnalysisTab):
+class LCIAResultsTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(LCIAAnalysisTab, self).__init__(parent, **kwargs)
+        super(LCIAResultsTab, self).__init__(parent, **kwargs)
         self.parent = parent
 
         self.header_text = "LCIA Results"
@@ -549,8 +536,8 @@ class ElementaryFlowContributionTab(AnalysisTab):
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-        self.plot = ElementaryFlowContributionPlot(self.parent)
-        self.table = InventoryCharacterisationTable(self)
+        self.plot = ContributionPlot(self.parent)
+        self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
@@ -567,16 +554,16 @@ class ElementaryFlowContributionTab(AnalysisTab):
             else:
                 method = self.parent.method_dict[method]
             func = None
-            per = "method"
         else:
             func = method
             if func == None or func == '':
                 func = self.parent.mlca.func_key_list[0]
             method = None
-            per = "func"
 
-        self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
-                       limit_type=self.cutoff_menu.limit_type, per=per, normalize=self.relative)
+        self.df = self.parent.ca.top_elementary_flow_contributions(
+            functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+        self.plot.plot(self.df)
 
 
 class ProcessContributionsTab(AnalysisTab):
@@ -591,10 +578,8 @@ class ProcessContributionsTab(AnalysisTab):
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-        # self.plot = ProcessContributionPlot(self.parent)
         self.plot = ContributionPlot(self.parent)
-        self.table = ProcessContributionsTable(self)
-        self.table = ContributionTable(self.parent)
+        self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
@@ -611,26 +596,17 @@ class ProcessContributionsTab(AnalysisTab):
             else:
                 method = self.parent.method_dict[method]
             func = None
-            per = "method"
         else:
             func = method
             if func == None or func == '':
                 func = self.parent.mlca.func_key_list[0]
             method = None
-            per = "func"
 
         self.df = self.parent.ca.top_process_contributions(
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
-
-        # print(self.df)
-        # self.plot.plot(self.parent.mlca, method=method, func=func, limit=self.cutoff_menu.cutoff_value,
-        #                limit_type=self.cutoff_menu.limit_type, per=per, normalize=self.relative)
         self.plot.plot(self.df)
 
-    # def update_table(self, method=None, type='process', message='Hi', *args, **kwargs):
-    #     """ Update the table. """
-    #     self.table.sync(self.parent.mlca, *args, **kwargs)
 
 
 class CorrelationsTab(AnalysisTab):

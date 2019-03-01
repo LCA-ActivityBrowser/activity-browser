@@ -7,6 +7,7 @@ from brightway2 import get_activity
 
 ca = ContributionAnalysis()
 
+from .commontasks import wrap_text
 
 class MLCA(object):
     """Wrapper class for performing LCA calculations with many functional units and LCIA methods.
@@ -122,70 +123,6 @@ class MLCA(object):
     def results_normalized(self):
         return self.results / self.results.max(axis=0)
 
-    # CONTRIBUTION ANALYSIS
-    def top_process_contributions(self, functional_unit=True, method=False, limit=5, normalize=True, limit_type="number"):
-        """ Return process contributions either
-            * for one impact assessment method and a number of processes or
-            * for one process and a number of impact assessment methods. """
-        if (functional_unit and method) or (not functional_unit and not method):
-            raise ValueError('It must be either by functional unit or by method.')
-        if method:
-            contribution_array = self.process_contributions[:, self.method_index[method], :]
-        elif functional_unit:
-            contribution_array = self.process_contributions[self.func_key_dict[functional_unit], :, :]
-
-        # Normalise if required
-        if normalize:
-            contribution_array = self.normalize(contribution_array)
-
-        if method:
-            return self.build_dict(contribution_array, self.func_units,
-                                   self.rev_activity_dict, limit, limit_type)
-        elif functional_unit:
-            return self.build_dict(contribution_array, self.method_dict_list,
-                                   self.rev_activity_dict, limit, limit_type)
-
-    def top_elementary_flow_contributions(self, functional_unit=True, method=False, limit=5, normalize=True, limit_type="number"):
-        """ Return elementary flow contributions either
-            * for one impact assessment method and a number of processes or
-            * for one process and a number of impact assessment methods. """
-        if (functional_unit and method) or (not functional_unit and not method):
-            raise ValueError('It must be either by functional unit or by method.')
-        if method:
-            contribution_array = self.elementary_flow_contributions[:, self.method_index[method], :]
-        elif functional_unit:
-            contribution_array = self.elementary_flow_contributions[self.func_key_dict[functional_unit], :, :]
-
-        # Normalised if required
-        if normalize:
-            contribution_array = self.normalize(contribution_array)
-
-        if method:
-            return self.build_dict(contribution_array, self.func_units,
-                                   self.rev_biosphere_dict, limit, limit_type)
-        elif functional_unit:
-            return self.build_dict(contribution_array, self.method_dict_list,
-                                   self.rev_biosphere_dict, limit, limit_type)
-
-    def normalize(self, contribution_array):
-        """ Normalise the contribution array. """
-        scores = contribution_array.sum(axis=1)
-        return (contribution_array / scores[:, np.newaxis])
-
-    def build_dict(self, cont_arr, dict_set, rev_dict, limit, limit_type):
-        """ Sort each method or functional unit column independently. """
-        topcontribution_dict = {}
-        for col, cont in enumerate(dict_set):
-            top_contribution = ca.sort_array(cont_arr[col, :], limit=limit, limit_type=limit_type)
-            cont_per = {}
-            cont_per.update({
-                ('Total', ''): cont_arr[col, :].sum(),
-                ('Rest', ''): cont_arr[col, :].sum() - top_contribution[:, 0].sum()})
-            for value, index in top_contribution:
-                cont_per.update({rev_dict[index]: value})
-            topcontribution_dict.update({next(iter(cont.keys())): cont_per})
-        return topcontribution_dict
-
     def get_all_metadata(self):
         """Get metadata in form of a Pandas DataFrame for biosphere and technosphere databases
         for tables and additional aggregation.
@@ -198,26 +135,9 @@ class MLCA(object):
             dfs.append(df_temp)
         self.df_meta = pd.concat(dfs, sort=False)
 
-    def get_labels(self, df_meta, key_list, fields=['name'], separator=' | '):
-        keys = [k for k in key_list]  # need to do this as the keys come from a pd.MultiIndex
-        translated_keys = []
-        for k in keys:
-            if k in df_meta.index:
-                translated_keys.append(separator.join([str(l) for l in list(df_meta.loc[k][fields])]))
-            else:
-                translated_keys.append(separator.join([i for i in k if i != '']))  # e.g. Rest, Total, which are the first element of the MultiIndex
-        return translated_keys
 
-    def get_labelled_contribution_dict(self, cont_dict, x_fields=None, y_fields=None):
-        if not self.df_meta:
-            self.get_all_metadata()
-        df = pd.DataFrame(cont_dict)
-        df.columns = self.get_labels(self.df_meta, df.columns, fields=y_fields)
-        df.index = self.get_labels(self.df_meta, df.index, fields=x_fields)
-        return df
-
-
-class Contributions():
+class Contributions(object):
+    """Contribution Analysis built on top of the Multi-LCA class."""
     def __init__(self, mlca):
         if not isinstance(mlca, MLCA):
             raise ValueError('Must pass an MLCA object. Passed:', type(mlca))
@@ -237,15 +157,16 @@ class Contributions():
             top_contribution = ca.sort_array(C[col, :], limit=limit, limit_type=limit_type)
             cont_per = {}
             cont_per.update({
+                ('Rest', ''): C[col, :].sum() - top_contribution[:, 0].sum(),
                 ('Total', ''): C[col, :].sum(),
-                ('Rest', ''): C[col, :].sum() - top_contribution[:, 0].sum()})
+                })
             for value, index in top_contribution:
                 cont_per.update({rev_dict[index]: value})
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
 
     def get_labels(self, df_meta, key_list, fields=['name', 'reference product', 'location', 'database'],
-                   separator=' | '):
+                   separator=' | ', max_length=40):
         keys = [k for k in key_list]  # need to do this as the keys come from a pd.Multiindex
         translated_keys = []
         for k in keys:
@@ -253,31 +174,48 @@ class Contributions():
                 translated_keys.append(separator.join([str(l) for l in list(df_meta.loc[k][fields])]))
             else:
                 translated_keys.append(separator.join([i for i in k if i != '']))
+        if max_length:
+            translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys
-
-    # def get_labelled_contribution_dict(self, cont_dict, df_meta, x_fields=None, y_fields=None):
-    #     df = pd.DataFrame(cont_dict)
-    #     print(x_fields, y_fields)
-    #     # columns
-    #     if y_fields:
-    #         df.columns = self.get_labels(self.mlca.df_meta, df.columns, fields=y_fields)
-    #     # index
-    #     if x_fields:
-    #         df.index = self.get_labels(self.mlca.df_meta, df.index, fields=x_fields)
-    #     # df.index =[get_labels(df_meta, [key], fields=x_fields)[0] if key[0] not in ['Rest', 'Total'] else key[0] for key in df.index ]
-    #     return df
 
     def get_labelled_contribution_dict(self, cont_dict, x_fields=None, y_fields=None):
         if not hasattr(self.mlca, 'df_meta'):
             self.mlca.get_all_metadata()
         df = pd.DataFrame(cont_dict)
-        df.columns = self.get_labels(self.mlca.df_meta, df.columns, fields=y_fields)
+        df.columns = self.get_labels(self.mlca.df_meta, df.columns, fields=y_fields, separator='\n')
         df.index = self.get_labels(self.mlca.df_meta, df.index, fields=x_fields)
         return df
 
+    def top_elementary_flow_contributions(self, functional_unit=None, method=None, limit=5, normalize=False,
+                                  limit_type="number"):
+        """ Return process contributions for either
+            * for one impact assessment method and a number of processes or
+            * for one process and a number of impact assessment methods. """
+        if (functional_unit and method) or (not functional_unit and not method):
+            raise ValueError(
+                'It must be either by functional unit or by method. Provided: \n Functional unit: {} \n Method: {}'.format(
+                    functional_unit, method))
+        if method:
+            C = self.mlca.elementary_flow_contributions[:, self.mlca.method_index[method], :]
+        elif functional_unit:
+            C = self.mlca.elementary_flow_contributions[self.mlca.func_key_dict[functional_unit], :, :]
+
+        # Normalise if required
+        if normalize:
+            C = self.normalize(C)
+
+        if method:
+            top_cont_dict = self.build_dict(C, self.mlca.fu_index, self.mlca.rev_biosphere_dict, limit, limit_type)
+            return self.get_labelled_contribution_dict(top_cont_dict, x_fields=self.ef_fields,
+                                                       y_fields=self.act_fields)
+        elif functional_unit:
+            top_cont_dict = self.build_dict(C, self.mlca.method_index, self.mlca.rev_biosphere_dict, limit, limit_type)
+            return self.get_labelled_contribution_dict(top_cont_dict, x_fields=self.ef_fields,
+                                                       y_fields=None)
+
     def top_process_contributions(self, functional_unit=None, method=None, limit=5, normalize=False,
                                   limit_type="number"):
-        """ Return process contributions either
+        """ Return process contributions for either
             * for one impact assessment method and a number of processes or
             * for one process and a number of impact assessment methods. """
         if (functional_unit and method) or (not functional_unit and not method):
@@ -301,4 +239,3 @@ class Contributions():
             top_cont_dict = self.build_dict(C, self.mlca.method_index, self.mlca.rev_activity_dict, limit, limit_type)
             return self.get_labelled_contribution_dict(top_cont_dict, x_fields=self.act_fields,
                                                        y_fields=None)
-

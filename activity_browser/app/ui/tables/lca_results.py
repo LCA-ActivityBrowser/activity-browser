@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtWidgets
 import pandas as pd
+import numpy as np
 from brightway2 import get_activity
-from operator import itemgetter
 
 from .dataframe_table import ABDataFrameTable
-
 from ...bwutils import commontasks as bc
 
 
@@ -25,29 +24,6 @@ class LCAResultsTable(ABDataFrameTable):
         col_labels = [" | ".join(x) for x in mlca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
         self.dataframe = pd.DataFrame(data, index=row_labels, columns=col_labels)
-        # self.dataframe = pd.DataFrame(data, columns=col_labels)
-        # self.dataframe.insert(loc=0, column="Name", value=row_labels)
-
-
-class ProcessContributionsTable(ABDataFrameTable):
-    def __init__(self, parent):
-        super(ProcessContributionsTable, self).__init__(parent)
-        self.parent = parent
-
-    @ABDataFrameTable.decorated_sync
-    def sync(self, dummy):
-        # self.dataframe = self.parent.plot.df_tc
-        self.dataframe = self.parent.df
-
-
-class InventoryCharacterisationTable(ABDataFrameTable):
-    def __init__(self, parent):
-        super(InventoryCharacterisationTable, self).__init__(parent)
-        self.parent = parent
-
-    @ABDataFrameTable.decorated_sync
-    def sync(self, dummy):
-        self.dataframe = self.parent.plot.df_tc
 
 
 class InventoryTable(ABDataFrameTable):
@@ -95,41 +71,15 @@ class InventoryTable(ABDataFrameTable):
         self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
         self.dataframe.reset_index(inplace=True, drop=True)
 
+
 class ContributionTable(ABDataFrameTable):
-    def __init__(self, parent, **kwargs):
-        super(ContributionTable, self).__init__(parent, **kwargs)
+    def __init__(self, parent):
+        super(ContributionTable, self).__init__(parent)
+        self.parent = parent
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, type="elementary"):
-        if type == "elementary":
-            description = bc.get_activity_data_as_lists(act_keys=mlca.rev_biosphere_dict.values(),
-                                                        keys=["name", "categories", "unit"])
-            df_description = pd.DataFrame(description)
-            df_description = df_description.astype(str)
-            FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
-            df_contribution = pd.DataFrame(mlca.elementary_flow_contributions[:, 0]).T
-            df_contribution.columns = FU_names
-            print(df_contribution.head())
-            # df_inventory = pd.DataFrame(mlca.inventory)
-            # df_inventory.columns = FU_names
-            self.dataframe = df_description.join(df_contribution)
-
-        elif type == "process":
-            print('Updating Process Contribution Table')
-            # process description
-            # description = bc.get_activity_data_as_lists(act_keys=mlca.rev_activity_dict.values(),
-            #                                             keys=["reference product", "name", "location", "database"])
-            # df_description = pd.DataFrame(description)
-            # df_description = df_description.astype(str)
-            # FU_names = [bc.format_activity_label(key, style="pnl_") for key in mlca.fu_activity_keys]
-            # df_contribution = pd.DataFrame(mlca.process_contributions[:, 0]).T
-            # df_contribution.columns = FU_names
-            # self.dataframe = df_description.join(df_contribution)
-
-        # sort ignoring case sensitivity
-        self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
-        # self.dataframe.sort_values(by="name", ascending=True, inplace=True)
-        self.dataframe.reset_index(inplace=True, drop=True)
+    def sync(self, dummy):
+        self.dataframe = self.parent.df.replace(np.nan, '', regex=True)  # replace 'nan' values with emtpy string
 
 
 class BiosphereTable(QtWidgets.QTableView):
