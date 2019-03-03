@@ -183,19 +183,19 @@ class Contributions(object):
         if not hasattr(self.mlca, 'df_meta'):
             self.mlca.get_all_metadata()
         df = pd.DataFrame(cont_dict)
-        df.columns = self.get_labels(self.mlca.df_meta, df.columns, fields=y_fields, separator='\n')
-        print(df.index)
-        keys = [k for k in df.index if k in self.mlca.df_meta.index]
-        print(keys)
-        metadata = self.mlca.df_meta.loc[keys][x_fields]
-        # joined = metadata.merge(df)
-        joined = metadata.join(df, how='outer')
-        # joined.reset_index(inplace=True, drop=True)
-        print(joined)
 
-        # df.index = self.get_labels(self.mlca.df_meta, df.index, fields=x_fields)
+        # replace column keys with labels
+        df.columns = self.get_labels(self.mlca.df_meta, df.columns, fields=y_fields, separator='\n')
+
+        # get metadata for rows
+        keys = [k for k in df.index if k in self.mlca.df_meta.index]
+        metadata = self.mlca.df_meta.loc[keys][x_fields]
+
+        # join data with metadata
+        joined = metadata.join(df, how='outer')
+
+        # replace index keys with labels
         joined.index = self.get_labels(self.mlca.df_meta, joined.index, fields=x_fields)
-        print(joined)
         return joined
 
     def inventory_df(self, type='biosphere'):
