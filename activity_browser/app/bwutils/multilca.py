@@ -4,20 +4,21 @@ import pandas as pd
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
 from brightway2 import get_activity
-from time import time
 
 ca = ContributionAnalysis()
 
 from .commontasks import wrap_text
 
 class MLCA(object):
+    # todo: update description
+    # todo: add characterized inventories
     """Wrapper class for performing LCA calculations with many functional units and LCIA methods.
 
     Needs to be passed a ``calculation_setup`` name.
 
     This class does not subclass the `LCA` class, and performs all calculations upon instantiation.
 
-    Initialization creates `self.results`, which is a NumPy array of LCA scores, with rows of functional units and columns of LCIA methods. Ordering is the same as in the `calculation_setup`.
+    Initialization creates `self.lca_scores`, which is a NumPy array of LCA scores, with rows of functional units and columns of LCIA methods. Ordering is the same as in the `calculation_setup`.
 
     Class adapted from bw2calc.multi_lca.MultiLCA to include also CONTRIBUTION ANALYSIS.
 
@@ -48,7 +49,7 @@ class MLCA(object):
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
         self.lca.lci(factorize=True)
         self.method_matrices = []
-        self.results = np.zeros((len(self.func_units), len(self.methods)))
+        self.lca_scores = np.zeros((len(self.func_units), len(self.methods)))
 
         # data to be stored
         (self.rev_activity_dict, self.rev_product_dict, self.rev_biosphere_dict) = self.lca.reverse_dict()
@@ -93,7 +94,7 @@ class MLCA(object):
             for col, cf_matrix in enumerate(self.method_matrices):
                 self.lca.characterization_matrix = cf_matrix
                 self.lca.lcia_calculation()
-                self.results[row, col] = self.lca.score
+                self.lca_scores[row, col] = self.lca.score
                 #self.characterized_inventories[row, col] = self.lca.characterized_inventory
                 self.elementary_flow_contributions[row, col] = np.array(
                     self.lca.characterized_inventory.sum(axis=1)).ravel()
@@ -121,8 +122,8 @@ class MLCA(object):
         return set(databases)
 
     @property
-    def results_normalized(self):
-        return self.results / self.results.max(axis=0)
+    def lca_scores_normalized(self):
+        return self.lca_scores / self.lca_scores.max(axis=0)
 
     def get_all_metadata(self):
         """Get metadata in form of a Pandas DataFrame for biosphere and technosphere databases
@@ -200,7 +201,6 @@ class Contributions(object):
 
     def inventory_df(self, type='biosphere'):
         if type == 'biosphere':
-            start = time()
             fields = ["name", "categories", "unit", "database"]
             df = pd.DataFrame(self.mlca.inventory)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
@@ -208,10 +208,7 @@ class Contributions(object):
             metadata = self.mlca.df_meta.loc[list(self.mlca.rev_biosphere_dict.values())][fields]
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
-            # joined.index = get_labels(mlca.df_meta, mlca.rev_biosphere_dict)
-            print("Time to get biosphere inventory: {} seconds.".format(time() - start))
         elif type == 'technosphere':
-            start = time()
             fields = ["reference product", "name", "location", "database"]
             df = pd.DataFrame(self.mlca.technosphere_flows)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
@@ -219,11 +216,6 @@ class Contributions(object):
             metadata = self.mlca.df_meta.loc[list(self.mlca.rev_activity_dict.values())][fields]
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
-            print("Time to get technosphere inventory: {} seconds.".format(time() - start))
-        print(df.shape)
-        print(metadata.shape)
-        print(joined.shape)
-
         return joined
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None, limit=5, normalize=False,

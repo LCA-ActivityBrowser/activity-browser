@@ -41,7 +41,7 @@ class LCAResultsSubTab(QTabWidget):
 
         # the LCA results tabs (order matters)
         self.inventory_tab = InventoryTab(self, custom=True)
-        self.LCA_scores_tab = LCAScoresTab(self)
+        self.LCA_scores_tab = LCAScoresTab(self, custom=True)
         self.lcia_results_tab = LCIAResultsTab(self, relativity=True)
 
         self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
@@ -100,6 +100,7 @@ class LCAResultsSubTab(QTabWidget):
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.sankey_tab):
             if not self.sankey_tab.has_sankey:
+                print('Generating Sankey Tab')
                 self.sankey_tab.new_sankey()
         elif index == self.indexOf(self.inventory_tab):
             if not self.inventory_tab.first_time_calculated:
@@ -412,7 +413,7 @@ class AnalysisTab(QWidget):
 
 
 class InventoryTab(AnalysisTab):
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super(InventoryTab, self).__init__(parent, **kwargs)
         self.parent = parent
         self.df_biosphere = None
@@ -421,7 +422,6 @@ class InventoryTab(AnalysisTab):
         self.header_text = "Inventory"
         self.add_header(self.header_text)
 
-        # self.table = ContributionTable(self.parent, maxheight=20)
         self.table = InventoryTable(self.parent, maxheight=20)
 
         self.add_radio_buttons()
@@ -457,10 +457,8 @@ class InventoryTab(AnalysisTab):
     def button_clicked(self):
         """Update table according to radiobutton selected."""
         if self.radio_button_technosphere.isChecked():
-            print('Showing technosphere flows.')
             self.update_table(type='technosphere')
         else:
-            print('Showing biosphere flows.')
             self.update_table(type='biosphere')
 
     def update_table(self, type='biosphere', *args, **kwargs):

@@ -10,9 +10,9 @@ class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
     def sync(self, mlca, relative=False):
         if relative:
-            data = mlca.results_normalized
+            data = mlca.lca_scores_normalized
         else:
-            data = mlca.results
+            data = mlca.lca_scores
         col_labels = [" | ".join(x) for x in mlca.methods]
         row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
         self.dataframe = pd.DataFrame(data, index=row_labels, columns=col_labels)

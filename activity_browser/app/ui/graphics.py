@@ -30,13 +30,6 @@ class Plot(QtWidgets.QWidget):
         # print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
-    # def savefilepath(self):
-    #     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-    #         self,
-    #         'Choose location to save lca results'
-    #     )
-    #     return filepath
-
     def savefilepath(self, default_file_name="LCA results", filter="All Files (*.*)"):
 
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -80,7 +73,7 @@ class CorrelationPlot(Plot):
         size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
         self.figure.set_size_inches(size[0], size[1])
 
-        df = pd.DataFrame(data=mlca.results_normalized.T, columns=labels)
+        df = pd.DataFrame(data=mlca.lca_scores_normalized.T, columns=labels)
         corr = df.corr()
         # Generate a mask for the upper triangle
         mask = np.zeros_like(corr, dtype=np.bool)
@@ -123,7 +116,7 @@ class LCAResultsBarChart(Plot):
 
         functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
 
-        values = mlca.results[:, mlca.methods.index(method)]
+        values = mlca.lca_scores[:, mlca.methods.index(method)]
         y_pos = np.arange(len(functional_units))
 
         # color_iterate = iter(plt.rcParams['axes.prop_cycle'])
@@ -163,12 +156,12 @@ class LCAResultsPlot(Plot):
         # cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
 
         if normalised:
-            self.use_results = mlca.results_normalized  # Normalize to get relative results
+            lca_scores = mlca.lca_scores_normalized  # Normalize to get relative results
         else:
-            self.use_results = mlca.results
+            lca_scores = mlca.lca_scores
 
         hm = sns.heatmap(
-            self.use_results,
+            lca_scores,
             annot=True,
             linewidths=.05,
             # cmap=cmap,
@@ -176,7 +169,6 @@ class LCAResultsPlot(Plot):
             yticklabels=activity_names,
             ax=self.ax,
             # cbar_ax=self.axcb,
-            square=False,
             annot_kws={"size": 11 if len(mlca.methods) <= 8 else 9,
                        'rotation': 0 if len(mlca.methods) <= 8 else 60}
         )
@@ -184,11 +176,11 @@ class LCAResultsPlot(Plot):
 
         # refresh canvas
         size_inches = (2 + len(mlca.methods) * 0.5, 4 + len(activity_names) * 0.55)
-        # self.figure.set_size_inches(size[0], size[1])
         self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
-        self.canvas.draw()
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+
+        self.canvas.draw()
 
 
 class ContributionPlot(Plot):
@@ -201,9 +193,8 @@ class ContributionPlot(Plot):
         if 'Total' in df.index:
             dfp.drop("Total", inplace=True)
 
-        print(dfp.dtypes)
         self.ax.clear()
-        height = 4 + dfp.shape[1] * 1
+        height = 1 + dfp.shape[1] * 0.5
         self.figure.set_figheight(height)
 
         # avoid figures getting too large horizontally
@@ -222,6 +213,12 @@ class ContributionPlot(Plot):
         plot.grid(b=False)
 
         # refresh canvas
+        # size_inches = (2 + dfp.shape[1] * 0.5, 4 + dfp.shape[1] * 0.55)
+        # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
+        # size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        # self.setMinimumHeight(size_pixels[1])
+        # self.canvas.draw()
+
         self.canvas.draw()
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
