@@ -189,17 +189,22 @@ class ContributionPlot(Plot):
 
     def plot(self, df):
         """ Plot a horizontal bar chart of the process contributions. """
-        dfp = df.drop(df.select_dtypes(['object']), axis=1)  # get rid of all non-numeric columns (metadata)
-        if 'Total' in df.index:
+        dfp = df.copy()
+        dfp.index = dfp['index']
+        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
+        if 'Total' in dfp.index:
             dfp.drop("Total", inplace=True)
+
 
         self.ax.clear()
         height = 1 + dfp.shape[1] * 0.5
         self.figure.set_figheight(height)
 
         # avoid figures getting too large horizontally
-        dfp.columns = [str(c).replace(' | ', '\n') for c in dfp.columns]
-        dfp.index = [str(c).replace(' | ', '\n') for c in dfp.index]
+        dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
+        dfp.columns = [wrap_text(i, max_length=40) for i in dfp.columns]
+        # dfp.columns = [str(c).replace(' | ', '\n') for c in dfp.columns]
+        # dfp.index = [str(c).replace(' | ', '\n') for c in dfp.index]
 
         plot = dfp.T.plot.barh(
             stacked=True,

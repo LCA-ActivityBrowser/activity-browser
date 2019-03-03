@@ -10,6 +10,10 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.setHorizontalScrollMode(1)
         self.maxheight = maxheight
         self.verticalHeader().setDefaultSectionSize(22)  # row height
+        # self.verticalHeader().setMaximumWidth(100)  # vertical header width
+        # self.horizontalHeader().setDefaultSectionSize(150)  # column width
+        self.setWordWrap(True)
+        self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
         self.verticalHeader().setVisible(True)
         self.dataframe = None
@@ -25,6 +29,7 @@ class ABDataFrameTable(QtWidgets.QTableView):
             self.proxy_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
             self.setModel(self.proxy_model)
 
+            # self.verticalHeader().setDefaultSectionSize(self.rowHeight(0) - 8)
             # self.resizeColumnsToContents()
             # self.resizeRowsToContents()
 

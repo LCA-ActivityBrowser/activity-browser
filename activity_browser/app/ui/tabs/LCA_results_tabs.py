@@ -40,7 +40,7 @@ class LCAResultsSubTab(QTabWidget):
         self.update_calculation()
 
         # the LCA results tabs (order matters)
-        self.inventory_tab = InventoryTab(self, custom=True)
+        self.inventory_tab = InventoryTab(self)
         self.LCA_scores_tab = LCAScoresTab(self, custom=True)
         self.lcia_results_tab = LCIAResultsTab(self, relativity=True)
 
@@ -103,9 +103,9 @@ class LCAResultsSubTab(QTabWidget):
                 print('Generating Sankey Tab')
                 self.sankey_tab.new_sankey()
         elif index == self.indexOf(self.inventory_tab):
-            if not self.inventory_tab.first_time_calculated:
+            if self.inventory_tab.table.dataframe is None:
                 print('Generating Inventory Tab')
-                self.inventory_tab.update_analysis_tab()
+                self.inventory_tab.update_table()
 
 
 class AnalysisTab(QWidget):
@@ -134,7 +134,7 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.TopStrip)
         self.layout.addWidget(horizontal_line())
 
-        # self.connect_signals()
+        # self.connect_signals()  # called by the sub-classes
 
     def connect_signals(self):
         # Combo box signal
@@ -412,26 +412,94 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.export_menu)
 
 
-class InventoryTab(AnalysisTab):
-    def __init__(self, parent=None, **kwargs):
-        super(InventoryTab, self).__init__(parent, **kwargs)
+class NewAnalysisTab(QWidget):
+    def __init__(self, parent):
+        super(NewAnalysisTab, self).__init__(parent)
+
+        self.header = header("Description of the tab")
+
+        self.layout = QVBoxLayout()
+
+        self.TopStrip = QHBoxLayout()
+        self.TopStrip.addWidget(self.header)
+        self.layout.addLayout(self.TopStrip)
+        self.layout.addWidget(horizontal_line())
+
+        self.setLayout(self.layout)
+
+    def add_header(self, header_text):
+        if isinstance(header_text, str):
+            self.header.setText(header_text)
+
+    def add_export(self):
+        """ Add the export menu to the tab. """
+        self.export_menu = QHBoxLayout()
+
+        # Export Plot
+        self.export_plot = QHBoxLayout()
+        self.export_plot_label = QLabel("Export plot:")
+        self.export_plot_buttons_png = QPushButton(".png")
+        self.export_plot_buttons_svg = QPushButton(".svg")
+        # Export Table
+        self.export_table = QHBoxLayout()
+        self.export_table_label = QLabel("Export table:")
+        self.export_table_buttons_copy = QPushButton("Copy")
+        self.export_table_buttons_csv = QPushButton(".csv")
+        self.export_table_buttons_excel = QPushButton("Excel")
+        # Assemble export plot
+        self.export_plot.addWidget(self.export_plot_label)
+        self.export_plot.addWidget(self.export_plot_buttons_png)
+        self.export_plot.addWidget(self.export_plot_buttons_svg)
+        # Assemble export table
+        self.export_table.addWidget(self.export_table_label)
+        self.export_table.addWidget(self.export_table_buttons_copy)
+        self.export_table.addWidget(self.export_table_buttons_csv)
+        self.export_table.addWidget(self.export_table_buttons_excel)
+
+        # Assemble export menu
+        if hasattr(self, 'plot'):
+            self.export_menu.addLayout(self.export_plot)
+        if hasattr(self, 'table') and hasattr(self, 'plot'):
+            self.export_menu_vert_line = vertical_line()
+            self.export_menu.addWidget(self.export_menu_vert_line)
+        if hasattr(self, 'table'):
+            self.export_menu.addLayout(self.export_table)
+        self.export_menu.addStretch()
+
+        # self.layout.addWidget(horizontal_line())
+        self.layout.addLayout(self.export_menu)
+
+        # Export Table
+        if hasattr(self, 'table') and self.export_menu:
+            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
+            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
+            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
+
+        # Export Plot
+        if hasattr(self, 'plot') and self.export_menu:
+            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
+            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+
+class InventoryTab(NewAnalysisTab):
+    def __init__(self, parent=None):
+        super(InventoryTab, self).__init__(parent)
         self.parent = parent
         self.df_biosphere = None
         self.df_technosphere = None
 
         self.header_text = "Inventory"
         self.add_header(self.header_text)
-
-        self.table = InventoryTable(self.parent, maxheight=20)
-
         self.add_radio_buttons()
-        self.add_main_space()
+        self.table = InventoryTable(self.parent)
+        self.layout.addWidget(self.table)
+
+        # self.add_main_space()
 
         self.add_export()
 
         self.parent.addTab(self, self.header_text)
 
-        self.connect_signals()
+        # self.connect_signals()
 
     def add_radio_buttons(self):
         """ Add the radio buttons."""

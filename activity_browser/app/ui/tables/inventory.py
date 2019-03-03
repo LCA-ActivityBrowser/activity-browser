@@ -180,7 +180,6 @@ class ActivitiesTable(ABTableWidget):
         self.setup_context_menu()
         self.connect_signals()
         self.fuzzy_search_index = (None, None)
-        self.maximum_column_width = 100
 
     def setup_context_menu(self):
         # context menu items are enabled/disabled elsewhere, in update_activity_table_read_only()

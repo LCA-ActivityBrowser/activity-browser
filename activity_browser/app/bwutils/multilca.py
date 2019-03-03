@@ -168,7 +168,7 @@ class Contributions(object):
         return topcontribution_dict
 
     def get_labels(self, df_meta, key_list, fields=['name', 'reference product', 'location', 'database'],
-                   separator=' | ', max_length=40):
+                   separator=' | ', max_length=False):
         keys = [k for k in key_list]  # need to do this as the keys come from a pd.Multiindex
         translated_keys = []
         for k in keys:
@@ -197,6 +197,7 @@ class Contributions(object):
 
         # replace index keys with labels
         joined.index = self.get_labels(self.mlca.df_meta, joined.index, fields=x_fields)
+        joined = joined.reset_index()
         return joined
 
     def inventory_df(self, type='biosphere'):
