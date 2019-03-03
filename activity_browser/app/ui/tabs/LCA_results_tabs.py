@@ -2,22 +2,21 @@
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
     QLabel, QCheckBox, QPushButton, QComboBox
 
-from activity_browser.app.ui.style import horizontal_line, vertical_line, header
-from activity_browser.app.ui.tables import (
+from ..style import horizontal_line, vertical_line, header
+from ..tables import (
     LCAResultsTable,
     ContributionTable,
     InventoryTable,
-    BiosphereTable
 )
-from activity_browser.app.ui.graphics import (
+from ..graphics import (
     LCAResultsPlot,
     ContributionPlot,
     CorrelationPlot,
     LCAResultsBarChart
 )
-from activity_browser.app.bwutils.multilca import MLCA, Contributions
-from activity_browser.app.bwutils import commontasks as bc
-from activity_browser.app.ui.widgets import CutoffMenu
+from ...bwutils.multilca import MLCA, Contributions
+from ...bwutils import commontasks as bc
+from ..widgets import CutoffMenu
 from ..web.graphnav import SankeyNavigatorWidget
 
 
@@ -59,7 +58,7 @@ class LCAResultsSubTab(QTabWidget):
     def update_calculation(self):
         """ Update the mlca calculation. """
         self.mlca = MLCA(self.cs_name)
-        self.ca = Contributions(self.mlca)
+        self.contributions = Contributions(self.mlca)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
@@ -260,7 +259,8 @@ class AnalysisTab(QWidget):
 
     def update_table(self, method=None, *args, **kwargs):
         """ Update the table. """
-        self.table.sync(self.parent.mlca, *args, **kwargs)
+        # self.table.sync(self.parent.mlca, *args, **kwargs)
+        self.table.sync(*args, **kwargs)
 
     def update_plot(self, method=None):
         """Updates the plot. Method will be added in subclass."""
@@ -415,7 +415,6 @@ class InventoryTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(InventoryTab, self).__init__(parent, **kwargs)
         self.parent = parent
-        self.biosphere = True
         self.df_biosphere = None
         self.df_technosphere = None
 
@@ -427,7 +426,6 @@ class InventoryTab(AnalysisTab):
 
         self.add_radio_buttons()
         self.add_main_space()
-
 
         self.add_export()
 
@@ -467,13 +465,13 @@ class InventoryTab(AnalysisTab):
 
     def update_table(self, type='biosphere', *args, **kwargs):
         if type == 'biosphere':
-            if self.df_biosphere == None:
-                self.df_biosphere = self.parent.ca.inventory_df(type='biosphere')
-        # self.table.sync(self.parent.mlca, type=type)
+            if self.df_biosphere is None:
+                self.df_biosphere = self.parent.contributions.inventory_df(type='biosphere')
             self.table.sync(self.df_biosphere)
+
         else:
-            if self.df_technosphere == None:
-                self.df_technosphere = self.parent.ca.inventory_df(type='technosphere')
+            if self.df_technosphere is None:
+                self.df_technosphere = self.parent.contributions.inventory_df(type='technosphere')
             self.table.sync(self.df_technosphere)
 
 class LCAScoresTab(AnalysisTab):
@@ -569,7 +567,7 @@ class ElementaryFlowContributionTab(AnalysisTab):
                 func = self.parent.mlca.func_key_list[0]
             method = None
 
-        self.df = self.parent.ca.top_elementary_flow_contributions(
+        self.df = self.parent.contributions.top_elementary_flow_contributions(
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         self.plot.plot(self.df)
@@ -611,7 +609,7 @@ class ProcessContributionsTab(AnalysisTab):
                 func = self.parent.mlca.func_key_list[0]
             method = None
 
-        self.df = self.parent.ca.top_process_contributions(
+        self.df = self.parent.contributions.top_process_contributions(
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         self.plot.plot(self.df)

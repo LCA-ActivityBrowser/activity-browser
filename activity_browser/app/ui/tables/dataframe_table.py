@@ -12,11 +12,11 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         self.setSortingEnabled(True)
         self.verticalHeader().setVisible(True)
+        self.dataframe = None
 
     @classmethod
     def decorated_sync(cls, sync):
         def wrapper(self, *args, **kwargs):
-
             sync(self, *args, **kwargs)
 
             self.model = PandasModel(self.dataframe)
@@ -25,8 +25,9 @@ class ABDataFrameTable(QtWidgets.QTableView):
             self.proxy_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
             self.setModel(self.proxy_model)
 
-            self.resizeColumnsToContents()
-            self.resizeRowsToContents()
+            # self.resizeColumnsToContents()
+            # self.resizeRowsToContents()
+
             # if self.maxheight is not None:
             #     self.setMaximumHeight(
             #         self.rowHeight(0) * (self.maxheight + 1) + self.autoScrollMargin())
@@ -101,6 +102,10 @@ class PandasModel(QtCore.QAbstractTableModel):
                 value = self._dataframe.iloc[index.row(), index.column()]
                 if type(value) == np.float64:  # QVariant cannot use the pandas/numpy float64 type
                     value = float(value)
+                else:
+                    # this enables to show also tuples (e.g. category information like ('air', 'urban air') )
+                    value = str(value)  
+
                 return QtCore.QVariant(value)
 
         return None

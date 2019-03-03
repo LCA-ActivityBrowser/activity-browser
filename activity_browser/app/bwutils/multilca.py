@@ -4,6 +4,7 @@ import pandas as pd
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
 from brightway2 import get_activity
+from time import time
 
 ca = ContributionAnalysis()
 
@@ -82,7 +83,7 @@ class MLCA(object):
 
             # the life cycle inventory
             self.inventory.update({
-                str(func_unit): np.array(self.lca.inventory.sum(axis=1)).ravel() #flatten().tolist()[0]  #.todense()
+                str(func_unit): np.array(self.lca.inventory.sum(axis=1)).ravel()
             })
             # the life cycle inventory disaggregated by contributing process
             self.inventories.update({
@@ -188,6 +189,7 @@ class Contributions(object):
 
     def inventory_df(self, type='biosphere'):
         if type == 'biosphere':
+            start = time()
             fields = ["name", "categories", "unit", "database"]
             df = pd.DataFrame(self.mlca.inventory)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
@@ -196,7 +198,9 @@ class Contributions(object):
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
             # joined.index = get_labels(mlca.df_meta, mlca.rev_biosphere_dict)
+            print("Time to get biosphere inventory: {} seconds.".format(time() - start))
         elif type == 'technosphere':
+            start = time()
             fields = ["reference product", "name", "location", "database"]
             df = pd.DataFrame(self.mlca.technosphere_flows)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
@@ -204,6 +208,7 @@ class Contributions(object):
             metadata = self.mlca.df_meta.loc[list(self.mlca.rev_activity_dict.values())][fields]
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
+            print("Time to get technosphere inventory: {} seconds.".format(time() - start))
         print(df.shape)
         print(metadata.shape)
         print(joined.shape)
