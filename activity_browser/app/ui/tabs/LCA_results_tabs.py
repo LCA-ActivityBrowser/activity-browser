@@ -474,6 +474,7 @@ class InventoryTab(AnalysisTab):
                 self.df_technosphere = self.parent.contributions.inventory_df(type='technosphere')
             self.table.sync(self.df_technosphere)
 
+
 class LCAScoresTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(LCAScoresTab, self).__init__(parent, **kwargs)
@@ -543,7 +544,8 @@ class ElementaryFlowContributionTab(AnalysisTab):
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-        self.plot = ContributionPlot(self.parent)
+        self.df = None
+        self.plot = ContributionPlot()
         self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)
@@ -556,14 +558,14 @@ class ElementaryFlowContributionTab(AnalysisTab):
 
     def update_plot(self, method=None):
         if self.combobox_menu_label.text() == self.combobox_menu_method_label:
-            if method == None or method == '':
+            if method is None or method == '':
                 method = self.parent.mlca.methods[0]
             else:
                 method = self.parent.method_dict[method]
             func = None
         else:
             func = method
-            if func == None or func == '':
+            if func is None or func == '':
                 func = self.parent.mlca.func_key_list[0]
             method = None
 
@@ -585,7 +587,7 @@ class ProcessContributionsTab(AnalysisTab):
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
-        self.plot = ContributionPlot(self.parent)
+        self.plot = ContributionPlot()
         self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)

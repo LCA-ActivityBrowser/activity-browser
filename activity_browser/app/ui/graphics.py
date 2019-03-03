@@ -192,14 +192,16 @@ class LCAResultsPlot(Plot):
 
 
 class ContributionPlot(Plot):
-    def __init__(self, parent=None, *args):
-        super(ContributionPlot, self).__init__(parent, *args)
-        # self.df_tc = pd.DataFrame()
-        self.parent = parent
+    def __init__(self):
+        super(ContributionPlot, self).__init__()
 
     def plot(self, df):
         """ Plot a horizontal bar chart of the process contributions. """
-        dfp = df.drop("Total")
+        dfp = df.drop(df.select_dtypes(['object']), axis=1)  # get rid of all non-numeric columns (metadata)
+        if 'Total' in df.index:
+            dfp.drop("Total", inplace=True)
+
+        print(dfp.dtypes)
         self.ax.clear()
         height = 4 + dfp.shape[1] * 1
         self.figure.set_figheight(height)

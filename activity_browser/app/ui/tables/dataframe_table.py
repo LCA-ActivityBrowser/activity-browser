@@ -104,7 +104,7 @@ class PandasModel(QtCore.QAbstractTableModel):
                     value = float(value)
                 else:
                     # this enables to show also tuples (e.g. category information like ('air', 'urban air') )
-                    value = str(value)  
+                    value = str(value)
 
                 return QtCore.QVariant(value)
 

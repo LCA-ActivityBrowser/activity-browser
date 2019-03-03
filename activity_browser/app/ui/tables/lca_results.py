@@ -31,7 +31,6 @@ class ContributionTable(ABDataFrameTable):
     def __init__(self, parent):
         super(ContributionTable, self).__init__(parent)
         self.parent = parent
-        self.dataframe = None
 
     @ABDataFrameTable.decorated_sync
     def sync(self):
