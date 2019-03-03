@@ -574,6 +574,7 @@ class LCAScoresTab(NewAnalysisTab):
 
         self.add_combobox(label='Choose LCIA method')
         self.plot = LCAResultsBarChart(self.parent)
+        self.plot.plot_name = 'LCA scores_' + self.parent.cs_name
         self.layout.addWidget(self.plot)
 
         self.add_export()
@@ -639,6 +640,7 @@ class ElementaryFlowContributionTab(AnalysisTab):
 
         self.df = None
         self.plot = ContributionPlot()
+        self.plot.plot_name = 'EF contributions_' + self.parent.cs_name
         self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)
@@ -681,6 +683,7 @@ class ProcessContributionsTab(AnalysisTab):
         self.layout.addWidget(horizontal_line())
 
         self.plot = ContributionPlot()
+        self.plot.plot_name = 'Process contributions_' + self.parent.cs_name
         self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)

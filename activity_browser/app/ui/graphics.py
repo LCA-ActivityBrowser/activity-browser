@@ -20,6 +20,7 @@ class Plot(QtWidgets.QWidget):
         self.figure = Figure(tight_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.ax = self.figure.add_subplot(111)  # create an axis
+        self.plot_name = 'Figure'
 
         # set the layout
         layout = QtWidgets.QVBoxLayout()
@@ -43,7 +44,7 @@ class Plot(QtWidgets.QWidget):
 
     def to_png(self):
         """ Export to .png format. """
-        filepath = self.savefilepath(filter="PNG (*.png)")
+        filepath = self.savefilepath(default_file_name=self.plot_name, filter="PNG (*.png)")
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
@@ -51,7 +52,7 @@ class Plot(QtWidgets.QWidget):
 
     def to_svg(self):
         """ Export to .svg format. """
-        filepath = self.savefilepath(filter="SVG (*.svg)")
+        filepath = self.savefilepath(default_file_name=self.plot_name, filter="SVG (*.svg)")
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
@@ -107,6 +108,7 @@ class LCAResultsBarChart(Plot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
     def __init__(self, parent=None, *args):
         super(LCAResultsBarChart, self).__init__(parent, *args)
+        self.plot_name = 'LCA scores'
 
     def plot(self, mlca, method=None):
 
@@ -142,6 +144,7 @@ class LCAResultsBarChart(Plot):
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None, *args):
         super(LCAResultsPlot, self).__init__(parent, *args)
+        self.plot_name = 'LCA heatmap'
 
     def plot(self, mlca, normalised=False):
         """ Plot a heatmap grid of the different methods and functional units. """
@@ -188,6 +191,7 @@ class LCAResultsPlot(Plot):
 class ContributionPlot(Plot):
     def __init__(self):
         super(ContributionPlot, self).__init__()
+        self.plot_name = 'Contributions'
 
     def plot(self, df):
         """ Plot a horizontal bar chart of the process contributions. """
