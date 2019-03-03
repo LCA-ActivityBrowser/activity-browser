@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import math
-
 import numpy as np
 import seaborn as sns
 import pandas as pd
@@ -9,6 +8,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 import appdirs
+import brightway2 as bw
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
 
@@ -43,7 +43,7 @@ class Plot(QtWidgets.QWidget):
 
     def to_png(self):
         """ Export to .png format. """
-        filepath = self.savefilepath()
+        filepath = self.savefilepath(filter="PNG (*.png)")
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
@@ -51,7 +51,7 @@ class Plot(QtWidgets.QWidget):
 
     def to_svg(self):
         """ Export to .svg format. """
-        filepath = self.savefilepath()
+        filepath = self.savefilepath(filter="SVG (*.svg)")
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
@@ -127,9 +127,9 @@ class LCAResultsBarChart(Plot):
 
         # labels
         self.ax.set_yticks(y_pos)
-        self.ax.set_xlabel('Score')
-        self.ax.set_title('LCA scores compared')
-        self.ax.set_yticklabels(functional_units, minor= False)
+        self.ax.set_xlabel(bw.methods[method].get('unit'))
+        self.ax.set_title(', '.join([m for m in method]))
+        self.ax.set_yticklabels(functional_units, minor=False)
 
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
