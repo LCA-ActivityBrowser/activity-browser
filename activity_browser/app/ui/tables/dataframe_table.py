@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 import numpy as np
 import appdirs
 
@@ -12,6 +12,8 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         # self.verticalHeader().setMaximumWidth(100)  # vertical header width
         # self.horizontalHeader().setDefaultSectionSize(150)  # column width
+        # self.horizontalHeader().setSectionResizeMode(3)  # QHeaderView::ResizeToContents
+
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)

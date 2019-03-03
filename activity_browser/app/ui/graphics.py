@@ -25,6 +25,7 @@ class Plot(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
         self.setLayout(layout)
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
 
     def get_canvas_size_in_inches(self):
         # print("Canvas size:", self.canvas.get_width_height())
@@ -116,7 +117,8 @@ class LCAResultsBarChart(Plot):
 
         functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
 
-        values = mlca.lca_scores[:, mlca.methods.index(method)]
+        print('Method:', method)
+        values = mlca.lca_scores[:, mlca.method_index[method]]
         y_pos = np.arange(len(functional_units))
 
         # color_iterate = iter(plt.rcParams['axes.prop_cycle'])
@@ -133,7 +135,7 @@ class LCAResultsBarChart(Plot):
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
-        self.canvas.figure
+        # self.canvas.figure
         self.canvas.draw()
 
 

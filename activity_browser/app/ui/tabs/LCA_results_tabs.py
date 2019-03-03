@@ -41,7 +41,7 @@ class LCAResultsSubTab(QTabWidget):
 
         # the LCA results tabs (order matters)
         self.inventory_tab = InventoryTab(self)
-        self.LCA_scores_tab = LCAScoresTab(self, custom=True)
+        self.LCA_scores_tab = LCAScoresTab(self)
         self.lcia_results_tab = LCIAResultsTab(self, relativity=True)
 
         self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
@@ -76,7 +76,8 @@ class LCAResultsSubTab(QTabWidget):
         if calculate:
             self.update_calculation()
 
-        self.LCA_scores_tab.update_analysis_tab()
+        # self.LCA_scores_tab.update_analysis_tab()
+        self.LCA_scores_tab.update_tab()
         # self.inventory_tab.update_analysis_tab()
         self.EF_contribution_tab.update_analysis_tab()
         self.lcia_results_tab.update_analysis_tab()
@@ -245,7 +246,8 @@ class AnalysisTab(QWidget):
             self.main_space_widget_layout.addWidget(self.main_space_table)
 
         if not self.custom:
-            self.main_space_widget_layout.addStretch()
+            pass
+            # self.main_space_widget_layout.addStretch()
 
         self.layout.addWidget(self.main_space)
 
@@ -431,6 +433,26 @@ class NewAnalysisTab(QWidget):
         if isinstance(header_text, str):
             self.header.setText(header_text)
 
+    def add_combobox(self, label='Choose LCIA method:'):
+        """ Add the combobox menu to the tab. """
+        self.combobox_label = QLabel(label)
+        self.combobox = QComboBox()
+        self.combobox.scroll = False
+
+        self.combobox_menu = QHBoxLayout()
+        self.combobox_menu.addWidget(self.combobox_label)
+        self.combobox_menu.addWidget(self.combobox, 1)
+        self.combobox_menu.addStretch(1)
+
+        self.layout.addLayout(self.combobox_menu)
+
+    def update_combobox(self, labels):
+        """ Update the combobox menu. """
+        self.combobox.clear()
+        self.combobox.blockSignals(True)
+        self.combobox.insertItems(0, labels)
+        self.combobox.blockSignals(False)
+
     def add_export(self):
         """ Add the export menu to the tab. """
         self.export_menu = QHBoxLayout()
@@ -479,6 +501,7 @@ class NewAnalysisTab(QWidget):
         if hasattr(self, 'plot') and self.export_menu:
             self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
             self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+
 
 class InventoryTab(NewAnalysisTab):
     def __init__(self, parent=None):
@@ -529,7 +552,7 @@ class InventoryTab(NewAnalysisTab):
         else:
             self.update_table(type='biosphere')
 
-    def update_table(self, type='biosphere', *args, **kwargs):
+    def update_table(self, type='biosphere'):
         if type == 'biosphere':
             if self.df_biosphere is None:
                 self.df_biosphere = self.parent.contributions.inventory_df(type='biosphere')
@@ -541,30 +564,34 @@ class InventoryTab(NewAnalysisTab):
             self.table.sync(self.df_technosphere)
 
 
-class LCAScoresTab(AnalysisTab):
-    def __init__(self, parent, **kwargs):
-        super(LCAScoresTab, self).__init__(parent, **kwargs)
+class LCAScoresTab(NewAnalysisTab):
+    def __init__(self, parent=None):
+        super(LCAScoresTab, self).__init__(parent)
         self.parent = parent
 
         self.header_text = "LCA scores comparison"
         self.add_header(self.header_text)
 
+        self.add_combobox(label='Choose LCIA method')
         self.plot = LCAResultsBarChart(self.parent)
+        self.layout.addWidget(self.plot)
 
-        self.add_combobox(method=True, func=False)
-        self.add_main_space()
         self.add_export()
-
         self.parent.addTab(self, "LCA scores")
 
         self.connect_signals()
 
-    def update_plot(self, method=None):
-        if method == None or method == '':
-            method = self.parent.mlca.methods[0]
-        else:
-            method = self.parent.method_dict[method]
-        self.plot.plot(self.parent.mlca, method=method)
+    def connect_signals(self):
+        self.combobox.currentIndexChanged.connect(self.update_plot)
+
+    def update_tab(self):
+        self.update_combobox([str(m) for m in self.parent.mlca.methods])
+        self.update_plot(method_index=0)
+
+    def update_plot(self, method_index=None):
+        if method_index is None or isinstance(method_index, str):
+            method_index = 0
+        self.plot.plot(self.parent.mlca, method=self.parent.mlca.methods[method_index])
 
 
 class LCIAResultsTab(AnalysisTab):

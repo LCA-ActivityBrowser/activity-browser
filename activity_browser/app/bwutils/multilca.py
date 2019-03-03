@@ -205,7 +205,7 @@ class Contributions(object):
             fields = ["name", "categories", "unit", "database"]
             df = pd.DataFrame(self.mlca.inventory)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
-            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys)
+            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys, max_length=30)
             metadata = self.mlca.df_meta.loc[list(self.mlca.rev_biosphere_dict.values())][fields]
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
@@ -213,7 +213,7 @@ class Contributions(object):
             fields = ["reference product", "name", "location", "database"]
             df = pd.DataFrame(self.mlca.technosphere_flows)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
-            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys)
+            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys, max_length=30)
             metadata = self.mlca.df_meta.loc[list(self.mlca.rev_activity_dict.values())][fields]
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
