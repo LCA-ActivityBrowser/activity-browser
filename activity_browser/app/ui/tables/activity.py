@@ -2,7 +2,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from .inventory import ActivitiesTable
-from .inventory import BiosphereFlowsTable
+from .inventory import BiosphereFlowsTable, ActivitiesBiosphereTable
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
@@ -75,20 +75,26 @@ class ExchangeTable(ABTableWidget):
             ActivitiesTable,
             ExchangeTable,
             BiosphereFlowsTable,
+            ActivitiesBiosphereTable,
         )
         if isinstance(event.source(), acceptable):
             event.accept()
 
     def dropEvent(self, event):
-        items = event.source().selectedItems()
-        if isinstance(items[0], ABTableItem):
-            signals.exchanges_add.emit([x.key for x in items], self.qs._key)
-        else:
-            print(items)
-            print(items.exchange)
-            signals.exchanges_output_modified.emit(
-                [x.exchange for x in items], self.qs._key
-            )
+        source_table = event.source()
+        print('Dropevent from:', source_table)
+        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+        signals.exchanges_add.emit(keys, self.qs._key)
+
+        # items = event.source().selectedItems()
+        # if isinstance(items[0], ABTableItem):
+        #     signals.exchanges_add.emit([x.key for x in items], self.qs._key)
+        # else:
+        #     print(items)
+        #     print(items.exchange)
+        #     signals.exchanges_output_modified.emit(
+        #         [x.exchange for x in items], self.qs._key
+        #     )
         event.accept()
 
     def update_when_database_has_changed(self, database):
@@ -137,11 +143,11 @@ class ExchangeTable(ABTableWidget):
             signals.open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
 
-    def set_queryset(self, database, qs, limit=100, upstream=False):
+    def set_queryset(self, database, qs, limit=100, downstream=False):
         # todo(?): rename function: it calls sync() - which appears to do more than just setting the queryset
         # todo: use table paging rather than a hard arbitrary 'limit'. Could also increase load speed
         #  .upstream() exposes the exchanges which consume this activity.
-        self.database, self.qs, self.upstream = database, qs, upstream
+        self.database, self.qs, self.upstream = database, qs, downstream
         self.sync(limit)
 
     @ABTableWidget.decorated_sync
@@ -277,40 +283,40 @@ class ExchangesTablePrototype(ABTableWidget):
         # print("Queryset:", self.database, self.qs, self.upstream)
         self.sync(limit)
 
-class ProductTable(ExchangesTablePrototype):
-    COLUMNS = {
-        0: "amount",
-        1: "unit",
-        2: "reference product",
-    }
-
-
-    def __init__(self, parent=None):
-        super(ProductTable, self).__init__()
-
-    @ABTableWidget.decorated_sync
-    def sync(self, limit=100):
-        self.setRowCount(min(len(self.qs), limit))
-        self.setHorizontalHeaderLabels(self.column_labels)
-
-        edit_flag = [QtCore.Qt.ItemIsEditable]
-
-        for row, exc in enumerate(self.qs):
-            adj_act = exc.input
-            print(adj_act)
-            if row == limit:
-                break
-
-            # self.setItem(row, 0, ABTableItem(
-
-            self.setItem(row, 0, ABTableItem(
-                self.amount_format_string.format(
-                    exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
-
-            self.setItem(row, 1, ABTableItem(
-                adj_act.get('unit', 'Unknown'),  exchange=exc, set_flags=edit_flag, color="unit"))
-
-            self.setItem(row, 2, ABTableItem(
-                # correct reference product name is stored in the exchange itself and not the activity
-                adj_act.get('reference product') or adj_act.get("name"), exchange=exc, set_flags=edit_flag, color="reference product"))
-
+# class ProductTable(ExchangesTablePrototype):
+#     COLUMNS = {
+#         0: "amount",
+#         1: "unit",
+#         2: "reference product",
+#     }
+#
+#
+#     def __init__(self, parent=None):
+#         super(ProductTable, self).__init__()
+#
+#     @ABTableWidget.decorated_sync
+#     def sync(self, limit=100):
+#         self.setRowCount(min(len(self.qs), limit))
+#         self.setHorizontalHeaderLabels(self.column_labels)
+#
+#         edit_flag = [QtCore.Qt.ItemIsEditable]
+#
+#         for row, exc in enumerate(self.qs):
+#             adj_act = exc.input
+#             print(adj_act)
+#             if row == limit:
+#                 break
+#
+#             # self.setItem(row, 0, ABTableItem(
+#
+#             self.setItem(row, 0, ABTableItem(
+#                 self.amount_format_string.format(
+#                     exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
+#
+#             self.setItem(row, 1, ABTableItem(
+#                 adj_act.get('unit', 'Unknown'),  exchange=exc, set_flags=edit_flag, color="unit"))
+#
+#             self.setItem(row, 2, ABTableItem(
+#                 # correct reference product name is stored in the exchange itself and not the activity
+#                 adj_act.get('reference product') or adj_act.get("name"), exchange=exc, set_flags=edit_flag, color="reference product"))
+#

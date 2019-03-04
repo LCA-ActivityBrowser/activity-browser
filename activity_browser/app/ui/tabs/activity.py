@@ -3,7 +3,7 @@ import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..style import style_activity_tab
-from ..tables import ExchangeTable, ProductTable
+from ..tables import ExchangeTable  #, ProductTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
 from ..icons import icons
@@ -116,7 +116,6 @@ class ActivityTab(QtWidgets.QTabWidget):
         # self.production = ProductTable(self)
         self.technosphere = ExchangeTable(self, tableType="technosphere")
         self.biosphere = ExchangeTable(self, tableType="biosphere")
-        # self.upstream refers to the open activity: it is upstream of the downstream consumers shown in the table...
         self.downstream = ExchangeTable(self, tableType="technosphere")
 
         self.exchange_tables = [
@@ -160,7 +159,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.production.set_queryset(db_name, self.activity.production())
         self.technosphere.set_queryset(db_name, self.activity.technosphere())
         self.biosphere.set_queryset(db_name, self.activity.biosphere())
-        self.downstream.set_queryset(db_name, self.activity.upstream(), upstream=True)
+        self.downstream.set_queryset(db_name, self.activity.upstream(), downstream=True)
 
         self.populate_description_box()
 
@@ -207,10 +206,12 @@ class ActivityTab(QtWidgets.QTabWidget):
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
                 table.setAcceptDrops(False)
+                table.delete_exchange_action.setEnabled(False)
             else:
                 table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
                 if table != self.downstream:  # downstream consumers table never accepts drops
                     table.setAcceptDrops(True)
+                    table.delete_exchange_action.setEnabled(True)
 
     def db_read_only_changed(self, db_name, db_read_only):
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
