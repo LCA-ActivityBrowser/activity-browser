@@ -285,8 +285,8 @@ class ActivitiesTable(ABTableWidget):
         self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(self.database_name, True)
         self.update_activity_table_read_only(self.database_name, db_read_only=self.db_read_only)
 
-    def filter_database_changed(self, database_name):
-        if not hasattr(self, "database") or self.database.name != database_name:
+    def filter_database_changed(self, db_name):
+        if not hasattr(self, "database") or self.database.name != db_name:
             return
         self.sync(self.database.name)
 

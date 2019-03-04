@@ -3,6 +3,7 @@ import brightway2 as bw
 import pandas as pd
 import numpy as np
 
+from ..signals import signals
 # todo: extend store over several projects
 
 
@@ -22,6 +23,12 @@ Instead, this data store features a dataframe that contains all metadata and can
     def __init__(self):
         self.dataframe = pd.DataFrame()
         self.databases = set()
+        self.connect_signals()
+
+    def connect_signals(self):
+        signals.projects_changed.connect(self.reset_metadata)
+        # signals.database_changed.connect()
+
 
     def add_metadata(self, db_names_list):
         """Get metadata in form of a Pandas DataFrame for biosphere and technosphere databases
@@ -46,6 +53,16 @@ Instead, this data store features a dataframe that contains all metadata and can
         self.dataframe = pd.concat(dfs, sort=False)
         self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
         print('Dimensions of the Metadata:', self.dataframe.shape)
+
+    def update_metadata(self, db_name):
+        pass
+
+
+    def reset_metadata(self):
+        """Deletes metadata when the project is changed."""
+        # todo: metadata could be collected across projects...
+        self.dataframe = pd.DataFrame()
+        self.databases = set()
 
 
 AB_metadata = MetaDataStore()
