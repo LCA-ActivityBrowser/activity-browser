@@ -89,14 +89,16 @@ class LCAResultsSubTab(QTabWidget):
         # correlations_tab_index = self.indexOf(self.correlations_tab)
         self.sankey_tab.update_calculation_setup(cs_name=self.cs_name)
 
-        if not self.single_func_unit:
-            self.setTabEnabled(lcia_results_tab_index, True)
-            # self.setTabEnabled(correlations_tab_index, True)
-            self.setTabEnabled(lca_score_comparison_tab_index, True)
-        else:
-            self.setTabEnabled(lcia_results_tab_index, False)
-            # self.setTabEnabled(correlations_tab_index, False)
-            self.setTabEnabled(lca_score_comparison_tab_index, False)
+        # if not self.single_func_unit:
+        #     self.setTabEnabled(lcia_results_tab_index, True)
+        #
+        #     # self.setTabEnabled(correlations_tab_index, True)
+        #     self.setTabEnabled(lca_score_comparison_tab_index, True)
+        # else:
+        #     self.lca_score_comparison_tab_index.setVisible(False)
+        #     # self.setTabEnabled(lcia_results_tab_index, False)
+        #     # self.setTabEnabled(correlations_tab_index, False)
+        #     self.setTabEnabled(lca_score_comparison_tab_index, False)
 
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.sankey_tab):

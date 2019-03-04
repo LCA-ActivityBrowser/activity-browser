@@ -4,10 +4,12 @@ import pandas as pd
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
 from brightway2 import get_activity
+from collections import OrderedDict
 
 ca = ContributionAnalysis()
 
 from .commontasks import wrap_text
+from .metadata import AB_metadata
 
 class MLCA(object):
     # todo: update description
@@ -118,7 +120,7 @@ class MLCA(object):
         databases = list()
         for f in self.fu_activity_keys:
             databases.append(f[0])
-            databases.append(*bw.databases[f[0]].get('depends', []))
+            databases.extend(bw.databases[f[0]].get('depends', []))
         return set(databases)
 
     @property
@@ -129,13 +131,14 @@ class MLCA(object):
         """Get metadata in form of a Pandas DataFrame for biosphere and technosphere databases
         for tables and additional aggregation.
         """
-        print('Making metadata DataFrame.')
-        dfs = []
-        for db in self.all_databases:
-            df_temp = pd.DataFrame(bw.Database(db))
-            df_temp.index = pd.MultiIndex.from_tuples(zip(df_temp['database'], df_temp['code']))
-            dfs.append(df_temp)
-        self.df_meta = pd.concat(dfs, sort=False)
+        AB_metadata.add_metadata(self.all_databases)
+        # print('Making metadata DataFrame.')
+        # dfs = []
+        # for db in self.all_databases:
+        #     df_temp = pd.DataFrame(bw.Database(db))
+        #     df_temp.index = pd.MultiIndex.from_tuples(zip(df_temp['database'], df_temp['code']))
+        #     dfs.append(df_temp)
+        # self.df_meta = pd.concat(dfs, sort=False)
 
 
 class Contributions(object):
@@ -144,8 +147,12 @@ class Contributions(object):
         if not isinstance(mlca, MLCA):
             raise ValueError('Must pass an MLCA object. Passed:', type(mlca))
         self.mlca = mlca
-        self.act_fields = ['reference product', 'name', 'location']
-        self.ef_fields = ['name', 'categories', 'type', 'unit']
+
+        # metadata
+        self.mlca.get_all_metadata()
+        # metadata keys (those not in the dataframe will be eliminated)
+        self.act_fields = [f for f in ['reference product', 'name', 'location', 'database'] if f in AB_metadata.dataframe.columns]
+        self.ef_fields = [f for f in ['name', 'categories', 'type', 'unit', 'database'] if f in AB_metadata.dataframe.columns]
 
     def normalize(self, contribution_array):
         """ Normalise the contribution array. """
@@ -154,26 +161,26 @@ class Contributions(object):
 
     def build_dict(self, C, FU_M_index, rev_dict, limit, limit_type):
         """ Sort each method or functional unit column independently. """
-        topcontribution_dict = {}
+        topcontribution_dict = dict()
         for fu_or_method, col in FU_M_index.items():
             top_contribution = ca.sort_array(C[col, :], limit=limit, limit_type=limit_type)
-            cont_per = {}
+            cont_per = dict()
             cont_per.update({
-                ('Rest', ''): C[col, :].sum() - top_contribution[:, 0].sum(),
                 ('Total', ''): C[col, :].sum(),
+                ('Rest', ''): C[col, :].sum() - top_contribution[:, 0].sum(),
                 })
             for value, index in top_contribution:
                 cont_per.update({rev_dict[index]: value})
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
 
-    def get_labels(self, df_meta, key_list, fields=['name', 'reference product', 'location', 'database'],
+    def get_labels(self, key_list, fields=['name', 'reference product', 'location', 'database'],
                    separator=' | ', max_length=False):
         keys = [k for k in key_list]  # need to do this as the keys come from a pd.Multiindex
         translated_keys = []
         for k in keys:
-            if k in df_meta.index:
-                translated_keys.append(separator.join([str(l) for l in list(df_meta.loc[k][fields])]))
+            if k in AB_metadata.dataframe.index:
+                translated_keys.append(separator.join([str(l) for l in list(AB_metadata.dataframe.loc[k][fields])]))
             else:
                 translated_keys.append(separator.join([i for i in k if i != '']))
         if max_length:
@@ -181,40 +188,42 @@ class Contributions(object):
         return translated_keys
 
     def get_labelled_contribution_dict(self, cont_dict, x_fields=None, y_fields=None):
-        if not hasattr(self.mlca, 'df_meta'):
-            self.mlca.get_all_metadata()
         df = pd.DataFrame(cont_dict)
 
         # replace column keys with labels
-        df.columns = self.get_labels(self.mlca.df_meta, df.columns, fields=y_fields, separator='\n')
+        df.columns = self.get_labels(df.columns, fields=y_fields, separator='\n')
 
         # get metadata for rows
-        keys = [k for k in df.index if k in self.mlca.df_meta.index]
-        metadata = self.mlca.df_meta.loc[keys][x_fields]
+        keys = [k for k in df.index if k in AB_metadata.dataframe.index]
+        metadata = AB_metadata.dataframe.loc[keys][x_fields]
 
         # join data with metadata
         joined = metadata.join(df, how='outer')
 
         # replace index keys with labels
-        joined.index = self.get_labels(self.mlca.df_meta, joined.index, fields=x_fields)
+        try:  # first put Total and Rest to the first two positions in the dataframe
+            index_for_Rest_Total = [('Total', ''), ('Rest', '')] + keys
+            joined = joined.loc[index_for_Rest_Total]
+        except:
+            print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
+        joined.index = self.get_labels(joined.index, fields=x_fields)
         joined = joined.reset_index()
         return joined
 
     def inventory_df(self, type='biosphere'):
+        """Returns an inventory dataframe with metadata."""
         if type == 'biosphere':
-            fields = ["name", "categories", "unit", "database"]
             df = pd.DataFrame(self.mlca.inventory)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
-            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys, max_length=30)
-            metadata = self.mlca.df_meta.loc[list(self.mlca.rev_biosphere_dict.values())][fields]
+            df.columns = self.get_labels(self.mlca.fu_activity_keys, max_length=30)
+            metadata = AB_metadata.dataframe.loc[list(self.mlca.rev_biosphere_dict.values())][self.ef_fields]
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
         elif type == 'technosphere':
-            fields = ["reference product", "name", "location", "database"]
             df = pd.DataFrame(self.mlca.technosphere_flows)
             df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
-            df.columns = self.get_labels(self.mlca.df_meta, self.mlca.fu_activity_keys, max_length=30)
-            metadata = self.mlca.df_meta.loc[list(self.mlca.rev_activity_dict.values())][fields]
+            df.columns = self.get_labels(self.mlca.fu_activity_keys, max_length=30)
+            metadata = AB_metadata.dataframe.loc[list(self.mlca.rev_activity_dict.values())][self.act_fields]
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
         return joined
