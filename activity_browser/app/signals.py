@@ -51,7 +51,7 @@ class Signals(QtCore.QObject):
     activity_modified = QtCore.pyqtSignal(tuple, str, object)
 
     # Exchanges
-    exchanges_output_modified = QtCore.pyqtSignal(list, tuple)
+    # exchanges_output_modified = QtCore.pyqtSignal(list, tuple)
     exchanges_deleted = QtCore.pyqtSignal(list)
     exchanges_add = QtCore.pyqtSignal(list, tuple)
     exchange_amount_modified = QtCore.pyqtSignal(object, float)
@@ -82,5 +82,7 @@ class Signals(QtCore.QObject):
     hide_tab = QtCore.pyqtSignal(str)
     hide_when_empty = QtCore.pyqtSignal()
 
+    # Metadata
+    metadata_changed = QtCore.pyqtSignal(tuple)  # key
 
 signals = Signals()

@@ -383,7 +383,10 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         signals.database_selected.connect(
             lambda name, limit_width="ActivitiesTable": self.sync(name)
         )
-        signals.database_changed.connect(self.filter_database_changed)
+        # signals.database_changed.connect(self.filter_database_changed)
+        signals.database_changed.connect(
+            lambda x: self.sync(self.database_name)
+        )
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
         self.doubleClicked.connect(self.item_double_clicked)

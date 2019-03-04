@@ -57,7 +57,7 @@ class Controller(object):
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
         signals.show_duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
         # Exchange
-        signals.exchanges_output_modified.connect(self.modify_exchanges_output)
+        # signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
@@ -306,6 +306,7 @@ class Controller(object):
             production_exchange.input = new_act
             production_exchange.save()
             signals.open_activity_tab.emit(new_act.key)
+            signals.metadata_changed.emit(new_act.key)
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
 
@@ -323,6 +324,7 @@ class Controller(object):
             )
         else:
             act.delete()
+            signals.metadata_changed.emit(act.key)
             signals.database_changed.emit(act['database'])
             signals.databases_changed.emit()
 
@@ -358,6 +360,7 @@ class Controller(object):
             if product.get('input') == key:
                 product['input'] = new_act.key
         new_act.save()
+        signals.metadata_changed.emit(act.key)
         signals.database_changed.emit(act['database'])
         signals.databases_changed.emit()
         signals.open_activity_tab.emit(new_act.key)
@@ -397,6 +400,7 @@ class Controller(object):
         if len(bw.Database(target_db)) < 50:
             bw.databases.clean()
 
+        signals.metadata_changed.emit(new_act_key)
         signals.database_changed.emit(target_db)
         signals.open_activity_tab.emit(new_act_key)
         signals.databases_changed.emit()
@@ -405,23 +409,24 @@ class Controller(object):
         activity = bw.get_activity(key)
         activity[field] = value
         activity.save()
+        signals.metadata_changed.emit(key)
         signals.database_changed.emit(key[0])
 
-    def modify_exchanges_output(self, exchanges, key):
-        db_changed = {key[0]}
-        for exc in exchanges:
-            db_changed.add(exc['output'][0])
-            if exc['type'] == 'production':
-                new_exc = Exchange()
-                new_exc._data = copy.deepcopy(exc._data)
-                new_exc['type'] = 'technosphere'
-                new_exc['output'] = key
-                new_exc.save()
-            else:
-                exc['output'] = key
-                exc.save()
-        for db in db_changed:
-            signals.database_changed.emit(db)
+    # def modify_exchanges_output(self, exchanges, key):
+    #     db_changed = {key[0]}
+    #     for exc in exchanges:
+    #         db_changed.add(exc['output'][0])
+    #         if exc['type'] == 'production':
+    #             new_exc = Exchange()
+    #             new_exc._data = copy.deepcopy(exc._data)
+    #             new_exc['type'] = 'technosphere'
+    #             new_exc['output'] = key
+    #             new_exc.save()
+    #         else:
+    #             exc['output'] = key
+    #             exc.save()
+    #     for db in db_changed:
+    #         signals.database_changed.emit(db)
 
     def add_exchanges(self, from_keys, to_key):
         activity = bw.get_activity(to_key)
@@ -437,7 +442,9 @@ class Controller(object):
             else:
                 exc['type'] = 'unknown'
             exc.save()
+        signals.metadata_changed.emit(to_key)
         signals.database_changed.emit(to_key[0])
+
 
     def delete_exchanges(self, exchanges):
         db_changed = set()
@@ -445,6 +452,7 @@ class Controller(object):
             db_changed.add(exc['output'][0])
             exc._document.delete_instance()
         for db in db_changed:
+            # signals.metadata_changed.emit(to_key)
             signals.database_changed.emit(db)
 
     def modify_exchange_amount(self, exchange, value):
