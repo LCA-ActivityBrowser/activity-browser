@@ -321,6 +321,8 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setDragEnabled(True)
+        self.drag_model = True
+        self.setDragDropMode(1)  # QtGui.QAbstractItemView.DragOnly
 
         self.setup_context_menu()
         self.connect_signals()
@@ -379,7 +381,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
 
     def connect_signals(self):
         signals.database_selected.connect(
-            lambda name, limit_width="ActivitiesTable": self.sync(name, limit_width=limit_width)
+            lambda name, limit_width="ActivitiesTable": self.sync(name)
         )
         signals.database_changed.connect(self.filter_database_changed)
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)

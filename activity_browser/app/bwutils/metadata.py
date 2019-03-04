@@ -27,7 +27,7 @@ Instead, this data store features a dataframe that contains all metadata and can
 
     def connect_signals(self):
         signals.projects_changed.connect(self.reset_metadata)
-        # signals.database_changed.connect()
+        signals.database_changed.connect(self.update_metadata)
 
 
     def add_metadata(self, db_names_list):

@@ -9,7 +9,6 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.setVerticalScrollMode(1)
         self.setHorizontalScrollMode(1)
         # self.maxheight = maxheight
-        self.verticalHeader().setDefaultSectionSize(22)  # row height
         # self.verticalHeader().setMaximumWidth(100)  # vertical header width
         # self.horizontalHeader().setDefaultSectionSize(150)  # column width
         # self.horizontalHeader().setSectionResizeMode(3)  # QHeaderView::ResizeToContents
@@ -17,15 +16,21 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
+        self.verticalHeader().setDefaultSectionSize(22)  # row height
         self.verticalHeader().setVisible(True)
         self.dataframe = None
+        # self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+
 
     @classmethod
     def decorated_sync(cls, sync):
         def wrapper(self, *args, **kwargs):
             sync(self, *args, **kwargs)
 
-            self.model = PandasModel(self.dataframe)
+            if hasattr(self, 'drag_model'):
+                self.model = DragPandasModel(self.dataframe)
+            else:
+                self.model = PandasModel(self.dataframe)
             self.proxy_model = QtCore.QSortFilterProxyModel()  # see: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
             self.proxy_model.setSourceModel(self.model)
             self.proxy_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
@@ -133,10 +138,12 @@ class PandasModel(QtCore.QAbstractTableModel):
             return self._dataframe.index[section]
         return None
 
-    # not needed anymore due to the use of QSortFilterProxyModel
-    # def sort(self, p_int, order=None):
-    #     self.layoutAboutToBeChanged.emit()
-    #     self._dataframe.sort_values(by=self._dataframe.columns[p_int],
-    #                                 ascending=False if order==1 else True,
-    #                                 inplace=True)
-    #     self.layoutChanged.emit()
+
+class DragPandasModel(PandasModel):
+    """Same as PandasModel, but enabling dragging."""
+    def __init__(self, parent=None):
+        super(DragPandasModel, self).__init__(parent)
+
+    def flags(self, index):
+            # return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDropEnabled
+            return QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
