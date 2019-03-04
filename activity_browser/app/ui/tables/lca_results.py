@@ -34,7 +34,8 @@ class ContributionTable(ABDataFrameTable):
 
     @ABDataFrameTable.decorated_sync
     def sync(self):
-        self.dataframe = self.parent.df.replace(np.nan, '', regex=True)  # replace 'nan' values with emtpy string
+        self.dataframe = self.parent.df
+        # self.dataframe = self.parent.df.replace(np.nan, '', regex=True)  # replace 'nan' values with emtpy string
 
 
 

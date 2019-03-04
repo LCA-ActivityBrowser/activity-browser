@@ -6,10 +6,11 @@ from .LCA_setup import (
     CSList,
     CSMethodsTable,
 )
-from .inventory import DatabasesTable
+from .inventory import DatabasesTable, ActivitiesBiosphereTable
 from .activity import ExchangeTable, ProductTable
 from .history import ActivitiesHistoryTable
 from .impact_categories import CFTable, MethodsTable
 from .lca_results import LCAResultsTable, InventoryTable, ContributionTable
 from .projects import ProjectTable, ProjectListWidget
 from .table import ABTableWidget, ABTableItem
+from .dataframe_table import ABDataFrameTable

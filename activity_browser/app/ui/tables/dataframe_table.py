@@ -8,7 +8,7 @@ class ABDataFrameTable(QtWidgets.QTableView):
         super(ABDataFrameTable, self).__init__(parent)
         self.setVerticalScrollMode(1)
         self.setHorizontalScrollMode(1)
-        self.maxheight = maxheight
+        # self.maxheight = maxheight
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         # self.verticalHeader().setMaximumWidth(100)  # vertical header width
         # self.horizontalHeader().setDefaultSectionSize(150)  # column width
@@ -50,6 +50,17 @@ class ABDataFrameTable(QtWidgets.QTableView):
             #     )
 
         return wrapper
+
+    def get_source_index(self, proxy_index):
+        """Returns the index of the original model from a proxymodel index.
+        This way data from the self._dataframe can be obtained correctly."""
+        # print('Received Index:', proxy_index.row(), proxy_index.column())
+        model = proxy_index.model()
+        if hasattr(model, 'mapToSource'):
+            # We are a proxy model
+            source_index = model.mapToSource(proxy_index)
+        # print('Source Index:', source_index.row(), source_index.column())
+        return source_index
 
     def to_clipboard(self):
         self.dataframe.to_clipboard()
@@ -112,9 +123,7 @@ class PandasModel(QtCore.QAbstractTableModel):
                 else:
                     # this enables to show also tuples (e.g. category information like ('air', 'urban air') )
                     value = str(value)
-
                 return QtCore.QVariant(value)
-
         return None
 
     def headerData(self, section, orientation, role):

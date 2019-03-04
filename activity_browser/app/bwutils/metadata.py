@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 import pandas as pd
+import numpy as np
 
 # todo: extend store over several projects
 
@@ -43,6 +44,7 @@ Instead, this data store features a dataframe that contains all metadata and can
             df_temp.index = pd.MultiIndex.from_tuples(zip(df_temp['database'], df_temp['code']))
             dfs.append(df_temp)
         self.dataframe = pd.concat(dfs, sort=False)
+        self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
         print('Dimensions of the Metadata:', self.dataframe.shape)
 
 

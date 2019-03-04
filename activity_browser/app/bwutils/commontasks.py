@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import textwrap
-
+import itertools
 import arrow
 import brightway2 as bw
 from bw2data import databases
@@ -87,6 +87,22 @@ def get_editable_databases():
 def is_database_read_only(db_name):
     if "read-only-databases" in project_settings.settings:
         return project_settings.settings["read-only-databases"].get(db_name, True)
+
+
+def is_technosphere_db(db_name):
+    """Returns True if database describes the technosphere, False if it describes a biosphere."""
+    if not db_name in bw.databases:
+        raise KeyError('Not an existing database:', db_name)
+    db = bw.Database(db_name)
+    db.filters = None
+    try:
+        db.filters = {'type': 'emission'}
+        data = next(itertools.islice(db, 0, 1))
+        db.filters = None
+        return False
+    except:
+        db.filters = None
+        return True
 
 
 # Activity

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
+import brightway2 as bw
 
 from ..style import header
 from ..icons import icons
@@ -8,17 +9,20 @@ from ..tables import (
     DatabasesTable,
     BiosphereFlowsTable,
     ProjectListWidget,
+    ActivitiesBiosphereTable,
 )
 from ...signals import signals
+from ...bwutils.metadata import AB_metadata
+from ...bwutils.commontasks import is_technosphere_db
 
 
 class ProjectTab(QtWidgets.QWidget):
-    # TODO: Inventory is not the right name... It is really something like a "manager"
     def __init__(self, parent):
         super(ProjectTab, self).__init__(parent)
         # main widgets
         self.projects_widget = ProjectsWidget()
         self.databases_widget = DatabaseWidget(self)
+        self.database_widget = PandasDatabaseWidget(self)
         self.activities_widget = ActivitiesWidget(self)
         self.flows_widget = BiosphereFlowsWidget(self)
 
@@ -26,6 +30,7 @@ class ProjectTab(QtWidgets.QWidget):
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         # self.splitter.addWidget(self.projects_widget)
         self.splitter.addWidget(self.databases_widget)
+        self.splitter.addWidget(self.database_widget)
         self.splitter.addWidget(self.activities_widget)
         self.splitter.addWidget(self.flows_widget)
 
@@ -244,3 +249,54 @@ class BiosphereFlowsWidget(HeaderTableTemplate):
     TABLE = BiosphereFlowsTable
     HEADER = 'Biosphere Flows:'
     searchable = True
+
+
+
+
+class PandasDatabaseWidget(QtWidgets.QWidget):
+    def __init__(self, parent):
+        super(PandasDatabaseWidget, self).__init__(parent)
+        self.HEADER = 'Datasets'
+
+        self.table = ActivitiesBiosphereTable()
+
+        # Header widget
+        self.header_widget = QtWidgets.QWidget()
+        self.header_layout = QtWidgets.QHBoxLayout()
+        self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
+        self.header_layout.addWidget(header(self.HEADER))
+        self.header_widget.setLayout(self.header_layout)
+
+        self.label_database = QtWidgets.QLabel("[]")
+        self.header_layout.addWidget(self.label_database)
+        signals.database_selected.connect(self.update_table)
+
+        self.searchable = True
+        if self.searchable:  # include searchbox
+            self.search_box = QtWidgets.QLineEdit()
+            self.search_box.setPlaceholderText("Filter by search string")
+            reset_search_button = QtWidgets.QPushButton("Reset")
+            # reset_search_button.clicked.connect(self.table.reset_search)
+            # reset_search_button.clicked.connect(self.search_box.clear)
+            # self.search_box.returnPressed.connect(self.set_search_term)
+            self.fuzzy_checkbox = QtWidgets.QCheckBox('Fuzzy Search')
+            self.fuzzy_checkbox.setToolTip(
+                '''Try the fuzzy search if normal search doesn't yield the desired results.
+                The fuzzy search currently only searches for matches in the  name field.'''
+            )
+            signals.project_selected.connect(self.search_box.clear)
+            self.header_layout.addWidget(self.search_box)
+            self.header_layout.addWidget(reset_search_button)
+            self.header_layout.addWidget(self.fuzzy_checkbox)
+
+        # Overall Layout
+        self.v_layout = QtWidgets.QVBoxLayout()
+        self.v_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.v_layout.addWidget(self.header_widget)
+        self.v_layout.addWidget(self.table)
+        self.setLayout(self.v_layout)
+
+    def update_table(self, db_name='biosphere3'):
+        print('Updateing database table: ', db_name)
+        self.label_database.setText("[{}]".format(db_name))
+        self.table.sync(db_name=db_name)

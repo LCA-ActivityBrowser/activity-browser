@@ -151,7 +151,7 @@ class Contributions(object):
         # metadata
         self.mlca.get_all_metadata()
         # metadata keys (those not in the dataframe will be eliminated)
-        self.act_fields = [f for f in ['reference product', 'name', 'location', 'database'] if f in AB_metadata.dataframe.columns]
+        self.act_fields = [f for f in ['reference product', 'name', 'location', 'unit', 'database'] if f in AB_metadata.dataframe.columns]
         self.ef_fields = [f for f in ['name', 'categories', 'type', 'unit', 'database'] if f in AB_metadata.dataframe.columns]
 
     def normalize(self, contribution_array):
