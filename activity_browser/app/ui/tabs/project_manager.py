@@ -273,21 +273,37 @@ class PandasDatabaseWidget(QtWidgets.QWidget):
 
         self.searchable = True
         if self.searchable:  # include searchbox
+            # 1st search box
             self.search_box = QtWidgets.QLineEdit()
             self.search_box.setPlaceholderText("Filter by search string")
+            self.search_box.returnPressed.connect(self.set_search_term)
+
+            # 2nd search box
+            self.search_box2 = QtWidgets.QLineEdit()
+            self.search_box2.setPlaceholderText("Filter by search string")
+            self.search_box2.returnPressed.connect(self.set_search_term)
+
+            # search logic between both search fields
+            self.logic_fields = ['AND', 'OR']
+            self.logic_dropdown = QtWidgets.QComboBox()
+            self.logic_dropdown.addItems(self.logic_fields)
+
+            self.logic_fields = ['AND', 'OR', 'AND NOT']
+            self.logic_dropdown = QtWidgets.QComboBox()
+            self.logic_dropdown.addItems(self.logic_fields)
+
+            # reset search
             reset_search_button = QtWidgets.QPushButton("Reset")
-            # reset_search_button.clicked.connect(self.table.reset_search)
-            # reset_search_button.clicked.connect(self.search_box.clear)
-            # self.search_box.returnPressed.connect(self.set_search_term)
-            self.fuzzy_checkbox = QtWidgets.QCheckBox('Fuzzy Search')
-            self.fuzzy_checkbox.setToolTip(
-                '''Try the fuzzy search if normal search doesn't yield the desired results.
-                The fuzzy search currently only searches for matches in the  name field.'''
-            )
+            reset_search_button.clicked.connect(self.table.reset_search)
+            reset_search_button.clicked.connect(self.search_box.clear)
+            reset_search_button.clicked.connect(self.search_box2.clear)
+
             signals.project_selected.connect(self.search_box.clear)
             self.header_layout.addWidget(self.search_box)
+            self.header_layout.addWidget(self.logic_dropdown)
+            self.header_layout.addWidget(self.search_box2)
+
             self.header_layout.addWidget(reset_search_button)
-            self.header_layout.addWidget(self.fuzzy_checkbox)
 
         # Overall Layout
         self.v_layout = QtWidgets.QVBoxLayout()
@@ -300,3 +316,9 @@ class PandasDatabaseWidget(QtWidgets.QWidget):
         print('Updateing database table: ', db_name)
         self.label_database.setText("[{}]".format(db_name))
         self.table.sync(db_name=db_name)
+
+    def set_search_term(self):
+        search_term = self.search_box.text()
+        search_term2 = self.search_box2.text()
+        logic = self.logic_dropdown.currentText()
+        self.table.search(search_term, search_term2, logic=logic)

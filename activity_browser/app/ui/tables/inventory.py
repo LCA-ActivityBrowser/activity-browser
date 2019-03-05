@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 import datetime
 import itertools
-
 import arrow
 import brightway2 as bw
 import collections
 from PyQt5 import QtGui, QtWidgets, QtCore
 from bw2data.utils import natural_sort
 from fuzzywuzzy import process
+import functools
+import numpy as np
+import pandas as pd
 
 from activity_browser.app.settings import project_settings
 from .table import ABTableWidget, ABTableItem
@@ -405,7 +407,12 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         signals.add_activity_to_history.emit(key)
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, db_name):
+    def sync(self, db_name, df=None, filter=None):
+        if isinstance(df, pd.DataFrame):  # skip the rest of the sync here if a dataframe is directly supplied
+            print('Pandas Dataframe passed to sync.', df.shape)
+            self.dataframe = df
+            return
+
         if db_name not in bw.databases:
             raise KeyError('This database does not exist!', db_name)
         self.database_name = db_name
@@ -427,11 +434,62 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
 
         # get dataframe
         df = AB_metadata.dataframe[AB_metadata.dataframe['database'] == db_name]
-        self.dataframe = df[self.fields].reset_index(drop=True)
+        df = df[self.fields]
+        # if filter:
+        #     df = self.filter_dataframe(df, filter=filter)
+
+            # df = df[df['name'].str.contains(filter)]
+            # mask = functools.reduce(np.logical_or,
+            #                         [df[col].str.contains('coal') for col in ['name', 'reference product', 'location']])
+            # df.loc[mask]
+        # self.dataframe = df[self.fields].reset_index(drop=True)
+        self.dataframe = df.reset_index(drop=True)
 
         # sort ignoring case sensitivity
         self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
         self.dataframe.reset_index(inplace=True, drop=True)
+        self.dataframe_search_copy = self.dataframe
+
+    def search(self, filter1=None, filter2=None, logic='AND'):
+        if not filter1 and not filter2:
+            self.reset_search()
+        if filter1 and filter2:
+            print('filtering on both search terms')
+            mask1 = self.filter_dataframe(self.dataframe_search_copy, filter=filter1)
+            mask2 = self.filter_dataframe(self.dataframe_search_copy, filter=filter2)
+
+            if logic == 'AND':
+                print('Getting an AND mask')
+                mask = np.logical_and(mask1, mask2)
+            elif logic == 'OR':
+                print('Getting an OR mask')
+                mask = np.logical_or(mask1, mask2)
+            elif logic == 'AND NOT':
+                print('Getting an AND NOT mask')
+                mask = np.logical_and(mask1, ~mask2)
+        else:
+            print('filtering on ONE search term')
+            filter = filter1 if filter1 else filter2
+            mask = self.filter_dataframe(self.dataframe_search_copy, filter=filter)
+        df = self.dataframe_search_copy.loc[mask].reset_index(drop=True)
+        self.sync(self.database_name, df=df)
+        # df = self.filter_dataframe(self.dataframe, filter=filter, filter2=filter2, logic='and')
+        # self.sync(self.database_name, df=df)
+        # self.sync(self.database_name, filter=search_term)
+
+    def filter_dataframe(self, df, filter=None):
+        # df = df[df['name'].str.contains(filter)]  # simplest version (very quick)
+        print('Searchin in the following columns:', df.columns)
+
+        # search_columns = [str(c) for c in df.columns if c != 'key']
+        # mask = functools.reduce(np.logical_or, [df[col].str.contains(filter) for col in search_columns])
+                                # [df[col].str.contains(filter) for col in ['name', 'reference product', 'location']])
+        mask = functools.reduce(np.logical_or, [df[col].apply(lambda x: True if filter in x else False) for col in df.columns])
+        return mask
+
+    def reset_search(self):
+        # could also set the self.dataframe_search_copy here (but would have to test a bit)
+        self.sync(self.database_name)
 
     def update_activity_table_read_only(self, db_name, db_read_only):
         """[new, duplicate & delete] actions can only be selected for databases that are not read-only
@@ -442,34 +500,4 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
             self.duplicate_activity_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
 
-    def update_search_index(self):
-        if self.database is not self.fuzzy_search_index[0]:
-            activity_data = [obj['data'] for obj in self.database._get_queryset().dicts()]
-            name_activity_dict = collections.defaultdict(list)
-            for act in activity_data:
-                name_activity_dict[act['name']].append(self.database.get(act['code']))
-            self.fuzzy_search_index = (self.database, name_activity_dict)
 
-    def filter_database_changed(self, database_name):
-        if not hasattr(self, "database") or self.database.name != database_name:
-            return
-        self.sync(self.database.name)
-
-    def reset_search(self):
-        self.sync(self.database_name)
-
-    def search(self, search_term):
-        search_result = self.database.search(search_term, limit=self.MAX_LENGTH)
-        self.setRowCount(len(search_result))
-        if search_result or search_term == '':
-            self.sync(self.database.name, search_result)
-
-    def fuzzy_search(self, search_term):
-        names = list(self.fuzzy_search_index[1].keys())
-        fuzzy_search_result = process.extractBests(search_term, names, score_cutoff=10, limit=50)
-        result = list(itertools.chain.from_iterable(
-            [self.fuzzy_search_index[1][name] for name, score in fuzzy_search_result]
-        ))
-        self.setRowCount(len(result))
-        if result or search_term == '':
-            self.sync(self.database.name, result)
