@@ -24,10 +24,10 @@ class ABDataFrameTable(QtWidgets.QTableView):
 
     def get_max_height(self):
         return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
-                 self.horizontalHeader().height() + self.horizontalScrollBar().height()
+                 self.horizontalHeader().height() + self.horizontalScrollBar().height() + 5
 
     def sizeHint(self):
-        return QtCore.QSize(100, self.get_max_height())
+        return QtCore.QSize(self.width(), self.get_max_height())
 
     @classmethod
     def decorated_sync(cls, sync):

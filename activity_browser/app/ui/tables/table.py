@@ -42,10 +42,6 @@ class ABTableWidget(QtWidgets.QTableWidget):
         self.setSortingEnabled(True)
         self.verticalHeader().setVisible(True)
         self.verticalHeader().setDefaultSectionSize(22)  # this is much faster
-        # self.setSizePolicy(QtWidgets.QSizePolicy(
-        #     QtWidgets.QSizePolicy.Preferred,
-        #     QtWidgets.QSizePolicy.Maximum)
-        # )
 
     @classmethod  # needs to be a classmethod for decorating subclass methods
     def decorated_sync(cls, sync):
@@ -65,12 +61,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
             # self.resizeRowsToContents()
 
             self.setSortingEnabled(True)
-            if self.rowCount() > 0:
-                self.setMaximumHeight(
-                    self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
-                )
-            else:
-                self.setMaximumHeight(50)
+            self.setMaximumHeight(self.sizeHint().height())
 
             # limit column width for certain tables
             if kwargs.get("limit_width", None) in style_table.custom_column_widths:
@@ -82,7 +73,7 @@ class ABTableWidget(QtWidgets.QTableWidget):
     def sizeHint(self):
         """ Could be implemented like this to return the width and heights of the table. """
         if self.rowCount() > 0:
-            height = self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
+            height = self.rowHeight(0) * self.rowCount() + self.horizontalScrollBar().height() + self.horizontalHeader().height()
             # print("Size Hint:", height)
             return QtCore.QSize(self.width(), height)
         else:

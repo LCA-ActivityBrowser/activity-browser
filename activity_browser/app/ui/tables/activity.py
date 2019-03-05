@@ -40,7 +40,7 @@ class ExchangeTable(ABTableWidget):
         self.column_labels = self.COLUMN_LABELS[self.tableType]
         self.setColumnCount(len(self.column_labels))
         # default values, updated later in set_queryset()
-        self.qs, self.upstream, self.database = None, False, None
+        self.qs, self.downstream, self.database = None, False, None
         # ignore_changes set to True whilst sync() executes to prevent conflicts(?)
         self.ignore_changes = False
         self.setup_context_menu()
@@ -207,7 +207,7 @@ class ExchangeTable(ABTableWidget):
                     amount_format_string.format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
-                    adj_act.get('unit', 'Unknown'), color="unit"))
+                    adj_act.get('unit', 'Unknown'), exchange=exc, color="unit"))
 
                 self.setItem(row, 2, ABTableItem(  # product
                     # if statement used to show different activities for products and downstream consumers tables
@@ -221,16 +221,16 @@ class ExchangeTable(ABTableWidget):
                     adj_act.get('name'), exchange=exc, color="name"))
 
                 self.setItem(row, 4, ABTableItem(
-                    str(adj_act.get('location', '')), color="location"))
+                    str(adj_act.get('location', '')), exchange=exc, color="location"))
 
                 self.setItem(row, 5, ABTableItem(
-                    adj_act.get('database'), color="database"))
+                    adj_act.get('database'), exchange=exc, color="database"))
 
                 self.setItem(row, 6, ABTableItem(
-                    str(exc.get("uncertainty type", ""))))
+                    str(exc.get("uncertainty type", "")), exchange=exc,))
 
                 self.setItem(row, 7, ABTableItem(
-                    exc.get('formula', '')))
+                    exc.get('formula', ''), exchange=exc,))
 
             elif self.tableType == "biosphere":
                 # headers: "Amount", "Unit", "Flow Name", "Compartments", "Database", "Uncertainty"
