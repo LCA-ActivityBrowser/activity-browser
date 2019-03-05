@@ -407,7 +407,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         signals.add_activity_to_history.emit(key)
 
     @ABDataFrameTable.decorated_sync
-    def sync(self, db_name, df=None, filter=None):
+    def sync(self, db_name, df=None):
         if isinstance(df, pd.DataFrame):  # skip the rest of the sync here if a dataframe is directly supplied
             print('Pandas Dataframe passed to sync.', df.shape)
             self.dataframe = df
@@ -434,16 +434,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
 
         # get dataframe
         df = AB_metadata.dataframe[AB_metadata.dataframe['database'] == db_name]
-        df = df[self.fields]
-        # if filter:
-        #     df = self.filter_dataframe(df, filter=filter)
-
-            # df = df[df['name'].str.contains(filter)]
-            # mask = functools.reduce(np.logical_or,
-            #                         [df[col].str.contains('coal') for col in ['name', 'reference product', 'location']])
-            # df.loc[mask]
-        # self.dataframe = df[self.fields].reset_index(drop=True)
-        self.dataframe = df.reset_index(drop=True)
+        self.dataframe = df[self.fields].reset_index(drop=True)
 
         # sort ignoring case sensitivity
         self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
@@ -451,40 +442,41 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         self.dataframe_search_copy = self.dataframe
 
     def search(self, filter1=None, filter2=None, logic='AND'):
+        """Filter the dataframe with two filters and a logical element in between
+        to allow different filter combinations."""
         if not filter1 and not filter2:
             self.reset_search()
         if filter1 and filter2:
-            print('filtering on both search terms')
+            # print('filtering on both search terms')
             mask1 = self.filter_dataframe(self.dataframe_search_copy, filter=filter1)
             mask2 = self.filter_dataframe(self.dataframe_search_copy, filter=filter2)
-
+            # applying the logic
             if logic == 'AND':
-                print('Getting an AND mask')
                 mask = np.logical_and(mask1, mask2)
             elif logic == 'OR':
-                print('Getting an OR mask')
                 mask = np.logical_or(mask1, mask2)
             elif logic == 'AND NOT':
-                print('Getting an AND NOT mask')
                 mask = np.logical_and(mask1, ~mask2)
         else:
-            print('filtering on ONE search term')
+            # print('filtering on ONE search term')
             filter = filter1 if filter1 else filter2
             mask = self.filter_dataframe(self.dataframe_search_copy, filter=filter)
         df = self.dataframe_search_copy.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
-        # df = self.filter_dataframe(self.dataframe, filter=filter, filter2=filter2, logic='and')
-        # self.sync(self.database_name, df=df)
-        # self.sync(self.database_name, filter=search_term)
 
     def filter_dataframe(self, df, filter=None):
+        """
+Filter a dataframe. Returns a mask that is True for all rows where a search string has been found.
+It is a "contains" type of search (e.g. "oal" would find "coal").
+It works also for columns that contain tuples (e.g. ('water', 'ocean'), but then only finds matches, i.e. 'ocean', but not 'ean'.
+        """
+        # alternative solutions (for future reference)
         # df = df[df['name'].str.contains(filter)]  # simplest version (very quick)
-        print('Searchin in the following columns:', df.columns)
-
         # search_columns = [str(c) for c in df.columns if c != 'key']
+        # print('Searchin in the following columns:', df.columns)
         # mask = functools.reduce(np.logical_or, [df[col].str.contains(filter) for col in search_columns])
-                                # [df[col].str.contains(filter) for col in ['name', 'reference product', 'location']])
-        mask = functools.reduce(np.logical_or, [df[col].apply(lambda x: True if filter in x else False) for col in df.columns])
+        mask = functools.reduce(np.logical_or,
+                                [df[col].apply(lambda x: True if filter in x else False) for col in df.columns])
         return mask
 
     def reset_search(self):

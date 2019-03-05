@@ -313,7 +313,7 @@ class PandasDatabaseWidget(QtWidgets.QWidget):
         self.setLayout(self.v_layout)
 
     def update_table(self, db_name='biosphere3'):
-        print('Updateing database table: ', db_name)
+        # print('Updateing database table: ', db_name)
         self.label_database.setText("[{}]".format(db_name))
         self.table.sync(db_name=db_name)
 
