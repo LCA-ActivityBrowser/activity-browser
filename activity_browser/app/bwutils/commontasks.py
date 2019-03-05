@@ -94,15 +94,11 @@ def is_technosphere_db(db_name):
     if not db_name in bw.databases:
         raise KeyError('Not an existing database:', db_name)
     db = bw.Database(db_name)
-    db.filters = None
-    try:
-        db.filters = {'type': 'emission'}
-        data = next(itertools.islice(db, 0, 1))
-        db.filters = None
-        return False
-    except:
-        db.filters = None
+    act = db.random()
+    if act.get('type', 'process') == "process":
         return True
+    else:
+        return False
 
 
 # Activity

@@ -195,7 +195,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
 
     def connect_signals(self):
         signals.database_selected.connect(
-            lambda name, limit_width="ActivitiesTable": self.sync(name)
+            lambda name: self.sync(name)
         )
         # signals.database_changed.connect(self.filter_database_changed)
         signals.database_changed.connect(
@@ -243,7 +243,6 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         # get fields
         fields = self.act_fields() if self.technosphere else self.ef_fields()
         self.fields = fields + ['key']
-        print('*** Fields:', self.fields)
 
         # get dataframe
         df = AB_metadata.dataframe[AB_metadata.dataframe['database'] == db_name]

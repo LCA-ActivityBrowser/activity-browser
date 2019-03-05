@@ -2,6 +2,7 @@
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from .inventory import ActivitiesBiosphereTable
 from .table import ABTableWidget, ABTableItem
 from .impact_categories import MethodsTable
 from ..icons import icons
@@ -103,18 +104,21 @@ class CSActivityTable(ABTableWidget):
         signals.calculation_setup_changed.emit()
 
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), ActivitiesTable):
+        if isinstance(event.source(), ActivitiesBiosphereTable):
             event.accept()
 
     def dropEvent(self, event):
-        new_keys = [item.key for item in event.source().selectedItems()]
-        for key in new_keys:
+        # new_keys = [item.key for item in event.source().selectedItems()]
+        source_table = event.source()
+        print('Dropevent from:', source_table)
+        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+        event.accept()
+
+        for key in keys:
             act = bw.get_activity(key)
             if act.get('type', 'process') != "process":
                 continue
             self.append_row(key)
-
-        event.accept()
 
         signals.calculation_setup_changed.emit()
 

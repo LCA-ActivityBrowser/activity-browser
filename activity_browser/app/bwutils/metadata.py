@@ -35,7 +35,7 @@ Instead, this data store features a dataframe that contains all metadata and can
         """
         dfs = list()
         dfs.append(self.dataframe)
-        print('Current databases in the MetaDataStore:', self.databases)
+        print('Current shape and databases in the MetaDataStore:', self.dataframe.shape, self.databases)
         for db_name in db_names_list:
             if db_name not in bw.databases:
                 raise ValueError('This database does not exist:', db_name)
@@ -58,7 +58,7 @@ Instead, this data store features a dataframe that contains all metadata and can
         # add this metadata to already existing metadata
         self.dataframe = pd.concat(dfs, sort=False)
         self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
-        print('Dimensions of the Metadata:', self.dataframe.shape)
+        # print('Dimensions of the Metadata:', self.dataframe.shape)
 
     def update_metadata(self, key):
         """Update metadata when an activity has changed.
@@ -68,35 +68,32 @@ Instead, this data store features a dataframe that contains all metadata and can
         3. An activity has been added.
         """
         try:
-            print('Project:', bw.projects.current)
-            print(type(key))
             act = bw.get_activity(key)  # if this does not work, it has been deleted (see except:).
         except:
             # Situation 1: activity has been deleted (metadata needs to be deleted)
-            print('Deleting activity:', key)
-            print(self.dataframe.shape)
+            print('Deleting activity from metadata:', key)
             self.dataframe.drop(key, inplace=True)
-            print('Dimensions of the Metadata:', self.dataframe.shape)
+            # print('Dimensions of the Metadata:', self.dataframe.shape)
             return
 
         db = key[0]
         if db not in self.databases:
-            print('Database has not been added to metadata.')
+            # print('Database has not been added to metadata.')
             self.add_metadata([db])
         else:
             if key in self.dataframe.index:  # Situation 2: activity has been modified (metadata needs to be updated)
-                print('Updating activity: ', act, key)
+                print('Updating activity in metadata: ', act, key)
                 for col in self.dataframe.columns:
                     self.dataframe.loc[key][col] = act.get(col, '')
                 self.dataframe.loc[key]['key'] = act.key
 
             else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
-                print('Adding activity:', act, key)
+                print('Adding activity to metadata:', act, key)
                 df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
                 df_new['key'] = [act.key]
                 self.dataframe = pd.concat([self.dataframe, df_new], sort=False)
                 self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
-            print('Dimensions of the Metadata:', self.dataframe.shape)
+            # print('Dimensions of the Metadata:', self.dataframe.shape)
 
     def reset_metadata(self):
         """Deletes metadata when the project is changed."""
