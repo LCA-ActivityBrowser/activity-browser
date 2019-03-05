@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from .inventory import ActivitiesTable
-from .inventory import BiosphereFlowsTable, ActivitiesBiosphereTable
+from .inventory import ActivitiesBiosphereTable
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
@@ -72,9 +71,7 @@ class ExchangeTable(ABTableWidget):
 
     def dragEnterEvent(self, event):
         acceptable = (
-            ActivitiesTable,
             ExchangeTable,
-            BiosphereFlowsTable,
             ActivitiesBiosphereTable,
         )
         if isinstance(event.source(), acceptable):

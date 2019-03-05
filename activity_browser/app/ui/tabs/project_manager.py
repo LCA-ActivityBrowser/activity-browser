@@ -1,19 +1,14 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
-import brightway2 as bw
 
 from ..style import header
 from ..icons import icons
 from ..tables import (
-    ActivitiesTable,
     DatabasesTable,
-    BiosphereFlowsTable,
     ProjectListWidget,
     ActivitiesBiosphereTable,
 )
 from ...signals import signals
-from ...bwutils.metadata import AB_metadata
-from ...bwutils.commontasks import is_technosphere_db
 
 
 class ProjectTab(QtWidgets.QWidget):
@@ -22,31 +17,20 @@ class ProjectTab(QtWidgets.QWidget):
         # main widgets
         self.projects_widget = ProjectsWidget()
         self.databases_widget = DatabaseWidget(self)
-        self.database_widget = PandasDatabaseWidget(self)
-        self.activities_widget = ActivitiesWidget(self)
-        self.flows_widget = BiosphereFlowsWidget(self)
+        self.activity_biosphere_widget = ActivityBiosphereWidget(self)
 
         # Layout
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         # self.splitter.addWidget(self.projects_widget)
         self.splitter.addWidget(self.databases_widget)
-        self.splitter.addWidget(self.database_widget)
-        self.splitter.addWidget(self.activities_widget)
-        self.splitter.addWidget(self.flows_widget)
+        self.splitter.addWidget(self.activity_biosphere_widget)
 
         self.overall_layout = QtWidgets.QVBoxLayout()
         self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
         self.overall_layout.addWidget(self.projects_widget)
-
-        # self.overall_layout.addWidget(self.databases_widget)
-        # self.overall_layout.addWidget(self.activities_widget)
-        # self.overall_layout.addWidget(self.flows_widget)
         self.overall_layout.addWidget(self.splitter)
         self.overall_layout.addStretch()
         self.setLayout(self.overall_layout)
-
-        self.activities_widget.hide()
-        self.flows_widget.hide()
 
         self.connect_signals()
 
@@ -55,38 +39,30 @@ class ProjectTab(QtWidgets.QWidget):
         signals.database_selected.connect(self.update_widgets)
 
     def change_project(self):
-        self.activities_widget.table.setRowCount(0)
-        self.flows_widget.table.setRowCount(0)
         self.update_widgets()
 
     def update_widgets(self):
         """Update widgets when a new database has been selected or the project has been changed.
         Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
         no_databases = self.databases_widget.table.rowCount() == 0
-        no_activities = self.activities_widget.table.rowCount() == 0
-        no_biosphere_flows = self.flows_widget.table.rowCount() == 0
 
         self.databases_widget.update_widget()
 
-        if not no_databases and no_activities and no_biosphere_flows:
+        if not no_databases:
             self.databases_widget.label_no_database_selected.show()
         else:
             self.databases_widget.label_no_database_selected.hide()
-        if no_activities:
-            self.activities_widget.hide()
-        else:
-            self.activities_widget.show()
-        if no_biosphere_flows:
-            self.flows_widget.hide()
-        else:
-            self.flows_widget.show()
+            self.activity_biosphere_widget.hide()
         self.resize_splitter()
 
     def resize_splitter(self):
         """Splitter sizes need to be reset (for some reason this is buggy if not done like this)"""
-        widgets = [self.databases_widget, self.activities_widget, self.flows_widget]
+        widgets = [self.databases_widget, self.activity_biosphere_widget]
         sizes = [x.sizeHint().height() for x in widgets]
+        print('Sizes:', sizes)
         self.splitter.setSizes(sizes)
+
+
         # print("Widget sizes:", sizes)
         # print("\nSH DB/Act/Bio: {}/{}/{}". format(*[x.sizeHint() for x in widgets]))
         # print("Splitter Sizes:", self.splitter.sizes())
@@ -142,23 +118,6 @@ class HeaderTableTemplate(QtWidgets.QWidget):
             self.header_layout.addWidget(self.label_database)
             signals.database_selected.connect(self.database_changed)
 
-        if self.searchable:  # include searchbox
-            self.search_box = QtWidgets.QLineEdit()
-            self.search_box.setPlaceholderText("Filter by search string")
-            reset_search_button = QtWidgets.QPushButton("Reset")
-            reset_search_button.clicked.connect(self.table.reset_search)
-            reset_search_button.clicked.connect(self.search_box.clear)
-            self.search_box.returnPressed.connect(self.set_search_term)
-            self.fuzzy_checkbox = QtWidgets.QCheckBox('Fuzzy Search')
-            self.fuzzy_checkbox.setToolTip(
-                '''Try the fuzzy search if normal search doesn't yield the desired results.
-                The fuzzy search currently only searches for matches in the  name field.'''
-            )
-            signals.project_selected.connect(self.search_box.clear)
-            self.header_layout.addWidget(self.search_box)
-            self.header_layout.addWidget(reset_search_button)
-            self.header_layout.addWidget(self.fuzzy_checkbox)
-
         # Overall Layout
         self.v_layout = QtWidgets.QVBoxLayout()
         self.v_layout.setAlignment(QtCore.Qt.AlignTop)
@@ -166,23 +125,10 @@ class HeaderTableTemplate(QtWidgets.QWidget):
         self.v_layout.addWidget(self.table)
         self.setLayout(self.v_layout)
 
-        # Size Policy
-        # self.header_widget.setSizePolicy(QtWidgets.QSizePolicy(
-        #     QtWidgets.QSizePolicy.Maximum,
-        #     QtWidgets.QSizePolicy.Maximum)
-        # )
         self.table.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred,
             QtWidgets.QSizePolicy.Maximum)
         )
-
-    def set_search_term(self):
-        search_term = self.search_box.text()
-        if self.fuzzy_checkbox.isChecked() and hasattr(self.table, 'fuzzy_search_index'):
-            self.table.update_search_index()
-            self.table.fuzzy_search(search_term)
-        else:
-            self.table.search(search_term)
 
     def database_changed(self):
         if hasattr(self, "label_database"):
@@ -211,9 +157,10 @@ class DatabaseWidget(HeaderTableTemplate):
         self.header_layout.addWidget(self.add_default_data_button)
         self.header_layout.addWidget(self.new_database_button)
         self.header_layout.addWidget(self.import_database_button)
+        self.header_layout.addWidget(self.label_no_database_selected)
 
         # Overall Layout
-        self.v_layout.addWidget(self.label_no_database_selected)
+        # self.v_layout.addWidget(self.label_no_database_selected)
 
         self.connect_signals()
 
@@ -237,26 +184,10 @@ class DatabaseWidget(HeaderTableTemplate):
             self.table.show()
 
 
-class ActivitiesWidget(HeaderTableTemplate):
-    TABLE = ActivitiesTable
-    HEADER = 'Activities:'
-    searchable = True
-    #def __init__(self, parent):
-    #    super(ActivitiesWidget, self).__init__(parent)
-
-
-class BiosphereFlowsWidget(HeaderTableTemplate):
-    TABLE = BiosphereFlowsTable
-    HEADER = 'Biosphere Flows:'
-    searchable = True
-
-
-
-
-class PandasDatabaseWidget(QtWidgets.QWidget):
+class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, parent):
-        super(PandasDatabaseWidget, self).__init__(parent)
-        self.HEADER = 'Datasets'
+        super(ActivityBiosphereWidget, self).__init__(parent)
+        self.header = 'Datasets'
 
         self.table = ActivitiesBiosphereTable()
 
@@ -264,46 +195,14 @@ class PandasDatabaseWidget(QtWidgets.QWidget):
         self.header_widget = QtWidgets.QWidget()
         self.header_layout = QtWidgets.QHBoxLayout()
         self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.header_layout.addWidget(header(self.HEADER))
+        self.header_layout.addWidget(header(self.header))
         self.header_widget.setLayout(self.header_layout)
 
         self.label_database = QtWidgets.QLabel("[]")
         self.header_layout.addWidget(self.label_database)
         signals.database_selected.connect(self.update_table)
 
-        self.searchable = True
-        if self.searchable:  # include searchbox
-            # 1st search box
-            self.search_box = QtWidgets.QLineEdit()
-            self.search_box.setPlaceholderText("Filter by search string")
-            self.search_box.returnPressed.connect(self.set_search_term)
-
-            # 2nd search box
-            self.search_box2 = QtWidgets.QLineEdit()
-            self.search_box2.setPlaceholderText("Filter by search string")
-            self.search_box2.returnPressed.connect(self.set_search_term)
-
-            # search logic between both search fields
-            self.logic_fields = ['AND', 'OR']
-            self.logic_dropdown = QtWidgets.QComboBox()
-            self.logic_dropdown.addItems(self.logic_fields)
-
-            self.logic_fields = ['AND', 'OR', 'AND NOT']
-            self.logic_dropdown = QtWidgets.QComboBox()
-            self.logic_dropdown.addItems(self.logic_fields)
-
-            # reset search
-            reset_search_button = QtWidgets.QPushButton("Reset")
-            reset_search_button.clicked.connect(self.table.reset_search)
-            reset_search_button.clicked.connect(self.search_box.clear)
-            reset_search_button.clicked.connect(self.search_box2.clear)
-
-            signals.project_selected.connect(self.search_box.clear)
-            self.header_layout.addWidget(self.search_box)
-            self.header_layout.addWidget(self.logic_dropdown)
-            self.header_layout.addWidget(self.search_box2)
-
-            self.header_layout.addWidget(reset_search_button)
+        self.setup_search()
 
         # Overall Layout
         self.v_layout = QtWidgets.QVBoxLayout()
@@ -312,8 +211,60 @@ class PandasDatabaseWidget(QtWidgets.QWidget):
         self.v_layout.addWidget(self.table)
         self.setLayout(self.v_layout)
 
+        self.table.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        signals.project_selected.connect(self.reset_widget)
+
+    # def sizeHint(self):
+    #     return self.table.sizeHint()
+
+    def reset_widget(self):
+        self.hide()
+        self.table.reset_table()
+
+    def setup_search(self):
+        # 1st search box
+        self.search_box = QtWidgets.QLineEdit()
+        self.search_box.setPlaceholderText("Filter by search string")
+        self.search_box.returnPressed.connect(self.set_search_term)
+
+        # 2nd search box
+        self.search_box2 = QtWidgets.QLineEdit()
+        self.search_box2.setPlaceholderText("Filter by search string")
+        self.search_box2.returnPressed.connect(self.set_search_term)
+
+        # search logic between both search fields
+        self.logic_fields = ['AND', 'OR']
+        self.logic_dropdown = QtWidgets.QComboBox()
+        self.logic_dropdown.addItems(self.logic_fields)
+
+        self.logic_fields = ['AND', 'OR', 'AND NOT']
+        self.logic_dropdown = QtWidgets.QComboBox()
+        self.logic_dropdown.addItems(self.logic_fields)
+
+        # reset search
+        reset_search_button = QtWidgets.QPushButton("Reset")
+        reset_search_button.clicked.connect(self.table.reset_search)
+        reset_search_button.clicked.connect(self.search_box.clear)
+        reset_search_button.clicked.connect(self.search_box2.clear)
+
+        signals.project_selected.connect(self.search_box.clear)
+        self.header_layout.addWidget(self.search_box)
+        self.header_layout.addWidget(self.logic_dropdown)
+        self.header_layout.addWidget(self.search_box2)
+
+        self.header_layout.addWidget(reset_search_button)
+
     def update_table(self, db_name='biosphere3'):
         # print('Updateing database table: ', db_name)
+        if self.table.database_name:
+            self.show()
         self.label_database.setText("[{}]".format(db_name))
         self.table.sync(db_name=db_name)
 

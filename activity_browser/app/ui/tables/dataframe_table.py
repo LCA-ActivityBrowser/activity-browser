@@ -22,6 +22,12 @@ class ABDataFrameTable(QtWidgets.QTableView):
         self.dataframe = None
         # self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 
+    def get_max_height(self):
+        return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
+                 self.horizontalHeader().height() + self.horizontalScrollBar().height()
+
+    def sizeHint(self):
+        return QtCore.QSize(100, self.get_max_height())
 
     @classmethod
     def decorated_sync(cls, sync):
@@ -36,6 +42,8 @@ class ABDataFrameTable(QtWidgets.QTableView):
             self.proxy_model.setSourceModel(self.model)
             self.proxy_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
             self.setModel(self.proxy_model)
+
+            self.setMaximumHeight(self.get_max_height())
 
             # self.verticalHeader().setDefaultSectionSize(self.rowHeight(0) - 8)
             # self.resizeColumnsToContents()
@@ -133,7 +141,6 @@ class PandasModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.ForegroundRole:
                 col_name = self._dataframe.columns[index.column()]
                 return QtGui.QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
-                #
                 # style_item.brushes.get(self.color, style_item.brushes.get("default"))
                 # if self._dataframe.columns[index.column()] == 'name':
                 #     return QtGui.QBrush(QtCore.Qt.red)

@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from .inventory import ActivitiesTable
-from .inventory import BiosphereFlowsTable
 from .LCA_setup import (
     CSActivityTable,
     CSList,
