@@ -360,7 +360,7 @@ class Controller(object):
             if product.get('input') == key:
                 product['input'] = new_act.key
         new_act.save()
-        signals.metadata_changed.emit(act.key)
+        signals.metadata_changed.emit(new_act.key)
         signals.database_changed.emit(act['database'])
         signals.databases_changed.emit()
         signals.open_activity_tab.emit(new_act.key)

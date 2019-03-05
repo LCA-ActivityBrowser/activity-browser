@@ -29,7 +29,6 @@ Instead, this data store features a dataframe that contains all metadata and can
         signals.project_selected.connect(self.reset_metadata)
         signals.metadata_changed.connect(self.update_metadata)
 
-
     def add_metadata(self, db_names_list):
         """Get metadata in form of a Pandas DataFrame for biosphere and technosphere databases
         for tables and additional aggregation.
@@ -48,8 +47,15 @@ Instead, this data store features a dataframe that contains all metadata and can
 
             # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
             df_temp = pd.DataFrame(bw.Database(db_name))
-            df_temp.index = pd.MultiIndex.from_tuples(zip(df_temp['database'], df_temp['code']))
+
+            # add keys and make MultiIndex from keys
+            keys = [k for k in zip(df_temp['database'], df_temp['code'])]
+            df_temp.index = pd.MultiIndex.from_tuples(keys)
+            df_temp['key'] = keys
+
             dfs.append(df_temp)
+
+        # add this metadata to already existing metadata
         self.dataframe = pd.concat(dfs, sort=False)
         self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
         print('Dimensions of the Metadata:', self.dataframe.shape)
@@ -57,17 +63,19 @@ Instead, this data store features a dataframe that contains all metadata and can
     def update_metadata(self, key):
         """Update metadata when an activity has changed.
         Three situations:
-        - Activity data has been modified.
-        - An activity has been added.
-        - An activity has been deleted."""
+        1. An activity has been deleted.
+        2. Activity data has been modified.
+        3. An activity has been added.
+        """
         try:
             print('Project:', bw.projects.current)
             print(type(key))
             act = bw.get_activity(key)  # if this does not work, it has been deleted (see except:).
         except:
+            # Situation 1: activity has been deleted (metadata needs to be deleted)
             print('Deleting activity:', key)
             print(self.dataframe.shape)
-            self.dataframe.drop([key])
+            self.dataframe.drop(key, inplace=True)
             print('Dimensions of the Metadata:', self.dataframe.shape)
             return
 
@@ -76,13 +84,16 @@ Instead, this data store features a dataframe that contains all metadata and can
             print('Database has not been added to metadata.')
             self.add_metadata([db])
         else:
-            if key in self.dataframe.index:  # activity has been modified and metadata needs to be updated
+            if key in self.dataframe.index:  # Situation 2: activity has been modified (metadata needs to be updated)
                 print('Updating activity: ', act, key)
                 for col in self.dataframe.columns:
                     self.dataframe.loc[key][col] = act.get(col, '')
-            else:
+                self.dataframe.loc[key]['key'] = act.key
+
+            else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
                 print('Adding activity:', act, key)
                 df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
+                df_new['key'] = [act.key]
                 self.dataframe = pd.concat([self.dataframe, df_new], sort=False)
                 self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
             print('Dimensions of the Metadata:', self.dataframe.shape)

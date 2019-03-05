@@ -2,6 +2,7 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 import numpy as np
 import appdirs
+from ..style import style_item
 
 class ABDataFrameTable(QtWidgets.QTableView):
     def __init__(self, parent=None, maxheight=None, *args, **kwargs):
@@ -129,6 +130,20 @@ class PandasModel(QtCore.QAbstractTableModel):
                     # this enables to show also tuples (e.g. category information like ('air', 'urban air') )
                     value = str(value)
                 return QtCore.QVariant(value)
+            if role == QtCore.Qt.ForegroundRole:
+                col_name = self._dataframe.columns[index.column()]
+                return QtGui.QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
+                #
+                # style_item.brushes.get(self.color, style_item.brushes.get("default"))
+                # if self._dataframe.columns[index.column()] == 'name':
+                #     return QtGui.QBrush(QtCore.Qt.red)
+                # value = self._dataframe.iloc[index.row(), index.column()]
+                # if type(value) == np.float64:  # QVariant cannot use the pandas/numpy float64 type
+                #     value = float(value)
+                # else:
+                #     # this enables to show also tuples (e.g. category information like ('air', 'urban air') )
+                #     value = str(value)
+                # return QtCore.QVariant(value)
         return None
 
     def headerData(self, section, orientation, role):

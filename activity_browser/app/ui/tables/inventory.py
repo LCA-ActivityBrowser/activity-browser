@@ -360,6 +360,9 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         for action in self.actions:
             self.addAction(action)
 
+        # TODO: several of these actions could be done for several activities at
+        #  the same time (e.g. deleting), which is currently not supported
+
         self.open_activity_action.triggered.connect(
             lambda x: self.item_double_clicked(self.currentIndex())
         )
@@ -424,7 +427,6 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
 
         # get dataframe
         df = AB_metadata.dataframe[AB_metadata.dataframe['database'] == db_name]
-        df['key'] = [k for k in zip(df['database'], df['code'])]
         self.dataframe = df[self.fields].reset_index(drop=True)
 
         # sort ignoring case sensitivity
