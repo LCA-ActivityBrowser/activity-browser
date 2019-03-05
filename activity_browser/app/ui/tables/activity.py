@@ -238,25 +238,25 @@ class ExchangeTable(ABTableWidget):
                     amount_format_string.format(exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
 
                 self.setItem(row, 1, ABTableItem(
-                    adj_act.get('unit', 'Unknown'), color="unit"))
+                    adj_act.get('unit', 'Unknown'), exchange=exc, color="unit"))
 
                 self.setItem(row, 2, ABTableItem(
                     adj_act.get('name'), exchange=exc, color="product"))
 
                 self.setItem(row, 3, ABTableItem(
-                    " - ".join(adj_act.get('categories', [])), color="categories"))
+                    " - ".join(adj_act.get('categories', [])), exchange=exc, color="categories"))
 
                 self.setItem(row, 4, ABTableItem(
-                    adj_act.get('database'), color="database"))
+                    adj_act.get('database'), exchange=exc, color="database"))
 
                 self.setItem(row, 5, ABTableItem(
-                    str(exc.get("uncertainty type", ""))))
+                    str(exc.get("uncertainty type", "")), exchange=exc))
 
                 # todo: investigate BW: can flows have both a Formula and an Amount? Or mutually exclusive?
                 # what if they have both, and they contradict? Is this handled in BW - so AB doesn't need to worry?
                 # is the amount calculated and persisted separately to the formula?
                 # if not - optimal behaviour of this table is: show Formula instead of amount in 1st col when present?
-                self.setItem(row, 6, ABTableItem(exc.get('formula', '')))
+                self.setItem(row, 6, ABTableItem(exc.get('formula', ''), exchange=exc, ))
         self.ignore_changes = False
 
 
@@ -279,41 +279,3 @@ class ExchangesTablePrototype(ABTableWidget):
         self.database, self.qs, self.upstream = database, qs, upstream
         # print("Queryset:", self.database, self.qs, self.upstream)
         self.sync(limit)
-
-# class ProductTable(ExchangesTablePrototype):
-#     COLUMNS = {
-#         0: "amount",
-#         1: "unit",
-#         2: "reference product",
-#     }
-#
-#
-#     def __init__(self, parent=None):
-#         super(ProductTable, self).__init__()
-#
-#     @ABTableWidget.decorated_sync
-#     def sync(self, limit=100):
-#         self.setRowCount(min(len(self.qs), limit))
-#         self.setHorizontalHeaderLabels(self.column_labels)
-#
-#         edit_flag = [QtCore.Qt.ItemIsEditable]
-#
-#         for row, exc in enumerate(self.qs):
-#             adj_act = exc.input
-#             print(adj_act)
-#             if row == limit:
-#                 break
-#
-#             # self.setItem(row, 0, ABTableItem(
-#
-#             self.setItem(row, 0, ABTableItem(
-#                 self.amount_format_string.format(
-#                     exc.get('amount')), exchange=exc, set_flags=edit_flag, color="amount"))
-#
-#             self.setItem(row, 1, ABTableItem(
-#                 adj_act.get('unit', 'Unknown'),  exchange=exc, set_flags=edit_flag, color="unit"))
-#
-#             self.setItem(row, 2, ABTableItem(
-#                 # correct reference product name is stored in the exchange itself and not the activity
-#                 adj_act.get('reference product') or adj_act.get("name"), exchange=exc, set_flags=edit_flag, color="reference product"))
-#

@@ -133,7 +133,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setDragEnabled(True)
-        self.drag_model = True
+        self.drag_model = True  # to enable the DragPandasModel (with flags for dragging)
         self.setDragDropMode(1)  # QtGui.QAbstractItemView.DragOnly
 
         self.setup_context_menu()
