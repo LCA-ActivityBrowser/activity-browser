@@ -1,21 +1,13 @@
 # -*- coding: utf-8 -*-
-import pandas as pd
 import numpy as np
-from brightway2 import get_activity
 
 from .dataframe_table import ABDataFrameTable
 
 
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
-    def sync(self, mlca, relative=False):
-        if relative:
-            data = mlca.lca_scores_normalized
-        else:
-            data = mlca.lca_scores
-        col_labels = [" | ".join(x) for x in mlca.methods]
-        row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in mlca.func_units]
-        self.dataframe = pd.DataFrame(data, index=row_labels, columns=col_labels)
+    def sync(self, df):
+        self.dataframe = df
 
 
 class InventoryTable(ABDataFrameTable):

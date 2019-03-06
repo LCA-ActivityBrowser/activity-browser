@@ -187,8 +187,10 @@ class Contributions(object):
             translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys
 
-    def get_labelled_contribution_dict(self, cont_dict, x_fields=None, y_fields=None):
-        df = pd.DataFrame(cont_dict)
+    def join_df_with_metadata(self, df, x_fields=None, y_fields=None, special_keys=None):
+        """Join a dataframe that has keys on the index with metadata. Metadata fields are defined in x_fields.
+        If columns are also keys (and not, e.g. method names), they can also be replaced with metadata, if y_fields are provided.
+        """
 
         # replace column keys with labels
         df.columns = self.get_labels(df.columns, fields=y_fields, separator='\n')
@@ -200,15 +202,21 @@ class Contributions(object):
         # join data with metadata
         joined = metadata.join(df, how='outer')
 
-        # replace index keys with labels
-        try:  # first put Total and Rest to the first two positions in the dataframe
-            index_for_Rest_Total = [('Total', ''), ('Rest', '')] + keys
-            joined = joined.loc[index_for_Rest_Total]
-        except:
-            print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
+        if special_keys:
+            # replace index keys with labels
+            try:  # first put Total and Rest to the first two positions in the dataframe
+                index_for_Rest_Total = special_keys + keys
+                joined = joined.loc[index_for_Rest_Total]
+            except:
+                print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
         joined.index = self.get_labels(joined.index, fields=x_fields)
-        joined = joined.reset_index()
         return joined
+
+    def get_labelled_contribution_dict(self, cont_dict, x_fields=None, y_fields=None):
+        df = pd.DataFrame(cont_dict)
+        joined = self.join_df_with_metadata(df, x_fields=x_fields, y_fields=y_fields,
+                                          special_keys=[('Total', ''), ('Rest', '')])
+        return joined.reset_index(drop=False)
 
     def inventory_df(self, type='biosphere'):
         """Returns an inventory dataframe with metadata."""
@@ -227,6 +235,14 @@ class Contributions(object):
             joined = metadata.join(df)
             joined.reset_index(inplace=True, drop=True)
         return joined
+
+    def lca_scores_df(self, normalized=False):
+        scores = self.mlca.lca_scores if not normalized else self.mlca.lca_scores_normalized
+        df = pd.DataFrame(scores,
+             index=pd.MultiIndex.from_tuples(self.mlca.fu_activity_keys),
+             columns=self.mlca.methods)
+        joined = self.join_df_with_metadata(df, x_fields=self.act_fields, y_fields=None)
+        return joined.reset_index(drop=False)
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None, limit=5, normalize=False,
                                   limit_type="number"):

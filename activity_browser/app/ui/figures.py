@@ -59,50 +59,6 @@ class Plot(QtWidgets.QWidget):
             self.figure.savefig(filepath)
 
 
-class CorrelationPlot(Plot):
-    def __init__(self, parent=None, *args):
-        super(CorrelationPlot, self).__init__(parent, *args)
-        sns.set(style="darkgrid")
-
-    def plot(self, mlca, labels):
-        """ Plot a heatmap of correlations between different functional units. """
-        # need to clear the figure and add axis again
-        # because of the colorbar which does not get removed by the ax.clear()
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
-        canvas_size = self.canvas.get_width_height()
-        # print("Canvas size:", canvas_size)
-        size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
-        self.figure.set_size_inches(size[0], size[1])
-
-        df = pd.DataFrame(data=mlca.lca_scores_normalized.T, columns=labels)
-        corr = df.corr()
-        # Generate a mask for the upper triangle
-        mask = np.zeros_like(corr, dtype=np.bool)
-        mask[np.triu_indices_from(mask)] = True
-        # Draw the heatmap with the mask and correct aspect ratio
-        vmax = np.abs(corr.values[~mask]).max()
-        # vmax = np.abs(corr).max()
-        sns.heatmap(corr, mask=mask, cmap=plt.cm.PuOr, vmin=-vmax, vmax=vmax,
-                    square=True, linecolor="lightgray", linewidths=1, ax=self.ax)
-        for i in range(len(corr)):
-            self.ax.text(i + 0.5, i + 0.5, corr.columns[i],
-                      ha="center", va="center",
-                      rotation=0 if len(labels) <= 8 else 45,
-                      size=11 if len(labels) <= 8 else 9)
-            for j in range(i + 1, len(corr)):
-                s = "{:.3f}".format(corr.values[i, j])
-                self.ax.text(j + 0.5, i + 0.5, s,
-                          ha="center", va="center",
-                          rotation=0 if len(labels) <= 8 else 45,
-                          size=11 if len(labels) <= 8 else 9)
-        self.ax.axis("off")
-
-        # refresh canvas
-        self.canvas.draw()
-        size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumHeight(size_pixels[1])
-
 
 class LCAResultsBarChart(Plot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
@@ -146,41 +102,34 @@ class LCAResultsPlot(Plot):
         super(LCAResultsPlot, self).__init__(parent, *args)
         self.plot_name = 'LCA heatmap'
 
-    def plot(self, mlca, normalised=False):
+    def plot(self, df):
         """ Plot a heatmap grid of the different methods and functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.figure.clf()
         self.ax = self.figure.add_subplot(111)
 
-        activity_names = [
-            format_activity_label(next(iter(f.keys())), style='pnl') for f in mlca.func_units
-        ]
+        dfp = df.copy()
+        dfp.index = dfp['index']
+        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
+        if 'Total' in dfp.index:
+            dfp.drop("Total", inplace=True)
 
-        # From https://stanford.edu/~mwaskom/software/seaborn/tutorial/color_palettes.html
-        # cmap = sns.cubehelix_palette(8, start=.5, rot=-.75, as_cmap=True)
+        # avoid figures getting too large horizontally
+        dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
 
-        if normalised:
-            lca_scores = mlca.lca_scores_normalized  # Normalize to get relative results
-        else:
-            lca_scores = mlca.lca_scores
-
-        hm = sns.heatmap(
-            lca_scores,
-            annot=True,
-            linewidths=.05,
-            # cmap=cmap,
-            xticklabels=[wrap_text(",".join(x), max_length=40) for x in mlca.methods],
-            yticklabels=activity_names,
-            ax=self.ax,
-            # cbar_ax=self.axcb,
-            annot_kws={"size": 11 if len(mlca.methods) <= 8 else 9,
-                       'rotation': 0 if len(mlca.methods) <= 8 else 60}
-        )
+        hm = sns.heatmap(dfp,
+                    ax=self.ax,
+                    cmap='Blues',
+                    annot=True,
+                    linewidths=.05,
+                    annot_kws={"size": 11 if dfp.shape[1] <= 8 else 9,
+                            'rotation': 0 if dfp.shape[1] <= 8 else 60}
+                    )
         hm.tick_params(labelsize=8)
 
         # refresh canvas
-        size_inches = (2 + len(mlca.methods) * 0.5, 4 + len(activity_names) * 0.55)
+        size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[0] * 0.55)
         self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
@@ -230,6 +179,51 @@ class ContributionPlot(Plot):
         # self.setMinimumHeight(size_pixels[1])
         # self.canvas.draw()
 
+        self.canvas.draw()
+        size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        self.setMinimumHeight(size_pixels[1])
+
+
+class CorrelationPlot(Plot):
+    def __init__(self, parent=None, *args):
+        super(CorrelationPlot, self).__init__(parent, *args)
+        sns.set(style="darkgrid")
+
+    def plot(self, mlca, labels):
+        """ Plot a heatmap of correlations between different functional units. """
+        # need to clear the figure and add axis again
+        # because of the colorbar which does not get removed by the ax.clear()
+        self.figure.clf()
+        self.ax = self.figure.add_subplot(111)
+        canvas_size = self.canvas.get_width_height()
+        # print("Canvas size:", canvas_size)
+        size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
+        self.figure.set_size_inches(size[0], size[1])
+
+        df = pd.DataFrame(data=mlca.lca_scores_normalized.T, columns=labels)
+        corr = df.corr()
+        # Generate a mask for the upper triangle
+        mask = np.zeros_like(corr, dtype=np.bool)
+        mask[np.triu_indices_from(mask)] = True
+        # Draw the heatmap with the mask and correct aspect ratio
+        vmax = np.abs(corr.values[~mask]).max()
+        # vmax = np.abs(corr).max()
+        sns.heatmap(corr, mask=mask, cmap=plt.cm.PuOr, vmin=-vmax, vmax=vmax,
+                    square=True, linecolor="lightgray", linewidths=1, ax=self.ax)
+        for i in range(len(corr)):
+            self.ax.text(i + 0.5, i + 0.5, corr.columns[i],
+                      ha="center", va="center",
+                      rotation=0 if len(labels) <= 8 else 45,
+                      size=11 if len(labels) <= 8 else 9)
+            for j in range(i + 1, len(corr)):
+                s = "{:.3f}".format(corr.values[i, j])
+                self.ax.text(j + 0.5, i + 0.5, s,
+                          ha="center", va="center",
+                          rotation=0 if len(labels) <= 8 else 45,
+                          size=11 if len(labels) <= 8 else 9)
+        self.ax.axis("off")
+
+        # refresh canvas
         self.canvas.draw()
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])

@@ -8,7 +8,7 @@ from ..tables import (
     ContributionTable,
     InventoryTable,
 )
-from ..graphics import (
+from ..figures import (
     LCAResultsPlot,
     ContributionPlot,
     CorrelationPlot,
@@ -576,6 +576,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.add_header(self.header_text)
 
         self.add_combobox(label='Choose LCIA method')
+
         self.plot = LCAResultsBarChart(self.parent)
         self.plot.plot_name = 'LCA scores_' + self.parent.cs_name
         self.layout.addWidget(self.plot)
@@ -602,6 +603,7 @@ class LCIAResultsTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
         super(LCIAResultsTab, self).__init__(parent, **kwargs)
         self.parent = parent
+        self.df = None
 
         self.header_text = "LCIA Results"
         self.add_header(self.header_text)
@@ -621,12 +623,14 @@ class LCIAResultsTab(AnalysisTab):
     def update_plot(self):
         if not isinstance(self.plot, LCAResultsPlot):
             self.plot = LCAResultsPlot(self.parent)
-        self.plot.plot(self.parent.mlca, normalised=self.relative)
+        self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
+        self.plot.plot(self.df)
 
     def update_table(self):
         if not isinstance(self.table, LCAResultsTable):
             self.table = LCAResultsTable()
-        self.table.sync(self.parent.mlca, relative=self.relative)
+        self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
+        self.table.sync(self.df)
 
 
 class ElementaryFlowContributionTab(AnalysisTab):
