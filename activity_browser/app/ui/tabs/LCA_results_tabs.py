@@ -246,6 +246,7 @@ class AnalysisTab(QWidget):
             self.main_space_widget_layout.addWidget(self.main_space_plot, 1)
         if self.table:
             self.main_space_widget_layout.addWidget(self.main_space_table)
+        self.main_space_widget_layout.addStretch()
 
         if not self.custom:
             pass

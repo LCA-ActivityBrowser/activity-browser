@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets, QtGui
-import numpy as np
+
 import appdirs
 from ..style import style_item
 
@@ -108,9 +108,13 @@ class ABDataFrameTable(QtWidgets.QTableView):
         if e.modifiers() and QtCore.Qt.ControlModifier:
 
             if e.key() == QtCore.Qt.Key_C:  # copy
-                selection = self.selectedIndexes()
-                rows = sorted(list(set(index.row() for index in selection)))
-                columns = sorted(list(set(index.column() for index in selection)))
+                # selection = self.selectedIndexes()
+                selection = [self.get_source_index(pindex) for pindex in self.selectedIndexes()]
+                rows = [index.row() for index in selection]
+                columns = [index.column() for index in selection]
+                rows = sorted(set(rows), key=rows.index)
+                columns = sorted(set(columns), key=columns.index)
+                # print('Selected rows/columns:', rows, columns)
                 self.model._dataframe.iloc[rows, columns].to_clipboard()
 
 
@@ -132,25 +136,21 @@ class PandasModel(QtCore.QAbstractTableModel):
         if index.isValid():
             if role == QtCore.Qt.DisplayRole:
                 value = self._dataframe.iloc[index.row(), index.column()]
-                if type(value) == np.float64:  # QVariant cannot use the pandas/numpy float64 type
-                    value = float(value)
-                else:
-                    # this enables to show also tuples (e.g. category information like ('air', 'urban air') )
-                    value = str(value)
-                return QtCore.QVariant(value)
-            if role == QtCore.Qt.ForegroundRole:
-                col_name = self._dataframe.columns[index.column()]
-                return QtGui.QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
-                # style_item.brushes.get(self.color, style_item.brushes.get("default"))
-                # if self._dataframe.columns[index.column()] == 'name':
-                #     return QtGui.QBrush(QtCore.Qt.red)
-                # value = self._dataframe.iloc[index.row(), index.column()]
+                try:
+                    return QtCore.QVariant(float(value))
+                except:
+                    return QtCore.QVariant(str(value))
                 # if type(value) == np.float64:  # QVariant cannot use the pandas/numpy float64 type
                 #     value = float(value)
                 # else:
                 #     # this enables to show also tuples (e.g. category information like ('air', 'urban air') )
                 #     value = str(value)
                 # return QtCore.QVariant(value)
+
+            if role == QtCore.Qt.ForegroundRole:
+                col_name = self._dataframe.columns[index.column()]
+                return QtGui.QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
+
         return None
 
     def headerData(self, section, orientation, role):
