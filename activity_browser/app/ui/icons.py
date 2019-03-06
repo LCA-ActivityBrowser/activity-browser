@@ -48,6 +48,7 @@ class Icons(object):
     switch = create_path('main', 'switch-state.png')
     ab = create_path('main', 'activitybrowser.png')
     graph_explorer = create_path('main', 'graph_explorer.png')
+    calculate = create_path('main', 'calculate.png')
 
 
 icons = Icons()

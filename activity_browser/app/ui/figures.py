@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 import appdirs
 import brightway2 as bw
+from time import time
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
 
@@ -227,3 +228,70 @@ class CorrelationPlot(Plot):
         self.canvas.draw()
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+
+
+class MonteCarloPlot(Plot):
+    """ Monte Carlo plot."""
+    def __init__(self, parent=None):
+        super(MonteCarloPlot, self).__init__(parent)
+        self.plot_name = 'MonteCarlo'
+
+    def plot(self, mc, method=None):
+        self.figure.clf()
+        self.ax = self.figure.add_subplot(111)
+
+        print('Calculating MC LCA')
+        print('method', method)
+        # method = ('IPCC 2013', 'climate change', 'GTP 100a')
+        FU = {bw.Database('ecoinvent 3.4 cutoff').random(): 1.0}
+
+        start = time()
+        mc = bw.MonteCarloLCA(demand=FU, method=method)
+        results = [next(mc) for x in range(10)]
+        print("MC LCA calculate in ({:.2g} seconds, )".format(time() - start))
+
+        # pmc = bw.ParallelMonteCarlo(demand=FU, iterations=100, method=method)
+        # start = time()
+        # results = pmc.calculate()
+        print("MC LCA calculate in ({:.2g} seconds, )".format(time() - start))
+
+        # n, bins, patches = plt.hist(results, normed=1, histtype="step")
+        self.ax.hist(results, density=1, histtype="step")
+
+        self.ax.set_xlabel(bw.methods[method]["unit"])
+        # self.ax.xlabel(bw.methods[method]["unit"])
+        # self.ax.ylabel("Probability")
+        # self.ax.title(FU)
+
+        # plt.hist(results, ax=self.ax, normed=True, histtype="step")
+        # self.ax.xlabel(method)
+        # self.ax.ylabel("Probability")
+
+        # # get matplotlib figure data
+        # hist = np.array(mc['histogram'])
+        # smoothed = np.array(mc['smoothed'])
+        # values = hist[:, 0]
+        # bins = hist[:, 1]
+        # sm_x = smoothed[:, 0]
+        # sm_y = smoothed[:, 1]
+        # median = mc['statistics']['median']
+        # mean = mc['statistics']['mean']
+        # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
+        #
+        # # plot
+        # self.figure_mc.clf()
+        # ax = self.figure_mc.add_subplot(111)
+        # plt.rcParams.update({'font.size': 10})
+        # ax.plot(values, bins)
+        # ax.plot(sm_x, sm_y)
+        # ax.vlines(lconfi, 0 , sm_y[0],
+        #           label='lower 95%: {:.3g}'.format(lconfi), color='red', linewidth=2.0)
+        # ax.vlines(upconfi, 0 , sm_y[-1],
+        #           label='upper 95%: {:.3g}'.format(upconfi), color='red', linewidth=2.0)
+        # ax.vlines(median, 0 , sm_y[self.helper.find_nearest(sm_x, median)],
+        #           label='median: {:.3g}'.format(median), color='magenta', linewidth=2.0)
+        # ax.vlines(mean, 0 , sm_y[self.helper.find_nearest(sm_x, mean)],
+        #           label='mean: {:.3g}'.format(mean), color='blue', linewidth=2.0)
+        # plt.xlabel('LCA scores ('+str(mc['iterations'])+' runs)'), plt.ylabel('probability')
+        # plt.legend(loc='upper right', prop={'size': 10})
+        self.canvas.draw()

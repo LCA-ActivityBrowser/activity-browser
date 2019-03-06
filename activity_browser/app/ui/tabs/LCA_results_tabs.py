@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
     QLabel, QCheckBox, QPushButton, QComboBox
+import brightway2 as bw
 
 from ..style import horizontal_line, vertical_line, header
 from ..tables import (
@@ -12,7 +13,8 @@ from ..figures import (
     LCAResultsPlot,
     ContributionPlot,
     CorrelationPlot,
-    LCAResultsBarChart
+    LCAResultsBarChart,
+    MonteCarloPlot,
 )
 from ...bwutils.multilca import MLCA, Contributions
 from ...bwutils import commontasks as bc
@@ -47,6 +49,7 @@ class LCAResultsSubTab(QTabWidget):
         self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
 
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
+        self.monte_carlo_tab = MonteCarloTab(self)
         # self.correlations_tab = CorrelationsTab(self)
         self.sankey_tab = SankeyNavigatorWidget(self.cs_name, parent=self)
         self.addTab(self.sankey_tab, "Sankey")
@@ -78,6 +81,7 @@ class LCAResultsSubTab(QTabWidget):
 
         # self.LCA_scores_tab.update_analysis_tab()
         self.LCA_scores_tab.update_tab()
+        self.monte_carlo_tab.update_tab()
         # self.inventory_tab.update_analysis_tab()
         self.EF_contribution_tab.update_analysis_tab()
         self.lcia_results_tab.update_analysis_tab()
@@ -752,3 +756,36 @@ class SankeyTab(QWidget):
     def __init__(self, parent):
         super(SankeyTab, self).__init__(parent)
         self.parent = parent
+
+
+class MonteCarloTab(NewAnalysisTab):
+    def __init__(self, parent=None):
+        super(MonteCarloTab, self).__init__(parent)
+        self.parent = parent
+
+        self.header_text = "Monte Carlo LCA"
+        self.add_header(self.header_text)
+
+        self.add_combobox(label='Choose LCIA method')
+
+        self.plot = MonteCarloPlot(self.parent)
+        self.plot.plot_name = 'LCA scores_' + self.parent.cs_name
+        self.layout.addWidget(self.plot)
+
+        self.add_export()
+        self.parent.addTab(self, "Monte Carlo")
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.combobox.currentIndexChanged.connect(self.update_plot)
+
+    def update_tab(self):
+
+        self.update_combobox([str(m) for m in self.parent.mlca.methods])
+        self.update_plot(method_index=0)
+
+    def update_plot(self, method_index=None):
+        if method_index is None or isinstance(method_index, str):
+            method_index = 0
+        self.plot.plot(self.parent.mlca, method=self.parent.mlca.methods[method_index])

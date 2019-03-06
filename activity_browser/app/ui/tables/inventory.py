@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 import datetime
-import itertools
 import arrow
 import brightway2 as bw
-import collections
 from PyQt5 import QtGui, QtWidgets, QtCore
 from bw2data.utils import natural_sort
-from fuzzywuzzy import process
 import functools
 import numpy as np
 import pandas as pd
@@ -147,6 +144,9 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         self.open_graph_action = QtWidgets.QAction(
             QtGui.QIcon(icons.graph_explorer), "Open in Graph Explorer", None)
 
+        # self.calculate_LCA = QtWidgets.QAction(
+        #     QtGui.QIcon(icons.calculate), "calculate LCA", None)
+        #
         self.new_activity_action = QtWidgets.QAction(
             QtGui.QIcon(icons.add), "Add new activity", None
         )
@@ -163,6 +163,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         self.actions = [
             self.open_activity_action,
             self.open_graph_action,
+            # self.calculate_LCA,
             self.new_activity_action,
             self.duplicate_activity_action,
             self.delete_activity_action,
@@ -180,6 +181,9 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         self.open_graph_action.triggered.connect(
             lambda x: signals.open_activity_graph_tab.emit(self.get_key(self.currentIndex()))
         )
+        # self.calculate_LCA.triggered.connect(
+        #     lambda x: self.LCA_calculation(self.get_key(self.currentIndex()))
+        # )
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database_name)
         )
@@ -218,6 +222,13 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         key = self.get_key(proxy_index)
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
+
+    # def LCA_calculation(self, key):
+    #     print(key)
+    #     func_unit = {key: 1.0}
+    #     for func_unit in bw.calculation_setups[name]['inv']:
+    #         for key, amount in func_unit.items():
+    #             self.append_row(key, str(amount))
 
     @ABDataFrameTable.decorated_sync
     def sync(self, db_name, df=None):
