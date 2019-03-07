@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
-from brightway2 import get_activity
-from collections import OrderedDict
 
 ca = ContributionAnalysis()
 
@@ -48,9 +46,14 @@ class MLCA(object):
         for i, m in enumerate(self.methods):
             self.method_dict_list.append({m: i})
 
+        # initial LCA and prepare method matrices
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
         self.lca.lci(factorize=True)
         self.method_matrices = []
+        for method in self.methods:
+            self.lca.switch_method(method)
+            self.method_matrices.append(self.lca.characterization_matrix)
+
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods)))
 
         # data to be stored
@@ -68,10 +71,6 @@ class MLCA(object):
             (len(self.func_units), len(self.methods), self.lca.biosphere_matrix.shape[0]))
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
-
-        for method in self.methods:
-            self.lca.switch_method(method)
-            self.method_matrices.append(self.lca.characterization_matrix)
 
         for row, func_unit in enumerate(self.func_units):
             self.lca.redo_lci(func_unit)  # lca calculation
@@ -103,7 +102,7 @@ class MLCA(object):
                 self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
 
         # todo: get rid of the below
-        self.func_unit_translation_dict = {str(get_activity(list(func_unit.keys())[0])): func_unit
+        self.func_unit_translation_dict = {str(bw.get_activity(list(func_unit.keys())[0])): func_unit
                                            for func_unit in self.func_units}
         #self.biosphere_flows_translation_dict =
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}

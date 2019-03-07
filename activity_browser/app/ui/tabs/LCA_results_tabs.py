@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
     QLabel, QCheckBox, QPushButton, QComboBox
+from PyQt5 import QtGui, QtWidgets
 import brightway2 as bw
 
 from ..style import horizontal_line, vertical_line, header
@@ -17,6 +18,7 @@ from ..figures import (
     MonteCarloPlot,
 )
 from ...bwutils.multilca import MLCA, Contributions
+from ...bwutils.montecarlo import CSMonteCarloLCA
 from ...bwutils import commontasks as bc
 from ..widgets import CutoffMenu
 from ..web.graphnav import SankeyNavigatorWidget
@@ -62,6 +64,7 @@ class LCAResultsSubTab(QTabWidget):
         """ Update the mlca calculation. """
         self.mlca = MLCA(self.cs_name)
         self.contributions = Contributions(self.mlca)
+        self.mc = CSMonteCarloLCA(self.cs_name)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
@@ -274,7 +277,7 @@ class AnalysisTab(QWidget):
 
     def update_plot(self, method=None):
         """Updates the plot. Method will be added in subclass."""
-        pass
+        raise NotImplemented
 
     def relativity_button(self, layout):
         if self.relativity is not None:
@@ -766,26 +769,109 @@ class MonteCarloTab(NewAnalysisTab):
         self.header_text = "Monte Carlo LCA"
         self.add_header(self.header_text)
 
-        self.add_combobox(label='Choose LCIA method')
+        self.add_MC_ui_elements()
 
+        self.mc = None
         self.plot = MonteCarloPlot(self.parent)
+        self.plot.hide()
         self.plot.plot_name = 'LCA scores_' + self.parent.cs_name
         self.layout.addWidget(self.plot)
+        # self.layout.addStretch()
 
-        self.add_export()
+        # todo: export
+        # self.add_export()
         self.parent.addTab(self, "Monte Carlo")
 
         self.connect_signals()
 
     def connect_signals(self):
-        self.combobox.currentIndexChanged.connect(self.update_plot)
+        self.button_run.clicked.connect(self.calculate_MC_LCA)
+        # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
+        self.combobox_methods.currentIndexChanged.connect(self.update_plot)
+
+        # signals
+        # self.radio_button_biosphere.clicked.connect(self.button_clicked)
+        # self.radio_button_technosphere.clicked.connect(self.button_clicked)
+
+    def add_MC_ui_elements(self):
+        self.layout_mc = QVBoxLayout()
+
+        # H-LAYOUT start simulation
+        self.button_run = QPushButton('Run Simulation')
+        self.label_runs = QLabel('Iterations:')
+        self.iterations = QtWidgets.QLineEdit('10')
+        self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
+
+        self.hlayout_run = QHBoxLayout()
+        self.hlayout_run.addWidget(self.button_run)
+        self.hlayout_run.addWidget(self.label_runs)
+        self.hlayout_run.addWidget(self.iterations)
+        self.hlayout_run.addStretch()
+        self.layout_mc.addLayout(self.hlayout_run)
+
+        # # buttons for all FUs or for all methods
+        # self.radio_button_all_fu = QRadioButton("For all functional units")
+        # self.radio_button_all_methods = QRadioButton("Technosphere flows")
+        #
+        # self.radio_button_biosphere.setChecked(True)
+        # self.radio_button_technosphere.setChecked(False)
+        #
+        # self.label_for_all_fu = QLabel('For all functional units')
+        # self.combobox_fu = QRadioButton()
+        # self.hlayout_fu = QHBoxLayout()
+
+        # FU selection
+        # self.label_fu = QLabel('Choose functional unit')
+        # self.combobox_fu = QComboBox()
+        # self.hlayout_fu = QHBoxLayout()
+        #
+        # self.hlayout_fu.addWidget(self.label_fu)
+        # self.hlayout_fu.addWidget(self.combobox_fu)
+        # self.hlayout_fu.addStretch()
+        # self.layout_mc.addLayout(self.hlayout_fu)
+
+        # method selection
+        self.method_selection_widget = QWidget()
+        self.label_methods = QLabel('Choose LCIA method')
+        self.combobox_methods = QComboBox()
+        self.hlayout_methods = QHBoxLayout()
+
+        self.hlayout_methods.addWidget(self.label_methods)
+        self.hlayout_methods.addWidget(self.combobox_methods)
+        self.hlayout_methods.addStretch()
+        self.method_selection_widget.setLayout(self.hlayout_methods)
+
+        self.layout_mc.addWidget(self.method_selection_widget)
+        self.method_selection_widget.hide()
+
+        self.layout.addLayout(self.layout_mc)
+
+    def calculate_MC_LCA(self):
+        iterations = int(self.iterations.text())
+        self.parent.mc.calculate(iterations=iterations)
+        self.method_selection_widget.show()
+        self.plot.show()
+        self.update_plot()
+
+    def update_combobox(self, combobox, labels):
+        """ Update the combobox menu. """
+        combobox.clear()
+        combobox.blockSignals(True)
+        combobox.insertItems(0, labels)
+        combobox.blockSignals(False)
 
     def update_tab(self):
+        self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
 
-        self.update_combobox([str(m) for m in self.parent.mlca.methods])
-        self.update_plot(method_index=0)
+    def update_plot(self):
+        # act = self.combobox_fu.currentText()
+        # activity_index = self.combobox_fu.currentIndex()
+        # act_key = self.parent.mc.activity_keys[activity_index]
 
-    def update_plot(self, method_index=None):
-        if method_index is None or isinstance(method_index, str):
-            method_index = 0
-        self.plot.plot(self.parent.mlca, method=self.parent.mlca.methods[method_index])
+        method_index = self.combobox_methods.currentIndex()
+        method = self.parent.mc.methods[method_index]
+        
+        # data = self.parent.mc.get_results_by(act_key=act_key, method=method)
+        df = self.parent.mc.get_results_dataframe(method=method)
+
+        self.plot.plot(df, method=method)

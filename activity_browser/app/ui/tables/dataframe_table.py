@@ -115,7 +115,7 @@ class ABDataFrameTable(QtWidgets.QTableView):
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
                 # print('Selected rows/columns:', rows, columns)
-                self.model._dataframe.iloc[rows, columns].to_clipboard()
+                self.model._dataframe.iloc[rows, columns].to_clipboard(index=False)  # index True includes headers
 
 
 class PandasModel(QtCore.QAbstractTableModel):
