@@ -244,43 +244,13 @@ class MonteCarloPlot(Plot):
         for col in df.columns:
             color = self.ax._get_lines.get_next_color()
             df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color, alpha=0.5)  # , histtype="step")
-            self.ax.axvline(df[col].median(), color=color)
+            # self.ax.axvline(df[col].median(), color=color)
+            self.ax.axvline(df[col].mean(), color=color)
 
         self.ax.set_xlabel(bw.methods[method]["unit"])
         self.ax.set_ylabel('Probability')
-        self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
-                  fancybox=True, shadow=True, ncol=1)
+        self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ) #ncol=2
 
-
-        # plt.hist(results, ax=self.ax, normed=True, histtype="step")
-        # self.ax.xlabel(method)
-        # self.ax.ylabel("Probability")
-
-        # # get matplotlib figure data
-        # hist = np.array(mc['histogram'])
-        # smoothed = np.array(mc['smoothed'])
-        # values = hist[:, 0]
-        # bins = hist[:, 1]
-        # sm_x = smoothed[:, 0]
-        # sm_y = smoothed[:, 1]
-        # median = mc['statistics']['median']
-        # mean = mc['statistics']['mean']
         # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
-        #
-        # # plot
-        # self.figure_mc.clf()
-        # ax = self.figure_mc.add_subplot(111)
-        # plt.rcParams.update({'font.size': 10})
-        # ax.plot(values, bins)
-        # ax.plot(sm_x, sm_y)
-        # ax.vlines(lconfi, 0 , sm_y[0],
-        #           label='lower 95%: {:.3g}'.format(lconfi), color='red', linewidth=2.0)
-        # ax.vlines(upconfi, 0 , sm_y[-1],
-        #           label='upper 95%: {:.3g}'.format(upconfi), color='red', linewidth=2.0)
-        # ax.vlines(median, 0 , sm_y[self.helper.find_nearest(sm_x, median)],
-        #           label='median: {:.3g}'.format(median), color='magenta', linewidth=2.0)
-        # ax.vlines(mean, 0 , sm_y[self.helper.find_nearest(sm_x, mean)],
-        #           label='mean: {:.3g}'.format(mean), color='blue', linewidth=2.0)
-        # plt.xlabel('LCA scores ('+str(mc['iterations'])+' runs)'), plt.ylabel('probability')
-        # plt.legend(loc='upper right', prop={'size': 10})
+
         self.canvas.draw()

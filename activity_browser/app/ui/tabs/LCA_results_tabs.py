@@ -26,6 +26,30 @@ from ...bwutils import commontasks as bc
 
 # TODO: LOW PRIORITY: add filtering for tables/graphs
 
+def get_header_layout(header_text="A new Widget"):
+    vlayout = QVBoxLayout()
+    vlayout.addWidget(header(header_text))
+    vlayout.addWidget(horizontal_line())
+    return vlayout
+
+
+def get_radio_buttons(names=['first', 'second'], states=[True, False]):
+    """ Add the radio buttons."""
+    # buttons
+    buttons = []
+    for name in names:
+        buttons.append(QRadioButton(name))
+
+    for i, state in enumerate(states):
+        buttons[i].setChecked(state)
+
+    # layout
+    combobox_menu = QHBoxLayout()
+    for button in buttons:
+        combobox_menu.addWidget(button)
+    combobox_menu.addStretch(1)
+    return buttons, combobox_menu
+
 
 class LCAResultsSubTab(QTabWidget):
     def __init__(self, parent, name):
@@ -45,8 +69,8 @@ class LCAResultsSubTab(QTabWidget):
 
         # the LCA results tabs (order matters)
         self.inventory_tab = InventoryTab(self)
-        self.LCA_scores_tab = LCAScoresTab(self)
-        self.lcia_results_tab = LCIAResultsTab(self, relativity=True)
+        self.LCA_results_tab = LCAResultsTab(self)
+        self.addTab(self.LCA_results_tab, "LCA Results")
 
         self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
 
@@ -57,7 +81,8 @@ class LCAResultsSubTab(QTabWidget):
         self.addTab(self.sankey_tab, "Sankey")
 
         self.update_setup(calculate=False)
-        self.setCurrentWidget(self.LCA_scores_tab)
+        # self.setCurrentWidget(self.LCA_scores_tab)
+        self.setCurrentWidget(self.LCA_results_tab)
         self.currentChanged.connect(self.generate_content_on_click)
 
     def update_calculation(self):
@@ -86,40 +111,22 @@ class LCAResultsSubTab(QTabWidget):
         if calculate:
             self.update_calculation()
 
-        # self.LCA_scores_tab.update_analysis_tab()
-        self.LCA_scores_tab.update_tab()
-        self.monte_carlo_tab.update_tab()
-        # self.inventory_tab.update_analysis_tab()
+        self.inventory_tab.update_table()
+        self.LCA_results_tab.update_tab()
+
         self.EF_contribution_tab.update_analysis_tab()
-        self.lcia_results_tab.update_analysis_tab()
         self.process_contributions_tab.update_analysis_tab()
+        self.monte_carlo_tab.update_tab()
         # self.correlations_tab.update_analysis_tab()
 
-        lca_score_comparison_tab_index = self.indexOf(self.LCA_scores_tab)
-        lcia_results_tab_index = self.indexOf(self.lcia_results_tab)
-        # correlations_tab_index = self.indexOf(self.correlations_tab)
         self.sankey_tab.update_calculation_setup(cs_name=self.cs_name)
 
-        # if not self.single_func_unit:
-        #     self.setTabEnabled(lcia_results_tab_index, True)
-        #
-        #     # self.setTabEnabled(correlations_tab_index, True)
-        #     self.setTabEnabled(lca_score_comparison_tab_index, True)
-        # else:
-        #     self.lca_score_comparison_tab_index.setVisible(False)
-        #     # self.setTabEnabled(lcia_results_tab_index, False)
-        #     # self.setTabEnabled(correlations_tab_index, False)
-        #     self.setTabEnabled(lca_score_comparison_tab_index, False)
 
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.sankey_tab):
             if not self.sankey_tab.has_sankey:
                 print('Generating Sankey Tab')
                 self.sankey_tab.new_sankey()
-        elif index == self.indexOf(self.inventory_tab):
-            if self.inventory_tab.table.dataframe is None:
-                print('Generating Inventory Tab')
-                self.inventory_tab.update_table()
 
 
 class AnalysisTab(QWidget):
@@ -138,15 +145,8 @@ class AnalysisTab(QWidget):
         self.relativity = relativity
         self.relative = True
 
-        self.header = header("Description of the tab")
-
         self.layout = QVBoxLayout()
-
-        self.TopStrip = QHBoxLayout()
         self.setLayout(self.layout)
-        self.TopStrip.addWidget(self.header)
-        self.layout.addLayout(self.TopStrip)
-        self.layout.addWidget(horizontal_line())
 
         # self.connect_signals()  # called by the sub-classes
 
@@ -431,21 +431,8 @@ class AnalysisTab(QWidget):
 class NewAnalysisTab(QWidget):
     def __init__(self, parent):
         super(NewAnalysisTab, self).__init__(parent)
-
-        self.header = header("Description of the tab")
-
         self.layout = QVBoxLayout()
-
-        self.TopStrip = QHBoxLayout()
-        self.TopStrip.addWidget(self.header)
-        self.layout.addLayout(self.TopStrip)
-        self.layout.addWidget(horizontal_line())
-
         self.setLayout(self.layout)
-
-    def add_header(self, header_text):
-        if isinstance(header_text, str):
-            self.header.setText(header_text)
 
     def add_combobox(self, label='Choose LCIA method:'):
         """ Add the combobox menu to the tab. """
@@ -524,41 +511,28 @@ class InventoryTab(NewAnalysisTab):
         self.df_biosphere = None
         self.df_technosphere = None
 
-        self.header_text = "Inventory"
-        self.add_header(self.header_text)
-        self.add_radio_buttons()
+        self.layout.addLayout(get_header_layout('Inventory'))
+
+        # buttons
+        button, button_layout = get_radio_buttons(names=['Biosphere flows', 'Technosphere flows'], states=[True, False])
+        self.radio_button_biosphere = button[0]
+        self.radio_button_technosphere = button[1]
+        self.layout.addLayout(button_layout)
+
+        # table
         self.table = InventoryTable(self.parent)
         self.table.table_name = 'Inventory_' + self.parent.cs_name
         self.layout.addWidget(self.table)
 
-        # self.add_main_space()
-
         self.add_export()
 
-        self.parent.addTab(self, self.header_text)
+        self.parent.addTab(self, 'Inventory')
 
-        # self.connect_signals()
+        self.connect_signals()
 
-    def add_radio_buttons(self):
-        """ Add the radio buttons."""
-        # buttons
-        self.radio_button_biosphere = QRadioButton("Biosphere flows")
-        self.radio_button_technosphere = QRadioButton("Technosphere flows")
-
-        self.radio_button_biosphere.setChecked(True)
-        self.radio_button_technosphere.setChecked(False)
-
-        # signals
+    def connect_signals(self):
         self.radio_button_biosphere.clicked.connect(self.button_clicked)
         self.radio_button_technosphere.clicked.connect(self.button_clicked)
-
-        # layout
-        self.combobox_menu = QHBoxLayout()
-        self.combobox_menu.addWidget(self.radio_button_biosphere)
-        self.combobox_menu.addWidget(self.radio_button_technosphere)
-        self.combobox_menu.addStretch(1)
-
-        self.layout.addLayout(self.combobox_menu)
 
     def button_clicked(self):
         """Update table according to radiobutton selected."""
@@ -582,13 +556,55 @@ class InventoryTab(NewAnalysisTab):
             self.table.sync(self.df_technosphere)
 
 
+class LCAResultsTab(QWidget):
+    def __init__(self, parent=None):
+        super(LCAResultsTab, self).__init__(parent)
+
+        self.lca_scores_widget = LCAScoresTab(parent)
+        self.lca_overview_widget = LCIAResultsTab(parent)
+
+        self.layout = QVBoxLayout()
+        self.layout.setAlignment(QtCore.Qt.AlignTop)
+        self.layout.addLayout(get_header_layout('LCA Results'))
+
+        # buttons
+        button, button_layout = get_radio_buttons(names=['Overview', 'by LCIA method'], states=[True, False])
+        self.button_overview = button[0]
+        self.button_by_method = button[1]
+        self.layout.addLayout(button_layout)
+
+        self.layout.addWidget(self.lca_scores_widget)
+        self.layout.addWidget(self.lca_overview_widget)
+        self.lca_scores_widget.hide()
+
+        self.setLayout(self.layout)
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.button_overview.clicked.connect(self.button_clicked)
+        self.button_by_method.clicked.connect(self.button_clicked)
+
+    def button_clicked(self):
+        if self.button_overview.isChecked():
+            self.lca_overview_widget.show()
+            self.lca_scores_widget.hide()
+        else:
+            self.lca_overview_widget.hide()
+            self.lca_scores_widget.show()
+
+    def update_tab(self):
+        self.lca_scores_widget.update_tab()
+        self.lca_overview_widget.update_plot()
+        self.lca_overview_widget.update_table()
+
+
 class LCAScoresTab(NewAnalysisTab):
     def __init__(self, parent=None):
         super(LCAScoresTab, self).__init__(parent)
         self.parent = parent
 
-        self.header_text = "LCA scores comparison"
-        self.add_header(self.header_text)
+        # self.header_text = "LCA scores comparison"
+        # self.add_header(self.header_text)
 
         self.add_combobox(label='Choose LCIA method')
 
@@ -597,7 +613,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.layout.addWidget(self.plot)
 
         self.add_export()
-        self.parent.addTab(self, "LCA scores")
+        # self.parent.addTab(self, "LCA scores")
 
         self.connect_signals()
 
@@ -620,20 +636,16 @@ class LCIAResultsTab(AnalysisTab):
         self.parent = parent
         self.df = None
 
-        self.header_text = "LCIA Results"
-        self.add_header(self.header_text)
-
-        if not self.parent.single_func_unit:
-            self.plot = LCAResultsPlot(self.parent)
-            self.plot.plot_name = 'LCIA results_' + self.parent.cs_name
-            self.table = LCAResultsTable(self.parent)
-            self.table.table_name = 'LCIA results_' + self.parent.cs_name
+        # if not self.parent.single_func_unit:
+        self.plot = LCAResultsPlot(self.parent)
+        self.plot.plot_name = 'LCIA results_' + self.parent.cs_name
+        self.table = LCAResultsTable(self.parent)
+        self.table.table_name = 'LCIA results_' + self.parent.cs_name
 
         self.add_main_space()
         self.add_export()
 
-        self.parent.addTab(self, self.header_text)
-
+        # self.parent.addTab(self, self.header_text)
         self.connect_signals()
         self.relative = False
 
@@ -655,8 +667,7 @@ class ElementaryFlowContributionTab(AnalysisTab):
         super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
         self.parent = parent
 
-        self.header_text = "Elementary Flow Contributions"
-        self.add_header(self.header_text)
+        self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
 
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.layout.addWidget(self.cutoff_menu)
@@ -673,7 +684,7 @@ class ElementaryFlowContributionTab(AnalysisTab):
         self.add_main_space()
         self.add_export()
 
-        self.parent.addTab(self, 'Substance Contributions')
+        self.parent.addTab(self, 'EF Contributions')
 
         self.connect_signals()
 
@@ -701,8 +712,7 @@ class ProcessContributionsTab(AnalysisTab):
         super(ProcessContributionsTab, self).__init__(parent, **kwargs)
         self.parent = parent
 
-        self.header_text = "Process Contributions"
-        self.add_header(self.header_text)
+        self.layout.addLayout(get_header_layout('Process Contributions'))
 
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.layout.addWidget(self.cutoff_menu)
@@ -717,7 +727,7 @@ class ProcessContributionsTab(AnalysisTab):
         self.add_main_space()
         self.add_export()
 
-        self.parent.addTab(self, self.header_text)
+        self.parent.addTab(self, 'Process Contributions')
 
         self.connect_signals()
 
@@ -746,7 +756,7 @@ class CorrelationsTab(AnalysisTab):
         self.parent = parent
 
         self.tab_text = "Correlations"
-        self.add_header("Correlation Analysis")
+        self.layout.addLayout(get_header_layout('Correlation Analysis'))
 
         if not self.parent.single_func_unit:
             self.plot = CorrelationPlot(self.parent)
@@ -779,8 +789,7 @@ class MonteCarloTab(NewAnalysisTab):
         super(MonteCarloTab, self).__init__(parent)
         self.parent = parent
 
-        self.header_text = "Monte Carlo LCA"
-        self.add_header(self.header_text)
+        self.layout.addLayout(get_header_layout('MonteCarlo'))
 
         self.add_MC_ui_elements()
 
@@ -791,10 +800,8 @@ class MonteCarloTab(NewAnalysisTab):
         self.plot.plot_name = 'MonteCarlo_' + self.parent.cs_name
         self.layout.addWidget(self.plot)
         self.add_export()
-        # self.layout.addStretch()
         self.layout.setAlignment(QtCore.Qt.AlignTop)
-        # todo: export
-        # self.add_export()
+        
         self.parent.addTab(self, "Monte Carlo")
 
         self.connect_signals()
@@ -835,7 +842,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_run.addWidget(self.button_run)
         self.hlayout_run.addWidget(self.label_runs)
         self.hlayout_run.addWidget(self.iterations)
-        self.hlayout_run.addStretch()
+        self.hlayout_run.addStretch(1)
         self.layout_mc.addLayout(self.hlayout_run)
 
         # self.label_running = QLabel('Running a Monte Carlo simulation. Please allow some time for this. '
