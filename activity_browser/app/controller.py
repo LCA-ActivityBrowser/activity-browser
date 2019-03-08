@@ -78,11 +78,17 @@ class Controller(object):
                 self.change_project(ab_settings.settings['startup_project'])
 
     def import_database_wizard(self):
-        if self.db_wizard is None:
-            self.db_wizard = DatabaseImportWizard()
-        else:
-            self.db_wizard.show()
-            self.db_wizard.activateWindow()
+        try:
+            if self.db_wizard is None:
+                self.db_wizard = DatabaseImportWizard()
+            else:
+                self.db_wizard.show()
+                self.db_wizard.activateWindow()
+        except:
+            QtWidgets.QMessageBox.warning(None,
+                                              "Error during importing.",
+                                              "Oops. Something went wrong with the data import. "
+                                              "Please check the console for details.")
 
     def switch_brightway2_dir_path(self, dirpath):
         if dirpath == bw.projects._base_data_dir:
@@ -189,9 +195,15 @@ class Controller(object):
                                               "Can't delete last project.")
             return
         buttonReply = self.confirm_project_deletion_dialog()
+        # truely deleting does not work due to a permission error on Windows
+        # delete_dir = QtWidgets.QMessageBox.question(None,
+        #     'Confirm project deletion',
+        #     "Do you also want to delete the files on your hard drive?")
         if buttonReply == QtWidgets.QMessageBox.Yes:
-            bw.projects.delete_project(bw.projects.current)
+            bw.projects.delete_project(bw.projects.current, delete_dir=False)
             self.change_project(bc.get_startup_project_name(), reload=True)
+            # if delete_dir:  # also purging does not work (PermissionError)
+            #     bw.projects.purge_deleted_directories()
             signals.projects_changed.emit()
 
 # DATABASE

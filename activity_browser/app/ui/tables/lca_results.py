@@ -2,7 +2,7 @@
 import numpy as np
 
 from .dataframe_table import ABDataFrameTable
-from ...bwutils.commontasks import wrap_text
+# from ...bwutils.commontasks import wrap_text
 
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
