@@ -2,8 +2,6 @@
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
     QLabel, QCheckBox, QPushButton, QComboBox
 from PyQt5 import QtGui, QtWidgets, QtCore
-# import brightway2 as bw
-# import pandas as pd
 
 from ..style import horizontal_line, vertical_line, header
 from ..tables import (
@@ -18,11 +16,12 @@ from ..figures import (
     LCAResultsBarChart,
     MonteCarloPlot,
 )
+from ..widgets import CutoffMenu
+from ..web.graphnav import SankeyNavigatorWidget
+from ...signals import signals
 from ...bwutils.multilca import MLCA, Contributions
 from ...bwutils.montecarlo import CSMonteCarloLCA
 from ...bwutils import commontasks as bc
-from ..widgets import CutoffMenu
-from ..web.graphnav import SankeyNavigatorWidget
 
 
 # TODO: LOW PRIORITY: add filtering for tables/graphs
@@ -65,6 +64,10 @@ class LCAResultsSubTab(QTabWidget):
         """ Update the mlca calculation. """
         self.mlca = MLCA(self.cs_name)
         self.contributions = Contributions(self.mlca)
+        # self.mct = CSMonteCarloLCAThread()
+        # self.mct.start()
+        # self.mct.initialize(self.cs_name)
+
         self.mc = CSMonteCarloLCA(self.cs_name)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
@@ -781,7 +784,6 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.add_MC_ui_elements()
 
-        self.mc = None
         self.table = LCAResultsTable()
         self.table.table_name = 'MonteCarlo_' + self.parent.cs_name
         self.plot = MonteCarloPlot(self.parent)
@@ -799,8 +801,11 @@ class MonteCarloTab(NewAnalysisTab):
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_MC_LCA)
+        signals.monte_carlo_ready.connect(self.update_mc)
         # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
-        self.combobox_methods.currentIndexChanged.connect(self.update_plot)
+        self.combobox_methods.currentIndexChanged.connect(
+            lambda x: self.update_mc(cs_name=self.parent.cs_name)  # ignore the index and send the cs_name instead
+        )
 
         # signals
         # self.radio_button_biosphere.clicked.connect(self.button_clicked)
@@ -832,6 +837,11 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_run.addWidget(self.iterations)
         self.hlayout_run.addStretch()
         self.layout_mc.addLayout(self.hlayout_run)
+
+        # self.label_running = QLabel('Running a Monte Carlo simulation. Please allow some time for this. '
+        #                             'Please do not run another simulation at the same time.')
+        # self.layout_mc.addWidget(self.label_running)
+        # self.label_running.hide()
 
         # # buttons for all FUs or for all methods
         # self.radio_button_all_fu = QRadioButton("For all functional units")
@@ -916,14 +926,6 @@ class MonteCarloTab(NewAnalysisTab):
         self.layout.addWidget(self.export_widget)
         self.export_widget.hide()
 
-    def calculate_MC_LCA(self):
-        iterations = int(self.iterations.text())
-        self.parent.mc.calculate(iterations=iterations)
-        self.method_selection_widget.show()
-        self.plot.show()
-        self.export_widget.show()
-        self.update_plot()
-
     def update_combobox(self, combobox, labels):
         """ Update the combobox menu. """
         combobox.clear()
@@ -931,22 +933,135 @@ class MonteCarloTab(NewAnalysisTab):
         combobox.insertItems(0, labels)
         combobox.blockSignals(False)
 
+    def calculate_MC_LCA(self):
+        iterations = int(self.iterations.text())
+        self.method_selection_widget.hide()
+        self.plot.hide()
+        self.export_widget.hide()
+
+        self.parent.mc.calculate(iterations=iterations)
+        self.update_mc()
+
+        # a threaded way for this - unfortunatley this crashes as:
+        # pypardsio_solver is used for the 'spsolve' and 'factorized' functions. Python crashes on windows if multiple
+        # instances of PyPardisoSolver make calls to the Pardiso library
+        # worker_thread = WorkerThread()
+        # print('Created local worker_thread')
+        # worker_thread.set_mc(self.parent.mc, iterations=iterations)
+        # print('Passed object to thread.')
+        # worker_thread.start()
+        # self.label_running.show()
+
+        #
+
+        # thread = NewCSMCThread() #self.parent.mc
+        # thread.calculation_finished.connect(
+        #     lambda x: print('Calculation finished.'))
+        # thread.start()
+
+        # # give us a thread and start it
+        # thread = QtCore.QThread()
+        # thread.start()
+        #
+        # # create a worker and move it to our extra thread
+        # worker = Worker()
+        # worker.moveToThread(thread)
+
+        # self.parent.mct.start()
+        # self.parent.mct.run(iterations=iterations)
+        # self.parent.mct.finished()
+
+        # objThread = QtCore.QThread()
+        # obj = QObjectMC()  # self.parent.cs_name
+        # obj.moveToThread(objThread)
+        # obj.finished.connect(objThread.quit)
+        # objThread.started.connect(obj.long_running)
+        # # objThread.finished.connect(app.exit)
+        # objThread.finished.connect(
+        #     lambda x: print('Finished Thread!')
+        # )
+        # objThread.start()
+
+        # objThread = QtCore.QThread()
+        # obj = SomeObject()
+        # obj.moveToThread(objThread)
+        # obj.finished.connect(objThread.quit)
+        # objThread.started.connect(obj.long_running)
+        # objThread.finished.connect(
+        #     lambda x: print('Finished Thread!')
+        # )
+        # objThread.start()
+
+        # self.method_selection_widget.show()
+        # self.plot.show()
+        # self.export_widget.show()
+
     def update_tab(self):
         self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
+        # self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mct.mc.methods])
 
-    def update_plot(self):
+    def update_mc(self, cs_name=None):
         # act = self.combobox_fu.currentText()
         # activity_index = self.combobox_fu.currentIndex()
         # act_key = self.parent.mc.activity_keys[activity_index]
+        # if cs_name != self.parent.cs_name:  # relevant if several CS are open at the same time
+        #     return
+
+        # self.label_running.hide()
+        self.method_selection_widget.show()
+        self.export_widget.show()
 
         method_index = self.combobox_methods.currentIndex()
         method = self.parent.mc.methods[method_index]
 
         # data = self.parent.mc.get_results_by(act_key=act_key, method=method)
-        df = self.parent.mc.get_results_dataframe(method=method)
+        self.df = self.parent.mc.get_results_dataframe(method=method)
 
-        self.update_table(df)
-        self.plot.plot(df, method=method)
+        self.update_table()
+        self.update_plot(method=method)
 
-    def update_table(self, df):
-        self.table.sync(df)
+    def update_plot(self, method):
+        self.plot.plot(self.df, method=method)
+        self.plot.show()
+
+    def update_table(self):
+        self.table.sync(self.df)
+
+
+class MonteCarloWorkerThread(QtCore.QThread):
+    """A worker for Monte Carlo simulations.
+    Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
+    So this is for future reference in case this issue is solved... """
+    def set_mc(self, mc, iterations=10):
+        self.mc = mc
+        self.iterations = iterations
+
+    def run(self):
+        print('Starting new Worker Thread. Iterations:', self.iterations)
+        self.mc.calculate(iterations=self.iterations)
+        # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
+        print('in thread {}'.format(QtCore.QThread.currentThread()))
+        signals.monte_carlo_ready.emit(self.mc.cs_name)
+
+worker_thread = MonteCarloWorkerThread()
+
+# class Worker(QtCore.QObject):
+#
+#     def __init__(self):
+#         super().__init__()
+#
+#     def do_something(self, text):
+#         print('in thread {} message {}'.format(QtCore.QThread.currentThread(), text))
+#
+#
+# class SomeObject(QtCore.QObject):
+#
+#     finished = QtCore.pyqtSignal()
+#
+#     def long_running(self):
+#         count = 0
+#         while count < 5:
+#             time.sleep(1)
+#             print("B Increasing")
+#             count += 1
+#         self.finished.emit()

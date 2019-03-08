@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import textwrap
-import itertools
 import arrow
 import brightway2 as bw
 from bw2data import databases

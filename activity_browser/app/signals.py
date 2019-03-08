@@ -85,4 +85,5 @@ class Signals(QtCore.QObject):
     # Metadata
     metadata_changed = QtCore.pyqtSignal(tuple)  # key
 
+
 signals = Signals()

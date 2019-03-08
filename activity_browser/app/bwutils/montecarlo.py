@@ -12,6 +12,7 @@ class CSMonteCarloLCA(object):
     def __init__(self, cs_name, seed=None):
         try:
             cs = bw.calculation_setups[cs_name]
+            self.cs_name = cs_name
         except KeyError:
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
