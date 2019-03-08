@@ -801,7 +801,7 @@ class MonteCarloTab(NewAnalysisTab):
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_MC_LCA)
-        signals.monte_carlo_ready.connect(self.update_mc)
+        # signals.monte_carlo_ready.connect(self.update_mc)
         # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
         self.combobox_methods.currentIndexChanged.connect(
             lambda x: self.update_mc(cs_name=self.parent.cs_name)  # ignore the index and send the cs_name instead

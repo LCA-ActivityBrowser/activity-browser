@@ -242,37 +242,15 @@ class MonteCarloPlot(Plot):
         self.ax.clear()
 
         for col in df.columns:
-            df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, alpha=0.5)  # , histtype="step")
+            color = self.ax._get_lines.get_next_color()
+            df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color, alpha=0.5)  # , histtype="step")
+            self.ax.axvline(df[col].median(), color=color)
 
         self.ax.set_xlabel(bw.methods[method]["unit"])
         self.ax.set_ylabel('Probability')
         self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
                   fancybox=True, shadow=True, ncol=1)
 
-        # print('Calculating MC LCA')
-        # print('method', method)
-        # # method = ('IPCC 2013', 'climate change', 'GTP 100a')
-        # FU = {bw.Database('ecoinvent 3.4 cutoff').random(): 1.0}
-        #
-        # start = time()
-        # mc = bw.MonteCarloLCA(demand=FU, method=method)
-        # results = [next(mc) for x in range(10)]
-        # print("MC LCA calculate in ({:.2g} seconds, )".format(time() - start))
-        #
-        # # pmc = bw.ParallelMonteCarlo(demand=FU, iterations=100, method=method)
-        # # start = time()
-        # # results = pmc.calculate()
-        # print("MC LCA calculate in ({:.2g} seconds, )".format(time() - start))
-        #
-        # # n, bins, patches = plt.hist(results, normed=1, histtype="step")
-        # self.ax.hist(results, density=1, histtype="step")
-        #
-        # self.ax.set_xlabel(bw.methods[method]["unit"])
-
-
-        # self.ax.xlabel(bw.methods[method]["unit"])
-        # self.ax.ylabel("Probability")
-        # self.ax.title(FU)
 
         # plt.hist(results, ax=self.ax, normed=True, histtype="step")
         # self.ax.xlabel(method)
