@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 import appdirs
 import brightway2 as bw
-from time import time
+# from time import time
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
 

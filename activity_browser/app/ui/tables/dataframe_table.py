@@ -9,6 +9,7 @@ class ABDataFrameTable(QtWidgets.QTableView):
         super(ABDataFrameTable, self).__init__(parent)
         self.setVerticalScrollMode(1)
         self.setHorizontalScrollMode(1)
+        self.table_name = 'LCA results'
         # self.maxheight = maxheight
         # self.verticalHeader().setMaximumWidth(100)  # vertical header width
         # self.horizontalHeader().setDefaultSectionSize(150)  # column width
@@ -90,14 +91,14 @@ class ABDataFrameTable(QtWidgets.QTableView):
         return filepath
 
     def to_csv(self):
-        filepath = self.savefilepath(default_file_name="LCA results.csv", filter="CSV (*.csv);; All Files (*.*)")
+        filepath = self.savefilepath(default_file_name=self.table_name, filter="CSV (*.csv);; All Files (*.*)")
         if filepath:
             if not filepath.endswith('.csv'):
                 filepath += '.csv'
             self.dataframe.to_csv(filepath)
 
     def to_excel(self):
-        filepath = self.savefilepath(default_file_name="LCA results.xlsx", filter="Excel (*.xlsx);; All Files (*.*)")
+        filepath = self.savefilepath(default_file_name=self.table_name, filter="Excel (*.xlsx);; All Files (*.*)")
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'

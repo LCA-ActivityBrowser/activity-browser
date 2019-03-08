@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
     QLabel, QCheckBox, QPushButton, QComboBox
-from PyQt5 import QtGui, QtWidgets
-import brightway2 as bw
+from PyQt5 import QtGui, QtWidgets, QtCore
+# import brightway2 as bw
+# import pandas as pd
 
 from ..style import horizontal_line, vertical_line, header
 from ..tables import (
@@ -524,6 +525,7 @@ class InventoryTab(NewAnalysisTab):
         self.add_header(self.header_text)
         self.add_radio_buttons()
         self.table = InventoryTable(self.parent)
+        self.table.table_name = 'Inventory_' + self.parent.cs_name
         self.layout.addWidget(self.table)
 
         # self.add_main_space()
@@ -559,8 +561,11 @@ class InventoryTab(NewAnalysisTab):
         """Update table according to radiobutton selected."""
         if self.radio_button_technosphere.isChecked():
             self.update_table(type='technosphere')
+            self.table.table_name = 'Inventory_technosphere_flows_' + self.parent.cs_name
+
         else:
             self.update_table(type='biosphere')
+            self.table.table_name = 'Inventory_' + self.parent.cs_name
 
     def update_table(self, type='biosphere'):
         if type == 'biosphere':
@@ -617,7 +622,9 @@ class LCIAResultsTab(AnalysisTab):
 
         if not self.parent.single_func_unit:
             self.plot = LCAResultsPlot(self.parent)
+            self.plot.plot_name = 'LCIA results_' + self.parent.cs_name
             self.table = LCAResultsTable(self.parent)
+            self.table.table_name = 'LCIA results_' + self.parent.cs_name
 
         self.add_main_space()
         self.add_export()
@@ -656,6 +663,8 @@ class ElementaryFlowContributionTab(AnalysisTab):
         self.plot = ContributionPlot()
         self.plot.plot_name = 'EF contributions_' + self.parent.cs_name
         self.table = ContributionTable(self)
+        self.table.table_name = 'EF contributions_' + self.parent.cs_name
+
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
@@ -699,6 +708,7 @@ class ProcessContributionsTab(AnalysisTab):
         self.plot = ContributionPlot()
         self.plot.plot_name = 'Process contributions_' + self.parent.cs_name
         self.table = ContributionTable(self)
+        self.table.table_name = 'Process contributions_' + self.parent.cs_name
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
@@ -772,12 +782,15 @@ class MonteCarloTab(NewAnalysisTab):
         self.add_MC_ui_elements()
 
         self.mc = None
+        self.table = LCAResultsTable()
+        self.table.table_name = 'MonteCarlo_' + self.parent.cs_name
         self.plot = MonteCarloPlot(self.parent)
         self.plot.hide()
-        self.plot.plot_name = 'LCA scores_' + self.parent.cs_name
+        self.plot.plot_name = 'MonteCarlo_' + self.parent.cs_name
         self.layout.addWidget(self.plot)
+        self.add_export()
         # self.layout.addStretch()
-
+        self.layout.setAlignment(QtCore.Qt.AlignTop)
         # todo: export
         # self.add_export()
         self.parent.addTab(self, "Monte Carlo")
@@ -792,6 +805,17 @@ class MonteCarloTab(NewAnalysisTab):
         # signals
         # self.radio_button_biosphere.clicked.connect(self.button_clicked)
         # self.radio_button_technosphere.clicked.connect(self.button_clicked)
+
+        # Export Plot
+        if self.plot and self.export_menu:
+            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
+            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+
+        # Export Table
+        if self.table and self.export_menu:
+            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
+            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
+            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
 
     def add_MC_ui_elements(self):
         self.layout_mc = QVBoxLayout()
@@ -846,11 +870,58 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.layout.addLayout(self.layout_mc)
 
+    def add_export(self):
+        """ Add the export menu to the tab. """
+
+        self.export_menu = QHBoxLayout()
+
+        # Export Plot
+        self.export_plot = QHBoxLayout()
+        self.export_plot_label = QLabel("Export plot:")
+        self.export_plot_buttons_png = QPushButton(".png")
+        self.export_plot_buttons_svg = QPushButton(".svg")
+        # Export Table
+        self.export_table = QHBoxLayout()
+        self.export_table_label = QLabel("Export table:")
+        self.export_table_buttons_copy = QPushButton("Copy")
+        self.export_table_buttons_csv = QPushButton(".csv")
+        self.export_table_buttons_excel = QPushButton("Excel")
+        # Assemble export plot
+        self.export_plot.addWidget(self.export_plot_label)
+        self.export_plot.addWidget(self.export_plot_buttons_png)
+        self.export_plot.addWidget(self.export_plot_buttons_svg)
+        # Assemble export table
+        self.export_table.addWidget(self.export_table_label)
+        self.export_table.addWidget(self.export_table_buttons_copy)
+        self.export_table.addWidget(self.export_table_buttons_csv)
+        self.export_table.addWidget(self.export_table_buttons_excel)
+
+        # Assemble export menu
+        if self.plot:
+            self.export_menu.addLayout(self.export_plot)
+        if self.table and self.plot:
+            self.export_menu_vert_line = vertical_line()
+            self.export_menu.addWidget(self.export_menu_vert_line)
+        if self.table:
+            self.export_menu.addLayout(self.export_table)
+        self.export_menu.addStretch()
+
+        # self.layout.addWidget(horizontal_line())
+        # self.layout.addLayout(self.export_menu)
+
+        # set layout to export widget
+        self.export_widget = QWidget()
+        self.export_widget.setLayout(self.export_menu)
+        # add widget, but hide until MC is calculated
+        self.layout.addWidget(self.export_widget)
+        self.export_widget.hide()
+
     def calculate_MC_LCA(self):
         iterations = int(self.iterations.text())
         self.parent.mc.calculate(iterations=iterations)
         self.method_selection_widget.show()
         self.plot.show()
+        self.export_widget.show()
         self.update_plot()
 
     def update_combobox(self, combobox, labels):
@@ -870,8 +941,12 @@ class MonteCarloTab(NewAnalysisTab):
 
         method_index = self.combobox_methods.currentIndex()
         method = self.parent.mc.methods[method_index]
-        
+
         # data = self.parent.mc.get_results_by(act_key=act_key, method=method)
         df = self.parent.mc.get_results_dataframe(method=method)
 
+        self.update_table(df)
         self.plot.plot(df, method=method)
+
+    def update_table(self, df):
+        self.table.sync(df)
