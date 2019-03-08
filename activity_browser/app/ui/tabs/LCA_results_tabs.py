@@ -227,6 +227,7 @@ class AnalysisTab(QWidget):
         self.main_space = QScrollArea()
         self.main_space_widget = QWidget()
         self.main_space_widget_layout = QVBoxLayout()
+        self.main_space_widget_layout.setAlignment(QtCore.Qt.AlignTop)
         self.main_space_widget.setLayout(self.main_space_widget_layout)
         self.main_space.setWidget(self.main_space_widget)
         self.main_space.setWidgetResizable(True)
@@ -257,7 +258,7 @@ class AnalysisTab(QWidget):
             self.main_space_widget_layout.addWidget(self.main_space_plot, 1)
         if self.table:
             self.main_space_widget_layout.addWidget(self.main_space_table)
-        self.main_space_widget_layout.addStretch()
+        # self.main_space_widget_layout.addStretch()
 
         if not self.custom:
             pass
@@ -568,16 +569,16 @@ class LCAResultsTab(QWidget):
         self.layout.addLayout(get_header_layout('LCA Results'))
 
         # buttons
-        button, button_layout = get_radio_buttons(names=['Overview', 'by LCIA method'], states=[True, False])
+        button, button_layout = get_radio_buttons(names=['Overview', 'by LCIA method'], states=[False, True])
         self.button_overview = button[0]
         self.button_by_method = button[1]
         self.layout.addLayout(button_layout)
 
         self.layout.addWidget(self.lca_scores_widget)
         self.layout.addWidget(self.lca_overview_widget)
-        self.lca_scores_widget.hide()
-
         self.setLayout(self.layout)
+
+        self.button_clicked()
         self.connect_signals()
 
     def connect_signals(self):
@@ -801,7 +802,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.layout.addWidget(self.plot)
         self.add_export()
         self.layout.setAlignment(QtCore.Qt.AlignTop)
-        
+
         self.parent.addTab(self, "Monte Carlo")
 
         self.connect_signals()
@@ -836,6 +837,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.button_run = QPushButton('Run Simulation')
         self.label_runs = QLabel('Iterations:')
         self.iterations = QtWidgets.QLineEdit('10')
+        self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
 
         self.hlayout_run = QHBoxLayout()

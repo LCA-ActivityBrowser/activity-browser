@@ -192,7 +192,7 @@ class Contributions(object):
         """
 
         # replace column keys with labels
-        df.columns = self.get_labels(df.columns, fields=y_fields, separator='\n')
+        df.columns = self.get_labels(df.columns, fields=y_fields)#, separator='\n')
 
         # get metadata for rows
         keys = [k for k in df.index if k in AB_metadata.dataframe.index]

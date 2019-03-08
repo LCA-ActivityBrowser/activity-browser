@@ -2,7 +2,7 @@
 import numpy as np
 
 from .dataframe_table import ABDataFrameTable
-
+from ...bwutils.commontasks import wrap_text
 
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
@@ -26,8 +26,10 @@ class ContributionTable(ABDataFrameTable):
 
     @ABDataFrameTable.decorated_sync
     def sync(self):
-        self.dataframe = self.parent.df.replace(np.nan, '', regex=True)
-        # self.dataframe = self.parent.df.replace(np.nan, '', regex=True)  # replace 'nan' values with emtpy string
+        # df = self.parent.df.replace(np.nan, '', regex=True)
+        # df.columns = [wrap_text(k, max_length=20) for k in df.columns]
+        # self.dataframe = df
+        self.dataframe = self.parent.df.replace(np.nan, '', regex=True)  # replace 'nan' values with emtpy string
 
 
 

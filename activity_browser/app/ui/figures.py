@@ -145,16 +145,19 @@ class ContributionPlot(Plot):
 
     def plot(self, df):
         """ Plot a horizontal bar chart of the process contributions. """
+        max_legend_items = 30
         dfp = df.copy()
         dfp.index = dfp['index']
         dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
         if 'Total' in dfp.index:
             dfp.drop("Total", inplace=True)
 
-
         self.ax.clear()
-        height = 1 + dfp.shape[1] * 0.5
-        self.figure.set_figheight(height)
+        # height = 1 + dfp.shape[1] * 0.5
+        # self.figure.set_figheight(height)
+        fig_height = self.get_canvas_size_in_inches()[0]
+        figh_width = self.get_canvas_size_in_inches()[1]
+        self.figure.set_size_inches(fig_height, figh_width)
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
@@ -165,24 +168,30 @@ class ContributionPlot(Plot):
         plot = dfp.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
-            ax=self.ax
+            ax=self.ax,
+            legend=False if dfp.shape[0] >= max_legend_items else True,
         )
         plot.tick_params(labelsize=8)
-        plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
-        plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                    ncol=math.ceil((len(dfp.index) * 0.22) / height))
+
+        # show legend if not too many items
+        if not dfp.shape[0] >= max_legend_items:
+            plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
+            plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                        ncol=math.ceil(dfp.shape[0] * 0.6 / fig_height))
         plot.grid(b=False)
 
         # refresh canvas
-        # size_inches = (2 + dfp.shape[1] * 0.5, 4 + dfp.shape[1] * 0.55)
+        # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
         # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
-        # size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        # self.setMinimumHeight(size_pixels[1])
-        # self.canvas.draw()
 
-        self.canvas.draw()
+
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+        self.canvas.draw()
+
+        # self.canvas.draw()
+        # size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        # self.setMinimumHeight(size_pixels[1])
 
 
 class CorrelationPlot(Plot):
