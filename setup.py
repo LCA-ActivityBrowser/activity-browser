@@ -26,7 +26,7 @@ setup(
     install_requires=[], # dependency management in conda recipe
     url="https://github.com/LCA-ActivityBrowser/activity-browser",
     long_description=open('README.md').read(),
-    description=('Brightway2 GUI'),
+    description=('A graphical user interface for brightway2'),
     entry_points={
         'console_scripts': [
             'activity-browser = activity_browser.app:run_activity_browser',
