@@ -18,7 +18,8 @@ class Plot(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Plot, self).__init__(parent)
         # create figure, canvas, and axis
-        self.figure = Figure(tight_layout=True)
+        # self.figure = Figure(tight_layout=True)
+        self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.ax = self.figure.add_subplot(111)  # create an axis
         self.plot_name = 'Figure'
@@ -60,7 +61,6 @@ class Plot(QtWidgets.QWidget):
             self.figure.savefig(filepath)
 
 
-
 class LCAResultsBarChart(Plot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
     def __init__(self, parent=None, *args):
@@ -76,7 +76,6 @@ class LCAResultsBarChart(Plot):
 
         functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
 
-        print('Method:', method)
         values = mlca.lca_scores[:, mlca.method_index[method]]
         y_pos = np.arange(len(functional_units))
 
@@ -118,6 +117,7 @@ class LCAResultsPlot(Plot):
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
+        dfp.columns = [wrap_text(i, max_length=20) for i in dfp.columns]
 
         hm = sns.heatmap(dfp,
                     ax=self.ax,
@@ -128,6 +128,9 @@ class LCAResultsPlot(Plot):
                             'rotation': 0 if dfp.shape[1] <= 8 else 60}
                     )
         hm.tick_params(labelsize=8)
+        if dfp.shape[1] > 5:
+            self.ax.set_xticklabels(self.ax.get_xticklabels(), rotation='vertical')
+        self.ax.set_yticklabels(self.ax.get_yticklabels(), rotation='horizontal')
 
         # refresh canvas
         size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[0] * 0.55)

@@ -622,7 +622,9 @@ class LCAScoresTab(NewAnalysisTab):
     def update_plot(self, method_index=None):
         if method_index is None or isinstance(method_index, str):
             method_index = 0
-        self.plot.plot(self.parent.mlca, method=self.parent.mlca.methods[method_index])
+        method = self.parent.mlca.methods[method_index]
+        self.plot.plot(self.parent.mlca, method=method)
+        self.plot.plot_name = '_'.join(['LCA scores', self.parent.cs_name, str(method)])
 
 
 class LCIAResultsTab(AnalysisTab):
@@ -670,9 +672,7 @@ class ElementaryFlowContributionTab(AnalysisTab):
 
         self.df = None
         self.plot = ContributionPlot()
-        self.plot.plot_name = 'EF contributions_' + self.parent.cs_name
         self.table = ContributionTable(self)
-        self.table.table_name = 'EF contributions_' + self.parent.cs_name
 
 
         self.add_combobox(method=True, func=True)
@@ -700,6 +700,8 @@ class ElementaryFlowContributionTab(AnalysisTab):
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         self.plot.plot(self.df)
+        filename = '_'.join([str(x) for x in ['EF contributions', self.parent.cs_name, method, func] if x is not None])
+        self.plot.plot_name, self.table.table_name = filename, filename
 
 
 class ProcessContributionsTab(AnalysisTab):
@@ -714,9 +716,7 @@ class ProcessContributionsTab(AnalysisTab):
         self.layout.addWidget(horizontal_line())
 
         self.plot = ContributionPlot()
-        self.plot.plot_name = 'Process contributions_' + self.parent.cs_name
         self.table = ContributionTable(self)
-        self.table.table_name = 'Process contributions_' + self.parent.cs_name
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
@@ -743,6 +743,8 @@ class ProcessContributionsTab(AnalysisTab):
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         self.plot.plot(self.df)
+        filename = '_'.join([str(x) for x in ['Process contributions', self.parent.cs_name, method, func] if x is not None])
+        self.plot.plot_name, self.table.table_name = filename, filename
 
 
 class CorrelationsTab(AnalysisTab):
@@ -1022,6 +1024,8 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.update_table()
         self.update_plot(method=method)
+        filename = '_'.join([str(x) for x in ['Monte Carlo results', self.parent.cs_name, str(method)]])
+        self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
         self.plot.plot(self.df, method=method)
