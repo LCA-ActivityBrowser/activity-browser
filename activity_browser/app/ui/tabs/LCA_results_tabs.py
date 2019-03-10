@@ -24,7 +24,10 @@ from ...bwutils.montecarlo import CSMonteCarloLCA
 from ...bwutils import commontasks as bc
 
 
-# TODO: LOW PRIORITY: add filtering for tables/graphs
+# TODO: This module needs a revision
+# - LCA Results tabs inherit from AnalysisTab, which is still a bit overly complex, and NewAnalysis Tab,
+# which is an attempt for simplification; perhaps the best solution would be to outsource more of the visual elements
+# generation to functions, like those below
 
 def get_header_layout(header_text="A new Widget"):
     vlayout = QVBoxLayout()
@@ -67,10 +70,10 @@ def get_unit(method, relative):
             unit = 'units of each LCIA method'
     return unit
 
+
 class LCAResultsSubTab(QTabWidget):
     def __init__(self, parent, name):
         super(LCAResultsSubTab, self).__init__(parent)
-        # self.panel = parent
         self.cs_name = name
         self.method_dict = dict()
 
@@ -81,56 +84,52 @@ class LCAResultsSubTab(QTabWidget):
         # self.setTabShape(2)  # Triangular-shaped Tabs
         # self.setTabPosition(1)  # South-facing Tabs
 
-        self.update_calculation()
+        self.do_calculations()
+        self.setup_tabs()
 
-        # the LCA results tabs (order matters)
-        self.inventory_tab = InventoryTab(self)
-        self.LCA_results_tab = LCAResultsTab(self)
-        self.addTab(self.LCA_results_tab, "LCA Results")
-
-        self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
-
-        self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
-        self.monte_carlo_tab = MonteCarloTab(self)
-        # self.correlations_tab = CorrelationsTab(self)
-        self.sankey_tab = SankeyNavigatorWidget(self.cs_name, parent=self)
-        self.addTab(self.sankey_tab, "Sankey")
-
-        self.update_setup(calculate=False)
-        # self.setCurrentWidget(self.LCA_scores_tab)
         self.setCurrentWidget(self.LCA_results_tab)
         self.currentChanged.connect(self.generate_content_on_click)
 
-    def update_calculation(self):
+    def do_calculations(self):
         """ Update the mlca calculation. """
         self.mlca = MLCA(self.cs_name)
         self.contributions = Contributions(self.mlca)
+        self.mc = CSMonteCarloLCA(self.cs_name)
         # self.mct = CSMonteCarloLCAThread()
         # self.mct.start()
         # self.mct.initialize(self.cs_name)
-
-        self.mc = CSMonteCarloLCA(self.cs_name)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
         self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
         self.single_method = True if len(self.mlca.methods) == 1 else False
 
-    def update_setup(self, calculate=True):
+    def setup_tabs(self):
         """ Update the calculation setup. """
-        if calculate:
-            self.update_calculation()
 
+        # the LCA results tabs (order matters)
+        self.inventory_tab = InventoryTab(self)
         self.inventory_tab.update_table()
-        self.LCA_results_tab.update_tab()
 
+        self.LCA_results_tab = LCAResultsTab(self)
+        self.LCA_results_tab.update_tab()
+        self.addTab(self.LCA_results_tab, "LCA Results")
+
+        self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
         self.EF_contribution_tab.update_analysis_tab()
+
+        self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
         self.process_contributions_tab.update_analysis_tab()
+
+        self.monte_carlo_tab = MonteCarloTab(self)
         self.monte_carlo_tab.update_tab()
+
+        # self.correlations_tab = CorrelationsTab(self)
         # self.correlations_tab.update_analysis_tab()
 
+        self.sankey_tab = SankeyNavigatorWidget(self.cs_name, parent=self)
         self.sankey_tab.update_calculation_setup(cs_name=self.cs_name)
-
+        self.addTab(self.sankey_tab, "Sankey")
 
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.sankey_tab):

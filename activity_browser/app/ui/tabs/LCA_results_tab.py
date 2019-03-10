@@ -34,13 +34,13 @@ class LCAResultsTab(ABTab):
             self.close_tab(index)
 
     def generate_setup(self, name):
-        """ Check if the calculation setup exists, if it does, update it, if it doesn't, create a new one. """
-        if isinstance(self.tabs.get(name), LCAResultsSubTab):  # update
-            self.tabs[name].update_setup()
-        else:  # add
-            new_tab = LCAResultsSubTab(self, name)
-            self.tabs[name] = new_tab
-            self.addTab(new_tab, name)
+        """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
+        if isinstance(self.tabs.get(name), LCAResultsSubTab):  # remove, if necessary
+            self.remove_setup(name)
+
+        new_tab = LCAResultsSubTab(self, name)
+        self.tabs[name] = new_tab
+        self.addTab(new_tab, name)
 
         self.select_tab(self.tabs[name])
         signals.show_tab.emit("LCA results")
