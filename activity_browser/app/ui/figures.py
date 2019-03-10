@@ -14,6 +14,10 @@ import brightway2 as bw
 from ..bwutils.commontasks import format_activity_label, wrap_text
 
 
+# todo: sizing of the figures needs to be improved and systematized...
+# todo: Bokeh is a potential alternative as it allows interactive visualizations,
+#  but this issue needs to be resolved first: https://github.com/bokeh/bokeh/issues/8169
+
 class Plot(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Plot, self).__init__(parent)

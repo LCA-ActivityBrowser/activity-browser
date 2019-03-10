@@ -548,11 +548,11 @@ class InventoryTab(NewAnalysisTab):
         """Update table according to radiobutton selected."""
         if self.radio_button_technosphere.isChecked():
             self.update_table(type='technosphere')
-            self.table.table_name = 'Inventory_technosphere_flows_' + self.parent.cs_name
+            self.table.table_name = self.parent.cs_name + '_Inventory_technosphere'
 
         else:
             self.update_table(type='biosphere')
-            self.table.table_name = 'Inventory_' + self.parent.cs_name
+            self.table.table_name = self.parent.cs_name + '_Inventory'
 
     def update_table(self, type='biosphere'):
         if type == 'biosphere':
@@ -639,7 +639,7 @@ class LCAScoresTab(NewAnalysisTab):
             method_index = 0
         method = self.parent.mlca.methods[method_index]
         self.plot.plot(self.parent.mlca, method=method)
-        self.plot.plot_name = '_'.join(['LCA scores', self.parent.cs_name, str(method)])
+        self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
 
 
 class LCIAResultsTab(AnalysisTab):
@@ -650,9 +650,9 @@ class LCIAResultsTab(AnalysisTab):
 
         # if not self.parent.single_func_unit:
         self.plot = LCAResultsPlot(self.parent)
-        self.plot.plot_name = 'LCIA results_' + self.parent.cs_name
+        self.plot.plot_name = self.parent.cs_name + '_LCIA results'
         self.table = LCAResultsTable(self.parent)
-        self.table.table_name = 'LCIA results_' + self.parent.cs_name
+        self.table.table_name = self.parent.cs_name + '_LCIA results'
 
         self.add_main_space()
         self.add_export()
@@ -716,7 +716,7 @@ class ElementaryFlowContributionTab(AnalysisTab):
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         unit = get_unit(method, self.relative)
         self.plot.plot(self.df, unit=unit)
-        filename = '_'.join([str(x) for x in ['EF contributions', self.parent.cs_name, method, func, unit]
+        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'EF contributions', method, func, unit]
                              if x is not None])
         self.plot.plot_name, self.table.table_name = filename, filename
 
@@ -761,7 +761,7 @@ class ProcessContributionsTab(AnalysisTab):
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         unit = get_unit(method, self.relative)
         self.plot.plot(self.df, unit=unit)
-        filename = '_'.join([str(x) for x in ['Process contributions', self.parent.cs_name, method, func, unit]
+        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Process contributions', method, func, unit]
                              if x is not None])
         self.plot.plot_name, self.table.table_name = filename, filename
 
@@ -1043,7 +1043,7 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.update_table()
         self.update_plot(method=method)
-        filename = '_'.join([str(x) for x in ['Monte Carlo results', self.parent.cs_name, str(method)]])
+        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Monte Carlo results', str(method)]])
         self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
