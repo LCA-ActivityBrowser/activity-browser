@@ -97,14 +97,8 @@ class LCAResultsSubTab(QTabWidget):
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
 
-        if len(self.mlca.func_units) != 1:
-            self.single_func_unit = False
-        else:
-            self.single_func_unit = True
-        if len(self.mlca.methods) != 1:
-            self.single_method = False
-        else:
-            self.single_method = True
+        self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
+        self.single_method = True if len(self.mlca.methods) == 1 else False
 
     def update_setup(self, calculate=True):
         """ Update the calculation setup. """
@@ -258,7 +252,7 @@ class AnalysisTab(QWidget):
             self.main_space_widget_layout.addWidget(self.main_space_plot, 1)
         if self.table:
             self.main_space_widget_layout.addWidget(self.main_space_table)
-        # self.main_space_widget_layout.addStretch()
+        self.main_space_widget_layout.addStretch()
 
         if not self.custom:
             pass
@@ -366,13 +360,13 @@ class AnalysisTab(QWidget):
 
         if self.combobox_menu_label.text() == self.combobox_menu_method_label: # if is assessment methods
             self.combobox_list = list(self.parent.method_dict.keys())
-            if self.parent.single_method:
-                visibility = False
+            # if self.parent.single_method:
+            #     visibility = False
 
         else:
             self.combobox_list = list(self.parent.mlca.func_unit_translation_dict.keys())
-            if self.parent.single_func_unit:
-                visibility = False
+            # if self.parent.single_func_unit:
+            #     visibility = False
 
         self.combobox_menu_combobox.insertItems(0, self.combobox_list)
         self.combobox_menu_combobox.blockSignals(False)

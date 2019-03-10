@@ -3,6 +3,7 @@ import brightway2 as bw
 from PyQt5.QtWidgets import QVBoxLayout
 
 from .panel import ABTab
+from ..web.webutils import RestrictedWebViewWidget
 from ..web.graphnav import GraphNavigatorWidget
 from ..tabs import (
     LCASetupTab,
@@ -12,6 +13,7 @@ from ..tabs import (
 )
 from ...signals import signals
 from ...bwutils.commontasks import get_activity_name
+from .... import PACKAGE_DIRECTORY
 
 
 class RightPanel(ABTab):
@@ -21,6 +23,7 @@ class RightPanel(ABTab):
         super(RightPanel, self).__init__(*args)
 
         self.tabs = {
+            "Welcome": RestrictedWebViewWidget(html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'),
             "Characterization Factors": CharacterizationFactorsTab(self),
             "Activities": ActivitiesTab(self),
             "LCA Setup": LCASetupTab(self),
@@ -35,6 +38,12 @@ class RightPanel(ABTab):
         for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", "LCA results"]:
             self.hide_tab(tab_name)
 
+        # self.connect_signals()
+
+    # def connect_signals(self):
+    #     self.currentChanged.connect(
+    #         lambda i, x="Welcome": self.hide_tab(x, current_index=i)
+    #     )
 
 class GraphExplorerTab(ABTab):
     def __init__(self, parent):

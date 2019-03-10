@@ -67,6 +67,10 @@ class MenuBar(object):
             '&Graph Explorer',
             lambda x="Graph Explorer": signals.toggle_show_or_hide_tab.emit(x)
         )
+        self.show_hide_menu.addAction(
+            '&Welcome screen',
+            lambda x="Welcome": signals.toggle_show_or_hide_tab.emit(x)
+        )
         # self.windows_menu.addMenu(self.show_hide_menu)
         self.update_windows_menu()
         return self.windows_menu
