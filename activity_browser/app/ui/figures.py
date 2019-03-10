@@ -68,8 +68,10 @@ class LCAResultsBarChart(Plot):
         self.plot_name = 'LCA scores'
 
     def plot(self, mlca, method=None):
-
-        self.ax.clear()
+        self.figure.clf()
+        self.ax = self.figure.add_subplot(111)
+        height_inches, width_inches = self.get_canvas_size_in_inches()
+        self.figure.set_size_inches(height_inches, width_inches)
 
         if method == None:
             method = mlca.methods[0]
@@ -93,7 +95,7 @@ class LCAResultsBarChart(Plot):
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
-        # self.canvas.figure
+        # draw
         self.canvas.draw()
 
 
@@ -156,17 +158,14 @@ class ContributionPlot(Plot):
             dfp.drop("Total", inplace=True)
 
         self.ax.clear()
-        # height = 1 + dfp.shape[1] * 0.5
-        # self.figure.set_figheight(height)
-        fig_height = self.get_canvas_size_in_inches()[0]
-        figh_width = self.get_canvas_size_in_inches()[1]
-        self.figure.set_size_inches(fig_height, figh_width)
+        canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
+        optimal_height_inches = 4 + dfp.shape[1] * 0.55
+        print('Optimal Contribution plot height:', optimal_height_inches)
+        self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
         dfp.columns = [wrap_text(i, max_length=40) for i in dfp.columns]
-        # dfp.columns = [str(c).replace(' | ', '\n') for c in dfp.columns]
-        # dfp.index = [str(c).replace(' | ', '\n') for c in dfp.index]
 
         plot = dfp.T.plot.barh(
             stacked=True,
@@ -180,10 +179,11 @@ class ContributionPlot(Plot):
 
         # show legend if not too many items
         if not dfp.shape[0] >= max_legend_items:
-            plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
-            plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
-                        ncol=math.ceil(dfp.shape[0] * 0.6 / fig_height))
-        # plot.grid(b=False)
+            plt.rc('legend', **{'fontsize': 8})
+            ncols = math.ceil(dfp.shape[0] * 0.6 / optimal_height_inches)
+            # print('Ncols:', ncols, dfp.shape[0] * 0.55, optimal_height_inches)
+            legend = plot.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
+
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
@@ -191,7 +191,6 @@ class ContributionPlot(Plot):
         # refresh canvas
         # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
         # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
-
 
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
