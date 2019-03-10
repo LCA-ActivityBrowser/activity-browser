@@ -146,7 +146,7 @@ class ContributionPlot(Plot):
         super(ContributionPlot, self).__init__()
         self.plot_name = 'Contributions'
 
-    def plot(self, df):
+    def plot(self, df, unit=None):
         """ Plot a horizontal bar chart of the process contributions. """
         max_legend_items = 30
         dfp = df.copy()
@@ -175,13 +175,18 @@ class ContributionPlot(Plot):
             legend=False if dfp.shape[0] >= max_legend_items else True,
         )
         plot.tick_params(labelsize=8)
+        if unit:
+            self.ax.set_xlabel(unit)
 
         # show legend if not too many items
         if not dfp.shape[0] >= max_legend_items:
             plt.rc('legend', **{'fontsize': 8})  # putting below affects only LCAElementaryFlowContributionPlot
             plot.legend(loc='center left', bbox_to_anchor=(1, 0.5),
                         ncol=math.ceil(dfp.shape[0] * 0.6 / fig_height))
-        plot.grid(b=False)
+        # plot.grid(b=False)
+        # grid
+        self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
+        self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
         # refresh canvas
         # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)

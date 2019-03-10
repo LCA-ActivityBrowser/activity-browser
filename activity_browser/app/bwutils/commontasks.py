@@ -213,6 +213,10 @@ def get_default_project_name():
 
 
 # LCIA
+def unit_of_method(method):
+    assert method in bw.methods
+    return bw.methods[method].get('unit')
+
 def get_LCIA_method_name_dict(keys):
     """LCIA methods in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
     Returns a dictionary with

@@ -51,6 +51,22 @@ def get_radio_buttons(names=['first', 'second'], states=[True, False]):
     return buttons, combobox_menu
 
 
+def get_unit(method, relative):
+    """Determine the unit based on whether a plot is shown:
+    - for a number of functional units
+    - for a number of LCIA methods
+    and whether the axis are related to:
+    - relative or
+    - absolute numbers."""
+    if relative:
+        unit = 'relative share'
+    else:
+        if method:  # for all functional units
+            unit = bc.unit_of_method(method)
+        else:
+            unit = 'units of each LCIA method'
+    return unit
+
 class LCAResultsSubTab(QTabWidget):
     def __init__(self, parent, name):
         super(LCAResultsSubTab, self).__init__(parent)
@@ -699,8 +715,10 @@ class ElementaryFlowContributionTab(AnalysisTab):
         self.df = self.parent.contributions.top_elementary_flow_contributions(
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
-        self.plot.plot(self.df)
-        filename = '_'.join([str(x) for x in ['EF contributions', self.parent.cs_name, method, func] if x is not None])
+        unit = get_unit(method, self.relative)
+        self.plot.plot(self.df, unit=unit)
+        filename = '_'.join([str(x) for x in ['EF contributions', self.parent.cs_name, method, func, unit]
+                             if x is not None])
         self.plot.plot_name, self.table.table_name = filename, filename
 
 
@@ -742,8 +760,10 @@ class ProcessContributionsTab(AnalysisTab):
         self.df = self.parent.contributions.top_process_contributions(
             functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
-        self.plot.plot(self.df)
-        filename = '_'.join([str(x) for x in ['Process contributions', self.parent.cs_name, method, func] if x is not None])
+        unit = get_unit(method, self.relative)
+        self.plot.plot(self.df, unit=unit)
+        filename = '_'.join([str(x) for x in ['Process contributions', self.parent.cs_name, method, func, unit]
+                             if x is not None])
         self.plot.plot_name, self.table.table_name = filename, filename
 
 
