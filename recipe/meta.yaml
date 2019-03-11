@@ -27,7 +27,7 @@ requirements:
     - matplotlib >=2.2.2
     - seaborn
     - arrow
-    - pandas
+    - pandas >= 0.24.1
     - fuzzywuzzy
     - pyqt==5.9.2
     - eidl >=1.2.0
