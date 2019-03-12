@@ -27,7 +27,7 @@ svg {
   overflow: visible;
 }
 .canvas .wrapper.outer > .background {
-  fill: #000000;
+  fill: #FFFFFF;
 }
 .canvas .wrapper.inner > .background {
   fill: #FFFFFF;
@@ -61,7 +61,7 @@ svg {
   stroke: #FF0000; /* #111111 */
   stroke-width: 10px;
   fill-opacity: 0.1;   /*grey shade of mini-map*/
-  fill: #000000; /* #FF0000 */
+  fill: #FFFFFF; /* #FF0000 */
   /*fill: url(#minimapGradient_qwpyza); */
   filter: url(#minimapDropShadow_qwpyza);
   cursor: move;
