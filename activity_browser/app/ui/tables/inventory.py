@@ -260,7 +260,10 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         self.dataframe = df[self.fields].reset_index(drop=True)
 
         # sort ignoring case sensitivity
-        self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
+        sort_field = self.fields[0]
+        self.dataframe = self.dataframe.iloc[self.dataframe[sort_field].str.lower().argsort()]
+        sort_field_index = self.fields.index(sort_field)
+        self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
         self.dataframe.reset_index(inplace=True, drop=True)
         self.dataframe_search_copy = self.dataframe
 
