@@ -30,6 +30,7 @@ requirements:
     - fuzzywuzzy
     - pyqt==5.9.2
     - eidl >=1.2.0
+    - networkx
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
