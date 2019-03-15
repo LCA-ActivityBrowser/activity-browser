@@ -3,12 +3,12 @@ build: false
 
 environment:
   matrix:
-    - JOB: "Python 3.6, 64bit"
+    - JOB: "Python 3.7, 64bit"
       PYTHON: "C:\\Python37_64"
       PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "37"
-      CONDA_ENV_PY: "3.6"
+      CONDA_ENV_PY: "3.7"
 
 install:
   - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
