@@ -1,31 +1,72 @@
-# modified from https://github.com/haasad/PyPardisoProject
 build: false
 
 environment:
   matrix:
-    - JOB: "Python 3.7, 64bit"
-      PYTHON: "C:\\Python37_64"
-      PYTHON_VERSION: "3.7"
+    - PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "37"
-      CONDA_ENV_PY: "3.7"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda37-x64"
+      # JOB: "Python 3.67 64bit"
+      # PYTHON: "C:\\Python37_64"
+      # PYTHON_VERSION: "3.7"
+      # PYTHON_ARCH: "64"
+      # CONDA_PY: "37"
+      # CONDA_ENV_PY: "3.7"
 
 install:
-  - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - "conda info"
-  - "DIR"
-  - "conda update conda"
-  - "conda config --set always_yes yes --set changeps1 no"
-  - "conda config --append channels conda-forge"
-  - "conda config --append channels cmutel"
-  - "conda config --append channels haasad"
-  - "conda install conda-build"
+  # - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
+  # - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - conda info
+  - DIR
+  - python --version
+  - conda update conda
+  - conda config --set always_yes yes --set changeps1 no
+  - conda config --append channels conda-forge
+  - conda config --append channels cmutel
+  - conda config --append channels haasad
+  - conda install conda-build
+  - "call %CONDA_INSTALL_LOCN%\Scripts\activate.bat"
   - "conda build .\\ci\\travis\\recipe"
-  - "conda create -n test_env python=%CONDA_ENV_PY%"
-  - "activate test_env"
-  - "conda install --use-local activity-browser-dev"
-  - 'conda install -q "pytest<3.5" pytest-qt pytest-mock'
+  # - "conda create -n test_env python=%CONDA_ENV_PY%"
+  # - "activate test_env"
+  - conda install --use-local activity-browser-dev
+  # - 'conda install -q "pytest<3.5" pytest-qt pytest-mock'
+  - conda install pytest pytest-qt pytest-mock
 
 test_script:
-  - "py.test"
+  - pytest
+
+
+
+
+## modified from https://github.com/haasad/PyPardisoProject
+#build: false
+#
+#environment:
+#  matrix:
+#    - JOB: "Python 3.7, 64bit"
+#      PYTHON: "C:\\Python37_64"
+#      PYTHON_VERSION: "3.7"
+#      PYTHON_ARCH: "64"
+#      CONDA_PY: "37"
+#      CONDA_ENV_PY: "3.7"
+#
+#install:
+#  - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
+#  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+#  - "conda info"
+#  - "DIR"
+#  - "conda update conda"
+#  - "conda config --set always_yes yes --set changeps1 no"
+#  - "conda config --append channels conda-forge"
+#  - "conda config --append channels cmutel"
+#  - "conda config --append channels haasad"
+#  - "conda install conda-build"
+#  - "conda build .\\ci\\travis\\recipe"
+#  - "conda create -n test_env python=%CONDA_ENV_PY%"
+#  - "activate test_env"
+#  - "conda install --use-local activity-browser-dev"
+#  - 'conda install -q "pytest<3.5" pytest-qt pytest-mock'
+#
+#test_script:
+#  - "py.test"
