@@ -17,11 +17,12 @@ install:
   # - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
   # - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+  - - conda config --set always_yes yes --set changeps1 no
   - conda info
   - DIR
   - python --version
   - conda update conda
-  - conda config --set always_yes yes --set changeps1 no
+
   - conda config --append channels conda-forge
   - conda config --append channels cmutel
   - conda config --append channels haasad
