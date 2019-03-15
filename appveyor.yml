@@ -22,12 +22,11 @@ install:
   - DIR
   - python --version
   - conda update conda
-
   - conda config --append channels conda-forge
   - conda config --append channels cmutel
   - conda config --append channels haasad
   - conda install conda-build
-  - conda build .\\ci\\travis\\recipe"
+  - conda build .\\ci\\travis\\recipe
   # - "conda create -n test_env python=%CONDA_ENV_PY%"
   # - "activate test_env"
   - conda install --use-local activity-browser-dev
