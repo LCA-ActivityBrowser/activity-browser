@@ -16,6 +16,7 @@ environment:
 install:
   # - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
   # - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
   - conda info
   - DIR
   - python --version
@@ -25,7 +26,6 @@ install:
   - conda config --append channels cmutel
   - conda config --append channels haasad
   - conda install conda-build
-  - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
   - conda build .\\ci\\travis\\recipe"
   # - "conda create -n test_env python=%CONDA_ENV_PY%"
   # - "activate test_env"
