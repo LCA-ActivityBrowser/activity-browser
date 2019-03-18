@@ -33,9 +33,9 @@ install:
   # - 'conda install -q "pytest<3.5" pytest-qt pytest-mock'
   - conda install pytest pytest-qt pytest-mock
 
-test_script:
+#test_script:
 #  - pytest
-  - "py.test"
+#  - "py.test"
 
 
 
