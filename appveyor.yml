@@ -34,7 +34,8 @@ install:
   - conda install pytest pytest-qt pytest-mock
 
 test_script:
-  - pytest
+#  - pytest
+  - "py.test"
 
 
 
