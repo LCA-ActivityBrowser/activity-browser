@@ -6,7 +6,7 @@ environment:
       PYTHON_ARCH: "64"
       CONDA_PY: "37"
       CONDA_INSTALL_LOCN: "C:\\Miniconda37-x64"
-      # JOB: "Python 3.67 64bit"
+      # JOB: "Python 3.7 64bit"
       # PYTHON: "C:\\Python37_64"
       # PYTHON_VERSION: "3.7"
       # PYTHON_ARCH: "64"

@@ -8,7 +8,7 @@ matrix:
     - python: "3.7"
       language: generic-covered
       os: osx
-      env: pyver=3.6 pydist=macpython
+      env: pyver=3.7 pydist=macpython
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
