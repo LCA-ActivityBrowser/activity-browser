@@ -94,7 +94,6 @@ after_script:  # this way it always uploads even if tests fail
     echo "no upload from osx";
    fi
         
-
 notifications:
   email:
     on_success: always # default: change
