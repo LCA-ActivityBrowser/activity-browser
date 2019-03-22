@@ -21,7 +21,7 @@ install:
   - conda config --append channels conda-forge
   - conda config --append channels cmutel
   - conda config --append channels haasad
-  - conda install arrow brightway2 >=2.1.2 bw2io >=0.7.dev1 bw2data >=3.4.3 eidl >=1.2.0 fuzzyw matplotlib >=2.2.2 networkx pandas >=0.24.1 pyqt==5.9.2 seaborn pytest pytest-cov coveralls
+  - conda install arrow brightway2 >=2.1.2 bw2io >=0.7.dev1 bw2data >=3.4.3 eidl >=1.2.0 fuzzywuzzy matplotlib >=2.2.2 networkx pandas >=0.24.1 pyqt==5.9.2 seaborn pytest pytest-cov coveralls
 #  - pip install <add any other dependencies not available in conda here>
 #  - pip install -e .
 
