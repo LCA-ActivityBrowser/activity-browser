@@ -1,7 +1,7 @@
 build: false
 
 environment:
-  PYTHONIOENCODING: "UTF-8"
+#  PYTHONIOENCODING: "UTF-8"
 
   matrix:
     - PYTHON_VERSION: "3.7"
@@ -15,22 +15,22 @@ environment:
 install:
   # - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
   # - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - cmd: call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
-  - cmd: conda config --set always_yes yes --set changeps1 no
-  - cmd: conda info
-  - cmd: DIR
-  - cmd: python --version
-  - cmd: conda update conda
-  - cmd: conda config --append channels conda-forge
-  - cmd: conda config --append channels cmutel
-  - cmd: conda config --append channels haasad
-  - cmd: conda install conda-build
-  - cmd: conda build .\\ci  #\\travis\\recipe
+  - call %CONDA_INSTALL_LOCN%\Scripts\activabat
+  - conda config --set always_yes yes --set changeps1 no
+  - conda info
+  - DIR
+  - python --version
+  - conda update conda
+  - conda config --append channels conda-forge
+  - conda config --append channels cmutel
+  - conda config --append channels haasad
+  - conda install conda-build
+  - conda build .\\ci  #\\travis\\recipe
 #  - cmd: conda create -n test_env python=%CONDA_ENV_PY%
 #  - cmd: activate test_env
-  - cmd: conda install --use-local activity-browser-dev
+  - conda install --use-local activity-browser-dev
 #  - cmd: conda install -q "pytest<3.5" pytest-qt pytest-mock
-#  - cmd: conda install pytest pytest-qt pytest-mock
+  - conda install pytest pytest-qt pytest-mock
 
 #test_script:
 #  - pytest
