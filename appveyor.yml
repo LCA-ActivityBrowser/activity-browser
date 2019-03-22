@@ -26,14 +26,14 @@ install:
   - cmd: conda config --append channels haasad
   - cmd: conda install conda-build
   - cmd: conda build .\\ci  #\\travis\\recipe
-  - cmd: conda create -n test_env python=%CONDA_ENV_PY%
-  - cmd: activate test_env
+#  - cmd: conda create -n test_env python=%CONDA_ENV_PY%
+#  - cmd: activate test_env
   - cmd: conda install --use-local activity-browser-dev
-  - cmd: conda install -q "pytest<3.5" pytest-qt pytest-mock
+#  - cmd: conda install -q "pytest<3.5" pytest-qt pytest-mock
 #  - cmd: conda install pytest pytest-qt pytest-mock
 
 #test_script:
-  - pytest
+#  - pytest
 #  - py.test
 
 
