@@ -1,8 +1,8 @@
-{% set version = "2.3.0.dev" %}
+#  {% set version = "2.3.0.dev" %}
 
 package:
   name: activity-browser-dev
-  version: {{ version }}
+  version: {{ environ['VERSION'] }}
 
 source:
   path: ..

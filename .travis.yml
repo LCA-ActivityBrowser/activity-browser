@@ -79,9 +79,12 @@ after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       coveralls;
       if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then 
-        conda install anaconda-client;
-        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
-        anaconda -t $CONDA_UPLOAD_TOKEN upload --force *.tar.bz2;
+#        conda install anaconda-client;
+#        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
+#        anaconda -t $CONDA_UPLOAD_TOKEN upload --force *.tar.bz2;
+        conda install conda-build anaconda-client conda-verify;
+        echo "running conda_upload script:";
+        bash ci/conda_upload.sh;
         echo "uploaded to conda channel";
       else
         echo "no upload because not master branch";
