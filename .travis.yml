@@ -2,7 +2,7 @@ language: python
 
 matrix:
   include:
-    - python: "3.6"
+    - python: "3.7"
       os: linux
 
     - python: "3.7"
@@ -93,7 +93,7 @@ after_script:  # this way it always uploads even if tests fail
    else
     echo "no upload from osx";
    fi
-        
+
 notifications:
   email:
     on_success: always # default: change
