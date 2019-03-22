@@ -5,7 +5,7 @@ USER=bsteubing
 mkdir ~/conda-bld
 conda config --set anaconda_upload no
 export CONDA_BLD_PATH=~/conda-bld
-export VERSION=`date +%Y.%m.%d`
+# export VERSION=`date +%Y.%m.%d`
 
 echo "RUNNING BUILD"
 conda build . --old-build-string

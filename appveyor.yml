@@ -25,7 +25,8 @@ install:
 #  - pip install <add any other dependencies not available in conda here>
 #  - pip install -e .
 
-
+test_script:
+- pytest
 
 
 
