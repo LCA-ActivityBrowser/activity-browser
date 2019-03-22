@@ -43,7 +43,7 @@ install:
       sed "s/  number:\ 0/  number:\ $(date '+%Y%m%d%H%M')/g" ./ci/travis/recipe/meta.yaml > /tmp/meta.yaml;
       mv /tmp/meta.yaml ./ci/travis/recipe/meta.yaml;
     fi
-  - conda build ./ci/travis/recipe
+  - conda build ./ci  #/travis/recipe
 
   # Create environment
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
@@ -81,7 +81,7 @@ after_success:
       if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then 
         conda install anaconda-client;
         cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
-        anaconda -t $CONDA_TOKEN upload --force *.tar.bz2;
+        anaconda -t $CONDA_UPLOAD_TOKEN upload --force *.tar.bz2;
         echo "uploaded to conda channel";
       else
         echo "no upload because not master branch";
