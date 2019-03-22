@@ -16,6 +16,7 @@ before_install:
       sudo apt-get update;
     fi
 
+
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
@@ -86,7 +87,7 @@ after_script:  # this way it always uploads even if tests fail
 #        anaconda -t $CONDA_UPLOAD_TOKEN upload --force *.tar.bz2;
         conda install conda-build anaconda-client conda-verify;
         echo "running conda_upload script:";
-        bash ci/conda_upload.sh;
+        bash ci/xx_conda_upload.sh;
         echo "uploaded to conda channel";
       else
         echo "no upload because not master branch";
