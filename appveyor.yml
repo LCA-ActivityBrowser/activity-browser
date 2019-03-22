@@ -12,29 +12,46 @@ environment:
       # PYTHON: "C:\\Python37_64"
       # CONDA_ENV_PY: "3.7"
 
+
 install:
-  # - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
-  # - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
   - python --version
-  - conda config --set always_yes yes --set changeps1 no
-  - conda info
-  - DIR
-  - conda update conda
+  - conda config --set always_yes yes
+  - conda update -y conda
   - conda config --append channels conda-forge
   - conda config --append channels cmutel
   - conda config --append channels haasad
-  - conda install conda-build
-  - conda build .\\ci  #\\travis\\recipe
-#  - cmd: conda create -n test_env python=%CONDA_ENV_PY%
-#  - cmd: activate test_env
-  - conda install --use-local activity-browser-dev
-#  - cmd: conda install -q "pytest<3.5" pytest-qt pytest-mock
-  - conda install pytest pytest-qt pytest-mock
+  - conda install arrow brightway2 >=2.1.2 bw2io >=0.7.dev1 bw2data >=3.4.3 eidl >=1.2.0 fuzzyw matplotlib >=2.2.2 networkx pandas >=0.24.1 pyqt==5.9.2 seaborn pytest pytest-cov coveralls
+#  - pip install <add any other dependencies not available in conda here>
+#  - pip install -e .
 
-#test_script:
-#  - pytest
-#  - py.test
+
+
+
+
+#install:
+#  # - "powershell .\\ci\\appveyor\\install_miniconda.ps1"
+#  # - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+#  - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+#  - python --version
+#  - conda config --set always_yes yes #--set changeps1 no
+#  - conda info
+#  - DIR
+#  - conda update conda
+#  - conda config --append channels conda-forge
+#  - conda config --append channels cmutel
+#  - conda config --append channels haasad
+#  - conda install conda-build
+#  - conda build .\\ci  #\\travis\\recipe
+##  - cmd: conda create -n test_env python=%CONDA_ENV_PY%
+##  - cmd: activate test_env
+#  - conda install --use-local activity-browser-dev
+##  - cmd: conda install -q "pytest<3.5" pytest-qt pytest-mock
+#  - conda install pytest pytest-qt pytest-mock
+#
+##test_script:
+##  - pytest
+##  - py.test
 
 
 
