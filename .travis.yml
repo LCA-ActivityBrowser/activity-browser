@@ -40,8 +40,8 @@ install:
   # use sed to dynamically change the build number for the upload to conda
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       echo $(date '+%Y%m%d%H%M');
-      sed "s/  number:\ 0/  number:\ $(date '+%Y%m%d%H%M')/g" ./ci/travis/recipe/meta.yaml > /tmp/meta.yaml;
-      mv /tmp/meta.yaml ./ci/travis/recipe/meta.yaml;
+      sed "s/  number:\ 0/  number:\ $(date '+%Y%m%d%H%M')/g" ./ci/travis/recipe/meta_old.yaml > /tmp/meta_old.yaml;
+      mv /tmp/meta_old.yaml ./ci/travis/recipe/meta_old.yaml;
     fi
   - conda build ./ci/travis/recipe
 

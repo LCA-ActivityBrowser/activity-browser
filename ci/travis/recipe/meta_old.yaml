@@ -1,12 +1,11 @@
-{% set version = "2.3.0" %}
+{% set version = "2.3.0.dev" %}
 
 package:
-  name: activity-browser
+  name: activity-browser-dev
   version: {{ version }}
 
 source:
-  git_rev: {{ version }}
-  git_url: https://github.com/LCA-ActivityBrowser/activity-browser.git
+  path: ../../..
 
 build:
   noarch: python
@@ -38,8 +37,9 @@ about:
   license: GPL3+
   license_family: GPL3
   license_file: LICENSE
-  summary: GUI for brightway2
+  summary: Development version of the Activity Browser
   description: |
     The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
     advanced life cycle assessment framework. More details and installation instructions can be found 
-    on [github](https://github.com/LCA-ActivityBrowser/activity-browser).
+    on [github](https://github.com/LCA-ActivityBrowser/activity-browser).  
+    This is the development version. For the stable release install the `activity-browser` package.
