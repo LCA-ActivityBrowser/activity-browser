@@ -2,13 +2,13 @@ language: python
 
 matrix:
   include:
-    - python: "3.7"
+    - python: "3.6"
       os: linux
 
     - python: "3.7"
       language: generic-covered
       os: osx
-      env: pyver=3.6 pydist=macpython
+      env: pyver=3.7 pydist=macpython
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -79,9 +79,11 @@ after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       coveralls;
       if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-        conda install anaconda-client;
-        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
-        anaconda -t $CONDA_TOKEN upload --force *.tar.bz2;
+        conda install conda-build anaconda-client conda-verify;
+        bash ci/conda_upload.sh;
+#        conda install anaconda-client;
+#        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
+#        anaconda -t $CONDA_TOKEN upload --force *.tar.bz2;
         echo "uploaded to conda channel";
       else
         echo "no upload because not master branch";
