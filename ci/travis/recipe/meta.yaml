@@ -1,4 +1,4 @@
-{% set version = "2.2.5.dev" %}
+{% set version = "2.3.0.dev" %}
 
 package:
   name: activity-browser-dev
@@ -11,6 +11,9 @@ build:
   noarch: python
   number: 0
   script: python setup.py install --single-version-externally-managed --record record.txt
+  script_env:
+    - VERSION
+    - CONDA_BLD_PATH
   entry_points:
     - activity-browser = activity_browser.app:run_activity_browser 
 
@@ -20,16 +23,17 @@ requirements:
     - setuptools
   run:
     - python
+    - arrow
     - brightway2 >=2.1.2
     - bw2io >=0.7.dev1
     - bw2data >=3.4.3
-    - matplotlib >=2.2.2
-    - seaborn
-    - arrow
-    - pandas
-    - fuzzywuzzy
-    - pyqt==5.9.2
     - eidl >=1.2.0
+    - fuzzywuzzy
+    - matplotlib >=2.2.2
+    - networkx
+    - pandas >=0.24.1
+    - pyqt==5.9.2
+    - seaborn
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

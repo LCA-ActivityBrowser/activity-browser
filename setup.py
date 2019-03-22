@@ -17,7 +17,7 @@ for dirpath, dirnames, filenames in os.walk('activity_browser'):
 
 setup(
     name='activity-browser',
-    version="2.2.5",
+    version="2.3.0",
     packages=packages,
     include_package_data=True,
     author="Bernhard Steubing",
@@ -26,7 +26,7 @@ setup(
     install_requires=[], # dependency management in conda recipe
     url="https://github.com/LCA-ActivityBrowser/activity-browser",
     long_description=open('README.md').read(),
-    description=('Brightway2 GUI'),
+    description='A graphical user interface for brightway2',
     entry_points={
         'console_scripts': [
             'activity-browser = activity_browser.app:run_activity_browser',
@@ -45,6 +45,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Visualization',

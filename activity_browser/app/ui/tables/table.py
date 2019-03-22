@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
-from ..style import style_item
+from ..style import style_item, style_table
 from ...signals import signals
 
 
@@ -10,7 +10,7 @@ class ABTableItem(QtWidgets.QTableWidgetItem):
 
         self.previous = text  # for going back to this value if the new text does not make sense
 
-        # assign attributes, e.g. "database", "key", "exchange", "direction", "editable"
+        # assign attributes, e.g. "database", "key", "exchange", "editable"
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -40,37 +40,40 @@ class ABTableWidget(QtWidgets.QTableWidget):
         # same in all tables:
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setSortingEnabled(True)
-        # self.setSizePolicy(QtWidgets.QSizePolicy(
-        #     QtWidgets.QSizePolicy.Preferred,
-        #     QtWidgets.QSizePolicy.Maximum)
-        # )
+        self.verticalHeader().setVisible(True)
+        self.verticalHeader().setDefaultSectionSize(22)  # this is much faster
 
     @classmethod  # needs to be a classmethod for decorating subclass methods
     def decorated_sync(cls, sync):
         """ A wrapper for the tables' sync method to do generic stuff
         before and after the individual tables' sync method."""
         def wrapper(self, *args, **kwargs):
+            # print(args, kwargs)
             # before making the table
             self.clear()
             self.setSortingEnabled(False)
             # the actual sync
             sync(self, *args, **kwargs)
             # after syncing
-            self.resizeColumnsToContents()
-            self.resizeRowsToContents()
+
+            # the resizing operations take a lot of time
+            # self.resizeColumnsToContents()
+            # self.resizeRowsToContents()
+
             self.setSortingEnabled(True)
-            if self.rowCount() > 0:
-                self.setMaximumHeight(
-                    self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
-                )
-            else:
-                self.setMaximumHeight(50)
+            self.setMaximumHeight(self.sizeHint().height())
+
+            # limit column width for certain tables
+            if kwargs.get("limit_width", None) in style_table.custom_column_widths:
+                for col, width in enumerate(style_table.custom_column_widths[kwargs.get("limit_width", None)]):
+                    if width < self.columnWidth(col):
+                        self.setColumnWidth(col, width)
         return wrapper
 
     def sizeHint(self):
         """ Could be implemented like this to return the width and heights of the table. """
         if self.rowCount() > 0:
-            height = self.rowHeight(0) * (self.rowCount() + 1) + self.autoScrollMargin()
+            height = self.rowHeight(0) * self.rowCount() + self.horizontalScrollBar().height() + self.horizontalHeader().height()
             # print("Size Hint:", height)
             return QtCore.QSize(self.width(), height)
         else:

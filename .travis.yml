@@ -5,15 +5,16 @@ matrix:
     - python: "3.6"
       os: linux
 
-    - python: "3.6"
+    - python: "3.7"
       language: generic-covered
       os: osx
-      env: pyver=3.6 pydist=macpython
+      env: pyver=3.7 pydist=macpython
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       sudo apt-get update;
     fi
+
 
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
@@ -54,7 +55,7 @@ install:
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
   - conda install -q 'pytest<3.5' pytest-qt pytest-mock
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       conda install -q "pytest-cov<2.6" python-coveralls;
     fi
 
@@ -74,14 +75,13 @@ script:
     else
       py.test;
     fi
-  
+
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       coveralls;
-      if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then 
-        conda install anaconda-client;
-        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
-        anaconda -t $CONDA_TOKEN upload --force *.tar.bz2;
+      if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+        conda install conda-build anaconda-client conda-verify;
+        bash ci/conda_upload.sh;
         echo "uploaded to conda channel";
       else
         echo "no upload because not master branch";
@@ -89,9 +89,9 @@ after_success:
    else
     echo "no upload from osx";
    fi
-        
+
 
 notifications:
   email:
     on_success: always # default: change
-    on_failure: always # default: always
+on_failure: always # default: always

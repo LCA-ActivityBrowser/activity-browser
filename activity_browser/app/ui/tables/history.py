@@ -33,13 +33,13 @@ class ActivitiesHistoryTable(ABTableWidget):
         self.addAction(self.open_left_tab_action)
         self.open_left_tab_action.triggered.connect(
             lambda x: signals.open_activity_tab.emit(
-                "activities", self.currentItem().key
+                self.currentItem().key
             )
         )
 
     def connect_signals(self):
         self.itemDoubleClicked.connect(
-            lambda x: signals.open_activity_tab.emit("activities", self.currentItem().key)
+            lambda x: signals.open_activity_tab.emit(self.currentItem().key)
         )
         self.itemDoubleClicked.connect(
             lambda x: signals.add_activity_to_history.emit(x.key)

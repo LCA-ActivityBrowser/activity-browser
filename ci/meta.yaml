@@ -1,0 +1,48 @@
+{% set VERSION = "2.3.0.dev" %}
+# environ['VERSION']
+package:
+  name: activity-browser-dev
+  version: {{ VERSION }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record record.txt
+  script_env:
+#    - VERSION
+    - CONDA_BLD_PATH
+  entry_points:
+    - activity-browser = activity_browser.app:run_activity_browser 
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+    - arrow
+    - brightway2 >=2.1.2
+    - bw2io >=0.7.dev1
+    - bw2data >=3.4.3
+    - eidl >=1.2.0
+    - fuzzywuzzy
+    - matplotlib >=2.2.2
+    - networkx
+    - pandas >=0.24.1
+    - pyqt==5.9.2
+    - seaborn
+
+about:
+  home: https://github.com/LCA-ActivityBrowser/activity-browser
+  license: GPL3+
+  license_family: GPL3
+  license_file: LICENSE
+  summary: Development version of the Activity Browser
+  description: |
+    The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
+    advanced life cycle assessment framework. More details and installation instructions can be found 
+    on [github](https://github.com/LCA-ActivityBrowser/activity-browser).  
+    This is the development version. For the stable release install the `activity-browser` package.

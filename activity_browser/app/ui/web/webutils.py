@@ -47,6 +47,7 @@ class RestrictedWebViewWidget(QtWidgets.QWidget):
         # associate page with view
         self.view.setPage(self.page)
 
+
         # set layout
         self.vl = QtWidgets.QVBoxLayout()
         self.vl.addWidget(self.view)

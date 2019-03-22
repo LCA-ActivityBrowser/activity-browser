@@ -23,11 +23,14 @@ class Statusbar(object):
         self.connect_signals()
 
     def connect_signals(self):
+        signals.new_statusbar_message.connect(self.left)
         signals.project_selected.connect(self.update_project)
         signals.database_selected.connect(self.set_database)
 
     def left(self, message):
-        self.status_message_left.setText(message)
+        print(message)  # for console output
+        if isinstance(message, str):
+            self.status_message_left.setText(message)
 
     def center(self, message):
         self.status_message_center.setText(message)

@@ -1,39 +1,80 @@
 # -*- coding: utf-8 -*-
-from .panel import Panel
-from .. import activity_cache
+import brightway2 as bw
+from PyQt5.QtWidgets import QVBoxLayout
+
+from .panel import ABTab
+from ..web.webutils import RestrictedWebViewWidget
+from ..web.graphnav import GraphNavigatorWidget
 from ..tabs import (
-    ActivityDetailsTab,
-    HistoryTab,
-    ImpactAssessmentTab,
-    MethodsTab,
-    ProjectTab,
+    LCASetupTab,
+    LCAResultsTab,
+    CharacterizationFactorsTab,
+    ActivitiesTab
 )
+from ...signals import signals
+from ...bwutils.commontasks import get_activity_name
+from .... import PACKAGE_DIRECTORY
 
 
-
-class RightPanel(Panel):
+class RightPanel(ABTab):
     side = "right"
 
     def __init__(self, *args):
         super(RightPanel, self).__init__(*args)
 
-        self.history_tab = HistoryTab(self)
-        self.project_tab = ProjectTab(self)
-        self.methods_tab = MethodsTab(self)
-        self.lca_results_tab = ImpactAssessmentTab(self)
+        self.tabs = {
+            "Welcome": RestrictedWebViewWidget(html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'),
+            "Characterization Factors": CharacterizationFactorsTab(self),
+            "Activities": ActivitiesTab(self),
+            "LCA Setup": LCASetupTab(self),
+            "Graph Explorer": GraphExplorerTab(self),
+            "LCA results": LCAResultsTab(self),
+        }
 
-        self.addTab(self.project_tab, 'Project')
-        self.addTab(self.methods_tab, 'Impact Categories')
-        self.addTab(self.history_tab, 'History')
+        for tab_name, tab in self.tabs.items():
+            self.addTab(tab, tab_name)
 
-    def close_tab(self, index):
-        if index >= 3:
-            # TODO: Should look up by tab class, not index, as tabs are movable
-            widget = self.widget(index)
-            if isinstance(widget, ActivityDetailsTab):
-                assert widget.activity in activity_cache
-                del activity_cache[widget.activity]
-            widget.deleteLater()
-            self.removeTab(index)
+        # tabs hidden at start
+        for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", "LCA results"]:
+            self.hide_tab(tab_name)
 
-        self.setCurrentIndex(0)
+        # self.connect_signals()
+
+    # def connect_signals(self):
+    #     self.currentChanged.connect(
+    #         lambda i, x="Welcome": self.hide_tab(x, current_index=i)
+    #     )
+
+class GraphExplorerTab(ABTab):
+    def __init__(self, parent):
+        super(GraphExplorerTab, self).__init__(parent)
+
+        self.setMovable(True)
+        self.setTabsClosable(True)
+        # self.setTabShape(1)  # Triangular-shaped Tabs
+
+        # Generate layout
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.project_selected.connect(self.close_all)
+        signals.open_activity_graph_tab.connect(self.add_tab)
+
+    def add_tab(self, key, select=True):
+        """Opens new tab or focuses on already open one."""
+        if key not in self.tabs:
+            print("adding graph tab")
+            new_tab = GraphNavigatorWidget(self, key=key)
+            self.tabs[key] = new_tab
+            self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
+        else:
+            tab = self.tabs[key]
+            tab.new_graph(key)
+
+        if select:
+            self.select_tab(self.tabs[key])
+            signals.show_tab.emit("Graph Explorer")

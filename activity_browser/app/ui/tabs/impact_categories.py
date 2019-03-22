@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
 
-from ..style import horizontal_line, header
+from ..style import header
 from ..tables import CFTable, MethodsTable
+from ..panels import ABTab
 from ...signals import signals
 
 
@@ -13,19 +14,12 @@ class CFsTab(QtWidgets.QWidget):
         self.method = method
         # Not visible when instantiated
         self.cf_table = CFTable()
-        self.method_label = QtWidgets.QLabel()
         container = QtWidgets.QVBoxLayout()
-        container.addWidget(header('Characterization Factors:'))
-        container.addWidget(horizontal_line())
-        container.addWidget(self.method_label)
+        container.addWidget(header("Method: " + " - ".join(method)))
         container.addWidget(self.cf_table)
         container.setAlignment(QtCore.Qt.AlignTop)
-
         self.setLayout(container)
 
-        self.method_label.setText(
-            "Method: " + " - ".join(method)
-        )
         self.cf_table.sync(method)
         self.cf_table.show()
         self.panel.select_tab(self)
@@ -60,3 +54,26 @@ class MethodsTab(QtWidgets.QWidget):
         reset_search_button.clicked.connect(self.search_box.clear)
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         signals.project_selected.connect(self.search_box.clear)
+
+
+class CharacterizationFactorsTab(ABTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMovable(True)
+        self.setTabsClosable(True)
+
+        # signals
+        signals.method_selected.connect(self.open_method_tab)
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.project_selected.connect(self.close_all)
+
+    def open_method_tab(self, method):
+        if method not in self.tabs:
+            new_tab = CFsTab(self, method)
+            full_tab_label = ' '.join(method)
+            label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
+            self.tabs[method] = new_tab
+            self.addTab(new_tab, label)
+
+        self.select_tab(self.tabs[method])
+        signals.show_tab.emit("Characterization Factors")

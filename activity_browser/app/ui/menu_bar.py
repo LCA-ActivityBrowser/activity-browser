@@ -15,6 +15,7 @@ class MenuBar(object):
         self.window = window
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
+        # self.menubar.addMenu(self.setup_tools_menu())
         # self.menubar.addMenu(self.setup_extensions_menu())
         self.menubar.addMenu(self.setup_windows_menu())
         self.menubar.addMenu(self.setup_help_menu())
@@ -37,9 +38,40 @@ class MenuBar(object):
         )
         return menu
 
+    # # TOOLS
+    # def setup_tools_menu(self):
+    #     menu = QtWidgets.QMenu('&Tools', self.window)
+    #     menu.addAction(
+    #         '&Graph Explorer',
+    #         lambda x="Graph Explorer": signals.show_tab.emit(x)
+    #     )
+    #     # menu.addAction(
+    #     #     '&Show/hide history',
+    #     #     lambda x="Project History": signals.show_or_hide_tab.emit(x)
+    #     # )
+    #
+    #     # self.graph_navigator = QtWidgets.QMenu('&Windows', self.window)
+    #     # self.update_windows_menu()
+    #     return menu
+
     # WINDOWS
     def setup_windows_menu(self):
         self.windows_menu = QtWidgets.QMenu('&Windows', self.window)
+
+        self.show_hide_menu = QtWidgets.QMenu('&Show/hide...', self.window)
+        self.show_hide_menu.addAction(
+            '&Project History',
+            lambda x="Project History": signals.toggle_show_or_hide_tab.emit(x)
+        )
+        self.show_hide_menu.addAction(
+            '&Graph Explorer',
+            lambda x="Graph Explorer": signals.toggle_show_or_hide_tab.emit(x)
+        )
+        self.show_hide_menu.addAction(
+            '&Welcome screen',
+            lambda x="Welcome": signals.toggle_show_or_hide_tab.emit(x)
+        )
+        # self.windows_menu.addMenu(self.show_hide_menu)
         self.update_windows_menu()
         return self.windows_menu
 
@@ -51,6 +83,7 @@ class MenuBar(object):
                 widget.name,
                 lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
             )
+        self.windows_menu.addMenu(self.show_hide_menu)
 
     # HELP
     def setup_help_menu(self):
