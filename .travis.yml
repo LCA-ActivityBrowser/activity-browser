@@ -2,20 +2,18 @@ language: python
 
 matrix:
   include:
-    - python: 3.7
-      dist: xenial
+    - python: "3.7"
       os: linux
 
-    - python: 3.7
+    - python: "3.7"
       language: generic-covered
       os: osx
-      env: pyver=3.7 pydist=macpython
+      env: pyver=3.6 pydist=macpython
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       sudo apt-get update;
     fi
-
 
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
@@ -45,7 +43,7 @@ install:
       sed "s/  number:\ 0/  number:\ $(date '+%Y%m%d%H%M')/g" ./ci/travis/recipe/meta.yaml > /tmp/meta.yaml;
       mv /tmp/meta.yaml ./ci/travis/recipe/meta.yaml;
     fi
-  - conda build ./ci  #/travis/recipe
+  - conda build ./ci/travis/recipe
 
   # Create environment
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
@@ -56,7 +54,7 @@ install:
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
   - conda install -q 'pytest<3.5' pytest-qt pytest-mock
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       conda install -q "pytest-cov<2.6" python-coveralls;
     fi
 
@@ -76,18 +74,14 @@ script:
     else
       py.test;
     fi
-  
-#after_success:
-after_script:  # this way it always uploads even if tests fail
+
+after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       coveralls;
-      if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then 
-#        conda install anaconda-client;
-#        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
-#        anaconda -t $CONDA_UPLOAD_TOKEN upload --force *.tar.bz2;
-        conda install conda-build anaconda-client conda-verify;
-        echo "running conda_upload script:";
-        bash ci/xx_conda_upload.sh;
+      if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+        conda install anaconda-client;
+        cp /home/travis/miniconda/conda-bld/noarch/*.tar.bz2 .;
+        anaconda -t $CONDA_TOKEN upload --force *.tar.bz2;
         echo "uploaded to conda channel";
       else
         echo "no upload because not master branch";
@@ -96,7 +90,8 @@ after_script:  # this way it always uploads even if tests fail
     echo "no upload from osx";
    fi
 
+
 notifications:
   email:
     on_success: always # default: change
-    on_failure: always # default: always
+on_failure: always # default: always
