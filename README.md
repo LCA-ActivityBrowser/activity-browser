@@ -15,7 +15,6 @@ The activity browser is a graphical user interface for the [Brightway2](https://
     - [Run the the activity browser](#run-the-activity-browser)
     - [Import an LCI database](#import-an-lci-database)
 - [Development Version](#development-version)
-- [Sankey Contribution Analysis](#sankey-contribution-analysis)
 - [Contributing](#contributing)
 - [Additional Resources](#additional-resources)
 - [Authors](#authors)
