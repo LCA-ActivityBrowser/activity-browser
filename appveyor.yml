@@ -8,8 +8,8 @@ environment:
   PYTHONUNBUFFERED: 1
 
   matrix:
-    - CONDA_PY: "37"
-      CONDA_INSTALL_LOCN: "C:\\Miniconda37-x64"
+    - CONDA_PY: "36"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda36-x64"
 
 install:
   - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
