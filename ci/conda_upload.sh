@@ -21,6 +21,7 @@ if [ "$TRAVIS_OS_NAME" == "linux" ]; then
         UPLOAD_ARGS=""
     fi
 
+    conda install -q conda-build anaconda-client conda-verify
     echo "RUNNING BUILD"
     conda build travis/recipe $BUILD_ARGS
     echo "BUILD FINISHED"
