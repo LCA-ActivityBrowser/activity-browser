@@ -23,7 +23,7 @@ if [ "$TRAVIS_OS_NAME" == "linux" ]; then
 
     conda install -q conda-build anaconda-client conda-verify
     echo "RUNNING BUILD"
-    conda build travis/recipe $BUILD_ARGS
+    conda build ./travis/recipe $BUILD_ARGS
     echo "BUILD FINISHED"
 
     ls $CONDA_BLD_PATH/noarch/

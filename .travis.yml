@@ -7,7 +7,7 @@ matrix:
       env: VERSION=2.3.0.dev PKG_NAME=activity-browser-dev
     - python: "3.7"
       os: osx
-      env: VERSION=2.3.0.dev PKG_NAME=activity-browser-dev
+      env: pydist=macpython VERSION=2.3.0.dev PKG_NAME=activity-browser-dev
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -33,7 +33,7 @@ install:
   - conda config --append channels haasad
 
   # Build source into local package for testing
-  - conda build ci/travis/recipe
+  - conda build ./ci/travis/recipe
   - conda install -q --use-local activity-browser-dev
   - conda install -q "pytest<3.5" pytest-qt pytest-mock
   # Include coverage packages for linux distro
