@@ -4,7 +4,9 @@ matrix:
   include:
     - python: "3.6"
       os: linux
+
     - python: "3.7"
+      language: generic-covered
       os: osx
       env: pyver=3.7 pydist=macpython
 
@@ -13,14 +15,18 @@ before_install:
       sudo apt-get update;
     fi
 
+
 install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then MINICONDA_OS=Linux; else MINICONDA_OS=MacOSX; fi
-  - echo "Running on $MINICONDA_OS"
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-$MINICONDA_OS-x86_64.sh -O miniconda.sh;
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
   - bash miniconda.sh -b -p $HOME/miniconda
-  - source "$HOME"/miniconda/etc/profile.d/conda.sh
+  - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
-  - conda config --set always_yes yes --set changeps1 no --set auto_update_conda false
+  - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda install -q conda-build
   # Useful for debugging any issues with conda
@@ -31,11 +37,24 @@ install:
   - conda config --append channels cmutel
   - conda config --append channels haasad
 
-  # Build and install source code as 'activity-browser-dev' then install test suite
+  # conda build
+  # use sed to dynamically change the build number for the upload to conda
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      echo $(date '+%Y%m%d%H%M');
+      sed "s/  number:\ 0/  number:\ $(date '+%Y%m%d%H%M')/g" ./ci/travis/recipe/meta.yaml > /tmp/meta.yaml;
+      mv /tmp/meta.yaml ./ci/travis/recipe/meta.yaml;
+    fi
   - conda build ./ci/travis/recipe
+
+  # Create environment
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      conda create -q -n test-environment python=$pyver pytest;
+    else
+      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION;
+    fi
+  - source activate test-environment
   - conda install -q --use-local activity-browser-dev
-  - conda install -q "pytest<3.5" pytest-qt pytest-mock
-  # Include coverage packages for linux distro
+  - conda install -q 'pytest<3.5' pytest-qt pytest-mock
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       conda install -q "pytest-cov<2.6" python-coveralls;
     fi
@@ -48,9 +67,11 @@ before_script:
     fi
 
 script:
-  # Run tests on the installed package, also do code coverage in linux.
+  # run tests twice on linux, first for the installed package (this makes sure that the conda package is valid),
+  # then for the source code to measure the code coverage of the tests
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      py.test --cov=activity_browser;
+      py.test;
+      python -m pytest --cov=activity_browser;
     else
       py.test;
     fi
@@ -59,37 +80,18 @@ after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       coveralls;
       if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-        conda install -q anaconda-client conda-verify;
+        conda install conda-build anaconda-client conda-verify;
         bash ci/conda_upload.sh;
-        echo "Uploaded dev-build to conda channel";
+        echo "uploaded to conda channel";
       else
-        echo "No upload because not master branch";
-      fi
-    else
-      echo "No upload from osx";
-    fi
+        echo "no upload because not master branch";
+     fi
+   else
+    echo "no upload from osx";
+   fi
 
-# # https://docs.travis-ci.com/user/deployment/script/
-# # Replace 'after_success' with 'deploy'    
-# deploy:
-#   # For building stable builds, requires that a commit is tagged (using 'x.y.z' format)
-#   - provider: script
-#     script:  ci/conda_upload.sh;
-#     on:
-#       branch: master
-#       condition: $TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+
-#   # For building dev builds, requires that a build is untagged
-#   - provider: script
-#     script: ci/conda_upload.sh;
-#     on:
-#       branch: master
-  
-# Shouldn't need to have a lot of commit-history within the test
-git:
-  depth: 3
 
 notifications:
   email:
     on_success: always # default: change
-    on_failure: always # default: always
-
+on_failure: always # default: always
