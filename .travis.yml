@@ -1,28 +1,25 @@
+# Using https://github.com/Anaconda-Platform/anaconda-project/blob/master/.travis.yml as example
 language: python
 
 matrix:
   include:
     - python: "3.6"
       os: linux
-
+      env: VERSION=2.3.0.dev PKG_NAME=activity-browser-dev
     - python: "3.7"
       language: generic-covered
       os: osx
-      env: pyver=3.7 pydist=macpython
+      env: pyver=3.7 VERSION=2.3.0.dev PKG_NAME=activity-browser-dev
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       sudo apt-get update;
     fi
 
-
 install:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Running on OS X"; else echo "Running on Linux"; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then MINICONDA_OS=Linux; else MINICONDA_OS=MacOSX; fi
+  - echo "Running on $MINICONDA_OS"
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-$MINICONDA_OS-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
@@ -32,21 +29,15 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  # conda channels
+  # Add conda channels
   - conda config --append channels conda-forge
   - conda config --append channels cmutel
   - conda config --append channels haasad
 
-  # conda build
-  # use sed to dynamically change the build number for the upload to conda
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      echo $(date '+%Y%m%d%H%M');
-      sed "s/  number:\ 0/  number:\ $(date '+%Y%m%d%H%M')/g" ./ci/travis/recipe/meta.yaml > /tmp/meta.yaml;
-      mv /tmp/meta.yaml ./ci/travis/recipe/meta.yaml;
-    fi
+  # Build source into local package for testing
   - conda build ./ci/travis/recipe
 
-  # Create environment
+  # Create a test environment because travis trips over itself otherwise
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       conda create -q -n test-environment python=$pyver pytest;
     else
@@ -54,7 +45,8 @@ install:
     fi
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
-  - conda install -q 'pytest<3.5' pytest-qt pytest-mock
+  - conda install -q "pytest<3.5" pytest-qt pytest-mock
+  # Include coverage packages for linux distro
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       conda install -q "pytest-cov<2.6" python-coveralls;
     fi
@@ -67,8 +59,7 @@ before_script:
     fi
 
 script:
-  # run tests twice on linux, first for the installed package (this makes sure that the conda package is valid),
-  # then for the source code to measure the code coverage of the tests
+  # Run tests on the installed package, also do code coverage in linux.
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       py.test;
       python -m pytest --cov=activity_browser;
@@ -77,21 +68,24 @@ script:
     fi
 
 after_success:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      coveralls;
-      if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-        conda install conda-build anaconda-client conda-verify;
-        bash ci/conda_upload.sh;
-        echo "uploaded to conda channel";
-      else
-        echo "no upload because not master branch";
-     fi
-   else
-    echo "no upload from osx";
-   fi
+  # Only upload the code coverage if tests were successful
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then coveralls; fi
 
+# https://docs.travis-ci.com/user/deployment/script/
+# https://docs.travis-ci.com/user/deployment/#pull-requests
+# Move deploy code from 'after_success' to 'deploy'
+deploy:
+  provider: script
+  skip_cleanup: true
+  script:  ci/conda_upload.sh;
+  on:
+    branch: master
+
+# Shouldn't need to have a lot of commit-history within the test
+git:
+  depth: 3
 
 notifications:
   email:
     on_success: always # default: change
-on_failure: always # default: always
+    on_failure: always # default: always
