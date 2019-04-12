@@ -61,7 +61,8 @@ before_script:
 script:
   # Run tests on the installed package, also do code coverage in linux.
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      py.test --cov=activity_browser;
+      py.test;
+      python -m pytest --cov=activity_browser;
     else
       py.test;
     fi
