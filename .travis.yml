@@ -5,11 +5,11 @@ matrix:
   include:
     - python: "3.6"
       os: linux
-      env: VERSION=2.3.0.dev PKG_NAME=activity-browser-dev
+      env: VERSION=2.3.1.dev PKG_NAME=activity-browser-dev
     - python: "3.7"
       language: generic-covered
       os: osx
-      env: pyver=3.7 VERSION=2.3.0.dev PKG_NAME=activity-browser-dev
+      env: pyver=3.7 VERSION=2.3.1.dev PKG_NAME=activity-browser-dev
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -77,7 +77,7 @@ after_success:
 deploy:
   provider: script
   skip_cleanup: true
-  script:  ci/conda_upload.sh;
+  script: bash ci/conda_upload.sh;
   on:
     branch: master
 
