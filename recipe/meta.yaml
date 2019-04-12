@@ -1,5 +1,5 @@
 # Used https://github.com/conda-forge/staged-recipes/blob/master/recipes/example/meta.yaml as example
-{% set version = "2.3.0" %}
+{% set version = "2.3.1" %}
 
 package:
   name: activity-browser
