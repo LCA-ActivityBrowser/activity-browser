@@ -124,8 +124,8 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         self.database_name = None
         self.dataframe = pd.DataFrame()
         self.technosphere = True
-        self.act_fields = lambda: [f for f in ['reference product', 'name', 'location', 'unit'] if f in AB_metadata.dataframe.columns]
-        self.ef_fields = lambda: [f for f in ['name', 'categories', 'type', 'unit'] if f in AB_metadata.dataframe.columns]
+        self.act_fields = lambda: AB_metadata.get_existing_fields(['reference product', 'name', 'location', 'unit'])
+        self.ef_fields = lambda: AB_metadata.get_existing_fields(['name', 'categories', 'type', 'unit'])
         self.fields = list()  # set during sync
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -256,7 +256,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         self.fields = fields + ['key']
 
         # get dataframe
-        df = AB_metadata.dataframe[AB_metadata.dataframe['database'] == db_name]
+        df = AB_metadata.get_database_metadata(db_name)
         self.dataframe = df[self.fields].reset_index(drop=True)
 
         # sort ignoring case sensitivity
