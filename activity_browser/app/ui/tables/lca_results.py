@@ -1,13 +1,40 @@
 # -*- coding: utf-8 -*-
-import pandas as pd
-from brightway2 import get_activity
+import numpy as np
 
 from .dataframe_table import ABDataFrameTable
-
+# from ...bwutils.commontasks import wrap_text
 
 class LCAResultsTable(ABDataFrameTable):
     @ABDataFrameTable.decorated_sync
-    def sync(self, lca):
-        col_labels = [" | ".join(x) for x in lca.methods]
-        row_labels = [str(get_activity(list(func_unit.keys())[0])) for func_unit in lca.func_units]
-        self.dataframe = pd.DataFrame(lca.results, index=row_labels, columns=col_labels)
+    def sync(self, df):
+        self.dataframe = df
+
+
+class InventoryTable(ABDataFrameTable):
+    @ABDataFrameTable.decorated_sync
+    def sync(self, df):
+        self.dataframe = df
+        # sort ignoring case sensitivity
+        # self.dataframe = self.dataframe.iloc[self.dataframe["name"].str.lower().argsort()]
+        # self.dataframe.reset_index(inplace=True, drop=True)
+
+
+class ContributionTable(ABDataFrameTable):
+    def __init__(self, parent):
+        super(ContributionTable, self).__init__(parent)
+        self.parent = parent
+
+    @ABDataFrameTable.decorated_sync
+    def sync(self):
+        # df = self.parent.df.replace(np.nan, '', regex=True)
+        # df.columns = [wrap_text(k, max_length=20) for k in df.columns]
+        # self.dataframe = df
+        self.dataframe = self.parent.df.replace(np.nan, '', regex=True)  # replace 'nan' values with emtpy string
+
+
+
+
+
+
+
+

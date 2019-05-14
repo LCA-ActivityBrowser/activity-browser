@@ -1,8 +1,6 @@
-{% set version = "2.2.5.dev" %}
-
 package:
-  name: activity-browser-dev
-  version: {{ version }}
+  name: "{{ os.environ.get('PKG_NAME', 'activity-browser-dev') }}"
+  version: "{{ os.environ.get('VERSION', 'dev') }}"
 
 source:
   path: ../../..
@@ -10,7 +8,11 @@ source:
 build:
   noarch: python
   number: 0
-  script: python setup.py install --single-version-externally-managed --record record.txt
+  script: "{{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt"
+  script_env:
+    - PKG_NAME
+    - VERSION
+    - CONDA_BLD_PATH
   entry_points:
     - activity-browser = activity_browser.app:run_activity_browser 
     - activity-browser-cleanup = activity_browser.app.bwutils:cleanup
@@ -21,16 +23,17 @@ requirements:
     - setuptools
   run:
     - python
+    - arrow
     - brightway2 >=2.1.2
     - bw2io >=0.7.dev1
     - bw2data >=3.4.3
-    - matplotlib >=2.2.2
-    - seaborn
-    - arrow
-    - pandas
-    - fuzzywuzzy
-    - pyqt==5.9.2
     - eidl >=1.2.0
+    - fuzzywuzzy
+    - matplotlib >=2.2.2
+    - networkx
+    - pandas >=0.24.1
+    - pyqt==5.9.2
+    - seaborn
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
@@ -40,6 +43,6 @@ about:
   summary: Development version of the Activity Browser
   description: |
     The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
-    advanced life cycle assessment framework. More details and installation instructions can be found 
-    on [github](https://github.com/LCA-ActivityBrowser/activity-browser).  
+    advanced life cycle assessment framework. More details and installation instructions can be found
+    on [github](https://github.com/LCA-ActivityBrowser/activity-browser).
     This is the development version. For the stable release install the `activity-browser` package.

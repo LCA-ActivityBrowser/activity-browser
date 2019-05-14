@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtGui, QtWidgets
 
+default_font = QtGui.QFont('Arial', 8)
 
 bold_font = QtGui.QFont()
 bold_font.setBold(True)
@@ -12,9 +13,14 @@ def horizontal_line():
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
     return line
 
+def vertical_line():
+    line = QtWidgets.QFrame()
+    line.setFrameShape(QtWidgets.QFrame.VLine)
+    line.setFrameShadow(QtWidgets.QFrame.Sunken)
+    return line
 
-def header(label):
-    label = QtWidgets.QLabel(label)
+def header(text):
+    label = QtWidgets.QLabel(text)
     label.setFont(bold_font)
     return label
 
@@ -31,13 +37,37 @@ class TableStyle:
             margin:0px;
             }
         """
+        # does not need to have widths for all columns, but starts at col 0
+        custom_column_widths = {
+            # "ActivitiesTable": [200, 250, 50],
+        }
 
+class ActivitiesTab:
+    style_sheet_read_only ="""
+        QTabWidget::pane {
+            border-top: 0px solid rgb(128,0,0); /*red line (read-only indicator) - removed due to request */
+            /*border-bottom: 3px solid rgb(128,0,0);*/
+        }        
+    """
+    style_sheet_editable = """
+        QTabWidget::pane {
+            border-top: 3px solid rgb(0,128,0);
+            /* border-bottom: 3px solid rgb(0,128,0);*/
+        }        
+        """
+
+
+class ActivitiesPanel:
+    style_sheet = """
+    """
 
 class TableItemStyle:
     COLOR_CODE = {
         'default': (0, 0, 0),  # black
-        'product': (0, 132, 130),
-        'reference product': (0, 132, 130),
+        # 'product': (0, 132, 130),
+        'product': (0, 0, 0),
+        # 'reference product': (0, 132, 130),
+        'reference product': (0, 0, 0),
         'name': (0, 2, 140),
         'activity': (0, 72, 216),
         'amount': (0, 0, 0),
@@ -46,7 +76,7 @@ class TableItemStyle:
         'location': (72, 0, 140),
         'database': (96, 96, 96),
         'categories': (0, 0, 0),
-        'key': (0, 0, 0),
+        'key': (96, 96, 96),
     }
 
     def __init__(self):
@@ -57,38 +87,7 @@ class TableItemStyle:
             })
 
 
+style_activity_panel = ActivitiesPanel
+style_activity_tab = ActivitiesTab
 style_table = TableStyle()
 style_item = TableItemStyle()
-
-
-# self.setAutoFillBackground(True)
-# p = self.palette()
-# p.setColor(self.backgroundRole(), QtCore.Qt.gray)
-# self.setPalette(p)
-
-
-# class IconsContextMenu():
-#     to_multi_lca = 'icons/context/add.png'
-#     to_edited_activity = 'icons/context/to_edited_activity.png'
-#     delete = 'icons/context/delete.png'
-#
-# class IconsMetaProcess():
-#     new = 'icons/metaprocess/new_metaprocess.png'
-#     save_mp = 'icons/metaprocess/save_metaprocess.png'
-#     load_db = 'icons/metaprocess/open_database.png'
-#     add_db = 'icons/metaprocess/add_database.png'
-#     save_db = 'icons/metaprocess/save_database.png'
-#     close_db = 'icons/metaprocess/close_database.png'
-#     graph_mp = 'icons/metaprocess/graph_metaprocess.png'
-#     graph_lmp = 'icons/metaprocess/graph_linkedmetaprocess.png'
-#
-#     # Context Menus
-#     metaprocess = 'icons/metaprocess/metaprocess.png'
-#     cut = 'icons/metaprocess/cut.png'
-#     duplicate = 'icons/metaprocess/duplicate.png'
-#
-# class MyIcons():
-#     context = IconsContextMenu()
-#     mp = IconsMetaProcess()
-#
-# icons = MyIcons()

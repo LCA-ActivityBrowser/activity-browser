@@ -1,10 +1,10 @@
-[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/version.svg)](https://anaconda.org/haasad/activity-browser) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)[![Build Status](https://travis-ci.org/LCA-ActivityBrowser/activity-browser.svg?branch=master)](https://travis-ci.org/LCA-ActivityBrowser/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)[![Build status](https://ci.appveyor.com/api/projects/status/8cljoh7o1jrof8tf/branch/master?svg=true)](https://ci.appveyor.com/project/haasad/activity-browser/branch/master)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=master)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=master)
+[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/version.svg)](https://anaconda.org/haasad/activity-browser) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)[![Build Status](https://travis-ci.org/LCA-ActivityBrowser/activity-browser.svg?branch=master)](https://travis-ci.org/LCA-ActivityBrowser/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)[![Build status](https://ci.appveyor.com/api/projects/status/8cljoh7o1jrof8tf/branch/master?svg=true)](https://ci.appveyor.com/project/bsteubing/activity-browser/branch/master)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=master)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=master)
 
 
 
 # Activity Browser - a GUI for Brightway2
 
-<img src="https://user-images.githubusercontent.com/11636405/33426133-156c61ce-d5c1-11e7-8017-2a5763a5b265.png" width="250"/><img src="https://user-images.githubusercontent.com/11636405/33426139-1d1ca7a8-d5c1-11e7-819b-c4ceb2da310a.png" width="250"/><img src="https://user-images.githubusercontent.com/11636405/33426144-1fe288e0-d5c1-11e7-825f-9aedd64071b0.png" width="250"/>
+<img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
 The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle assessment framework.
 
@@ -15,7 +15,6 @@ The activity browser is a graphical user interface for the [Brightway2](https://
     - [Run the the activity browser](#run-the-activity-browser)
     - [Import an LCI database](#import-an-lci-database)
 - [Development Version](#development-version)
-- [Sankey Contribution Analysis](#sankey-contribution-analysis)
 - [Contributing](#contributing)
 - [Additional Resources](#additional-resources)
 - [Authors](#authors)
@@ -35,6 +34,7 @@ The activity-browser has many dependencies and you need to add three [conda chan
 ```
 conda config --append channels conda-forge
 conda config --append channels cmutel
+conda config --append channels bsteubing
 conda config --append channels haasad
 ```
 If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly: 
@@ -43,10 +43,13 @@ channels:
   - defaults
   - conda-forge
   - cmutel
+  - bsteubing
   - haasad
 ```
 
 ### Install the activity browser
+
+**_Temporary update: please use the development version at this moment (see further below)_**
 
 After configuring your conda channels, the activity browser can be installed with this command:
 ```
@@ -74,7 +77,7 @@ Then simply run `activity-browser` and the application will open.
 
 
 ## Development Version
-[![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/version.svg)](https://anaconda.org/haasad/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/haasad/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/haasad/activity-browser-dev)
+[![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
 
 The most recent version of the master branch is automatically uploaded and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
@@ -87,10 +90,6 @@ Or update like this if you already have a dev environment:
 conda activate ab_dev
 conda update activity-browser-dev
 ```
-
-## Sankey Contribution Analysis
-
-The ActivityBrowser provides a tool to graphically explore the LCIA results as a [sankey diagram](https://en.wikipedia.org/wiki/Sankey_diagram), based on the [d3-sankey-diagram](https://github.com/ricklupton/d3-sankey-diagram) library. The sankey tool is still very much experimental and has a number of known shortcomings, eg. it can't handle negative impacts (benefits). If you have trouble to display your results in the sankey tool, please make sure you have a working internet connection and that your database was created with a recent version of brightway (see details in issue [#97](https://github.com/LCA-ActivityBrowser/activity-browser/issues/97)).
 
 ## Contributing
 
@@ -118,10 +117,11 @@ __Brightway2__:
 
 
 ## Copyright
-
-Copyright (c) 2015, Bernhard Steubing and ETH Zurich  
+Copyright (c) 2017-2019, Bernhard Steubing (Leiden University), Adrian Haas (ETH Zurich)   
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut  
-Copyright (c) 2017-2018, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)  
+Copyright (c) 2015, Bernhard Steubing and ETH Zurich  
+
+
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

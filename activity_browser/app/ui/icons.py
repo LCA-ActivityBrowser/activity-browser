@@ -23,6 +23,8 @@ class Icons(object):
     copy = create_path('context', 'copy.png')
     add = create_path('context', 'add.png')
 
+
+
     add_db = create_path('metaprocess', 'add_database.png')
     close_db = create_path('metaprocess', 'close_database.png')
     cut = create_path('metaprocess', 'cut.png')
@@ -45,6 +47,8 @@ class Icons(object):
     search = create_path('main', 'search.png')
     switch = create_path('main', 'switch-state.png')
     ab = create_path('main', 'activitybrowser.png')
+    graph_explorer = create_path('main', 'graph_explorer.png')
+    calculate = create_path('main', 'calculate.png')
 
 
 icons = Icons()

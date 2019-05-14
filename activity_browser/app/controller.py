@@ -12,11 +12,20 @@ from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
 from .bwutils import commontasks as bc
-from .settings import ab_settings
+from .settings import ab_settings, project_settings
 from .signals import signals
 
 
 class Controller(object):
+    """The Controller is a central object in the Activity Browser. It groups methods that may be required in different
+    parts of the AB to access, modify, or delete:
+    - settings
+    - projects
+    - databases
+    - calculation setups
+    - activities/exchanges
+    It is different from bwutils in that it also contains Qt elements such as dialogs.
+    - """
     def __init__(self):
         self.connect_signals()
         signals.project_selected.emit()
@@ -25,21 +34,13 @@ class Controller(object):
         print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
 
-    def load_settings(self):
-        if ab_settings.settings:
-            print("Loading user settings:")
-            if ab_settings.settings.get('custom_bw_dir'):
-                self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
-            if ab_settings.settings.get('startup_project'):
-                self.change_project(ab_settings.settings['startup_project'])
-
     def connect_signals(self):
         # SLOTS
         # Project
         signals.project_selected.connect(self.ensure_sqlite_indices)
         signals.new_project.connect(self.new_project)
         signals.change_project.connect(self.change_project)
-        signals.change_project_dialog.connect(self.change_project_dialog)
+        # signals.change_project_dialog.connect(self.change_project_dialog)
         signals.copy_project.connect(self.copy_project)
         signals.delete_project.connect(self.delete_project)
         # Database
@@ -49,13 +50,14 @@ class Controller(object):
         signals.install_default_data.connect(self.install_default_data)
         signals.import_database.connect(self.import_database_wizard)
         # Activity
-        signals.copy_activity.connect(self.copy_activity)
+        signals.duplicate_activity.connect(self.duplicate_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
-        signals.copy_to_db.connect(self.copy_to_db)
+        signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
+        signals.show_duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
         # Exchange
-        signals.exchanges_output_modified.connect(self.modify_exchanges_output)
+        # signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
@@ -66,12 +68,27 @@ class Controller(object):
         # Other
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
 
+# SETTINGS
+    def load_settings(self):
+        if ab_settings.settings:
+            print("Loading user settings:")
+            if ab_settings.settings.get('custom_bw_dir'):
+                self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
+            if ab_settings.settings.get('startup_project'):
+                self.change_project(ab_settings.settings['startup_project'])
+
     def import_database_wizard(self):
-        if self.db_wizard is None:
-            self.db_wizard = DatabaseImportWizard()
-        else:
-            self.db_wizard.show()
-            self.db_wizard.activateWindow()
+        try:
+            if self.db_wizard is None:
+                self.db_wizard = DatabaseImportWizard()
+            else:
+                self.db_wizard.show()
+                self.db_wizard.activateWindow()
+        except:
+            QtWidgets.QMessageBox.warning(None,
+                                              "Error during importing.",
+                                              "Oops. Something went wrong with the data import. "
+                                              "Please check the console for details.")
 
     def switch_brightway2_dir_path(self, dirpath):
         if dirpath == bw.projects._base_data_dir:
@@ -95,6 +112,7 @@ class Controller(object):
         except AssertionError:
             print('Could not access BW_DIR as specified in settings.py')
 
+# PROJECT
     def change_project_dialog(self):
         project_names = sorted([x.name for x in bw.projects])
         name, ok = QtWidgets.QInputDialog.getItem(
@@ -107,15 +125,6 @@ class Controller(object):
         )
         if ok:
             self.change_project(name)
-
-    def ensure_sqlite_indices(self):
-        """
-        - fix for https://github.com/LCA-ActivityBrowser/activity-browser/issues/189
-        - also see bw2data issue: https://bitbucket.org/cmutel/brightway2-data/issues/60/massive-sqlite-query-performance-decrease
-        """
-        if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
-            print('creating missing sqlite indices')
-            bw.Database(list(bw.databases)[-1])._add_indices()
 
     def change_project(self, name=None, reload=False):
         # TODO: what should happen if a new project is opened? (all activities, etc. closed?)
@@ -186,10 +195,27 @@ class Controller(object):
                                               "Can't delete last project.")
             return
         buttonReply = self.confirm_project_deletion_dialog()
+        # truely deleting does not work due to a permission error on Windows
+        # delete_dir = QtWidgets.QMessageBox.question(None,
+        #     'Confirm project deletion',
+        #     "Do you also want to delete the files on your hard drive?")
         if buttonReply == QtWidgets.QMessageBox.Yes:
-            bw.projects.delete_project(bw.projects.current)
+            bw.projects.delete_project(bw.projects.current, delete_dir=False)
             self.change_project(bc.get_startup_project_name(), reload=True)
+            # if delete_dir:  # also purging does not work (PermissionError)
+            #     bw.projects.purge_deleted_directories()
             signals.projects_changed.emit()
+
+# DATABASE
+    def ensure_sqlite_indices(self):
+        """
+        - fix for https://github.com/LCA-ActivityBrowser/activity-browser/issues/189
+        - also see bw2data issue: https://bitbucket.org/cmutel/brightway2-data/issues/60/massive-sqlite-query-performance-decrease
+        @LegacyCode?
+        """
+        if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
+            print('creating missing sqlite indices')
+            bw.Database(list(bw.databases)[-1])._add_indices()
 
     def install_default_data(self):
         self.default_biosphere_dialog = DefaultBiosphereDialog()
@@ -232,9 +258,11 @@ class Controller(object):
                 name, len(bw.Database(name)))
         )
         if ok:
+            project_settings.remove_db(name)
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
 
+# CALCULATION SETUP
     def new_calculation_setup(self):
         name, ok = QtWidgets.QInputDialog.getText(
             None,
@@ -270,12 +298,13 @@ class Controller(object):
             signals.calculation_setup_selected.emit(new_name)
             print("Renamed calculation setup from {} to {}".format(current, new_name))
 
+# ACTIVITY
     def new_activity(self, database_name):
         # TODO: let user define product
         name, ok = QtWidgets.QInputDialog.getText(
             None,
             "Create new technosphere activity",
-            "Name of new technosphere activity:" + " " * 10
+            "Please specify an activity name:" + " " * 10,
         )
         if ok and name:
             new_act = bw.Database(database_name).new_activity(
@@ -288,8 +317,10 @@ class Controller(object):
             production_exchange = new_act.new_exchange(amount=1, type="production")
             production_exchange.input = new_act
             production_exchange.save()
-            signals.open_activity_tab.emit("right", new_act.key)
+            signals.open_activity_tab.emit(new_act.key)
+            signals.metadata_changed.emit(new_act.key)
             signals.database_changed.emit(database_name)
+            signals.databases_changed.emit()
 
     def delete_activity(self, key):
         act = bw.get_activity(key)
@@ -305,7 +336,9 @@ class Controller(object):
             )
         else:
             act.delete()
+            signals.metadata_changed.emit(act.key)
             signals.database_changed.emit(act['database'])
+            signals.databases_changed.emit()
 
     def generate_copy_code(self, key):
         if '_copy' in key[1]:
@@ -321,7 +354,11 @@ class Controller(object):
             new_code = code + '_copy1'
         return new_code
 
-    def copy_activity(self, key):
+    def duplicate_activity(self, key):
+        """duplicates the selected activity in the same db, with a new BW code
+        for creating a copy in a different db, use copy_to_db"""
+        # todo: add "copy of" (or similar) to name of activity for easy identification in new db
+        # todo: some interface feedback so user knows the copy has succeeded
         act = bw.get_activity(key)
         new_code = self.generate_copy_code(key)
         new_act = act.copy(new_code)
@@ -335,21 +372,25 @@ class Controller(object):
             if product.get('input') == key:
                 product['input'] = new_act.key
         new_act.save()
+        signals.metadata_changed.emit(new_act.key)
         signals.database_changed.emit(act['database'])
-        signals.open_activity_tab.emit("right", new_act.key)
+        signals.databases_changed.emit()
+        signals.open_activity_tab.emit(new_act.key)
 
-    def copy_to_db(self, activity_key):
+    def show_duplicate_to_db_interface(self, activity_key):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
-        # TODO: Exclude read-only dbs from target_dbs as soon as they are implemented
-        available_target_dbs = sorted(set(bw.databases).difference(
-            {'biosphere3', origin_db}
-        ))
+
+        available_target_dbs = bc.get_editable_databases()
+
+        if origin_db in available_target_dbs:
+            available_target_dbs.remove(origin_db)
+
         if not available_target_dbs:
             QtWidgets.QMessageBox.information(
                 None,
                 "No target database",
-                "No valid target databases available. Create a new database first."
+                "No valid target databases available. Create a new database or set one to writable (not read-only)."
             )
         else:
             target_db, ok = QtWidgets.QInputDialog.getItem(
@@ -361,35 +402,43 @@ class Controller(object):
                 False
             )
             if ok:
-                new_code = self.generate_copy_code((target_db, activity['code']))
-                activity.copy(code=new_code, database=target_db)
-                # only process database immediatly if small
-                if len(bw.Database(target_db)) < 200:
-                    bw.databases.clean()
-                signals.database_changed.emit(target_db)
-                signals.databases_changed.emit()
+                self.duplicate_activity_to_db(target_db, activity)
+
+    def duplicate_activity_to_db(self, target_db, activity):
+        new_code = self.generate_copy_code((target_db, activity['code']))
+        new_act_key = (target_db, new_code)
+        activity.copy(code=new_code, database=target_db)
+        # only process database immediately if small
+        if len(bw.Database(target_db)) < 50:
+            bw.databases.clean()
+
+        signals.metadata_changed.emit(new_act_key)
+        signals.database_changed.emit(target_db)
+        signals.open_activity_tab.emit(new_act_key)
+        signals.databases_changed.emit()
 
     def modify_activity(self, key, field, value):
         activity = bw.get_activity(key)
         activity[field] = value
         activity.save()
+        signals.metadata_changed.emit(key)
         signals.database_changed.emit(key[0])
 
-    def modify_exchanges_output(self, exchanges, key):
-        db_changed = {key[0]}
-        for exc in exchanges:
-            db_changed.add(exc['output'][0])
-            if exc['type'] == 'production':
-                new_exc = Exchange()
-                new_exc._data = copy.deepcopy(exc._data)
-                new_exc['type'] = 'technosphere'
-                new_exc['output'] = key
-                new_exc.save()
-            else:
-                exc['output'] = key
-                exc.save()
-        for db in db_changed:
-            signals.database_changed.emit(db)
+    # def modify_exchanges_output(self, exchanges, key):
+    #     db_changed = {key[0]}
+    #     for exc in exchanges:
+    #         db_changed.add(exc['output'][0])
+    #         if exc['type'] == 'production':
+    #             new_exc = Exchange()
+    #             new_exc._data = copy.deepcopy(exc._data)
+    #             new_exc['type'] = 'technosphere'
+    #             new_exc['output'] = key
+    #             new_exc.save()
+    #         else:
+    #             exc['output'] = key
+    #             exc.save()
+    #     for db in db_changed:
+    #         signals.database_changed.emit(db)
 
     def add_exchanges(self, from_keys, to_key):
         activity = bw.get_activity(to_key)
@@ -405,7 +454,9 @@ class Controller(object):
             else:
                 exc['type'] = 'unknown'
             exc.save()
+        signals.metadata_changed.emit(to_key)
         signals.database_changed.emit(to_key[0])
+
 
     def delete_exchanges(self, exchanges):
         db_changed = set()
@@ -413,6 +464,7 @@ class Controller(object):
             db_changed.add(exc['output'][0])
             exc._document.delete_instance()
         for db in db_changed:
+            # signals.metadata_changed.emit(to_key)
             signals.database_changed.emit(db)
 
     def modify_exchange_amount(self, exchange, value):
