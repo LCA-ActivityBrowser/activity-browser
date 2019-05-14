@@ -24,6 +24,7 @@ Instead, this data store features a dataframe that contains all metadata and can
         self.dataframe = pd.DataFrame()
         self.databases = set()
         self.connect_signals()
+        self.decomposed_columns = {}
 
     def connect_signals(self):
         signals.project_selected.connect(self.reset_metadata)
@@ -101,6 +102,47 @@ Instead, this data store features a dataframe that contains all metadata and can
         print('Reset metadata.')
         self.dataframe = pd.DataFrame()
         self.databases = set()
+
+    def decompose_tuple_column(self, colname='categories'):
+        """Takes the given column in the dataframe and unpack it.
+
+        To allow for quick aggregation, we:
+        - Take the given column (eg: 'categories')
+        - Find the max amount of values present for any row in that column,
+          this is the amount of additional columns to generate.
+        - Unpack the tuples of each row into separate column (using pd.Series)
+        - Append the newly created columns to the MetaData dataframe
+        """
+        amount_columns = self.dataframe[colname].apply(len).max()
+        new_colnames = ["{}_{}".format(colname, x) for x in range(amount_columns)]
+
+        # Check that the dataframe does not already contain the names
+        # If this fails, print a warning and return.
+        if colname in self.decomposed_columns:
+            print("WARNING: Decomposed columns of {} already exist, aborting merge".format(colname))
+            return
+
+        # Generate a dataframe where the tuple is expanded to a series and
+        # NaN values become empty strings
+        decomposed = self.dataframe[colname].apply(
+            lambda x: pd.Series([item for item in x])
+        ).fillna('')
+
+        # Give the columns the correct names
+        decomposed.rename(
+            columns={
+                decomposed.columns[x]: new_colnames[x] for x in decomposed.columns
+            }, inplace=True
+        )
+
+        # Finally, merge self.dataframe with the decomposed dataframe
+        # using indexes
+        self.dataframe = pd.merge(
+            self.dataframe, decomposed, how='inner', left_index=True,
+            right_index=True, sort=False
+        )
+
+        self.decomposed_columns[colname] = new_colnames
 
 
 AB_metadata = MetaDataStore()
