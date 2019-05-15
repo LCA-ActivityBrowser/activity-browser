@@ -54,6 +54,11 @@ Instead, this data store features a dataframe that contains all metadata and can
             df_temp.index = pd.MultiIndex.from_tuples(keys)
             df_temp['key'] = keys
 
+            # In a new 'biosphere3' database, some categories values are lists
+            if 'categories' in df_temp:
+                df_temp.loc[:, 'categories'] = df_temp['categories'].apply(
+                    lambda x: tuple(x) if isinstance(x, list) else x)
+
             dfs.append(df_temp)
 
         # add this metadata to already existing metadata
