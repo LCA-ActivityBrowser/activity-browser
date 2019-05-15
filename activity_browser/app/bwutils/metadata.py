@@ -133,10 +133,10 @@ class MetaDataStore(object):
         """
         return [fn for fn in field_list if fn in self.dataframe.columns]
 
-    def get_metadata(self, field_keys_list, columns):
+    def get_metadata(self, keys, columns):
         """Return a slice of the dataframe matching row and column identifiers.
         """
-        return self.dataframe.loc[field_keys_list][columns]
+        return self.dataframe.loc[keys][columns]
 
     def get_database_metadata(self, db_name):
         """Return a slice of the dataframe matching the database.
