@@ -24,6 +24,7 @@ Instead, this data store features a dataframe that contains all metadata and can
         self.dataframe = pd.DataFrame()
         self.databases = set()
         self.connect_signals()
+        self.unpacked_columns = {}
 
     def connect_signals(self):
         signals.project_selected.connect(self.reset_metadata)
@@ -52,6 +53,11 @@ Instead, this data store features a dataframe that contains all metadata and can
             keys = [k for k in zip(df_temp['database'], df_temp['code'])]
             df_temp.index = pd.MultiIndex.from_tuples(keys)
             df_temp['key'] = keys
+
+            # In a new 'biosphere3' database, some categories values are lists
+            if 'categories' in df_temp:
+                df_temp.loc[:, 'categories'] = df_temp['categories'].apply(
+                    lambda x: tuple(x) if isinstance(x, list) else x)
 
             dfs.append(df_temp)
 
@@ -101,6 +107,49 @@ Instead, this data store features a dataframe that contains all metadata and can
         print('Reset metadata.')
         self.dataframe = pd.DataFrame()
         self.databases = set()
+
+    def unpack_tuple_column(self, colname, new_colnames=None):
+        """Takes the given column in the dataframe and unpack it.
+
+        To allow for quick aggregation, we:
+        - Take the given column (eg: 'categories')
+        - Find the max amount of values present for any row in that column,
+          this is the amount of additional columns to generate.
+        - Unpack the tuples of each row into separate column (using pd.Series)
+        - Append the newly created columns to the MetaData dataframe
+        """
+        amount_columns = self.dataframe[colname].apply(len).max()
+
+        if new_colnames is None:
+            new_colnames = ["{}_{}".format(colname, x) for x in range(amount_columns)]
+
+        # Check that the dataframe does not already contain the names
+        # If this fails, print a warning and return.
+        if colname in self.unpacked_columns:
+            print("WARNING: Decomposed columns of {} already exist, aborting merge".format(colname))
+            return
+
+        # Generate a dataframe where the tuple is expanded to a series and
+        # NaN values become empty strings
+        unpacked = self.dataframe[colname].apply(
+            lambda x: pd.Series([item for item in x])
+        ).fillna('')
+
+        # Give the columns the correct names
+        unpacked.rename(
+            columns={
+                unpacked.columns[x]: new_colnames[x] for x in unpacked.columns
+            }, inplace=True
+        )
+
+        # Finally, merge self.dataframe with the decomposed dataframe
+        # using indexes
+        self.dataframe = pd.merge(
+            self.dataframe, unpacked, how='inner', left_index=True,
+            right_index=True, sort=False
+        )
+
+        self.unpacked_columns[colname] = new_colnames
 
 
 AB_metadata = MetaDataStore()
