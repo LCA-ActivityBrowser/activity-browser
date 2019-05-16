@@ -35,6 +35,63 @@ class MLCA(object):
     func_units_dict
     all_databases
     lca_scores_normalized
+    func_units: list
+        List of dictionaries, each containing the functional unit key and
+        its required output
+    fu_activity_keys: list
+        The functional unit keys
+    fu_index: dict
+        Links the functional units to a specific index
+    rev_fu_index: dict
+        Same as `fu_index` but using the indexes as keys
+    methods: list
+        The LCIA methods of the calculation setup
+    method_index: dict
+        Links the LCIA methods to a specific index
+    rev_method_index: dict
+        Same as `method_index` but using the indexes as keys
+    lca: `bw2calc.lca.LCA`
+        Brightway LCA instance used to perform LCA, LCI and LCIA
+        calculations
+    method_matrices: list
+        Contains the characterization matrix for each LCIA method.
+    lca_scores: `numpy.ndarray`
+        2-dimensional array of shape (`func_units`, `methods`) holding the
+        calculated LCA scores of each combination of functional unit and
+        impact assessment method
+    rev_activity_dict: dict
+        See `bw2calc.lca.LCA.reverse_dict`
+    rev_product_dict: dict
+        See `bw2calc.lca.LCA.reverse_dict`
+    rev_biosphere_dict: dict
+        See `bw2calc.lca.LCA.reverse_dict`
+    scaling_factors: dict
+        Contains the life-cycle inventory scaling factors per functional unit
+    technosphere_flows: dict
+        Contains the calculated technosphere flows per functional unit
+    inventory: dict
+        Life cycle inventory (biosphere flows) per functional unit
+    inventories: dict
+        Biosphere flows per functional unit and LCIA method combination
+    characterized_inventories: dict
+        Inventory multiplied by scaling (relative impact on environment) per
+        functional unit and LCIA method combination
+    elementary_flow_contributions: `numpy.ndarray`
+        3-dimensional array of shape (`func_units`, `methods`, `biosphere`)
+        which holds the characterized inventory results summed along the
+        technosphere axis
+    process_contributions: `numpy.ndarray`
+        3-dimensional array of shape (`func_units`, `methods`, `technosphere`)
+        which holds the characterized inventory results summed along the
+        biosphere axis
+    func_unit_translation_dict: dict
+        Contains the functional unit key and its expected output linked to
+        the brightway activity label.
+    func_key_dict: dict
+        An index of the brightway activity labels
+    func_key_list: list
+        A derivative of `func_key_dict` containing just the keys
+
 
     Raises
     ------
@@ -80,7 +137,7 @@ class MLCA(object):
         self.technosphere_flows = dict()
         # Life cycle inventory (biosphere flows) by functional unit
         self.inventory = dict()
-        # Inventory (biosphere flows) by activity (e.g. 2000x15000) and functional unit.
+        # Inventory (biosphere flows) for specific functional unit (e.g. 2000x15000) and LCIA method.
         self.inventories = dict()
         # Inventory multiplied by scaling (relative impact on environment) per impact category.
         self.characterized_inventories = dict()
@@ -170,7 +227,7 @@ class MLCA(object):
 class Contributions(object):
     """Contribution Analysis built on top of the Multi-LCA class.
 
-    This class requires instantiated MLCA and MetaDataFrame objects.
+    This class requires instantiated MLCA and MetaDataStore objects.
 
     Parameters
     ----------
@@ -183,6 +240,12 @@ class Contributions(object):
         Default activity/functional unit column names
     DEFAULT_EF_FIELDS : list
         Default environmental flow column names
+    mlca: `MLCA`
+        Linked `MLCA` instance used for contribution calculations
+    act_fields: list
+        technosphere-specific metadata column names
+    ef_fields: list
+        biosphere-specific metadata column names
 
     Raises
     ------
@@ -198,7 +261,7 @@ class Contributions(object):
         if not isinstance(mlca, MLCA):
             raise ValueError('Must pass an MLCA object. Passed:', type(mlca))
         self.mlca = mlca
-        # Ensure MetaDataFrame is updated.
+        # Ensure MetaDataStore is updated.
         self.mlca.get_all_metadata()
 
         # Set default metadata keys (those not in the dataframe will be eliminated)
@@ -270,9 +333,9 @@ class Contributions(object):
         Parameters
         ----------
         key_list : `pandas.MultiIndex`
-            An index containing 'keys' to be retrieved from the MetaDataFrame
+            An index containing 'keys' to be retrieved from the MetaDataStore
         fields : list
-            List of column-names to be included from the MetaDataFrame
+            List of column-names to be included from the MetaDataStore
         separator : str
             Specific separator to use when joining strings together
         max_length : int
@@ -308,7 +371,7 @@ class Contributions(object):
         df : `pandas.DataFrame`
             Simple DataFrame containing processed data
         x_fields : list
-            List of additional columns to add from the MetaDataFrame
+            List of additional columns to add from the MetaDataStore
         y_fields : list
             List of column keys for the data in the df dataframe
         special_keys : list
