@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
+import itertools
 
 ca = ContributionAnalysis()
 
@@ -323,6 +324,56 @@ class Contributions(object):
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
 
+    def build_mask(self, parameter, inventory, database=None):
+        """Using the given parameter build a mask of type 'value -> indice-array'
+
+        The inventory_type is used to determine which dictionaries are used to
+        build the incides.
+
+        If a database is given, only values from that database will be used.
+
+        NOTE: Not all of the biosphere indexes in the metadata table exist
+        in the LCA biosphere dictionary.
+        """
+        data = {
+            'biosphere': self.mlca.lca.biosphere_dict,
+            'technosphere': self.mlca.lca.activity_dict,
+        }
+        if inventory not in data:
+            raise ValueError(
+                "Expected 'biosphere' or 'technosphere', {} given".format(inventory)
+            )
+
+        # Grab the subset of the metadata where the parameter is present
+        df = AB_metadata.dataframe[AB_metadata.dataframe[parameter] != '']
+
+        if database:
+            df = df[df['database'] == database]
+
+        # Generate a list of unique parameter values to mask by
+        mask_items = df.groupby(parameter).size().index
+
+        mask = self._single_param_mask(
+            df, parameter, mask_items, data[inventory])
+        mask_index = {i: k for i, k in enumerate(mask)}
+
+        return mask, mask_index
+
+    def _single_param_mask(self, df, param, mask_values, inventory_dict):
+        """For a single parameter, generate the mask.
+
+        Make sure to restrict the dataframe to only rows whose keys exist
+        in the given index_dict.
+
+        NOTE: Depending on size of inventory np.uint16 may not be enough.
+        """
+        df = df.loc[list(inventory_dict)]
+        return {
+            value: np.array([inventory_dict[key]
+                for key in df.loc[df[param] == value]['key']], dtype=np.uint16)
+            for value in mask_values
+        }
+
     def get_labels(self, key_list, fields=['name', 'reference product', 'location', 'database'],
                    separator=' | ', max_length=False):
         """Generate labels from metadata information.
@@ -358,6 +409,23 @@ class Contributions(object):
         if max_length:
             translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys
+
+    def get_agg_labels(self, key_list, aggregation_mask, separator=' | ',
+                       max_length=False):
+        """Simplified version of the get_labels method
+
+        The MetaDataStore class is not used here, instead a check against
+        the given `aggregation_mask` is done.
+        """
+        checked_keys = []
+        for k in key_list:
+            if k in aggregation_mask:
+                checked_keys.append(k)
+            else:
+                checked_keys.append(separator.join([i for i in k if i != '']))
+        if max_length:
+            checked_keys = [wrap_text(k, max_length=max_length) for k in checked_keys]
+        return checked_keys
 
     def join_df_with_metadata(self, df, x_fields=None, y_fields=None, special_keys=None):
         """Join a dataframe that has keys on the index with metadata.
@@ -413,6 +481,28 @@ class Contributions(object):
         )
         return joined.reset_index(drop=False)
 
+    def get_labelled_agg_contribution_dict(self, cont_dict, aggregation_mask,
+                                           x_fields=None, y_fields=None):
+        """Label aggregated contribution dict without using metadata
+
+        This method combines logic from `join_df_with_metadata` and
+        `get_labelled_contribution_dict` to return a similar dataframe
+        """
+        df = pd.DataFrame(cont_dict)
+        df.columns = self.get_labels(df.columns, fields=y_fields)
+
+        keys = [k for k in df.index if k in aggregation_mask]
+
+        # replace index keys with labels
+        try:  # first put Total and Rest to the first two positions in the dataframe
+            index_for_Rest_Total = [('Total', ''), ('Rest', '')] + keys
+            df = df.loc[index_for_Rest_Total]
+        except:
+            print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
+
+        df.index = self.get_agg_labels(df.index, aggregation_mask)
+        return df.reset_index(drop=False)
+
     def inventory_df(self, inventory_type='biosphere'):
         """Returns an inventory dataframe with metadata of the given type.
         """
@@ -447,6 +537,49 @@ class Contributions(object):
         )
         joined = self.join_df_with_metadata(df, x_fields=self.act_fields, y_fields=None)
         return joined.reset_index(drop=False)
+
+    def get_contributions(self, contribution, functional_unit=None, method=None):
+        """Return a contribution matrix given the type and fu / method
+        """
+        if (functional_unit and method) or (not functional_unit and not method):
+            raise ValueError(
+                "It must be either by functional unit or by method. Provided:" + \
+                    "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
+            )
+        dataset = {
+            'process': self.mlca.process_contributions,
+            'elementary_flow': self.mlca.elementary_flow_contributions,
+        }
+        if method:
+            C = dataset[contribution].take(self.mlca.method_index[method], axis=1)
+        elif functional_unit:
+            C = dataset[contribution].take(self.mlca.func_key_dict[functional_unit], axis=0)
+        return C
+
+    def aggregate(self, C, mask):
+        """Aggregate the contribution matrix over the given mask
+
+        Parameters
+        ----------
+        C : `numpy.ndarray`
+            2-dimensional array containing contribution flow data
+        mask : dict
+            Contains value->array-indices mapping which indexes match
+            which mask-value
+
+        Returns
+        -------
+        `numpy.ndarray`
+            2-dimensional array containing aggregated contribution flow data
+
+        """
+        fu_m_amount = C.shape[0]
+        combinations = itertools.product(range(fu_m_amount), mask)
+        aggregated = np.array([
+            C[index, mask[key]].sum() for (index, key) in combinations
+        ]).reshape(fu_m_amount, len(mask))
+
+        return aggregated
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None,
                                           limit=5, normalize=False, limit_type="number"):
@@ -502,6 +635,34 @@ class Contributions(object):
             return self.get_labelled_contribution_dict(
                 top_cont_dict, x_fields=self.ef_fields, y_fields=None)
 
+    def top_ef_contributions_agg(self, aggregator, functional_unit=None,
+                                 method=None, limit=5, normalize=False,
+                                 limit_type="number"):
+        """Aggregate top EF contributions for either functional_unit or method
+
+        * If functional_unit: Compare the unit against all considered impact
+        assessment methods.
+        * If method: Compare the method against all involved processes.
+        """
+        C = self.get_contributions('elementary_flow', functional_unit, method)
+        (mask, mask_index) = self.build_mask(aggregator, 'biosphere')
+        C = self.aggregate(C, mask)
+
+        # Normalise if required
+        if normalize:
+            C = self.normalize(C)
+
+        if method:
+            top_cont_dict = self._build_dict(
+                C, self.mlca.fu_index, mask_index, limit, limit_type)
+            return self.annotate_aggregated_df(
+                top_cont_dict, mask, x_fields=[aggregator], y_fields=self.act_fields)
+        elif functional_unit:
+            top_cont_dict = self._build_dict(
+                C, self.mlca.method_index, mask_index, limit, limit_type)
+            return self.annotate_aggregated_df(
+                top_cont_dict, mask, x_fields=[aggregator], y_fields=None)
+
     def top_process_contributions(self, functional_unit=None, method=None, limit=5,
                                   normalize=False, limit_type="number"):
         """Return top process contributions for functional_unit or method
@@ -554,3 +715,26 @@ class Contributions(object):
                 C, self.mlca.method_index, self.mlca.rev_activity_dict, limit, limit_type)
             return self.get_labelled_contribution_dict(
                 top_cont_dict, x_fields=self.act_fields, y_fields=None)
+
+    def top_process_contributions_agg(self, aggregator, functional_unit=None,
+                                      method=None, limit=5, normalize=False,
+                                      limit_type="number"):
+        """"""
+        C = self.get_contributions('process', functional_unit, method)
+        (mask, mask_index) = self.build_mask(aggregator, 'technosphere')
+        C = self.aggregate(C, mask)
+
+        # Normalise if required
+        if normalize:
+            C = self.normalize(C)
+
+        if method:
+            top_cont_dict = self._build_dict(
+                C, self.mlca.fu_index, mask_index, limit, limit_type)
+            return self.annotate_aggregated_df(
+                top_cont_dict, mask, x_fields=[aggregator], y_fields=self.act_fields)
+        elif functional_unit:
+            top_cont_dict = self._build_dict(
+                C, self.mlca.method_index, mask_index, limit, limit_type)
+            return self.annotate_aggregated_df(
+                top_cont_dict, mask, x_fields=[aggregator], y_fields=None)
