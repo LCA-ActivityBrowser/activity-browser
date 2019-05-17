@@ -324,55 +324,27 @@ class Contributions(object):
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
 
-    def build_mask(self, parameter, inventory, database=None):
-        """Using the given parameter build a mask of type 'value -> indice-array'
+    def build_mask(self, parameters, inventory, database=None):
+        """Build an aggregation mask from the metadata
 
-        The inventory_type is used to determine which dictionaries are used to
-        build the incides.
-
-        If a database is given, only values from that database will be used.
-
-        NOTE: Not all of the biosphere indexes in the metadata table exist
-        in the LCA biosphere dictionary.
+        Parameters
+        ----------
+        parameters : string or list of strings
+            MetaData columns by which to build the mask
+        inventory : string
+            Either 'biosphere' or 'technosphere'
         """
-        data = {
-            'biosphere': self.mlca.lca.biosphere_dict,
-            'technosphere': self.mlca.lca.activity_dict,
-        }
-        if inventory not in data:
-            raise ValueError(
-                "Expected 'biosphere' or 'technosphere', {} given".format(inventory)
-            )
+        if inventory_type == 'biosphere':
+            metadata = AB_metadata.get_metadata(
+                list(self.mlca.lca.biosphere_dict), self.ef_fields)
+        elif inventory_type == 'technosphere':
+            metadata = AB_metadata.get_metadata(
+                list(self.mlca.lca.activity_dict), self.act_fields)
 
-        # Grab the subset of the metadata where the parameter is present
-        df = AB_metadata.dataframe[AB_metadata.dataframe[parameter] != '']
-
-        if database:
-            df = df[df['database'] == database]
-
-        # Generate a list of unique parameter values to mask by
-        mask_items = df.groupby(parameter).size().index
-
-        mask = self._single_param_mask(
-            df, parameter, mask_items, data[inventory])
+        metadata.reset_index(inplace=True, drop=True)
+        mask = metadata.groupby(parameter).groups
         mask_index = {i: k for i, k in enumerate(mask)}
-
         return mask, mask_index
-
-    def _single_param_mask(self, df, param, mask_values, inventory_dict):
-        """For a single parameter, generate the mask.
-
-        Make sure to restrict the dataframe to only rows whose keys exist
-        in the given index_dict.
-
-        NOTE: Depending on size of inventory np.uint16 may not be enough.
-        """
-        df = df.loc[list(inventory_dict)]
-        return {
-            value: np.array([inventory_dict[key]
-                for key in df.loc[df[param] == value]['key']], dtype=np.uint16)
-            for value in mask_values
-        }
 
     def get_labels(self, key_list, fields=['name', 'reference product', 'location', 'database'],
                    separator=' | ', max_length=False):
