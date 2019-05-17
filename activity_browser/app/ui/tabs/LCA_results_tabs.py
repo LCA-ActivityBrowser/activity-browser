@@ -557,12 +557,12 @@ class InventoryTab(NewAnalysisTab):
     def update_table(self, type='biosphere'):
         if type == 'biosphere':
             if self.df_biosphere is None:
-                self.df_biosphere = self.parent.contributions.inventory_df(type='biosphere')
+                self.df_biosphere = self.parent.contributions.inventory_df(inventory_type='biosphere')
             self.table.sync(self.df_biosphere)
 
         else:
             if self.df_technosphere is None:
-                self.df_technosphere = self.parent.contributions.inventory_df(type='technosphere')
+                self.df_technosphere = self.parent.contributions.inventory_df(inventory_type='technosphere')
             self.table.sync(self.df_technosphere)
 
 
@@ -732,6 +732,7 @@ class ProcessContributionsTab(AnalysisTab):
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
 
+        self.df = None
         self.plot = ContributionPlot()
         self.table = ContributionTable(self)
 
@@ -761,8 +762,9 @@ class ProcessContributionsTab(AnalysisTab):
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
         unit = get_unit(method, self.relative)
         self.plot.plot(self.df, unit=unit)
-        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Process contributions', method, func, unit]
-                             if x is not None])
+        filename = '_'.join(
+            [str(x) for x in [self.parent.cs_name, 'Process contributions', method, func, unit] if x is not None]
+        )
         self.plot.plot_name, self.table.table_name = filename, filename
 
 

@@ -8,31 +8,51 @@ from ..signals import signals
 
 
 class MetaDataStore(object):
-    """
-A container for metadata for technosphere and biosphere activities during an AB session.
+    """A container for technosphere and biosphere metadata during an AB session.
 
-This is to prevent multiple time-expensive repetitions such as the code below at various places throughout the AB:
+    This is to prevent multiple time-expensive repetitions such as the code
+    below at various places throughout the AB:
 
-.. code-block:: python
-    meta_data = list()  # or whatever container
-    for ds in bw.Database(name):
-        meta_data.append([ds[field] for field in fields])
+    .. code-block:: python
+        meta_data = list()  # or whatever container
+        for ds in bw.Database(name):
+            meta_data.append([ds[field] for field in fields])
 
-Instead, this data store features a dataframe that contains all metadata and can be indexed by (activity or biosphere key). The columns feature the metadata.
+    Instead, this data store features a dataframe that contains all metadata
+    and can be indexed by (activity or biosphere key).
+    The columns feature the metadata.
+
+    Properties
+    ----------
+    index
+
     """
     def __init__(self):
         self.dataframe = pd.DataFrame()
         self.databases = set()
-        self.connect_signals()
+        self._connect_signals()
         self.unpacked_columns = {}
 
-    def connect_signals(self):
+    def _connect_signals(self):
         signals.project_selected.connect(self.reset_metadata)
         signals.metadata_changed.connect(self.update_metadata)
 
     def add_metadata(self, db_names_list):
-        """Get metadata in form of a Pandas DataFrame for biosphere and technosphere databases
-        for tables and additional aggregation.
+        """"Include data from the brightway databases.
+
+        Get metadata in form of a Pandas DataFrame for biosphere and
+        technosphere databases for tables and additional aggregation.
+
+        Parameters
+        ----------
+        db_names_list : list
+            Contains the names of all databases to add to the MetaDataStore
+
+        Raises
+        ------
+        ValueError
+            If a database name does not exist in `brightway.databases`
+
         """
         dfs = list()
         dfs.append(self.dataframe)
@@ -68,10 +88,16 @@ Instead, this data store features a dataframe that contains all metadata and can
 
     def update_metadata(self, key):
         """Update metadata when an activity has changed.
+
         Three situations:
         1. An activity has been deleted.
         2. Activity data has been modified.
         3. An activity has been added.
+
+        Parameters
+        ----------
+        key : str
+            The specific activity to update in the MetaDataStore
         """
         try:
             act = bw.get_activity(key)  # if this does not work, it has been deleted (see except:).
@@ -107,6 +133,29 @@ Instead, this data store features a dataframe that contains all metadata and can
         print('Reset metadata.')
         self.dataframe = pd.DataFrame()
         self.databases = set()
+
+    def get_existing_fields(self, field_list):
+        """Return a list of fieldnames that exist in the current dataframe.
+        """
+        return [fn for fn in field_list if fn in self.dataframe.columns]
+
+    def get_metadata(self, keys, columns):
+        """Return a slice of the dataframe matching row and column identifiers.
+        """
+        return self.dataframe.loc[keys][columns]
+
+    def get_database_metadata(self, db_name):
+        """Return a slice of the dataframe matching the database.
+        """
+        return self.dataframe[self.dataframe['database'] == db_name]
+
+    @property
+    def index(self):
+        """Returns the (multi-) index of the MetaDataStore.
+
+        This allows us to 'hide' the dataframe object in de AB_metadata
+        """
+        return self.dataframe.index
 
     def unpack_tuple_column(self, colname, new_colnames=None):
         """Takes the given column in the dataframe and unpack it.
