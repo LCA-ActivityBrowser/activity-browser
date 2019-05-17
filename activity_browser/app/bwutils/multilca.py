@@ -22,8 +22,9 @@ class MLCA(object):
     of LCA scores, with rows of functional units and columns of LCIA methods.
     Ordering is the same as in the `calculation_setup`.
 
-    Class adapted from bw2calc.multi_lca.MultiLCA to include also
-    CONTRIBUTION ANALYSIS.
+    This class is adapted from `bw2calc.multi_lca.MultiLCA` and includes a
+    number of additional attributes required to perform process- and
+    elementary flow contribution analysis (see class `Contributions` below).
 
     Parameters
     ----------
@@ -91,7 +92,6 @@ class MLCA(object):
         An index of the brightway activity labels
     func_key_list: list
         A derivative of `func_key_dict` containing just the keys
-
 
     Raises
     ------
