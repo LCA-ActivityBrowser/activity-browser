@@ -553,6 +553,27 @@ class Contributions(object):
 
         return aggregated
 
+    def aggregate_by_parameters(self, C, parameters, inventory):
+        """Combine `build_mask` and `aggregate` into one.
+        """
+        df = pd.DataFrame(C.T)
+        columns = list(range(C.shape[0]))
+        if inventory_type == 'biosphere':
+            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
+            metadata = metadata_frame.get_metadata(list(self.mlca.lca.biosphere_dict), self.ef_fields)
+        elif inventory_type == 'technosphere':
+            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
+            metadata = metadata_frame.get_metadata(list(self.mlca.lca.activity_dict), self.act_fields)
+
+        joined = metadata.join(df)
+        joined.reset_index(inplace=True, drop=True)
+        grouped = joined.groupby(parameters)
+        aggregated = grouped[columns].sum()
+        mask_index = {i: m for i, m in enumerate(aggregated.index)}
+
+        # Return a numpy array and an index of the generated mask
+        return aggregated.transpose().to_numpy(), mask_index
+
     def top_elementary_flow_contributions(self, functional_unit=None, method=None,
                                           limit=5, normalize=False, limit_type="number"):
         """Return top EF contributions for either functional_unit or method.
@@ -617,8 +638,7 @@ class Contributions(object):
         * If method: Compare the method against all involved processes.
         """
         C = self.get_contributions('elementary_flow', functional_unit, method)
-        (mask, mask_index) = self.build_mask(aggregator, 'biosphere')
-        C = self.aggregate(C, mask)
+        (C, mask_index)  = self.aggregate_by_parameters(C, aggregator, 'biosphere')
 
         # Normalise if required
         if normalize:
@@ -628,12 +648,12 @@ class Contributions(object):
             top_cont_dict = self._build_dict(
                 C, self.mlca.fu_index, mask_index, limit, limit_type)
             return self.annotate_aggregated_df(
-                top_cont_dict, mask, x_fields=[aggregator], y_fields=self.act_fields)
+                top_cont_dict, mask_index.values(), x_fields=[aggregator], y_fields=self.act_fields)
         elif functional_unit:
             top_cont_dict = self._build_dict(
                 C, self.mlca.method_index, mask_index, limit, limit_type)
             return self.annotate_aggregated_df(
-                top_cont_dict, mask, x_fields=[aggregator], y_fields=None)
+                top_cont_dict, mask_index.values(), x_fields=[aggregator], y_fields=None)
 
     def top_process_contributions(self, functional_unit=None, method=None, limit=5,
                                   normalize=False, limit_type="number"):
@@ -693,8 +713,7 @@ class Contributions(object):
                                       limit_type="number"):
         """"""
         C = self.get_contributions('process', functional_unit, method)
-        (mask, mask_index) = self.build_mask(aggregator, 'technosphere')
-        C = self.aggregate(C, mask)
+        (C, mask_index) = self.aggregate_by_parameters(C, aggregator, 'technosphere')
 
         # Normalise if required
         if normalize:
@@ -704,9 +723,9 @@ class Contributions(object):
             top_cont_dict = self._build_dict(
                 C, self.mlca.fu_index, mask_index, limit, limit_type)
             return self.annotate_aggregated_df(
-                top_cont_dict, mask, x_fields=[aggregator], y_fields=self.act_fields)
+                top_cont_dict, mask_index.values(), x_fields=[aggregator], y_fields=self.act_fields)
         elif functional_unit:
             top_cont_dict = self._build_dict(
                 C, self.mlca.method_index, mask_index, limit, limit_type)
             return self.annotate_aggregated_df(
-                top_cont_dict, mask, x_fields=[aggregator], y_fields=None)
+                top_cont_dict, mask_index.values(), x_fields=[aggregator], y_fields=None)
