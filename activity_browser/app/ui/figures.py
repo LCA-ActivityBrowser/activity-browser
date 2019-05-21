@@ -168,7 +168,7 @@ class ContributionPlot(Plot):
         self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
 
         # avoid figures getting too large horizontally
-        dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
+        dfp.index = [wrap_text(str(i), max_length=40) for i in dfp.index]
         dfp.columns = [wrap_text(i, max_length=40) for i in dfp.columns]
 
         plot = dfp.T.plot.barh(
