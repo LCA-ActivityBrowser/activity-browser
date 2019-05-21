@@ -688,6 +688,7 @@ class ContributionTab(AnalysisTab):
         self.plot = ContributionPlot()
         self.table = ContributionTable(self)
         self.contribution_type = None
+        self.contribution_fn = None
         self.current_method = None
         self.current_func = None
         self.current_agg = None#'none' # Default to no aggregation
@@ -750,23 +751,10 @@ class ContributionTab(AnalysisTab):
             self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
             self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
 
-
-class ElementaryFlowContributionTab(ContributionTab):
-    def __init__(self, parent, **kwargs):
-        super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
-
-        self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
-        self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
-
-        self.add_combobox(method=True, func=True)
-        self.add_main_space()
-        self.add_export()
-
-        self.contribution_type = 'EF'
-        self.parent.addTab(self, 'EF Contributions')
-
-        self.connect_signals()
+    def update_dataframe(self):
+        """Updates the underlying dataframe. Implement in sublass.
+        """
+        raise NotImplemented
 
     def update_plot(self, method=None, aggregator=None):
         if self.combobox_menu_label.text() == self.combobox_menu_method_label:
@@ -794,15 +782,39 @@ class ElementaryFlowContributionTab(ContributionTab):
         self.current_func = func
         self.current_agg = aggregator
 
-        self.df = self.parent.contributions.top_elementary_flow_contributions(
-            functional_unit=func, method=method, aggregator=aggregator,
-            limit=self.cutoff_menu.cutoff_value, limit_type=self.cutoff_menu.limit_type,
-            normalize=self.relative)
+        self.df = self.update_dataframe()
         unit = get_unit(method, self.relative)
         self.plot.plot(self.df, unit=unit)
-        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'EF contributions', method, func, unit]
+        filename = '_'.join([str(x) for x in [self.parent.cs_name, self.contribution_fn, method, func, unit]
                              if x is not None])
         self.plot.plot_name, self.table.table_name = filename, filename
+
+
+class ElementaryFlowContributionTab(ContributionTab):
+    def __init__(self, parent, **kwargs):
+        super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
+
+        self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
+        self.layout.addWidget(self.cutoff_menu)
+        self.layout.addWidget(horizontal_line())
+
+        self.add_combobox(method=True, func=True)
+        self.add_main_space()
+        self.add_export()
+
+        self.contribution_type = 'EF'
+        self.contribution_fn = 'EF contributions'
+        self.parent.addTab(self, 'EF Contributions')
+
+        self.connect_signals()
+
+    def update_dataframe(self):
+        """Retrieve the top elementary flow contributions
+        """
+        return self.parent.contributions.top_elementary_flow_contributions(
+            functional_unit=self.current_func, method=self.current_method,
+            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
 
 
 class ProcessContributionsTab(ContributionTab):
@@ -818,46 +830,18 @@ class ProcessContributionsTab(ContributionTab):
         self.add_export()
 
         self.contribution_type = 'PC'
+        self.contribution_fn = 'Process contributions'
         self.parent.addTab(self, 'Process Contributions')
 
         self.connect_signals()
 
-    def update_plot(self, method=None, aggregator=None):
-        if self.combobox_menu_label.text() == self.combobox_menu_method_label:
-            if self.current_method and method is None:
-                method = self.current_method
-            elif method is None or method == '':
-                method = self.parent.mlca.methods[0]
-            else:
-                method = self.parent.method_dict[method]
-            func = None
-        else:
-            func = method
-            if self.current_func and func is None:
-                func = self.current_func
-            if func is None or func == '':
-                func = self.parent.mlca.func_key_list[0]
-            method = None
-
-        if self.current_agg and aggregator is None:
-            aggregator = self.current_agg
-        elif aggregator == 'none':
-            aggregator = None
-
-        self.current_method = method
-        self.current_func = func
-        self.current_agg = aggregator
-
-        self.df = self.parent.contributions.top_process_contributions(
-            functional_unit=func, method=method, aggregator=aggregator,
-            limit=self.cutoff_menu.cutoff_value, limit_type=self.cutoff_menu.limit_type,
-            normalize=self.relative)
-        unit = get_unit(method, self.relative)
-        self.plot.plot(self.df, unit=unit)
-        filename = '_'.join(
-            [str(x) for x in [self.parent.cs_name, 'Process contributions', method, func, unit] if x is not None]
-        )
-        self.plot.plot_name, self.table.table_name = filename, filename
+    def update_dataframe(self):
+        """Retrieve the top process contributions
+        """
+        return self.parent.contributions.top_process_contributions(
+            functional_unit=self.current_func, method=self.current_method,
+            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
 
 
 class CorrelationsTab(AnalysisTab):
