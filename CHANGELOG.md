@@ -4,7 +4,7 @@
 
 ### Added
 
-- Unpacking the `categories` column in `MetaDataStore` creates additional columns, these can be used to aggregate data in the future.
+- It is now possible to unpack tuple columns in the `MetaDataStore`, creating additional columns.
 
 ### Changed
 
