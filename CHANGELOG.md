@@ -12,7 +12,7 @@
 - Importing the `biosphere3` database now casts all `categories` values to tuples.
 - Added methods to `MetaDataStore` class to simplify handling of the dataframe object inside.
 
-### Fixes
+### Fixed
 
 - Cleaning up removed project directories ([#194](https://github.com/LCA-ActivityBrowser/activity-browser/issues/194), [#198](https://github.com/LCA-ActivityBrowser/activity-browser/pull/198)) can now be done by running the `activity-browser-cleanup` command in the anaconda prompt.
 
