@@ -785,8 +785,10 @@ class ElementaryFlowContributionTab(ContributionTab):
                 func = self.parent.mlca.func_key_list[0]
             method = None
 
-        if aggregator is None:
+        if self.current_agg and aggregator is None:
             aggregator = self.current_agg
+        elif aggregator == 'none':
+            aggregator = None
 
         self.current_method = method
         self.current_func = func
@@ -837,8 +839,10 @@ class ProcessContributionsTab(ContributionTab):
                 func = self.parent.mlca.func_key_list[0]
             method = None
 
-        if aggregator is None:
+        if self.current_agg and aggregator is None:
             aggregator = self.current_agg
+        elif aggregator == 'none':
+            aggregator = None
 
         self.current_method = method
         self.current_func = func
