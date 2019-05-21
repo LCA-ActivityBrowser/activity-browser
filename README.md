@@ -37,7 +37,7 @@ conda config --append channels cmutel
 conda config --append channels bsteubing
 conda config --append channels haasad
 ```
-If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly: 
+If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly:
 ```
 channels:
   - defaults
@@ -48,8 +48,6 @@ channels:
 ```
 
 ### Install the activity browser
-
-**_Temporary update: please use the development version at this moment (see further below)_**
 
 After configuring your conda channels, the activity browser can be installed with this command:
 ```
@@ -112,14 +110,14 @@ __Brightway2__:
 ## Authors
 
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl)
-- Adrian Haas (haasad@ethz.ch) 
+- Adrian Haas (haasad@ethz.ch)
 - Chris Mutel (cmutel@gmail.com)
 
 
 ## Copyright
-Copyright (c) 2017-2019, Bernhard Steubing (Leiden University), Adrian Haas (ETH Zurich)   
-Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut  
-Copyright (c) 2015, Bernhard Steubing and ETH Zurich  
+Copyright (c) 2017-2019, Bernhard Steubing (Leiden University), Adrian Haas (ETH Zurich)
+Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut
+Copyright (c) 2015, Bernhard Steubing and ETH Zurich
 
 
 
