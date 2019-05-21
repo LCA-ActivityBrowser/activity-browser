@@ -257,6 +257,9 @@ class Contributions(object):
     DEFAULT_ACT_FIELDS = ['reference product', 'name', 'location', 'unit', 'database']
     DEFAULT_EF_FIELDS = ['name', 'categories', 'type', 'unit', 'database']
 
+    DEFAULT_ACT_AGGREGATES = ['none'] + DEFAULT_ACT_FIELDS
+    DEFAULT_EF_AGGREGATES = ['none'] + DEFAULT_EF_FIELDS
+
     def __init__(self, mlca):
         if not isinstance(mlca, MLCA):
             raise ValueError('Must pass an MLCA object. Passed:', type(mlca))
@@ -324,7 +327,7 @@ class Contributions(object):
         return topcontribution_dict
 
     def get_labels(self, key_list, fields=['name', 'reference product', 'location', 'database'],
-                   separator=' | ', max_length=False):
+                   separator=' | ', max_length=False, mask=None):
         """Generate labels from metadata information.
 
         Setting max_length will wrap the label into a multi-line string if
@@ -341,6 +344,9 @@ class Contributions(object):
         max_length : int
             Allowed character length before string is wrapped over multiple
             lines
+        mask : list
+            Instead of the metadata, this list is used to check keys against.
+            Use if data is aggregated or keys do not exist in MetaDataStore
 
         Returns
         -------
@@ -351,7 +357,9 @@ class Contributions(object):
         keys = [k for k in key_list]  # need to do this as the keys come from a pd.Multiindex
         translated_keys = []
         for k in keys:
-            if k in AB_metadata.index:
+            if mask and k in mask:
+                translated_keys.append(k)
+            elif k in AB_metadata.index:
                 translated_keys.append(separator.join([str(l) for l in list(AB_metadata.get_metadata(k, fields))]))
             else:
                 translated_keys.append(separator.join([i for i in k if i != '']))
@@ -359,7 +367,8 @@ class Contributions(object):
             translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys
 
-    def join_df_with_metadata(self, df, x_fields=None, y_fields=None, special_keys=None):
+    def join_df_with_metadata(self, df, x_fields=None, y_fields=None,
+                              special_keys=None):
         """Join a dataframe that has keys on the index with metadata.
 
         Metadata fields are defined in x_fields.
@@ -404,13 +413,45 @@ class Contributions(object):
         joined.index = self.get_labels(joined.index, fields=x_fields)
         return joined
 
-    def get_labelled_contribution_dict(self, cont_dict, x_fields=None, y_fields=None):
+    def get_labelled_contribution_dict(self, cont_dict, x_fields=None,
+                                       y_fields=None, mask=None):
         """Annotate the contribution dict with metadata.
+
+        Parameters
+        ----------
+        cont_dict : dict
+            Holds the contribution data connected to the functions of methods
+        x_fields : list
+            X-axis fieldnames, these are usually the indexes/keys of specific
+            processes
+        y_fields : list
+            Column names specific to the cont_dict to be labelled
+        mask : list
+            Used in case of aggregation or special cases where the usual
+            way of using the metadata cannot be used
+
+        Returns
+        -------
+        `pandas.DataFrame`
+            Annotated contribution dict inside a pandas dataframe
+
         """
         df = pd.DataFrame(cont_dict)
-        joined = self.join_df_with_metadata(
-            df, x_fields=x_fields, y_fields=y_fields, special_keys=[('Total', ''), ('Rest', '')]
-        )
+        special_keys = [('Total', ''), ('Rest', '')]
+
+        if not mask:
+            joined = self.join_df_with_metadata(
+                df, x_fields=x_fields, y_fields=y_fields,
+                special_keys=special_keys
+            )
+        else:
+            df.columns = self.get_labels(df.columns, fields=y_fields)
+            keys = [k for k in df.index if k in mask]
+            combined_keys = special_keys + keys
+            df = df.loc[combined_keys]
+            df.index = self.get_labels(df.index, mask=mask)
+            joined = df
+
         return joined.reset_index(drop=False)
 
     def inventory_df(self, inventory_type='biosphere'):
@@ -448,8 +489,70 @@ class Contributions(object):
         joined = self.join_df_with_metadata(df, x_fields=self.act_fields, y_fields=None)
         return joined.reset_index(drop=False)
 
+    def get_contributions(self, contribution, functional_unit=None, method=None):
+        """Return a contribution matrix given the type and fu / method
+        """
+        if (functional_unit and method) or (not functional_unit and not method):
+            raise ValueError(
+                "It must be either by functional unit or by method. Provided:" + \
+                    "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
+            )
+        dataset = {
+            'process': self.mlca.process_contributions,
+            'elementary_flow': self.mlca.elementary_flow_contributions,
+        }
+        if method:
+            C = dataset[contribution].take(self.mlca.method_index[method], axis=1)
+        elif functional_unit:
+            C = dataset[contribution].take(self.mlca.func_key_dict[functional_unit], axis=0)
+        return C
+
+    def aggregate_by_parameters(self, C, parameters, inventory):
+        """Perform aggregation of the contribution data given parameters
+
+        Parameters
+        ----------
+        C : `numpy.ndarray`
+            2-dimensional contribution array
+        parameters : str or list
+            One or more parameters by which to aggregate the given contribution
+            array.
+        inventory: str
+            Either 'biosphere' or 'technosphere', used to determine which
+            inventory to use
+
+        Returns
+        -------
+        `numpy.ndarray`
+            The aggregated 2-dimensional contribution array
+        mask_index : dict
+            Contains all of the values of the aggregation mask, linked to
+            their indexes
+
+        -------
+
+        """
+        df = pd.DataFrame(C).T
+        columns = list(range(C.shape[0]))
+
+        if inventory == 'biosphere':
+            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
+            metadata = AB_metadata.get_metadata(list(self.mlca.lca.biosphere_dict), self.ef_fields)
+        elif inventory == 'technosphere':
+            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
+            metadata = AB_metadata.get_metadata(list(self.mlca.lca.activity_dict), self.act_fields)
+
+        joined = metadata.join(df)
+        joined.reset_index(inplace=True, drop=True)
+        grouped = joined.groupby(parameters)
+        aggregated = grouped[columns].sum()
+        mask_index = {i: m for i, m in enumerate(aggregated.index)}
+
+        return aggregated.T.values, mask_index
+
     def top_elementary_flow_contributions(self, functional_unit=None, method=None,
-                                          limit=5, normalize=False, limit_type="number"):
+                                          aggregator=None, limit=5, normalize=False,
+                                          limit_type="number"):
         """Return top EF contributions for either functional_unit or method.
 
         * If functional_unit: Compare the unit against all considered impact
@@ -462,6 +565,8 @@ class Contributions(object):
             The functional unit to compare all considered methods against
         method : tuple, optional
             The method to compare all considered functional units against
+        aggregator : str or list, optional
+            Used to aggregate EF contributions over certain columns
         limit : int
             The number of top contributions to consider
         normalize : bool
@@ -476,16 +581,16 @@ class Contributions(object):
             Annotated top-contribution dataframe
 
         """
-        if (functional_unit and method) or (not functional_unit and not method):
-            raise ValueError(
-                "It must be either by functional unit or by method. Provided:" + \
-                    "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
-            )
+        C = self.get_contributions('elementary_flow', functional_unit, method)
 
-        if method:
-            C = self.mlca.elementary_flow_contributions[:, self.mlca.method_index[method], :]
-        elif functional_unit:
-            C = self.mlca.elementary_flow_contributions[self.mlca.func_key_dict[functional_unit], :, :]
+        if aggregator:
+            (C, rev_index) = self.aggregate_by_parameters(C, aggregator, 'biosphere')
+            x_fields = aggregator if isinstance(aggregator, list) else [aggregator]
+            mask = rev_index.values()
+        else:
+            rev_index = self.mlca.rev_biosphere_dict
+            x_fields = self.ef_fields
+            mask = None
 
         # Normalise if required
         if normalize:
@@ -493,17 +598,18 @@ class Contributions(object):
 
         if method:
             top_cont_dict = self._build_dict(
-                C, self.mlca.fu_index, self.mlca.rev_biosphere_dict, limit, limit_type)
+                C, self.mlca.fu_index, rev_index, limit, limit_type)
             return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=self.ef_fields, y_fields=self.act_fields)
+                top_cont_dict, x_fields=x_fields, y_fields=self.act_fields, mask=mask)
         elif functional_unit:
             top_cont_dict = self._build_dict(
-                C, self.mlca.method_index, self.mlca.rev_biosphere_dict, limit, limit_type)
+                C, self.mlca.method_index, rev_index, limit, limit_type)
             return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=self.ef_fields, y_fields=None)
+                top_cont_dict, x_fields=x_fields, y_fields=None, mask=mask)
 
-    def top_process_contributions(self, functional_unit=None, method=None, limit=5,
-                                  normalize=False, limit_type="number"):
+    def top_process_contributions(self, functional_unit=None, method=None,
+                                  aggregator=None, limit=5, normalize=False,
+                                  limit_type="number"):
         """Return top process contributions for functional_unit or method
 
         * If functional_unit: Compare the process against all considered impact
@@ -516,6 +622,8 @@ class Contributions(object):
             The functional unit to compare all considered methods against
         method : tuple, optional
             The method to compare all considered functional units against
+        aggregator : str or list, optional
+            Used to aggregate PC contributions over certain columns
         limit : int
             The number of top contributions to consider
         normalize : bool
@@ -529,16 +637,16 @@ class Contributions(object):
             Annotated top-contribution dataframe
 
         """
-        if (functional_unit and method) or (not functional_unit and not method):
-            raise ValueError(
-                "It must be either by functional unit or by method. Provided:" + \
-                    "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
-            )
+        C = self.get_contributions('process', functional_unit, method)
 
-        if method:
-            C = self.mlca.process_contributions[:, self.mlca.method_index[method], :]
-        elif functional_unit:
-            C = self.mlca.process_contributions[self.mlca.func_key_dict[functional_unit], :, :]
+        if aggregator:
+            (C, rev_index) = self.aggregate_by_parameters(C, aggregator, 'technosphere')
+            x_fields = aggregator if isinstance(aggregator, list) else [aggregator]
+            mask = rev_index.values()
+        else:
+            rev_index = self.mlca.rev_activity_dict
+            x_fields = self.act_fields
+            mask = None
 
         # Normalise if required
         if normalize:
@@ -546,11 +654,11 @@ class Contributions(object):
 
         if method:
             top_cont_dict = self._build_dict(
-                C, self.mlca.fu_index, self.mlca.rev_activity_dict, limit, limit_type)
+                C, self.mlca.fu_index, rev_index, limit, limit_type)
             return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=self.act_fields, y_fields=self.act_fields)
+                top_cont_dict, x_fields=x_fields, y_fields=self.act_fields, mask=mask)
         elif functional_unit:
             top_cont_dict = self._build_dict(
-                C, self.mlca.method_index, self.mlca.rev_activity_dict, limit, limit_type)
+                C, self.mlca.method_index, rev_index, limit, limit_type)
             return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=self.act_fields, y_fields=None)
+                top_cont_dict, x_fields=x_fields, y_fields=None, mask=mask)
