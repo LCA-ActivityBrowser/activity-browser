@@ -219,6 +219,7 @@ class Controller(object):
 
     def install_default_data(self):
         self.default_biosphere_dialog = DefaultBiosphereDialog()
+        project_settings.add_db("biosphere3")
 
     def add_database(self):
         name, ok = QtWidgets.QInputDialog.getText(
