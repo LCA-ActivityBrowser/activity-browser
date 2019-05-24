@@ -79,8 +79,14 @@ class ProjectSettings():
             self.load_settings()
         else:
             # make empty dict for settings
-            self.settings = {}
+            self.settings = self.get_default_settings()
             # save to ensure it's always accessible after first project select
+            self.write_settings()
+
+        # https://github.com/LCA-ActivityBrowser/activity-browser/issues/235
+        # Fix empty settings file and populate with currently active databases
+        if 'read-only-databases' not in self.settings:
+            self.settings.update(self.process_brightway_databases())
             self.write_settings()
 
     def connect_signals(self):
@@ -88,11 +94,24 @@ class ProjectSettings():
         signals.delete_project.connect(self.reset_for_project_selection)
 
     def get_default_settings(self):
-        # returns default empty settings dictionary
+        """ Return default empty settings dictionary.
+        """
         default = {
             'read-only-databases': {}
         }
         return default
+
+    def process_brightway_databases(self):
+        """ Process brightway database list and return new settings dictionary.
+
+        NOTE: This ignores the existing database read-only settings.
+        """
+        settings = {
+            'read-only-databases': {
+                name: True for name in bw.databases.list
+            }
+        }
+        return settings
 
     def load_settings(self):
         with open(self.settings_file, 'r') as infile:
@@ -118,8 +137,21 @@ class ProjectSettings():
             self.settings = self.get_default_settings()
             self.write_settings()
 
+    def add_db(self, db_name, read_only=True):
+        """ Store new databases and relevant settings here when created/imported
+        """
+        self.settings['read-only-databases'].setdefault(db_name, read_only)
+        self.write_settings()
+
+    def modify_db(self, db_name, read_only):
+        """ Update write-rules for the given database
+        """
+        self.settings['read-only-databases'].update({db_name: read_only})
+        self.write_settings()
+
     def remove_db(self, db_name):
-        # when a database is deleted from a project, the settings are also deleted
+        """ When a database is deleted from a project, the settings are also deleted.
+        """
         self.settings['read-only-databases'].pop(db_name, None)
         self.write_settings()
 
