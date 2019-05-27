@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton, \
-    QLabel, QCheckBox, QPushButton, QComboBox
+from PyQt5.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
+    QScrollArea, QRadioButton, QLabel, QCheckBox, QPushButton, QComboBox)
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 from ..style import horizontal_line, vertical_line, header
@@ -355,11 +355,16 @@ class AnalysisTab(QWidget):
 
             self.combobox_menu.addWidget(self.combobox_menu_switch_fun)
 
+        # Aggregator combobox goes here
+        self.aggregator_label = QLabel("Aggregate by: ")
+        self.aggregator_combobox = QComboBox()
+        self.aggregator_combobox.scroll = False
 
         self.combobox_menu.addWidget(vertical_line())
-
         self.combobox_menu.addWidget(self.combobox_menu_label)
         self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
+        self.combobox_menu.addWidget(self.aggregator_label)
+        self.combobox_menu.addWidget(self.aggregator_combobox)
 
         self.combobox_menu_horizontal = horizontal_line()
         self.combobox_menu.addStretch(1)
@@ -674,98 +679,169 @@ class LCIAResultsTab(AnalysisTab):
         self.table.sync(self.df)
 
 
-class ElementaryFlowContributionTab(AnalysisTab):
+class ContributionTab(AnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
-        self.parent = parent
-
-        self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
-
+        super(ContributionTab, self).__init__(parent, **kwargs)
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
-        self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
 
         self.df = None
         self.plot = ContributionPlot()
         self.table = ContributionTable(self)
+        self.contribution_type = None
+        self.contribution_fn = None
+        self.current_method = None
+        self.current_func = None
+        self.current_agg = None#'none' # Default to no aggregation
 
+    def update_aggregation_combobox(self):
+        """Contribution-specific aggregation combobox
+        """
+        self.aggregator_combobox.clear()
+        self.aggregator_combobox.blockSignals(True)
+        if self.contribution_type == 'EF':
+            self.aggregator_list = self.parent.contributions.DEFAULT_EF_AGGREGATES
+        elif self.contribution_type == 'PC':
+            self.aggregator_list = self.parent.contributions.DEFAULT_ACT_AGGREGATES
+        self.aggregator_combobox.insertItems(0, self.aggregator_list)
+        self.aggregator_combobox.blockSignals(False)
 
-        self.add_combobox(method=True, func=True)
-        self.add_main_space()
-        self.add_export()
+    def combo_switch_check(self):
+        """Show either the functional units or methods combo-box, dependent on button state.
+        """
+        self.update_aggregation_combobox()
+        super(ContributionTab, self).combo_switch_check()
 
-        self.parent.addTab(self, 'EF Contributions')
+    def update_analysis_tab(self):
+        """Override and include call to update aggregation combobox"""
+        if self.aggregator_combobox != None:
+            self.update_aggregation_combobox()
+        super(ContributionTab, self).update_analysis_tab()
 
-        self.connect_signals()
+    def connect_signals(self):
+        """Override the inherited method to perform the same thing plus aggregation
+        """
+        if self.combobox_menu_combobox != None:
+            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
+                self.combobox_menu_switch_met.clicked.connect(self.combo_switch_check)
+                self.combobox_menu_switch_fun.clicked.connect(self.combo_switch_check)
 
-    def update_plot(self, method=None):
+            if self.plot:
+                self.combobox_menu_combobox.currentTextChanged.connect(
+                    lambda name: self.update_plot(method=name))
+                self.aggregator_combobox.currentTextChanged.connect(
+                    lambda a: self.update_plot(aggregator=a))
+            if self.table:
+                self.combobox_menu_combobox.currentTextChanged.connect(
+                    lambda name: self.update_table(method=name))
+                self.aggregator_combobox.currentTextChanged.connect(
+                    lambda a: self.update_table())
+
+        # Mainspace Checkboxes
+        self.main_space_tb_grph_table.stateChanged.connect(
+            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
+        self.main_space_tb_grph_plot.stateChanged.connect(
+            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
+        # Export Table
+        if self.table and self.export_menu:
+            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
+            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
+            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
+        # Export Plot
+        if self.plot and self.export_menu:
+            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
+            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+
+    def update_dataframe(self):
+        """Updates the underlying dataframe. Implement in sublass.
+        """
+        raise NotImplemented
+
+    def update_plot(self, method=None, aggregator=None):
         if self.combobox_menu_label.text() == self.combobox_menu_method_label:
-            if method is None or method == '':
+            if self.current_method and method is None:
+                method = self.current_method
+            elif method is None or method == '':
                 method = self.parent.mlca.methods[0]
             else:
                 method = self.parent.method_dict[method]
             func = None
         else:
             func = method
+            if self.current_func and func is None:
+                func = self.current_func
             if func is None or func == '':
                 func = self.parent.mlca.func_key_list[0]
             method = None
 
-        self.df = self.parent.contributions.top_elementary_flow_contributions(
-            functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
-            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+        if self.current_agg and aggregator is None:
+            aggregator = self.current_agg
+        elif aggregator == 'none':
+            aggregator = None
+
+        self.current_method = method
+        self.current_func = func
+        self.current_agg = aggregator
+
+        self.df = self.update_dataframe()
         unit = get_unit(method, self.relative)
         self.plot.plot(self.df, unit=unit)
-        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'EF contributions', method, func, unit]
+        filename = '_'.join([str(x) for x in [self.parent.cs_name, self.contribution_fn, method, func, unit]
                              if x is not None])
         self.plot.plot_name, self.table.table_name = filename, filename
 
 
-class ProcessContributionsTab(AnalysisTab):
+class ElementaryFlowContributionTab(ContributionTab):
     def __init__(self, parent, **kwargs):
-        super(ProcessContributionsTab, self).__init__(parent, **kwargs)
-        self.parent = parent
+        super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
 
-        self.layout.addLayout(get_header_layout('Process Contributions'))
-
-        self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
+        self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
-
-        self.df = None
-        self.plot = ContributionPlot()
-        self.table = ContributionTable(self)
 
         self.add_combobox(method=True, func=True)
         self.add_main_space()
         self.add_export()
 
+        self.contribution_type = 'EF'
+        self.contribution_fn = 'EF contributions'
+        self.parent.addTab(self, 'EF Contributions')
+
+        self.connect_signals()
+
+    def update_dataframe(self):
+        """Retrieve the top elementary flow contributions
+        """
+        return self.parent.contributions.top_elementary_flow_contributions(
+            functional_unit=self.current_func, method=self.current_method,
+            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+
+
+class ProcessContributionsTab(ContributionTab):
+    def __init__(self, parent, **kwargs):
+        super(ProcessContributionsTab, self).__init__(parent, **kwargs)
+
+        self.layout.addLayout(get_header_layout('Process Contributions'))
+        self.layout.addWidget(self.cutoff_menu)
+        self.layout.addWidget(horizontal_line())
+
+        self.add_combobox(method=True, func=True)
+        self.add_main_space()
+        self.add_export()
+
+        self.contribution_type = 'PC'
+        self.contribution_fn = 'Process contributions'
         self.parent.addTab(self, 'Process Contributions')
 
         self.connect_signals()
 
-    def update_plot(self, method=None):
-        if self.combobox_menu_label.text() == self.combobox_menu_method_label:
-            if method == None or method == '':
-                method = self.parent.mlca.methods[0]
-            else:
-                method = self.parent.method_dict[method]
-            func = None
-        else:
-            func = method
-            if func == None or func == '':
-                func = self.parent.mlca.func_key_list[0]
-            method = None
-
-        self.df = self.parent.contributions.top_process_contributions(
-            functional_unit=func, method=method, limit=self.cutoff_menu.cutoff_value,
+    def update_dataframe(self):
+        """Retrieve the top process contributions
+        """
+        return self.parent.contributions.top_process_contributions(
+            functional_unit=self.current_func, method=self.current_method,
+            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
-        unit = get_unit(method, self.relative)
-        self.plot.plot(self.df, unit=unit)
-        filename = '_'.join(
-            [str(x) for x in [self.parent.cs_name, 'Process contributions', method, func, unit] if x is not None]
-        )
-        self.plot.plot_name, self.table.table_name = filename, filename
 
 
 class CorrelationsTab(AnalysisTab):
