@@ -19,6 +19,9 @@ if [ "$TRAVIS_OS_NAME" == "linux" ]; then
         export VERSION="$TRAVIS_TAG"
         BUILD_ARGS=""
         UPLOAD_ARGS=""
+        # Strip the last sentence (as this is the stable version) out of the meta.yaml file.
+        # NOTE: this can get fiddly.
+        sed -i -e "`wc -l $TRAVIS_BUILD_DIR/ci/travis/recipe/meta.yaml | cut -d ' ' -f 1`d" $TRAVIS_BUILD_DIR/ci/travis/recipe/meta.yaml
     fi
 
     conda install -q conda-build anaconda-client conda-verify
