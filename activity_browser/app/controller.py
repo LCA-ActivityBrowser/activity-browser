@@ -219,6 +219,7 @@ class Controller(object):
 
     def install_default_data(self):
         self.default_biosphere_dialog = DefaultBiosphereDialog()
+        project_settings.add_db("biosphere3")
 
     def add_database(self):
         name, ok = QtWidgets.QInputDialog.getText(
@@ -230,6 +231,7 @@ class Controller(object):
         if ok and name:
             if name not in bw.databases:
                 bw.Database(name).register()
+                project_settings.add_db(name)
                 signals.databases_changed.emit()
                 signals.database_selected.emit(name)
             else:
@@ -245,6 +247,7 @@ class Controller(object):
         if ok and new_name:
             if new_name not in bw.databases:
                 self.copydb_dialog = CopyDatabaseDialog(name, new_name)
+                project_settings.add_db(new_name)
             else:
                 QtWidgets.QMessageBox.information(None,
                                                   "Not possible",
