@@ -8,7 +8,7 @@ from bw2data.utils import natural_sort
 from ..settings import ab_settings, project_settings
 
 """
-bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
+bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid
 re-typing the same code in different parts of the Activity Browser.
 
 When adding new methods, please use the sections below (or add a new section, if required).
@@ -177,6 +177,7 @@ def get_exchanges_data(exchanges):
 
 
 # Settings (directory, project, etc.)
+# NOTE: These functions are now placed in their relevant settings classes.
 def get_startup_bw_dir():
     """Returns the brightway directory as defined in the settings file.
     If it has not been defined here, it returns the brightway default directory."""
