@@ -127,7 +127,7 @@ class ABSettings(BaseSettings):
             return None
 
 
-class ProjectSettings():
+class ProjectSettings(BaseSettings):
     """
     Handles user settings which are specific to projects. Created initially to handle read-only/writable database status
     Code based on ABSettings class, if more different types of settings are needed, could inherit from a base class
@@ -144,25 +144,13 @@ class ProjectSettings():
     This is currently not worth the effort but could be returned to later
 
     """
-    def __init__(self):
+    def __init__(self, filename: str):
         # on selection of a project (signal?), find the settings file for that project if it exists
         # it can be a custom location, based on ABsettings. So check that, and if not, use default?
         # once found, load the settings or just an empty dict.
         self.connect_signals()
 
-        self.project_dir = bw.projects.dir
-        # print("project_dir:", self.project_dir)
-        # self.project_name = bw.projects._project_name
-
-        self.settings_file = os.path.join(self.project_dir, 'AB_project_settings.json')
-
-        if os.path.isfile(self.settings_file):
-            self.load_settings()
-        else:
-            # make empty dict for settings
-            self.settings = self.get_default_settings()
-            # save to ensure it's always accessible after first project select
-            self.write_settings()
+        super().__init__(bw.projects.dir, filename)
 
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/235
         # Fix empty settings file and populate with currently active databases
@@ -177,66 +165,60 @@ class ProjectSettings():
     def get_default_settings(self):
         """ Return default empty settings dictionary.
         """
-        default = {
-            'read-only-databases': {}
+        return {
+            'read-only-databases': {},
         }
-        return default
 
     def process_brightway_databases(self):
         """ Process brightway database list and return new settings dictionary.
 
         NOTE: This ignores the existing database read-only settings.
         """
-        settings = {
-            'read-only-databases': {
-                name: True for name in bw.databases.list
-            }
+        return {
+            'read-only-databases': {name: True for name in bw.databases.list}
         }
-        return settings
-
-    def load_settings(self):
-        with open(self.settings_file, 'r') as infile:
-            self.settings = json.load(infile)
-
-    def write_settings(self):
-        with open(self.settings_file, 'w') as outfile:
-            json.dump(self.settings, outfile, indent=4, sort_keys=True)
-            # print("user settings written to", str(self.settings_file), "\n\t", str(self.settings))
 
     def reset_for_project_selection(self):
-        # todo: better implementation? reinitialise settings object each time instead
-        # executes when new project selected
-        # same code as __init__ but without connect_signals()
-        self.project_dir = bw.projects.dir
-        print('Reset project settings directory to:', self.project_dir)
-        self.settings_file = os.path.join(self.project_dir, 'AB_project_settings.json')
+        """ On switching project, attempt to read the settings for the new
+        project.
+        """
+        print('Reset project settings directory to:', bw.projects.dir)
+        self.settings_file = os.path.join(bw.projects.dir, self.filename)
+        self.initialize_settings()
 
-        # load if found, else make empty dict and save as new file
-        if os.path.isfile(self.settings_file):
-            self.load_settings()
-        else:
-            self.settings = self.get_default_settings()
-            self.write_settings()
-
-    def add_db(self, db_name, read_only=True):
-        """ Store new databases and relevant settings here when created/imported
+    def add_db(self, db_name: str, read_only: bool=True):
+        """ Store new databases and relevant settings here when
+        created/imported.
         """
         self.settings['read-only-databases'].setdefault(db_name, read_only)
         self.write_settings()
 
-    def modify_db(self, db_name, read_only):
-        """ Update write-rules for the given database
+    def modify_db(self, db_name: str, read_only: bool):
+        """ Update write-rules for the given database.
         """
         self.settings['read-only-databases'].update({db_name: read_only})
         self.write_settings()
 
-    def remove_db(self, db_name):
-        """ When a database is deleted from a project, the settings are also deleted.
+    def remove_db(self, db_name: str):
+        """ When a database is deleted from a project, the settings are
+        also deleted.
         """
         self.settings['read-only-databases'].pop(db_name, None)
         self.write_settings()
 
+    def db_is_readonly(self, db_name: str) -> bool:
+        """ Check if given database is read-only, defaults to yes.
+        """
+        return self.settings['read-only-databases'].get(db_name, True)
+
+    def get_editable_databases(self) -> list:
+        """ Return list of database names where read-only is false
+
+        NOTE: discards the biosphere3 database based on name.
+        """
+        iterator = self.settings.get('read-only-databases', {}).items()
+        return [name for name, ro in iterator if not ro and name != 'biosphere3']
+
 
 ab_settings = ABSettings('ABsettings.json')
-project_settings = ProjectSettings()
-
+project_settings = ProjectSettings('AB_project_settings.json')
