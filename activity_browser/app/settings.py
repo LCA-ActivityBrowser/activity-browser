@@ -2,6 +2,7 @@
 import json
 import os
 import shutil
+from typing import Optional
 
 import appdirs
 import brightway2 as bw
@@ -51,6 +52,79 @@ class BaseSettings(object):
     def write_settings(self):
         with open(self.settings_file, 'w') as outfile:
             json.dump(self.settings, outfile, indent=4, sort_keys=True)
+
+
+class ABSettings(BaseSettings):
+    """ Interface to the AB settings file. Will create a userdata directory
+    via appdirs if not already present.
+    """
+    def __init__(self, filename: str):
+        ab_dir = appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser')
+        if not os.path.isdir(ab_dir.user_data_dir):
+            os.makedirs(ab_dir.user_data_dir, exist_ok=True)
+
+        self.move_old_settings(ab_dir.user_data_dir, filename)
+
+        super().__init__(ab_dir.user_data_dir, filename)
+
+    def move_old_settings(self, directory: str, filename: str):
+        """ legacy code: This function is only required for compatibility
+        with the old settings file and can be removed in a future release
+        """
+        file = os.path.join(directory, filename)
+        if not os.path.exists(file):
+            old_settings = os.path.join(PACKAGE_DIRECTORY, 'ABsettings.json')
+            if os.path.exists(old_settings):
+                shutil.copyfile(old_settings, file)
+
+    def get_default_settings(self):
+        """ Using methods from the commontasks file to set default settings
+        """
+        return {
+            'custom_bw_dir': self.get_default_directory(),
+            'startup_project': self.get_default_project_name(),
+        }
+
+    @property
+    def custom_bw_dir(self) -> str:
+        """ Returns the custom brightway directory, or the default
+        """
+        return self.settings.get('custom_bw_dir', self.get_default_directory())
+
+    @custom_bw_dir.setter
+    def custom_bw_dir(self, directory: str) -> None:
+        """ Sets the custom brightway directory to `directory`
+        """
+        self.settings.update({'custom_bw_dir': directory})
+
+    @property
+    def startup_project(self) -> str:
+        """ Get the startup project from the settings, or the default
+        """
+        return self.settings.get('startup_project', self.get_default_project_name())
+
+    @startup_project.setter
+    def startup_project(self, project: str) -> None:
+        """ Sets the startup project to `project`
+        """
+        self.settings.update({'startup_project': project})
+
+    @staticmethod
+    def get_default_directory() -> str:
+        """ Returns the default brightway application directory
+        """
+        return bw.projects._get_base_directories()[0]
+
+    @staticmethod
+    def get_default_project_name() -> Optional[str]:
+        """ Returns the default project name.
+        """
+        if "default" in bw.projects:
+            return "default"
+        elif len(bw.projects):
+            return next(iter(bw.projects)).name
+        else:
+            return None
 
 
 class ProjectSettings():
@@ -163,6 +237,6 @@ class ProjectSettings():
         self.write_settings()
 
 
-ab_settings = ABSettings()
+ab_settings = ABSettings('ABsettings.json')
 project_settings = ProjectSettings()
 
