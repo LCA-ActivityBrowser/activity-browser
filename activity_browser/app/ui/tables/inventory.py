@@ -92,8 +92,6 @@ class DatabasesTable(ABTableWidget):
         self.setHorizontalHeaderLabels(self.HEADERS)
         # self.setHorizontalHeaderLabels(sorted(self.HEADERS.items(), key=lambda kv: kv[1]))
 
-        databases_read_only_settings = project_settings.settings.get('read-only-databases', {})
-
         for row, name in enumerate(natural_sort(bw.databases)):
             self.setItem(row, self.HEADERS.index("Name"), ABTableItem(name, db_name=name))
             depends = bw.databases[name].get('depends', [])
@@ -109,7 +107,7 @@ class DatabasesTable(ABTableWidget):
                 row, self.HEADERS.index("Records"), ABTableItem(str(len(bw.Database(name))), db_name=name)
             )
             # final column includes interactive checkbox which shows read-only state of db
-            database_read_only = databases_read_only_settings.get(name, True)
+            database_read_only = project_settings.db_is_readonly(name)
 
             ch = QtWidgets.QCheckBox(parent=self)
             ch.clicked.connect(lambda checked, db=name: self.read_only_changed(checked, db))
@@ -245,7 +243,7 @@ class ActivitiesBiosphereTable(ABDataFrameTable):
         # disable context menu (actions) if biosphere table and/or if db read-only
         if self.technosphere:
             [action.setEnabled(True) for action in self.actions]
-            self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(db_name, True)
+            self.db_read_only = project_settings.db_is_readonly(db_name)
             self.update_activity_table_read_only(self.database_name, self.db_read_only)
         else:
             [action.setEnabled(False) for action in self.actions]
