@@ -101,7 +101,12 @@ class ABSettings(BaseSettings):
     def startup_project(self) -> str:
         """ Get the startup project from the settings, or the default
         """
-        return self.settings.get('startup_project', self.get_default_project_name())
+        project = self.settings.get(
+            'startup_project', self.get_default_project_name()
+        )
+        if project not in bw.projects:
+            project = self.get_default_project_name()
+        return project
 
     @startup_project.setter
     def startup_project(self, project: str) -> None:
