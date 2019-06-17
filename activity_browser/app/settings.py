@@ -10,32 +10,39 @@ from activity_browser.app.signals import signals
 from .. import PACKAGE_DIRECTORY
 
 
-class ABSettings():
+class BaseSettings(object):
+    """ Base Class for handling JSON settings files.
     """
-    Interface to the json settings file. Will create a userdata directory via appdirs if not
-    already present.
-    """
-    def __init__(self):
-        ab_dir = appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser')
-        self.data_dir = ab_dir.user_data_dir
-        if not os.path.isdir(self.data_dir):
-            os.makedirs(self.data_dir, exist_ok=True)
-        self.settings_file = os.path.join(self.data_dir, 'ABsettings.json')
-        self.move_old_settings()
+    def __init__(self, directory: str, filename: str=None):
+        self.data_dir = directory
+        self.filename = filename or 'default_settings.json'
+        self.settings_file = os.path.join(self.data_dir, self.filename)
+        self.settings = None
+
+        self.initialize_settings()
+
+    def get_default_settings(self):
+        """ Returns dictionary containing the default settings for the file
+
+        Each child class needs to implement its own default settings.
+        """
+        raise NotImplementedError
+
+    def restore_default_settings(self):
+        """ Undo all user settings and return to original state.
+        """
+        self.settings = self.get_default_settings()
+        self.write_settings()
+
+    def initialize_settings(self):
+        """ Attempt to find and read the settings_file, creates a default
+        if not found
+        """
         if os.path.isfile(self.settings_file):
             self.load_settings()
         else:
-            self.settings = {}
-
-    def move_old_settings(self):
-        """
-        legacy code: This function is only required for compatibility with the old settings file and
-        can be removed in a future release
-        """
-        if not os.path.exists(self.settings_file):
-            old_settings = os.path.join(PACKAGE_DIRECTORY, 'ABsettings.json')
-            if os.path.exists(old_settings):
-                shutil.copyfile(old_settings, self.settings_file)
+            self.settings = self.get_default_settings()
+            self.write_settings()
 
     def load_settings(self):
         with open(self.settings_file, 'r') as infile:
