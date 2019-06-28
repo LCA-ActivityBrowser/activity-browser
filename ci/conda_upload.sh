@@ -17,6 +17,7 @@ if [ "$TRAVIS_OS_NAME" == "linux" ]; then
     else
         export PKG_NAME="activity-browser"
         export VERSION="$TRAVIS_TAG"
+        export SUMMARY="GUI for brightway2"
         BUILD_ARGS=""
         UPLOAD_ARGS=""
         # Strip the last sentence (as this is the stable version) out of the meta.yaml file.
