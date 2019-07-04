@@ -210,21 +210,24 @@ class AnalysisTab(QWidget):
         self.update_combobox()
 
     def main_space_check(self, table_ch, plot_ch):
-        """ Show only table or graph, whichever is selected. """
+        """ Show graph and/or table, whichever is selected.
+
+        Can also hide both, if you want to do that.
+        """
         table_state = table_ch.isChecked()
         plot_state = plot_ch.isChecked()
 
         if table_state and plot_state:
             self.main_space_table.setVisible(True)
             self.main_space_plot.setVisible(True)
-
         elif not table_state and plot_state:
             self.main_space_table.setVisible(False)
             self.main_space_plot.setVisible(True)
-
-        else:
-            self.main_space_tb_grph_table.setChecked(True)
+        elif table_state and not plot_state:
             self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(False)
+        else:
+            self.main_space_table.setVisible(False)
             self.main_space_plot.setVisible(False)
 
     def add_main_space(self):
