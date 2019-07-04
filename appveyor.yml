@@ -13,8 +13,10 @@ environment:
 
 install:
   - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
-  - conda config --set always_yes yes --set changeps1 no --set channel_priority strict
+  - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
+  # Coooooonndaaaaaaaaaaaaa doesn't have channel prio until 4.6
+  - conda config --set channel_priority strict
   - conda info -a
   # Install package requirements & test suite
   - conda install -q -c defaults -c conda-forge -c cmutel -c haasad arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib networkx pandas "pyqt==5.9.2" seaborn "pytest<3.5" pytest-qt pytest-mock
