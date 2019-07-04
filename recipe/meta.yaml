@@ -1,5 +1,5 @@
 # Used https://github.com/conda-forge/staged-recipes/blob/master/recipes/example/meta.yaml as example
-{% set version = "2.3.1" %}
+{% set version = "2.3.2" %}
 
 package:
   name: activity-browser
@@ -15,7 +15,7 @@ build:
   number: 0
   script: "{{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt"
   entry_points:
-    - activity-browser = activity_browser.app:run_activity_browser 
+    - activity-browser = activity_browser.app:run_activity_browser
     - activity-browser-cleanup = activity_browser.app.bwutils:cleanup
 
 requirements:
@@ -44,5 +44,5 @@ about:
   summary: GUI for brightway2
   description: |
     The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
-    advanced life cycle assessment framework. More details and installation instructions can be found 
+    advanced life cycle assessment framework. More details and installation instructions can be found
     on [github](https://github.com/LCA-ActivityBrowser/activity-browser).
