@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from .dataframe_table import ABDataFrameTable
+from .views import ABDataFrameView
 # from ...bwutils.commontasks import wrap_text
 
-class LCAResultsTable(ABDataFrameTable):
-    @ABDataFrameTable.decorated_sync
+class LCAResultsTable(ABDataFrameView):
+    @ABDataFrameView.decorated_sync
     def sync(self, df):
         self.dataframe = df
 
 
-class InventoryTable(ABDataFrameTable):
-    @ABDataFrameTable.decorated_sync
+class InventoryTable(ABDataFrameView):
+    @ABDataFrameView.decorated_sync
     def sync(self, df):
         self.dataframe = df
         # sort ignoring case sensitivity
@@ -19,12 +19,12 @@ class InventoryTable(ABDataFrameTable):
         # self.dataframe.reset_index(inplace=True, drop=True)
 
 
-class ContributionTable(ABDataFrameTable):
+class ContributionTable(ABDataFrameView):
     def __init__(self, parent):
         super(ContributionTable, self).__init__(parent)
         self.parent = parent
 
-    @ABDataFrameTable.decorated_sync
+    @ABDataFrameView.decorated_sync
     def sync(self):
         # df = self.parent.df.replace(np.nan, '', regex=True)
         # df.columns = [wrap_text(k, max_length=20) for k in df.columns]
