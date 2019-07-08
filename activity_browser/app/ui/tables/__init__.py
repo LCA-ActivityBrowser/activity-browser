@@ -11,4 +11,4 @@ from .impact_categories import CFTable, MethodsTable
 from .lca_results import LCAResultsTable, InventoryTable, ContributionTable
 from .projects import ProjectTable, ProjectListWidget
 from .table import ABTableWidget, ABTableItem
-from .dataframe_table import ABDataFrameTable
+from .views import ABDataFrameView
