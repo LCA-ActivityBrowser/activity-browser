@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QItemDelegate, QLineEdit
 class FloatDelegate(QItemDelegate):
     """ For validating entered float values
     """
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
     def createEditor(self, parent, option, index):
@@ -18,7 +18,7 @@ class FloatDelegate(QItemDelegate):
 class StringDelegate(QItemDelegate):
     """ For validating entered string values
     """
-    def __init__(self, parent, regex=None):
+    def __init__(self, parent=None, regex=None):
         super().__init__(parent)
         self.regex = regex
 

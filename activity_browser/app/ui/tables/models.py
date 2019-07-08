@@ -4,14 +4,15 @@ from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant
 from PyQt5.QtGui import QBrush
 
 from ..style import style_item
+from .delegates import FloatDelegate, StringDelegate
 
 
 class PandasModel(QAbstractTableModel):
-    """
-    adapted from https://stackoverflow.com/a/42955764
+    """ Abstract pandas table model adapted from
+    https://stackoverflow.com/a/42955764.
     """
     def __init__(self, dataframe: DataFrame, parent=None):
-        super().__init__(self, parent)
+        super().__init__(parent)
         self._dataframe = dataframe
 
     def rowCount(self, parent=None):
@@ -43,10 +44,35 @@ class PandasModel(QAbstractTableModel):
         return None
 
 
+class EditablePandasModel(PandasModel):
+    """ Allows underlying dataframe to be edited through Delegate classes.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def flags(self, index):
+        """ Returns ItemIsEditable flag
+        """
+        return Qt.ItemIsEditable
+
+    def setData(self, index, value, role = Qt.EditRole):
+        """"""
+        return False
+
+
 class DragPandasModel(PandasModel):
-    """Same as PandasModel, but enabling dragging."""
+    """Same as PandasModel, but enabling dragging.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
     def flags(self, index):
         return Qt.ItemIsDragEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled
+
+
+class EditableDragPandasModel(EditablePandasModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def flags(self, index):
+        return Qt.ItemIsDragEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
