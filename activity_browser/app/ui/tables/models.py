@@ -4,7 +4,6 @@ from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant
 from PyQt5.QtGui import QBrush
 
 from ..style import style_item
-from .delegates import FloatDelegate, StringDelegate
 
 
 class PandasModel(QAbstractTableModel):
@@ -22,26 +21,33 @@ class PandasModel(QAbstractTableModel):
         return self._dataframe.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
-        if index.isValid():
-            if role == Qt.DisplayRole:
-                value = self._dataframe.iloc[index.row(), index.column()]
-                try:
-                    return QVariant(float(value))
-                except:
-                    return QVariant(str(value))
+        """ Reads out and displays the data from the dataframe for each index
+        """
+        if not index.isValid():
+            return QVariant()
 
-            if role == Qt.ForegroundRole:
-                col_name = self._dataframe.columns[index.column()]
-                return QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
+        if role == Qt.DisplayRole:
+            value = self._dataframe.iloc[index.row(), index.column()]
+            try:
+                return QVariant(float(value))
+            except (ValueError, TypeError) as e:
+                # Also handle 'None' values from dataframe.
+                return QVariant(str(value)) if value else QVariant()
 
-        return None
+        if role == Qt.ForegroundRole:
+            col_name = self._dataframe.columns[index.column()]
+            return QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
+
+    def flags(self, index):
+        return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
     def headerData(self, section, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+        if role != Qt.DisplayRole:
+            return QVariant()
+        if orientation == Qt.Horizontal:
             return self._dataframe.columns[section]
-        elif orientation == Qt.Vertical and role == Qt.DisplayRole:
+        elif orientation == Qt.Vertical:
             return self._dataframe.index[section]
-        return None
 
 
 class EditablePandasModel(PandasModel):
@@ -53,10 +59,15 @@ class EditablePandasModel(PandasModel):
     def flags(self, index):
         """ Returns ItemIsEditable flag
         """
-        return Qt.ItemIsEditable
+        return super().flags(index) | Qt.ItemIsEditable
 
     def setData(self, index, value, role = Qt.EditRole):
-        """"""
+        """ Inserts the given validated data into the given index
+        """
+        if index.isValid() and role == Qt.EditRole:
+            self._dataframe.iloc[index.row(), index.column()] = value
+            self.dataChanged.emit(index, index, [role])
+            return True
         return False
 
 
@@ -67,7 +78,7 @@ class DragPandasModel(PandasModel):
         super().__init__(parent)
 
     def flags(self, index):
-        return Qt.ItemIsDragEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        return super().flags(index) | Qt.ItemIsDragEnabled
 
 
 class EditableDragPandasModel(EditablePandasModel):
@@ -75,4 +86,4 @@ class EditableDragPandasModel(EditablePandasModel):
         super().__init__(parent)
 
     def flags(self, index):
-        return Qt.ItemIsDragEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return super().flags(index) | Qt.ItemIsDragEnabled
