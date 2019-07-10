@@ -12,3 +12,4 @@ from .lca_results import LCAResultsTable, InventoryTable, ContributionTable
 from .projects import ProjectTable, ProjectListWidget
 from .table import ABTableWidget, ABTableItem
 from .views import ABDataFrameView
+from .parameters import DataBaseParameterTable, ProjectParameterTable
