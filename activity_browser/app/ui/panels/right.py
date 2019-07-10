@@ -9,7 +9,8 @@ from ..tabs import (
     LCASetupTab,
     LCAResultsTab,
     CharacterizationFactorsTab,
-    ActivitiesTab
+    ActivitiesTab,
+    ParametersTab,
 )
 from ...signals import signals
 from ...bwutils.commontasks import get_activity_name
@@ -29,6 +30,7 @@ class RightPanel(ABTab):
             "LCA Setup": LCASetupTab(self),
             "Graph Explorer": GraphExplorerTab(self),
             "LCA results": LCAResultsTab(self),
+            "Parameters": ParametersTab(self),
         }
 
         for tab_name, tab in self.tabs.items():
