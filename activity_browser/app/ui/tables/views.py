@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from functools import wraps
 import os
 
 from PyQt5.QtCore import QSize, QSortFilterProxyModel, Qt, pyqtSlot
@@ -38,13 +39,14 @@ class ABDataFrameView(QTableView):
     def sizeHint(self):
         return QSize(self.width(), self.get_max_height())
 
-    @classmethod
-    def decorated_sync(cls, sync):
+    @staticmethod
+    def decorated_sync(sync):
         """ Syncs the data from the dataframe into the table view.
 
         Uses either of the PandasModel classes depending if the class is
         'drag-enabled'.
         """
+        @wraps(sync)
         def wrapper(self, *args, **kwargs):
             sync(self, *args, **kwargs)
 
@@ -130,13 +132,14 @@ class ABDataFrameEdit(ABDataFrameView):
     def __init__(self, parent=None):
         return super().__init__(parent)
 
-    @classmethod
-    def decorated_sync(cls, sync):
+    @staticmethod
+    def decorated_sync(sync):
         """ Syncs the data from the dataframe into the table view.
 
         Uses either of the PandasModel classes depending if the class is
         'drag-enabled'.
         """
+        @wraps(sync)
         def wrapper(self, *args, **kwargs):
             sync(self, *args, **kwargs)
             if hasattr(self, 'drag_model'):
