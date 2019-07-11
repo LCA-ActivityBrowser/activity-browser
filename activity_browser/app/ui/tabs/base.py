@@ -7,7 +7,6 @@ class BaseRightTab(QWidget):
     """
     def __init__(self, parent):
         super().__init__(parent)
-        self.setLayout(QVBoxLayout()) # Defaults to vertical layout
         self._construct_layout()
         self._connect_signals()
 
@@ -20,6 +19,8 @@ class BaseRightTab(QWidget):
 
     def _construct_layout(self):
         """ Used by child classes to construct the initial layout of the widget
+
+        Usually, the function should end with a self.setLayout() call.
 
         Should only be used during init
         """

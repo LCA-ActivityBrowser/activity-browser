@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from bw2parameters.errors import ParameterError, ValidationError
-from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QPushButton
+from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
 
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.signals import signals
@@ -65,15 +65,16 @@ class ProjectDatabaseTab(BaseRightTab):
     def _construct_layout(self):
         """ Construct the widget layout for the variable parameters tab
         """
+        layout = QVBoxLayout()
         self.save_parameter_btn = QPushButton("Save all parameters")
         row = QHBoxLayout()
         row.addWidget(self.save_parameter_btn)
         row.addStretch(1)
         add_objects_to_layout(
-            self.layout(), header("Project- and Database parameters"),
+            layout, header("Project- and Database parameters"),
             horizontal_line(), row
         )
-        # self.layout().addStretch(1)
+        # layout.addStretch(1)
 
         self.new_project_param = QPushButton("New project parameter")
         row = QHBoxLayout()
@@ -81,10 +82,8 @@ class ProjectDatabaseTab(BaseRightTab):
             row, header("Project parameters:"), self.new_project_param,
         )
         row.addStretch(1)
-        add_objects_to_layout(
-            self.layout(), row, self.project_table
-        )
-        # self.layout().addStretch(1)
+        add_objects_to_layout(layout, row, self.project_table)
+        # layout.addStretch(1)
 
         self.new_database_param = QPushButton("New database parameter")
         row = QHBoxLayout()
@@ -92,10 +91,9 @@ class ProjectDatabaseTab(BaseRightTab):
             row, header("Database parameters:"), self.new_database_param,
         )
         row.addStretch(1)
-        add_objects_to_layout(
-            self.layout(), row, self.database_table
-        )
-        self.layout().addStretch(1)
+        add_objects_to_layout(layout, row, self.database_table)
+        layout.addStretch(1)
+        self.setLayout(layout)
 
     def build_dataframes(self):
         """ Read parameters from brightway and build dataframe tables
@@ -112,7 +110,7 @@ class ProjectDatabaseTab(BaseRightTab):
         `save_project_parameters` is called
         """
         self.project_df = self.project_df.append(
-            {"name": None, "amount": 0.0, "formula": None},
+            {"name": None, "amount": 0.0, "formula": ""},
             ignore_index=True
         )
         self.project_table.sync(self.project_df)
@@ -124,7 +122,7 @@ class ProjectDatabaseTab(BaseRightTab):
         `save_project_parameters` is called
         """
         self.database_df = self.database_df.append(
-            {"database": None, "name": None, "amount": 0.0, "formula": None},
+            {"database": None, "name": None, "amount": 0.0, "formula": ""},
             ignore_index=True
         )
         self.database_table.sync(self.database_df)
