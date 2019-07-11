@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
-from PyQt5.QtGui import QDoubleValidator, QRegExpValidator
-from PyQt5.QtWidgets import (QComboBox, QItemDelegate, QLineEdit, QTextEdit,
-                             QWidget)
+from PyQt5.QtGui import QDoubleValidator
+from PyQt5.QtWidgets import QComboBox, QLineEdit, QStyledItemDelegate
 
 
-class FloatDelegate(QItemDelegate):
+class FloatDelegate(QStyledItemDelegate):
     """ For managing and validating entered float values
     """
     def __init__(self, parent=None):
@@ -31,7 +30,7 @@ class FloatDelegate(QItemDelegate):
         model.setData(index, value, Qt.EditRole)
 
 
-class StringDelegate(QItemDelegate):
+class StringDelegate(QStyledItemDelegate):
     """ For managing and validating entered string values
     """
     def __init__(self, parent=None):
@@ -44,7 +43,9 @@ class StringDelegate(QItemDelegate):
     def setEditorData(self, editor: QLineEdit, index: QModelIndex):
         """ Populate the editor with data if editing an existing field.
         """
-        value = str(index.data(Qt.DisplayRole))
+        value = index.data(Qt.DisplayRole)
+        # Avoid setting 'None' type value as a string
+        value = str(value) if value else ""
         editor.setText(value)
 
     def setModelData(self, editor: QLineEdit, model: QAbstractItemModel,
@@ -55,7 +56,7 @@ class StringDelegate(QItemDelegate):
         model.setData(index, value, Qt.EditRole)
 
 
-class DatabaseDelegate(QItemDelegate):
+class DatabaseDelegate(QStyledItemDelegate):
     """ Nearly the same as the string delegate, but presents as
     a combobox menu containing the databases of the current project
     """
@@ -79,3 +80,14 @@ class DatabaseDelegate(QItemDelegate):
         """
         value = editor.currentText()
         model.setData(index, value, Qt.EditRole)
+
+
+class ViewOnlyDelegate(QStyledItemDelegate):
+    """ Disable the editor functionality to allow specific columns
+     to be view-only
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, parent, option, index):
+        return None
