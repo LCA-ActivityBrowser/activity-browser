@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-from .LCA_setup import (
-    CSActivityTable,
-    CSList,
-    CSMethodsTable,
-)
-from .inventory import DatabasesTable, ActivitiesBiosphereTable
 from .activity import ExchangeTable  # ProductTable
 from .history import ActivitiesHistoryTable
 from .impact_categories import CFTable, MethodsTable
-from .lca_results import LCAResultsTable, InventoryTable, ContributionTable
-from .projects import ProjectTable, ProjectListWidget
-from .table import ABTableWidget, ABTableItem
+from .inventory import ActivitiesBiosphereTable, DatabasesTable
+from .lca_results import ContributionTable, InventoryTable, LCAResultsTable
+from .LCA_setup import CSActivityTable, CSList, CSMethodsTable
+from .parameters import (ActivityParameterTable, DataBaseParameterTable,
+                         ExchangeParameterTable, ProjectParameterTable)
+from .projects import ProjectListWidget, ProjectTable
+from .table import ABTableItem, ABTableWidget
 from .views import ABDataFrameView
-from .parameters import DataBaseParameterTable, ProjectParameterTable

@@ -6,7 +6,8 @@ from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.signals import signals
 
 from ..style import header, horizontal_line
-from ..tables import DataBaseParameterTable, ProjectParameterTable
+from ..tables import (ActivityParameterTable, DataBaseParameterTable,
+                      ExchangeParameterTable, ProjectParameterTable)
 from ..widgets import add_objects_to_layout
 from .base import BaseRightTab, BaseRightTabbedTab
 
@@ -176,11 +177,96 @@ class ProjectDatabaseTab(BaseRightTab):
 
 
 class ProcessExchangeTab(BaseRightTab):
+    """ Activity and exchange parameters tab.
+
+    This tab shows two tables containing the activity parameters and
+    related exchanges where parameters are set.
+
+    Dragging and dropping an activity from the left panel (database) into
+    the table will create 'temporary' rows containing all valid exchanges
+    where a parameter can be set.
+    After adding formulas to the relevant exchanges the user can click
+    'Save', upon which the table will store those activities and exchanges
+    with parameters (formulas) while removing the un-parameterized exchanges.
+    Exceptions caused by failed validation will be caught and presented
+    to the user in a messagebox.
+
+    NOTE: Only activities from a database that is NOT read-only
+    can be dropped into the table.
+    """
+
     def __init__(self, parent=None):
+        self.act_df = None
+        self.act_table = ActivityParameterTable()
+        self.exc_df = None
+        self.exc_table = ExchangeParameterTable()
+
+        # To hold variable names that can be used in the formula
+        self.variable_df = None
+
         super().__init__(parent)
 
     def _connect_signals(self):
-        pass
+        signals.project_selected.connect(self.build_dataframes)
+        self.save_parameter_btn.clicked.connect(self.save_all_parameters)
 
     def _construct_layout(self):
-        pass
+        layout = QVBoxLayout()
+        self.save_parameter_btn = QPushButton("Save all parameters")
+        row = QHBoxLayout()
+        row.addWidget(self.save_parameter_btn)
+        row.addStretch(1)
+        add_objects_to_layout(
+            layout, header("Activity- and Exchange parameters"),
+            horizontal_line(), row
+        )
+        row = QHBoxLayout()
+        row.addWidget(header("Activity Parameters:"))
+        row.addStretch(1)
+        add_objects_to_layout(layout, row, self.act_table)
+        layout.addStretch(1)
+        row = QHBoxLayout()
+        add_objects_to_layout(row, header("Exchange parameters:"))
+        row.addStretch(1)
+        add_objects_to_layout(layout, row, self.exc_table)
+        layout.addStretch(1)
+        self.setLayout(layout)
+
+    def build_dataframes(self):
+        """ Read parameters from brightway and build dataframe tables
+        """
+        self.act_df = ActivityParameterTable.build_parameter_df()
+        self.act_table.sync(self.act_df)
+        self.exc_df = ExchangeParameterTable.build_parameter_df()
+        self.exc_table.sync(self.exc_df)
+
+    def save_all_parameters(self):
+        """ Stores both project and database parameters
+        """
+        try:
+            if len(self.act_df.index) > 0:
+                pass
+            if len(self.exc_df.index) > 0:
+                pass
+        except (AssertionError, ParameterError, ValidationError) as e:
+            errorbox = QMessageBox()
+            errorbox.setText("An error occured while saving parameters")
+            errorbox.setInformativeText(
+                "Discard changes or cancel and continue editing?"
+            )
+            errorbox.setDetailedText(str(e))
+            errorbox.setStandardButtons(QMessageBox.Discard | QMessageBox.Cancel)
+            errorbox.setDefaultButton(QMessageBox.Cancel)
+            choice = errorbox.exec()
+
+        if 'choice' in locals():
+            if choice == QMessageBox.Discard:
+                # Tables are rebuilt and all changes are reverted
+                self.build_dataframes()
+            if choice == QMessageBox.Cancel:
+                # No data is stored, tables are not rebuilt
+                pass
+        else:
+            # No error occurred and parameters are stored
+            # Rebuild tables with recalculated values
+            self.build_dataframes()
