@@ -16,6 +16,10 @@ class ProjectParameterTable(ABDataFrameEdit):
 
     Using parts of https://stackoverflow.com/a/47021620
     and https://doc.qt.io/qt-5/model-view-programming.html
+
+    NOTE: Currently no good way to delete project parameters due to
+    requiring recursive dependency cleanup. Either leave the parameters
+    in or delete the entire project.
     """
     def __init__(self, parent=None, *args):
         super().__init__(parent, *args)
@@ -24,19 +28,6 @@ class ProjectParameterTable(ABDataFrameEdit):
         self.setItemDelegateForColumn(0, StringDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
-
-        self._setup_context_menu()
-        self._connect_signals()
-
-    # def _setup_context_menu(self):
-    #     self.delete_row_action = QAction(
-    #         QIcon(icons.delete), "Remove parameter", None
-    #     )
-    #     self.addAction(self.delete_row_action)
-    #     self.delete_row_action.triggered.connect(self.delete_rows)
-
-    def _connect_signals(self):
-        pass
 
     @ABDataFrameEdit.decorated_sync
     def sync(self, df):
@@ -54,13 +45,13 @@ class ProjectParameterTable(ABDataFrameEdit):
         # df.set_index('name', inplace=True)
         return df
 
-    # def delete_rows(self, *args):
-    #     super().delete_rows(*args)
-    #     signals.parameters_changed.emit()
-
 
 class DataBaseParameterTable(ABDataFrameEdit):
     """ Table widget for database parameters
+
+    NOTE: Currently no good way to delete database parameters due to
+    requiring recursive dependency cleanup. Either leave the parameters
+    in or delete the entire project.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -70,19 +61,6 @@ class DataBaseParameterTable(ABDataFrameEdit):
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, FloatDelegate(self))
         self.setItemDelegateForColumn(3, StringDelegate(self))
-
-        self._setup_context_menu()
-        self._connect_signals()
-
-    # def _setup_context_menu(self):
-    #     self.delete_row_action = QAction(
-    #         QIcon(icons.delete), "Remove parameter", None
-    #     )
-    #     self.addAction(self.delete_row_action)
-    #     self.delete_row_action.triggered.connect(self.delete_rows)
-
-    def _connect_signals(self):
-        pass
 
     @ABDataFrameEdit.decorated_sync
     def sync(self, df):
@@ -100,6 +78,3 @@ class DataBaseParameterTable(ABDataFrameEdit):
         # df.set_index('name', inplace=True)
         return df
 
-    # def delete_rows(self, *args):
-    #     super().delete_rows(*args)
-    #     signals.parameters_changed.emit()
