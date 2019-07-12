@@ -70,7 +70,8 @@ class ABDataFrameView(QTableView):
         if hasattr(model, 'mapToSource'):
             # We are a proxy model
             source_index = model.mapToSource(proxy_index)
-        return source_index
+            return source_index
+        return None
 
     def to_clipboard(self):
         """ Copy dataframe to clipboard
@@ -93,7 +94,7 @@ class ABDataFrameView(QTableView):
     def to_csv(self):
         """ Save the dataframe data to a CSV file.
         """
-        filepath = self.savefilepath(self.table_name, filter=self.CSV_FILTER)
+        filepath = self.savefilepath(self.table_name, file_filter=self.CSV_FILTER)
         if filepath:
             if not filepath.endswith('.csv'):
                 filepath += '.csv'
@@ -102,7 +103,7 @@ class ABDataFrameView(QTableView):
     def to_excel(self):
         """ Save the dataframe data to an excel file.
         """
-        filepath = self.savefilepath(self.table_name, filter=self.EXCEL_FILTER)
+        filepath = self.savefilepath(self.table_name, file_filter=self.EXCEL_FILTER)
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'
@@ -121,7 +122,7 @@ class ABDataFrameView(QTableView):
                 columns = [index.column() for index in selection]
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
-                self.model._dataframe.iloc[rows, columns].to_clipboard(index=False)  # includes headers
+                self.model.to_clipboard(rows, columns)
 
 
 class ABDataFrameEdit(ABDataFrameView):

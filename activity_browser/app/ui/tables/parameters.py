@@ -4,12 +4,14 @@ import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter,
                                 ProjectParameter)
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QContextMenuEvent, QCursor, QIcon, QDropEvent
+from PyQt5.QtGui import (QContextMenuEvent, QCursor, QDragMoveEvent,
+                         QDropEvent, QIcon)
 from PyQt5.QtWidgets import QAction, QMenu
 
 from ..icons import icons
 from .delegates import (DatabaseDelegate, FloatDelegate, StringDelegate,
                         ViewOnlyDelegate)
+from .inventory import ActivitiesBiosphereTable
 from .views import ABDataFrameEdit
 
 
@@ -100,6 +102,9 @@ class ActivityParameterTable(ABDataFrameEdit):
         self.setItemDelegateForColumn(4, FloatDelegate(self))
         self.setItemDelegateForColumn(5, StringDelegate(self))
 
+        # Set dropEnabled
+        self.viewport().setAcceptDrops(True)
+
         self._connect_signals()
 
     def _connect_signals(self):
@@ -120,6 +125,26 @@ class ActivityParameterTable(ABDataFrameEdit):
         ]
         df = pd.DataFrame(data, columns=cls.COLUMNS)
         return df
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            event.accept()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        db_table = event.source()
+        keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
+        event.accept()
+
+        for key in keys:
+            act = bw.get_activity(key)
+            if act.get("type", "process") != "process":
+                continue
+            row = {key: act.get(key, "") for key in self.COLUMNS}
+            self.dataframe = self.dataframe.append(
+                row, ignore_index=True
+            )
+
+        self.sync(self.dataframe)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         """ Override and activate QTableView.contextMenuEvent()

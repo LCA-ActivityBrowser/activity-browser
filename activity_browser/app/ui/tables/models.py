@@ -41,13 +41,18 @@ class PandasModel(QAbstractTableModel):
     def flags(self, index):
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section: int, orientation, role: int=Qt.DisplayRole):
         if role != Qt.DisplayRole:
             return QVariant()
         if orientation == Qt.Horizontal:
             return self._dataframe.columns[section]
         elif orientation == Qt.Vertical:
             return self._dataframe.index[section]
+
+    def to_clipboard(self, rows, columns):
+        """ Copy the given rows and columns of the dataframe to clipboard
+        """
+        self._dataframe.iloc[rows, columns].to_clipboard(index=False)
 
 
 class EditablePandasModel(PandasModel):
