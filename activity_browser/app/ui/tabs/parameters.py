@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from bw2data.parameters import ActivityParameter
 from bw2parameters.errors import ParameterError, ValidationError
 from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
 from PyQt5.QtCore import pyqtSlot
@@ -247,10 +248,19 @@ class ProcessExchangeTab(BaseRightTab):
         """ Catches emitted signals from the activity table, trigger update
         of the exchange table for each signal.
         """
-        new_df = self.exc_table.build_activity_exchange_df(key)
-        # Now update the existing dataframe, overwriting old values
-        self.exc_df = self.exc_table.combine_exchange_tables(self.exc_df, new_df)
-        self.exc_table.sync(self.exc_df)
+        try:
+            new_df = self.exc_table.build_activity_exchange_df(key)
+            # Now update the existing dataframe, overwriting old values
+            self.exc_df = self.exc_table.combine_exchange_tables(self.exc_df, new_df)
+            self.exc_table.sync(self.exc_df)
+        except ActivityParameter.DoesNotExist as e:
+            QMessageBox().warning(
+                self,
+                "Data missing",
+                "Cannot retrieve exchanges of unsaved activity parameters",
+                QMessageBox.Ok,
+                QMessageBox.Ok
+            )
 
     def save_all_parameters(self):
         """ Stores both project and database parameters
