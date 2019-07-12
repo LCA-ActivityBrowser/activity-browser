@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from bw2parameters.errors import ParameterError, ValidationError
 from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
+from PyQt5.QtCore import pyqtSlot
 
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.signals import signals
@@ -51,9 +52,9 @@ class ProjectDatabaseTab(BaseRightTab):
     """
     def __init__(self, parent=None):
         self.project_df = None
-        self.project_table = ProjectParameterTable()
+        self.project_table = None
         self.database_df = None
-        self.database_table = DataBaseParameterTable()
+        self.database_table = None
 
         super().__init__(parent)
 
@@ -68,6 +69,9 @@ class ProjectDatabaseTab(BaseRightTab):
         """
         layout = QVBoxLayout()
         self.save_parameter_btn = QPushButton("Save all parameters")
+        self.project_table = ProjectParameterTable(self)
+        self.database_table = DataBaseParameterTable(self)
+
         row = QHBoxLayout()
         row.addWidget(self.save_parameter_btn)
         row.addStretch(1)
@@ -75,7 +79,6 @@ class ProjectDatabaseTab(BaseRightTab):
             layout, header("Project- and Database parameters"),
             horizontal_line(), row
         )
-        # layout.addStretch(1)
 
         self.new_project_param = QPushButton("New project parameter")
         row = QHBoxLayout()
@@ -84,7 +87,6 @@ class ProjectDatabaseTab(BaseRightTab):
         )
         row.addStretch(1)
         add_objects_to_layout(layout, row, self.project_table)
-        # layout.addStretch(1)
 
         self.new_database_param = QPushButton("New database parameter")
         row = QHBoxLayout()
@@ -197,14 +199,12 @@ class ProcessExchangeTab(BaseRightTab):
 
     def __init__(self, parent=None):
         self.act_df = None
-        self.act_table = ActivityParameterTable()
+        self.act_table = None
         self.exc_df = None
-        self.exc_table = ExchangeParameterTable()
-
+        self.exc_table = None
+        super().__init__(parent)
         # To hold variable names that can be used in the formula
         self.variable_df = None
-
-        super().__init__(parent)
 
     def _connect_signals(self):
         signals.project_selected.connect(self.build_dataframes)
@@ -213,6 +213,9 @@ class ProcessExchangeTab(BaseRightTab):
     def _construct_layout(self):
         layout = QVBoxLayout()
         self.save_parameter_btn = QPushButton("Save all parameters")
+        self.act_table = ActivityParameterTable(self)
+        self.exc_table = ExchangeParameterTable(self)
+
         row = QHBoxLayout()
         row.addWidget(self.save_parameter_btn)
         row.addStretch(1)
@@ -224,7 +227,6 @@ class ProcessExchangeTab(BaseRightTab):
         row.addWidget(header("Activity Parameters:"))
         row.addStretch(1)
         add_objects_to_layout(layout, row, self.act_table)
-        layout.addStretch(1)
         row = QHBoxLayout()
         add_objects_to_layout(row, header("Exchange parameters:"))
         row.addStretch(1)
@@ -238,6 +240,16 @@ class ProcessExchangeTab(BaseRightTab):
         self.act_df = ActivityParameterTable.build_parameter_df()
         self.act_table.sync(self.act_df)
         self.exc_df = ExchangeParameterTable.build_parameter_df()
+        self.exc_table.sync(self.exc_df)
+
+    @pyqtSlot(tuple)
+    def add_exchanges_action(self, key: tuple):
+        """ Catches emitted signals from the activity table, trigger update
+        of the exchange table for each signal.
+        """
+        new_df = self.exc_table.build_activity_exchange_df(key)
+        # Now update the existing dataframe, overwriting old values
+        self.exc_df = self.exc_table.combine_exchange_tables(self.exc_df, new_df)
         self.exc_table.sync(self.exc_df)
 
     def save_all_parameters(self):

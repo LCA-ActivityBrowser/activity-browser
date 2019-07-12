@@ -3,7 +3,8 @@ import brightway2 as bw
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter,
                                 ProjectParameter)
-from PyQt5.QtGui import QContextMenuEvent, QCursor, QIcon
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QContextMenuEvent, QCursor, QIcon, QDropEvent
 from PyQt5.QtWidgets import QAction, QMenu
 
 from ..icons import icons
@@ -86,6 +87,7 @@ class ActivityParameterTable(ABDataFrameEdit):
     """ Table widget for activity parameters
     """
     COLUMNS = ["group", "database", "code", "name", "amount", "formula"]
+    expand_activity = pyqtSignal(tuple)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -97,6 +99,12 @@ class ActivityParameterTable(ABDataFrameEdit):
         self.setItemDelegateForColumn(3, StringDelegate(self))
         self.setItemDelegateForColumn(4, FloatDelegate(self))
         self.setItemDelegateForColumn(5, StringDelegate(self))
+
+        self._connect_signals()
+
+    def _connect_signals(self):
+        if self.parent() and hasattr(self.parent(), 'add_exchanges_action'):
+            self.expand_activity.connect(self.parent().add_exchanges_action)
 
     @ABDataFrameEdit.decorated_sync
     def sync(self, df):
@@ -119,15 +127,34 @@ class ActivityParameterTable(ABDataFrameEdit):
         All possible menu events should be added and wired up here
         """
         menu = QMenu(self)
+        load_exchanges_action = QAction(
+            QIcon(icons.add), "Load all exchanges", None
+        )
+        load_exchanges_action.triggered.connect(
+            lambda: self.add_activity_exchanges(event)
+        )
         delete_row_action = QAction(
             QIcon(icons.delete), "Remove parameter(s)", None
         )
         delete_row_action.triggered.connect(
             lambda: self.delete_activity_parameters(event)
         )
+        menu.addAction(load_exchanges_action)
         menu.addAction(delete_row_action)
         menu.popup(QCursor.pos())
         menu.exec()
+
+    def add_activity_exchanges(self, event: QContextMenuEvent):
+        """ Receive an event to add exchanges to the exchange table
+        for the selected activities
+
+        For each selected activity, emit the key of that activity
+        as a signal to the parent of the table.
+        """
+        for index in self.selectedIndexes():
+            source_index = self.get_source_index(index)
+            row = self.dataframe.iloc[source_index.row(), ]
+            self.expand_activity.emit((row.database, row.code))
 
     def delete_activity_parameters(self, event: QContextMenuEvent):
         """ Receive an event to delete the given activities or exchanges.
@@ -171,19 +198,66 @@ class ExchangeParameterTable(ABDataFrameEdit):
         """
         data = []
         for p in ActivityParameter.select():
-            act = bw.get_activity((p.database, p.code))
             row = {"group": p.group, "name": p.name}
-            for exc in [exc for exc in act.exchanges() if "formula" in exc]:
-                exc_in = (exc.input.get("database"), exc.input.get("code"))
-                exc_out = (exc.output.get("database"), exc.output.get("code"))
-                row.update({
-                    "input": exc_in, "output": exc_out,
-                    "amount": exc.amount, "formula": exc.get("formula")
-                })
-                data.append(row)
+            for exc in cls._collect_activity_exchanges((p.database, p.code)):
+                data.append(cls._construct_exchange_row(row, exc))
 
         df = pd.DataFrame(data, columns=cls.COLUMNS)
         return df
+
+    @classmethod
+    def build_activity_exchange_df(cls, key: tuple) -> pd.DataFrame:
+        """ Given an activity key, build a dataframe of all the activity
+        exchanges
+        """
+        param = (ActivityParameter
+                 .select(ActivityParameter.group, ActivityParameter.name)
+                 .where(ActivityParameter.database == key[0],
+                        ActivityParameter.code == key[1])
+                 .limit(1)
+                 .get())
+        act_data = {"group": param.group, "name": param.name}
+
+        data = [
+            cls._construct_exchange_row(act_data, exc)
+            for exc in cls._collect_activity_exchanges(key, only_formula=False)
+        ]
+
+        df = pd.DataFrame(data, columns=cls.COLUMNS)
+        return df
+
+    @staticmethod
+    def combine_exchange_tables(old: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
+        """ Combine two exchange dataframe tables, replacing rows in `old`
+        with `new` if they match on specific columns.
+        """
+        result = (pd.concat([old, new])
+                  .drop_duplicates(
+                    ["group", "name", "input", "output"], keep="last"
+                  )
+                  .sort_values(by=["group", "name"]))
+        return result
+
+    @staticmethod
+    def _collect_activity_exchanges(key: tuple, only_formula: bool=True) -> list:
+        """ Given an activity key, retrieve row data for the exchange table
+        """
+        act = bw.get_activity(key)
+        if only_formula:
+            return [exc for exc in act.exchanges() if 'formula' in exc]
+        else:
+            return act.exchanges()
+
+    @staticmethod
+    def _construct_exchange_row(act_data: dict, exc) -> dict:
+        exc_in = (exc.input.get("database"), exc.input.get("code"))
+        exc_out = (exc.output.get("database"), exc.output.get("code"))
+        row = {k: v for k, v in act_data.items()}
+        row.update({
+            "input": exc_in, "output": exc_out,
+            "amount": exc.amount, "formula": exc.get("formula", "")
+        })
+        return row
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         """ Override and activate QTableView.contextMenuEvent()
