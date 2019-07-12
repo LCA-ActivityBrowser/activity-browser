@@ -5,9 +5,8 @@ import os
 from PyQt5.QtCore import QSize, QSortFilterProxyModel, Qt, pyqtSlot
 from PyQt5.QtWidgets import QFileDialog, QTableView
 
-from activity_browser.app.settings import ABSettings
+from activity_browser.app.settings import ab_settings
 
-from ..style import style_item
 from .models import (DragPandasModel, EditableDragPandasModel,
                      EditablePandasModel, PandasModel)
 
@@ -78,7 +77,7 @@ class ABDataFrameView(QTableView):
         """
         self.dataframe.to_clipboard()
 
-    def savefilepath(self, default_file_name: str, filter=ALL_FILTER):
+    def savefilepath(self, default_file_name: str, file_filter: str=None):
         """ Construct and return default path where data is stored
 
         Uses the application directory for AB
@@ -86,15 +85,15 @@ class ABDataFrameView(QTableView):
         filepath, _ = QFileDialog.getSaveFileName(
             self,
             caption='Choose location to save lca results',
-            directory=os.path.join(ABSettings.data_dir, default_file_name),
-            filter=filter,
+            directory=os.path.join(ab_settings.data_dir, default_file_name),
+            filter=file_filter or self.ALL_FILTER,
         )
         return filepath
 
     def to_csv(self):
         """ Save the dataframe data to a CSV file.
         """
-        filepath = self.savefilepath(self.table_name, filter=CSV_FILTER)
+        filepath = self.savefilepath(self.table_name, filter=self.CSV_FILTER)
         if filepath:
             if not filepath.endswith('.csv'):
                 filepath += '.csv'
@@ -103,7 +102,7 @@ class ABDataFrameView(QTableView):
     def to_excel(self):
         """ Save the dataframe data to an excel file.
         """
-        filepath = self.savefilepath(self.table_name, filter=EXCEL_FILTER)
+        filepath = self.savefilepath(self.table_name, filter=self.EXCEL_FILTER)
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'
@@ -130,7 +129,7 @@ class ABDataFrameEdit(ABDataFrameView):
     editable models
     """
     def __init__(self, parent=None):
-        return super().__init__(parent)
+        super().__init__(parent)
 
     @staticmethod
     def decorated_sync(sync):
@@ -151,5 +150,7 @@ class ABDataFrameEdit(ABDataFrameView):
             self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
             self.setModel(self.proxy_model)
             self.setMaximumHeight(self.get_max_height())
+            self.resizeColumnsToContents()
+            self.resizeRowsToContents()
 
         return wrapper
