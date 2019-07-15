@@ -4,7 +4,6 @@ from bw2parameters.errors import ParameterError, ValidationError
 from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
 from PyQt5.QtCore import pyqtSlot
 
-from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.signals import signals
 
 from ..style import header, horizontal_line
@@ -52,47 +51,53 @@ class ProjectDatabaseTab(BaseRightTab):
     and a warning message will appear if an error occurs.
     """
     def __init__(self, parent=None):
-        self.project_df = None
         self.project_table = None
-        self.database_df = None
         self.database_table = None
-
         super().__init__(parent)
 
     def _connect_signals(self):
         signals.project_selected.connect(self.build_dataframes)
-        self.new_project_param.clicked.connect(self.add_project_parameter)
-        self.new_database_param.clicked.connect(self.add_database_parameter)
-        self.save_parameter_btn.clicked.connect(self.save_all_parameters)
+        self.new_project_param.clicked.connect(
+            self.project_table.add_parameter
+        )
+        self.new_database_param.clicked.connect(
+            self.database_table.add_parameter
+        )
+        self.save_project_btn.clicked.connect(
+            lambda: self.store_parameters("project")
+        )
+        self.save_database_btn.clicked.connect(
+            lambda: self.store_parameters("database")
+        )
 
     def _construct_layout(self):
         """ Construct the widget layout for the variable parameters tab
         """
         layout = QVBoxLayout()
-        self.save_parameter_btn = QPushButton("Save all parameters")
         self.project_table = ProjectParameterTable(self)
         self.database_table = DataBaseParameterTable(self)
 
-        row = QHBoxLayout()
-        row.addWidget(self.save_parameter_btn)
-        row.addStretch(1)
         add_objects_to_layout(
             layout, header("Project- and Database parameters"),
-            horizontal_line(), row
+            horizontal_line()
         )
 
         self.new_project_param = QPushButton("New project parameter")
+        self.save_project_btn = QPushButton("Save project parameters")
         row = QHBoxLayout()
         add_objects_to_layout(
             row, header("Project parameters:"), self.new_project_param,
+            self.save_project_btn
         )
         row.addStretch(1)
         add_objects_to_layout(layout, row, self.project_table)
 
         self.new_database_param = QPushButton("New database parameter")
+        self.save_database_btn = QPushButton("Save database parameters")
         row = QHBoxLayout()
         add_objects_to_layout(
             row, header("Database parameters:"), self.new_database_param,
+            self.save_database_btn
         )
         row.addStretch(1)
         add_objects_to_layout(layout, row, self.database_table)
@@ -102,81 +107,31 @@ class ProjectDatabaseTab(BaseRightTab):
     def build_dataframes(self):
         """ Read parameters from brightway and build dataframe tables
         """
-        self.project_df = ProjectParameterTable.build_parameter_df()
-        self.project_table.sync(self.project_df)
-        self.database_df = DataBaseParameterTable.build_parameter_df()
-        self.database_table.sync(self.database_df)
+        self.project_table.sync(ProjectParameterTable.build_parameter_df())
+        self.database_table.sync(DataBaseParameterTable.build_parameter_df())
 
-    def add_project_parameter(self):
-        """ Add a new project parameter to the dataframe
-
-        NOTE: Any new parameters are only stored in memory until
-        `save_project_parameters` is called
+    @pyqtSlot(str)
+    def store_parameters(self, param_type: str) -> None:
+        """ Stores either project or database parameters
         """
-        self.project_df = self.project_df.append(
-            {"name": None, "amount": 0.0, "formula": ""},
-            ignore_index=True
-        )
-        self.project_table.sync(self.project_df)
+        result = None
+        if param_type == "project":
+            result = self.project_table.save_parameters()
+        elif param_type == "database":
+            result = self.database_table.save_parameters()
 
-    def add_database_parameter(self):
-        """ Add a new project parameter to the dataframe
-
-        NOTE: Any new parameters are only stored in memory until
-        `save_project_parameters` is called
-        """
-        self.database_df = self.database_df.append(
-            {"database": None, "name": None, "amount": 0.0, "formula": ""},
-            ignore_index=True
-        )
-        self.database_table.sync(self.database_df)
-
-    def save_all_parameters(self):
-        """ Stores both project and database parameters
-        """
-        try:
-            if len(self.project_df.index) > 0:
-                self.save_project_parameters()
-            if len(self.database_df.index) > 0:
-                self.save_database_parameters()
-        except (AssertionError, ParameterError, ValidationError) as e:
-            errorbox = QMessageBox()
-            errorbox.setText("An error occured while saving parameters")
-            errorbox.setInformativeText(
-                "Discard changes or cancel and continue editing?"
-            )
-            errorbox.setDetailedText(str(e))
-            errorbox.setStandardButtons(QMessageBox.Discard | QMessageBox.Cancel)
-            errorbox.setDefaultButton(QMessageBox.Cancel)
-            choice = errorbox.exec()
-
-        if 'choice' in locals():
+        if result:
+            choice = result.exec()
             if choice == QMessageBox.Discard:
                 # Tables are rebuilt and all changes are reverted
                 self.build_dataframes()
             if choice == QMessageBox.Cancel:
                 # No data is stored, tables are not rebuilt
-                pass
+                return
         else:
             # No error occurred and parameters are stored
             # Rebuild tables with recalculated values
             self.build_dataframes()
-
-    def save_project_parameters(self):
-        """ Attempts to store all of the parameters in the dataframe
-        as new (or updated) brightway project parameters
-        """
-        parameters = self.project_df.to_dict(orient='records')
-        bc.save_parameters(parameters, "project")
-
-    def save_database_parameters(self):
-        """ Separates the database parameters by db_name and attempts
-        to save each chunk of parameters separately.
-        """
-        used_db_names = self.database_df["database"].unique()
-        for db_name in used_db_names:
-            parameters = self.database_df.loc[self.database_df["database"] == db_name].to_dict(orient="records")
-            bc.save_parameters(parameters, "database", db_or_group=db_name)
 
 
 class ProcessExchangeTab(BaseRightTab):

@@ -233,21 +233,3 @@ def get_LCIA_method_name_dict(keys):
 #     loc_set = set()
 #     [loc_set.add(act.get("location")) for act in db]
 #     return loc_set
-
-# Parameters
-def save_parameters(params: list, param_type: str, overwrite=True,
-                    db_or_group: str=None) -> None:
-    """ Take the given list of dictionaries and attempt to store them as
-    brightway Parameters
-    """
-    if param_type not in ["project", "database", "activity"]:
-        raise TypeError(
-            "Parameters of type {} cannot be stored".format(param_type)
-        )
-
-    if param_type == "project":
-        bw.parameters.new_project_parameters(params, overwrite)
-    elif param_type == "database" and db_or_group:
-        bw.parameters.new_database_parameters(params, db_or_group, overwrite)
-    elif param_type == "activity" and db_or_group:
-        bw.parameters.new_activity_parameters(params, db_or_group, overwrite)
