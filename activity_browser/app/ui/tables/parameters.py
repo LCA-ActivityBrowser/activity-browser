@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
+
 import brightway2 as bw
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter,
@@ -6,16 +8,25 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter,
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import (QContextMenuEvent, QCursor, QDragMoveEvent,
                          QDropEvent, QIcon)
-from PyQt5.QtWidgets import QAction, QMenu
+from PyQt5.QtWidgets import QAction, QMenu, QMessageBox
+
+from activity_browser.app.settings import project_settings
 
 from ..icons import icons
+from ..widgets import parameter_save_errorbox, simple_warning_box
 from .delegates import (DatabaseDelegate, FloatDelegate, StringDelegate,
                         ViewOnlyDelegate)
 from .inventory import ActivitiesBiosphereTable
 from .views import ABDataFrameEdit
 
 
-class ProjectParameterTable(ABDataFrameEdit):
+class BaseParameterTable(ABDataFrameEdit):
+    @ABDataFrameEdit.decorated_sync
+    def sync(self, df):
+        self.dataframe = df
+
+
+class ProjectParameterTable(BaseParameterTable):
     """ Table widget for project parameters
 
     Using parts of https://stackoverflow.com/a/47021620
@@ -35,10 +46,6 @@ class ProjectParameterTable(ABDataFrameEdit):
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
 
-    @ABDataFrameEdit.decorated_sync
-    def sync(self, df):
-        self.dataframe = df
-
     @classmethod
     def build_parameter_df(cls):
         """ Build a dataframe using the ProjectParameters set in brightway
@@ -51,7 +58,7 @@ class ProjectParameterTable(ABDataFrameEdit):
         return df
 
 
-class DataBaseParameterTable(ABDataFrameEdit):
+class DataBaseParameterTable(BaseParameterTable):
     """ Table widget for database parameters
 
     NOTE: Currently no good way to delete database parameters due to
@@ -69,12 +76,8 @@ class DataBaseParameterTable(ABDataFrameEdit):
         self.setItemDelegateForColumn(2, FloatDelegate(self))
         self.setItemDelegateForColumn(3, StringDelegate(self))
 
-    @ABDataFrameEdit.decorated_sync
-    def sync(self, df):
-        self.dataframe = df
-
     @classmethod
-    def build_parameter_df(cls):
+    def build_parameter_df(cls) -> pd.DataFrame:
         """ Build a dataframe using the DatabaseParameters set in brightway
         """
         data = [
@@ -85,7 +88,7 @@ class DataBaseParameterTable(ABDataFrameEdit):
         return df
 
 
-class ActivityParameterTable(ABDataFrameEdit):
+class ActivityParameterTable(BaseParameterTable):
     """ Table widget for activity parameters
     """
     COLUMNS = ["group", "database", "code", "name", "amount", "formula"]
@@ -111,10 +114,6 @@ class ActivityParameterTable(ABDataFrameEdit):
         if self.parent() and hasattr(self.parent(), 'add_exchanges_action'):
             self.expand_activity.connect(self.parent().add_exchanges_action)
 
-    @ABDataFrameEdit.decorated_sync
-    def sync(self, df):
-        self.dataframe = df
-
     @classmethod
     def build_parameter_df(cls):
         """ Build a dataframe using the ActivityParameters set in brightway
@@ -127,19 +126,45 @@ class ActivityParameterTable(ABDataFrameEdit):
         return df
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
+        """ Check that the dragged row is from the databases table
+        """
         if isinstance(event.source(), ActivitiesBiosphereTable):
             event.accept()
 
     def dropEvent(self, event: QDropEvent) -> None:
+        """ If the user drops an activity into the activity parameters table
+        read the relevant data from the database and generate a new row.
+
+        Also, create a warning if the activity is from a read-only database
+        """
         db_table = event.source()
+
+        if project_settings.settings["read-only-databases"].get(
+                db_table.database_name, True):
+            box = simple_warning_box(
+                "Not allowed",
+                "Cannot set activity parameters on read-only databases"
+            )
+            box.exec()
+            return
+
         keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
         event.accept()
 
         for key in keys:
             act = bw.get_activity(key)
             if act.get("type", "process") != "process":
+                box = simple_warning_box(
+                    "Not allowed",
+                    "Activity must be 'process' type, '{}' is type '{}'.".format(
+                        act.get("name"), act.get("type")
+                    )
+                )
+                box.exec()
                 continue
             row = {key: act.get(key, "") for key in self.COLUMNS}
+            if row["amount"] == "":
+                row["amount"] = 0.0
             self.dataframe = self.dataframe.append(
                 row, ignore_index=True
             )
