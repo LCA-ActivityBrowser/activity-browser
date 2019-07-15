@@ -58,8 +58,8 @@ class PandasModel(QAbstractTableModel):
 class EditablePandasModel(PandasModel):
     """ Allows underlying dataframe to be edited through Delegate classes.
     """
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, dataframe: DataFrame, parent=None):
+        super().__init__(dataframe, parent)
 
     def flags(self, index):
         """ Returns ItemIsEditable flag
@@ -79,16 +79,16 @@ class EditablePandasModel(PandasModel):
 class DragPandasModel(PandasModel):
     """Same as PandasModel, but enabling dragging.
     """
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, dataframe: DataFrame, parent=None):
+        super().__init__(dataframe, parent)
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 
 
 class EditableDragPandasModel(EditablePandasModel):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, dataframe: DataFrame, parent=None):
+        super().__init__(dataframe, parent)
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled

@@ -38,6 +38,12 @@ class ABDataFrameView(QTableView):
     def sizeHint(self):
         return QSize(self.width(), self.get_max_height())
 
+    @property
+    def has_data(self) -> bool:
+        """ Tests if dataframe of the view has data
+        """
+        return len(self.dataframe.index) > 0
+
     @staticmethod
     def decorated_sync(sync):
         """ Syncs the data from the dataframe into the table view.
