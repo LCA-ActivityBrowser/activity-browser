@@ -57,6 +57,31 @@ class ProjectParameterTable(BaseParameterTable):
         df = pd.DataFrame(data, columns=cls.COLUMNS)
         return df
 
+    def add_parameter(self) -> None:
+        """ Take the given row and append it to the dataframe.
+
+        NOTE: Any new parameters are only stored in memory until
+        `save_project_parameters` is called in the tab
+        """
+        self.dataframe = self.dataframe.append(
+            {"name": None, "amount": 0.0, "formula": ""},
+            ignore_index=True
+        )
+        self.sync(self.dataframe)
+
+    def save_parameters(self, overwrite: bool=True) -> Optional[QMessageBox]:
+        """ Attempts to store all of the parameters in the dataframe
+        as new (or updated) brightway project parameters
+        """
+        if not self.has_data:
+            return
+
+        data = self.dataframe.to_dict(orient='records')
+        try:
+            bw.parameters.new_project_parameters(data, overwrite)
+        except Exception as e:
+            return parameter_save_errorbox(e)
+
 
 class DataBaseParameterTable(BaseParameterTable):
     """ Table widget for database parameters
@@ -86,6 +111,35 @@ class DataBaseParameterTable(BaseParameterTable):
         ]
         df = pd.DataFrame(data, columns=cls.COLUMNS)
         return df
+
+    def add_parameter(self) -> None:
+        """ Add a new database parameter to the dataframe
+
+        NOTE: Any new parameters are only stored in memory until
+        `save_project_parameters` is called
+        """
+        self.dataframe = self.dataframe.append(
+            {"database": None, "name": None, "amount": 0.0, "formula": ""},
+            ignore_index=True
+        )
+        self.sync(self.dataframe)
+
+    def save_parameters(self, overwrite: bool=True) -> Optional[QMessageBox]:
+        """ Separates the database parameters by db_name and attempts
+        to save each chunk of parameters separately.
+        """
+        if not self.has_data:
+            return
+
+        used_db_names = self.dataframe["database"].unique()
+        for db_name in used_db_names:
+            data = (self.dataframe
+                    .loc[self.dataframe["database"] == db_name]
+                    .to_dict(orient="records"))
+            try:
+                bw.parameters.new_database_parameters(data, db_name, overwrite)
+            except Exception as e:
+                return parameter_save_errorbox(e)
 
 
 class ActivityParameterTable(BaseParameterTable):
