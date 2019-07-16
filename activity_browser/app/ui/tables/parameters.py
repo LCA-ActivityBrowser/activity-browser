@@ -458,7 +458,7 @@ class ExchangeParameterTable(BaseParameterTable):
         groups = self.dataframe["group"].unique()
         for group in groups:
             try:
-            ActivityParameter.recalculate_exchanges(group)
+                ActivityParameter.recalculate_exchanges(group)
             except Exception as e:
                 # Exception is shown faaaar too late to do something about it.
                 return parameter_save_errorbox(e)
@@ -489,19 +489,19 @@ class ExchangeParameterTable(BaseParameterTable):
                 continue
 
             if "formula" in original:
-            # Formula was set, but is now being removed
+                # Formula was set, but is now being removed
                 if formula == "":
-                original = self._remove_parameter(original)
-                altered = True
-            # If formula was set and is now being changed
+                    original = self._remove_parameter(original)
+                    altered = True
+                # If formula was set and is now being changed
                 elif formula != original["formula"]:
-                original["formula"] = formula
+                    original["formula"] = formula
                     altered = True
             # Formula was not set and is now being set
             else:
                 original["original_amount"] = original.amount
                 original["formula"] = formula
-                    altered = True
+                altered = True
 
             # Only save to database if changes have occurred
             if altered:
