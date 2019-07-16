@@ -441,7 +441,6 @@ class Controller(object):
     #         signals.database_changed.emit(db)
 
     def add_exchanges(self, from_keys, to_key):
-        biosphere_types = ['emission', 'natural resource', 'social', 'economic']
         activity = bw.get_activity(to_key)
         for key in from_keys:
             from_act = bw.get_activity(key)
@@ -450,7 +449,7 @@ class Controller(object):
                 exc['type'] = 'production'
             elif from_act.get('type', 'process') == 'process':
                 exc['type'] = 'technosphere'
-            elif from_act.get('type') in biosphere_types:
+            elif from_act.get('type') in project_settings.biosphere_types:
                 exc['type'] = 'biosphere'
             else:
                 exc['type'] = 'unknown'
