@@ -7,8 +7,8 @@ from typing import Optional
 import appdirs
 import brightway2 as bw
 
+from activity_browser import PACKAGE_DIRECTORY
 from activity_browser.app.signals import signals
-from .. import PACKAGE_DIRECTORY
 
 
 class BaseSettings(object):
@@ -22,20 +22,20 @@ class BaseSettings(object):
 
         self.initialize_settings()
 
-    def get_default_settings(self):
+    def get_default_settings(self) -> dict:
         """ Returns dictionary containing the default settings for the file
 
         Each child class needs to implement its own default settings.
         """
         raise NotImplementedError
 
-    def restore_default_settings(self):
+    def restore_default_settings(self) -> None:
         """ Undo all user settings and return to original state.
         """
         self.settings = self.get_default_settings()
         self.write_settings()
 
-    def initialize_settings(self):
+    def initialize_settings(self) -> None:
         """ Attempt to find and read the settings_file, creates a default
         if not found
         """
@@ -45,11 +45,11 @@ class BaseSettings(object):
             self.settings = self.get_default_settings()
             self.write_settings()
 
-    def load_settings(self):
+    def load_settings(self) -> None:
         with open(self.settings_file, 'r') as infile:
             self.settings = json.load(infile)
 
-    def write_settings(self):
+    def write_settings(self) -> None:
         with open(self.settings_file, 'w') as outfile:
             json.dump(self.settings, outfile, indent=4, sort_keys=True)
 
@@ -67,7 +67,8 @@ class ABSettings(BaseSettings):
 
         super().__init__(ab_dir.user_data_dir, filename)
 
-    def move_old_settings(self, directory: str, filename: str):
+    @staticmethod
+    def move_old_settings(directory: str, filename: str) -> None:
         """ legacy code: This function is only required for compatibility
         with the old settings file and can be removed in a future release
         """
@@ -164,6 +165,8 @@ class ProjectSettings(BaseSettings):
             self.write_settings()
 
     def connect_signals(self):
+        """ Reload the project settings whenever a project switch occurs
+        """
         signals.project_selected.connect(self.reset_for_project_selection)
         signals.delete_project.connect(self.reset_for_project_selection)
 
@@ -171,10 +174,12 @@ class ProjectSettings(BaseSettings):
         """ Return default empty settings dictionary.
         """
         return {
-            'read-only-databases': {},
+            'read-only-databases': self.process_brightway_databases(),
+            'biosphere': self.get_default_biosphere_types(),
         }
 
-    def process_brightway_databases(self):
+    @staticmethod
+    def process_brightway_databases() -> dict:
         """ Process brightway database list and return new settings dictionary.
 
         NOTE: This ignores the existing database read-only settings.
@@ -183,7 +188,13 @@ class ProjectSettings(BaseSettings):
             'read-only-databases': {name: True for name in bw.databases.list}
         }
 
-    def reset_for_project_selection(self):
+    @staticmethod
+    def get_default_biosphere_types() -> list:
+        """ Return the default list of biosphere types.
+        """
+        return ['emission', 'natural resource', 'social', 'economic']
+
+    def reset_for_project_selection(self) -> None:
         """ On switching project, attempt to read the settings for the new
         project.
         """
@@ -191,20 +202,20 @@ class ProjectSettings(BaseSettings):
         self.settings_file = os.path.join(bw.projects.dir, self.filename)
         self.initialize_settings()
 
-    def add_db(self, db_name: str, read_only: bool=True):
+    def add_db(self, db_name: str, read_only: bool=True) -> None:
         """ Store new databases and relevant settings here when
         created/imported.
         """
         self.settings['read-only-databases'].setdefault(db_name, read_only)
         self.write_settings()
 
-    def modify_db(self, db_name: str, read_only: bool):
+    def modify_db(self, db_name: str, read_only: bool) -> None:
         """ Update write-rules for the given database.
         """
         self.settings['read-only-databases'].update({db_name: read_only})
         self.write_settings()
 
-    def remove_db(self, db_name: str):
+    def remove_db(self, db_name: str) -> None:
         """ When a database is deleted from a project, the settings are
         also deleted.
         """
@@ -223,6 +234,21 @@ class ProjectSettings(BaseSettings):
         """
         iterator = self.settings.get('read-only-databases', {}).items()
         return [name for name, ro in iterator if not ro and name != 'biosphere3']
+
+    @property
+    def biosphere_types(self) -> list:
+        """ Returns the types of exchanges which are seen as 'biosphere'
+        """
+        return self.settings.get(
+            "biosphere", self.get_default_biosphere_types()
+        )
+
+    @biosphere_types.setter
+    def biosphere_types(self, types: list) -> None:
+        """ Replace the accepted biosphere types list with `types`.
+        """
+        self.settings.update({"biosphere": types})
+        self.write_settings()
 
 
 ab_settings = ABSettings('ABsettings.json')
