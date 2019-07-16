@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from typing import Optional
+from typing import List, Optional
 
+import brightway2 as bw
 import pandas as pd
-from brightway2 import get_activity, parameters
+from bw2data.backends.peewee.proxies import Exchange
 from bw2data.parameters import (ActivityParameter, DatabaseParameter,
-                                ProjectParameter)
+                                ParameterizedExchange, ProjectParameter)
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import (QContextMenuEvent, QCursor, QDragMoveEvent,
                          QDropEvent, QIcon)
@@ -78,7 +79,7 @@ class ProjectParameterTable(BaseParameterTable):
 
         data = self.dataframe.to_dict(orient='records')
         try:
-            parameters.new_project_parameters(data, overwrite)
+            bw.parameters.new_project_parameters(data, overwrite)
         except Exception as e:
             return parameter_save_errorbox(e)
 
@@ -137,7 +138,7 @@ class DataBaseParameterTable(BaseParameterTable):
                     .loc[self.dataframe["database"] == db_name]
                     .to_dict(orient="records"))
             try:
-                parameters.new_database_parameters(data, db_name, overwrite)
+                bw.parameters.new_database_parameters(data, db_name, overwrite)
             except Exception as e:
                 return parameter_save_errorbox(e)
 
@@ -209,7 +210,7 @@ class ActivityParameterTable(BaseParameterTable):
         event.accept()
 
         for key in keys:
-            act = get_activity(key)
+            act = bw.get_activity(key)
             if act.get("type", "process") != "process":
                 box = simple_warning_box(
                     "Not allowed",
@@ -244,7 +245,7 @@ class ActivityParameterTable(BaseParameterTable):
             QIcon(icons.delete), "Remove parameter(s)", None
         )
         delete_row_action.triggered.connect(
-            lambda: self.delete_activity_parameters(event)
+            lambda: self.delete_parameters(event)
         )
         menu.addAction(load_exchanges_action)
         menu.addAction(delete_row_action)
@@ -289,21 +290,20 @@ class ActivityParameterTable(BaseParameterTable):
                     .loc[self.dataframe["group"] == group]
                     .to_dict(orient="records"))
             try:
-                parameters.new_activity_parameters(data, group, overwrite)
+                bw.parameters.new_activity_parameters(data, group, overwrite)
             except Exception as e:
                 return parameter_save_errorbox(e)
 
-    def delete_activity_parameters(self, event: QContextMenuEvent):
+    def delete_parameters(self, event: QContextMenuEvent):
         """ Handle event to delete the given activities and related exchanges.
         """
         for index in self.selectedIndexes():
             source_index = self.get_source_index(index)
             row = self.dataframe.iloc[source_index.row(), ]
-            parameters.remove_from_group(
-                row["group"], get_activity((row["database"], row["code"]))
-            )
+            act = bw.get_activity((row["database"], row["code"]))
+            bw.parameters.remove_from_group(row["group"], act)
         # Recalculate remaining groups
-        parameters.recalculate()
+        bw.parameters.recalculate()
 
         # Reload activities table and trigger reload of exchanges table
         self.sync(self.build_parameter_df())
@@ -398,7 +398,7 @@ class ExchangeParameterTable(BaseParameterTable):
     def _collect_activity_exchanges(key: tuple, only_formula: bool=True) -> list:
         """ Given an activity key, retrieve row data for the exchange table
         """
-        act = get_activity(key)
+        act = bw.get_activity(key)
         if only_formula:
             return [exc for exc in act.exchanges() if 'formula' in exc]
         else:
@@ -436,7 +436,7 @@ class ExchangeParameterTable(BaseParameterTable):
                                 ActivityParameter.group == act_param.group)
                          .limit(1)
                          .get())
-                act = get_activity((param.database, param.code))
+                act = bw.get_activity((param.database, param.code))
             except ActivityParameter.DoesNotExist as e:
                 # If this happens, the activity and exchange tables are
                 # de-synced, somehow.
@@ -452,41 +452,82 @@ class ExchangeParameterTable(BaseParameterTable):
                          .loc[(self.dataframe["group"] == act_param.group) & (self.dataframe["name"] == act_param.name)]
                          .to_dict(orient="records"))
             self._update_exchanges(exchanges, act)
-            parameters.add_exchanges_to_group(act_param.group, act)
+            bw.parameters.add_exchanges_to_group(act_param.group, act)
 
         # Now that all exchanges are updated, recalculate them for each group.
         groups = self.dataframe["group"].unique()
         for group in groups:
+            try:
             ActivityParameter.recalculate_exchanges(group)
+            except Exception as e:
+                # Exception is shown faaaar too late to do something about it.
+                return parameter_save_errorbox(e)
 
-    @staticmethod
-    def _update_exchanges(edited: list, act) -> None:
+        self.sync(self.dataframe)
+
+    def _update_exchanges(self, exchanges: List[dict], act) -> None:
         """ Take the given 'edited' exchanges, and the related activity proxy.
 
-        Find and update each exchange within the activity, either storing the
-        original amount in 'original_amount' and setting the given 'formula'
+        Find and update each exchange within the activity if needed, either:
+        Store the new 'formula' inside in the original exchange
         OR
-        remove the 'formula' field from the exchange and restore the 'amount'
-        by replacing it with the 'original_amount' value (dropping that after)
+        Update the existing formula with a new one.
+        OR
+        Remove an existing formula, in effect removing the parameter.
         """
-        for edited_exc in edited:
-            original_exc = next(exc for exc in act.exchanges() if
-                                edited_exc.get("input") == exc.input and
-                                edited_exc.get("output") == exc.output)
+        for edited in exchanges:
+            original = next(
+                exc for exc in act.exchanges() if
+                edited.get("input") == exc.input and
+                edited.get("output") == exc.output
+            )
             altered = False
-            # If formula was set before
-            if 'formula' in original_exc:
-                # If the formula was changed in some way
-                if edited_exc.get("formula") != original_exc.get("formula"):
-                    original_exc["formula"] = edited_exc.get("formula")
+            formula = edited.get("formula", "").strip()
+
+            # No changes, continue to next exchange
+            if formula == "" and "formula" not in original:
+                continue
+
+            if "formula" in original:
+            # Formula was set, but is now being removed
+                if formula == "":
+                original = self._remove_parameter(original)
+                altered = True
+            # If formula was set and is now being changed
+                elif formula != original["formula"]:
+                original["formula"] = formula
                     altered = True
-            # If formula was not set
+            # Formula was not set and is now being set
             else:
-                # A new formula is set on the exchange
-                if not edited_exc.get("formula", "") == "":
-                    original_exc["formula"] = edited_exc.get("formula")
+                original["original_amount"] = original.amount
+                original["formula"] = formula
                     altered = True
 
             # Only save to database if changes have occurred
             if altered:
-                original_exc.save()
+                original.save()
+
+    @staticmethod
+    def _remove_parameter(exchange: Exchange) -> Exchange:
+        """ Trigger this if the user removes the formula from an exchange
+        which previously did have a formula.
+
+        Brigthway does not remove singular ParameterizedExchange objects
+        but it also cannot handle parameterized exchanges with empty formula
+        fields, instead setting the exchange 'amount' field to None when
+        recalculating.
+
+        This method is something of a hack which uses a protected variable
+        to delete specific ParameterizedExchange objects
+        """
+        with bw.parameters.db.atomic():
+            (ParameterizedExchange
+            .delete()
+            .where(ParameterizedExchange.exchange == exchange._document.id)
+            .execute())
+        # If we can, restore the original exchange amount
+        if "original_amount" in exchange:
+            exchange["amount"] = exchange["original_amount"]
+            del exchange["original_amount"]
+        del exchange["formula"]
+        return exchange
