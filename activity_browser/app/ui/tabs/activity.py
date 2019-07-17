@@ -8,7 +8,7 @@ from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
 from ..icons import icons
 from ...bwutils import commontasks as bc
-from ...bwutils import convenience_data
+from ...settings import project_settings
 from ...signals import signals
 
 
@@ -68,7 +68,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         super(ActivityTab, self).__init__(parent)
         self.parent = parent
         self.read_only = read_only
-        self.db_read_only = bc.is_database_read_only(db_name=key[0])
+        self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
         self.db_name = self.key[0]
         self.activity = bw.get_activity(key)
