@@ -35,7 +35,6 @@ class SettingsWizard(QWizard):
         self.show()
 
     def _connect_signals(self):
-        self.button(QWizard.FinishButton).setEnabled(False)
         self.button(QWizard.FinishButton).clicked.connect(self.save_settings)
         self.button(QWizard.CancelButton).clicked.connect(self.close)
 
@@ -61,9 +60,15 @@ class SettingsWizard(QWizard):
         # Biosphere fields
         if self.field("biosphere_types") != project_settings.biosphere_types:
             types = self.field("biosphere_types")
-            new_types = [field.strip() for field in types.split(",")]
+            new_types = [
+                field.strip() for field in types.split(",")
+            ] if types != "" else []
             project_settings.biosphere_types = new_types
-            print("Saved these types as biosphere: '{}'".format(types))
+            print(
+                "Saved these types as biosphere: '{}' for project '{}'".format(
+                    types, bw.projects.current
+                )
+            )
 
         project_settings.write_settings()
 
@@ -167,33 +172,39 @@ class ABSettingsPage(QWizardPage):
         self.bwdir_edit = QLineEdit()
         self.bwdir_edit.setPlaceholderText(ab_settings.custom_bw_dir)
         self.bwdir_edit.setReadOnly(True)
-        self.bwdir_browse_button = QPushButton('Browse')
-        self.restore_defaults_button = QPushButton('Restore defaults')
+        self.bwdir_browse_btn = QPushButton('Browse')
+        self.restore_defaults_btn = QPushButton('Restore defaults')
 
         # Construct layout
         startup_groupbox = QGroupBox('Startup Options')
         startup_layout = QGridLayout()
         startup_layout.addWidget(QLabel('Brightway Dir: '), 0, 0)
         startup_layout.addWidget(self.bwdir_edit, 0, 1)
-        startup_layout.addWidget(self.bwdir_browse_button, 0, 2)
+        startup_layout.addWidget(self.bwdir_browse_btn, 0, 2)
         startup_layout.addWidget(QLabel('Startup Project: '), 1, 0)
         startup_layout.addWidget(self.startup_project_combobox, 1, 1)
         startup_groupbox.setLayout(startup_layout)
         layout = QVBoxLayout()
         layout.addWidget(startup_groupbox)
         layout.addStretch()
-        layout.addWidget(self.restore_defaults_button)
+        layout.addWidget(self.restore_defaults_btn)
         self.setLayout(layout)
 
     def _connect_signals(self):
         self.startup_project_combobox.currentIndexChanged.connect(self.changed)
-        self.bwdir_browse_button.clicked.connect(self.bwdir_browse)
+        self.bwdir_browse_btn.clicked.connect(self.bwdir_browse)
         self.bwdir_edit.textChanged.connect(self.changed)
-        self.restore_defaults_button.clicked.connect(self.restore_defaults)
+        self.restore_defaults_btn.clicked.connect(self.restore_defaults)
 
     def restore_defaults(self) -> None:
         self.change_bw_dir(ab_settings.get_default_directory())
         self.startup_project_combobox.setCurrentText(ab_settings.get_default_project_name())
+
+    def initializePage(self) -> None:
+        """ Ensure values shown are up to date with settings
+        """
+        self.bwdir_edit.setPlaceholderText(ab_settings.custom_bw_dir)
+        self.update_project_combo()
 
     def bwdir_browse(self) -> None:
         path = QFileDialog().getExistingDirectory(
@@ -282,15 +293,13 @@ class ProjectSettingsPage(QWizardPage):
         super().__init__(parent)
         self.wizard = parent
         self.complete = False
+        self.title = "Project '{}' Settings"
 
         self._construct_layout()
         self._connect_signals()
 
         self.registerField("biosphere_types", self.biospheres_field)
-
         self.setFinalPage(True)
-        self.title = "Project '{}' Settings"
-        self.setTitle(self.title.format(bw.projects.current))
 
     def _construct_layout(self):
         # Build input fields
@@ -300,6 +309,7 @@ class ProjectSettingsPage(QWizardPage):
         )
         self.biospheres_valid_btn = QPushButton("Validate fields")
         self.biospheres_valid_btn.setEnabled(False)
+        self.restore_defaults_btn = QPushButton("Restore defaults")
 
         # Construct the layout
         groupbox = QGroupBox()
@@ -312,10 +322,11 @@ class ProjectSettingsPage(QWizardPage):
         groupbox.setLayout(biospheres_layout)
         layout = QVBoxLayout()
         layout.addWidget(groupbox)
+        layout.addStretch()
+        layout.addWidget(self.restore_defaults_btn)
         self.setLayout(layout)
 
     def _connect_signals(self):
-        signals.change_project.connect(self.update_title)
         self.biospheres_field.textChanged.connect(
             lambda: self.biospheres_valid_btn.setEnabled(True)
         )
@@ -324,10 +335,22 @@ class ProjectSettingsPage(QWizardPage):
             lambda: self.biospheres_valid_btn.setEnabled(False)
         )
         self.valid_change.connect(self.changed)
+        self.restore_defaults_btn.clicked.connect(self.restore_defaults)
 
-    def update_title(self) -> None:
-        """Update the title of the page to reflect project name"""
+    def restore_defaults(self) -> None:
+        """ Discard user settings and fill in the defaults
+        """
+        self.biospheres_field.setText(
+            ", ".join(project_settings.get_default_biosphere_types())
+        )
+
+    def initializePage(self) -> None:
+        """ Ensure values shown are up to date
+        """
         self.setTitle(self.title.format(bw.projects.current))
+        self.biospheres_field.setText(
+            ", ".join(project_settings.biosphere_types)
+        )
 
     @pyqtSlot()
     def validate_biospheres(self) -> None:
