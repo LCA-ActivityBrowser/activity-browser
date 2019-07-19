@@ -156,14 +156,13 @@ use the database parameter.</li>
         else:
             self.handle_error(error)
 
-    def handle_error(self, messagebox: QMessageBox) -> None:
+    def handle_error(self, exception: int) -> None:
         """ If saving parameters failed, allow user to determine next step
         """
-        choice = messagebox.exec()
-        if choice == QMessageBox.Discard:
+        if exception == QMessageBox.Discard:
             # Tables are rebuilt and ALL changes are reverted
             self.build_dataframes()
-        if choice == QMessageBox.Cancel:
+        if exception == QMessageBox.Cancel:
             # Nothing is done, errors remain, tables are not rebuilt
             return
 
@@ -275,9 +274,7 @@ amount.</li>
         """ Catches emitted signals from the activity table, trigger update
         of the exchange table for each signal.
         """
-        result = self.exc_table.extend_exchange_df(key)
-        if result:
-            result.exec()
+        self.exc_table.extend_exchange_df(key)
 
     @pyqtSlot()
     def reload_exchanges(self) -> None:
@@ -305,13 +302,12 @@ amount.</li>
         else:
             self.handle_error(error)
 
-    def handle_error(self, messagebox: QMessageBox) -> None:
+    def handle_error(self, exception: int) -> None:
         """ If saving parameters failed, allow user to determine next step
         """
-        choice = messagebox.exec()
-        if choice == QMessageBox.Discard:
+        if exception == QMessageBox.Discard:
             # Tables are rebuilt and ALL changes are reverted
             self.build_dataframes()
-        if choice == QMessageBox.Cancel:
+        if exception == QMessageBox.Cancel:
             # Nothing is done, errors remain, tables are not rebuilt
             return

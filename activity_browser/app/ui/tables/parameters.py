@@ -9,7 +9,7 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter,
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import (QContextMenuEvent, QCursor, QDragMoveEvent,
                          QDropEvent, QIcon)
-from PyQt5.QtWidgets import QAction, QMenu, QMessageBox
+from PyQt5.QtWidgets import QAction, QMenu
 
 from activity_browser.app.settings import project_settings
 
@@ -70,7 +70,7 @@ class ProjectParameterTable(BaseParameterTable):
         )
         self.sync(self.dataframe)
 
-    def save_parameters(self, overwrite: bool=True) -> Optional[QMessageBox]:
+    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
         """ Attempts to store all of the parameters in the dataframe
         as new (or updated) brightway project parameters
         """
@@ -81,7 +81,7 @@ class ProjectParameterTable(BaseParameterTable):
         try:
             bw.parameters.new_project_parameters(data, overwrite)
         except Exception as e:
-            return parameter_save_errorbox(e)
+            return parameter_save_errorbox(self, e)
 
 
 class DataBaseParameterTable(BaseParameterTable):
@@ -125,7 +125,7 @@ class DataBaseParameterTable(BaseParameterTable):
         )
         self.sync(self.dataframe)
 
-    def save_parameters(self, overwrite: bool=True) -> Optional[QMessageBox]:
+    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
         """ Separates the database parameters by db_name and attempts
         to save each chunk of parameters separately.
         """
@@ -140,7 +140,7 @@ class DataBaseParameterTable(BaseParameterTable):
             try:
                 bw.parameters.new_database_parameters(data, db_name, overwrite)
             except Exception as e:
-                return parameter_save_errorbox(e)
+                return parameter_save_errorbox(self, e)
 
 
 class ActivityParameterTable(BaseParameterTable):
@@ -199,11 +199,10 @@ class ActivityParameterTable(BaseParameterTable):
 
         if project_settings.settings["read-only-databases"].get(
                 db_table.database_name, True):
-            box = simple_warning_box(
-                "Not allowed",
+            simple_warning_box(
+                self, "Not allowed",
                 "Cannot set activity parameters on read-only databases"
             )
-            box.exec()
             return
 
         keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
@@ -212,13 +211,12 @@ class ActivityParameterTable(BaseParameterTable):
         for key in keys:
             act = bw.get_activity(key)
             if act.get("type", "process") != "process":
-                box = simple_warning_box(
-                    "Not allowed",
+                simple_warning_box(
+                    self, "Not allowed",
                     "Activity must be 'process' type, '{}' is type '{}'.".format(
                         act.get("name"), act.get("type")
                     )
                 )
-                box.exec()
                 continue
             row = {key: act.get(key, "") for key in self.COLUMNS}
             if row["amount"] == "":
@@ -265,16 +263,15 @@ class ActivityParameterTable(BaseParameterTable):
 
             if project_settings.settings["read-only-databases"].get(
                     row.database, True):
-                box = simple_warning_box(
-                    "Not allowed",
+                simple_warning_box(
+                    self, "Not allowed",
                     "'{}' is a read-only database".format(row.database)
                 )
-                box.exec()
                 continue
 
             self.expand_activity.emit((row.database, row.code))
 
-    def save_parameters(self, overwrite: bool=True) -> Optional[QMessageBox]:
+    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
         """ Separates the activity parameters by group name and saves each
         chunk of parameters separately.
         """
@@ -283,7 +280,9 @@ class ActivityParameterTable(BaseParameterTable):
 
         groups = self.dataframe["group"].str.strip().unique()
         if "" in groups:
-            return parameter_save_errorbox("Cannot use an empty string as group name.")
+            return parameter_save_errorbox(
+                self, "Cannot use an empty string as group name."
+            )
 
         for group in groups:
             data = (self.dataframe
@@ -292,7 +291,7 @@ class ActivityParameterTable(BaseParameterTable):
             try:
                 bw.parameters.new_activity_parameters(data, group, overwrite)
             except Exception as e:
-                return parameter_save_errorbox(e)
+                return parameter_save_errorbox(self, e)
 
     def delete_parameters(self, event: QContextMenuEvent):
         """ Handle event to delete the given activities and related exchanges.
@@ -378,7 +377,7 @@ class ExchangeParameterTable(BaseParameterTable):
                   .sort_values(by=["group", "name"]))
         return result
 
-    def extend_exchange_df(self, key: tuple) -> Optional[QMessageBox]:
+    def extend_exchange_df(self, key: tuple) -> Optional[int]:
         """ Update the owned dataframe with exchanges from the given activity
         key
         """
@@ -390,7 +389,7 @@ class ExchangeParameterTable(BaseParameterTable):
             self.sync(self.dataframe)
         except ActivityParameter.DoesNotExist as e:
             return simple_warning_box(
-                "Data missing",
+                self, "Data missing",
                 "Cannot retrieve exchanges of unsaved activity parameters"
             )
 
@@ -415,7 +414,7 @@ class ExchangeParameterTable(BaseParameterTable):
         })
         return row
 
-    def save_parameters(self, overwrite: bool=True) -> Optional[QMessageBox]:
+    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
         """ Iterates over all of the activities for which there are exchanges
          in the table, if a formula is given store the current amount under
          'original_amount', then set the formula.
@@ -461,7 +460,7 @@ class ExchangeParameterTable(BaseParameterTable):
                 ActivityParameter.recalculate_exchanges(group)
             except Exception as e:
                 # Exception is shown faaaar too late to do something about it.
-                return parameter_save_errorbox(e)
+                return parameter_save_errorbox(self, e)
 
         self.sync(self.dataframe)
 
@@ -522,9 +521,9 @@ class ExchangeParameterTable(BaseParameterTable):
         """
         with bw.parameters.db.atomic():
             (ParameterizedExchange
-            .delete()
-            .where(ParameterizedExchange.exchange == exchange._document.id)
-            .execute())
+             .delete()
+             .where(ParameterizedExchange.exchange == exchange._document.id)
+             .execute())
         # If we can, restore the original exchange amount
         if "original_amount" in exchange:
             exchange["amount"] = exchange["original_amount"]
