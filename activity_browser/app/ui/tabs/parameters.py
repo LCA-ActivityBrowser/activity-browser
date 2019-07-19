@@ -197,6 +197,36 @@ class ProcessExchangeTab(BaseRightTab):
         # To hold variable names that can be used in the formula
         self.variable_df = None
 
+        self.explain_text = """
+Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
+for the full explanation.
+
+<h3>Activities</h3>
+Activities can be dragged from a database in the left panel into the activity parameter table.
+Dropping one or more activities into the table creates <em>temporary</em> parameters, only after
+successfully saving the parameters is it possible to parameterize related exchanges.
+<ul>
+<li>Only the <em>group</em>, <em>name</em>, <em>amount</em> and <em>formula</em> fields are editable.</li>
+<li>Only activities from editable databases can be parameterized.</li>
+<li>The parameter <em>name</em> is unique per <em>group</em>.</li>
+<li>The <em>amount</em> and <em>formula</em> fields are optional.</li>
+</ul>
+
+<h3>Exchanges</h3>
+Exchanges can be parameterized by selecting one or more activity parameter and using
+'Load all exchanges' in the context menu, this loads all of the exchanges of the selected
+activities as <em>temporary</em> parameters. After setting a <em>formula</em> on any exchange,
+the changes can be stored by saving. After saving, any temporary parameters without a
+<em>formula</em> are cleared from the table.
+<ul>
+<li>Only the <em>formula</em> field is editable.</li>
+<li>As with activities, only exchanges from editable databases can be parameterized.</li>
+<li>The first time a <em>formula</em> is set on an exchange, its original <em>amount</em> is stored.
+When a <em>formula</em> is removed from an exchange, an attempt is made to restore the original
+amount.</li>
+</ul>
+"""
+
     def _connect_signals(self):
         signals.project_selected.connect(self.build_dataframes)
         self.save_activities_btn.clicked.connect(self.store_activity_parameters)
@@ -209,6 +239,14 @@ class ProcessExchangeTab(BaseRightTab):
         self.act_table = ActivityParameterTable(self)
         self.exc_table = ExchangeParameterTable(self)
 
+        row = QToolBar()
+        row.addWidget(header("Activity- and Exchange parameters "))
+        row.setIconSize(QSize(24, 24))
+        row.addAction(
+            qicons.question, "About activity and exchange parameters",
+            self.explanation
+        )
+
         act_row = QHBoxLayout()
         add_objects_to_layout(
             act_row, header("Activity Parameters:"), self.save_activities_btn
@@ -220,8 +258,7 @@ class ProcessExchangeTab(BaseRightTab):
         )
         exc_row.addStretch(1)
         add_objects_to_layout(
-            layout, header("Activity- and Exchange parameters"),
-            horizontal_line(), act_row, self.act_table,
+            layout, row, horizontal_line(), act_row, self.act_table,
             exc_row, self.exc_table
         )
         layout.addStretch(1)

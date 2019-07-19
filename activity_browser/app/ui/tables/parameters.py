@@ -326,7 +326,7 @@ class ExchangeParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, FloatDelegate(self))
+        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(5, StringDelegate(self))
 
     @classmethod
