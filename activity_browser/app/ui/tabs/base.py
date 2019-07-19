@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QTabWidget, QWidget
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QMessageBox, QTabWidget, QWidget
 
 
 class BaseRightTab(QWidget):
@@ -7,6 +8,7 @@ class BaseRightTab(QWidget):
     """
     def __init__(self, parent):
         super().__init__(parent)
+        self.explain_text = "I explain what happens here"
         self._construct_layout()
         self._connect_signals()
 
@@ -25,6 +27,16 @@ class BaseRightTab(QWidget):
         Should only be used during init
         """
         raise NotImplementedError
+
+    @pyqtSlot()
+    def explanation(self):
+        """ Builds and shows a message box containing whatever text is set
+        on self.explain_text
+        """
+        return QMessageBox.question(
+            self, "Explanation", self.explain_text, QMessageBox.Ok,
+            QMessageBox.Ok
+        )
 
 
 class BaseRightTabbedTab(QTabWidget):

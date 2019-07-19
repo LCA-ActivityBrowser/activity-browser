@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
+from PyQt5.QtCore import pyqtSlot, QSize
+from PyQt5.QtWidgets import (QHBoxLayout, QMessageBox, QPushButton, QToolBar,
+                             QVBoxLayout)
 
 from activity_browser.app.signals import signals
 
@@ -54,6 +55,32 @@ class ProjectDatabaseTab(BaseRightTab):
         self.database_table = None
         super().__init__(parent)
 
+        self.explain_text = """
+Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
+for the full explanation.
+
+<h3>Formula field, in general:</h3>
+The formula field is a string that is interpreted by brightway on save. Python builtin functions and Numpy functions
+can be used within the formula!
+
+<h3>Project</h3>
+<ul>
+<li>All project parameters must have a unique <em>name</em>.</li>
+<li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
+<li>Project parameters can use other project parameters as part of a <em>formula</em>.</li>
+</ul>
+
+<h3>Database</h3>
+<ul>
+<li>All database parameters must have unique <em>name</em> within their database.</li>
+<li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
+<li>Database parameters can use project and other database parameters as part of a <em>formula</em>.</li>
+<li>If a project and database parameter use the same <em>name</em> and that <em>name</em> is used in
+a <em>formula</em> of a second database parameter <em>within the same database</em>, the interpreter will
+use the database parameter.</li>
+</ul>
+"""
+
     def _connect_signals(self):
         signals.project_selected.connect(self.build_dataframes)
         self.new_project_param.clicked.connect(
@@ -72,10 +99,14 @@ class ProjectDatabaseTab(BaseRightTab):
         self.project_table = ProjectParameterTable(self)
         self.database_table = DataBaseParameterTable(self)
 
-        add_objects_to_layout(
-            layout, header("Project- and Database parameters"),
-            horizontal_line()
+        row = QToolBar()
+        row.addWidget(header("Project- and Database parameters "))
+        row.setIconSize(QSize(24, 24))
+        row.addAction(
+            qicons.question, "About project and database parameters",
+            self.explanation
         )
+        add_objects_to_layout(layout, row, horizontal_line())
 
         self.new_project_param = QPushButton(qicons.add, "New project parameter")
         self.save_project_btn = QPushButton(qicons.save_db, "Save project parameters")
