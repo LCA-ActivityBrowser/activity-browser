@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QTabWidget, QWidget
 
 
 class BaseRightTab(QWidget):

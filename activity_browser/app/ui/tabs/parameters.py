@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
 
 from activity_browser.app.signals import signals
 
+from ..icons import qicons
 from ..style import header, horizontal_line
 from ..tables import (ActivityParameterTable, DataBaseParameterTable,
                       ExchangeParameterTable, ProjectParameterTable)
@@ -76,8 +77,8 @@ class ProjectDatabaseTab(BaseRightTab):
             horizontal_line()
         )
 
-        self.new_project_param = QPushButton("New project parameter")
-        self.save_project_btn = QPushButton("Save project parameters")
+        self.new_project_param = QPushButton(qicons.add, "New project parameter")
+        self.save_project_btn = QPushButton(qicons.save_db, "Save project parameters")
         row = QHBoxLayout()
         add_objects_to_layout(
             row, header("Project parameters:"), self.new_project_param,
@@ -86,8 +87,8 @@ class ProjectDatabaseTab(BaseRightTab):
         row.addStretch(1)
         add_objects_to_layout(layout, row, self.project_table)
 
-        self.new_database_param = QPushButton("New database parameter")
-        self.save_database_btn = QPushButton("Save database parameters")
+        self.new_database_param = QPushButton(qicons.add, "New database parameter")
+        self.save_database_btn = QPushButton(qicons.save_db, "Save database parameters")
         row = QHBoxLayout()
         add_objects_to_layout(
             row, header("Database parameters:"), self.new_database_param,
@@ -172,8 +173,8 @@ class ProcessExchangeTab(BaseRightTab):
 
     def _construct_layout(self):
         layout = QVBoxLayout()
-        self.save_activities_btn = QPushButton("Save activity parameters")
-        self.save_exchanges_btn = QPushButton("Save exchange parameters")
+        self.save_activities_btn = QPushButton(qicons.save_db, "Save activity parameters")
+        self.save_exchanges_btn = QPushButton(qicons.save_db, "Save exchange parameters")
         self.act_table = ActivityParameterTable(self)
         self.exc_table = ExchangeParameterTable(self)
 

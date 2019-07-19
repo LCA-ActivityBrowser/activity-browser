@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 import os
 
+from PyQt5.QtGui import QIcon
 
-def create_path(folder, filename):
-    return os.path.join(
-        os.path.dirname(__file__),
-        '..',
-        '..',
-        'icons',
-        folder,
-        filename
-    )
+from activity_browser import PACKAGE_DIRECTORY
+
+
+def create_path(folder: str, filename: str) -> str:
+    """ Builds a path to the image file.
+    """
+    return os.path.join(PACKAGE_DIRECTORY, "icons", folder, filename)
 
 
 class Icons(object):
-    # Icons from href="http://www.flaticon.com/
-    # By http://www.flaticon.com/authors/freepik,
-    # http://www.flaticon.com/authors/rami-mcmin,
+    # Icons from href="https://www.flaticon.com/
+    # By https://www.flaticon.com/authors/freepik,
+    # https://www.flaticon.com/authors/rami-mcmin,
     # and others
     # And are licensed by CC BY 3.0
     delete = create_path('context', 'delete.png')
@@ -32,7 +31,6 @@ class Icons(object):
     graph_lmp = create_path('metaprocess', 'graph_linkedmetaprocess.png')
     graph_mp = create_path('metaprocess', 'graph_metaprocess.png')
     load_db = create_path('metaprocess', 'open_database.png')
-    metaprocess = create_path('metaprocess', 'metaprocess.png')
     metaprocess = create_path('metaprocess', 'metaprocess.png')
     new = create_path('metaprocess', 'new_metaprocess.png')
     save_db = create_path('metaprocess', 'save_database.png')
@@ -51,4 +49,12 @@ class Icons(object):
     calculate = create_path('main', 'calculate.png')
 
 
+class QIcons(Icons):
+    """ Using the above class, returns the same attributes, but as QIcon type
+    """
+    def __getattribute__(self, item):
+        return QIcon(Icons.__getattribute__(self, item))
+
+
 icons = Icons()
+qicons = QIcons()
