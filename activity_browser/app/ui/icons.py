@@ -21,8 +21,8 @@ class Icons(object):
     delete = create_path('context', 'delete.png')
     copy = create_path('context', 'copy.png')
     add = create_path('context', 'add.png')
-
-
+    # Icon made by 'Roundicons' from www.flaticon.com
+    question = create_path('context', 'question.png')
 
     add_db = create_path('metaprocess', 'add_database.png')
     close_db = create_path('metaprocess', 'close_database.png')
