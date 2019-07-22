@@ -5,15 +5,15 @@ import brightway2 as bw
 import pandas as pd
 from bw2data.backends.peewee.proxies import Exchange
 from bw2data.parameters import (ActivityParameter, DatabaseParameter,
-                                ParameterizedExchange, ProjectParameter)
+                                ProjectParameter)
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import (QContextMenuEvent, QCursor, QDragMoveEvent,
-                         QDropEvent, QIcon)
+                         QDropEvent)
 from PyQt5.QtWidgets import QAction, QMenu
 
 from activity_browser.app.settings import project_settings
 
-from ..icons import icons
+from ..icons import qicons
 from ..widgets import parameter_save_errorbox, simple_warning_box
 from .delegates import (DatabaseDelegate, FloatDelegate, StringDelegate,
                         ViewOnlyDelegate)
@@ -234,13 +234,13 @@ class ActivityParameterTable(BaseParameterTable):
         """
         menu = QMenu(self)
         load_exchanges_action = QAction(
-            QIcon(icons.add), "Load all exchanges", None
+            qicons.add, "Load all exchanges", None
         )
         load_exchanges_action.triggered.connect(
             lambda: self.add_activity_exchanges(event)
         )
         delete_row_action = QAction(
-            QIcon(icons.delete), "Remove parameter(s)", None
+            qicons.delete, "Remove parameter(s)", None
         )
         delete_row_action.triggered.connect(
             lambda: self.delete_parameters(event)
@@ -344,6 +344,22 @@ class ExchangeParameterTable(BaseParameterTable):
         df = pd.DataFrame(data, columns=cls.COLUMNS)
         return df
 
+    def contextMenuEvent(self, event: QContextMenuEvent):
+        """ Override and activate QTableView.contextMenuEvent()
+
+        All possible menu events should be added and wired up here
+        """
+        menu = QMenu(self)
+        delete_row_action = QAction(
+            qicons.delete, "Remove parameter(s)", None
+        )
+        delete_row_action.triggered.connect(
+            lambda: self.delete_parameters(event)
+        )
+        menu.addAction(delete_row_action)
+        menu.popup(QCursor.pos())
+        menu.exec()
+
     @classmethod
     def build_activity_exchange_df(cls, key: tuple) -> pd.DataFrame:
         """ Given an activity key, build a dataframe of all the activity
@@ -427,24 +443,9 @@ class ExchangeParameterTable(BaseParameterTable):
         edited_activities = self.dataframe.drop_duplicates(["group", "name"])
         for act_param in edited_activities.itertuples(index=False):
             # Retrieve the activity
-            try:
-                # Names are unique within a group.
-                param = (ActivityParameter
-                         .select(ActivityParameter.database, ActivityParameter.code)
-                         .where(ActivityParameter.name == act_param.name,
-                                ActivityParameter.group == act_param.group)
-                         .limit(1)
-                         .get())
-                act = bw.get_activity((param.database, param.code))
-            except ActivityParameter.DoesNotExist as e:
-                # If this happens, the activity and exchange tables are
-                # de-synced, somehow.
-                continue
-            if not act:
-                # If this occurs, I have no idea how to handle it safely
-                # (the original activity was deleted from the database)
-                continue
-
+            act = self._get_activity_from_group_name(
+                act_param.group, act_param.name
+            )
             # We don't know if the edited exchanges are those with or without
             # formulas, so grab everything
             exchanges = (self.dataframe
@@ -463,6 +464,57 @@ class ExchangeParameterTable(BaseParameterTable):
                 return parameter_save_errorbox(self, e)
 
         self.sync(self.dataframe)
+
+    def delete_parameters(self, event: QContextMenuEvent) -> None:
+        """ Removes formula(s) from the selected exchange(s)
+        """
+        deletions = set([])
+        for index in self.selectedIndexes():
+            source_index = self.get_source_index(index)
+            row = self.dataframe.iloc[source_index.row(), ]
+            act = self._get_activity_from_group_name(
+                row["group"], row["name"]
+            )
+            deletions.add((row["group"], act))
+            exc = next(
+                exc for exc in act.exchanges() if
+                row.get("input") == exc.input and
+                row.get("output") == exc.output
+            )
+            exc = self._remove_formula(exc)
+            exc.save()
+
+        # Now, for each group/act, purge the ParameterizedExchanges and
+        # rebuild them
+        for group, act in deletions:
+            with bw.parameters.db.atomic():
+                bw.parameters.remove_exchanges_from_group(group, act)
+            bw.parameters.add_exchanges_to_group(group, act)
+
+        bw.parameters.recalculate()
+        self.sync(self.build_parameter_df())
+
+    def _get_activity_from_group_name(self, group: str, name: str):
+        """ Given the group and name, find the related ActivityParameter
+        and retrieve the actual activity
+        """
+        try:
+            # Names are unique within a group.
+            param = (ActivityParameter
+                     .select(ActivityParameter.database, ActivityParameter.code)
+                     .where(ActivityParameter.name == name,
+                            ActivityParameter.group == group)
+                     .limit(1)
+                     .get())
+            return bw.get_activity((param.database, param.code))
+        except ActivityParameter.DoesNotExist:
+            # If this happens, the activity and exchange tables are
+            # de-synced, somehow.
+            return simple_warning_box(
+                self,
+                "Oops",
+                "No activity parameter for '{}, {}' could be found.".format(group, name)
+            )
 
     def _update_exchanges(self, exchanges: List[dict], act) -> None:
         """ Take the given 'edited' exchanges, and the related activity proxy.
@@ -490,7 +542,7 @@ class ExchangeParameterTable(BaseParameterTable):
             if "formula" in original:
                 # Formula was set, but is now being removed
                 if formula == "":
-                    original = self._remove_parameter(original)
+                    original = self._remove_formula(original)
                     altered = True
                 # If formula was set and is now being changed
                 elif formula != original["formula"]:
@@ -507,23 +559,10 @@ class ExchangeParameterTable(BaseParameterTable):
                 original.save()
 
     @staticmethod
-    def _remove_parameter(exchange: Exchange) -> Exchange:
+    def _remove_formula(exchange: Exchange) -> Exchange:
         """ Trigger this if the user removes the formula from an exchange
         which previously did have a formula.
-
-        Brigthway does not remove singular ParameterizedExchange objects
-        but it also cannot handle parameterized exchanges with empty formula
-        fields, instead setting the exchange 'amount' field to None when
-        recalculating.
-
-        This method is something of a hack which uses a protected variable
-        to delete specific ParameterizedExchange objects
         """
-        with bw.parameters.db.atomic():
-            (ParameterizedExchange
-             .delete()
-             .where(ParameterizedExchange.exchange == exchange._document.id)
-             .execute())
         # If we can, restore the original exchange amount
         if "original_amount" in exchange:
             exchange["amount"] = exchange["original_amount"]
