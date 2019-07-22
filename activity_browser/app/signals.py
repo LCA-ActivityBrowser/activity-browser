@@ -56,6 +56,9 @@ class Signals(QtCore.QObject):
     exchanges_add = QtCore.pyqtSignal(list, tuple)
     exchange_amount_modified = QtCore.pyqtSignal(object, float)
 
+    # Parameters
+    parameters_changed = QtCore.pyqtSignal()
+
     # Calculation Setups
     new_calculation_setup = QtCore.pyqtSignal()
     delete_calculation_setup = QtCore.pyqtSignal(str)

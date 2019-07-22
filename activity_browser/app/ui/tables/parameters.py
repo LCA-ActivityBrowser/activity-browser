@@ -12,6 +12,7 @@ from PyQt5.QtGui import (QContextMenuEvent, QCursor, QDragMoveEvent,
 from PyQt5.QtWidgets import QAction, QMenu
 
 from activity_browser.app.settings import project_settings
+from activity_browser.app.signals import signals
 
 from ..icons import qicons
 from ..widgets import parameter_save_errorbox, simple_warning_box
@@ -39,8 +40,8 @@ class ProjectParameterTable(BaseParameterTable):
     """
     COLUMNS = ["name", "amount", "formula"]
 
-    def __init__(self, parent=None, *args):
-        super().__init__(parent, *args)
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         # Set delegates for specific columns
         self.setItemDelegateForColumn(0, StringDelegate(self))
@@ -80,6 +81,7 @@ class ProjectParameterTable(BaseParameterTable):
         data = self.dataframe.to_dict(orient='records')
         try:
             bw.parameters.new_project_parameters(data, overwrite)
+            signals.parameters_changed.emit()
         except Exception as e:
             return parameter_save_errorbox(self, e)
 
@@ -93,8 +95,8 @@ class DataBaseParameterTable(BaseParameterTable):
     """
     COLUMNS = ["database", "name", "amount", "formula"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         # Set delegates for specific columns
         self.setItemDelegateForColumn(0, DatabaseDelegate(self))
@@ -139,6 +141,7 @@ class DataBaseParameterTable(BaseParameterTable):
                     .to_dict(orient="records"))
             try:
                 bw.parameters.new_database_parameters(data, db_name, overwrite)
+                signals.parameters_changed.emit()
             except Exception as e:
                 return parameter_save_errorbox(self, e)
 
@@ -236,21 +239,17 @@ class ActivityParameterTable(BaseParameterTable):
         load_exchanges_action = QAction(
             qicons.add, "Load all exchanges", None
         )
-        load_exchanges_action.triggered.connect(
-            lambda: self.add_activity_exchanges(event)
-        )
+        load_exchanges_action.triggered.connect(self.add_activity_exchanges)
         delete_row_action = QAction(
             qicons.delete, "Remove parameter(s)", None
         )
-        delete_row_action.triggered.connect(
-            lambda: self.delete_parameters(event)
-        )
+        delete_row_action.triggered.connect(lambda: self.delete_parameters)
         menu.addAction(load_exchanges_action)
         menu.addAction(delete_row_action)
         menu.popup(QCursor.pos())
         menu.exec()
 
-    def add_activity_exchanges(self, event: QContextMenuEvent):
+    def add_activity_exchanges(self):
         """ Receive an event to add exchanges to the exchange table
         for the selected activities
 
@@ -290,10 +289,11 @@ class ActivityParameterTable(BaseParameterTable):
                     .to_dict(orient="records"))
             try:
                 bw.parameters.new_activity_parameters(data, group, overwrite)
+                signals.parameters_changed.emit()
             except Exception as e:
                 return parameter_save_errorbox(self, e)
 
-    def delete_parameters(self, event: QContextMenuEvent):
+    def delete_parameters(self):
         """ Handle event to delete the given activities and related exchanges.
         """
         for index in self.selectedIndexes():
@@ -306,6 +306,7 @@ class ActivityParameterTable(BaseParameterTable):
 
         # Reload activities table and trigger reload of exchanges table
         self.sync(self.build_parameter_df())
+        signals.parameters_changed.emit()
         self.reload_exchanges.emit()
 
 
@@ -353,9 +354,7 @@ class ExchangeParameterTable(BaseParameterTable):
         delete_row_action = QAction(
             qicons.delete, "Remove parameter(s)", None
         )
-        delete_row_action.triggered.connect(
-            lambda: self.delete_parameters(event)
-        )
+        delete_row_action.triggered.connect(self.delete_parameters)
         menu.addAction(delete_row_action)
         menu.popup(QCursor.pos())
         menu.exec()
@@ -463,9 +462,10 @@ class ExchangeParameterTable(BaseParameterTable):
                 # Exception is shown faaaar too late to do something about it.
                 return parameter_save_errorbox(self, e)
 
+        signals.parameters_changed.emit()
         self.sync(self.dataframe)
 
-    def delete_parameters(self, event: QContextMenuEvent) -> None:
+    def delete_parameters(self) -> None:
         """ Removes formula(s) from the selected exchange(s)
         """
         deletions = set([])
@@ -492,6 +492,7 @@ class ExchangeParameterTable(BaseParameterTable):
             bw.parameters.add_exchanges_to_group(group, act)
 
         bw.parameters.recalculate()
+        signals.parameters_changed.emit()
         self.sync(self.build_parameter_df())
 
     def _get_activity_from_group_name(self, group: str, name: str):
