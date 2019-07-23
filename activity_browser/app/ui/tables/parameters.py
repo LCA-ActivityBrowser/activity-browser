@@ -2,13 +2,13 @@
 from typing import List, Optional
 
 import brightway2 as bw
+import numpy as np
 import pandas as pd
 from bw2data.backends.peewee.proxies import Exchange
-from bw2data.parameters import (ActivityParameter, DatabaseParameter,
+from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import (QContextMenuEvent, QCursor, QDragMoveEvent,
-                         QDropEvent)
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QContextMenuEvent, QCursor, QDragMoveEvent, QDropEvent
 from PyQt5.QtWidgets import QAction, QMenu
 
 from activity_browser.app.settings import project_settings
@@ -16,8 +16,8 @@ from activity_browser.app.signals import signals
 
 from ..icons import qicons
 from ..widgets import parameter_save_errorbox, simple_warning_box
-from .delegates import (DatabaseDelegate, FloatDelegate, StringDelegate,
-                        ViewOnlyDelegate)
+from .delegates import (DatabaseDelegate, FloatDelegate, ListDelegate,
+                        StringDelegate, ViewOnlyDelegate)
 from .inventory import ActivitiesBiosphereTable
 from .views import ABDataFrameEdit
 
@@ -149,7 +149,9 @@ class DataBaseParameterTable(BaseParameterTable):
 class ActivityParameterTable(BaseParameterTable):
     """ Table widget for activity parameters
     """
-    COLUMNS = ["group", "database", "code", "name", "amount", "formula"]
+    COLUMNS = [
+        "group", "database", "code", "name", "amount", "formula", "order"
+    ]
     expand_activity = pyqtSignal(tuple)
     reload_exchanges = pyqtSignal()
 
@@ -163,6 +165,7 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(3, StringDelegate(self))
         self.setItemDelegateForColumn(4, FloatDelegate(self))
         self.setItemDelegateForColumn(5, StringDelegate(self))
+        self.setItemDelegateForColumn(6, ListDelegate(self))
 
         # Set dropEnabled
         self.viewport().setAcceptDrops(True)
@@ -180,10 +183,14 @@ class ActivityParameterTable(BaseParameterTable):
         """ Build a dataframe using the ActivityParameters set in brightway
         """
         data = [
-            {key: getattr(p, key, "") for key in cls.COLUMNS}
-                for p in ActivityParameter.select()
+            {key: p.get(key, "") for key in cls.COLUMNS}
+            for p in (ActivityParameter
+                      .select(ActivityParameter, Group.order)
+                      .join(Group, on=(ActivityParameter.group == Group.name)).dicts())
         ]
         df = pd.DataFrame(data, columns=cls.COLUMNS)
+        # Convert the 'order' column from list into string
+        df["order"] = df["order"].apply(", ".join)
         return df
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
@@ -243,13 +250,19 @@ class ActivityParameterTable(BaseParameterTable):
         delete_row_action = QAction(
             qicons.delete, "Remove parameter(s)", None
         )
-        delete_row_action.triggered.connect(lambda: self.delete_parameters)
+        delete_row_action.triggered.connect(self.delete_parameters)
+        unset_order_action = QAction(
+            qicons.delete, "Remove order from group(s)", None
+        )
+        unset_order_action.triggered.connect(self.unset_group_order)
         menu.addAction(load_exchanges_action)
         menu.addAction(delete_row_action)
+        menu.addAction(unset_order_action)
         menu.popup(QCursor.pos())
         menu.exec()
 
-    def add_activity_exchanges(self):
+    @pyqtSlot()
+    def add_activity_exchanges(self) -> None:
         """ Receive an event to add exchanges to the exchange table
         for the selected activities
 
@@ -289,11 +302,35 @@ class ActivityParameterTable(BaseParameterTable):
                     .to_dict(orient="records"))
             try:
                 bw.parameters.new_activity_parameters(data, group, overwrite)
+                self._store_group_order(group)
                 signals.parameters_changed.emit()
             except Exception as e:
                 return parameter_save_errorbox(self, e)
 
-    def delete_parameters(self):
+    def _store_group_order(self, group_name: str) -> None:
+        """Checks if anywhere in the 'group'-sliced dataframe the user has
+        set the order field. Update the Group object if so.
+
+        Also, if the user has set two different orders in the same group,
+        raise a ValueError
+        """
+        df = self.dataframe.loc[self.dataframe["group"] == group_name]
+        orders = df["order"].replace("", np.nan).dropna().unique()
+        if orders.size == 1:
+            # If any order is given, update the Group object
+            order = [i.lstrip() for i in orders[0].split(",")]
+            if group_name in order:
+                order.remove(group_name)
+            group = Group.get(name=group_name)
+            group.order = order
+            group.save()
+        elif orders.size > 1:
+            raise ValueError(
+                "Multiple different orders given for group {}".format(group_name)
+            )
+
+    @pyqtSlot()
+    def delete_parameters(self) -> None:
         """ Handle event to delete the given activities and related exchanges.
         """
         for index in self.selectedIndexes():
@@ -301,13 +338,53 @@ class ActivityParameterTable(BaseParameterTable):
             row = self.dataframe.iloc[source_index.row(), ]
             act = bw.get_activity((row["database"], row["code"]))
             bw.parameters.remove_from_group(row["group"], act)
-        # Recalculate remaining groups
-        bw.parameters.recalculate()
+        self.recalculate()
 
+    @pyqtSlot()
+    def unset_group_order(self) -> None:
+        """ Removes the set Group.order from all given rows
+        """
+        groups = set()
+        altered = False
+        for proxy in self.selectedIndexes():
+            index = self.get_source_index(proxy)
+            row = self.dataframe.iloc[index.row(), ]
+            groups.add(row["group"])
+
+        for group in groups:
+            if group == "":
+                continue
+            try:
+                obj = Group.get(name=group)
+                obj.order = []
+                obj.save()
+                altered = True
+            except Group.DoesNotExist:
+                continue
+
+        if altered:
+            self.recalculate()
+
+    def recalculate(self) -> None:
+        """ Triggers general parameter recalculation and table sync
+        """
+        # Recalculate everything
+        bw.parameters.recalculate()
         # Reload activities table and trigger reload of exchanges table
         self.sync(self.build_parameter_df())
         signals.parameters_changed.emit()
         self.reload_exchanges.emit()
+
+    @staticmethod
+    def get_activity_groups(ignore_groups: list=None) -> list:
+        """ Helper method to look into the Group and determine which if any
+        other groups the current activity can depend on
+        """
+        ignore_groups = [] if ignore_groups is None else ignore_groups
+        return list(set([
+            param.group for param in ActivityParameter.select()
+            if param.group not in ignore_groups
+        ]))
 
 
 class ExchangeParameterTable(BaseParameterTable):
@@ -468,7 +545,7 @@ class ExchangeParameterTable(BaseParameterTable):
     def delete_parameters(self) -> None:
         """ Removes formula(s) from the selected exchange(s)
         """
-        deletions = set([])
+        deletions = set()
         for index in self.selectedIndexes():
             source_index = self.get_source_index(index)
             row = self.dataframe.iloc[source_index.row(), ]

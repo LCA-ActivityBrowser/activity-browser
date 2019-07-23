@@ -67,7 +67,8 @@ class ABDataFrameView(QTableView):
 
         return wrapper
 
-    def get_source_index(self, proxy_index):
+    @staticmethod
+    def get_source_index(proxy_index):
         """ Returns the index of the original model from a proxymodel index.
 
         This way data from the self._dataframe can be obtained correctly.
