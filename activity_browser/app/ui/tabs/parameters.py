@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtCore import pyqtSlot, QSize
 from PyQt5.QtWidgets import (QHBoxLayout, QMessageBox, QPushButton, QToolBar,
-                             QVBoxLayout)
+                             QVBoxLayout, QGridLayout)
 
 from activity_browser.app.signals import signals
 
@@ -203,6 +203,7 @@ class ProcessExchangeTab(BaseRightTab):
 
         self.save_activities_btn = QPushButton(qicons.save_db, "Save activity parameters")
         self.save_exchanges_btn = QPushButton(qicons.save_db, "Save exchange parameters")
+        self.reload_variables_btn = QPushButton(qicons.copy, "Reload variables")
         self.act_table = ActivityParameterTable(self)
         self.exc_table = ExchangeParameterTable(self)
         self.variable_table = ViewOnlyParameterTable(self)
@@ -251,9 +252,16 @@ amount.</li>
         self.save_exchanges_btn.clicked.connect(
             lambda: self.store_parameters("exchange")
         )
-        # Connect signals from activity table to methods
-        self.act_table.reload_exchanges.connect(self.reload_exchanges)
-        self.act_table.expand_activity.connect(self.add_exchanges_action)
+        # Connect signals from activity table to exchange table
+        self.act_table.reload_exchanges.connect(
+            lambda: self.exc_table.sync(self.exc_table.build_parameter_df())
+        )
+        self.act_table.expand_activity.connect(self.exc_table.extend_exchange_df)
+        self.act_table.parameter_removed.connect(self.exc_table.clear_linked_parameters)
+        # Reload the variables table, used if user adds new project/db params
+        self.reload_variables_btn.clicked.connect(
+            lambda: self.variable_table.sync(self.variable_table.build_parameter_df())
+        )
 
     def _construct_layout(self):
         """ Construct the widget layout for the exchanges parameters tab
@@ -267,32 +275,21 @@ amount.</li>
             self.explanation
         )
 
-        columns = QHBoxLayout()
-        left_column = QVBoxLayout()
-        right_column = QVBoxLayout()
+        # Grid is 6 columns, 8 rows
+        grid = QGridLayout()
+        grid.addWidget(header("Activity Parameters:"), 0, 0, 1, 1)
+        grid.addWidget(self.save_activities_btn, 0, 1, 1, 1)
+        grid.addWidget(self.act_table, 1, 0, 3, 4)
+        grid.addWidget(header("Exchange parameters:"), 4, 0, 1, 1)
+        grid.addWidget(self.save_exchanges_btn, 4, 1, 1, 1)
+        grid.addWidget(self.exc_table, 5, 0, -1, 4)
+        grid.addWidget(header("Variable names:"), 0, 4, 1, 1)
+        grid.addWidget(self.reload_variables_btn, 0, 5, 1, 1)
+        grid.addWidget(self.variable_table, 1, 4, -1, -1)
+        grid_row = QHBoxLayout()
+        grid_row.addLayout(grid, 1)
 
-        act_row = QHBoxLayout()
-        add_objects_to_layout(
-            act_row, header("Activity Parameters:"), self.save_activities_btn
-        )
-        act_row.addStretch(1)
-        exc_row = QHBoxLayout()
-        add_objects_to_layout(
-            exc_row, header("Exchange parameters:"), self.save_exchanges_btn
-        )
-        exc_row.addStretch(1)
-        add_objects_to_layout(
-            left_column, act_row, self.act_table, exc_row, self.exc_table
-        )
-
-        param_row = QHBoxLayout()
-        param_row.addWidget(header("Project & Database parameters"))
-        param_row.addStretch(1)
-        add_objects_to_layout(right_column, param_row, self.variable_table)
-
-        columns.addLayout(left_column, 3)
-        columns.addLayout(right_column, 1)
-        add_objects_to_layout(layout, row, horizontal_line(), columns)
+        add_objects_to_layout(layout, row, horizontal_line(), grid_row)
         layout.addStretch(1)
         self.setLayout(layout)
 
@@ -302,19 +299,6 @@ amount.</li>
         self.act_table.sync(ActivityParameterTable.build_parameter_df())
         self.exc_table.sync(ExchangeParameterTable.build_parameter_df())
         self.variable_table.sync(ViewOnlyParameterTable.build_parameter_df())
-
-    @pyqtSlot(tuple)
-    def add_exchanges_action(self, key: tuple) -> None:
-        """ Catches emitted signals from the activity table, trigger update
-        of the exchange table for each signal.
-        """
-        self.exc_table.extend_exchange_df(key)
-
-    @pyqtSlot()
-    def reload_exchanges(self) -> None:
-        """ Triggered from the activities table, reload the exchanges table
-        """
-        self.exc_table.sync(ExchangeParameterTable.build_parameter_df())
 
     @pyqtSlot(str)
     def store_parameters(self, name: str) -> None:

@@ -191,6 +191,7 @@ class ActivityParameterTable(BaseParameterTable):
     ]
     expand_activity = pyqtSignal(tuple)
     reload_exchanges = pyqtSignal()
+    parameter_removed = pyqtSignal(tuple)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -368,6 +369,7 @@ class ActivityParameterTable(BaseParameterTable):
             row = self.dataframe.iloc[source_index.row(), ]
             act = bw.get_activity((row["database"], row["code"]))
             bw.parameters.remove_from_group(row["group"], act)
+            self.parameter_removed.emit(act.key)
         self.recalculate()
 
     @pyqtSlot()
@@ -499,6 +501,7 @@ class ExchangeParameterTable(BaseParameterTable):
                   .sort_values(by=["group", "name"]))
         return result
 
+    @pyqtSlot(tuple)
     def extend_exchange_df(self, key: tuple) -> Optional[int]:
         """ Update the owned dataframe with exchanges from the given activity
         key
@@ -573,6 +576,7 @@ class ExchangeParameterTable(BaseParameterTable):
         signals.parameters_changed.emit()
         self.sync(self.dataframe)
 
+    @pyqtSlot()
     def delete_parameters(self) -> None:
         """ Removes formula(s) from the selected exchange(s)
         """
@@ -602,6 +606,19 @@ class ExchangeParameterTable(BaseParameterTable):
         bw.parameters.recalculate()
         signals.parameters_changed.emit()
         self.sync(self.build_parameter_df())
+
+    @pyqtSlot(tuple)
+    def clear_linked_parameters(self, key: tuple) -> None:
+        """ Given an activity, unset the formulas of all related exchanges
+
+        Should be called when an activity parameter is removed as brightway
+        removes the ParameterizedExchanges, but does not remove the formula
+        or altered amount.
+        """
+        act = bw.get_activity(key)
+        for exc in [exc for exc in act.exchanges() if "formula" in exc]:
+            exc = self._remove_formula(exc)
+            exc.save()
 
     def _get_activity_from_group_name(self, group: str, name: str):
         """ Given the group and name, find the related ActivityParameter
