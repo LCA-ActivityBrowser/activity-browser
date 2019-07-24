@@ -19,7 +19,7 @@ from ..widgets import parameter_save_errorbox, simple_warning_box
 from .delegates import (DatabaseDelegate, FloatDelegate, ListDelegate,
                         StringDelegate, ViewOnlyDelegate)
 from .inventory import ActivitiesBiosphereTable
-from .views import ABDataFrameEdit
+from .views import ABDataFrameEdit, ABDataFrameSimpleCopy
 
 
 class BaseParameterTable(ABDataFrameEdit):
@@ -150,6 +150,39 @@ class DataBaseParameterTable(BaseParameterTable):
                 return parameter_save_errorbox(self, e)
 
 
+class ViewOnlyParameterTable(ABDataFrameSimpleCopy):
+    """ Show a combination of Project and Database parameter names
+    """
+    COLUMNS = ["parameter", "name"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    @ABDataFrameSimpleCopy.decorated_sync
+    def sync(self, df):
+        self.dataframe = df
+
+    @classmethod
+    def build_parameter_df(cls):
+        """ Build a listview of existing
+        """
+        project_variables = [
+            {"parameter": "project", "name": getattr(p, "name")}
+            for p in ProjectParameter.select()
+        ]
+        database_variables = [
+            {
+                "parameter": "database:{}".format(getattr(p, "database")),
+                "name": "{}".format(getattr(p, "name"))
+            }
+            for p in DatabaseParameter.select()
+        ]
+        df = pd.DataFrame(
+            project_variables + database_variables, columns=cls.COLUMNS
+        )
+        return df
+
+
 class ActivityParameterTable(BaseParameterTable):
     """ Table widget for activity parameters
     """
@@ -173,14 +206,6 @@ class ActivityParameterTable(BaseParameterTable):
 
         # Set dropEnabled
         self.viewport().setAcceptDrops(True)
-
-        self._connect_signals()
-
-    def _connect_signals(self):
-        if self.parent() and hasattr(self.parent(), 'add_exchanges_action'):
-            self.expand_activity.connect(self.parent().add_exchanges_action)
-        if self.parent() and hasattr(self.parent(), 'reload_exchanges'):
-            self.reload_exchanges.connect(self.parent().reload_exchanges)
 
     @classmethod
     def build_parameter_df(cls):
@@ -240,6 +265,7 @@ class ActivityParameterTable(BaseParameterTable):
             )
 
         self.sync(self.dataframe)
+        self.new_parameter.emit()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         """ Override and activate QTableView.contextMenuEvent()
@@ -483,6 +509,7 @@ class ExchangeParameterTable(BaseParameterTable):
                 self.dataframe, new_exchanges
             )
             self.sync(self.dataframe)
+            self.new_parameter.emit()
         except ActivityParameter.DoesNotExist as e:
             return simple_warning_box(
                 self, "Data missing",

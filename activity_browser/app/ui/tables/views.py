@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import QFileDialog, QTableView
 from activity_browser.app.settings import ab_settings
 
 from .models import (DragPandasModel, EditableDragPandasModel,
-                     EditablePandasModel, PandasModel)
+                     EditablePandasModel, PandasModel, SimpleCopyPandasModel,
+                     SimpleCopyDragPandasModel)
 
 
 class ABDataFrameView(QTableView):
@@ -130,6 +131,29 @@ class ABDataFrameView(QTableView):
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
                 self.model.to_clipboard(rows, columns)
+
+
+class ABDataFrameSimpleCopy(ABDataFrameView):
+    """ A view-only class which copies values without including headers
+    """
+    @staticmethod
+    def decorated_sync(sync):
+        @wraps(sync)
+        def wrapper(self, *args, **kwargs):
+            sync(self, *args, **kwargs)
+
+            if hasattr(self, 'drag_model'):
+                self.model = SimpleCopyDragPandasModel(self.dataframe)
+            else:
+                self.model = SimpleCopyPandasModel(self.dataframe)
+            self.proxy_model = QSortFilterProxyModel()  # see: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
+            self.proxy_model.setSourceModel(self.model)
+            self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
+            self.setModel(self.proxy_model)
+            self.setMaximumHeight(self.get_max_height())
+            self.resizeColumnsToContents()
+
+        return wrapper
 
 
 class ABDataFrameEdit(ABDataFrameView):

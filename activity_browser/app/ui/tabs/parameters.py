@@ -8,7 +8,8 @@ from activity_browser.app.signals import signals
 from ..icons import qicons
 from ..style import header, horizontal_line
 from ..tables import (ActivityParameterTable, DataBaseParameterTable,
-                      ExchangeParameterTable, ProjectParameterTable)
+                      ExchangeParameterTable, ProjectParameterTable,
+                      ViewOnlyParameterTable)
 from ..widgets import add_objects_to_layout
 from .base import BaseRightTab, BaseRightTabbedTab
 
@@ -204,15 +205,13 @@ class ProcessExchangeTab(BaseRightTab):
         self.save_exchanges_btn = QPushButton(qicons.save_db, "Save exchange parameters")
         self.act_table = ActivityParameterTable(self)
         self.exc_table = ExchangeParameterTable(self)
+        self.variable_table = ViewOnlyParameterTable(self)
         self.tables = {
             "activity": self.act_table, "exchange": self.exc_table,
         }
 
         self._construct_layout()
         self._connect_signals()
-
-        # To hold variable names that can be used in the formula
-        self.variable_df = None
 
         self.explain_text = """
 Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
@@ -252,6 +251,9 @@ amount.</li>
         self.save_exchanges_btn.clicked.connect(
             lambda: self.store_parameters("exchange")
         )
+        # Connect signals from activity table to methods
+        self.act_table.reload_exchanges.connect(self.reload_exchanges)
+        self.act_table.expand_activity.connect(self.add_exchanges_action)
 
     def _construct_layout(self):
         """ Construct the widget layout for the exchanges parameters tab
@@ -265,6 +267,10 @@ amount.</li>
             self.explanation
         )
 
+        columns = QHBoxLayout()
+        left_column = QVBoxLayout()
+        right_column = QVBoxLayout()
+
         act_row = QHBoxLayout()
         add_objects_to_layout(
             act_row, header("Activity Parameters:"), self.save_activities_btn
@@ -276,9 +282,17 @@ amount.</li>
         )
         exc_row.addStretch(1)
         add_objects_to_layout(
-            layout, row, horizontal_line(), act_row, self.act_table,
-            exc_row, self.exc_table
+            left_column, act_row, self.act_table, exc_row, self.exc_table
         )
+
+        param_row = QHBoxLayout()
+        param_row.addWidget(header("Project & Database parameters"))
+        param_row.addStretch(1)
+        add_objects_to_layout(right_column, param_row, self.variable_table)
+
+        columns.addLayout(left_column, 3)
+        columns.addLayout(right_column, 1)
+        add_objects_to_layout(layout, row, horizontal_line(), columns)
         layout.addStretch(1)
         self.setLayout(layout)
 
@@ -287,6 +301,7 @@ amount.</li>
         """
         self.act_table.sync(ActivityParameterTable.build_parameter_df())
         self.exc_table.sync(ExchangeParameterTable.build_parameter_df())
+        self.variable_table.sync(ViewOnlyParameterTable.build_parameter_df())
 
     @pyqtSlot(tuple)
     def add_exchanges_action(self, key: tuple) -> None:
