@@ -23,6 +23,8 @@ from .views import ABDataFrameEdit
 
 
 class BaseParameterTable(ABDataFrameEdit):
+    new_parameter = pyqtSignal()
+
     @ABDataFrameEdit.decorated_sync
     def sync(self, df):
         self.dataframe = df
@@ -70,6 +72,7 @@ class ProjectParameterTable(BaseParameterTable):
             ignore_index=True
         )
         self.sync(self.dataframe)
+        self.new_parameter.emit()
 
     def save_parameters(self, overwrite: bool=True) -> Optional[int]:
         """ Attempts to store all of the parameters in the dataframe
@@ -126,6 +129,7 @@ class DataBaseParameterTable(BaseParameterTable):
             ignore_index=True
         )
         self.sync(self.dataframe)
+        self.new_parameter.emit()
 
     def save_parameters(self, overwrite: bool=True) -> Optional[int]:
         """ Separates the database parameters by db_name and attempts

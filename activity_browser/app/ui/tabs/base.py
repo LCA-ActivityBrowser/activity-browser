@@ -9,8 +9,6 @@ class BaseRightTab(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.explain_text = "I explain what happens here"
-        self._construct_layout()
-        self._connect_signals()
 
     def _connect_signals(self):
         """ Used by child classes to wire up specific functionality to signals
