@@ -3,12 +3,11 @@ import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..style import style_activity_tab
-from ..tables import ExchangeTable  #, ProductTable
+from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
 from ..icons import icons
 from ...bwutils import commontasks as bc
-from ...bwutils import convenience_data
 from ...signals import signals
 
 
@@ -26,12 +25,16 @@ class ActivitiesTab(ABTab):
         signals.delete_activity.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
 
-    def open_activity_tab(self, key):
+    @QtCore.pyqtSlot(tuple)
+    def open_activity_tab(self, key: tuple) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
+            act = bw.get_activity(key)
+            if not act.production():
+                return
             new_tab = ActivityTab(key, parent=self)
             self.tabs[key] = new_tab
-            self.addTab(new_tab, bc.get_activity_name(bw.get_activity(key), str_length=30))
+            self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
             # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
             # new_tab.setToolTip(bw.get_activity(key).as_dict()['name'])
