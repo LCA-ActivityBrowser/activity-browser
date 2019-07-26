@@ -253,17 +253,20 @@ class ProjectSettings(BaseSettings):
         """
         self.settings.update({"biosphere": types})
 
-    @staticmethod
-    def valid_biospheres(types: list, default_biosphere: bool=True) -> set:
+    @classmethod
+    def valid_biospheres(cls, types: list, default_biosphere: bool=True) -> set:
         """ Use brightway to check if the given list of types all exist
 
         Unless explicitly stated the function will use the 'biosphere3'
         database to find accepted types.
         """
         if default_biosphere:
-            accepted_activity_types = set([
-                act.get("type") for act in bw.Database("biosphere3")
-            ])
+            if "biosphere3" in bw.databases:
+                accepted_activity_types = set([
+                    act.get("type") for act in bw.Database("biosphere3")
+                ])
+            else:
+                accepted_activity_types = set(cls.get_default_biosphere_types())
         else:
             accepted_activity_types = set([
                 act.get("type") for db_name in bw.databases.list
@@ -271,7 +274,7 @@ class ProjectSettings(BaseSettings):
             ])
 
         if accepted_activity_types.issuperset(types):
-            return set([])
+            return set()
         else:
             return set(types).difference(accepted_activity_types)
 

@@ -70,12 +70,13 @@ def test_project_default_biosphere(project_settings):
     assert ProjectSettings.get_default_biosphere_types() == project_settings.biosphere_types
 
 
-def test_project_valid_biospheres(ab_app, project_settings):
+def test_project_valid_biospheres(project_settings):
     valid_types = ["emission", "social", "economic"]
-    assert len(project_settings.valid_biospheres(valid_types)) == 0
+    invalid = project_settings.valid_biospheres(valid_types)
+    assert len(invalid) == 0
 
 
-def test_project_invalid_biospheres(ab_app, project_settings):
+def test_project_invalid_biospheres(project_settings):
     wrong_types = ["emission", "testing"]
     invalid = project_settings.valid_biospheres(wrong_types)
     assert len(invalid) == 1
