@@ -55,7 +55,7 @@ def test_project_settings():
     assert project_settings.db_is_readonly("fake_readabledb") is False
     project_settings.modify_db("fakedb", False)
     assert project_settings.db_is_readonly("fakedb") is False
-    assert project_settings.get_editable_databases() == ["fakedb", "fake_readabledb"]
+    assert all(db in ["fakedb", "fake_readabledb"] for db in project_settings.get_editable_databases())
     project_settings.remove_db("fakedb")
     # If db cannot be found, return True
     assert project_settings.db_is_readonly("fakedb") is True
