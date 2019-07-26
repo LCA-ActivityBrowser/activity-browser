@@ -22,7 +22,8 @@ class BaseSettings(object):
 
         self.initialize_settings()
 
-    def get_default_settings(self) -> dict:
+    @classmethod
+    def get_default_settings(cls) -> dict:
         """ Returns dictionary containing the default settings for the file
 
         Each child class needs to implement its own default settings.
@@ -78,12 +79,13 @@ class ABSettings(BaseSettings):
             if os.path.exists(old_settings):
                 shutil.copyfile(old_settings, file)
 
-    def get_default_settings(self):
+    @classmethod
+    def get_default_settings(cls) -> dict:
         """ Using methods from the commontasks file to set default settings
         """
         return {
-            'custom_bw_dir': self.get_default_directory(),
-            'startup_project': self.get_default_project_name(),
+            'custom_bw_dir': cls.get_default_directory(),
+            'startup_project': cls.get_default_project_name(),
         }
 
     @property
@@ -170,12 +172,13 @@ class ProjectSettings(BaseSettings):
         signals.project_selected.connect(self.reset_for_project_selection)
         signals.delete_project.connect(self.reset_for_project_selection)
 
-    def get_default_settings(self):
+    @classmethod
+    def get_default_settings(cls):
         """ Return default empty settings dictionary.
         """
         return {
-            'read-only-databases': self.process_brightway_databases(),
-            'biosphere': self.get_default_biosphere_types(),
+            'read-only-databases': cls.process_brightway_databases(),
+            'biosphere': cls.get_default_biosphere_types(),
         }
 
     @staticmethod
