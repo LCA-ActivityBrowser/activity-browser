@@ -176,10 +176,11 @@ class ProjectSettings(BaseSettings):
     def get_default_settings(cls):
         """ Return default empty settings dictionary.
         """
-        return {
-            'read-only-databases': cls.process_brightway_databases(),
+        settings = {
             'biosphere': cls.get_default_biosphere_types(),
         }
+        settings.update(cls.process_brightway_databases())
+        return settings
 
     @staticmethod
     def process_brightway_databases() -> dict:
