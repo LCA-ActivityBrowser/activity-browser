@@ -48,3 +48,40 @@ def test_search_biosphere(qtbot, ab_app):
     act_bio_widget.search_box.returnPressed.emit()
     assert act_bio_widget.table.dataframe.shape[0] > 0
     # assert search_results < currently_displayed
+
+
+def test_fail_open_biosphere(ab_app):
+    """ Specifically fail to open an activity tab for a biosphere flow
+    """
+    assert bw.projects.current == "pytest_project"
+    activities_tab = ab_app.main_window.right_panel.tabs["Activities"]
+    # Select any biosphere activity and emit signal to trigger opening the tab
+    biosphere_flow = bw.Database("biosphere3").random()
+    signals.open_activity_tab.emit(biosphere_flow.key)
+    assert len(activities_tab.tabs) == 0
+
+
+def test_succceed_open_activity(ab_app):
+    """ Create a tiny test database with a production activity
+    """
+    assert bw.projects.current == "pytest_project"
+    db = bw.Database("testdb")
+    act_key = ("testdb", "act1")
+    db.write({
+        act_key: {
+            "name": "act1",
+            "unit": "kilogram",
+            "exchanges": [
+                {"input": act_key, "amount": 1, "type": "production"}
+            ]
+        }
+    })
+    activities_tab = ab_app.main_window.right_panel.tabs["Activities"]
+    # Select the activity and emit signal to trigger opening the tab
+    act = bw.get_activity(act_key)
+    signals.open_activity_tab.emit(act_key)
+    assert len(activities_tab.tabs) == 1
+    assert act_key in activities_tab.tabs
+    # Current index of QTabWidget is changed by opening the tab
+    index = activities_tab.currentIndex()
+    assert act.get("name") == activities_tab.tabText(index)
