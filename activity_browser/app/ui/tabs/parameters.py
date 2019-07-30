@@ -69,12 +69,15 @@ class ProjectDatabaseTab(BaseRightTab):
         self._connect_signals()
 
         self.explain_text = """
-Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
-for the full explanation.
+<p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
+for the full explanation.</p>
+<p>Note that both project and database parameters can store 
+<a href="https://docs.brightwaylca.org/intro.html#storing-uncertain-values">uncertain values</a>, but these are
+completely optional.</p>
 
 <h3>Formula field, in general:</h3>
-The formula field is a string that is interpreted by brightway on save. Python builtin functions and Numpy functions
-can be used within the formula!
+<p>The formula field is a string that is interpreted by brightway on save. Python builtin functions and Numpy functions
+can be used within the formula!</p>
 
 <h3>Project</h3>
 <ul>
@@ -215,13 +218,16 @@ class ProcessExchangeTab(BaseRightTab):
         self._connect_signals()
 
         self.explain_text = """
-Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
-for the full explanation.
+<p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
+for the full explanation.</p>
+<p>Note that activity parameters can store 
+<a href="https://docs.brightwaylca.org/intro.html#storing-uncertain-values">uncertain values</a>, but these are
+completely optional.</p>
 
 <h3>Activities</h3>
-Activities can be dragged from a database in the left panel into the activity parameter table.
+<p>Activities can be dragged from a database in the left panel into the activity parameter table.
 Dropping one or more activities into the table creates <em>temporary</em> parameters, only after
-successfully saving the parameters is it possible to parameterize related exchanges.
+successfully saving the parameters is it possible to parameterize related exchanges.</p>
 <ul>
 <li>Only the <em>group</em>, <em>name</em>, <em>amount</em> and <em>formula</em> fields are editable.</li>
 <li>Only activities from editable databases can be parameterized.</li>
@@ -230,11 +236,11 @@ successfully saving the parameters is it possible to parameterize related exchan
 </ul>
 
 <h3>Exchanges</h3>
-Exchanges can be parameterized by selecting one or more activity parameter and using
+<p>Exchanges can be parameterized by selecting one or more activity parameter and using
 'Load all exchanges' in the context menu, this loads all of the exchanges of the selected
 activities as <em>temporary</em> parameters. After setting a <em>formula</em> on any exchange,
 the changes can be stored by saving. After saving, any temporary parameters without a
-<em>formula</em> are cleared from the table.
+<em>formula</em> are cleared from the table.</p>
 <ul>
 <li>Only the <em>formula</em> field is editable.</li>
 <li>As with activities, only exchanges from editable databases can be parameterized.</li>

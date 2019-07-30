@@ -17,17 +17,49 @@ from activity_browser.app.signals import signals
 from ..icons import qicons
 from ..widgets import parameter_save_errorbox, simple_warning_box
 from .delegates import (DatabaseDelegate, FloatDelegate, ListDelegate,
-                        StringDelegate, ViewOnlyDelegate)
+                        StringDelegate, UncertaintyDelegate, ViewOnlyDelegate)
 from .inventory import ActivitiesBiosphereTable
 from .views import ABDataFrameEdit, ABDataFrameSimpleCopy
 
 
 class BaseParameterTable(ABDataFrameEdit):
+    COLUMNS = []
+    UNCERTAINTY = [
+        "uncertainty type", "loc", "scale", "shape", "minimum", "maximum"
+    ]
     new_parameter = pyqtSignal()
 
     @ABDataFrameEdit.decorated_sync
     def sync(self, df):
         self.dataframe = df
+
+    @classmethod
+    def build_parameter_df(cls) -> pd.DataFrame:
+        raise NotImplementedError
+
+    @classmethod
+    def parse_parameter(cls, parameter) -> dict:
+        """ Take the given Parameter object and extract data for a single
+        row in the table dataframe
+
+        If the parameter has uncertainty data, include this as well.
+        """
+        row = {key: getattr(parameter, key, "") for key in cls.COLUMNS}
+        data = getattr(parameter, "data", {})
+        row.update(cls.extract_uncertainty_data(data))
+        return row
+
+    @classmethod
+    def extract_uncertainty_data(cls, data: dict) -> dict:
+        """ This helper function can be used to extract specific uncertainty
+        columns from the parameter data
+
+        See:
+        https://docs.brightwaylca.org/intro.html#storing-uncertain-values
+        https://stats-arrays.readthedocs.io/en/latest/#mapping-parameter-array-columns-to-uncertainty-distributions
+        """
+        row = {key: data.get(key) for key in cls.UNCERTAINTY}
+        return row
 
 
 class ProjectParameterTable(BaseParameterTable):
@@ -49,16 +81,21 @@ class ProjectParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(0, StringDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
+        self.setItemDelegateForColumn(3, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(4, FloatDelegate(self))
+        self.setItemDelegateForColumn(5, FloatDelegate(self))
+        self.setItemDelegateForColumn(6, FloatDelegate(self))
+        self.setItemDelegateForColumn(7, FloatDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
 
     @classmethod
     def build_parameter_df(cls):
         """ Build a dataframe using the ProjectParameters set in brightway
         """
         data = [
-            {key: getattr(p, key, "") for key in cls.COLUMNS}
-                for p in ProjectParameter.select()
+            cls.parse_parameter(p) for p in ProjectParameter.select()
         ]
-        df = pd.DataFrame(data, columns=cls.COLUMNS)
+        df = pd.DataFrame(data, columns=cls.COLUMNS + cls.UNCERTAINTY)
         return df
 
     def add_parameter(self) -> None:
@@ -67,10 +104,9 @@ class ProjectParameterTable(BaseParameterTable):
         NOTE: Any new parameters are only stored in memory until
         `save_project_parameters` is called in the tab
         """
-        self.dataframe = self.dataframe.append(
-            {"name": None, "amount": 0.0, "formula": ""},
-            ignore_index=True
-        )
+        row = {"name": None, "amount": 0.0, "formula": ""}
+        row.update({key: None for key in self.UNCERTAINTY})
+        self.dataframe = self.dataframe.append(row, ignore_index=True)
         self.sync(self.dataframe)
         self.new_parameter.emit()
 
@@ -106,16 +142,21 @@ class DataBaseParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, FloatDelegate(self))
         self.setItemDelegateForColumn(3, StringDelegate(self))
+        self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(5, FloatDelegate(self))
+        self.setItemDelegateForColumn(6, FloatDelegate(self))
+        self.setItemDelegateForColumn(7, FloatDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, FloatDelegate(self))
 
     @classmethod
     def build_parameter_df(cls) -> pd.DataFrame:
         """ Build a dataframe using the DatabaseParameters set in brightway
         """
         data = [
-            {key: getattr(p, key, "") for key in cls.COLUMNS}
-                for p in DatabaseParameter.select()
+            cls.parse_parameter(p) for p in DatabaseParameter.select()
         ]
-        df = pd.DataFrame(data, columns=cls.COLUMNS)
+        df = pd.DataFrame(data, columns=cls.COLUMNS + cls.UNCERTAINTY)
         return df
 
     def add_parameter(self) -> None:
@@ -124,10 +165,9 @@ class DataBaseParameterTable(BaseParameterTable):
         NOTE: Any new parameters are only stored in memory until
         `save_project_parameters` is called
         """
-        self.dataframe = self.dataframe.append(
-            {"database": None, "name": None, "amount": 0.0, "formula": ""},
-            ignore_index=True
-        )
+        row = {"database": None, "name": None, "amount": 0.0, "formula": ""}
+        row.update({key: None for key in self.UNCERTAINTY})
+        self.dataframe = self.dataframe.append(row, ignore_index=True)
         self.sync(self.dataframe)
         self.new_parameter.emit()
 
@@ -187,7 +227,7 @@ class ActivityParameterTable(BaseParameterTable):
     """ Table widget for activity parameters
     """
     COLUMNS = [
-        "group", "database", "code", "name", "amount", "formula", "order"
+        "database", "code", "group", "name", "amount", "formula", "order"
     ]
     expand_activity = pyqtSignal(tuple)
     reload_exchanges = pyqtSignal()
@@ -204,6 +244,12 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(4, FloatDelegate(self))
         self.setItemDelegateForColumn(5, StringDelegate(self))
         self.setItemDelegateForColumn(6, ListDelegate(self))
+        self.setItemDelegateForColumn(7, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.setItemDelegateForColumn(11, FloatDelegate(self))
+        self.setItemDelegateForColumn(12, FloatDelegate(self))
 
         # Set dropEnabled
         self.viewport().setAcceptDrops(True)
@@ -213,15 +259,24 @@ class ActivityParameterTable(BaseParameterTable):
         """ Build a dataframe using the ActivityParameters set in brightway
         """
         data = [
-            {key: p.get(key, "") for key in cls.COLUMNS}
+            cls.parse_parameter(p)
             for p in (ActivityParameter
                       .select(ActivityParameter, Group.order)
                       .join(Group, on=(ActivityParameter.group == Group.name)).dicts())
         ]
-        df = pd.DataFrame(data, columns=cls.COLUMNS)
+        df = pd.DataFrame(data, columns=cls.COLUMNS + cls.UNCERTAINTY)
         # Convert the 'order' column from list into string
         df["order"] = df["order"].apply(", ".join)
         return df
+
+    @classmethod
+    def parse_parameter(cls, parameter) -> dict:
+        """ Override the base method to instead use dictionaries.
+        """
+        row = {key: parameter.get(key, "") for key in cls.COLUMNS}
+        data = parameter.get("data", {})
+        row.update(cls.extract_uncertainty_data(data))
+        return row
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         """ Check that the dragged row is from the databases table
@@ -261,6 +316,7 @@ class ActivityParameterTable(BaseParameterTable):
             row = {key: act.get(key, "") for key in self.COLUMNS}
             if row["amount"] == "":
                 row["amount"] = 0.0
+            row.update({key: None for key in self.UNCERTAINTY})
             self.dataframe = self.dataframe.append(
                 row, ignore_index=True
             )

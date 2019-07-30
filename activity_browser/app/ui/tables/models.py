@@ -2,6 +2,7 @@
 from pandas import DataFrame
 from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant
 from PyQt5.QtGui import QBrush
+from stats_arrays import uncertainty_choices
 
 from ..style import style_item
 
@@ -22,12 +23,20 @@ class PandasModel(QAbstractTableModel):
 
     def data(self, index, role=Qt.DisplayRole):
         """ Reads out and displays the data from the dataframe for each index
+
+        If we're displaying a column called 'uncertainty type', special rules
+        apply
         """
         if not index.isValid():
             return QVariant()
 
         if role == Qt.DisplayRole:
             value = self._dataframe.iloc[index.row(), index.column()]
+            if ("uncertainty type" in self._dataframe.columns and
+                    self._dataframe.columns[index.column()] == "uncertainty type"):
+                value = int(value) if value else 0
+                distribution = uncertainty_choices.id_dict[value]
+                value = distribution.description
             try:
                 return QVariant(float(value))
             except (ValueError, TypeError) as e:
