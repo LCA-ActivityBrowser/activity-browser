@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
     QScrollArea, QRadioButton, QLabel, QCheckBox, QPushButton, QComboBox)
 from PyQt5 import QtGui, QtWidgets, QtCore
 
+from stats_arrays.errors import InvalidParamsError
+
 from ..style import horizontal_line, vertical_line, header
 from ..tables import (
     LCAResultsTable,
@@ -94,7 +96,12 @@ class LCAResultsSubTab(QTabWidget):
         """ Update the mlca calculation. """
         self.mlca = MLCA(self.cs_name)
         self.contributions = Contributions(self.mlca)
-        self.mc = CSMonteCarloLCA(self.cs_name)
+        try:
+            self.mc = CSMonteCarloLCA(self.cs_name)
+        except InvalidParamsError as e:
+            # This can occur if uncertainty data is missing or otherwise broken
+            print(e)
+            self.mc = None
         # self.mct = CSMonteCarloLCAThread()
         # self.mct.start()
         # self.mct.initialize(self.cs_name)
@@ -121,8 +128,9 @@ class LCAResultsSubTab(QTabWidget):
         self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
         self.process_contributions_tab.update_analysis_tab()
 
-        self.monte_carlo_tab = MonteCarloTab(self)
-        self.monte_carlo_tab.update_tab()
+        if self.mc:
+            self.monte_carlo_tab = MonteCarloTab(self)
+            self.monte_carlo_tab.update_tab()
 
         # self.correlations_tab = CorrelationsTab(self)
         # self.correlations_tab.update_analysis_tab()
@@ -210,21 +218,24 @@ class AnalysisTab(QWidget):
         self.update_combobox()
 
     def main_space_check(self, table_ch, plot_ch):
-        """ Show only table or graph, whichever is selected. """
+        """ Show graph and/or table, whichever is selected.
+
+        Can also hide both, if you want to do that.
+        """
         table_state = table_ch.isChecked()
         plot_state = plot_ch.isChecked()
 
         if table_state and plot_state:
             self.main_space_table.setVisible(True)
             self.main_space_plot.setVisible(True)
-
         elif not table_state and plot_state:
             self.main_space_table.setVisible(False)
             self.main_space_plot.setVisible(True)
-
-        else:
-            self.main_space_tb_grph_table.setChecked(True)
+        elif table_state and not plot_state:
             self.main_space_table.setVisible(True)
+            self.main_space_plot.setVisible(False)
+        else:
+            self.main_space_table.setVisible(False)
             self.main_space_plot.setVisible(False)
 
     def add_main_space(self):
