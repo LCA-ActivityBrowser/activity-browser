@@ -340,6 +340,7 @@ class ProjectSettingsPage(QWizardPage):
     def restore_defaults(self) -> None:
         """ Discard user settings and fill in the defaults
         """
+        self.biospheres_field.clear()
         self.biospheres_field.setText(
             ", ".join(project_settings.get_default_biosphere_types())
         )
