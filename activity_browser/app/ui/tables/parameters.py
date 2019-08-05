@@ -237,9 +237,9 @@ class ActivityParameterTable(BaseParameterTable):
         super().__init__(parent)
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, StringDelegate(self))
+        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(2, StringDelegate(self))
         self.setItemDelegateForColumn(3, StringDelegate(self))
         self.setItemDelegateForColumn(4, FloatDelegate(self))
         self.setItemDelegateForColumn(5, StringDelegate(self))
