@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 
+from activity_browser import PACKAGE_DIRECTORY
 
-def create_path(folder, filename):
-    return os.path.join(
-        os.path.dirname(__file__),
-        '..',
-        '..',
-        'icons',
-        folder,
-        filename
-    )
+
+def create_path(folder: str, filename: str) -> str:
+    """ Builds a path to the image file.
+    """
+    return os.path.join(PACKAGE_DIRECTORY, "icons", folder, filename)
 
 
 class Icons(object):
