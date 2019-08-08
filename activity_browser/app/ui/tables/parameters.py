@@ -232,7 +232,7 @@ class ActivityParameterTable(BaseParameterTable):
     """ Table widget for activity parameters
     """
     COLUMNS = [
-        "database", "code", "group", "name", "amount", "formula", "order"
+        "group", "name", "amount", "formula", "order", "key"
     ]
     expand_activity = pyqtSignal(tuple)
     reload_exchanges = pyqtSignal()
@@ -242,19 +242,18 @@ class ActivityParameterTable(BaseParameterTable):
         super().__init__(parent)
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(2, StringDelegate(self))
+        self.setItemDelegateForColumn(0, StringDelegate(self))
+        self.setItemDelegateForColumn(1, StringDelegate(self))
+        self.setItemDelegateForColumn(2, FloatDelegate(self))
         self.setItemDelegateForColumn(3, StringDelegate(self))
-        self.setItemDelegateForColumn(4, FloatDelegate(self))
-        self.setItemDelegateForColumn(5, StringDelegate(self))
-        self.setItemDelegateForColumn(6, ListDelegate(self))
-        self.setItemDelegateForColumn(7, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(4, ListDelegate(self))
+        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(7, FloatDelegate(self))
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
         self.setItemDelegateForColumn(11, FloatDelegate(self))
-        self.setItemDelegateForColumn(12, FloatDelegate(self))
 
         # Set dropEnabled
         self.viewport().setAcceptDrops(True)
@@ -279,6 +278,8 @@ class ActivityParameterTable(BaseParameterTable):
         """ Override the base method to instead use dictionaries.
         """
         row = {key: parameter.get(key, "") for key in cls.COLUMNS}
+        # Combine the 'database' and 'code' fields of the parameter into a 'key'
+        row["key"] = (parameter.get("database"), parameter.get("code"))
         data = parameter.get("data", {})
         row.update(cls.extract_uncertainty_data(data))
         return row
@@ -335,10 +336,10 @@ class ActivityParameterTable(BaseParameterTable):
         All possible menu events should be added and wired up here
         """
         menu = QMenu(self)
-        load_exchanges_action = QAction(
-            qicons.add, "Load all exchanges", None
+        open_activity_action = QAction(
+            qicons.add, "Open activity/activities", None
         )
-        load_exchanges_action.triggered.connect(self.add_activity_exchanges)
+        open_activity_action.triggered.connect(self.open_activity_tab)
         delete_row_action = QAction(
             qicons.delete, "Remove parameter(s)", None
         )
@@ -347,33 +348,20 @@ class ActivityParameterTable(BaseParameterTable):
             qicons.delete, "Remove order from group(s)", None
         )
         unset_order_action.triggered.connect(self.unset_group_order)
-        menu.addAction(load_exchanges_action)
+        menu.addAction(open_activity_action)
         menu.addAction(delete_row_action)
         menu.addAction(unset_order_action)
         menu.popup(QCursor.pos())
         menu.exec()
 
     @pyqtSlot()
-    def add_activity_exchanges(self) -> None:
-        """ Receive an event to add exchanges to the exchange table
-        for the selected activities
-
-        For each selected activity, emit the key of that activity
-        as a signal to the parent of the table.
+    def open_activity_tab(self):
+        """ Triggers the activity tab to open one or more activities.
         """
         for index in self.selectedIndexes():
             source_index = self.get_source_index(index)
             row = self.dataframe.iloc[source_index.row(), ]
-
-            if project_settings.settings["read-only-databases"].get(
-                    row.database, True):
-                simple_warning_box(
-                    self, "Not allowed",
-                    "'{}' is a read-only database".format(row.database)
-                )
-                continue
-
-            self.expand_activity.emit((row.database, row.code))
+            signals.open_activity_tab.emit(row["key"])
 
     def save_parameters(self, overwrite: bool=True) -> Optional[int]:
         """ Separates the activity parameters by group name and saves each
