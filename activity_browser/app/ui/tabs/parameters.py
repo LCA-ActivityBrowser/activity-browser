@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtCore import pyqtSlot, QSize
 from PyQt5.QtWidgets import (QHBoxLayout, QMessageBox, QPushButton, QToolBar,
-                             QVBoxLayout, QGridLayout, QTabWidget)
+                             QVBoxLayout, QTabWidget)
 
 from activity_browser.app.signals import signals
 
 from ..icons import qicons
 from ..style import header, horizontal_line
 from ..tables import (ActivityParameterTable, DataBaseParameterTable,
-                      ExchangeParameterTable, ProjectParameterTable,
-                      ViewOnlyParameterTable)
+                      ExchangeParameterTable, ProjectParameterTable)
 from .base import BaseRightTab
 
 
@@ -52,14 +51,17 @@ class ProjectDatabaseTab(BaseRightTab):
 
         self.project_table = ProjectParameterTable(self)
         self.database_table = DataBaseParameterTable(self)
+        self.activity_table = ActivityParameterTable(self)
         self.tables = {
-            "project": self.project_table, "database": self.database_table
+            "project": self.project_table, "database": self.database_table,
+            "activity": self.activity_table,
         }
 
         self.new_project_param = QPushButton(qicons.add, "New project parameter")
         self.save_project_btn = QPushButton(qicons.save_db, "Save project parameters")
         self.new_database_param = QPushButton(qicons.add, "New database parameter")
         self.save_database_btn = QPushButton(qicons.save_db, "Save database parameters")
+        self.save_activity_btn = QPushButton(qicons.save_db, "Save activity parameters")
 
         self._construct_layout()
         self._connect_signals()
@@ -67,7 +69,7 @@ class ProjectDatabaseTab(BaseRightTab):
         self.explain_text = """
 <p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
 for the full explanation.</p>
-<p>Note that both project and database parameters can store 
+<p>Note that project, database and activity parameters can store 
 <a href="https://docs.brightwaylca.org/intro.html#storing-uncertain-values">uncertain values</a>, but these are
 completely optional.</p>
 
@@ -91,6 +93,18 @@ can be used within the formula!</p>
 a <em>formula</em> of a second database parameter <em>within the same database</em>, the interpreter will
 use the database parameter.</li>
 </ul>
+
+<h3>Activities</h3>
+<p>Activities can be dragged from a database in the left panel into the activity parameter table.
+Dropping one or more activities into the table creates <em>temporary</em> parameters.</p>
+<ul>
+<li>Only the <em>group</em>, <em>name</em>, <em>amount</em> and <em>formula</em> fields are editable.</li>
+<li>Only activities from editable databases can be parameterized.</li>
+<li>An activity can only belong to a single <em>group</em>. Multiple parameters can be created for
+the activity in that group.</li>
+<li>The parameter <em>name</em> is unique per <em>group</em>.</li>
+<li>The <em>amount</em> and <em>formula</em> fields are optional.</li>
+</ul>
 """
 
     def _connect_signals(self):
@@ -106,6 +120,9 @@ use the database parameter.</li>
         )
         self.save_database_btn.clicked.connect(
             lambda: self.store_parameters("database")
+        )
+        self.save_activity_btn.clicked.connect(
+            lambda: self.store_parameters("activity")
         )
 
     def _construct_layout(self):
@@ -135,9 +152,17 @@ use the database parameter.</li>
         row.addWidget(header("Database parameters:"))
         row.addWidget(self.new_database_param)
         row.addWidget(self.save_database_btn)
+        row.addStretch(1)
         layout.addLayout(row)
         layout.addWidget(self.database_table)
+
+        row = QHBoxLayout()
+        row.addWidget(header("Activity parameters:"))
+        row.addWidget(self.save_activity_btn)
         row.addStretch(1)
+        layout.addLayout(row)
+        layout.addWidget(self.activity_table)
+
         layout.addStretch(1)
         self.setLayout(layout)
 
@@ -146,6 +171,7 @@ use the database parameter.</li>
         """
         self.project_table.sync(ProjectParameterTable.build_df())
         self.database_table.sync(DataBaseParameterTable.build_df())
+        self.activity_table.sync(ActivityParameterTable.build_df())
 
     @pyqtSlot(str)
     def add_parameter(self, name: str) -> None:
@@ -201,14 +227,10 @@ class ProcessExchangeTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.save_activities_btn = QPushButton(qicons.save_db, "Save activity parameters")
         self.save_exchanges_btn = QPushButton(qicons.save_db, "Save exchange parameters")
-        self.reload_variables_btn = QPushButton(qicons.copy, "Reload variables")
-        self.act_table = ActivityParameterTable(self)
         self.exc_table = ExchangeParameterTable(self)
-        self.variable_table = ViewOnlyParameterTable(self)
         self.tables = {
-            "activity": self.act_table, "exchange": self.exc_table,
+            "exchange": self.exc_table,
         }
 
         self._construct_layout()
@@ -217,20 +239,6 @@ class ProcessExchangeTab(BaseRightTab):
         self.explain_text = """
 <p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
 for the full explanation.</p>
-<p>Note that activity parameters can store 
-<a href="https://docs.brightwaylca.org/intro.html#storing-uncertain-values">uncertain values</a>, but these are
-completely optional.</p>
-
-<h3>Activities</h3>
-<p>Activities can be dragged from a database in the left panel into the activity parameter table.
-Dropping one or more activities into the table creates <em>temporary</em> parameters, only after
-successfully saving the parameters is it possible to parameterize related exchanges.</p>
-<ul>
-<li>Only the <em>group</em>, <em>name</em>, <em>amount</em> and <em>formula</em> fields are editable.</li>
-<li>Only activities from editable databases can be parameterized.</li>
-<li>The parameter <em>name</em> is unique per <em>group</em>.</li>
-<li>The <em>amount</em> and <em>formula</em> fields are optional.</li>
-</ul>
 
 <h3>Exchanges</h3>
 <p>Exchanges can be parameterized by selecting one or more activity parameter and using
@@ -249,21 +257,8 @@ amount.</li>
 
     def _connect_signals(self):
         signals.project_selected.connect(self.build_dataframes)
-        self.save_activities_btn.clicked.connect(
-            lambda: self.store_parameters("activity")
-        )
         self.save_exchanges_btn.clicked.connect(
             lambda: self.store_parameters("exchange")
-        )
-        # Connect signals from activity table to exchange table
-        self.act_table.reload_exchanges.connect(
-            lambda: self.exc_table.sync(self.exc_table.build_df())
-        )
-        self.act_table.expand_activity.connect(self.exc_table.extend_exchange_df)
-        self.act_table.parameter_removed.connect(self.exc_table.clear_linked_parameters)
-        # Reload the variables table, used if user adds new project/db params
-        self.reload_variables_btn.clicked.connect(
-            lambda: self.variable_table.sync(self.variable_table.build_df())
         )
 
     def _construct_layout(self):
@@ -274,36 +269,25 @@ amount.</li>
         row.addWidget(header("Activity- and Exchange parameters "))
         row.setIconSize(QSize(24, 24))
         row.addAction(
-            qicons.question, "About activity and exchange parameters",
+            qicons.question, "About exchange parameters",
             self.explanation
         )
-
-        # Grid is 6 columns, 8 rows
-        grid = QGridLayout()
-        grid.addWidget(header("Activity Parameters:"), 0, 0, 1, 1)
-        grid.addWidget(self.save_activities_btn, 0, 1, 1, 1)
-        grid.addWidget(self.act_table, 1, 0, 3, 4)
-        grid.addWidget(header("Exchange parameters:"), 4, 0, 1, 1)
-        grid.addWidget(self.save_exchanges_btn, 4, 1, 1, 1)
-        grid.addWidget(self.exc_table, 5, 0, -1, 4)
-        grid.addWidget(header("Variable names:"), 0, 4, 1, 1)
-        grid.addWidget(self.reload_variables_btn, 0, 5, 1, 1)
-        grid.addWidget(self.variable_table, 1, 4, -1, -1)
-        grid_row = QHBoxLayout()
-        grid_row.addLayout(grid, 1)
-
         layout.addWidget(row)
         layout.addWidget(horizontal_line())
-        layout.addLayout(grid_row)
+
+        row = QHBoxLayout()
+        row.addWidget(header("Exchange parameters:"))
+        row.addWidget(self.save_exchanges_btn)
+        row.addStretch(1)
+        layout.addLayout(row)
+        layout.addWidget(self.exc_table)
         layout.addStretch(1)
         self.setLayout(layout)
 
     def build_dataframes(self) -> None:
         """ Read parameters from brightway and build dataframe tables
         """
-        self.act_table.sync(ActivityParameterTable.build_df())
         self.exc_table.sync(ExchangeParameterTable.build_df())
-        self.variable_table.sync(ViewOnlyParameterTable.build_df())
 
     @pyqtSlot(str)
     def store_parameters(self, name: str) -> None:
