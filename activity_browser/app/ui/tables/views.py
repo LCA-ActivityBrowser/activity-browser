@@ -2,7 +2,8 @@
 import os
 from functools import wraps
 
-from PyQt5.QtCore import QSize, QSortFilterProxyModel, Qt, pyqtSlot
+from PyQt5.QtCore import (QAbstractTableModel, QSize, QSortFilterProxyModel,
+                          Qt, pyqtSlot)
 from PyQt5.QtWidgets import QFileDialog, QTableView
 
 from activity_browser.app.settings import ab_settings
@@ -50,18 +51,27 @@ class ABDataFrameView(QTableView):
         def wrapper(self, *args, **kwargs):
             sync(self, *args, **kwargs)
 
-            if hasattr(self, 'drag_model'):
-                self.model = DragPandasModel(self.dataframe)
-            else:
-                self.model = PandasModel(self.dataframe)
+            self.model = self._select_model()
             # See: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
             self.proxy_model = QSortFilterProxyModel()
             self.proxy_model.setSourceModel(self.model)
             self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
             self.setModel(self.proxy_model)
-            self.setMaximumHeight(self.get_max_height())
+            self._resize()
 
         return wrapper
+
+    def _select_model(self) -> QAbstractTableModel:
+        """ Select which model to use for the proxy model.
+        """
+        if hasattr(self, 'drag_model'):
+            return DragPandasModel(self.dataframe)
+        return PandasModel(self.dataframe)
+
+    def _resize(self):
+        """ Custom table resizing to perform after setting new (proxy) model.
+        """
+        self.setMaximumHeight(self.get_max_height())
 
     @staticmethod
     def get_source_index(proxy_index):
@@ -131,49 +141,22 @@ class ABDataFrameView(QTableView):
 class ABDataFrameSimpleCopy(ABDataFrameView):
     """ A view-only class which copies values without including headers
     """
-    @classmethod
-    def decorated_sync(cls, sync):
-        """ Syncs the data from the dataframe into simple copy models
-        """
-        @wraps(sync)
-        def wrapper(self, *args, **kwargs):
-            sync(self, *args, **kwargs)
-
-            if hasattr(self, 'drag_model'):
-                self.model = SimpleCopyDragPandasModel(self.dataframe)
-            else:
-                self.model = SimpleCopyPandasModel(self.dataframe)
-            self.proxy_model = QSortFilterProxyModel()
-            self.proxy_model.setSourceModel(self.model)
-            self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-            self.setModel(self.proxy_model)
-            self.setMaximumHeight(self.get_max_height())
-
-        return wrapper
+    def _select_model(self) -> QAbstractTableModel:
+        if hasattr(self, 'drag_model'):
+            return SimpleCopyDragPandasModel(self.dataframe)
+        return SimpleCopyPandasModel(self.dataframe)
 
 
 class ABDataFrameEdit(ABDataFrameView):
-    """ Inherit from view class but override decorated_sync to use
-    editable models.
+    """ Inherit from view class but use editable models and more flexible
+    sizing.
     """
-    @classmethod
-    def decorated_sync(cls, sync):
-        """ Syncs the data from the dataframe into editable models
-        """
-        @wraps(sync)
-        def wrapper(self, *args, **kwargs):
-            sync(self, *args, **kwargs)
+    def _select_model(self) -> QAbstractTableModel:
+        if hasattr(self, 'drag_model'):
+            return EditableDragPandasModel(self.dataframe)
+        return EditablePandasModel(self.dataframe)
 
-            if hasattr(self, 'drag_model'):
-                self.model = EditableDragPandasModel(self.dataframe)
-            else:
-                self.model = EditablePandasModel(self.dataframe)
-            self.proxy_model = QSortFilterProxyModel()  # see: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
-            self.proxy_model.setSourceModel(self.model)
-            self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-            self.setModel(self.proxy_model)
-            self.setMaximumHeight(self.get_max_height())
-            self.resizeColumnsToContents()
-            self.resizeRowsToContents()
-
-        return wrapper
+    def _resize(self) -> None:
+        self.setMaximumHeight(self.get_max_height())
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
