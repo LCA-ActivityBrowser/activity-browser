@@ -24,11 +24,11 @@ class ExchangeTable(ABTableWidget):
         and flexible editing based on assumptions about data types etc.
     """
     COLUMN_LABELS = {  # {exchangeTableName: headers}
-        "products": ["Amount", "Unit", "Product"], #, "Location", "Uncertainty"],
+        "products": ["Amount", "Unit", "Product", "Formula"], #, "Location", "Uncertainty"],
         # technosphere inputs & Downstream product-consuming activities included as "technosphere"
         # todo(?) should the table functionality for downstream activities really be identical to technosphere inputs?
         "technosphere": ["Amount", "Unit", "Product", "Activity", "Location", "Database", "Uncertainty", "Formula"],
-        "biosphere": ["Amount", "Unit", "Flow Name", "Compartments", "Database", "Uncertainty"],
+        "biosphere": ["Amount", "Unit", "Flow Name", "Compartments", "Database", "Uncertainty", "Formula"],
     }
     def __init__(self, parent=None, tableType=None):
         super(ExchangeTable, self).__init__()
@@ -159,6 +159,8 @@ class ExchangeTable(ABTableWidget):
             # todo: refactor so that on initialisation, the 'upstream' state is known so state can be set there
             self.setDragEnabled(False)
             self.setAcceptDrops(False)
+            # 'upstream' means downstream, hide the 'formula' column for this table
+            self.setColumnHidden(7, True)
 
         # edit_flag is passed to table items which should be user-editable.
         # Default flag for cells is uneditable - which still allows cell-selection/highlight
@@ -189,6 +191,9 @@ class ExchangeTable(ABTableWidget):
                     # adj_act.get('reference product') or adj_act.get("name") if self.upstream else
                     adj_act.get('reference product') or adj_act.get("name"),
                     exchange=exc, set_flags=edit_flag, color="reference product"))
+
+                self.setItem(row, 3, ABTableItem(
+                    exc.get("formula", ""), exchange=exc, set_flags=edit_flag))
 
                 # self.setItem(row, 3, ABTableItem(
                 #     # todo: remove? it makes no sense to show the (open) activity location...
@@ -230,7 +235,7 @@ class ExchangeTable(ABTableWidget):
                     str(exc.get("uncertainty type", "")), exchange=exc,))
 
                 self.setItem(row, 7, ABTableItem(
-                    exc.get('formula', ''), exchange=exc,))
+                    exc.get('formula', ''), exchange=exc, set_flags=edit_flag))
 
             elif self.tableType == "biosphere":
                 # headers: "Amount", "Unit", "Flow Name", "Compartments", "Database", "Uncertainty"
@@ -252,11 +257,13 @@ class ExchangeTable(ABTableWidget):
                 self.setItem(row, 5, ABTableItem(
                     str(exc.get("uncertainty type", "")), exchange=exc))
 
-                # todo: investigate BW: can flows have both a Formula and an Amount? Or mutually exclusive?
-                # what if they have both, and they contradict? Is this handled in BW - so AB doesn't need to worry?
-                # is the amount calculated and persisted separately to the formula?
-                # if not - optimal behaviour of this table is: show Formula instead of amount in 1st col when present?
-                self.setItem(row, 6, ABTableItem(exc.get('formula', ''), exchange=exc, ))
+                # Yes, _exchanges_ can have both a formula and an amount, if the activity is parameterized,
+                # the formula is used to calculate the amount of that specific exchange on save.
+                # If the activity is not parameterized, the formula can be set but is not used
+                # to calculate the amount.
+                # See: https://docs.brightwaylca.org/intro.html#active-versus-passive-parameters
+                self.setItem(row, 6, ABTableItem(
+                    exc.get("formula", ""), exchange=exc, set_flags=edit_flag))
         self.ignore_changes = False
 
 
