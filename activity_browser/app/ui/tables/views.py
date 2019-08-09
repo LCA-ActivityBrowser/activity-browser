@@ -61,27 +61,6 @@ class ABDataFrameView(QTableView):
     def sizeHint(self):
         return QSize(self.width(), self.get_max_height())
 
-    @classmethod
-    def decorated_sync(cls, sync):
-        """ Syncs the data from the dataframe into the table view.
-
-        Uses either of the PandasModel classes depending if the class is
-        'drag-enabled'.
-        """
-        @wraps(sync)
-        def wrapper(self, *args, **kwargs):
-            sync(self, *args, **kwargs)
-
-            self.model = self._select_model()
-            # See: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
-            self.proxy_model = QSortFilterProxyModel()
-            self.proxy_model.setSourceModel(self.model)
-            self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-            self.setModel(self.proxy_model)
-            self._resize()
-
-        return wrapper
-
     def _select_model(self) -> QAbstractTableModel:
         """ Select which model to use for the proxy model.
         """
