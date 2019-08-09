@@ -13,6 +13,27 @@ from .models import (DragPandasModel, EditableDragPandasModel,
                      SimpleCopyDragPandasModel, SimpleCopyPandasModel)
 
 
+def dataframe_sync(sync):
+    """ Syncs the data from the dataframe into the table view.
+
+    Uses either of the PandasModel classes depending if the class is
+    'drag-enabled'.
+    """
+    @wraps(sync)
+    def wrapper(self, *args, **kwargs):
+        sync(self, *args, **kwargs)
+
+        self.model = self._select_model()
+        # See: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
+        self.setModel(self.proxy_model)
+        self._resize()
+
+    return wrapper
+
+
 class ABDataFrameView(QTableView):
     """ Base class for showing pandas dataframe objects as tables.
     """
