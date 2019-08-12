@@ -234,9 +234,6 @@ class ActivityParameterTable(BaseParameterTable):
     COLUMNS = [
         "group", "name", "amount", "formula", "order", "key"
     ]
-    expand_activity = pyqtSignal(tuple)
-    reload_exchanges = pyqtSignal()
-    parameter_removed = pyqtSignal(tuple)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -370,22 +367,26 @@ class ActivityParameterTable(BaseParameterTable):
         if not self.has_data:
             return
 
-        groups = self.dataframe["group"].str.strip().unique()
+        # Unpack 'key' into 'database' and 'code' for the ParameterManager
+        df = self.dataframe.copy()
+        df["database"], df["code"] = zip(*df["key"].apply(lambda x: (x[0], x[1])))
+        df.drop("key", axis=1, inplace=True)
+
+        groups = df["group"].str.strip().unique()
         if "" in groups:
             return parameter_save_errorbox(
                 self, "Cannot use an empty string as group name."
             )
 
         for group in groups:
-            data = (self.dataframe
-                    .loc[self.dataframe["group"] == group]
-                    .to_dict(orient="records"))
+            data = df.loc[df["group"] == group].to_dict(orient="records")
             try:
                 bw.parameters.new_activity_parameters(data, group, overwrite)
                 self._store_group_order(group)
-                signals.parameters_changed.emit()
             except Exception as e:
                 return parameter_save_errorbox(self, e)
+
+        signals.parameters_changed.emit()
 
     def _store_group_order(self, group_name: str) -> None:
         """Checks if anywhere in the 'group'-sliced dataframe the user has
@@ -416,9 +417,8 @@ class ActivityParameterTable(BaseParameterTable):
         for index in self.selectedIndexes():
             source_index = self.get_source_index(index)
             row = self.dataframe.iloc[source_index.row(), ]
-            act = bw.get_activity((row["database"], row["code"]))
+            act = bw.get_activity(row["key"])
             bw.parameters.remove_from_group(row["group"], act)
-            self.parameter_removed.emit(act.key)
         self.recalculate()
 
     @pyqtSlot()
