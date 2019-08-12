@@ -5,7 +5,7 @@ import pandas as pd
 from PyQt5 import QtCore
 
 from activity_browser.app.signals import signals
-from activity_browser.app.ui.tabs.parameters import ProjectDatabaseTab
+from activity_browser.app.ui.tabs.parameters import ParameterDefinitionTab
 
 
 def test_create_project_param(qtbot):
@@ -16,7 +16,7 @@ def test_create_project_param(qtbot):
     assert bw.projects.current == "pytest_project"
     assert ProjectParameter.select().count() == 0
 
-    project_db_tab = ProjectDatabaseTab()
+    project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_dataframes()
     proj_table = project_db_tab.project_table
@@ -49,7 +49,7 @@ def test_create_database_params(qtbot):
     assert bw.projects.current == "pytest_project"
     assert DatabaseParameter.select().count() == 0
 
-    project_db_tab = ProjectDatabaseTab()
+    project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_dataframes()
     db_table = project_db_tab.database_table
