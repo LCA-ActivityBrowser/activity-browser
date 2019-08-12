@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtWidgets
 
 from ..style import style_activity_tab
 from ..tables import ExchangeTable
 from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
-from ..icons import icons
+from ..icons import qicons
 from ...bwutils import commontasks as bc
 from ...signals import signals
 
@@ -98,18 +98,18 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
-        # Graph button
-        self.button_graph = QtWidgets.QPushButton(
-            QtGui.QIcon(icons.graph_explorer), "", self)
-        self.button_graph.clicked.connect(self.open_graph)
-        self.button_graph.setToolTip("Show graph")
-
         # Toolbar Layout
-        self.HL_toolbar = QtWidgets.QHBoxLayout()
-        self.HL_toolbar.addWidget(self.checkbox_edit_act)
-        self.HL_toolbar.addWidget(self.checkbox_activity_description)
-        self.HL_toolbar.addWidget(self.button_graph, stretch=0)
-        self.HL_toolbar.addStretch(0)
+        toolbar = QtWidgets.QToolBar()
+        toolbar.addWidget(self.checkbox_edit_act)
+        toolbar.addWidget(self.checkbox_activity_description)
+        self.graph_action = toolbar.addAction(
+            qicons.graph_explorer, "Show graph", self.open_graph
+        )
+        self.parameter_action = toolbar.addAction(
+            qicons.switch,
+            "Parameterize this activity to activate formula calculation",
+            self.parameterize
+        )
 
         # activity-specific data displayed and editable near the top of the tab
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
@@ -130,7 +130,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
-        layout.addLayout(self.HL_toolbar)
+        layout.addWidget(toolbar)
         layout.addWidget(self.activity_data_grid)
         layout.addWidget(self.activity_description)
         for table, label in self.exchange_tables:
@@ -152,8 +152,13 @@ class ActivityTab(QtWidgets.QTabWidget):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
         # signals.activity_modified.connect(self.update_activity_values)
 
+    @QtCore.pyqtSlot()
     def open_graph(self):
         signals.open_activity_graph_tab.emit(self.key)
+
+    @QtCore.pyqtSlot()
+    def parameterize(self):
+        signals.add_activity_parameter.emit(self.key)
 
     def populate(self, key):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
