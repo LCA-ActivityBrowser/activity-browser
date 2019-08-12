@@ -254,6 +254,10 @@ class ActivityParameterTable(BaseParameterTable):
 
         # Set dropEnabled
         self.viewport().setAcceptDrops(True)
+        self._connect_signals()
+
+    def _connect_signals(self):
+        signals.add_activity_parameter.connect(self.add_simple_parameter)
 
     @classmethod
     def build_df(cls):
@@ -326,6 +330,55 @@ class ActivityParameterTable(BaseParameterTable):
 
         self.sync(self.dataframe)
         self.new_parameter.emit()
+
+    @pyqtSlot(tuple)
+    def add_simple_parameter(self, key: tuple) -> None:
+        """ Given the activity key, generate a new row with data from
+        the activity and immediately call `save_parameters`.
+        """
+        if key in self.dataframe["key"]:
+            return
+
+        act = bw.get_activity(key)
+
+        prep_name = act.get("reference product", "")
+        if prep_name == "":
+            prep_name = act.get("name")
+
+        prep_name = ActivityParameterTable.clean_parameter_name(prep_name)
+
+        row = {
+            "group": "{}_group".format(prep_name),
+            "name": prep_name,
+            "amount": act.get("amount", 0.0),
+            "formula": act.get("formula", ""),
+            "order": "",
+            "key": key,
+        }
+        row.update({key: None for key in self.UNCERTAINTY})
+        self.dataframe = self.dataframe.append(
+            row, ignore_index=True
+        )
+        self.sync(self.dataframe)
+        self.new_parameter.emit()
+
+    @staticmethod
+    def clean_parameter_name(param_name: str) -> str:
+        """ Takes a given parameter name and remove or replace all characters
+        not allowed to be in there.
+
+        These are ' -,.%[]' and all integers
+        """
+        remove = ",.%[]0123456789"
+        replace = " -"
+        for char in remove:
+            if char in param_name:
+                param_name = param_name.replace(char, "")
+        for char in replace:
+            if char in param_name:
+                param_name = param_name.replace(char, "_")
+
+        return param_name
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         """ Override and activate QTableView.contextMenuEvent()
@@ -454,7 +507,6 @@ class ActivityParameterTable(BaseParameterTable):
         # Reload activities table and trigger reload of exchanges table
         self.sync(self.build_df())
         signals.parameters_changed.emit()
-        self.reload_exchanges.emit()
 
     @staticmethod
     def get_activity_groups(ignore_groups: list=None) -> list:
