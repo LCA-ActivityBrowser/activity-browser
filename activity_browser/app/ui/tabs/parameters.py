@@ -24,8 +24,8 @@ class ParametersTab(QTabWidget):
 
         # Initialize both parameter tabs
         self.tabs = {
-            "Definitions": ProjectDatabaseTab(self),
-            "Exchanges": ProcessExchangeTab(self),
+            "Definitions": ParameterDefinitionTab(self),
+            "Exchanges": ParameterExchangesTab(self),
         }
         for name, tab in self.tabs.items():
             self.addTab(tab, name)
@@ -34,8 +34,21 @@ class ParametersTab(QTabWidget):
             if hasattr(tab, 'build_dataframes'):
                 tab.build_dataframes()
 
+        self._connect_signals()
 
-class ProjectDatabaseTab(BaseRightTab):
+    def _connect_signals(self):
+        signals.add_activity_parameter.connect(self.activity_parameter_added)
+
+    @pyqtSlot(tuple)
+    def activity_parameter_added(self, key: tuple) -> None:
+        """ Selects the correct sub-tab to show and trigger a switch to
+        the Parameters tab.
+        """
+        self.setCurrentIndex(self.indexOf(self.tabs["Definitions"]))
+        signals.show_tab.emit("Parameters")
+
+
+class ParameterDefinitionTab(BaseRightTab):
     """ Project and Database parameters tab.
 
     This tab shows two tables containing the project and database level
@@ -202,7 +215,7 @@ the activity in that group.</li>
             return
 
 
-class ProcessExchangeTab(BaseRightTab):
+class ParameterExchangesTab(BaseRightTab):
     """ Activity and exchange parameters tab.
 
     This tab shows two tables containing the activity parameters and
@@ -241,11 +254,8 @@ class ProcessExchangeTab(BaseRightTab):
 for the full explanation.</p>
 
 <h3>Exchanges</h3>
-<p>Exchanges can be parameterized by selecting one or more activity parameter and using
-'Load all exchanges' in the context menu, this loads all of the exchanges of the selected
-activities as <em>temporary</em> parameters. After setting a <em>formula</em> on any exchange,
-the changes can be stored by saving. After saving, any temporary parameters without a
-<em>formula</em> are cleared from the table.</p>
+<p>Exchanges can be parameterized adding a formula to the exchange in the activity tab.
+After setting or altering a <em>formula</em> on any exchange a new <em>amount</em> can be calculated.
 <ul>
 <li>Only the <em>formula</em> field is editable.</li>
 <li>As with activities, only exchanges from editable databases can be parameterized.</li>
@@ -266,7 +276,7 @@ amount.</li>
         """
         layout = QVBoxLayout()
         row = QToolBar()
-        row.addWidget(header("Activity- and Exchange parameters "))
+        row.addWidget(header("Exchange parameters overview "))
         row.setIconSize(QSize(24, 24))
         row.addAction(
             qicons.question, "About exchange parameters",
