@@ -386,21 +386,15 @@ class ActivityParameterTable(BaseParameterTable):
         All possible menu events should be added and wired up here
         """
         menu = QMenu(self)
-        open_activity_action = QAction(
-            qicons.add, "Open activity/activities", None
+        menu.addAction(
+            qicons.add, "Open activity/activities", self.open_activity_tab
         )
-        open_activity_action.triggered.connect(self.open_activity_tab)
-        delete_row_action = QAction(
-            qicons.delete, "Remove parameter(s)", None
+        menu.addAction(
+            qicons.delete, "Remove parameter(s)", self.delete_parameters
         )
-        delete_row_action.triggered.connect(self.delete_parameters)
-        unset_order_action = QAction(
-            qicons.delete, "Remove order from group(s)", None
+        menu.addAction(
+            qicons.delete, "Remove order from group(s)", self.unset_group_order
         )
-        unset_order_action.triggered.connect(self.unset_group_order)
-        menu.addAction(open_activity_action)
-        menu.addAction(delete_row_action)
-        menu.addAction(unset_order_action)
         menu.popup(QCursor.pos())
         menu.exec()
 
