@@ -8,7 +8,7 @@ from activity_browser.app.signals import signals
 from ..icons import qicons
 from ..style import header, horizontal_line
 from ..tables import (ActivityParameterTable, DataBaseParameterTable,
-                      ExchangeParameterTable, ProjectParameterTable)
+                      ExchangesTable, ProjectParameterTable)
 from .base import BaseRightTab
 
 
@@ -31,16 +31,16 @@ class ParametersTab(QTabWidget):
             self.addTab(tab, name)
 
         for tab in self.tabs.values():
-            if hasattr(tab, 'build_dataframes'):
-                tab.build_dataframes()
+            if hasattr(tab, 'build_tables'):
+                tab.build_tables()
 
         self._connect_signals()
 
     def _connect_signals(self):
         signals.add_activity_parameter.connect(self.activity_parameter_added)
 
-    @pyqtSlot(tuple)
-    def activity_parameter_added(self, key: tuple) -> None:
+    @pyqtSlot()
+    def activity_parameter_added(self) -> None:
         """ Selects the correct sub-tab to show and trigger a switch to
         the Parameters tab.
         """
@@ -121,7 +121,7 @@ the activity in that group.</li>
 """
 
     def _connect_signals(self):
-        signals.project_selected.connect(self.build_dataframes)
+        signals.project_selected.connect(self.build_tables)
         self.new_project_param.clicked.connect(
             lambda: self.add_parameter("project")
         )
@@ -144,10 +144,10 @@ the activity in that group.</li>
         layout = QVBoxLayout()
 
         row = QToolBar()
-        row.addWidget(header("Project- and Database parameters "))
+        row.addWidget(header("Project-, Database- and Activity parameters "))
         row.setIconSize(QSize(24, 24))
         row.addAction(
-            qicons.question, "About project and database parameters",
+            qicons.question, "About brightway parameters",
             self.explanation
         )
         layout.addWidget(row)
@@ -179,7 +179,7 @@ the activity in that group.</li>
         layout.addStretch(1)
         self.setLayout(layout)
 
-    def build_dataframes(self):
+    def build_tables(self):
         """ Read parameters from brightway and build dataframe tables
         """
         self.project_table.sync(ProjectParameterTable.build_df())
@@ -209,7 +209,7 @@ the activity in that group.</li>
             return
         elif error == QMessageBox.Discard:
             # Tables are rebuilt and ALL changes are reverted
-            self.build_dataframes()
+            self.build_tables()
         elif error == QMessageBox.Cancel:
             # Nothing is done, errors remain, tables are not rebuilt
             return
@@ -240,11 +240,8 @@ class ParameterExchangesTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.save_exchanges_btn = QPushButton(qicons.save_db, "Save exchange parameters")
-        self.exc_table = ExchangeParameterTable(self)
-        self.tables = {
-            "exchange": self.exc_table,
-        }
+        self.recalculate_btn = QPushButton(qicons.switch, "Recalculate exchanges")
+        self.table = ExchangesTable(self)
 
         self._construct_layout()
         self._connect_signals()
@@ -253,23 +250,17 @@ class ParameterExchangesTab(BaseRightTab):
 <p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
 for the full explanation.</p>
 
-<h3>Exchanges</h3>
-<p>Exchanges can be parameterized adding a formula to the exchange in the activity tab.
-After setting or altering a <em>formula</em> on any exchange a new <em>amount</em> can be calculated.
-<ul>
-<li>Only the <em>formula</em> field is editable.</li>
-<li>As with activities, only exchanges from editable databases can be parameterized.</li>
-<li>The first time a <em>formula</em> is set on an exchange, its original <em>amount</em> is stored.
-When a <em>formula</em> is removed from an exchange, an attempt is made to restore the original
-amount.</li>
-</ul>
+<p>Shown here is an overview of all the parameters set on the current project.</p>
+<p>Altering the formulas on exchanges in an activity tab will automatically update them here.</p>
+<p>Changing amounts and/or formulas on project-, database- or activity parameters will not
+immediately update the exchange parameters. Use the 'Recalculate exchanges' button to update
+the exchange parameters with the changes from the other parameters.</p>
 """
 
     def _connect_signals(self):
-        signals.project_selected.connect(self.build_dataframes)
-        self.save_exchanges_btn.clicked.connect(
-            lambda: self.store_parameters("exchange")
-        )
+        signals.project_selected.connect(self.build_tables)
+        signals.parameters_changed.connect(self.build_tables)
+        self.recalculate_btn.clicked.connect(self.table.recalculate_exchanges)
 
     def _construct_layout(self):
         """ Construct the widget layout for the exchanges parameters tab
@@ -279,41 +270,21 @@ amount.</li>
         row.addWidget(header("Exchange parameters overview "))
         row.setIconSize(QSize(24, 24))
         row.addAction(
-            qicons.question, "About exchange parameters",
+            qicons.question, "About parameters overview",
             self.explanation
         )
         layout.addWidget(row)
         layout.addWidget(horizontal_line())
 
         row = QHBoxLayout()
-        row.addWidget(header("Exchange parameters:"))
-        row.addWidget(self.save_exchanges_btn)
+        row.addWidget(self.recalculate_btn)
         row.addStretch(1)
         layout.addLayout(row)
-        layout.addWidget(self.exc_table)
+        layout.addWidget(self.table, 2)
         layout.addStretch(1)
         self.setLayout(layout)
 
-    def build_dataframes(self) -> None:
-        """ Read parameters from brightway and build dataframe tables
+    def build_tables(self) -> None:
+        """ Read parameters from brightway and build tree tables
         """
-        self.exc_table.sync(ExchangeParameterTable.build_df())
-
-    @pyqtSlot(str)
-    def store_parameters(self, name: str) -> None:
-        """ Store new / edited data, include handling for exceptions
-        """
-        table = self.tables.get(name, None)
-        if not table:
-            return
-
-        error = table.save_parameters()
-        if not error:
-            table.sync(table.build_df())
-            return
-        elif error == QMessageBox.Discard:
-            # Tables are rebuilt and ALL changes are reverted
-            self.build_dataframes()
-        elif error == QMessageBox.Cancel:
-            # Nothing is done, errors remain, tables are not rebuilt
-            return
+        self.table.sync()

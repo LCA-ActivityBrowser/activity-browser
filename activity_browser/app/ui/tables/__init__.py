@@ -6,6 +6,5 @@ from .inventory import ActivitiesBiosphereTable, DatabasesTable
 from .lca_results import ContributionTable, InventoryTable, LCAResultsTable
 from .LCA_setup import CSActivityTable, CSList, CSMethodsTable
 from .parameters import (ActivityParameterTable, DataBaseParameterTable,
-                         ExchangeParameterTable, ProjectParameterTable,
-                         ViewOnlyParameterTable)
+                         ExchangesTable, ProjectParameterTable)
 from .projects import ProjectListWidget, ProjectTable
