@@ -19,7 +19,9 @@ from ..widgets import parameter_save_errorbox, simple_warning_box
 from .delegates import (DatabaseDelegate, FloatDelegate, ListDelegate,
                         StringDelegate, UncertaintyDelegate, ViewOnlyDelegate)
 from .inventory import ActivitiesBiosphereTable
-from .views import ABDataFrameEdit, ABDataFrameSimpleCopy
+from .models import ParameterTreeModel
+from .views import (ABDataFrameEdit, ABDataFrameSimpleCopy, ABDictTreeView,
+                    tree_model_decorate)
 
 
 class BaseParameterTable(ABDataFrameEdit):
@@ -790,3 +792,52 @@ class ExchangeParameterTable(BaseParameterTable):
             del exchange["original_amount"]
         del exchange["formula"]
         return exchange
+
+
+class ExchangesTable(ABDictTreeView):
+    def _connect_signals(self):
+        super()._connect_signals()
+        signals.exchange_formula_changed.connect(self.parameterize_exchanges)
+
+    @tree_model_decorate
+    def sync(self) -> None:
+        self.data.update({
+            "project": ProjectParameter.select().iterator(),
+            "database": DatabaseParameter.select().iterator(),
+            "activity": ActivityParameter.select().iterator(),
+        })
+
+    def _select_model(self):
+        return ParameterTreeModel(self.data)
+
+    @pyqtSlot(tuple)
+    def parameterize_exchanges(self, key: tuple) -> None:
+        """ Used whenever a formula is set on an exchange in an activity.
+
+        NOTE: this will only work if the activity itself is also parameterized.
+        """
+        try:
+            param = (ActivityParameter.select()
+                     .where(ActivityParameter.database == key[0],
+                            ActivityParameter.code == key[1])
+                     .limit(1)
+                     .get())
+        except ActivityParameter.DoesNotExist:
+            return
+
+        act = bw.get_activity(key)
+        bw.parameters.add_exchanges_to_group(param.group, act)
+        ActivityParameter.recalculate_exchanges(param.group)
+        signals.parameters_changed.emit()
+
+    @staticmethod
+    @pyqtSlot()
+    def recalculate_exchanges():
+        """ Will iterate through all activity parameters and rerun the
+        formula interpretation for all exchanges.
+        """
+        for param in ActivityParameter.select().iterator():
+            act = bw.get_activity((param.database, param.code))
+            bw.parameters.add_exchanges_to_group(param.group, act)
+            ActivityParameter.recalculate_exchanges(param.group)
+        signals.parameters_changed.emit()
