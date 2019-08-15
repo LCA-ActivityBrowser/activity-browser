@@ -10,7 +10,7 @@ import pandas as pd
 
 from activity_browser.app.settings import project_settings
 from .table import ABTableWidget, ABTableItem
-from .views import ABDataFrameView
+from .views import ABDataFrameView, dataframe_sync
 from ..icons import icons
 from ...signals import signals
 from ...bwutils.metadata import AB_metadata
@@ -201,9 +201,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             lambda name: self.sync(name)
         )
         # signals.database_changed.connect(self.filter_database_changed)
-        signals.database_changed.connect(
-            lambda x: self.sync(self.database_name)
-        )
+        signals.database_changed.connect(self.check_database_changed)
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
         self.doubleClicked.connect(self.item_double_clicked)
@@ -222,6 +220,13 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
+    @QtCore.pyqtSlot(str)
+    def check_database_changed(self, db_name: str) -> None:
+        """ Determine if we need to re-sync (did 'our' db change?).
+        """
+        if db_name == self.database_name and db_name in bw.databases:
+            self.sync(db_name)
+
     # def LCA_calculation(self, key):
     #     print(key)
     #     func_unit = {key: 1.0}
@@ -229,7 +234,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     #         for key, amount in func_unit.items():
     #             self.append_row(key, str(amount))
 
-    @ABDataFrameView.decorated_sync
+    @dataframe_sync
     def sync(self, db_name, df=None):
         if isinstance(df, pd.DataFrame):  # skip the rest of the sync here if a dataframe is directly supplied
             print('Pandas Dataframe passed to sync.', df.shape)

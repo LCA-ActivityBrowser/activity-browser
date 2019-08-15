@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- ([#259](https://github.com/LCA-ActivityBrowser/activity-browser/pull/259)) Subclassed the `Icons` class into `QIcons` which directly returns QIcon objects of the icon figures. 
+
+### Changed
+
+- ([#256](https://github.com/LCA-ActivityBrowser/activity-browser/pull/256)) Do not open the activity tab for activities without a product (ie. biosphere flows).
+  - Includes tests!
+- ([#258](https://github.com/LCA-ActivityBrowser/activity-browser/pull/258), [#261](https://github.com/LCA-ActivityBrowser/activity-browser/pull/261)) Refactor the dataframe Model/View code to allow a lot of customization.
+
+### Fixed
+
+- ([#246](https://github.com/LCA-ActivityBrowser/activity-browser/pull/246)) Added a workaround for running LCA on databases with missing or unset uncertainty.
+- ([#262](https://github.com/LCA-ActivityBrowser/activity-browser/pull/262)) Database will no longer be deleted if the user selects `No` in the `delete_database` question dialog.
+- ([#263](https://github.com/LCA-ActivityBrowser/activity-browser/pull/263)) Add separate check of `database_changed` signal to ensure the correct table is refreshed. 
+
 ## [2.3.2] - 2019-07-03
 
 ### Added
