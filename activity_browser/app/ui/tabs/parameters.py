@@ -49,13 +49,13 @@ class ParametersTab(QTabWidget):
 
 
 class ParameterDefinitionTab(BaseRightTab):
-    """ Project and Database parameters tab.
+    """ Parameter definitions tab.
 
-    This tab shows two tables containing the project and database level
-    parameters set for the project.
+    This tab shows three tables containing the project-, database- and
+    activity level parameters set for the project.
 
-    The user can create new parameters at both levels and save new parameters
-    or updates to old ones with a single button.
+    The user can create new parameters at these three levels and save
+    new or edited parameters with a single button.
     Pressing the save button will cause brightway to validate the changes
     and a warning message will appear if an error occurs.
     """
@@ -86,11 +86,15 @@ for the full explanation.</p>
 <a href="https://docs.brightwaylca.org/intro.html#storing-uncertain-values">uncertain values</a>, but these are
 completely optional.</p>
 
-<h3>Formula field, in general:</h3>
+<h3>In general:</h3>
+<p>Any errors that occur when saving new/edited parameters are presented as clearly as possible. In most cases
+problems can be resolved by checking that the <em>name</em>, <em>database</em> or <em>group</em> fields
+are filled out.</p>
 <p>The formula field is a string that is interpreted by brightway on save. Python builtin functions and Numpy functions
 can be used within the formula!</p>
 
 <h3>Project</h3>
+<p> New parameters added by the relevant button are temporary until stored.</p>
 <ul>
 <li>All project parameters must have a unique <em>name</em>.</li>
 <li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
@@ -98,6 +102,7 @@ can be used within the formula!</p>
 </ul>
 
 <h3>Database</h3>
+<p> New parameters added by the relevant button are temporary until stored.</p>
 <ul>
 <li>All database parameters must have unique <em>name</em> within their database.</li>
 <li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
@@ -108,8 +113,10 @@ use the database parameter.</li>
 </ul>
 
 <h3>Activities</h3>
-<p>Activities can be dragged from a database in the left panel into the activity parameter table.
-Dropping one or more activities into the table creates <em>temporary</em> parameters.</p>
+<p>New parameters are added either by drag-and-dropping from the database table or by clicking
+the <em>parameterize</em> button within an Activity tab. Whatever the case, the newly added
+parameters are 'temporary' to allow the user to change the default <em>group</em> and
+<em>name</em> values.</p>
 <ul>
 <li>Only the <em>group</em>, <em>name</em>, <em>amount</em> and <em>formula</em> fields are editable.</li>
 <li>Only activities from editable databases can be parameterized.</li>
@@ -216,25 +223,14 @@ the activity in that group.</li>
 
 
 class ParameterExchangesTab(BaseRightTab):
-    """ Activity and exchange parameters tab.
+    """ Overview of exchanges
 
-    This tab shows two tables containing the activity parameters and
-    related exchanges where parameters are set.
+    This tab shows a foldable treeview table containing all of the
+    parameters set for the current project.
 
-    Dragging and dropping an activity from the left panel (database) into
-    the activity table will create a 'temporary' row containing the activity,
-    adding a ground name and paramater name will allow the user to save
-    the activity parameter.
-    Once saved, the exchanges for that activity can be extracted through
-    a context menu into the exchange table.
-    After adding formulas to the relevant exchanges the user can click
-    'Save', upon which the table will store those activities and exchanges
-    with parameters (formulas) while removing the un-parameterized exchanges.
-    Exceptions caused by failed validation will be caught and presented
-    to the user in a messagebox.
-
-    NOTE: Only activities from a database that is NOT read-only
-    can be dropped into the table.
+    Changes made to parameters in the `Definitions` tab will require
+    the user to press `Recalculate exchanges` to ensure the amounts in
+    the exchanges are properly updated.
     """
 
     def __init__(self, parent=None):
