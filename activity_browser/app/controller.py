@@ -260,7 +260,7 @@ class Controller(object):
             ("Are you sure you want to delete database '{}'? It has {} activity datasets").format(
                 name, len(bw.Database(name)))
         )
-        if ok:
+        if ok == QtWidgets.QMessageBox.Yes:
             project_settings.remove_db(name)
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
