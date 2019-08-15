@@ -10,7 +10,7 @@ import pandas as pd
 
 from activity_browser.app.settings import project_settings
 from .table import ABTableWidget, ABTableItem
-from .views import ABDataFrameView
+from .views import ABDataFrameView, dataframe_sync
 from ..icons import icons
 from ...signals import signals
 from ...bwutils.metadata import AB_metadata
@@ -234,7 +234,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     #         for key, amount in func_unit.items():
     #             self.append_row(key, str(amount))
 
-    @ABDataFrameView.decorated_sync
+    @dataframe_sync
     def sync(self, db_name, df=None):
         if isinstance(df, pd.DataFrame):  # skip the rest of the sync here if a dataframe is directly supplied
             print('Pandas Dataframe passed to sync.', df.shape)
