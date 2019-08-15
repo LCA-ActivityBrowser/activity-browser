@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import copy
 import os
 import uuid
 
 import brightway2 as bw
 from PyQt5 import QtWidgets
-from bw2data.backends.peewee import Exchange, sqlite3_lci_db
+from PyQt5.QtCore import pyqtSlot
+from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 from activity_browser.app.ui.wizards.db_import_wizard import (
@@ -60,7 +60,7 @@ class Controller(object):
         # signals.exchanges_output_modified.connect(self.modify_exchanges_output)
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
-        signals.exchange_amount_modified.connect(self.modify_exchange_amount)
+        signals.exchange_modified.connect(self.modify_exchange)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
@@ -471,7 +471,14 @@ class Controller(object):
             # signals.metadata_changed.emit(to_key)
             signals.database_changed.emit(db)
 
-    def modify_exchange_amount(self, exchange, value):
-        exchange['amount'] = value
+    @staticmethod
+    @pyqtSlot(object, str, object)
+    def modify_exchange(exchange, field, value):
+        exchange[field] = value
+        # Never, ever, store an empty string in the formula field.
+        if field == "formula" and value == "" and "formula" in exchange:
+            del exchange[field]
         exchange.save()
+        if field == "formula":
+            signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange['output'][0])

@@ -5,7 +5,7 @@ from .inventory import ActivitiesBiosphereTable
 from .table import ABTableWidget, ABTableItem
 from ..icons import icons
 from ...signals import signals
-from ...bwutils.commontasks import bw_keys_to_AB_names
+from ...bwutils.commontasks import AB_names_to_bw_keys, bw_keys_to_AB_names
 
 
 class ExchangeTable(ABTableWidget):
@@ -99,29 +99,36 @@ class ExchangeTable(ABTableWidget):
             self.sync()
 
     def filter_change(self, row, col):
-        try:
-            item = self.item(row, col)
-            if self.ignore_changes:  # todo: check or remove
+        """ Take inputs from the user and edit the relevant parts of the
+         database.
+
+         There are currently four possible editable fields:
+         Amount, Unit, Product and Formula
+         """
+        item = self.item(row, col)
+        if self.ignore_changes:  # todo: check or remove
+            return
+        elif item.text() == item.previous:
+            return
+        field_name = AB_names_to_bw_keys[self.COLUMN_LABELS[self.tableType][col]]
+
+        if field_name == "amount":
+            try:
+                value = float(item.text())
+            except ValueError:
+                print('You can only enter numbers here.')
+                item.setText(item.previous)
                 return
-            elif item.text() == item.previous:
-                return
-            else:
-                print("row:", row)
-                if col == 0:  # expect number todo: improve substantially!
-                    value = float(item.text())
-                    item.previous = item.text()
-                    exchange = item.exchange
-                    signals.exchange_amount_modified.emit(exchange, value)
-                else:  # exepct string
-                    fields = {1: "unit", 2: "reference product"}
-                    print("here 2")
-                    act = item.exchange.output.key
-                    value = str(item.text())
-                    item.previous = item.text()
-                    signals.activity_modified.emit(act, fields[col], value)
-        except ValueError:
-            print('You can only enter numbers here.')
-            item.setText(item.previous)
+        else:
+            value = str(item.text())
+        item.previous = item.text()
+
+        if field_name in ["amount", "formula"]:
+            exchange = item.exchange
+            signals.exchange_modified.emit(exchange, field_name, value)
+        else:
+            act_key = item.exchange.output.key
+            signals.activity_modified.emit(act_key, field_name, value)
 
     def handle_double_clicks(self, row, col):
         """ handles double-click events rather than clicks... rename? """
