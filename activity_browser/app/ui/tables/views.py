@@ -3,7 +3,7 @@ import os
 from functools import wraps
 
 from PyQt5.QtCore import QSize, QSortFilterProxyModel, Qt, pyqtSlot
-from PyQt5.QtWidgets import QFileDialog, QTableView
+from PyQt5.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from activity_browser.app.settings import ab_settings
 
@@ -177,3 +177,39 @@ class ABDataFrameEdit(ABDataFrameView):
             self.resizeRowsToContents()
 
         return wrapper
+
+
+def tree_model_decorate(sync):
+    """ Take and execute the given sync function, then build the view model.
+    """
+    @wraps(sync)
+    def wrapper(self, *args, **kwargs):
+        sync(self, *args, **kwargs)
+        model = self._select_model()
+        self.setModel(model)
+        self._resize()
+    return wrapper
+
+
+class ABDictTreeView(QTreeView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setUniformRowHeights(True)
+        self.data = {}
+        self._connect_signals()
+
+    def _connect_signals(self):
+        self.expanded.connect(self._resize)
+        self.collapsed.connect(self._resize)
+
+    def _select_model(self):
+        """ Returns the model to be used in the view.
+        """
+        raise NotImplementedError
+
+    @pyqtSlot()
+    def _resize(self) -> None:
+        """ Resize the first column (usually 'name') whenever an item is
+        expanded or collapsed.
+        """
+        self.resizeColumnToContents(0)
