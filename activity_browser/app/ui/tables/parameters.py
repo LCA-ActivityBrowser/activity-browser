@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-from typing import List, Optional
+from typing import Optional
 
 import brightway2 as bw
 import numpy as np
 import pandas as pd
-from bw2data.backends.peewee.proxies import Exchange
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QContextMenuEvent, QCursor, QDragMoveEvent, QDropEvent
-from PyQt5.QtWidgets import QAction, QMenu
+from PyQt5.QtWidgets import QMenu
 
 from activity_browser.app.settings import project_settings
 from activity_browser.app.signals import signals
@@ -20,8 +19,8 @@ from .delegates import (DatabaseDelegate, FloatDelegate, ListDelegate,
                         StringDelegate, UncertaintyDelegate, ViewOnlyDelegate)
 from .inventory import ActivitiesBiosphereTable
 from .models import ParameterTreeModel
-from .views import (ABDataFrameEdit, ABDataFrameSimpleCopy, ABDictTreeView,
-                    dataframe_sync, tree_model_decorate)
+from .views import (ABDataFrameEdit, ABDictTreeView, dataframe_sync,
+                    tree_model_decorate)
 
 
 class BaseParameterTable(ABDataFrameEdit):
@@ -195,39 +194,6 @@ class DataBaseParameterTable(BaseParameterTable):
                 signals.parameters_changed.emit()
             except Exception as e:
                 return parameter_save_errorbox(self, e)
-
-
-class ViewOnlyParameterTable(ABDataFrameSimpleCopy):
-    """ Show a combination of Project and Database parameter names
-    """
-    COLUMNS = ["parameter", "name"]
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    @ABDataFrameSimpleCopy.decorated_sync
-    def sync(self, df):
-        self.dataframe = df
-
-    @classmethod
-    def build_df(cls):
-        """ Build a listview of existing
-        """
-        project_variables = [
-            {"parameter": "project", "name": getattr(p, "name")}
-            for p in ProjectParameter.select()
-        ]
-        database_variables = [
-            {
-                "parameter": "database:{}".format(getattr(p, "database")),
-                "name": "{}".format(getattr(p, "name"))
-            }
-            for p in DatabaseParameter.select()
-        ]
-        df = pd.DataFrame(
-            project_variables + database_variables, columns=cls.COLUMNS
-        )
-        return df
 
 
 class ActivityParameterTable(BaseParameterTable):
@@ -514,284 +480,6 @@ class ActivityParameterTable(BaseParameterTable):
             param.group for param in ActivityParameter.select()
             if param.group not in ignore_groups
         ]))
-
-
-class ExchangeParameterTable(BaseParameterTable):
-    """ Table widget for exchange parameters
-
-    NOTE: These exchanges are not retrieved through the ParamaterizedExchange
-    class but by scanning the activity exchanges for 'formula' fields.
-    """
-    COLUMNS = ["group", "name",  "input", "output", "amount", "formula"]
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, StringDelegate(self))
-
-    @classmethod
-    def build_df(cls):
-        """ Build a dataframe using the ActivityParameters set in brightway
-
-        Lookup the activity in the database itself and generate rows using
-        exchanges which have a formula set.
-        """
-        data = []
-        for p in ActivityParameter.select():
-            row = {"group": p.group, "name": p.name}
-            for exc in cls._collect_activity_exchanges((p.database, p.code)):
-                data.append(cls._construct_exchange_row(row, exc))
-
-        df = pd.DataFrame(data, columns=cls.COLUMNS)
-        return df
-
-    def contextMenuEvent(self, event: QContextMenuEvent):
-        """ Override and activate QTableView.contextMenuEvent()
-
-        All possible menu events should be added and wired up here
-        """
-        menu = QMenu(self)
-        delete_row_action = QAction(
-            qicons.delete, "Remove parameter(s)", None
-        )
-        delete_row_action.triggered.connect(self.delete_parameters)
-        menu.addAction(delete_row_action)
-        menu.popup(QCursor.pos())
-        menu.exec()
-
-    @classmethod
-    def build_activity_exchange_df(cls, key: tuple) -> pd.DataFrame:
-        """ Given an activity key, build a dataframe of all the activity
-        exchanges
-        """
-        param = (ActivityParameter
-                 .select(ActivityParameter.group, ActivityParameter.name)
-                 .where(ActivityParameter.database == key[0],
-                        ActivityParameter.code == key[1])
-                 .limit(1)
-                 .get())
-        act_data = {"group": param.group, "name": param.name}
-
-        data = [
-            cls._construct_exchange_row(act_data, exc)
-            for exc in cls._collect_activity_exchanges(key, only_formula=False)
-        ]
-
-        df = pd.DataFrame(data, columns=cls.COLUMNS)
-        return df
-
-    @staticmethod
-    def combine_exchange_tables(old: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
-        """ Combine two exchange dataframe tables, replacing rows in `old`
-        with `new` if they match on specific columns.
-        """
-        result = (pd.concat([old, new])
-                  .drop_duplicates(
-                    ["group", "name", "input", "output"], keep="last"
-                  )
-                  .sort_values(by=["group", "name"]))
-        return result
-
-    @pyqtSlot(tuple)
-    def extend_exchange_df(self, key: tuple) -> Optional[int]:
-        """ Update the owned dataframe with exchanges from the given activity
-        key
-        """
-        try:
-            new_exchanges = self.build_activity_exchange_df(key)
-            self.dataframe = self.combine_exchange_tables(
-                self.dataframe, new_exchanges
-            )
-            self.sync(self.dataframe)
-            self.new_parameter.emit()
-        except ActivityParameter.DoesNotExist as e:
-            return simple_warning_box(
-                self, "Data missing",
-                "Cannot retrieve exchanges of unsaved activity parameters"
-            )
-
-    @staticmethod
-    def _collect_activity_exchanges(key: tuple, only_formula: bool=True) -> list:
-        """ Given an activity key, retrieve row data for the exchange table
-        """
-        act = bw.get_activity(key)
-        if only_formula:
-            return [exc for exc in act.exchanges() if 'formula' in exc]
-        else:
-            return act.exchanges()
-
-    @staticmethod
-    def _construct_exchange_row(act_data: dict, exc) -> dict:
-        exc_in = (exc.input.get("database"), exc.input.get("code"))
-        exc_out = (exc.output.get("database"), exc.output.get("code"))
-        row = {k: v for k, v in act_data.items()}
-        row.update({
-            "input": exc_in, "output": exc_out,
-            "amount": exc.amount, "formula": exc.get("formula", "")
-        })
-        return row
-
-    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
-        """ Iterates over all of the activities for which there are exchanges
-         in the table, if a formula is given store the current amount under
-         'original_amount', then set the formula.
-
-         In addition, also consider if the
-        """
-        if not self.has_data:
-            return
-
-        edited_activities = self.dataframe.drop_duplicates(["group", "name"])
-        for act_param in edited_activities.itertuples(index=False):
-            # Retrieve the activity
-            act = self._get_activity_from_group_name(
-                act_param.group, act_param.name
-            )
-            # We don't know if the edited exchanges are those with or without
-            # formulas, so grab everything
-            exchanges = (self.dataframe
-                         .loc[(self.dataframe["group"] == act_param.group) & (self.dataframe["name"] == act_param.name)]
-                         .to_dict(orient="records"))
-            self._update_exchanges(exchanges, act)
-            bw.parameters.add_exchanges_to_group(act_param.group, act)
-
-        # Now that all exchanges are updated, recalculate them for each group.
-        groups = self.dataframe["group"].unique()
-        for group in groups:
-            try:
-                ActivityParameter.recalculate_exchanges(group)
-            except Exception as e:
-                # Exception is shown faaaar too late to do something about it.
-                return parameter_save_errorbox(self, e)
-
-        signals.parameters_changed.emit()
-        self.sync(self.dataframe)
-
-    @pyqtSlot()
-    def delete_parameters(self) -> None:
-        """ Removes formula(s) from the selected exchange(s)
-        """
-        deletions = set()
-        for index in self.selectedIndexes():
-            source_index = self.get_source_index(index)
-            row = self.dataframe.iloc[source_index.row(), ]
-            act = self._get_activity_from_group_name(
-                row["group"], row["name"]
-            )
-            deletions.add((row["group"], act))
-            exc = next(
-                exc for exc in act.exchanges() if
-                row.get("input") == exc.input and
-                row.get("output") == exc.output
-            )
-            exc = self._remove_formula(exc)
-            exc.save()
-
-        # Now, for each group/act, purge the ParameterizedExchanges and
-        # rebuild them
-        for group, act in deletions:
-            with bw.parameters.db.atomic():
-                bw.parameters.remove_exchanges_from_group(group, act)
-            bw.parameters.add_exchanges_to_group(group, act)
-
-        bw.parameters.recalculate()
-        signals.parameters_changed.emit()
-        self.sync(self.build_df())
-
-    @pyqtSlot(tuple)
-    def clear_linked_parameters(self, key: tuple) -> None:
-        """ Given an activity, unset the formulas of all related exchanges
-
-        Should be called when an activity parameter is removed as brightway
-        removes the ParameterizedExchanges, but does not remove the formula
-        or altered amount.
-        """
-        act = bw.get_activity(key)
-        for exc in [exc for exc in act.exchanges() if "formula" in exc]:
-            exc = self._remove_formula(exc)
-            exc.save()
-
-    def _get_activity_from_group_name(self, group: str, name: str):
-        """ Given the group and name, find the related ActivityParameter
-        and retrieve the actual activity
-        """
-        try:
-            # Names are unique within a group.
-            param = (ActivityParameter
-                     .select(ActivityParameter.database, ActivityParameter.code)
-                     .where(ActivityParameter.name == name,
-                            ActivityParameter.group == group)
-                     .limit(1)
-                     .get())
-            return bw.get_activity((param.database, param.code))
-        except ActivityParameter.DoesNotExist:
-            # If this happens, the activity and exchange tables are
-            # de-synced, somehow.
-            return simple_warning_box(
-                self,
-                "Oops",
-                "No activity parameter for '{}, {}' could be found.".format(group, name)
-            )
-
-    def _update_exchanges(self, exchanges: List[dict], act) -> None:
-        """ Take the given 'edited' exchanges, and the related activity proxy.
-
-        Find and update each exchange within the activity if needed, either:
-        Store the new 'formula' inside in the original exchange
-        OR
-        Update the existing formula with a new one.
-        OR
-        Remove an existing formula, in effect removing the parameter.
-        """
-        for edited in exchanges:
-            original = next(
-                exc for exc in act.exchanges() if
-                edited.get("input") == exc.input and
-                edited.get("output") == exc.output
-            )
-            altered = False
-            formula = edited.get("formula", "").strip()
-
-            # No changes, continue to next exchange
-            if formula == "" and "formula" not in original:
-                continue
-
-            if "formula" in original:
-                # Formula was set, but is now being removed
-                if formula == "":
-                    original = self._remove_formula(original)
-                    altered = True
-                # If formula was set and is now being changed
-                elif formula != original["formula"]:
-                    original["formula"] = formula
-                    altered = True
-            # Formula was not set and is now being set
-            else:
-                original["original_amount"] = original.amount
-                original["formula"] = formula
-                altered = True
-
-            # Only save to database if changes have occurred
-            if altered:
-                original.save()
-
-    @staticmethod
-    def _remove_formula(exchange: Exchange) -> Exchange:
-        """ Trigger this if the user removes the formula from an exchange
-        which previously did have a formula.
-        """
-        # If we can, restore the original exchange amount
-        if "original_amount" in exchange:
-            exchange["amount"] = exchange["original_amount"]
-            del exchange["original_amount"]
-        del exchange["formula"]
-        return exchange
 
 
 class ExchangesTable(ABDictTreeView):
