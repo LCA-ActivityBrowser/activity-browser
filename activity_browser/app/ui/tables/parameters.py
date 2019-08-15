@@ -21,7 +21,7 @@ from .delegates import (DatabaseDelegate, FloatDelegate, ListDelegate,
 from .inventory import ActivitiesBiosphereTable
 from .models import ParameterTreeModel
 from .views import (ABDataFrameEdit, ABDataFrameSimpleCopy, ABDictTreeView,
-                    tree_model_decorate)
+                    dataframe_sync, tree_model_decorate)
 
 
 class BaseParameterTable(ABDataFrameEdit):
@@ -36,7 +36,7 @@ class BaseParameterTable(ABDataFrameEdit):
         """
         return len(self.dataframe.index) > 0
 
-    @ABDataFrameEdit.decorated_sync
+    @dataframe_sync
     def sync(self, df):
         self.dataframe = df
 
