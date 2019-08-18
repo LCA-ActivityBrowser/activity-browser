@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QAction
 
-from . table import ABTableWidget, ABTableItem
-from ..icons import icons
+from .table import ABTableWidget, ABTableItem
+from ..icons import qicons
 from ...signals import signals
 
 
@@ -26,9 +27,9 @@ class ActivitiesHistoryTable(ABTableWidget):
         self.connect_signals()
 
     def setup_context_menu(self):
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.open_left_tab_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.left), "Open in new tab", None
+        self.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.open_left_tab_action = QAction(
+            qicons.left, "Open in new tab", None
         )
         self.addAction(self.open_left_tab_action)
         self.open_left_tab_action.triggered.connect(
