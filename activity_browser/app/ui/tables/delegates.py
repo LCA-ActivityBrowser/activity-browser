@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PyQt5.QtCore import QAbstractItemModel, QLocale, QModelIndex, Qt
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import QComboBox, QLineEdit, QStyledItemDelegate
 
@@ -13,7 +13,11 @@ class FloatDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         editor = QLineEdit(parent)
-        editor.setValidator(QDoubleValidator())
+        locale = QLocale(QLocale.English)
+        locale.setNumberOptions(QLocale.RejectGroupSeparator)
+        validator = QDoubleValidator()
+        validator.setLocale(locale)
+        editor.setValidator(validator)
         return editor
 
     def setEditorData(self, editor: QLineEdit, index: QModelIndex):
