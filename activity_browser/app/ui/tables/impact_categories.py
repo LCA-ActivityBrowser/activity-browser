@@ -2,12 +2,11 @@
 import numbers
 
 import brightway2 as bw
-import pandas as pd
+from pandas import DataFrame
 from PyQt5 import QtWidgets
 
 from activity_browser.app.signals import signals
 
-from .table import ABTableWidget, ABTableItem
 from .views import ABDataFrameView, dataframe_sync
 
 
@@ -61,7 +60,7 @@ class MethodsTable(ABDataFrameView):
                 "method": method_obj[1],
             }
             data.append(row)
-        self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
+        self.dataframe = DataFrame(data, columns=self.HEADERS)
 
     def _resize(self):
         self.setColumnHidden(3, True)
@@ -103,51 +102,10 @@ class CFTable(ABDataFrameView):
             }
             row.update({"Amount": amount, "Uncertain": uncertain, "key": key})
             data.append(row)
-        self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
+        self.dataframe = DataFrame(data, columns=self.HEADERS)
 
     def _resize(self):
         self.setColumnHidden(5, True)
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         ))
-
-
-class CFTable(ABTableWidget):
-    COLUMNS = {
-        0: "name",
-        1: "amount",
-        2: "unit",
-        3: "uncertain",
-    }
-    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertain"]
-
-    def __init__(self):
-        super(CFTable, self).__init__()
-        self.setVisible(False)
-        self.setColumnCount(len(self.HEADERS))
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
-
-
-    @ABTableWidget.decorated_sync
-    def sync(self, method):
-        self.setHorizontalHeaderLabels(self.HEADERS)
-        method = bw.Method(method)
-        data = method.load()
-        self.setRowCount(len(data))
-        for row, obj in enumerate(data):
-            key, amount = obj[:2]
-            flow = bw.get_activity(key)
-            if isinstance(amount, numbers.Number):
-                uncertain = "False"
-            else:
-                uncertain = "True"
-                amount = amount['amount']
-            self.setItem(row, 0, ABTableItem(flow['name'], key=key))
-            self.setItem(row, 1, ABTableItem(str(flow['categories']), key=key))
-            self.setItem(row, 1, ABTableItem(str(flow['categories']), key=key))
-            self.setItem(row, 2, ABTableItem("{:.6g}".format(amount), key=key))
-            self.setItem(row, 3, ABTableItem(flow.get('unit', 'Unknown'), key=key))
-            self.setItem(row, 4, ABTableItem(str(uncertain), key=key))
