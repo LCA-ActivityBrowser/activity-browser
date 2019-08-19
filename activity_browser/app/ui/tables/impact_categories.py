@@ -70,6 +70,48 @@ class MethodsTable(ABDataFrameView):
         ))
 
 
+class CFTable(ABDataFrameView):
+    COLUMNS = [
+        "name",
+        "categories",
+        "amount",
+        "unit",
+        "uncertain",
+    ]
+    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertain"] + ["key"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setVisible(False)
+
+    @dataframe_sync
+    def sync(self, method: tuple) -> None:
+        method = bw.Method(method)
+        method_data = method.load()
+        data = []
+        for obj in method_data:
+            key, amount = obj[:2]
+            flow = bw.get_activity(key)
+            if isinstance(amount, numbers.Number):
+                uncertain = "False"
+            else:
+                uncertain = "True"
+                amount = amount['amount']
+            row = {
+                self.HEADERS[i]: flow.get(self.COLUMNS[i])
+                for i in range(len(self.COLUMNS))
+            }
+            row.update({"Amount": amount, "Uncertain": uncertain, "key": key})
+            data.append(row)
+        self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
+
+    def _resize(self):
+        self.setColumnHidden(5, True)
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+        ))
+
+
 class CFTable(ABTableWidget):
     COLUMNS = {
         0: "name",
