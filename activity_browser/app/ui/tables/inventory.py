@@ -119,6 +119,8 @@ class DatabasesTable(ABDataFrameView):
             QtWidgets.QSizePolicy.Maximum)
         )
 
+    def rowCount(self) -> int:
+        return self.model.rowCount()
 
 class DatabasesTable(ABTableWidget):
     """Displays metadata for the databases found within the selected project
