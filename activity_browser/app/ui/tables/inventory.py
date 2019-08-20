@@ -11,7 +11,6 @@ import pandas as pd
 from activity_browser.app.settings import project_settings
 
 from .delegates import CheckboxDelegate
-from .table import ABTableWidget, ABTableItem
 from .views import ABDataFrameView, dataframe_sync
 from ..icons import icons, qicons
 from ...signals import signals
@@ -20,6 +19,13 @@ from ...bwutils.commontasks import is_technosphere_db
 
 
 class DatabasesTable(ABDataFrameView):
+    """ Displays metadata for the databases found within the selected project.
+
+    Databases can be read-only or writable, with users preference persisted
+    in settings file.
+    - User double-clicks to see the activities and flows within a db
+    - A context menu (right click) provides further functionality
+    """
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified"]
 
     def __init__(self, parent=None):
@@ -121,105 +127,6 @@ class DatabasesTable(ABDataFrameView):
 
     def rowCount(self) -> int:
         return self.model.rowCount()
-
-class DatabasesTable(ABTableWidget):
-    """Displays metadata for the databases found within the selected project
-    Dbs can be read-only or writable, with users preference persisted in settings file
-    User double-clicks to see the activities and flows within a db
-    A context menu (right click) provides further functionality"""
-    # Column 4 header options: Size / Entries / Flows / Activities / Count / Activity Count..
-    # ... 'Records' seems reasonable for a "database", and is quite short
-    HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified", ]
-    # HEADERS = {
-    #     "Name": 0,
-    #     "Depends": 1,
-    #     "Modified": 2,
-    #     "Records": 3,
-    #     "Read-only": 4,
-    # }
-
-    def __init__(self):
-        super(DatabasesTable, self).__init__()
-        self.name = "undefined"
-        self.setColumnCount(len(self.HEADERS))
-        self.connect_signals()
-        self.setup_context_menu()
-
-    def setup_context_menu(self):
-        # delete database
-        self.delete_database_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.delete), "Delete database", None
-        )
-        self.addAction(self.delete_database_action)
-        self.delete_database_action.triggered.connect(
-            lambda x: signals.delete_database.emit(
-                self.currentItem().db_name
-            )
-        )
-
-        # copy database
-        self.copy_database_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.duplicate), "Copy database", None
-        )
-        self.addAction(self.copy_database_action)
-        self.copy_database_action.triggered.connect(
-            lambda x: signals.copy_database.emit(
-                self.currentItem().db_name
-            )
-        )
-        # add activity (important for empty databases)
-        self.add_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add), "Add new activity", None
-        )
-        self.addAction(self.add_activity_action)
-        self.add_activity_action.triggered.connect(
-            lambda x: signals.new_activity.emit(
-                self.currentItem().db_name
-            )
-        )
-
-    def connect_signals(self):
-        signals.project_selected.connect(self.sync)
-        signals.databases_changed.connect(self.sync)
-        self.itemDoubleClicked.connect(self.select_database)
-
-    def select_database(self, item):
-        signals.database_selected.emit(item.db_name)
-
-    def read_only_changed(self, read_only, db):
-        """User has clicked to update a db to either read-only or not"""
-        project_settings.modify_db(db, read_only)
-        signals.database_read_only_changed.emit(db, read_only)
-
-    @ABTableWidget.decorated_sync
-    def sync(self):
-        self.setRowCount(len(bw.databases))
-        self.setHorizontalHeaderLabels(self.HEADERS)
-        # self.setHorizontalHeaderLabels(sorted(self.HEADERS.items(), key=lambda kv: kv[1]))
-
-        databases_read_only_settings = project_settings.settings.get('read-only-databases', {})
-
-        for row, name in enumerate(natural_sort(bw.databases)):
-            self.setItem(row, self.HEADERS.index("Name"), ABTableItem(name, db_name=name))
-            depends = bw.databases[name].get('depends', [])
-            self.setItem(row, self.HEADERS.index("Depends"), ABTableItem(", ".join(depends), db_name=name))
-            dt = bw.databases[name].get('modified', '')
-            # code below is based on the assumption that bw uses utc timestamps
-            tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
-            time_shift = - tz.utcoffset().total_seconds()
-            if dt:
-                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
-            self.setItem(row, self.HEADERS.index("Modified"), ABTableItem(dt, db_name=name))
-            self.setItem(
-                row, self.HEADERS.index("Records"), ABTableItem(str(len(bw.Database(name))), db_name=name)
-            )
-            # final column includes interactive checkbox which shows read-only state of db
-            database_read_only = databases_read_only_settings.get(name, True)
-
-            ch = QtWidgets.QCheckBox(parent=self)
-            ch.clicked.connect(lambda checked, db=name: self.read_only_changed(checked, db))
-            ch.setChecked(database_read_only)
-            self.setCellWidget(row, self.HEADERS.index("Read-only"), ch)
 
 
 class ActivitiesBiosphereTable(ABDataFrameView):
