@@ -9,12 +9,115 @@ import numpy as np
 import pandas as pd
 
 from activity_browser.app.settings import project_settings
+
+from .delegates import CheckboxDelegate
 from .table import ABTableWidget, ABTableItem
 from .views import ABDataFrameView, dataframe_sync
-from ..icons import icons
+from ..icons import icons, qicons
 from ...signals import signals
 from ...bwutils.metadata import AB_metadata
 from ...bwutils.commontasks import is_technosphere_db
+
+
+class DatabasesTable(ABDataFrameView):
+    HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.verticalHeader().setVisible(False)
+        self.setSelectionMode(ABDataFrameView.SingleSelection)
+        self.setItemDelegateForColumn(2, CheckboxDelegate(self))
+        self._connect_signals()
+
+    def _connect_signals(self):
+        signals.project_selected.connect(self.sync)
+        signals.databases_changed.connect(self.sync)
+        self.doubleClicked.connect(self.open_database)
+
+    def contextMenuEvent(self, a0) -> None:
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(
+            qicons.delete, "Delete database",
+            lambda: signals.delete_database.emit(self.selected_db_name)
+        )
+        menu.addAction(
+            qicons.duplicate, "Copy database",
+            lambda: signals.copy_database.emit(self.selected_db_name)
+        )
+        menu.addAction(
+            qicons.add, "Add new activity",
+            lambda: signals.new_activity.emit(self.selected_db_name)
+        )
+        menu.popup(QtGui.QCursor.pos())
+        menu.exec()
+
+    def mousePressEvent(self, e):
+        """ A single mouseclick should trigger the 'read-only' column to alter
+        its value.
+
+        NOTE: This is kind of hacky as we are deliberately sidestepping
+        the 'delegate' system that should handle this.
+        If this is important in the future: call self.edit(index)
+        (inspired by: https://stackoverflow.com/a/11778012)
+        """
+        if e.button() == QtCore.Qt.LeftButton:
+            index = self.indexAt(e.pos())
+            if index.column() == 2:
+                value = self.dataframe.iloc[index.row(), index.column()]
+                new_value = True if not value else False
+                db_name = self.dataframe.iloc[index.row(), ]["Name"]
+                self.read_only_changed(db_name, new_value)
+                self.sync()
+        super().mousePressEvent(e)
+
+    @property
+    def selected_db_name(self) -> str:
+        """ Return the database name of the user-selected index.
+        """
+        index = self.get_source_index(next(p for p in self.selectedIndexes()))
+        return self.dataframe.iloc[index.row(), ]["Name"]
+
+    def open_database(self, proxy):
+        index = self.get_source_index(proxy)
+        signals.database_selected.emit(self.dataframe.iloc[index.row(), ]["Name"])
+
+    @staticmethod
+    @QtCore.pyqtSlot(str, bool)
+    def read_only_changed(db: str, read_only: bool):
+        """ User has clicked to update a db to either read-only or not.
+        """
+        project_settings.modify_db(db, read_only)
+        signals.database_read_only_changed.emit(db, read_only)
+
+    @dataframe_sync
+    def sync(self):
+        databases_read_only_settings = project_settings.settings.get("read-only-databases", {})
+        # code below is based on the assumption that bw uses utc timestamps
+        tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
+        time_shift = - tz.utcoffset().total_seconds()
+
+        data = []
+        for name in natural_sort(bw.databases):
+            dt = bw.databases[name].get("modified", "")
+            if dt:
+                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
+            # final column includes interactive checkbox which shows read-only state of db
+            database_read_only = databases_read_only_settings.get(name, True)
+            data.append({
+                "Name": name,
+                "Depends": ", ".join(bw.databases[name].get("depends", [])),
+                "Modified": dt,
+                "Records": len(bw.Database(name)),
+                "Read-only": database_read_only,
+            })
+
+        self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
+
+    def _resize(self):
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
 
 
 class DatabasesTable(ABTableWidget):
