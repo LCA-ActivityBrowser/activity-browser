@@ -4,6 +4,7 @@ from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant
 from PyQt5.QtGui import QBrush
 
 from ..style import style_item
+from ...bwutils.commontasks import AB_names_to_bw_keys
 
 
 class PandasModel(QAbstractTableModel):
@@ -34,6 +35,8 @@ class PandasModel(QAbstractTableModel):
 
         if role == Qt.ForegroundRole:
             col_name = self._dataframe.columns[index.column()]
+            if col_name not in style_item.brushes:
+                col_name = AB_names_to_bw_keys.get(col_name, "")
             return QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
 
         return None
