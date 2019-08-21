@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtCore import pyqtSlot, QSize
-from PyQt5.QtWidgets import (QHBoxLayout, QMessageBox, QPushButton, QToolBar,
-                             QVBoxLayout, QTabWidget)
+from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QMessageBox, QPushButton,
+                             QToolBar, QVBoxLayout, QTabWidget)
 
 from activity_browser.app.signals import signals
 
@@ -75,6 +75,7 @@ class ParameterDefinitionTab(BaseRightTab):
         self.new_database_param = QPushButton(qicons.add, "New database parameter")
         self.save_database_btn = QPushButton(qicons.save_db, "Save database parameters")
         self.save_activity_btn = QPushButton(qicons.save_db, "Save activity parameters")
+        self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
 
         self._construct_layout()
         self._connect_signals()
@@ -144,15 +145,19 @@ the activity in that group.</li>
         self.save_activity_btn.clicked.connect(
             lambda: self.store_parameters("activity")
         )
+        self.uncertainty_columns.stateChanged.connect(
+            self.hide_uncertainty_columns
+        )
 
     def _construct_layout(self):
         """ Construct the widget layout for the variable parameters tab
         """
         layout = QVBoxLayout()
 
+        self.uncertainty_columns.setChecked(False)
         row = QToolBar()
-        row.addWidget(header("Project-, Database- and Activity parameters "))
-        row.setIconSize(QSize(24, 24))
+        row.addWidget(header("Parameters "))
+        row.addWidget(self.uncertainty_columns)
         row.addAction(
             qicons.question, "About brightway parameters",
             self.explanation
@@ -161,7 +166,7 @@ the activity in that group.</li>
         layout.addWidget(horizontal_line())
 
         row = QHBoxLayout()
-        row.addWidget(header("Project parameters:"))
+        row.addWidget(header("Project:"))
         row.addWidget(self.new_project_param)
         row.addWidget(self.save_project_btn)
         row.addStretch(1)
@@ -169,7 +174,7 @@ the activity in that group.</li>
         layout.addWidget(self.project_table)
 
         row = QHBoxLayout()
-        row.addWidget(header("Database parameters:"))
+        row.addWidget(header("Database:"))
         row.addWidget(self.new_database_param)
         row.addWidget(self.save_database_btn)
         row.addStretch(1)
@@ -177,7 +182,7 @@ the activity in that group.</li>
         layout.addWidget(self.database_table)
 
         row = QHBoxLayout()
-        row.addWidget(header("Activity parameters:"))
+        row.addWidget(header("Activity:"))
         row.addWidget(self.save_activity_btn)
         row.addStretch(1)
         layout.addLayout(row)
@@ -192,6 +197,13 @@ the activity in that group.</li>
         self.project_table.sync(ProjectParameterTable.build_df())
         self.database_table.sync(DataBaseParameterTable.build_df())
         self.activity_table.sync(ActivityParameterTable.build_df())
+        self.hide_uncertainty_columns()
+
+    @pyqtSlot()
+    def hide_uncertainty_columns(self):
+        show = self.uncertainty_columns.isChecked()
+        for table in self.tables.values():
+            table.uncertainty_columns(show)
 
     @pyqtSlot(str)
     def add_parameter(self, name: str) -> None:

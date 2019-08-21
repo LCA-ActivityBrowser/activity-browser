@@ -67,6 +67,12 @@ class BaseParameterTable(ABDataFrameEdit):
         row = {key: data.get(key) for key in cls.UNCERTAINTY}
         return row
 
+    def uncertainty_columns(self, show: bool):
+        """ Given a boolean, iterates over the uncertainty columns and either
+        shows or hides them.
+        """
+        raise NotImplementedError
+
 
 class ProjectParameterTable(BaseParameterTable):
     """ Table widget for project parameters
@@ -129,6 +135,10 @@ class ProjectParameterTable(BaseParameterTable):
             signals.parameters_changed.emit()
         except Exception as e:
             return parameter_save_errorbox(self, e)
+
+    def uncertainty_columns(self, show: bool):
+        for i in range(3, 9):
+            self.setColumnHidden(i, not show)
 
 
 class DataBaseParameterTable(BaseParameterTable):
@@ -194,6 +204,10 @@ class DataBaseParameterTable(BaseParameterTable):
                 signals.parameters_changed.emit()
             except Exception as e:
                 return parameter_save_errorbox(self, e)
+
+    def uncertainty_columns(self, show: bool):
+        for i in range(4, 10):
+            self.setColumnHidden(i, not show)
 
 
 class ActivityParameterTable(BaseParameterTable):
@@ -402,6 +416,10 @@ class ActivityParameterTable(BaseParameterTable):
                 return parameter_save_errorbox(self, e)
 
         signals.parameters_changed.emit()
+
+    def uncertainty_columns(self, show: bool):
+        for i in range(6, 12):
+            self.setColumnHidden(i, not show)
 
     def _store_group_order(self, group_name: str) -> None:
         """Checks if anywhere in the 'group'-sliced dataframe the user has
