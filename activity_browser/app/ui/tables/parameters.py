@@ -288,10 +288,7 @@ class ActivityParameterTable(BaseParameterTable):
                     )
                 )
                 continue
-            row = {key: act.get(key, "") for key in self.COLUMNS}
-            if row["amount"] == "":
-                row["amount"] = 0.0
-            row.update({key: None for key in self.UNCERTAINTY})
+            row = self._build_parameter(key)
             self.dataframe = self.dataframe.append(
                 row, ignore_index=True
             )
@@ -306,14 +303,21 @@ class ActivityParameterTable(BaseParameterTable):
         """
         if key in self.dataframe["key"]:
             return
+        row = self._build_parameter(key)
+        self.dataframe = self.dataframe.append(
+            row, ignore_index=True
+        )
+        self.sync(self.dataframe)
+        self.new_parameter.emit()
 
+    @classmethod
+    def _build_parameter(cls, key: tuple) -> dict:
         act = bw.get_activity(key)
 
         prep_name = act.get("reference product", "")
         if prep_name == "":
             prep_name = act.get("name")
-
-        prep_name = ActivityParameterTable.clean_parameter_name(prep_name)
+        prep_name = cls.clean_parameter_name(prep_name)
 
         row = {
             "group": "{}_group".format(prep_name),
@@ -323,12 +327,8 @@ class ActivityParameterTable(BaseParameterTable):
             "order": "",
             "key": key,
         }
-        row.update({key: None for key in self.UNCERTAINTY})
-        self.dataframe = self.dataframe.append(
-            row, ignore_index=True
-        )
-        self.sync(self.dataframe)
-        self.new_parameter.emit()
+        row.update({key: None for key in cls.UNCERTAINTY})
+        return row
 
     @staticmethod
     def clean_parameter_name(param_name: str) -> str:
