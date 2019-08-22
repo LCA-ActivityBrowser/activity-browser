@@ -76,7 +76,7 @@ class MetaDataStore(object):
 
             # In a new 'biosphere3' database, some categories values are lists
             if 'categories' in df_temp:
-                df_temp.loc[:, 'categories'] = df_temp['categories'].apply(
+                df_temp['categories'] = df_temp['categories'].apply(
                     lambda x: tuple(x) if isinstance(x, list) else x)
 
             dfs.append(df_temp)
@@ -116,8 +116,8 @@ class MetaDataStore(object):
             if key in self.dataframe.index:  # Situation 2: activity has been modified (metadata needs to be updated)
                 print('Updating activity in metadata: ', act, key)
                 for col in self.dataframe.columns:
-                    self.dataframe.loc[key][col] = act.get(col, '')
-                self.dataframe.loc[key]['key'] = act.key
+                    self.dataframe.at[key, col] = act.get(col, '')
+                self.dataframe.at[key, 'key'] = act.key
 
             else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
                 print('Adding activity to metadata:', act, key)
