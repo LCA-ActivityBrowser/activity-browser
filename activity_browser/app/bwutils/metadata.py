@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+from bw2data.errors import UnknownObject
 import pandas as pd
 import numpy as np
 
@@ -37,7 +38,7 @@ class MetaDataStore(object):
         signals.project_selected.connect(self.reset_metadata)
         signals.metadata_changed.connect(self.update_metadata)
 
-    def add_metadata(self, db_names_list):
+    def add_metadata(self, db_names_list: list) -> None:
         """"Include data from the brightway databases.
 
         Get metadata in form of a Pandas DataFrame for biosphere and
@@ -86,7 +87,7 @@ class MetaDataStore(object):
         self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
         # print('Dimensions of the Metadata:', self.dataframe.shape)
 
-    def update_metadata(self, key):
+    def update_metadata(self, key: tuple) -> None:
         """Update metadata when an activity has changed.
 
         Three situations:
@@ -101,7 +102,7 @@ class MetaDataStore(object):
         """
         try:
             act = bw.get_activity(key)  # if this does not work, it has been deleted (see except:).
-        except:
+        except UnknownObject:
             # Situation 1: activity has been deleted (metadata needs to be deleted)
             print('Deleting activity from metadata:', key)
             self.dataframe.drop(key, inplace=True)
@@ -127,24 +128,24 @@ class MetaDataStore(object):
                 self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
             # print('Dimensions of the Metadata:', self.dataframe.shape)
 
-    def reset_metadata(self):
+    def reset_metadata(self) -> None:
         """Deletes metadata when the project is changed."""
         # todo: metadata could be collected across projects...
         print('Reset metadata.')
         self.dataframe = pd.DataFrame()
         self.databases = set()
 
-    def get_existing_fields(self, field_list):
+    def get_existing_fields(self, field_list: list) -> list:
         """Return a list of fieldnames that exist in the current dataframe.
         """
         return [fn for fn in field_list if fn in self.dataframe.columns]
 
-    def get_metadata(self, keys, columns):
+    def get_metadata(self, keys: list, columns: list) -> pd.DataFrame:
         """Return a slice of the dataframe matching row and column identifiers.
         """
         return self.dataframe.loc[keys][columns]
 
-    def get_database_metadata(self, db_name):
+    def get_database_metadata(self, db_name: str) -> pd.DataFrame:
         """Return a slice of the dataframe matching the database.
         """
         return self.dataframe[self.dataframe['database'] == db_name]
@@ -157,7 +158,7 @@ class MetaDataStore(object):
         """
         return self.dataframe.index
 
-    def unpack_tuple_column(self, colname, new_colnames=None):
+    def unpack_tuple_column(self, colname: str, new_colnames: list=None) -> None:
         """Takes the given column in the dataframe and unpack it.
 
         To allow for quick aggregation, we:
