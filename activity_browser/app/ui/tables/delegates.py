@@ -31,8 +31,11 @@ class FloatDelegate(QStyledItemDelegate):
                      index: QModelIndex):
         """ Take the editor, read the given value and set it in the model
         """
-        value = float(editor.text())
-        model.setData(index, value, Qt.EditRole)
+        try:
+            value = float(editor.text())
+            model.setData(index, value, Qt.EditRole)
+        except ValueError:
+            pass
 
 
 class StringDelegate(QStyledItemDelegate):
