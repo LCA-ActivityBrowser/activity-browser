@@ -125,8 +125,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         # get all locations in db
         self.location_combo.clear()
         db = self.parent.activity.get('database', '')
-        metadata = AB_metadata.get_database_metadata(db)
-        locations = sorted([str(l) for l in metadata["location"].unique()])
+        locations = sorted(AB_metadata.get_locations(db))
         self.location_combo.insertItems(0, locations)
         self.location_combo.setCurrentIndex(locations.index(location))
         self.location_combo.blockSignals(False)
