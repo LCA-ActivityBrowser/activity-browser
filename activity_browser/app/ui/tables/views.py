@@ -2,8 +2,8 @@
 import os
 from functools import wraps
 
-from PyQt5.QtCore import (QAbstractTableModel, QSize, QSortFilterProxyModel,
-                          Qt, pyqtSlot)
+from PyQt5.QtCore import (QAbstractTableModel, QModelIndex, QSize,
+                          QSortFilterProxyModel, Qt, pyqtSlot)
 from PyQt5.QtWidgets import QFileDialog, QTableView
 
 from activity_browser.app.settings import ab_settings
@@ -79,7 +79,7 @@ class ABDataFrameView(QTableView):
         self.setMaximumHeight(self.get_max_height())
 
     @staticmethod
-    def get_source_index(proxy_index):
+    def get_source_index(proxy_index: QModelIndex) -> QModelIndex:
         """ Returns the index of the original model from a proxymodel index.
 
         This way data from the self._dataframe can be obtained correctly.
@@ -89,7 +89,7 @@ class ABDataFrameView(QTableView):
             # We are a proxy model
             source_index = model.mapToSource(proxy_index)
             return source_index
-        return None
+        return QModelIndex()  # Returns an invalid index
 
     def to_clipboard(self):
         """ Copy dataframe to clipboard
