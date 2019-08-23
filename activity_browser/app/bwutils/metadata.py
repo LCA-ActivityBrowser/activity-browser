@@ -97,7 +97,7 @@ class MetaDataStore(object):
 
         Parameters
         ----------
-        key : str
+        key : tuple
             The specific activity to update in the MetaDataStore
         """
         try:
@@ -147,8 +147,23 @@ class MetaDataStore(object):
 
     def get_database_metadata(self, db_name: str) -> pd.DataFrame:
         """Return a slice of the dataframe matching the database.
+
+        If the database does not exist in the metadata, attempt to add it.
+
+        Parameters
+        ----------
+        db_name : str
+            Name of the database to be retrieved
+
+        Returns
+        -------
+        pd.DataFrame
+            Slice of the metadata matching the database name
+
         """
-        return self.dataframe[self.dataframe['database'] == db_name]
+        if db_name not in self.databases:
+            self.add_metadata([db_name])
+        return self.dataframe.loc[self.dataframe['database'] == db_name]
 
     @property
     def index(self):
