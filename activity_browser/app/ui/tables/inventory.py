@@ -271,15 +271,15 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.dataframe.reset_index(inplace=True, drop=True)
         self.dataframe_search_copy = self.dataframe
 
-    def search(self, filter1=None, filter2=None, logic='AND'):
+    def search(self, pattern1: str=None, pattern2: str=None, logic='AND'):
         """Filter the dataframe with two filters and a logical element in between
         to allow different filter combinations."""
-        if not filter1 and not filter2:
+        if not pattern1 and not pattern2:
             self.reset_search()
-        if filter1 and filter2:
+        if pattern1 and pattern2:
             # print('filtering on both search terms')
-            mask1 = self.filter_dataframe(self.dataframe_search_copy, filter=filter1)
-            mask2 = self.filter_dataframe(self.dataframe_search_copy, filter=filter2)
+            mask1 = self.filter_dataframe(self.dataframe_search_copy, pattern1)
+            mask2 = self.filter_dataframe(self.dataframe_search_copy, pattern2)
             # applying the logic
             if logic == 'AND':
                 mask = np.logical_and(mask1, mask2)
@@ -289,24 +289,29 @@ class ActivitiesBiosphereTable(ABDataFrameView):
                 mask = np.logical_and(mask1, ~mask2)
         else:
             # print('filtering on ONE search term')
-            filter = filter1 if filter1 else filter2
-            mask = self.filter_dataframe(self.dataframe_search_copy, filter=filter)
+            pattern = pattern1 if pattern1 else pattern2
+            mask = self.filter_dataframe(self.dataframe_search_copy, pattern)
         df = self.dataframe_search_copy.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
 
-    def filter_dataframe(self, df, filter=None):
+    def filter_dataframe(self, df: pd.DataFrame, pattern: str):
+        """ Filter the dataframe returning a mask that is True for all rows
+        where a search string has been found.
+
+        It is a "contains" type of search (e.g. "oal" would find "coal").
+        It also works for columns that contain tuples (e.g. ('water', 'ocean'),
+        and will match on partials i.e. both 'ocean' and 'ean' work.
+
+        An alternative solution would be to use .str.contains, but this does
+        not work for columns containing tuples (https://stackoverflow.com/a/29463757)
         """
-Filter a dataframe. Returns a mask that is True for all rows where a search string has been found.
-It is a "contains" type of search (e.g. "oal" would find "coal").
-It works also for columns that contain tuples (e.g. ('water', 'ocean'), but then only finds matches, i.e. 'ocean', but not 'ean'.
-        """
-        # ALTERNATIVE SOLUTIONS (FOR FUTURE REFERENCE)
-        # df = df[df['name'].str.contains(filter)]  # simplest version (very quick)
-        # search_columns = [str(c) for c in df.columns if c != 'key']
-        # print('Searchin in the following columns:', df.columns)
-        # mask = functools.reduce(np.logical_or, [df[col].str.contains(filter) for col in search_columns])
-        mask = functools.reduce(np.logical_or,
-                                [df[col].apply(lambda x: True if filter in x else False) for col in df.columns])
+        search_columns = self.act_fields() if self.technosphere else self.ef_fields()
+        mask = functools.reduce(
+            np.logical_or, [
+                df[col].apply(lambda x: pattern.lower() in str(x).lower())
+                for col in search_columns
+            ]
+        )
         return mask
 
     def reset_search(self):
