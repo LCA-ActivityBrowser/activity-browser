@@ -31,8 +31,12 @@ class DatabasesTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.verticalHeader().setVisible(False)
-        self.setSelectionMode(ABDataFrameView.SingleSelection)
+        self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Maximum)
+        )
         self._connect_signals()
 
     def _connect_signals(self):
@@ -54,7 +58,7 @@ class DatabasesTable(ABDataFrameView):
             qicons.add, "Add new activity",
             lambda: signals.new_activity.emit(self.selected_db_name)
         )
-        menu.popup(QtGui.QCursor.pos())
+        menu.popup(a0.globalPos())
         menu.exec()
 
     def mousePressEvent(self, e):
@@ -69,7 +73,7 @@ class DatabasesTable(ABDataFrameView):
         if e.button() == QtCore.Qt.LeftButton:
             index = self.indexAt(e.pos())
             if index.column() == 2:
-                value = self.dataframe.iloc[index.row(), index.column()]
+                value = bool(index.data())
                 new_value = True if not value else False
                 db_name = self.dataframe.iloc[index.row(), ]["Name"]
                 self.read_only_changed(db_name, new_value)
@@ -118,15 +122,6 @@ class DatabasesTable(ABDataFrameView):
             })
 
         self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
-
-    def _resize(self):
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
-
-    def rowCount(self) -> int:
-        return self.model.rowCount()
 
 
 class ActivitiesBiosphereTable(ABDataFrameView):
