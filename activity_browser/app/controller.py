@@ -4,7 +4,7 @@ import os
 import uuid
 
 import brightway2 as bw
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from bw2data.backends.peewee import Exchange, sqlite3_lci_db
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
@@ -61,6 +61,7 @@ class Controller(object):
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
+        signals.exchange_modified.connect(self.modify_exchange)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
@@ -473,5 +474,27 @@ class Controller(object):
 
     def modify_exchange_amount(self, exchange, value):
         exchange['amount'] = value
+        exchange.save()
+        signals.database_changed.emit(exchange['output'][0])
+
+    @staticmethod
+    @QtCore.pyqtSlot(object, str, object)
+    def modify_exchange(exchange, field, value):
+        # The formula field needs special handling.
+        if field == "formula":
+            if field in exchange and value == "":
+                # Remove formula entirely.
+                del exchange[field]
+                if "original_amount" in exchange:
+                    # Restore the original amount, if possible
+                    exchange["amount"] = exchange["original_amount"]
+                    del exchange["original_amount"]
+            if value:
+                # At least set the formula, possibly also store the amount
+                if field not in exchange:
+                    exchange["original_amount"] = exchange["amount"]
+                exchange[field] = value
+        else:
+            exchange[field] = value
         exchange.save()
         signals.database_changed.emit(exchange['output'][0])
