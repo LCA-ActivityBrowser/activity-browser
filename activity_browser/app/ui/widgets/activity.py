@@ -24,6 +24,8 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
         self.setLayout(layout)
         if isinstance(self.widget, QtWidgets.QTableWidget):
             self.widget.itemChanged.connect(self.toggle_empty_table)
+        if hasattr(self.widget, "updated"):
+            self.widget.updated.connect(self.toggle_empty_table)
 
     def showhide(self):
         self.widget.setVisible(self.isChecked())
