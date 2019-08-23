@@ -13,7 +13,7 @@ from .table import ABTableWidget, ABTableItem
 from .views import ABDataFrameView, dataframe_sync
 from ..icons import icons
 from ...signals import signals
-from ...bwutils.metadata import AB_metadata
+from ...bwutils import AB_metadata
 from ...bwutils.commontasks import is_technosphere_db
 
 

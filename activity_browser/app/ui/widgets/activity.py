@@ -7,7 +7,7 @@ from activity_browser.app.bwutils import commontasks as bc
 from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import icons
 from ...signals import signals
-from ...bwutils import convenience_data
+from ...bwutils import AB_metadata
 
 
 class DetailsGroupBox(QtWidgets.QGroupBox):
@@ -127,12 +127,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
         # get all locations in db
         self.location_combo.clear()
         db = self.parent.activity.get('database', '')
-        if convenience_data.data[db]:
-            for loc in convenience_data.data[db]["locations"]:
-                self.location_combo.addItem(str(loc))  # perhaps add an icon? QIcon(icons.switch)
-
-        self.location_combo.model().sort(0)
-        self.location_combo.setCurrentText(location)
+        locations = sorted(AB_metadata.get_locations(db))
+        self.location_combo.insertItems(0, locations)
+        self.location_combo.setCurrentIndex(locations.index(location))
         self.location_combo.blockSignals(False)
 
     def populate_database_combo(self):

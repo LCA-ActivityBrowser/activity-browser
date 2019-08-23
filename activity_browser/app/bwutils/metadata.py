@@ -37,6 +37,7 @@ class MetaDataStore(object):
     def _connect_signals(self):
         signals.project_selected.connect(self.reset_metadata)
         signals.metadata_changed.connect(self.update_metadata)
+        signals.edit_activity.connect(self.print_convenience_information)
 
     def add_metadata(self, db_names_list: list) -> None:
         """"Include data from the brightway databases.
@@ -97,7 +98,7 @@ class MetaDataStore(object):
 
         Parameters
         ----------
-        key : str
+        key : tuple
             The specific activity to update in the MetaDataStore
         """
         try:
@@ -147,8 +148,23 @@ class MetaDataStore(object):
 
     def get_database_metadata(self, db_name: str) -> pd.DataFrame:
         """Return a slice of the dataframe matching the database.
+
+        If the database does not exist in the metadata, attempt to add it.
+
+        Parameters
+        ----------
+        db_name : str
+            Name of the database to be retrieved
+
+        Returns
+        -------
+        pd.DataFrame
+            Slice of the metadata matching the database name
+
         """
-        return self.dataframe[self.dataframe['database'] == db_name]
+        if db_name not in self.databases:
+            self.add_metadata([db_name])
+        return self.dataframe.loc[self.dataframe['database'] == db_name]
 
     @property
     def index(self):
@@ -157,6 +173,26 @@ class MetaDataStore(object):
         This allows us to 'hide' the dataframe object in de AB_metadata
         """
         return self.dataframe.index
+
+    def get_locations(self, db_name: str) -> set:
+        """ Returns a set of locations for the given database name.
+        """
+        data = self.get_database_metadata(db_name)["location"].unique()
+        return set(data[data != ""])
+
+    def get_units(self, db_name: str) -> set:
+        """ Returns a set of units for the given database name.
+        """
+        data = self.get_database_metadata(db_name)["unit"].unique()
+        return set(data[data != ""])
+
+    def print_convenience_information(self, db_name: str) -> None:
+        """ Reports how many unique locations and units the database has.
+        """
+        print("{} unique locations and {} unique units in {}".format(
+            len(self.get_locations(db_name)), len(self.get_units(db_name)),
+            db_name
+        ))
 
     def unpack_tuple_column(self, colname: str, new_colnames: list=None) -> None:
         """Takes the given column in the dataframe and unpack it.
