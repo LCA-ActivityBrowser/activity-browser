@@ -43,8 +43,8 @@ class ABDataFrameView(QTableView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setVerticalScrollMode(1)
-        self.setHorizontalScrollMode(1)
+        self.setVerticalScrollMode(QTableView.ScrollPerPixel)
+        self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
@@ -54,12 +54,17 @@ class ABDataFrameView(QTableView):
         self.table_name = 'LCA results'
         self.dataframe = None
 
-    def get_max_height(self):
+    def get_max_height(self) -> int:
         return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
                  self.horizontalHeader().height() + self.horizontalScrollBar().height() + 5
 
-    def sizeHint(self):
+    def sizeHint(self) -> QSize:
         return QSize(self.width(), self.get_max_height())
+
+    def rowCount(self) -> int:
+        if hasattr(self, "model") and self.model is not None:
+            return self.model.rowCount()
+        return 0
 
     def _select_model(self) -> QAbstractTableModel:
         """ Select which model to use for the proxy model.
