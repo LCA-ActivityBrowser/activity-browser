@@ -177,13 +177,13 @@ class MetaDataStore(object):
     def get_locations(self, db_name: str) -> set:
         """ Returns a set of locations for the given database name.
         """
-        data = self.dataframe[self.dataframe["database"] == db_name]["location"].unique()
+        data = self.get_database_metadata(db_name)["location"].unique()
         return set(data[data != ""])
 
     def get_units(self, db_name: str) -> set:
         """ Returns a set of units for the given database name.
         """
-        data = self.dataframe[self.dataframe["database"] == db_name]["unit"].unique()
+        data = self.get_database_metadata(db_name)["unit"].unique()
         return set(data[data != ""])
 
     def print_convenience_information(self, db_name: str) -> None:
