@@ -26,16 +26,21 @@ def test_add_default_data(qtbot, mock, ab_app):
 
 
 def test_select_biosphere(ab_app):
+    """ Select the 'biosphere3' database from the databases table.
+    """
     project_tab = ab_app.main_window.left_panel.tabs['Project']
     act_bio_widget = project_tab.activity_biosphere_widget
-    # assert act_bio_widget.table.rowCount() == 0
-    # assert act_bio_widget.table.isHidden()
     db_table = project_tab.databases_widget.table
-    dbs = [db_table.item(i, 0).text() for i in range(db_table.rowCount())]
+    dbs = [
+        db_table.model.data(db_table.model.index(i, 0), QtCore.Qt.DisplayRole)
+        for i in range(db_table.rowCount())
+    ]
     assert 'biosphere3' in dbs
     # TODO: ideally replace the signal below with qtbot.mouseDClick on the tableitem
+    # Sadly, there is no simple way of determining where to click to get the
+    # correct row. Example here can be used for precise clicking:
+    # https://github.com/pytest-dev/pytest-qt/issues/27#issuecomment-61897655
     signals.database_selected.emit('biosphere3')
-    # assert not act_bio_widget.table.isHidden()
     assert act_bio_widget.table.dataframe.shape[0] > 0
 
 
