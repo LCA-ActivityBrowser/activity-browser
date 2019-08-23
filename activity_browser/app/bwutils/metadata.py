@@ -37,6 +37,7 @@ class MetaDataStore(object):
     def _connect_signals(self):
         signals.project_selected.connect(self.reset_metadata)
         signals.metadata_changed.connect(self.update_metadata)
+        signals.edit_activity.connect(self.print_convenience_information)
 
     def add_metadata(self, db_names_list: list) -> None:
         """"Include data from the brightway databases.
