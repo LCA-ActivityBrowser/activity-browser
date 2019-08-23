@@ -173,6 +173,26 @@ class MetaDataStore(object):
         """
         return self.dataframe.index
 
+    def get_locations(self, db_name: str) -> set:
+        """ Returns a set of locations for the given database name.
+        """
+        data = self.dataframe[self.dataframe["database"] == db_name]["location"].unique()
+        return set(data[data != ""])
+
+    def get_units(self, db_name: str) -> set:
+        """ Returns a set of units for the given database name.
+        """
+        data = self.dataframe[self.dataframe["database"] == db_name]["unit"].unique()
+        return set(data[data != ""])
+
+    def print_convenience_information(self, db_name: str) -> None:
+        """ Reports how many unique locations and units the database has.
+        """
+        print("{} unique locations and {} unique units in {}".format(
+            len(self.get_locations(db_name)), len(self.get_units(db_name)),
+            db_name
+        ))
+
     def unpack_tuple_column(self, colname: str, new_colnames: list=None) -> None:
         """Takes the given column in the dataframe and unpack it.
 
