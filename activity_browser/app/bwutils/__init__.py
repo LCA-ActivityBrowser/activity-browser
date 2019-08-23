@@ -4,7 +4,6 @@ bwutils is a collection of methods that build upon brightway2 and are generic en
 re-typing the same code in different parts of the Activity Browser.
 """
 import brightway2 as bw
-from .data import convenience_data
 from .metadata import AB_metadata
 
 

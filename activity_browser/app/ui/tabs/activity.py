@@ -190,7 +190,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.read_only = not read_only
         self.activity_description.setReadOnly(self.read_only)
 
-        if not self.read_only:  # update unique locations, units, etc. for editing (convenience_data)
+        if not self.read_only:  # update unique locations, units, etc. for editing (metadata)
             signals.edit_activity.emit(self.db_name)
 
         self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
