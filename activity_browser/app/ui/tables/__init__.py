@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from .activity import (BiosphereExchangeTable, DownstreamExchangeTable,
-                       ExchangeTable,
                        ProductExchangeTable, TechnosphereExchangeTable)
 from .history import ActivitiesHistoryTable
 from .impact_categories import CFTable, MethodsTable
