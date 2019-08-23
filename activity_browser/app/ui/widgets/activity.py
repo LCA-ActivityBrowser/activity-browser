@@ -7,7 +7,7 @@ from activity_browser.app.bwutils import commontasks as bc
 from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import icons
 from ...signals import signals
-from ...bwutils.metadata import AB_metadata
+from ...bwutils import AB_metadata
 
 
 class DetailsGroupBox(QtWidgets.QGroupBox):

@@ -5,6 +5,7 @@ re-typing the same code in different parts of the Activity Browser.
 """
 import brightway2 as bw
 from .data import convenience_data
+from .metadata import AB_metadata
 
 
 def cleanup():
