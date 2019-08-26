@@ -6,7 +6,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from activity_browser.app.bwutils.commontasks import bw_keys_to_AB_names
 
 from .delegates import FloatDelegate, ViewOnlyDelegate
-from .inventory import ActivitiesBiosphereTable
 from .table import ABTableWidget, ABTableItem
 from .impact_categories import MethodsTable
 from .views import ABDataFrameEdit, dataframe_sync
@@ -132,114 +131,6 @@ class CSActivityTable(ABDataFrameEdit):
         self.dataframe = self.dataframe.append(data, ignore_index=True)
         signals.calculation_setup_changed.emit()
         self.sync()
-
-
-class CSActivityTable(ABTableWidget):
-    COLUMNS = {
-        0: "amount",
-        1: "unit",
-        2: "reference product",
-        3: "name",
-        4: "location",
-        5: "database",
-    }
-    HEADERS = ["Amount", "Unit", "Product", "Activity", "Location", "Database"]
-
-    def __init__(self):
-        super(CSActivityTable, self).__init__()
-        self.setColumnCount(len(self.HEADERS))
-        self.setAcceptDrops(True)
-        self.setup_context_menu()
-        self.connect_signals()
-
-    def setup_context_menu(self):
-        self.delete_row_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.delete), "Remove row", None
-        )
-        self.addAction(self.delete_row_action)
-        self.delete_row_action.triggered.connect(self.delete_rows)
-
-    def connect_signals(self):
-        """ Connect signals to slots. """
-        self.cellChanged.connect(self.filter_amount_change)
-        signals.calculation_setup_selected.connect(self.sync)
-
-    def append_row(self, key, amount='1.0'):
-        try:
-            act = bw.get_activity(key)
-            new_row = self.rowCount()
-            self.insertRow(new_row)
-            self.setItem(new_row, 0, ABTableItem(
-                amount, key=key, set_flags=[QtCore.Qt.ItemIsEditable], color="amount")
-            )
-            self.setItem(new_row, 1, ABTableItem(act.get('unit'), key=key, color="unit"))
-            self.setItem(new_row, 2, ABTableItem(act.get('reference product'),
-                                                 key=key, color="product"))
-            self.setItem(new_row, 3, ABTableItem(act.get('name'), key=key, color="name"))
-            self.setItem(new_row, 4, ABTableItem(str(act.get('location')), key=key, color="location"))
-            self.setItem(new_row, 5, ABTableItem(act.get('database'), key=key, color="database"))
-        except:
-            print("Could not load key in Calculation Setup: ", key)
-
-    def sync(self, name):
-        self.current_cs = name
-        self.cellChanged.disconnect(self.filter_amount_change)
-        self.clear()
-        self.setRowCount(0)
-        self.setHorizontalHeaderLabels(self.HEADERS)
-
-        for func_unit in bw.calculation_setups[name]['inv']:
-            for key, amount in func_unit.items():
-                self.append_row(key, str(amount))
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        self.cellChanged.connect(self.filter_amount_change)
-
-    def delete_rows(self, *args):
-        to_delete = []
-        for range_obj in self.selectedRanges():
-            bottom = range_obj.bottomRow()
-            top = range_obj.topRow()
-            to_delete.extend(list(range(top, bottom + 1)))
-        to_delete.sort(reverse=True)
-        for row in to_delete:
-            self.removeRow(row)
-        signals.calculation_setup_changed.emit()
-
-    def dragEnterEvent(self, event):
-        if isinstance(event.source(), ActivitiesBiosphereTable):
-            event.accept()
-
-    def dropEvent(self, event):
-        # new_keys = [item.key for item in event.source().selectedItems()]
-        source_table = event.source()
-        print('Dropevent from:', source_table)
-        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
-        event.accept()
-
-        for key in keys:
-            act = bw.get_activity(key)
-            if act.get('type', 'process') != "process":
-                continue
-            self.append_row(key)
-
-        signals.calculation_setup_changed.emit()
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
-    def to_python(self):
-        return [{self.item(row, 0).key: float(self.item(row, 0).text())} for
-                row in range(self.rowCount())]
-
-    def filter_amount_change(self, row, col):
-        if col == 0:
-            try:
-                float(self.item(row, col).text())
-                signals.calculation_setup_changed.emit()
-            except ValueError as e:
-                self.sync(self.current_cs)
 
 
 class CSMethodsTable(ABTableWidget):
