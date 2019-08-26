@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 
 from activity_browser.app.bwutils.commontasks import bw_keys_to_AB_names
 
 from .delegates import FloatDelegate, ViewOnlyDelegate
-from .table import ABTableWidget, ABTableItem
 from .impact_categories import MethodsTable
 from .views import ABDataFrameEdit, ABDataFrameView, dataframe_sync
-from ..icons import icons, qicons
+from ..icons import qicons
 from ...signals import signals
 
 
@@ -202,80 +201,3 @@ class CSMethodsTable(ABDataFrameView):
         event.accept()
         signals.calculation_setup_changed.emit()
         self.sync()
-
-
-class CSMethodsTable(ABTableWidget):
-    HEADERS = ["Name", "Unit", "# CFs"]
-
-    def __init__(self):
-        super(CSMethodsTable, self).__init__()
-        self.setColumnCount(len(self.HEADERS))
-        self.setAcceptDrops(True)
-        self.setup_context_menu()
-        self.connect_signals()
-
-    def setup_context_menu(self):
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.delete_row_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.delete), "Remove row", None
-        )
-        self.addAction(self.delete_row_action)
-        self.delete_row_action.triggered.connect(self.delete_rows)
-
-    def connect_signals(self):
-        signals.calculation_setup_selected.connect(self.sync)
-
-    def append_row(self, method):
-        new_row = self.rowCount()
-        self.insertRow(new_row)
-        method_metadata = bw.methods[method]
-        self.setItem(new_row, 0, ABTableItem(', '.join(method), method=method))
-        self.setItem(new_row, 1, ABTableItem(method_metadata.get('unit', "Unknown"), method=method))
-        num_cfs = method_metadata.get('num_cfs', 0)
-        self.setItem(new_row, 2, ABTableItem(str(num_cfs), method=method, number=num_cfs))
-
-    def sync(self, name):
-        self.clear()
-        self.setRowCount(0)
-        self.setHorizontalHeaderLabels(self.HEADERS)
-
-        for method in bw.calculation_setups[name]['ia']:
-            self.append_row(method)
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
-    def dragEnterEvent(self, event):
-        if isinstance(event.source(), MethodsTable):
-            event.accept()
-
-    def dropEvent(self, event):
-        new_methods = [item.method for item in event.source().selectedItems()]
-        if self.rowCount():
-            existing = {self.item(index, 0).method for index in range(self.rowCount())}
-        else:
-            existing = {}
-        for method in new_methods:
-            if method in existing:
-                continue
-            self.append_row(method)
-        event.accept()
-
-        signals.calculation_setup_changed.emit()
-
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
-    def delete_rows(self, *args):
-        to_delete = []
-        for range_obj in self.selectedRanges():
-            bottom = range_obj.bottomRow()
-            top = range_obj.topRow()
-            to_delete.extend(list(range(top, bottom + 1)))
-        to_delete.sort(reverse=True)
-        for row in to_delete:
-            self.removeRow(row)
-        signals.calculation_setup_changed.emit()
-
-    def to_python(self):
-        return [self.item(row, 0).method for row in range(self.rowCount())]
