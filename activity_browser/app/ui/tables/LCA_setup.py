@@ -197,7 +197,8 @@ class CSMethodsTable(ABDataFrameView):
         new_methods = [row["method"] for row in event.source().selectedItems()]
         old_methods = set(m for m in self.dataframe["method"])
         data = [self.build_row(m) for m in new_methods if m not in old_methods]
-        self.dataframe = self.dataframe.append(data, ignore_index=True)
+        if data:
+            self.dataframe = self.dataframe.append(data, ignore_index=True)
+            signals.calculation_setup_changed.emit()
+            self.sync()
         event.accept()
-        signals.calculation_setup_changed.emit()
-        self.sync()
