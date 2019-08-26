@@ -8,7 +8,7 @@ from activity_browser.app.bwutils.commontasks import bw_keys_to_AB_names
 from .delegates import FloatDelegate, ViewOnlyDelegate
 from .table import ABTableWidget, ABTableItem
 from .impact_categories import MethodsTable
-from .views import ABDataFrameEdit, dataframe_sync
+from .views import ABDataFrameEdit, ABDataFrameView, dataframe_sync
 from ..icons import icons, qicons
 from ...signals import signals
 
@@ -129,6 +129,77 @@ class CSActivityTable(ABDataFrameEdit):
         keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
         data = [self.build_row(key) for key in keys]
         self.dataframe = self.dataframe.append(data, ignore_index=True)
+        signals.calculation_setup_changed.emit()
+        self.sync()
+
+
+class CSMethodsTable(ABDataFrameView):
+    HEADERS = ["Name", "Unit", "# CFs", "method"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+        self.current_cs = None
+        self._connect_signals()
+
+    def _connect_signals(self):
+        signals.calculation_setup_selected.connect(self.sync)
+
+    def _resize(self):
+        self.setColumnHidden(3, True)
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+    def build_row(self, method: tuple) -> dict:
+        method_metadata = bw.methods[method]
+        return {
+            "Name": ', '.join(method),
+            "Unit": method_metadata.get('unit', "Unknown"),
+            "# CFs": method_metadata.get('num_cfs', 0),
+            "method": method,
+        }
+
+    @dataframe_sync
+    def sync(self, name: str = None):
+        if name:
+            self.current_cs = name
+        data = [
+            self.build_row(method)
+            for method in bw.calculation_setups[self.current_cs]["ia"]
+        ]
+        self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
+
+    def delete_rows(self):
+        indices = [self.get_source_index(p) for p in self.selectedIndexes()]
+        rows = [i.row() for i in indices]
+        self.dataframe.drop(rows, axis=0, inplace=True)
+        signals.calculation_setup_changed.emit()
+        self.sync()
+
+    def to_python(self):
+        data = self.dataframe[["method"]].to_dict(orient="list")
+        return data["method"]
+
+    def contextMenuEvent(self, a0) -> None:
+        menu = QtWidgets.QMenu()
+        menu.addAction(qicons.delete, "Remove row", self.delete_rows)
+        menu.popup(a0.globalPos())
+        menu.exec()
+
+    def dragEnterEvent(self, event):
+        if isinstance(event.source(), MethodsTable):
+            event.accept()
+
+    def dragMoveEvent(self, event) -> None:
+        pass
+
+    def dropEvent(self, event):
+        new_methods = [row["method"] for row in event.source().selectedItems()]
+        old_methods = set(m for m in self.dataframe["method"])
+        data = [self.build_row(m) for m in new_methods if m not in old_methods]
+        self.dataframe = self.dataframe.append(data, ignore_index=True)
+        event.accept()
         signals.calculation_setup_changed.emit()
         self.sync()
 
