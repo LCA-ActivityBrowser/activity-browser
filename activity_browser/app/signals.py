@@ -8,9 +8,6 @@ class Signals(QtCore.QObject):
 
     # General Settings
 
-    # Copy Text (Clipboard)
-    copy_selection_to_clipboard = QtCore.pyqtSignal(str)
-
     # bw2 directory
     switch_bw2_dir_path = QtCore.pyqtSignal(str)
     # directory_changed = QtCore.pyqtSignal()
@@ -54,6 +51,7 @@ class Signals(QtCore.QObject):
     # exchanges_output_modified = QtCore.pyqtSignal(list, tuple)
     exchanges_deleted = QtCore.pyqtSignal(list)
     exchanges_add = QtCore.pyqtSignal(list, tuple)
+    exchange_amount_modified = QtCore.pyqtSignal(object, float)
     exchange_modified = QtCore.pyqtSignal(object, str, object)
 
     # Parameters

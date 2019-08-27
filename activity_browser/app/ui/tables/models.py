@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import brightway2 as bw
 from pandas import DataFrame
 from PyQt5.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, QVariant
 from PyQt5.QtGui import QBrush
 
 from ..style import style_item
+from ...bwutils.commontasks import AB_names_to_bw_keys
 
 
 class PandasModel(QAbstractTableModel):
@@ -26,18 +28,24 @@ class PandasModel(QAbstractTableModel):
             return QVariant()
 
         if role == Qt.DisplayRole:
-            value = self._dataframe.iloc[index.row(), index.column()]
-            try:
-                return QVariant(float(value))
-            except (ValueError, TypeError) as e:
-                # Also handle 'None' values from dataframe.
-                return QVariant(str(value)) if value else QVariant()
+            value = self._dataframe.iat[index.row(), index.column()]
+            if isinstance(value, np.float):
+                value = float(value)
+            elif isinstance(value, np.bool_):
+                value = bool(value)
+            elif isinstance(value, np.int64):
+                value = int(value)
+            elif isinstance(value, tuple):
+                value = str(value)
+            return QVariant() if value is None else QVariant(value)
 
         if role == Qt.ForegroundRole:
             col_name = self._dataframe.columns[index.column()]
+            if col_name not in style_item.brushes:
+                col_name = AB_names_to_bw_keys.get(col_name, "")
             return QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
 
-        return None
+        return QVariant()
 
     def flags(self, index):
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
@@ -76,7 +84,7 @@ class EditablePandasModel(PandasModel):
         """ Inserts the given validated data into the given index
         """
         if index.isValid() and role == Qt.EditRole:
-            self._dataframe.iloc[index.row(), index.column()] = value
+            self._dataframe.iat[index.row(), index.column()] = value
             self.dataChanged.emit(index, index, [role])
             return True
         return False

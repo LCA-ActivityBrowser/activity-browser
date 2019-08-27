@@ -3,11 +3,12 @@ from itertools import zip_longest
 from typing import List
 
 import brightway2 as bw
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PyQt5.QtCore import QAbstractItemModel, QLocale, QModelIndex, Qt
 from PyQt5.QtGui import QDoubleValidator, QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import (
-    QComboBox, QDialog, QDialogButtonBox, QFormLayout, QLineEdit, QListView,
-    QStyledItemDelegate, QWidget)
+from PyQt5.QtWidgets import (QApplication, QComboBox, QDialog, QLineEdit,
+                             QStyle, QStyledItemDelegate, QDialogButtonBox,
+                             QFormLayout, QListView,QStyleOptionButton,
+                             QWidget)
 from stats_arrays import uncertainty_choices
 
 from . import parameters
@@ -21,7 +22,11 @@ class FloatDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         editor = QLineEdit(parent)
-        editor.setValidator(QDoubleValidator())
+        locale = QLocale(QLocale.English)
+        locale.setNumberOptions(QLocale.RejectGroupSeparator)
+        validator = QDoubleValidator()
+        validator.setLocale(locale)
+        editor.setValidator(validator)
         return editor
 
     def setEditorData(self, editor: QLineEdit, index: QModelIndex):
@@ -35,8 +40,11 @@ class FloatDelegate(QStyledItemDelegate):
                      index: QModelIndex):
         """ Take the editor, read the given value and set it in the model
         """
-        value = float(editor.text())
-        model.setData(index, value, Qt.EditRole)
+        try:
+            value = float(editor.text())
+            model.setData(index, value, Qt.EditRole)
+        except ValueError:
+            pass
 
 
 class StringDelegate(QStyledItemDelegate):
@@ -89,6 +97,29 @@ class DatabaseDelegate(QStyledItemDelegate):
         """
         value = editor.currentText()
         model.setData(index, value, Qt.EditRole)
+
+
+class CheckboxDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, parent, option, index):
+        return None
+
+    def paint(self, painter, option, index):
+        """ Paint the cell with a styled option button, showing a checkbox
+
+        See links below for inspiration:
+        https://stackoverflow.com/a/11778012
+        https://stackoverflow.com/q/15235273
+        """
+        value = bool(index.data(Qt.DisplayRole))
+        button = QStyleOptionButton()
+        button.state = QStyle.State_Enabled
+        button.state |= QStyle.State_Off if not value else QStyle.State_On
+        button.rect = option.rect
+        # button.text = "False" if not value else "True"  # This also adds text
+        QApplication.style().drawControl(QStyle.CE_CheckBox, button, painter)
 
 
 class ViewOnlyDelegate(QStyledItemDelegate):

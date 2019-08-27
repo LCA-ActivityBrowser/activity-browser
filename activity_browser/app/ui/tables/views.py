@@ -2,8 +2,8 @@
 import os
 from functools import wraps
 
-from PyQt5.QtCore import (QAbstractTableModel, QSize, QSortFilterProxyModel,
-                          Qt, pyqtSlot)
+from PyQt5.QtCore import (QAbstractTableModel, QModelIndex, QSize,
+                          QSortFilterProxyModel, Qt, pyqtSlot)
 from PyQt5.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from activity_browser.app.settings import ab_settings
@@ -43,8 +43,8 @@ class ABDataFrameView(QTableView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setVerticalScrollMode(1)
-        self.setHorizontalScrollMode(1)
+        self.setVerticalScrollMode(QTableView.ScrollPerPixel)
+        self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
@@ -54,12 +54,17 @@ class ABDataFrameView(QTableView):
         self.table_name = 'LCA results'
         self.dataframe = None
 
-    def get_max_height(self):
+    def get_max_height(self) -> int:
         return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
                  self.horizontalHeader().height() + self.horizontalScrollBar().height() + 5
 
-    def sizeHint(self):
+    def sizeHint(self) -> QSize:
         return QSize(self.width(), self.get_max_height())
+
+    def rowCount(self) -> int:
+        if hasattr(self, "model") and self.model is not None:
+            return self.model.rowCount()
+        return 0
 
     def _select_model(self) -> QAbstractTableModel:
         """ Select which model to use for the proxy model.
@@ -74,7 +79,7 @@ class ABDataFrameView(QTableView):
         self.setMaximumHeight(self.get_max_height())
 
     @staticmethod
-    def get_source_index(proxy_index):
+    def get_source_index(proxy_index: QModelIndex) -> QModelIndex:
         """ Returns the index of the original model from a proxymodel index.
 
         This way data from the self._dataframe can be obtained correctly.
@@ -84,7 +89,7 @@ class ABDataFrameView(QTableView):
             # We are a proxy model
             source_index = model.mapToSource(proxy_index)
             return source_index
-        return None
+        return QModelIndex()  # Returns an invalid index
 
     def to_clipboard(self):
         """ Copy dataframe to clipboard

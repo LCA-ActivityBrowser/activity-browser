@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ..style import style_activity_tab
-from ..tables import ExchangeTable
+from ..tables import (BiosphereExchangeTable, DownstreamExchangeTable,
+                      ProductExchangeTable, TechnosphereExchangeTable)
 from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
 from ..icons import qicons
@@ -115,11 +116,10 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
 
         # 4 data tables displayed after the activity data
-        self.production = ExchangeTable(self, tableType="products")
-        # self.production = ProductTable(self)
-        self.technosphere = ExchangeTable(self, tableType="technosphere")
-        self.biosphere = ExchangeTable(self, tableType="biosphere")
-        self.downstream = ExchangeTable(self, tableType="technosphere")
+        self.production = ProductExchangeTable(self)
+        self.technosphere = TechnosphereExchangeTable(self)
+        self.biosphere = BiosphereExchangeTable(self)
+        self.downstream = DownstreamExchangeTable(self)
 
         self.exchange_tables = [
             (self.production, "Products:"),
@@ -142,8 +142,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
-        self.populate(self.key)
-
+        self.populate()
         self.update_tooltips()
         self.update_style()
         self.connect_signals()
@@ -163,11 +162,14 @@ class ActivityTab(QtWidgets.QTabWidget):
     def populate(self, key):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
-        db_name = key[0]
-        self.production.set_queryset(db_name, self.activity.production())
-        self.technosphere.set_queryset(db_name, self.activity.technosphere())
-        self.biosphere.set_queryset(db_name, self.activity.biosphere())
-        self.downstream.set_queryset(db_name, self.activity.upstream(), downstream=True)
+        self.production.sync(self.activity.production())
+        self.technosphere.sync(self.activity.technosphere())
+        self.biosphere.sync(self.activity.biosphere())
+        self.downstream.sync(self.activity.upstream())
+
+        # Potentially update `DetailsGroupBox` now that tables are populated
+        for table, _ in self.exchange_tables:
+            table.updated.emit()
 
         self.populate_description_box()
 
@@ -195,7 +197,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.read_only = not read_only
         self.activity_description.setReadOnly(self.read_only)
 
-        if not self.read_only:  # update unique locations, units, etc. for editing (convenience_data)
+        if not self.read_only:  # update unique locations, units, etc. for editing (metadata)
             signals.edit_activity.emit(self.db_name)
 
         self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
@@ -212,14 +214,16 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         for table, label in self.exchange_tables:
             if self.read_only:
-                table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
+                table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
                 table.setAcceptDrops(False)
                 table.delete_exchange_action.setEnabled(False)
+                table.remove_formula_action.setEnabled(False)
             else:
-                table.setEditTriggers(QtWidgets.QTableWidget.DoubleClicked)
-                if table != self.downstream:  # downstream consumers table never accepts drops
+                table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
+                table.delete_exchange_action.setEnabled(True)
+                table.remove_formula_action.setEnabled(True)
+                if not table.downstream:  # downstream consumers table never accepts drops
                     table.setAcceptDrops(True)
-                    table.delete_exchange_action.setEnabled(True)
 
     def db_read_only_changed(self, db_name, db_read_only):
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """

@@ -81,8 +81,8 @@ class LCASetupTab(QtWidgets.QWidget):
         super(LCASetupTab, self).__init__(parent)
         self.window = self.window()
 
-        self.activities_table = CSActivityTable()
-        self.methods_table = CSMethodsTable()
+        self.activities_table = CSActivityTable(self)
+        self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList()
 
         self.new_cs_button = QtWidgets.QPushButton('New')
