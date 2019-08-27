@@ -2,21 +2,54 @@
 
 ## [Unreleased]
 
+## [2.3.3] - 2019-08-27
+
 ### Added
 
-- ([#259](https://github.com/LCA-ActivityBrowser/activity-browser/pull/259)) Subclassed the `Icons` class into `QIcons` which directly returns QIcon objects of the icon figures. 
+- ([#259](https://github.com/LCA-ActivityBrowser/activity-browser/pull/259))
+    Subclassed the `Icons` class into `QIcons` which directly returns QIcon objects
+    of the icon figures.
 
 ### Changed
 
-- ([#256](https://github.com/LCA-ActivityBrowser/activity-browser/pull/256)) Do not open the activity tab for activities without a product (ie. biosphere flows).
+- ([#256](https://github.com/LCA-ActivityBrowser/activity-browser/pull/256))
+    Do not open the activity tab for activities without a product (ie. biosphere flows).
   - Includes tests!
-- ([#258](https://github.com/LCA-ActivityBrowser/activity-browser/pull/258), [#261](https://github.com/LCA-ActivityBrowser/activity-browser/pull/261)) Refactor the dataframe Model/View code to allow a lot of customization.
+- ([#258](https://github.com/LCA-ActivityBrowser/activity-browser/pull/258), [#261](https://github.com/LCA-ActivityBrowser/activity-browser/pull/261))
+    Refactor the dataframe Model/View code to allow a lot of customization.
+- ([#273](https://github.com/LCA-ActivityBrowser/activity-browser/pull/273))
+    Filtering activities in the databases table is now case-insensitive: 'Gold' will
+    now also find activities with 'gold' in them.
+- Refactored all `ABTableWidget` classes to implement them as `ABDataFrameView` classes.
+    See [#264](https://github.com/LCA-ActivityBrowser/activity-browser/pull/264),
+    [#265](https://github.com/LCA-ActivityBrowser/activity-browser/pull/265),
+    [#266](https://github.com/LCA-ActivityBrowser/activity-browser/pull/266),
+    [#271](https://github.com/LCA-ActivityBrowser/activity-browser/pull/271),
+    [#274](https://github.com/LCA-ActivityBrowser/activity-browser/pull/274).
+    This fixes the issue of tables being sorted incorrectly.
 
 ### Fixed
 
-- ([#246](https://github.com/LCA-ActivityBrowser/activity-browser/pull/246)) Added a workaround for running LCA on databases with missing or unset uncertainty.
-- ([#262](https://github.com/LCA-ActivityBrowser/activity-browser/pull/262)) Database will no longer be deleted if the user selects `No` in the `delete_database` question dialog.
-- ([#263](https://github.com/LCA-ActivityBrowser/activity-browser/pull/263)) Add separate check of `database_changed` signal to ensure the correct table is refreshed. 
+- ([#246](https://github.com/LCA-ActivityBrowser/activity-browser/pull/246))
+    Added a workaround for running LCA on databases with missing or unset uncertainty.
+- ([#262](https://github.com/LCA-ActivityBrowser/activity-browser/pull/262))
+    Database will no longer be deleted if the user selects `No` in the `delete_database`
+    question dialog.
+- ([#263](https://github.com/LCA-ActivityBrowser/activity-browser/pull/263))
+    Add separate check of `database_changed` signal to ensure the correct table is refreshed.
+- ([#267](https://github.com/LCA-ActivityBrowser/activity-browser/pull/267))
+    Updating the metadata (by updating activities) will no longer throw errors.
+- ([#231](https://github.com/LCA-ActivityBrowser/activity-browser/issues/231))
+    Tables sorted on `float` or `integer`-type columns will now do so correctly instead of
+    sorting the column by string.
+
+### Removed
+
+- ([#272](https://github.com/LCA-ActivityBrowser/activity-browser/pull/272))
+    Removed `ConvenienceData` class as it has been completely replaced by the `MetaDataStore` class.
+- ([#275](https://github.com/LCA-ActivityBrowser/activity-browser/pull/275))
+    Removed unused `ABTableWidget` and `ABTableItem` classes, these have been completely
+    replaced with the more flexible model/view implementation.
 
 ## [2.3.2] - 2019-07-03
 
@@ -53,7 +86,8 @@
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
 
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.2...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.3...HEAD
+[2.3.3]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.2...2.3.3
 [2.3.2]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.1...2.3.2
 [2.3.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.0...2.3.1
 [2.3.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.2.5...2.3.0
