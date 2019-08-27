@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from bw2data import projects
-from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QComboBox
 
-from .table import ABTableWidget, ABTableItem
 from ...signals import signals
 
 
-class ProjectListWidget(QtWidgets.QComboBox):
+class ProjectListWidget(QComboBox):
     def __init__(self):
         super(ProjectListWidget, self).__init__()
         self.connect_signals()
@@ -26,26 +25,3 @@ class ProjectListWidget(QtWidgets.QComboBox):
 
     def on_activated(self, index):
         signals.change_project.emit(self.project_names[index])
-
-
-class ProjectTable(ABTableWidget):
-    """ Table displaying projects. Unused at this moment. """
-    HEADERS = ["Name"]
-    def __init__(self):
-        super(ProjectTable, self).__init__()
-        self.setColumnCount(len(self.HEADERS))
-        self.connect_signals()
-        self.sync()
-
-    def connect_signals(self):
-        pass
-
-    def select_database(self, item):
-        pass
-
-    @ABTableWidget.decorated_sync
-    def sync(self):
-        self.setRowCount(len(projects))
-        self.setHorizontalHeaderLabels(self.HEADERS)
-        for row, project in enumerate(projects):
-            self.setItem(row, 0, ABTableItem(project.name, project=project.name))
