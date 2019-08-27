@@ -219,6 +219,7 @@ class ActivityParameterTable(BaseParameterTable):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.table_name = "activity_parameter"
 
         # Set delegates for specific columns
         self.setItemDelegateForColumn(0, StringDelegate(self))

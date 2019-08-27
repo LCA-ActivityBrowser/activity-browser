@@ -159,7 +159,7 @@ class ActivityTab(QtWidgets.QTabWidget):
     def parameterize(self):
         signals.add_activity_parameter.emit(self.key)
 
-    def populate(self, key):
+    def populate(self):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
         self.production.sync(self.activity.production())

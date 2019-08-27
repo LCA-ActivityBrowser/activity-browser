@@ -11,8 +11,6 @@ from PyQt5.QtWidgets import (QApplication, QComboBox, QDialog, QLineEdit,
                              QWidget)
 from stats_arrays import uncertainty_choices
 
-from . import parameters
-
 
 class FloatDelegate(QStyledItemDelegate):
     """ For managing and validating entered float values.
@@ -193,8 +191,8 @@ class ListDelegate(QStyledItemDelegate):
         dialog = OrderedListInputDialog(editor, Qt.Window)
 
         # Check which table is asking for a list
-        if isinstance(parent, parameters.ActivityParameterTable):
-            items = parameters.ActivityParameterTable.get_activity_groups()
+        if hasattr(parent, "table_name") and parent.table_name == "activity_parameter":
+            items = parent.get_activity_groups()
             unchecked_items = dialog.add_items_value(items)
             dialog.set_items(unchecked_items)
 
@@ -210,8 +208,9 @@ class ListDelegate(QStyledItemDelegate):
         else:
             value_list = []
 
-        if isinstance(self.parent(), parameters.ActivityParameterTable):
-            groups = parameters.ActivityParameterTable.get_activity_groups(value_list)
+        parent = self.parent()
+        if hasattr(parent, "table_name") and parent.table_name == "activity_parameter":
+            groups = parent.get_activity_groups(value_list)
             unchecked = dialog.add_items_value(groups)
             checked = dialog.add_items_value(value_list, True)
             dialog.set_items(checked + unchecked)
