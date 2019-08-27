@@ -27,7 +27,7 @@ class PandasModel(QAbstractTableModel):
             return QVariant()
 
         if role == Qt.DisplayRole:
-            value = self._dataframe.iloc[index.row(), index.column()]
+            value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float):
                 value = float(value)
             elif isinstance(value, np.bool_):
@@ -83,7 +83,7 @@ class EditablePandasModel(PandasModel):
         """ Inserts the given validated data into the given index
         """
         if index.isValid() and role == Qt.EditRole:
-            self._dataframe.iloc[index.row(), index.column()] = value
+            self._dataframe.iat[index.row(), index.column()] = value
             self.dataChanged.emit(index, index, [role])
             return True
         return False
