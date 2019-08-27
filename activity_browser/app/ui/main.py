@@ -31,9 +31,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.icon = QtGui.QIcon(icons.ab)
         self.setWindowIcon(self.icon)
 
-        # Clipboard
-        self.clipboard = QtWidgets.QApplication.clipboard()
-
         # Layout
         # The top level element is `central_widget`.
         # Inside is a vertical layout `vertical_container`.
@@ -87,8 +84,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.copy_selection_to_clipboard.connect(self.set_clipboard_text)
-
         # Keyboard shortcuts
         self.shortcut_debug = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+D"), self)
         self.shortcut_debug.activated.connect(self.toggle_debug_window)
@@ -143,7 +138,3 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.No
         )
         return response == QtWidgets.QMessageBox.Yes
-
-    @QtCore.pyqtSlot(str)
-    def set_clipboard_text(self, clipboard_text):
-        self.clipboard.setText(clipboard_text)
