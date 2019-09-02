@@ -112,7 +112,7 @@ class CheckboxDelegate(QStyledItemDelegate):
         button.state |= QStyle.State_Off if not value else QStyle.State_On
         button.rect = option.rect
         # button.text = "False" if not value else "True"  # This also adds text
-        QApplication.style().drawControl(QStyle.CE_CheckBox, button, painter)
+        QApplication.style().drawPrimitive(QStyle.PE_IndicatorCheckBox, button, painter)
         painter.restore()
 
 
