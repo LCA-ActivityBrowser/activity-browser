@@ -105,6 +105,7 @@ class CheckboxDelegate(QStyledItemDelegate):
         https://stackoverflow.com/a/11778012
         https://stackoverflow.com/q/15235273
         """
+        painter.save()
         value = bool(index.data(Qt.DisplayRole))
         button = QStyleOptionButton()
         button.state = QStyle.State_Enabled
@@ -112,6 +113,7 @@ class CheckboxDelegate(QStyledItemDelegate):
         button.rect = option.rect
         # button.text = "False" if not value else "True"  # This also adds text
         QApplication.style().drawControl(QStyle.CE_CheckBox, button, painter)
+        painter.restore()
 
 
 class ViewOnlyDelegate(QStyledItemDelegate):
