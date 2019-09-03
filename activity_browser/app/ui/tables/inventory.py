@@ -32,7 +32,9 @@ class DatabasesTable(ABDataFrameView):
         super().__init__(parent)
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-        self.setItemDelegateForColumn(2, CheckboxDelegate(self))
+        # TODO: Figure out problems with MacOS painting CheckboxDelegate incorrectly.
+        # See https://github.com/LCA-ActivityBrowser/activity-browser/issues/278
+        # self.setItemDelegateForColumn(2, CheckboxDelegate(self))
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred,
             QtWidgets.QSizePolicy.Maximum)
