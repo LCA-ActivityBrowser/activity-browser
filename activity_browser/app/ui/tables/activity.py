@@ -36,6 +36,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         self.downstream = False
         self.key = None if not hasattr(parent, "key") else parent.key
         self.exchanges = []
+        self.exchange_column = 0
         self._connect_signals()
 
     def _connect_signals(self):
@@ -56,9 +57,11 @@ class BaseExchangeTable(ABDataFrameEdit):
 
         Make sure to store the Exchange object itself in the dataframe as well.
         """
+        columns = self.COLUMNS + ["exchange"]
         df = pd.DataFrame([
             self.create_row(exchange=exc)[0] for exc in self.exchanges
-        ], columns=self.COLUMNS + ["exchange"])
+        ], columns=columns)
+        self.exchange_column = columns.index("exchange")
         return df
 
     def create_row(self, exchange) -> (dict, object):
@@ -73,18 +76,24 @@ class BaseExchangeTable(ABDataFrameEdit):
         return row, adj_act
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
-        """ Get the activity key from the exchange. """
+        """ Get the activity key from an exchange.
+
+        This is done by reaching into the table model through the proxy model
+        """
         index = self.get_source_index(proxy)
-        exchange = self.dataframe.iloc[index.row(), ]["exchange"]
-        return exchange.output if self.downstream else exchange.input
+        exchange = self.model.index(index.row(), self.exchange_column).data()
+        act = exchange.output if self.downstream else exchange.input
+        return act.key
 
     @QtCore.pyqtSlot()
     def delete_exchanges(self) -> None:
         """ Remove all of the selected exchanges from the activity.
         """
         indexes = [self.get_source_index(p) for p in self.selectedIndexes()]
-        rows = [index.row() for index in indexes]
-        exchanges = self.dataframe.iloc[rows, ]["exchange"].to_list()
+        exchanges = [
+            self.model.index(index.row(), self.exchange_column).data()
+            for index in indexes
+        ]
         signals.exchanges_deleted.emit(exchanges)
 
     def remove_formula(self) -> None:
@@ -98,8 +107,11 @@ class BaseExchangeTable(ABDataFrameEdit):
         if it was set for the current activity and all formulas are gone.
         """
         indexes = [self.get_source_index(p) for p in self.selectedIndexes()]
-        rows = [index.row() for index in indexes]
-        for exchange in self.dataframe.iloc[rows, ]["exchange"]:
+        exchanges = [
+            self.model.index(index.row(), self.exchange_column).data()
+            for index in indexes
+        ]
+        for exchange in exchanges:
             signals.exchange_modified.emit(exchange, "formula", "")
 
     def contextMenuEvent(self, a0) -> None:
@@ -118,10 +130,12 @@ class BaseExchangeTable(ABDataFrameEdit):
         Amount, Unit, Product and Formula
         """
         # A single cell was edited.
-        if topLeft == bottomRight:
+        if topLeft == bottomRight and topLeft.isValid():
             index = self.get_source_index(topLeft)
-            field = AB_names_to_bw_keys[self.dataframe.columns[index.column()]]
-            exchange = self.dataframe.iloc[index.row(), ]["exchange"]
+            field = AB_names_to_bw_keys.get(
+                self.model.headerData(index.column(), QtCore.Qt.Horizontal)
+            )
+            exchange = self.model.index(index.row(), self.exchange_column).data()
             if field in {"amount", "formula"}:
                 if field == "amount":
                     value = float(topLeft.data())
@@ -166,9 +180,7 @@ class BaseExchangeTable(ABDataFrameEdit):
             return
 
         # Grab the activity key from the exchange and open a tab
-        index = self.get_source_index(proxy)
-        row = self.dataframe.iloc[index.row(), ]
-        key = row["exchange"]["output"] if self.downstream else row["exchange"]["input"]
+        key = self.get_key(proxy)
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
@@ -244,9 +256,8 @@ class ProductExchangeTable(BaseExchangeTable):
         technosphere exchanges table.
         """
         source = event.source()
-        if hasattr(source, "table_name") and source.table_name == "technosphere":
-            event.accept()
-        elif hasattr(source, "technosphere") and source.technosphere is True:
+        if (getattr(source, "table_name", "") == "technosphere" or
+                getattr(source, "technosphere", False) is True):
             event.accept()
 
 
@@ -292,9 +303,8 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         downstream exchanges table.
         """
         source = event.source()
-        if isinstance(source, DownstreamExchangeTable):
-            event.accept()
-        elif hasattr(source, "technosphere") and source.technosphere is True:
+        if (getattr(source, "table_name", "") == "downstream" or
+                getattr(source, "technosphere", False) is True):
             event.accept()
 
 
@@ -333,14 +343,13 @@ class BiosphereExchangeTable(BaseExchangeTable):
     def dragEnterEvent(self, event):
         """ Only accept exchanges from a technosphere database table
         """
-        source = event.source()
-        if hasattr(source, "technosphere") and source.technosphere is False:
+        if getattr(event.source(), "technosphere", True) is False:
             event.accept()
 
 
 class DownstreamExchangeTable(TechnosphereExchangeTable):
     """ Inherit from the `TechnosphereExchangeTable` as the downstream class is
-    very similar.
+    very similar, just more restricted.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -350,12 +359,10 @@ class DownstreamExchangeTable(TechnosphereExchangeTable):
         self.table_name = "downstream"
         self.drag_model = True
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
+        self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
     def _resize(self) -> None:
         """ Next to `exchange`, also hide the `formula` column.
         """
         self.setColumnHidden(7, True)
         self.setColumnHidden(8, True)
-
-    def contextMenuEvent(self, a0) -> None:
-        pass
