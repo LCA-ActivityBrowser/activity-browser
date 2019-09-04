@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 
+from asteval import Interpreter
 import brightway2 as bw
 import numpy as np
 import pandas as pd
@@ -76,6 +77,10 @@ class BaseParameterTable(ABDataFrameEdit):
         """
         raise NotImplementedError
 
+    @staticmethod
+    def get_interpreter() -> Interpreter:
+        raise NotImplementedError
+
 
 class ProjectParameterTable(BaseParameterTable):
     """ Table widget for project parameters
@@ -149,6 +154,13 @@ class ProjectParameterTable(BaseParameterTable):
         return [
             [p.name, p.amount, "project"] for p in ProjectParameter.select()
         ]
+
+    @staticmethod
+    def get_interpreter() -> Interpreter:
+        interpreter = Interpreter()
+        for k, v in ProjectParameter.static().items():
+            interpreter.symtable[k] = v
+        return interpreter
 
 
 class DataBaseParameterTable(BaseParameterTable):
@@ -229,6 +241,22 @@ class DataBaseParameterTable(BaseParameterTable):
             [p.name, p.amount, "database ({})".format(p.database)]
             for p in DatabaseParameter.select()
         ]
+
+    def get_current_database(self) -> str:
+        """ Return the database name of the parameter currently selected.
+        """
+        index = self.get_source_index(self.currentIndex())
+        return self.model.index(index.row(), self.COLUMNS.index("database")).data()
+
+    def get_interpreter(self) -> Interpreter:
+        """ Take the interpreter from the ProjectParameterTable and add
+        (potentially overwriting) all database symbols for the selected index.
+        """
+        interpreter = ProjectParameterTable.get_interpreter()
+        db_name = self.get_current_database()
+        for k, v in DatabaseParameter.static(db_name).items():
+            interpreter.symtable[k] = v
+        return interpreter
 
 
 class ActivityParameterTable(BaseParameterTable):
@@ -531,6 +559,19 @@ class ActivityParameterTable(BaseParameterTable):
             [p.name, p.amount, "activity ({})".format(p.group)]
             for p in ActivityParameter.select()
         ]
+
+    def get_current_group(self) -> str:
+        """ Retrieve the group of the activity currently selected.
+        """
+        index = self.get_source_index(self.currentIndex())
+        return self.model.index(index.row(), self.COLUMNS.index("group")).data()
+
+    def get_interpreter(self) -> Interpreter:
+        interpreter = Interpreter()
+        group = self.get_current_group()
+        for k, v in ActivityParameter.static(group, full=True).items():
+            interpreter.symtable[k] = v
+        return interpreter
 
 
 class ExchangesTable(ABDictTreeView):

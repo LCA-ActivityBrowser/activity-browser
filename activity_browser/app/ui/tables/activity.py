@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from asteval import Interpreter
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 import pandas as pd
@@ -223,6 +224,26 @@ class BaseExchangeTable(ABDataFrameEdit):
             activity = []
 
         return project + database + activity
+
+    def get_interpreter(self) -> Interpreter:
+        """ Use the activity key to determine which symbols are added
+        to the formula interpreter.
+        """
+        interpreter = Interpreter()
+        try:
+            act = (ActivityParameter
+                   .get(ActivityParameter.database == self.key[0],
+                        ActivityParameter.code == self.key[1]))
+            for k, v in ActivityParameter.static(act.group, full=True).items():
+                interpreter.symtable[k] = v
+        except ActivityParameter.DoesNotExist as e:
+            print("Could not find activity: {}".format(e))
+            data = ProjectParameter.static()
+            data.update(DatabaseParameter.static(self.key[0]))
+            for k, v in data.items():
+                interpreter.symtable[k] = v
+        finally:
+            return interpreter
 
 
 class ProductExchangeTable(BaseExchangeTable):
