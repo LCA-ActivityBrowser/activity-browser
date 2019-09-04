@@ -126,22 +126,19 @@ class DatabasesTable(ABDataFrameView):
 
 
 class ActivitiesBiosphereTable(ABDataFrameView):
-    def __init__(self):
-        super(ActivitiesBiosphereTable, self).__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.database_name = None
-        self.dataframe = pd.DataFrame()
         self.technosphere = True
         self.act_fields = lambda: AB_metadata.get_existing_fields(['reference product', 'name', 'location', 'unit'])
         self.ef_fields = lambda: AB_metadata.get_existing_fields(['name', 'categories', 'type', 'unit'])
         self.fields = list()  # set during sync
+        self.db_read_only = True
 
         self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setDragEnabled(True)
         self.drag_model = True  # to enable the DragPandasModel (with flags for dragging)
-        self.setDragDropMode(1)  # QtGui.QAbstractItemView.DragOnly
-
-        self.setup_context_menu()
-        self.connect_signals()
+        self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
     def setup_context_menu(self):
         # context menu items are enabled/disabled elsewhere, in update_activity_table_read_only()

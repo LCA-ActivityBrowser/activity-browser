@@ -188,7 +188,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         super(ActivityBiosphereWidget, self).__init__(parent)
         self.header = 'Datasets'
 
-        self.table = ActivitiesBiosphereTable()
+        self.table = ActivitiesBiosphereTable(self)
 
         # Header widget
         self.header_widget = QtWidgets.QWidget()
