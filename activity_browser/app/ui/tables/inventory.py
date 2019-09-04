@@ -2,7 +2,7 @@
 import datetime
 import arrow
 import brightway2 as bw
-from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore
 from bw2data.utils import natural_sort
 import functools
 import numpy as np
@@ -12,7 +12,7 @@ from activity_browser.app.settings import project_settings
 
 from .delegates import CheckboxDelegate
 from .views import ABDataFrameView, dataframe_sync
-from ..icons import icons, qicons
+from ..icons import qicons
 from ...signals import signals
 from ...bwutils import AB_metadata
 from ...bwutils.commontasks import is_technosphere_db
@@ -135,83 +135,62 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.fields = list()  # set during sync
         self.db_read_only = True
 
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setDragEnabled(True)
         self.drag_model = True  # to enable the DragPandasModel (with flags for dragging)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
-    def setup_context_menu(self):
-        # context menu items are enabled/disabled elsewhere, in update_activity_table_read_only()
-        self.open_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.left), "Open activity", None)
-
-        self.open_graph_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.graph_explorer), "Open in Graph Explorer", None)
-
-        # self.calculate_LCA = QtWidgets.QAction(
-        #     QtGui.QIcon(icons.calculate), "calculate LCA", None)
-        #
         self.new_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add), "Add new activity", None
+            qicons.add, "Add new activity", None
         )
         self.duplicate_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.copy), "Duplicate activity", None
+            qicons.copy, "Duplicate activity", None
         )
         self.delete_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.delete), "Delete activity", None
-        )
-        self.duplicate_activity_to_db_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add_db), 'Duplicate to other database', None
+            qicons.delete, "Delete activity", None
         )
 
-        self.actions = [
-            self.open_activity_action,
-            self.open_graph_action,
-            # self.calculate_LCA,
-            self.new_activity_action,
-            self.duplicate_activity_action,
-            self.delete_activity_action,
-            self.duplicate_activity_to_db_action,
-        ]
-        for action in self.actions:
-            self.addAction(action)
+        self.connect_signals()
 
-        # TODO: several of these actions could be done for several activities at
-        #  the same time (e.g. deleting), which is currently not supported
-
-        self.open_activity_action.triggered.connect(
-            lambda x: self.item_double_clicked(self.currentIndex())
+    def contextMenuEvent(self, event) -> None:
+        """ Construct and present a menu.
+        """
+        menu = QtWidgets.QMenu()
+        menu.addAction(
+            qicons.left, "Open activity",
+            lambda: self.open_activity_tab(self.currentIndex())
         )
-        self.open_graph_action.triggered.connect(
-            lambda x: signals.open_activity_graph_tab.emit(self.get_key(self.currentIndex()))
+        menu.addAction(
+            qicons.graph_explorer, "Open in Graph Explorer",
+            lambda: signals.open_activity_graph_tab.emit(self.get_key(self.currentIndex()))
         )
-        # self.calculate_LCA.triggered.connect(
-        #     lambda x: self.LCA_calculation(self.get_key(self.currentIndex()))
-        # )
-        self.new_activity_action.triggered.connect(
-            lambda: signals.new_activity.emit(self.database_name)
-        )
-        self.duplicate_activity_action.triggered.connect(
-            lambda x: signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
-        )
-        self.delete_activity_action.triggered.connect(
-            lambda x: signals.delete_activity.emit(self.get_key(self.currentIndex()))
-        )
-        self.duplicate_activity_to_db_action.triggered.connect(
+        menu.addAction(self.new_activity_action)
+        menu.addAction(self.duplicate_activity_action)
+        menu.addAction(self.delete_activity_action)
+        menu.addAction(
+            qicons.add_db, "Duplicate to other database",
             lambda: signals.show_duplicate_to_db_interface.emit(self.get_key(self.currentIndex()))
         )
+        menu.exec(event.globalPos())
 
     def connect_signals(self):
         signals.database_selected.connect(
             lambda name: self.sync(name)
         )
-        # signals.database_changed.connect(self.filter_database_changed)
         signals.database_changed.connect(self.check_database_changed)
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
-        self.doubleClicked.connect(self.item_double_clicked)
+        self.new_activity_action.triggered.connect(
+            lambda: signals.new_activity.emit(self.database_name)
+        )
+        self.duplicate_activity_action.triggered.connect(
+            lambda: signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
+        )
+        self.delete_activity_action.triggered.connect(
+            lambda: signals.delete_activity.emit(self.get_key(self.currentIndex()))
+        )
+        self.doubleClicked.connect(self.open_activity_tab)
 
-    def reset_table(self):
+    def reset_table(self) -> None:
         self.database_name = None
         self.dataframe = pd.DataFrame()
 
@@ -220,8 +199,9 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         index = self.get_source_index(proxy_index)
         return self.dataframe.iloc[index.row()]['key']
 
-    def item_double_clicked(self, proxy_index):
-        key = self.get_key(proxy_index)
+    @QtCore.pyqtSlot(QtCore.QModelIndex)
+    def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
+        key = self.get_key(proxy)
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
@@ -254,11 +234,11 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
         # disable context menu (actions) if biosphere table and/or if db read-only
         if self.technosphere:
-            [action.setEnabled(True) for action in self.actions]
+            self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
             self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(db_name, True)
             self.update_activity_table_read_only(self.database_name, self.db_read_only)
         else:
-            [action.setEnabled(False) for action in self.actions]
+            self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
         # get fields
         fields = self.act_fields() if self.technosphere else self.ef_fields()
@@ -323,9 +303,13 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         # could also set the self.dataframe_search_copy here (but would have to test a bit)
         self.sync(self.database_name)
 
-    def update_activity_table_read_only(self, db_name, db_read_only):
-        """[new, duplicate & delete] actions can only be selected for databases that are not read-only
-                user can change state of dbs other than the open one: so check first"""
+    def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
+        """ [new, duplicate & delete] actions can only be selected for
+        databases that are not read-only.
+
+        The user can change state of dbs other than the open one, so check
+        if database name matches.
+        """
         if self.database_name == db_name:
             self.db_read_only = db_read_only
             self.new_activity_action.setEnabled(not self.db_read_only)
