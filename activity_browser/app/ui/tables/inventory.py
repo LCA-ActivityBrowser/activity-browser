@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+from ast import literal_eval
 import datetime
+import functools
+
 import arrow
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore
 from bw2data.utils import natural_sort
-import functools
 import numpy as np
 import pandas as pd
 
@@ -194,10 +196,15 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.database_name = None
         self.dataframe = pd.DataFrame()
 
-    def get_key(self, proxy_index):
-        """Get the key from the mode.dataframe assuming the index provided refers to the proxy model."""
-        index = self.get_source_index(proxy_index)
-        return self.dataframe.iloc[index.row()]['key']
+    def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
+        """ Get the key from the model using the given proxy index.
+
+        NOTE: PandasModel converts tuples to strings in the `data` method
+        due to PyQt QVariant typing nonsense.
+        """
+        index = self.get_source_index(proxy)
+        key = self.model.index(index.row(), self.fields.index("key")).data()
+        return literal_eval(key)
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
