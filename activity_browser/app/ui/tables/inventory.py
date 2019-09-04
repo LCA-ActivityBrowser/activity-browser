@@ -37,8 +37,8 @@ class DatabasesTable(ABDataFrameView):
         # self.setItemDelegateForColumn(2, CheckboxDelegate(self))
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
+            QtWidgets.QSizePolicy.Maximum
+        ))
         self._connect_signals()
 
     def _connect_signals(self):
@@ -60,8 +60,7 @@ class DatabasesTable(ABDataFrameView):
             qicons.add, "Add new activity",
             lambda: signals.new_activity.emit(self.selected_db_name)
         )
-        menu.popup(a0.globalPos())
-        menu.exec()
+        menu.exec(a0.globalPos())
 
     def mousePressEvent(self, e):
         """ A single mouseclick should trigger the 'read-only' column to alter
@@ -75,9 +74,9 @@ class DatabasesTable(ABDataFrameView):
         if e.button() == QtCore.Qt.LeftButton:
             index = self.indexAt(e.pos())
             if index.column() == 2:
-                value = bool(index.data())
-                new_value = True if not value else False
-                db_name = self.dataframe.iloc[index.row(), ]["Name"]
+                # Flip the read-only value for the database
+                new_value = not bool(index.data())
+                db_name = self.model.index(index.row(), 0).data()
                 self.read_only_changed(db_name, new_value)
                 self.sync()
         super().mousePressEvent(e)
@@ -86,12 +85,12 @@ class DatabasesTable(ABDataFrameView):
     def selected_db_name(self) -> str:
         """ Return the database name of the user-selected index.
         """
-        index = self.get_source_index(next(p for p in self.selectedIndexes()))
-        return self.dataframe.iloc[index.row(), ]["Name"]
+        index = self.get_source_index(self.currentIndex())
+        return self.model.index(index.row(), 0).data()
 
     def open_database(self, proxy):
         index = self.get_source_index(proxy)
-        signals.database_selected.emit(self.dataframe.iloc[index.row(), ]["Name"])
+        signals.database_selected.emit(self.model.index(index.row(), 0).data())
 
     @staticmethod
     @QtCore.pyqtSlot(str, bool)
