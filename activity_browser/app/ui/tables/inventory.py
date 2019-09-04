@@ -212,13 +212,6 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         if db_name == self.database_name and db_name in bw.databases:
             self.sync(db_name)
 
-    # def LCA_calculation(self, key):
-    #     print(key)
-    #     func_unit = {key: 1.0}
-    #     for func_unit in bw.calculation_setups[name]['inv']:
-    #         for key, amount in func_unit.items():
-    #             self.append_row(key, str(amount))
-
     @dataframe_sync
     def sync(self, db_name: str, df: pd.DataFrame=None) -> None:
         if df is not None:
@@ -256,17 +249,19 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         sort_field_index = self.fields.index(sort_field)
         self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
         self.dataframe.reset_index(inplace=True, drop=True)
-        self.dataframe_search_copy = self.dataframe
 
-    def search(self, pattern1: str=None, pattern2: str=None, logic='AND'):
-        """Filter the dataframe with two filters and a logical element in between
-        to allow different filter combinations."""
+    def search(self, pattern1: str=None, pattern2: str=None, logic='AND') -> None:
+        """ Filter the dataframe with two filters and a logical element
+        in between to allow different filter combinations.
+
+        TODO: Look at the possibility of using the proxy model to filter instead
+        """
         if not pattern1 and not pattern2:
             self.reset_search()
         if pattern1 and pattern2:
             # print('filtering on both search terms')
-            mask1 = self.filter_dataframe(self.dataframe_search_copy, pattern1)
-            mask2 = self.filter_dataframe(self.dataframe_search_copy, pattern2)
+            mask1 = self.filter_dataframe(self.dataframe, pattern1)
+            mask2 = self.filter_dataframe(self.dataframe, pattern2)
             # applying the logic
             if logic == 'AND':
                 mask = np.logical_and(mask1, mask2)
@@ -277,8 +272,8 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         else:
             # print('filtering on ONE search term')
             pattern = pattern1 if pattern1 else pattern2
-            mask = self.filter_dataframe(self.dataframe_search_copy, pattern)
-        df = self.dataframe_search_copy.loc[mask].reset_index(drop=True)
+            mask = self.filter_dataframe(self.dataframe, pattern)
+        df = self.dataframe.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
 
     def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
@@ -302,8 +297,9 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         )
         return mask
 
-    def reset_search(self):
-        # could also set the self.dataframe_search_copy here (but would have to test a bit)
+    def reset_search(self) -> None:
+        """ Explicitly reload the model data from the metadata.
+        """
         self.sync(self.database_name)
 
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
