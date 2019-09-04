@@ -15,7 +15,7 @@ from .views import ABDataFrameView, dataframe_sync
 from ..icons import qicons
 from ...signals import signals
 from ...bwutils import AB_metadata
-from ...bwutils.commontasks import is_technosphere_db
+from ...bwutils.commontasks import bw_keys_to_AB_names, is_technosphere_db
 
 
 class DatabasesTable(ABDataFrameView):
@@ -220,8 +220,9 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     #             self.append_row(key, str(amount))
 
     @dataframe_sync
-    def sync(self, db_name, df=None):
-        if isinstance(df, pd.DataFrame):  # skip the rest of the sync here if a dataframe is directly supplied
+    def sync(self, db_name: str, df: pd.DataFrame=None) -> None:
+        if df is not None:
+            # skip the rest of the sync here if a dataframe is directly supplied
             print('Pandas Dataframe passed to sync.', df.shape)
             self.dataframe = df
             return
@@ -230,7 +231,6 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             raise KeyError('This database does not exist!', db_name)
         self.database_name = db_name
         self.technosphere = is_technosphere_db(db_name)
-        AB_metadata.add_metadata([db_name])  # adds metadata if not already available; needs to come before fields
 
         # disable context menu (actions) if biosphere table and/or if db read-only
         if self.technosphere:
@@ -242,13 +242,15 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
         # get fields
         fields = self.act_fields() if self.technosphere else self.ef_fields()
-        self.fields = fields + ['key']
+        self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
 
-        # get dataframe
-        df = AB_metadata.get_database_metadata(db_name)
-        self.dataframe = df[self.fields].reset_index(drop=True)
+        # Get dataframe from metadata and update column-names
+        df = AB_metadata.get_database_metadata(db_name)[fields + ["key"]]
+        df.columns = self.fields
+        self.dataframe = df.reset_index(drop=True)
 
-        # sort ignoring case sensitivity
+        # Sort dataframe on first column (activity name, usually)
+        # while ignoring case sensitivity
         sort_field = self.fields[0]
         self.dataframe = self.dataframe.iloc[self.dataframe[sort_field].str.lower().argsort()]
         sort_field_index = self.fields.index(sort_field)
@@ -279,7 +281,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         df = self.dataframe_search_copy.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
 
-    def filter_dataframe(self, df: pd.DataFrame, pattern: str):
+    def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
         """ Filter the dataframe returning a mask that is True for all rows
         where a search string has been found.
 
@@ -291,6 +293,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         not work for columns containing tuples (https://stackoverflow.com/a/29463757)
         """
         search_columns = self.act_fields() if self.technosphere else self.ef_fields()
+        search_columns = [bw_keys_to_AB_names.get(c, c) for c in search_columns]
         mask = functools.reduce(
             np.logical_or, [
                 df[col].apply(lambda x: pattern.lower() in str(x).lower())
