@@ -190,15 +190,14 @@ class BaseExchangeTable(ABDataFrameEdit):
         parameters.
         """
         project = [
-            [p.name, p.amount, "project"] for p in ProjectParameter.select()
+            [k, v, "project"] for k, v in ProjectParameter.static().items()
         ]
         if self.key is None:
             return project
 
-        query = (DatabaseParameter.select()
-                 .where(DatabaseParameter.database == self.key[0]))
         database = [
-            [p.name, p.amount, "database"] for p in query.iterator()
+            [k, v, "database"]
+            for k, v in DatabaseParameter.static(self.key[0]).items()
         ]
 
         try:
