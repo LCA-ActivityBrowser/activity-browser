@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from itertools import zip_longest
+from os import devnull
 from typing import List, Optional
 
+from asteval import Interpreter
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
 from stats_arrays import uncertainty_choices
@@ -269,12 +271,16 @@ class FormulaDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, flags=QtCore.Qt.Window):
         super().__init__(parent=parent, flags=flags)
         self.setWindowTitle("Build a formula")
+        self.interpreter = None
 
         # 6 broad by 6 deep.
         grid = QtWidgets.QGridLayout(self)
         self.text_field = QtWidgets.QPlainTextEdit(self)
-        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-        buttons.setSizePolicy(QtWidgets.QSizePolicy(
+        self.text_field.textChanged.connect(self.validate_formula)
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
+        self.buttons.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.ButtonBox
         ))
         self.parameters = QtWidgets.QTableView(self)
@@ -286,12 +292,12 @@ class FormulaDialog(QtWidgets.QDialog):
         self.new_parameter.setEnabled(False)
 
         grid.addWidget(self.text_field, 0, 0, 5, 3)
-        grid.addWidget(buttons, 5, 0, 1, 3)
+        grid.addWidget(self.buttons, 5, 0, 1, 3)
         grid.addWidget(self.parameters, 0, 3, 5, 3)
         grid.addWidget(self.new_parameter, 5, 3, 1, 3)
 
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
         self.show()
 
     def insert_parameters(self, items: list) -> None:
@@ -308,18 +314,40 @@ class FormulaDialog(QtWidgets.QDialog):
                 model.setItem(x, y, model_item)
         self.parameters.resizeColumnsToContents()
 
-    def set_formula(self, value) -> None:
+    def insert_interpreter(self, interpreter: Interpreter) -> None:
+        self.interpreter = interpreter
+
+    @property
+    def formula(self) -> Optional[str]:
+        """ Look into the text_field and return the formula.
+        """
+        value = self.text_field.toPlainText().strip()
+        return value if value != "" else None
+
+    @formula.setter
+    def formula(self, value) -> None:
         """ Take the formula and set it to the text_field widget.
         """
         value = "" if value is None else str(value)
         self.text_field.setPlainText(value)
 
-    def get_formula(self) -> Optional[str]:
-        """ Look into the text_field, validate formula and return it.
+    @QtCore.pyqtSlot()
+    def validate_formula(self) -> None:
+        """ Qt slot triggered whenever a change is detected in the text_field.
         """
-        value = self.text_field.toPlainText()
-        # TODO: formula validation here?
-        return value if value != "" else None
+        self.text_field.blockSignals(True)
+        if self.interpreter:
+            formula = self.text_field.toPlainText().strip()
+            # Do not write massive amounts of errors to stderr if the user
+            # is busy writing.
+            with open(devnull, "w") as errfile:
+                self.interpreter.err_writer = errfile
+                self.interpreter(formula)
+                if len(self.interpreter.error) > 0:
+                    self.buttons.button(QtWidgets.QDialogButtonBox.Save).setEnabled(False)
+                else:
+                    self.buttons.button(QtWidgets.QDialogButtonBox.Save).setEnabled(True)
+        self.text_field.blockSignals(False)
 
 
 class FormulaDelegate(QtWidgets.QStyledItemDelegate):
@@ -356,7 +384,9 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
         if getattr(parent, "table_name", "") in self.ACCEPTED_TABLES:
             items = parent.get_usable_parameters()
             dialog.insert_parameters(items)
-            dialog.set_formula(data)
+            dialog.formula = data
+            interpreter = parent.get_interpreter()
+            dialog.insert_interpreter(interpreter)
 
     def setModelData(self, editor: QtWidgets.QWidget, model: QtCore.QAbstractItemModel,
                      index: QtCore.QModelIndex):
@@ -365,7 +395,10 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
         If the new formula is the same as the existing one, do not call setData
         """
         dialog = editor.findChild(FormulaDialog)
-        value = dialog.get_formula()
-        if model.data(index, QtCore.Qt.DisplayRole) == value:
+        if dialog.result() == QtWidgets.QDialog.Rejected:
+            # Cancel was clicked, do not store anything.
             return
-        model.setData(index, value, QtCore.Qt.EditRole)
+        if model.data(index, QtCore.Qt.DisplayRole) == dialog.formula:
+            # The text in the dialog is the same as what is already there.
+            return
+        model.setData(index, dialog.formula, QtCore.Qt.EditRole)
