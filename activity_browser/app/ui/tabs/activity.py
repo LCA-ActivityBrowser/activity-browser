@@ -33,7 +33,7 @@ class ActivitiesTab(ABTab):
             act = bw.get_activity(key)
             if not act.production():
                 return
-            new_tab = ActivityTab(key, parent=self)
+            new_tab = ActivityTab(key)
             self.tabs[key] = new_tab
             self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
@@ -52,7 +52,7 @@ class ActivitiesTab(ABTab):
                 pass
 
 
-class ActivityTab(QtWidgets.QTabWidget):
+class ActivityTab(QtWidgets.QWidget):
     """The data relating to Brightway activities can be viewed and edited through this panel interface
     The interface is a GUI representation of the standard activity data format as determined by Brightway
     This is necessitated as AB does not save its own data structures to disk
@@ -70,7 +70,6 @@ class ActivityTab(QtWidgets.QTabWidget):
 
     def __init__(self, key, parent=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
-        self.parent = parent
         self.read_only = read_only
         self.db_read_only = bc.is_database_read_only(db_name=key[0])
         self.key = key
@@ -149,6 +148,7 @@ class ActivityTab(QtWidgets.QTabWidget):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
+        signals.parameters_changed.connect(self.populate)
         # signals.activity_modified.connect(self.update_activity_values)
 
     @QtCore.pyqtSlot()

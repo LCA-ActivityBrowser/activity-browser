@@ -152,14 +152,13 @@ class ProjectParameterTable(BaseParameterTable):
     @staticmethod
     def get_usable_parameters() -> list:
         return [
-            [p.name, p.amount, "project"] for p in ProjectParameter.select()
+            [k, v, "project"] for k, v in ProjectParameter.static().items()
         ]
 
     @staticmethod
     def get_interpreter() -> Interpreter:
         interpreter = Interpreter()
-        for k, v in ProjectParameter.static().items():
-            interpreter.symtable[k] = v
+        interpreter.symtable.update(ProjectParameter.static())
         return interpreter
 
 
@@ -254,8 +253,7 @@ class DataBaseParameterTable(BaseParameterTable):
         """
         interpreter = ProjectParameterTable.get_interpreter()
         db_name = self.get_current_database()
-        for k, v in DatabaseParameter.static(db_name).items():
-            interpreter.symtable[k] = v
+        interpreter.symtable.update(DatabaseParameter.static(db_name))
         return interpreter
 
 
@@ -369,6 +367,9 @@ class ActivityParameterTable(BaseParameterTable):
         self.dataframe = self.dataframe.append(row, ignore_index=True)
         self.sync(self.dataframe)
         self.new_parameter.emit()
+        # Save the new parameter immediately.
+        self.save_parameters()
+        signals.parameters_changed.emit()
 
     @classmethod
     def _build_parameter(cls, key: tuple) -> dict:
@@ -423,8 +424,7 @@ class ActivityParameterTable(BaseParameterTable):
         menu.addAction(
             qicons.delete, "Remove order from group(s)", self.unset_group_order
         )
-        menu.popup(event.globalPos())
-        menu.exec()
+        menu.exec(event.globalPos())
 
     @pyqtSlot()
     def open_activity_tab(self):
@@ -569,8 +569,7 @@ class ActivityParameterTable(BaseParameterTable):
     def get_interpreter(self) -> Interpreter:
         interpreter = Interpreter()
         group = self.get_current_group()
-        for k, v in ActivityParameter.static(group, full=True).items():
-            interpreter.symtable[k] = v
+        interpreter.symtable.update(ActivityParameter.static(group, full=True))
         return interpreter
 
 
@@ -603,7 +602,10 @@ class ExchangesTable(ABDictTreeView):
                      .limit(1)
                      .get())
         except ActivityParameter.DoesNotExist:
-            return
+            signals.add_activity_parameter.emit(key)
+            param = (ActivityParameter
+                     .get(ActivityParameter.database == key[0],
+                          ActivityParameter.code == key[1]))
 
         act = bw.get_activity(key)
         bw.parameters.add_exchanges_to_group(param.group, act)

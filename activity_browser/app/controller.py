@@ -482,7 +482,7 @@ class Controller(object):
     def modify_exchange(exchange, field, value):
         # The formula field needs special handling.
         if field == "formula":
-            if field in exchange and value == "":
+            if field in exchange and (value == "" or value is None):
                 # Remove formula entirely.
                 del exchange[field]
                 if "original_amount" in exchange:

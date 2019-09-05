@@ -37,7 +37,8 @@ class ParametersTab(QTabWidget):
         self._connect_signals()
 
     def _connect_signals(self):
-        signals.add_activity_parameter.connect(self.activity_parameter_added)
+        # signals.add_activity_parameter.connect(self.activity_parameter_added)
+        pass
 
     @pyqtSlot()
     def activity_parameter_added(self) -> None:
