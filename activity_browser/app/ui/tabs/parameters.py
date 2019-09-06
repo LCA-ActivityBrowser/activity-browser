@@ -72,11 +72,18 @@ class ParameterDefinitionTab(BaseRightTab):
         }
 
         self.new_project_param = QPushButton(qicons.add, "New project parameter")
-        self.save_project_btn = QPushButton(qicons.save_db, "Save project parameters")
+        self.save_project_btn = QPushButton(qicons.save_db, "Store new parameters")
+        self.save_project_btn.setEnabled(False)
         self.new_database_param = QPushButton(qicons.add, "New database parameter")
-        self.save_database_btn = QPushButton(qicons.save_db, "Save database parameters")
-        self.save_activity_btn = QPushButton(qicons.save_db, "Save activity parameters")
+        self.save_database_btn = QPushButton(qicons.save_db, "Store new parameters")
+        self.save_database_btn.setEnabled(False)
+        self.save_activity_btn = QPushButton(qicons.save_db, "Store new parameters")
+        self.save_activity_btn.setEnabled(False)
         self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
+        self.buttons = {
+            "project": self.save_project_btn, "database": self.save_database_btn,
+            "activity": self.save_activity_btn,
+        }
 
         self._construct_layout()
         self._connect_signals()
@@ -131,20 +138,30 @@ the activity in that group.</li>
 
     def _connect_signals(self):
         signals.project_selected.connect(self.build_tables)
+        signals.parameters_changed.connect(self.build_tables)
         self.new_project_param.clicked.connect(
-            lambda: self.add_parameter("project")
+            self.project_table.add_parameter
         )
         self.new_database_param.clicked.connect(
-            lambda: self.add_parameter("database")
+            self.database_table.add_parameter
         )
         self.save_project_btn.clicked.connect(
             lambda: self.store_parameters("project")
         )
+        self.project_table.new_parameter.connect(
+            lambda: self.save_project_btn.setEnabled(True)
+        )
         self.save_database_btn.clicked.connect(
             lambda: self.store_parameters("database")
         )
+        self.database_table.new_parameter.connect(
+            lambda: self.save_database_btn.setEnabled(True)
+        )
         self.save_activity_btn.clicked.connect(
             lambda: self.store_parameters("activity")
+        )
+        self.activity_table.new_parameter.connect(
+            lambda: self.save_activity_btn.setEnabled(True)
         )
         self.uncertainty_columns.stateChanged.connect(
             self.hide_uncertainty_columns
@@ -219,20 +236,21 @@ the activity in that group.</li>
     def store_parameters(self, name: str) -> None:
         """ Store new / edited data, include handling for exceptions
         """
-        table = self.tables.get(name, None)
-        if not table:
+        if name not in self.tables:
             return
 
+        table = self.tables[name]
         error = table.save_parameters()
         if not error:
             table.sync(table.build_df())
-            return
         elif error == QMessageBox.Discard:
-            # Tables are rebuilt and ALL changes are reverted
+            # Tables are rebuilt and new parameters are dropped
             self.build_tables()
         elif error == QMessageBox.Cancel:
-            # Nothing is done, errors remain, tables are not rebuilt
+            # Nothing is done, errors remain for user to correct
             return
+        # On a successful save or a discard, disable the save button again.
+        self.buttons[name].setEnabled(False)
 
 
 class ParameterExchangesTab(BaseRightTab):

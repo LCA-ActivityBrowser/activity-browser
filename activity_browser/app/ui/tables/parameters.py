@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt
 from PyQt5.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from PyQt5.QtWidgets import QMenu
+from PyQt5.QtWidgets import QMenu, QMessageBox
 
 from activity_browser.app.settings import project_settings
 from activity_browser.app.signals import signals
@@ -32,6 +32,28 @@ class BaseParameterTable(ABDataFrameEdit):
     ]
     new_parameter = pyqtSignal()
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.param_column = self.combine_columns().index("parameter")
+
+    def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
+        """ Handle updating the parameters whenever the user changes a value.
+        """
+        if topLeft == bottomRight and topLeft.isValid():
+            if self.get_parameter(topLeft) is None:
+                # (not) Dealing with a new parameter not yet saved to db.
+                return
+            error = self.edit_single_parameter(topLeft)
+            if error:
+                if error == QMessageBox.Discard:
+                    # Undo changes in the table.
+                    self.sync(self.build_df())
+                if error == QMessageBox.Cancel:
+                    # Leave incorrect value in the table.
+                    return
+        else:
+            super().dataChanged(topLeft, bottomRight, roles)
+
     @dataframe_sync
     def sync(self, df):
         self.dataframe = df
@@ -50,7 +72,14 @@ class BaseParameterTable(ABDataFrameEdit):
         row = {key: getattr(parameter, key, "") for key in cls.COLUMNS}
         data = getattr(parameter, "data", {})
         row.update(cls.extract_uncertainty_data(data))
+        row["parameter"] = parameter
         return row
+
+    @classmethod
+    def combine_columns(cls) -> list:
+        """ Combine COLUMNS, UNCERTAINTY and add 'parameter'.
+        """
+        return cls.COLUMNS + cls.UNCERTAINTY + ["parameter"]
 
     @classmethod
     def extract_uncertainty_data(cls, data: dict) -> dict:
@@ -63,6 +92,35 @@ class BaseParameterTable(ABDataFrameEdit):
         """
         row = {key: data.get(key) for key in cls.UNCERTAINTY}
         return row
+
+    def save_parameters(self, overwrite: bool = True) -> Optional[int]:
+        """ Take the data from the model and call the correct brightway
+        parameters helper method to store it.
+        """
+        raise NotImplementedError
+
+    def get_parameter(self, proxy):
+        """ Reach into the model and return the `parameter` object.
+        """
+        index = self.get_source_index(proxy)
+        return self.model.index(index.row(), self.param_column).data()
+
+    def edit_single_parameter(self, proxy) -> Optional[int]:
+        """ Take the proxy index and update the underlying brightway Parameter.
+
+        Note that this method expects the parameter to exist, and will
+        raise an error if this is not the case.
+        """
+        param = self.get_parameter(proxy)
+        try:
+            field = self.model.headerData(proxy.column(), Qt.Horizontal)
+            setattr(param, field, proxy.data())
+            param.save()
+            # Saving the parameter expires the related group, so recalculate.
+            bw.parameters.recalculate()
+            signals.parameters_changed.emit()
+        except Exception as e:
+            return parameter_save_errorbox(self, e)
 
     def uncertainty_columns(self, show: bool):
         """ Given a boolean, iterates over the uncertainty columns and either
@@ -109,6 +167,10 @@ class ProjectParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(7, FloatDelegate(self))
         self.setItemDelegateForColumn(8, FloatDelegate(self))
 
+    def _resize(self) -> None:
+        super()._resize()
+        self.setColumnHidden(self.param_column, True)
+
     @classmethod
     def build_df(cls):
         """ Build a dataframe using the ProjectParameters set in brightway
@@ -116,7 +178,7 @@ class ProjectParameterTable(BaseParameterTable):
         data = [
             cls.parse_parameter(p) for p in ProjectParameter.select()
         ]
-        df = pd.DataFrame(data, columns=cls.COLUMNS + cls.UNCERTAINTY)
+        df = pd.DataFrame(data, columns=cls.combine_columns())
         return df
 
     def add_parameter(self) -> None:
@@ -127,6 +189,7 @@ class ProjectParameterTable(BaseParameterTable):
         """
         row = {"name": None, "amount": 0.0, "formula": ""}
         row.update({key: None for key in self.UNCERTAINTY})
+        row["parameter"] = None
         self.dataframe = self.dataframe.append(row, ignore_index=True)
         self.sync(self.dataframe)
         self.new_parameter.emit()
@@ -187,6 +250,10 @@ class DataBaseParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
 
+    def _resize(self) -> None:
+        super()._resize()
+        self.setColumnHidden(self.param_column, True)
+
     @classmethod
     def build_df(cls) -> pd.DataFrame:
         """ Build a dataframe using the DatabaseParameters set in brightway
@@ -194,7 +261,7 @@ class DataBaseParameterTable(BaseParameterTable):
         data = [
             cls.parse_parameter(p) for p in DatabaseParameter.select()
         ]
-        df = pd.DataFrame(data, columns=cls.COLUMNS + cls.UNCERTAINTY)
+        df = pd.DataFrame(data, columns=cls.combine_columns())
         return df
 
     def add_parameter(self) -> None:
@@ -289,6 +356,10 @@ class ActivityParameterTable(BaseParameterTable):
     def _connect_signals(self):
         signals.add_activity_parameter.connect(self.add_simple_parameter)
 
+    def _resize(self) -> None:
+        super()._resize()
+        self.setColumnHidden(self.param_column, True)
+
     @classmethod
     def build_df(cls):
         """ Build a dataframe using the ActivityParameters set in brightway
@@ -299,7 +370,7 @@ class ActivityParameterTable(BaseParameterTable):
                       .select(ActivityParameter, Group.order)
                       .join(Group, on=(ActivityParameter.group == Group.name)).dicts())
         ]
-        df = pd.DataFrame(data, columns=cls.COLUMNS + cls.UNCERTAINTY)
+        df = pd.DataFrame(data, columns=cls.combine_columns())
         # Convert the 'order' column from list into string
         df["order"] = df["order"].apply(", ".join)
         return df
@@ -313,6 +384,8 @@ class ActivityParameterTable(BaseParameterTable):
         row["key"] = (parameter.get("database"), parameter.get("code"))
         data = parameter.get("data", {})
         row.update(cls.extract_uncertainty_data(data))
+        # Cheating because we have the ID of the ActivityParameter
+        row["parameter"] = ActivityParameter.get_by_id(parameter["id"])
         return row
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
@@ -365,8 +438,6 @@ class ActivityParameterTable(BaseParameterTable):
             return
         row = self._build_parameter(key)
         self.dataframe = self.dataframe.append(row, ignore_index=True)
-        self.sync(self.dataframe)
-        self.new_parameter.emit()
         # Save the new parameter immediately.
         self.save_parameters()
         signals.parameters_changed.emit()
@@ -387,6 +458,7 @@ class ActivityParameterTable(BaseParameterTable):
             "formula": act.get("formula", ""),
             "order": "",
             "key": key,
+            "parameter": None,
         }
         row.update({key: None for key in cls.UNCERTAINTY})
         return row
@@ -435,7 +507,7 @@ class ActivityParameterTable(BaseParameterTable):
             row = self.dataframe.iloc[source_index.row(), ]
             signals.open_activity_tab.emit(row["key"])
 
-    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
+    def save_parameters(self, overwrite: bool = True) -> Optional[int]:
         """ Separates the activity parameters by group name and saves each
         chunk of parameters separately.
         """
@@ -445,7 +517,7 @@ class ActivityParameterTable(BaseParameterTable):
         # Unpack 'key' into 'database' and 'code' for the ParameterManager
         df = self.dataframe.copy()
         df["database"], df["code"] = zip(*df["key"].apply(lambda x: (x[0], x[1])))
-        df.drop("key", axis=1, inplace=True)
+        df.drop(["key", "parameter"], axis=1, inplace=True)
 
         groups = df["group"].str.strip().unique()
         if "" in groups:
@@ -493,12 +565,23 @@ class ActivityParameterTable(BaseParameterTable):
     def delete_parameters(self) -> None:
         """ Handle event to delete the given activities and related exchanges.
         """
-        for index in self.selectedIndexes():
-            source_index = self.get_source_index(index)
-            row = self.dataframe.iloc[source_index.row(), ]
+        deletable = set()
+        for proxy in self.selectedIndexes():
+            index = self.get_source_index(proxy)
+            row = self.dataframe.iloc[index.row(), ]
             act = bw.get_activity(row["key"])
             bw.parameters.remove_from_group(row["group"], act)
-        self.recalculate()
+            # Also remove the group if there are no more ActivityParameters
+            if ActivityParameter.get_or_none(group=row["group"]) is None:
+                deletable.add(row["group"])
+
+        # Remove empty groups
+        query = Group.delete().where(Group.name.in_(deletable))
+        query.execute()
+
+        # Recalculate everything and emit `parameters_changed` signal
+        bw.parameters.recalculate()
+        signals.parameters_changed.emit()
 
     @pyqtSlot()
     def unset_group_order(self) -> None:
@@ -508,8 +591,8 @@ class ActivityParameterTable(BaseParameterTable):
         altered = False
         for proxy in self.selectedIndexes():
             index = self.get_source_index(proxy)
-            row = self.dataframe.iloc[index.row(), ]
-            groups.add(row["group"])
+            group = self.model.index(index.row(), self.COLUMNS.index("group")).data()
+            groups.add(group)
 
         for group in groups:
             if group == "":
@@ -517,25 +600,18 @@ class ActivityParameterTable(BaseParameterTable):
             try:
                 obj = Group.get(name=group)
                 obj.order = []
+                obj.fresh = False
                 obj.save()
                 altered = True
             except Group.DoesNotExist:
                 continue
 
         if altered:
-            self.recalculate()
-
-    def recalculate(self) -> None:
-        """ Triggers general parameter recalculation and table sync
-        """
-        # Recalculate everything
-        bw.parameters.recalculate()
-        # Reload activities table and trigger reload of exchanges table
-        self.sync(self.build_df())
-        signals.parameters_changed.emit()
+            bw.parameters.recalculate()
+            signals.parameters_changed.emit()
 
     @staticmethod
-    def get_activity_groups(ignore_groups: list=None) -> list:
+    def get_activity_groups(ignore_groups: list = None) -> list:
         """ Helper method to look into the Group and determine which if any
         other groups the current activity can depend on
         """

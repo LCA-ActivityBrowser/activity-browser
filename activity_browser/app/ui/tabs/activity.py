@@ -105,11 +105,6 @@ class ActivityTab(QtWidgets.QWidget):
         self.graph_action = toolbar.addAction(
             qicons.graph_explorer, "Show graph", self.open_graph
         )
-        self.parameter_action = toolbar.addAction(
-            qicons.switch,
-            "Parameterize this activity to activate formula calculation",
-            self.parameterize
-        )
 
         # activity-specific data displayed and editable near the top of the tab
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
@@ -154,10 +149,6 @@ class ActivityTab(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def open_graph(self):
         signals.open_activity_graph_tab.emit(self.key)
-
-    @QtCore.pyqtSlot()
-    def parameterize(self):
-        signals.add_activity_parameter.emit(self.key)
 
     def populate(self):
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately

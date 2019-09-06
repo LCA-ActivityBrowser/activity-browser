@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from asteval import Interpreter
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
-                                ActivityParameter)
+                                ActivityParameter, parameters)
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -102,9 +102,6 @@ class BaseExchangeTable(ABDataFrameEdit):
         This will also check if the exchange has `original_amount` and
         attempt to overwrite the `amount` with that value after removing the
         `formula` field.
-
-        This can have the additional effect of removing the ActivityParameter
-        if it was set for the current activity and all formulas are gone.
         """
         indexes = [self.get_source_index(p) for p in self.selectedIndexes()]
         exchanges = [
@@ -113,6 +110,12 @@ class BaseExchangeTable(ABDataFrameEdit):
         ]
         for exchange in exchanges:
             signals.exchange_modified.emit(exchange, "formula", "")
+
+        # Clear out all ParameterizedExchanges before recalculating
+        param = ActivityParameter.get_or_none(database=self.key[0], code=self.key[1])
+        if param:
+            parameters.remove_exchanges_from_group(param.group, "")
+            signals.exchange_formula_changed.emit(self.key)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -234,8 +237,8 @@ class BaseExchangeTable(ABDataFrameEdit):
                    .get(ActivityParameter.database == self.key[0],
                         ActivityParameter.code == self.key[1]))
             interpreter.symtable.update(ActivityParameter.static(act.group, full=True))
-        except ActivityParameter.DoesNotExist as e:
-            print("Could not find activity: {}".format(e))
+        except ActivityParameter.DoesNotExist:
+            print("No parameter found, creating one for {}".format(self.key))
             interpreter.symtable.update(ProjectParameter.static())
             interpreter.symtable.update(DatabaseParameter.static(self.key[0]))
         finally:
