@@ -51,11 +51,15 @@ def test_search_biosphere(qtbot, ab_app):
     assert bw.projects.current == 'pytest_project'
     project_tab = ab_app.main_window.left_panel.tabs['Project']
     act_bio_widget = project_tab.activity_biosphere_widget
-    # currently_displayed = act_bio_widget.table.rowCount()
-    qtbot.keyClicks(act_bio_widget.search_box, 'Pentanol')
-    act_bio_widget.search_box.returnPressed.emit()
-    assert act_bio_widget.table.dataframe.shape[0] > 0
-    # assert search_results < currently_displayed
+    initial_amount = act_bio_widget.table.rowCount()
+    # Now search for a specific string
+    with qtbot.waitSignal(act_bio_widget.search_box.returnPressed, timeout=1000):
+        qtbot.keyClicks(act_bio_widget.search_box, 'Pentanol')
+        qtbot.keyPress(act_bio_widget.search_box, QtCore.Qt.Key_Return)
+    # We found some results!
+    assert act_bio_widget.table.rowCount() > 0
+    # And the table is now definitely smaller than it was.
+    assert act_bio_widget.table.rowCount() < initial_amount
 
 
 def test_fail_open_biosphere(ab_app):
