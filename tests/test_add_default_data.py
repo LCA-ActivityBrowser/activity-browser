@@ -25,7 +25,7 @@ def test_add_default_data(qtbot, mock, ab_app):
         )
 
 
-def test_select_biosphere(ab_app):
+def test_select_biosphere(qtbot, ab_app):
     """ Select the 'biosphere3' database from the databases table.
     """
     project_tab = ab_app.main_window.left_panel.tabs['Project']
@@ -35,12 +35,16 @@ def test_select_biosphere(ab_app):
         db_table.model.index(i, 0).data() for i in range(db_table.rowCount())
     ]
     assert 'biosphere3' in dbs
-    # TODO: ideally replace the signal below with qtbot.mouseDClick on the tableitem
-    # Sadly, there is no simple way of determining where to click to get the
-    # correct row. Example here can be used for precise clicking:
-    # https://github.com/pytest-dev/pytest-qt/issues/27#issuecomment-61897655
-    signals.database_selected.emit('biosphere3')
-    assert act_bio_widget.table.dataframe.shape[0] > 0
+
+    # Grab the rectangle of the 2nd column on the first row.
+    rect = db_table.visualRect(db_table.proxy_model.index(0, 1))
+    with qtbot.waitSignal(signals.database_selected, timeout=2000):
+        # Click once to 'focus' the table
+        qtbot.mouseClick(db_table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
+        # Then double-click to trigger the `doubleClick` event.
+        qtbot.mouseDClick(db_table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
+
+    assert act_bio_widget.table.rowCount() > 0
 
 
 def test_search_biosphere(qtbot, ab_app):
