@@ -32,8 +32,7 @@ def test_select_biosphere(ab_app):
     act_bio_widget = project_tab.activity_biosphere_widget
     db_table = project_tab.databases_widget.table
     dbs = [
-        db_table.model.data(db_table.model.index(i, 0), QtCore.Qt.DisplayRole)
-        for i in range(db_table.rowCount())
+        db_table.model.index(i, 0).data() for i in range(db_table.rowCount())
     ]
     assert 'biosphere3' in dbs
     # TODO: ideally replace the signal below with qtbot.mouseDClick on the tableitem
