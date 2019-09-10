@@ -74,10 +74,11 @@ class DatabasesTable(ABDataFrameView):
         (inspired by: https://stackoverflow.com/a/11778012)
         """
         if e.button() == QtCore.Qt.LeftButton:
-            index = self.indexAt(e.pos())
-            if index.column() == 2:
+            proxy = self.indexAt(e.pos())
+            if proxy.column() == 2:
                 # Flip the read-only value for the database
-                new_value = not bool(index.data())
+                new_value = not bool(proxy.data())
+                index = self.get_source_index(proxy)
                 db_name = self.model.index(index.row(), 0).data()
                 self.read_only_changed(db_name, new_value)
                 self.sync()
