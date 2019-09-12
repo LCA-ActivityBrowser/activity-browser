@@ -59,12 +59,12 @@ def test_create_database_params(qtbot):
     assert db_table.rowCount() == 2
 
     # Fill new rows with variables
-    db_table.model.setData(db_table.model.index(0, 0), "biosphere3")
-    db_table.model.setData(db_table.model.index(0, 1), "test_db1")
-    db_table.model.setData(db_table.model.index(0, 3), "test_project + 3.5")
-    db_table.model.setData(db_table.model.index(1, 0), "biosphere3")
-    db_table.model.setData(db_table.model.index(1, 1), "test_db2")
-    db_table.model.setData(db_table.model.index(1, 3), "test_db1 ** 2")
+    db_table.model.setData(db_table.model.index(0, 0), "test_db1")
+    db_table.model.setData(db_table.model.index(0, 2), "test_project + 3.5")
+    db_table.model.setData(db_table.model.index(0, 3), "biosphere3")
+    db_table.model.setData(db_table.model.index(1, 0), "test_db2")
+    db_table.model.setData(db_table.model.index(1, 2), "test_db1 ** 2")
+    db_table.model.setData(db_table.model.index(1, 3), "biosphere3")
 
     with qtbot.waitSignal(signals.parameters_changed, timeout=1000):
         qtbot.mouseClick(project_db_tab.save_database_btn, QtCore.Qt.LeftButton)

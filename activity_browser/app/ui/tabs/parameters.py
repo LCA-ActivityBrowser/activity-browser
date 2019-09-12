@@ -79,6 +79,7 @@ class ParameterDefinitionTab(BaseRightTab):
         self.save_database_btn.setEnabled(False)
         self.save_activity_btn = QPushButton(qicons.save_db, "Store new parameters")
         self.save_activity_btn.setEnabled(False)
+        self.show_order = QCheckBox("Show order column", self)
         self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
         self.buttons = {
             "project": self.save_project_btn, "database": self.save_database_btn,
@@ -163,6 +164,7 @@ the activity in that group.</li>
         self.activity_table.new_parameter.connect(
             lambda: self.save_activity_btn.setEnabled(True)
         )
+        self.show_order.stateChanged.connect(self.activity_order_column)
         self.uncertainty_columns.stateChanged.connect(
             self.hide_uncertainty_columns
         )
@@ -202,6 +204,7 @@ the activity in that group.</li>
         row = QHBoxLayout()
         row.addWidget(header("Activity:"))
         row.addWidget(self.save_activity_btn)
+        row.addWidget(self.show_order)
         row.addStretch(1)
         layout.addLayout(row)
         layout.addWidget(self.activity_table)
@@ -216,12 +219,23 @@ the activity in that group.</li>
         self.database_table.sync(DataBaseParameterTable.build_df())
         self.activity_table.sync(ActivityParameterTable.build_df())
         self.hide_uncertainty_columns()
+        self.activity_order_column()
 
     @pyqtSlot()
     def hide_uncertainty_columns(self):
         show = self.uncertainty_columns.isChecked()
         for table in self.tables.values():
             table.uncertainty_columns(show)
+
+    @pyqtSlot()
+    def activity_order_column(self) -> None:
+        col = self.activity_table.combine_columns().index("order")
+        state = self.show_order.isChecked()
+        if not state:
+            self.activity_table.setColumnHidden(col, True)
+        else:
+            self.activity_table.setColumnHidden(col, False)
+            self.activity_table.resizeColumnToContents(col)
 
     @pyqtSlot(str)
     def add_parameter(self, name: str) -> None:
