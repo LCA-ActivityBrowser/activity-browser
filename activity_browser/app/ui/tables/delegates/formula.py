@@ -5,6 +5,7 @@ from asteval import Interpreter
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...icons import qicons
+from ...wizards import ParameterWizard
 
 
 class CalculatorButtons(QtWidgets.QWidget):
@@ -83,10 +84,11 @@ class FormulaDialog(QtWidgets.QDialog):
         super().__init__(parent=parent, flags=flags)
         self.setWindowTitle("Build a formula")
         self.interpreter = None
+        self.key = ("", "")
 
         # 6 broad by 6 deep.
         grid = QtWidgets.QGridLayout(self)
-        self.text_field = QtWidgets.QPlainTextEdit(self)
+        self.text_field = QtWidgets.QLineEdit(self)
         self.text_field.textChanged.connect(self.validate_formula)
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
@@ -97,15 +99,18 @@ class FormulaDialog(QtWidgets.QDialog):
         self.parameters = QtWidgets.QTableView(self)
         model = QtGui.QStandardItemModel(self)
         self.parameters.setModel(model)
+        completer = QtWidgets.QCompleter(model, self)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.text_field.setCompleter(completer)
         self.parameters.doubleClicked.connect(self.append_parameter_name)
         self.new_parameter = QtWidgets.QPushButton(
             qicons.add, "New parameter", self
         )
-        self.new_parameter.setEnabled(False)
+        self.new_parameter.clicked.connect(self.create_parameter)
 
         self.calculator = CalculatorButtons(self)
-        self.calculator.button_press.connect(self.append_calculator)
-        self.calculator.clear.connect(self.clear_formula)
+        self.calculator.button_press.connect(self.text_field.insert)
+        self.calculator.clear.connect(self.text_field.clear)
 
         grid.addWidget(self.text_field, 0, 0, 5, 1)
         grid.addWidget(self.buttons, 5, 0, 1, 1)
@@ -131,14 +136,35 @@ class FormulaDialog(QtWidgets.QDialog):
                 model.setItem(x, y, model_item)
         self.parameters.resizeColumnsToContents()
 
+    @QtCore.pyqtSlot(str, str, str)
+    def append_parameter(self, name: str, amount: str, p_type: str) -> None:
+        """ Catch new parameters from the wizard and add them to the list.
+        """
+        model = self.parameters.model()
+        x = model.rowCount()
+        for y, i in enumerate([name, amount, p_type]):
+            item = QtGui.QStandardItem(i)
+            item.setEditable(False)
+            model.setItem(x, y, item)
+
     def insert_interpreter(self, interpreter: Interpreter) -> None:
         self.interpreter = interpreter
+
+    def insert_key(self, key: tuple) -> None:
+        """ The key consists of two strings, no more, no less.
+        """
+        self.key = key
+
+    @QtCore.pyqtSlot()
+    def create_parameter(self):
+        wizard = ParameterWizard(self.key, self)
+        wizard.complete.connect(self.append_parameter)
 
     @property
     def formula(self) -> str:
         """ Look into the text_field and return the formula.
         """
-        return self.text_field.toPlainText().strip()
+        return self.text_field.text().strip()
 
     @formula.setter
     def formula(self, value) -> None:
@@ -147,24 +173,15 @@ class FormulaDialog(QtWidgets.QDialog):
         if value is None:
             self.text_field.clear()
         else:
-            self.text_field.setPlainText(str(value))
+            self.text_field.setText(str(value))
 
+    @QtCore.pyqtSlot(QtCore.QModelIndex)
     def append_parameter_name(self, index: QtCore.QModelIndex) -> None:
         """ Take the index from the parameters table and append the parameter
         name to the formula.
         """
         param_name = self.parameters.model().index(index.row(), 0).data()
-        self.formula += param_name
-
-    @QtCore.pyqtSlot(str)
-    def append_calculator(self, value: str) -> None:
-        """ Takes signals from the calculator and adds them into the formula.
-        """
-        self.formula += value
-
-    @QtCore.pyqtSlot()
-    def clear_formula(self) -> None:
-        self.formula = None
+        self.text_field.insert(param_name)
 
     @QtCore.pyqtSlot()
     def validate_formula(self) -> None:
@@ -172,7 +189,7 @@ class FormulaDialog(QtWidgets.QDialog):
         """
         self.text_field.blockSignals(True)
         if self.interpreter:
-            formula = self.text_field.toPlainText().strip()
+            formula = self.text_field.text().strip()
             # Do not write massive amounts of errors to stderr if the user
             # is busy writing.
             with open(devnull, "w") as errfile:
@@ -223,6 +240,12 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
             dialog.formula = data
             interpreter = parent.get_interpreter()
             dialog.insert_interpreter(interpreter)
+            # Now see if we can construct a (partial) key
+            if hasattr(parent, "key"):
+                # This works for exchange tables.
+                dialog.insert_key(parent.key)
+            elif hasattr(parent, "get_key"):
+                dialog.insert_key(parent.get_key())
 
     def setModelData(self, editor: QtWidgets.QWidget, model: QtCore.QAbstractItemModel,
                      index: QtCore.QModelIndex):

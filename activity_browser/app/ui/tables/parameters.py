@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from ast import literal_eval
 from typing import Optional
 
 from asteval import Interpreter
@@ -104,6 +105,11 @@ class BaseParameterTable(ABDataFrameEdit):
         """
         index = self.get_source_index(proxy)
         return self.model.index(index.row(), self.param_column).data()
+
+    def get_key(self) -> tuple:
+        """ Use this to build a (partial) key for the current index.
+        """
+        return "", ""
 
     def edit_single_parameter(self, proxy) -> Optional[int]:
         """ Take the proxy index and update the underlying brightway Parameter.
@@ -421,6 +427,9 @@ class DataBaseParameterTable(BaseParameterTable):
         db_name = self.get_current_database()
         interpreter.symtable.update(DatabaseParameter.static(db_name))
         return interpreter
+
+    def get_key(self) -> tuple:
+        return self.get_current_database(), ""
 
 
 class ActivityParameterTable(BaseParameterTable):
@@ -753,6 +762,11 @@ class ActivityParameterTable(BaseParameterTable):
         group = self.get_current_group()
         interpreter.symtable.update(ActivityParameter.static(group, full=True))
         return interpreter
+
+    def get_key(self) -> tuple:
+        index = self.get_source_index(self.currentIndex())
+        key = self.model.index(index.row(), self.COLUMNS.index("key")).data()
+        return literal_eval(key)
 
 
 class ExchangesTable(ABDictTreeView):

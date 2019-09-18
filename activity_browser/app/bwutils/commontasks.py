@@ -139,6 +139,26 @@ def get_activity_name(key, str_length=22):
     return ','.join(key.get('name', '').split(',')[:3])[:str_length]
 
 
+def clean_activity_name(activity_name: str) -> str:
+    """ Takes a given activity name and remove or replace all characters
+    not allowed to be in there.
+
+    Use this when creating parameters, as there are specific characters not
+    allowed to be in parameter names.
+
+    These are ' -,.%[]' and all integers
+    """
+    remove = ",.%[]0123456789"
+    replace = " -"
+    for char in remove:
+        if char in activity_name:
+            activity_name = activity_name.replace(char, "")
+    for char in replace:
+        if char in activity_name:
+            activity_name = activity_name.replace(char, "_")
+    return activity_name
+
+
 def get_activity_data_as_lists(act_keys, keys=None):
     results = dict()
     for key in keys:
