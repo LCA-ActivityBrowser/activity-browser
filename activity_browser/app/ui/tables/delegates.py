@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5.QtCore import QAbstractItemModel, QLocale, QModelIndex, Qt
+from PyQt5.QtCore import QAbstractItemModel, QLocale, QModelIndex, Qt, QPoint
 from PyQt5.QtGui import QDoubleValidator
-from PyQt5.QtWidgets import (QApplication, QComboBox, QLineEdit, QStyle,
-                             QStyledItemDelegate, QStyleOptionButton)
+from PyQt5.QtWidgets import (QComboBox, QLineEdit, QStyle, QStyledItemDelegate,
+                             QStyleOptionButton)
 
 
 class FloatDelegate(QStyledItemDelegate):
@@ -110,9 +110,9 @@ class CheckboxDelegate(QStyledItemDelegate):
         button = QStyleOptionButton()
         button.state = QStyle.State_Enabled
         button.state |= QStyle.State_Off if not value else QStyle.State_On
-        button.rect = option.rect
-        # button.text = "False" if not value else "True"  # This also adds text
-        QApplication.style().drawPrimitive(QStyle.PE_IndicatorCheckBox, button, painter)
+        painter.translate(QPoint(option.rect.left(), option.rect.center().y()))
+        style = option.widget.style()
+        style.drawControl(QStyle.CE_CheckBox, button, painter)
         painter.restore()
 
 
