@@ -4,19 +4,19 @@ from typing import Optional
 
 from asteval import Interpreter
 import brightway2 as bw
-import numpy as np
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
-                                ProjectParameter)
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt
+                                ProjectParameter, get_new_symbols)
+from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PyQt5.QtWidgets import QAction, QMenu, QMessageBox
 
+from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.settings import project_settings
 from activity_browser.app.signals import signals
 
 from ..icons import qicons
-from ..widgets import parameter_save_errorbox, simple_warning_box
+from ..widgets import simple_warning_box
 from .delegates import (DatabaseDelegate, FloatDelegate, FormulaDelegate,
                         ListDelegate, StringDelegate, UncertaintyDelegate,
                         ViewOnlyDelegate)
@@ -31,7 +31,6 @@ class BaseParameterTable(ABDataFrameEdit):
     UNCERTAINTY = [
         "uncertainty type", "loc", "scale", "shape", "minimum", "maximum"
     ]
-    new_parameter = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -41,19 +40,9 @@ class BaseParameterTable(ABDataFrameEdit):
         """ Handle updating the parameters whenever the user changes a value.
         """
         if topLeft == bottomRight and topLeft.isValid():
-            if self.get_parameter(topLeft) is None:
-                # (not) Dealing with a new parameter not yet saved to db.
-                return
-            error = self.edit_single_parameter(topLeft)
-            if error:
-                if error == QMessageBox.Discard:
-                    # Undo changes in the table.
-                    self.sync(self.build_df())
-                if error == QMessageBox.Cancel:
-                    # Leave incorrect value in the table.
-                    return
-        else:
-            super().dataChanged(topLeft, bottomRight, roles)
+            self.edit_single_parameter(topLeft)
+            return
+        super().dataChanged(topLeft, bottomRight, roles)
 
     @dataframe_sync
     def sync(self, df):
@@ -94,12 +83,6 @@ class BaseParameterTable(ABDataFrameEdit):
         row = {key: data.get(key) for key in cls.UNCERTAINTY}
         return row
 
-    def save_parameters(self, overwrite: bool = True) -> Optional[int]:
-        """ Take the data from the model and call the correct brightway
-        parameters helper method to store it.
-        """
-        raise NotImplementedError
-
     def get_parameter(self, proxy):
         """ Reach into the model and return the `parameter` object.
         """
@@ -111,35 +94,30 @@ class BaseParameterTable(ABDataFrameEdit):
         """
         return "", ""
 
-    def edit_single_parameter(self, proxy) -> Optional[int]:
+    def edit_single_parameter(self, proxy) -> None:
         """ Take the proxy index and update the underlying brightway Parameter.
-
-        Note that this method expects the parameter to exist, and will
-        raise an error if this is not the case.
         """
         param = self.get_parameter(proxy)
-        try:
-            field = self.model.headerData(proxy.column(), Qt.Horizontal)
-            setattr(param, field, proxy.data())
-            param.save()
-            # Saving the parameter expires the related group, so recalculate.
-            bw.parameters.recalculate()
-            signals.parameters_changed.emit()
-        except Exception as e:
-            return parameter_save_errorbox(self, e)
+        with bw.parameters.db.atomic() as transaction:
+            try:
+                field = self.model.headerData(proxy.column(), Qt.Horizontal)
+                setattr(param, field, proxy.data())
+                param.save()
+                # Saving the parameter expires the related group, so recalculate.
+                bw.parameters.recalculate()
+                signals.parameters_changed.emit()
+            except Exception as e:
+                # Anything wrong? Roll the transaction back, rebuild the table
+                # and throw up a warning message.
+                transaction.rollback()
+                self.sync(self.build_df())
+                simple_warning_box(self, "Could not save changes", str(e))
 
     def delete_parameter(self, proxy) -> None:
         param = self.get_parameter(proxy)
-        if param:
+        with bw.parameters.db.atomic():
             param.delete_instance()
-            df = self.build_df()
-        else:
-            # Remove the parameter before it is stored in the database
-            index = self.get_source_index(proxy)
-            row_index = self.dataframe.iloc[index.row()].name
-            df = self.dataframe.drop(row_index)
-            df.reset_index(drop=True, inplace=True)
-        self.sync(df)
+        self.sync(self.build_df())
 
     def uncertainty_columns(self, show: bool):
         """ Given a boolean, iterates over the uncertainty columns and either
@@ -164,10 +142,6 @@ class ProjectParameterTable(BaseParameterTable):
 
     Using parts of https://stackoverflow.com/a/47021620
     and https://doc.qt.io/qt-5/model-view-programming.html
-
-    NOTE: Currently no good way to delete project parameters due to
-    requiring recursive dependency cleanup. Either leave the parameters
-    in or delete the entire project.
     """
     COLUMNS = ["name", "amount", "formula"]
 
@@ -222,43 +196,61 @@ class ProjectParameterTable(BaseParameterTable):
         return df
 
     def add_parameter(self) -> None:
-        """ Take the given row and append it to the dataframe.
-
-        NOTE: Any new parameters are only stored in memory until
-        `save_project_parameters` is called in the tab
+        """ Build a new parameter and immediately store it.
         """
-        row = {"name": None, "amount": 0.0, "formula": ""}
-        row.update({key: None for key in self.UNCERTAINTY})
-        row["parameter"] = None
-        self.dataframe = self.dataframe.append(row, ignore_index=True)
-        self.sync(self.dataframe)
-        self.new_parameter.emit()
-
-    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
-        """ Attempts to store all of the parameters in the dataframe
-        as new (or updated) brightway project parameters
-        """
-        if self.rowCount() == 0:
-            return
-
-        data = self.dataframe.to_dict(orient='records')
+        counter = (ProjectParameter.select().count() +
+                   DatabaseParameter.select().count())
+        param = {
+            "name": "param_{}".format(counter + 1),
+            "amount": 0.0
+        }
         try:
-            bw.parameters.new_project_parameters(data, overwrite)
+            bw.parameters.new_project_parameters([param], False)
             signals.parameters_changed.emit()
-        except Exception as e:
-            return parameter_save_errorbox(self, e)
+        except ValueError as e:
+            simple_warning_box(self, "Name already in use!", str(e))
 
     def uncertainty_columns(self, show: bool):
         for i in range(3, 9):
             self.setColumnHidden(i, not show)
 
     @staticmethod
+    def dependency_chain() -> list:
+        """ Implement a dependency_chain-lite call for ProjectParameters.
+
+        The only major difference with `DatabaseParameter.dependency_chain`
+        is that we do not pass a context to `get_new_symbols`.
+        """
+        data = ProjectParameter.load()
+        if not data:
+            return []
+
+        # Parse all formulas, find missing variables
+        needed = get_new_symbols(data.values())
+        if not needed:
+            return []
+
+        names, chain = set(), []
+        for name in ProjectParameter.static(only=needed):
+            names.add(name)
+            needed.remove(name)
+        if names:
+            chain.append({'kind': 'project', 'group': 'project', 'names': names})
+
+        return chain
+
+    @staticmethod
     def parameter_is_deletable(parameter: ProjectParameter) -> bool:
         """ Take a ProjectParameter and determine if it can be deleted.
 
-        Iterate through all of the database and activity parameters,
-        return False if any of them use the parameter, otherwise return True.
+        Iterate through all of the parameters, return False if any of them
+        use the parameter, otherwise return True.
         """
+        chain = ProjectParameterTable.dependency_chain()
+        data = next((x for x in chain if x.get("kind") == "project"), None)
+        if data and parameter.name in data.get("names", set()):
+            return False
+
         possibles = (DatabaseParameter
                      .select(DatabaseParameter.database)
                      .distinct())
@@ -293,10 +285,6 @@ class ProjectParameterTable(BaseParameterTable):
 
 class DataBaseParameterTable(BaseParameterTable):
     """ Table widget for database parameters
-
-    NOTE: Currently no good way to delete database parameters due to
-    requiring recursive dependency cleanup. Either leave the parameters
-    in or delete the entire project.
     """
     COLUMNS = ["name", "amount", "formula", "database"]
 
@@ -354,33 +342,20 @@ class DataBaseParameterTable(BaseParameterTable):
     def add_parameter(self) -> None:
         """ Add a new database parameter to the dataframe
 
-        NOTE: Any new parameters are only stored in memory until
-        `save_project_parameters` is called
+        NOTE: The new parameter uses the first database it can find.
         """
-        row = {"database": None, "name": None, "amount": 0.0, "formula": ""}
-        row.update({key: None for key in self.UNCERTAINTY})
-        row["parameter"] = None
-        self.dataframe = self.dataframe.append(row, ignore_index=True)
-        self.sync(self.dataframe)
-        self.new_parameter.emit()
-
-    def save_parameters(self, overwrite: bool=True) -> Optional[int]:
-        """ Separates the database parameters by db_name and attempts
-        to save each chunk of parameters separately.
-        """
-        if self.rowCount() == 0:
-            return
-
-        used_db_names = self.dataframe["database"].unique()
-        for db_name in used_db_names:
-            data = (self.dataframe
-                    .loc[self.dataframe["database"] == db_name]
-                    .to_dict(orient="records"))
-            try:
-                bw.parameters.new_database_parameters(data, db_name, overwrite)
-                signals.parameters_changed.emit()
-            except Exception as e:
-                return parameter_save_errorbox(self, e)
+        counter = (ProjectParameter.select().count() +
+                   DatabaseParameter.select().count())
+        database = next(x for x in bw.databases)
+        param = {
+            "name": "param_{}".format(counter + 1),
+            "amount": 0.0
+        }
+        try:
+            bw.parameters.new_database_parameters([param], database, False)
+            signals.parameters_changed.emit()
+        except ValueError as e:
+            simple_warning_box(self, "Name already in use!", str(e))
 
     def uncertainty_columns(self, show: bool):
         for i in range(4, 10):
@@ -390,9 +365,14 @@ class DataBaseParameterTable(BaseParameterTable):
     def parameter_is_deletable(parameter: DatabaseParameter) -> bool:
         """ Take a DatabaseParameter and determine if it can be deleted.
 
-        Iterate through all of the activity parameters, return False if any
-        of them use the parameter, otherwise return True.
+        Iterate through the database and activity parameters, return False if
+        any of them use the parameter, otherwise return True.
         """
+        chain = DatabaseParameter.dependency_chain(parameter.database)
+        data = next((x for x in chain if x.get("kind") == "database"), None)
+        if data and parameter.name in data.get("names", set()):
+            return False
+
         possibles = (ActivityParameter
                      .select(ActivityParameter.group)
                      .distinct())
@@ -464,11 +444,12 @@ class ActivityParameterTable(BaseParameterTable):
         self._connect_signals()
 
     def _connect_signals(self):
-        signals.add_activity_parameter.connect(self.add_simple_parameter)
+        signals.add_activity_parameter.connect(self.add_parameter)
 
     def _resize(self) -> None:
         super()._resize()
         self.setColumnHidden(self.param_column, True)
+        self.setColumnHidden(self.COLUMNS.index("group"), True)
 
     @classmethod
     def build_df(cls):
@@ -478,7 +459,8 @@ class ActivityParameterTable(BaseParameterTable):
             cls.parse_parameter(p)
             for p in (ActivityParameter
                       .select(ActivityParameter, Group.order)
-                      .join(Group, on=(ActivityParameter.group == Group.name)).dicts())
+                      .join(Group, on=(ActivityParameter.group == Group.name))
+                      .namedtuples())
         ]
         df = pd.DataFrame(data, columns=cls.combine_columns())
         # Convert the 'order' column from list into string
@@ -487,17 +469,15 @@ class ActivityParameterTable(BaseParameterTable):
 
     @classmethod
     def parse_parameter(cls, parameter) -> dict:
-        """ Override the base method to instead use dictionaries.
+        """ Override the base method to add more steps.
         """
-        row = {key: parameter.get(key, "") for key in cls.COLUMNS}
+        row = super().parse_parameter(parameter)
         # Combine the 'database' and 'code' fields of the parameter into a 'key'
-        row["key"] = (parameter.get("database"), parameter.get("code"))
+        row["key"] = (parameter.database, parameter.code)
         act = bw.get_activity(row["key"])
         row["activity"] = act.get("name")
-        data = parameter.get("data", {})
-        row.update(cls.extract_uncertainty_data(data))
-        # Cheating because we have the ID of the ActivityParameter
-        row["parameter"] = ActivityParameter.get_by_id(parameter["id"])
+        # Replace the namedtuple with the actual ActivityParameter
+        row["parameter"] = ActivityParameter.get_by_id(parameter.id)
         return row
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
@@ -525,6 +505,8 @@ class ActivityParameterTable(BaseParameterTable):
         keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
         event.accept()
 
+        # Block signals from `signals` while iterating through dropped keys.
+        signals.blockSignals(True)
         for key in keys:
             act = bw.get_activity(key)
             if act.get("type", "process") != "process":
@@ -535,66 +517,30 @@ class ActivityParameterTable(BaseParameterTable):
                     )
                 )
                 continue
-            row = self._build_parameter(key)
-            self.dataframe = self.dataframe.append(row, ignore_index=True)
-
-        self.sync(self.dataframe)
-        self.new_parameter.emit()
-
-    @pyqtSlot(tuple)
-    def add_simple_parameter(self, key: tuple) -> None:
-        """ Given the activity key, generate a new row with data from
-        the activity and immediately call `new_activity_parameters`.
-
-        NOTE: This is a shortcut to sidestep the functioning of the model
-        """
-        if key in self.dataframe["key"]:
-            return
-        row = self._build_parameter(key)
-        row["database"], row["code"] = key
-        del row["key"], row["parameter"]
-        # Save the new parameter immediately.
-        bw.parameters.new_activity_parameters([row], row["group"])
+            self.add_parameter(key)
+        signals.blockSignals(False)
         signals.parameters_changed.emit()
 
-    @classmethod
-    def _build_parameter(cls, key: tuple) -> dict:
+    @pyqtSlot(tuple)
+    def add_parameter(self, key: tuple) -> None:
+        """ Given the activity key, generate a new row with data from
+        the activity and immediately call `new_activity_parameters`.
+        """
         act = bw.get_activity(key)
-
-        prep_name = act.get("reference product", "")
-        if prep_name == "":
-            prep_name = act.get("name")
-        prep_name = cls.clean_parameter_name(prep_name)
-
+        prep_name = bc.clean_activity_name(act.get("name"))
+        group = bc.build_activity_group_name(key, prep_name)
+        count = (ActivityParameter.select()
+                 .where(ActivityParameter.group == group).count())
         row = {
-            "group": "{}_group".format(prep_name),
-            "name": prep_name,
+            "name": "{}_{}".format(prep_name, count + 1),
             "amount": act.get("amount", 0.0),
             "formula": act.get("formula", ""),
-            "order": "",
-            "key": key,
-            "parameter": None,
+            "database": key[0],
+            "code": key[1],
         }
-        row.update({key: None for key in cls.UNCERTAINTY})
-        return row
-
-    @staticmethod
-    def clean_parameter_name(param_name: str) -> str:
-        """ Takes a given parameter name and remove or replace all characters
-        not allowed to be in there.
-
-        These are ' -,.%[]' and all integers
-        """
-        remove = ",.%[]0123456789"
-        replace = " -"
-        for char in remove:
-            if char in param_name:
-                param_name = param_name.replace(char, "")
-        for char in replace:
-            if char in param_name:
-                param_name = param_name.replace(char, "_")
-
-        return param_name
+        # Save the new parameter immediately.
+        bw.parameters.new_activity_parameters([row], group)
+        signals.parameters_changed.emit()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         """ Override and activate QTableView.contextMenuEvent()
@@ -609,7 +555,7 @@ class ActivityParameterTable(BaseParameterTable):
             qicons.delete, "Remove parameter(s)", self.delete_parameters
         )
         menu.addAction(
-            qicons.delete, "Remove order from group(s)", self.unset_group_order
+            qicons.delete, "Remove order activity group", self.unset_group_order
         )
         menu.exec(event.globalPos())
 
@@ -617,64 +563,27 @@ class ActivityParameterTable(BaseParameterTable):
     def open_activity_tab(self):
         """ Triggers the activity tab to open one or more activities.
         """
-        for index in self.selectedIndexes():
-            source_index = self.get_source_index(index)
-            row = self.dataframe.iloc[source_index.row(), ]
-            signals.open_activity_tab.emit(row["key"])
-
-    def save_parameters(self, overwrite: bool = True) -> Optional[int]:
-        """ Separates the activity parameters by group name and saves each
-        chunk of parameters separately.
-        """
-        if self.rowCount() == 0:
-            return
-
-        # Unpack 'key' into 'database' and 'code' for the ParameterManager
-        df = self.dataframe.copy()
-        df["database"], df["code"] = zip(*df["key"].apply(lambda x: (x[0], x[1])))
-        df.drop(["key", "parameter"], axis=1, inplace=True)
-
-        groups = df["group"].str.strip().unique()
-        if "" in groups:
-            return parameter_save_errorbox(
-                self, "Cannot use an empty string as group name."
-            )
-
-        for group in groups:
-            data = df.loc[df["group"] == group].to_dict(orient="records")
-            try:
-                bw.parameters.new_activity_parameters(data, group, overwrite)
-                self._store_group_order(group)
-            except Exception as e:
-                return parameter_save_errorbox(self, e)
-
-        signals.parameters_changed.emit()
+        for proxy in self.selectedIndexes():
+            index = self.get_source_index(proxy)
+            key = self.model.index(index.row(), self.COLUMNS.index("key")).data()
+            signals.open_activity_tab.emit(literal_eval(key))
 
     def uncertainty_columns(self, show: bool):
         for i in range(7, 13):
             self.setColumnHidden(i, not show)
 
-    def _store_group_order(self, group_name: str) -> None:
-        """Checks if anywhere in the 'group'-sliced dataframe the user has
-        set the order field. Update the Group object if so.
-
-        Also, if the user has set two different orders in the same group,
-        raise a ValueError
+    def store_group_order(self, proxy) -> None:
+        """ Store the given order in the Group used by the parameter linked
+        in the proxy.
         """
-        df = self.dataframe.loc[self.dataframe["group"] == group_name]
-        orders = df["order"].replace("", np.nan).dropna().unique()
-        if orders.size == 1:
-            # If any order is given, update the Group object
-            order = [i.lstrip() for i in orders[0].split(",")]
-            if group_name in order:
-                order.remove(group_name)
-            group = Group.get(name=group_name)
-            group.order = order
-            group.save()
-        elif orders.size > 1:
-            raise ValueError(
-                "Multiple different orders given for group {}".format(group_name)
-            )
+        param = self.get_parameter(proxy)
+        order = proxy.data()
+        if param.group in order:
+            order.remove(param.group)
+        group = Group.get(name=param.group)
+        group.order = order
+        group.fresh = False
+        group.save()
 
     @pyqtSlot()
     def delete_parameters(self) -> None:
@@ -691,8 +600,8 @@ class ActivityParameterTable(BaseParameterTable):
                 deletable.add(row["group"])
 
         # Remove empty groups
-        query = Group.delete().where(Group.name.in_(deletable))
-        query.execute()
+        with bw.parameters.db.atomic():
+            Group.delete().where(Group.name << deletable).execute()
 
         # Recalculate everything and emit `parameters_changed` signal
         bw.parameters.recalculate()
@@ -767,6 +676,18 @@ class ActivityParameterTable(BaseParameterTable):
         index = self.get_source_index(self.currentIndex())
         key = self.model.index(index.row(), self.COLUMNS.index("key")).data()
         return literal_eval(key)
+
+    def edit_single_parameter(self, proxy) -> None:
+        """ Override the base method because `order` is stored in Group,
+        not in Activity.
+        """
+        field = self.model.headerData(proxy.column(), Qt.Horizontal)
+        if field == "order":
+            self.store_group_order(proxy)
+            bw.parameters.recalculate()
+            signals.parameters_changed.emit()
+        else:
+            super().edit_single_parameter(proxy)
 
 
 class ExchangesTable(ABDictTreeView):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from functools import wraps
+from typing import Optional
 
 from PyQt5.QtCore import (QAbstractTableModel, QModelIndex, QSize,
                           QSortFilterProxyModel, Qt, pyqtSlot)
@@ -53,6 +54,11 @@ class ABDataFrameView(QTableView):
 
         self.table_name = 'LCA results'
         self.dataframe = None
+        # Initialize attributes which are set during the `sync` step.
+        # Creating (and typing) them here allows PyCharm to see them as
+        # valid attributes.
+        self.model: Optional[QAbstractTableModel] = None
+        self.proxy_model: Optional[QSortFilterProxyModel] = None
 
     def get_max_height(self) -> int:
         return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
@@ -62,7 +68,7 @@ class ABDataFrameView(QTableView):
         return QSize(self.width(), self.get_max_height())
 
     def rowCount(self) -> int:
-        if hasattr(self, "model") and self.model is not None:
+        if getattr(self, "model") is not None:
             return self.model.rowCount()
         return 0
 

@@ -63,13 +63,7 @@ class ListDelegate(QtWidgets.QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QWidget(parent)
         dialog = OrderedListInputDialog(editor, QtCore.Qt.Window)
-
-        # Check which table is asking for a list
-        if hasattr(parent, "table_name") and parent.table_name == "activity_parameter":
-            items = parent.get_activity_groups()
-            unchecked_items = dialog.add_items_value(items)
-            dialog.set_items(unchecked_items)
-
+        dialog.accepted.connect(lambda: self.commitData.emit(editor))
         return editor
 
     def setEditorData(self, editor: QtWidgets.QWidget, index: QtCore.QModelIndex):
@@ -77,16 +71,13 @@ class ListDelegate(QtWidgets.QStyledItemDelegate):
         """
         dialog = editor.findChild(OrderedListInputDialog)
         value = index.data(QtCore.Qt.DisplayRole)
-        if value:
-            value_list = [i.lstrip() for i in value.split(",")]
-        else:
-            value_list = []
+        values = [] if not value else [i.lstrip() for i in value.split(",")]
 
         parent = self.parent()
-        if hasattr(parent, "table_name") and parent.table_name == "activity_parameter":
-            groups = parent.get_activity_groups(value_list)
+        if getattr(parent, "table_name") == "activity_parameter":
+            groups = parent.get_activity_groups(values)
             unchecked = dialog.add_items_value(groups)
-            checked = dialog.add_items_value(value_list, True)
+            checked = dialog.add_items_value(values, True)
             dialog.set_items(checked + unchecked)
 
     def setModelData(self, editor: QtWidgets.QWidget, model: QtCore.QAbstractItemModel,
@@ -94,5 +85,5 @@ class ListDelegate(QtWidgets.QStyledItemDelegate):
         """ Take the editor, read the given value and set it in the model
         """
         dialog = editor.findChild(OrderedListInputDialog)
-        value = ", ".join(map(lambda i: str(i), dialog.items_selected()))
+        value = dialog.items_selected()
         model.setData(index, value, QtCore.Qt.EditRole)

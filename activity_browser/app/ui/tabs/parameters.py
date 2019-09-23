@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import brightway2 as bw
 from PyQt5.QtCore import pyqtSlot, QSize
 from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QMessageBox, QPushButton,
                              QToolBar, QVBoxLayout, QTabWidget)
@@ -72,19 +73,9 @@ class ParameterDefinitionTab(BaseRightTab):
         }
 
         self.new_project_param = QPushButton(qicons.add, "New project parameter")
-        self.save_project_btn = QPushButton(qicons.save_db, "Store new parameters")
-        self.save_project_btn.setEnabled(False)
         self.new_database_param = QPushButton(qicons.add, "New database parameter")
-        self.save_database_btn = QPushButton(qicons.save_db, "Store new parameters")
-        self.save_database_btn.setEnabled(False)
-        self.save_activity_btn = QPushButton(qicons.save_db, "Store new parameters")
-        self.save_activity_btn.setEnabled(False)
         self.show_order = QCheckBox("Show order column", self)
         self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
-        self.buttons = {
-            "project": self.save_project_btn, "database": self.save_database_btn,
-            "activity": self.save_activity_btn,
-        }
 
         self._construct_layout()
         self._connect_signals()
@@ -97,22 +88,19 @@ for the full explanation.</p>
 completely optional.</p>
 
 <h3>In general:</h3>
-<p>Any errors that occur when saving new/edited parameters are presented as clearly as possible. In most cases
-problems can be resolved by checking that the <em>name</em>, <em>database</em> or <em>group</em> fields
-are filled out.</p>
+<p>Any errors that occur when saving new/edited parameters are presented as clearly as possible.</p>
 <p>The formula field is a string that is interpreted by brightway on save. Python builtin functions and Numpy functions
 can be used within the formula!</p>
 
 <h3>Project</h3>
-<p> New parameters added by the relevant button are temporary until stored.</p>
 <ul>
 <li>All project parameters must have a unique <em>name</em>.</li>
 <li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
 <li>Project parameters can use other project parameters as part of a <em>formula</em>.</li>
+<li>Project parameters can only be deleted if they are not required by any other parameter.</li>
 </ul>
 
 <h3>Database</h3>
-<p> New parameters added by the relevant button are temporary until stored.</p>
 <ul>
 <li>All database parameters must have unique <em>name</em> within their database.</li>
 <li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
@@ -120,19 +108,17 @@ can be used within the formula!</p>
 <li>If a project and database parameter use the same <em>name</em> and that <em>name</em> is used in
 a <em>formula</em> of a second database parameter <em>within the same database</em>, the interpreter will
 use the database parameter.</li>
+<li>Database parameters can only be deleted if they are not required by any other database or activity
+parameter.</li>
 </ul>
 
 <h3>Activities</h3>
-<p>New parameters are added either by drag-and-dropping from the database table or by clicking
-the <em>parameterize</em> button within an Activity tab. Whatever the case, the newly added
-parameters are 'temporary' to allow the user to change the default <em>group</em> and
-<em>name</em> values.</p>
+<p>New parameters are added either by drag-and-dropping from the database table or by adding
+ a formula to an exchange within an Activity tab.</p>
 <ul>
-<li>Only the <em>group</em>, <em>name</em>, <em>amount</em> and <em>formula</em> fields are editable.</li>
 <li>Only activities from editable databases can be parameterized.</li>
-<li>An activity can only belong to a single <em>group</em>. Multiple parameters can be created for
-the activity in that group.</li>
-<li>The parameter <em>name</em> is unique per <em>group</em>.</li>
+<li>Multiple parameters can be created for a single activity.</li>
+<li>The parameter <em>name</em> is unique within a group of activity parameters.</li>
 <li>The <em>amount</em> and <em>formula</em> fields are optional.</li>
 </ul>
 """
@@ -145,24 +131,6 @@ the activity in that group.</li>
         )
         self.new_database_param.clicked.connect(
             self.database_table.add_parameter
-        )
-        self.save_project_btn.clicked.connect(
-            lambda: self.store_parameters("project")
-        )
-        self.project_table.new_parameter.connect(
-            lambda: self.save_project_btn.setEnabled(True)
-        )
-        self.save_database_btn.clicked.connect(
-            lambda: self.store_parameters("database")
-        )
-        self.database_table.new_parameter.connect(
-            lambda: self.save_database_btn.setEnabled(True)
-        )
-        self.save_activity_btn.clicked.connect(
-            lambda: self.store_parameters("activity")
-        )
-        self.activity_table.new_parameter.connect(
-            lambda: self.save_activity_btn.setEnabled(True)
         )
         self.show_order.stateChanged.connect(self.activity_order_column)
         self.uncertainty_columns.stateChanged.connect(
@@ -188,7 +156,6 @@ the activity in that group.</li>
         row = QHBoxLayout()
         row.addWidget(header("Project:"))
         row.addWidget(self.new_project_param)
-        row.addWidget(self.save_project_btn)
         row.addStretch(1)
         layout.addLayout(row)
         layout.addWidget(self.project_table)
@@ -196,14 +163,12 @@ the activity in that group.</li>
         row = QHBoxLayout()
         row.addWidget(header("Database:"))
         row.addWidget(self.new_database_param)
-        row.addWidget(self.save_database_btn)
         row.addStretch(1)
         layout.addLayout(row)
         layout.addWidget(self.database_table)
 
         row = QHBoxLayout()
         row.addWidget(header("Activity:"))
-        row.addWidget(self.save_activity_btn)
         row.addWidget(self.show_order)
         row.addStretch(1)
         layout.addLayout(row)
@@ -220,6 +185,11 @@ the activity in that group.</li>
         self.activity_table.sync(ActivityParameterTable.build_df())
         self.hide_uncertainty_columns()
         self.activity_order_column()
+        # Cannot create database parameters without databases
+        if not bw.databases:
+            self.new_database_param.setEnabled(False)
+        else:
+            self.new_database_param.setEnabled(True)
 
     @pyqtSlot()
     def hide_uncertainty_columns(self):
@@ -236,35 +206,6 @@ the activity in that group.</li>
         else:
             self.activity_table.setColumnHidden(col, False)
             self.activity_table.resizeColumnToContents(col)
-
-    @pyqtSlot(str)
-    def add_parameter(self, name: str) -> None:
-        """ Generic method for adding a single parameter to the given table
-        """
-        table = self.tables.get(name, None)
-        if not table:
-            return
-        table.add_parameter()
-
-    @pyqtSlot(str)
-    def store_parameters(self, name: str) -> None:
-        """ Store new / edited data, include handling for exceptions
-        """
-        if name not in self.tables:
-            return
-
-        table = self.tables[name]
-        error = table.save_parameters()
-        if not error:
-            table.sync(table.build_df())
-        elif error == QMessageBox.Discard:
-            # Tables are rebuilt and new parameters are dropped
-            self.build_tables()
-        elif error == QMessageBox.Cancel:
-            # Nothing is done, errors remain for user to correct
-            return
-        # On a successful save or a discard, disable the save button again.
-        self.buttons[name].setEnabled(False)
 
 
 class ParameterExchangesTab(BaseRightTab):

@@ -13,7 +13,7 @@ PARAMETER_STRING_ENUM = {
 PARAMETER_FIELDS_ENUM = {
     0: ("name", "amount"),
     1: ("name", "amount", "database"),
-    2: ("name", "amount", "group"),
+    2: ("name", "amount"),
 }
 
 
@@ -33,7 +33,8 @@ class ParameterWizard(QtWidgets.QWizard):
         self.show()
 
     def accept(self) -> None:
-        """ Here is where we create the actual parameter."""
+        """ Here is where we create the actual parameter.
+        """
         selected = [
             self.field("btn_project"), self.field("btn_database"),
             self.field("btn_activity")
@@ -53,12 +54,14 @@ class ParameterWizard(QtWidgets.QWizard):
             bw.parameters.new_database_parameters([data], db)
             p_type = "database ({})".format(db)
         elif selected == 2:
-            group = data.pop("group")
+            group = bc.build_activity_group_name(self.key)
             data["database"] = self.key[0]
             data["code"] = self.key[1]
             bw.parameters.new_activity_parameters([data], group)
             p_type = "activity ({})".format(group)
 
+        # On completing parameter creation, emit the values.
+        # Inspired by: https://stackoverflow.com/a/9195041
         self.complete.emit(name, amount, p_type)
         super().accept()
 
@@ -77,7 +80,9 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
                    for i in sorted(PARAMETER_STRING_ENUM)]
         for b in buttons:
             box_layout.addWidget(b)
-        buttons[0].setChecked(True)
+        # If we have a complete key, pre-select the activity parameter btn.
+        buttons[2].setChecked(True) if all(self.key) else buttons[0].setChecked(True)
+
         # If we don't have a complete key, we can't create an activity parameter
         if self.key[1] == "":
             buttons[-1].setEnabled(False)
@@ -121,16 +126,11 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
         self.database = QtWidgets.QComboBox()
         grid.addWidget(self.database_label, 2, 0)
         grid.addWidget(self.database, 2, 1)
-        self.group_label = QtWidgets.QLabel("Group:")
-        self.group = QtWidgets.QLineEdit()
-        grid.addWidget(self.group_label, 3, 0)
-        grid.addWidget(self.group, 3, 1)
 
         # Register fields for all possible values
         self.registerField("name*", self.name)
         self.registerField("amount", self.amount)
         self.registerField("database", self.database, "currentText")
-        self.registerField("group", self.group)
 
     def initializePage(self) -> None:
         selected = [
@@ -143,8 +143,6 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
             self.name.clear()
             self.database.setHidden(True)
             self.database_label.setHidden(True)
-            self.group.setHidden(True)
-            self.group_label.setHidden(True)
         elif selected == 1:
             self.name.clear()
             self.database.clear()
@@ -156,14 +154,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
                 )
             self.database.setHidden(False)
             self.database_label.setHidden(False)
-            self.group.setHidden(True)
-            self.group_label.setHidden(True)
         elif selected == 2:
-            act = bw.get_activity(self.key)
-            prep = bc.clean_activity_name(act.get("name"))
             self.name.clear()
-            self.group.setText("{}_group".format(prep))
             self.database.setHidden(True)
             self.database_label.setHidden(True)
-            self.group.setHidden(False)
-            self.group_label.setHidden(False)

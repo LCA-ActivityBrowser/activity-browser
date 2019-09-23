@@ -147,6 +147,10 @@ class FormulaDialog(QtWidgets.QDialog):
             item.setEditable(False)
             model.setItem(x, y, item)
 
+        # Also include the new parameter in the interpreter.
+        if self.interpreter:
+            self.interpreter.symtable.update({name: float(amount)})
+
     def insert_interpreter(self, interpreter: Interpreter) -> None:
         self.interpreter = interpreter
 

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import hashlib
+
 import textwrap
 import arrow
 import brightway2 as bw
@@ -146,17 +148,39 @@ def clean_activity_name(activity_name: str) -> str:
     Use this when creating parameters, as there are specific characters not
     allowed to be in parameter names.
 
-    These are ' -,.%[]' and all integers
+    These are ' -,.%[]'
+    Integers are also removed aggressively, there are allowed, but not
+    at the start of a parameter name.
     """
     remove = ",.%[]0123456789"
     replace = " -"
+    # Remove invalid characters
     for char in remove:
         if char in activity_name:
             activity_name = activity_name.replace(char, "")
+    # Replace spacing and dashes with underscores
     for char in replace:
         if char in activity_name:
             activity_name = activity_name.replace(char, "_")
+    # strip underscores from start of string
+    activity_name = activity_name.lstrip("_")
     return activity_name
+
+
+def build_activity_group_name(key: tuple, name: str = None) -> str:
+    """ Constructs a group name unique to a given bw activity.
+
+    If given a `name`, use that instead of looking up the activity name.
+
+    NOTE: The created group name is not easy for users to understand, so hide
+    it from them where possible.
+    """
+    simple_hash = hashlib.md5(":".join(key).encode()).hexdigest()
+    if name:
+        return "{}_{}".format(name, simple_hash)
+    act = bw.get_activity(key)
+    clean = clean_activity_name(act.get("name"))
+    return "{}_{}".format(clean, simple_hash)
 
 
 def get_activity_data_as_lists(act_keys, keys=None):
