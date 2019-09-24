@@ -177,14 +177,20 @@ class MetaDataStore(object):
     def get_locations(self, db_name: str) -> set:
         """ Returns a set of locations for the given database name.
         """
-        data = self.get_database_metadata(db_name)["location"].unique()
-        return set(data[data != ""])
+        data = self.get_database_metadata(db_name)
+        if "location" not in data.columns:
+            return set()
+        locations = data["location"].unique()
+        return set(locations[locations != ""])
 
     def get_units(self, db_name: str) -> set:
         """ Returns a set of units for the given database name.
         """
-        data = self.get_database_metadata(db_name)["unit"].unique()
-        return set(data[data != ""])
+        data = self.get_database_metadata(db_name)
+        if "unit" not in data.columns:
+            return set()
+        units = data["unit"].unique()
+        return set(units[units != ""])
 
     def print_convenience_information(self, db_name: str) -> None:
         """ Reports how many unique locations and units the database has.
