@@ -112,7 +112,7 @@ class CheckboxDelegate(QStyledItemDelegate):
         button.state |= QStyle.State_Off if not value else QStyle.State_On
         painter.translate(QPoint(option.rect.left(), option.rect.center().y()))
         style = option.widget.style()
-        style.drawControl(QStyle.CE_CheckBox, button, painter)
+        style.drawControl(QStyle.CE_CheckBox, button, painter, option.widget)
         painter.restore()
 
 
