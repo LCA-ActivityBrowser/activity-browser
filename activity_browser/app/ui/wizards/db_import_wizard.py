@@ -623,7 +623,10 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = self.parent()
         self.description_label = QtWidgets.QLabel('Choose ecoinvent version and system model:')
+        self.db_dict = None
+        self.system_models = {}
         self.version_combobox = QtWidgets.QComboBox()
+        self.version_combobox.currentTextChanged.connect(self.update_system_model_combobox)
         self.system_model_combobox = QtWidgets.QComboBox()
 
         layout = QtWidgets.QGridLayout()
@@ -635,18 +638,34 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        if not hasattr(self, 'db_dict'):
+        if getattr(self, "db_dict") is None:
             self.wizard.downloader.db_dict = self.wizard.downloader.get_available_files()
             self.db_dict = self.wizard.downloader.db_dict
-        self.versions = sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
-        self.system_models = sorted({k[1] for k in self.db_dict.keys()}, reverse=True)
+        self.system_models = {
+            version: sorted({k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True)
+            for version in sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
+        }
+        # Catch for incorrect 'universal' key presence
+        # (introduced in version 3.6 of ecoinvent)
+        if "universal" in self.system_models:
+            del self.system_models["universal"]
         self.version_combobox.clear()
         self.system_model_combobox.clear()
-        self.version_combobox.addItems(self.versions)
-        self.system_model_combobox.addItems(self.system_models)
+        self.version_combobox.addItems(self.system_models.keys())
+        # Adding the items will cause system_model_combobox to update
+        # and show the correct list, this is just to be sure.
+        self.update_system_model_combobox(self.version_combobox.currentText())
 
     def nextId(self):
         return self.wizard.pages.index(self.wizard.db_name_page)
+
+    @QtCore.pyqtSlot(str)
+    def update_system_model_combobox(self, version: str) -> None:
+        """ Updates the `system_model_combobox` whenever the user selects a
+        different ecoinvent version.
+        """
+        self.system_model_combobox.clear()
+        self.system_model_combobox.addItems(self.system_models[version])
 
 
 class ActivityBrowserExtractor(Ecospold2DataExtractor):
