@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from asteval import Interpreter
+import brightway2 as bw
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
-                                ActivityParameter, parameters)
+                                ActivityParameter)
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -114,7 +115,8 @@ class BaseExchangeTable(ABDataFrameEdit):
         # Clear out all ParameterizedExchanges before recalculating
         param = ActivityParameter.get_or_none(database=self.key[0], code=self.key[1])
         if param:
-            parameters.remove_exchanges_from_group(param.group, "")
+            activity = bw.get_activity(self.key)
+            bw.parameters.remove_exchanges_from_group(param.group, activity)
             signals.exchange_formula_changed.emit(self.key)
 
     def contextMenuEvent(self, a0) -> None:
@@ -234,11 +236,13 @@ class BaseExchangeTable(ABDataFrameEdit):
         interpreter = Interpreter()
         try:
             act = (ActivityParameter
-                   .get(ActivityParameter.database == self.key[0],
-                        ActivityParameter.code == self.key[1]))
+                   .select(ActivityParameter.group)
+                   .where(ActivityParameter.database == self.key[0],
+                          ActivityParameter.code == self.key[1])
+                   .distinct().get())
             interpreter.symtable.update(ActivityParameter.static(act.group, full=True))
         except ActivityParameter.DoesNotExist:
-            print("No parameter found, creating one for {}".format(self.key))
+            print("No parameter found for {}, creating one on formula save".format(self.key))
             interpreter.symtable.update(ProjectParameter.static())
             interpreter.symtable.update(DatabaseParameter.static(self.key[0]))
         finally:
