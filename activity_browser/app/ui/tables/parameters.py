@@ -473,53 +473,31 @@ class ActivityParameterTable(BaseParameterTable):
         group.expire()
 
     @pyqtSlot()
-    def delete_parameters(self) -> None:
-        """ Handle event to delete the given activities and related exchanges.
+    def delete_parameter(self, proxy) -> None:
+        """ Override the base method to include additional logic.
+
+        If there are multiple `ActivityParameters` for a single activity, only
+        delete the selected instance, otherwise use `bw.parameters.remove_from_group`
+        to clear out the `ParameterizedExchanges` as well.
         """
-        deletable = set()
-        for proxy in self.selectedIndexes():
-            index = self.get_source_index(proxy)
-            row = self.dataframe.iloc[index.row(), ]
-            act = bw.get_activity(row["key"])
-            bw.parameters.remove_from_group(row["group"], act)
-            # Also remove the group if there are no more ActivityParameters
-            if ActivityParameter.get_or_none(group=row["group"]) is None:
-                deletable.add(row["group"])
+        key = self.get_key(proxy)
+        query = (ActivityParameter.select()
+                 .where(ActivityParameter.database == key[0],
+                        ActivityParameter.code == key[1]))
 
-        # Remove empty groups
-        with bw.parameters.db.atomic():
-            Group.delete().where(Group.name << deletable).execute()
+        if query.count() > 1:
+            super().delete_parameter(proxy)
+        else:
+            act = bw.get_activity(key)
+            group = self.get_current_group(proxy)
+            bw.parameters.remove_from_group(group, act)
+            # Also clear the group if there are no more parameters in it
+            if ActivityParameter.get_or_none(group=group) is None:
+                with bw.parameters.db.atomic():
+                    Group.get(name=group).delete_instance()
 
-        # Recalculate everything and emit `parameters_changed` signal
         bw.parameters.recalculate()
         signals.parameters_changed.emit()
-
-    @pyqtSlot()
-    def unset_group_order(self) -> None:
-        """ Removes the set Group.order from all given rows
-        """
-        groups = set()
-        altered = False
-        for proxy in self.selectedIndexes():
-            index = self.get_source_index(proxy)
-            group = self.model.index(index.row(), self.COLUMNS.index("group")).data()
-            groups.add(group)
-
-        for group in groups:
-            if group == "":
-                continue
-            try:
-                obj = Group.get(name=group)
-                obj.order = []
-                obj.fresh = False
-                obj.save()
-                altered = True
-            except Group.DoesNotExist:
-                continue
-
-        if altered:
-            bw.parameters.recalculate()
-            signals.parameters_changed.emit()
 
     def get_activity_groups(self, proxy, ignore_groups: list = None):
         """ Helper method to look into the Group and determine which if any
@@ -550,11 +528,11 @@ class ActivityParameterTable(BaseParameterTable):
             for p in ActivityParameter.select()
         ]
 
-    def get_current_group(self) -> str:
+    def get_current_group(self, proxy=None) -> str:
         """ Retrieve the group of the activity currently selected.
         """
-        index = self.get_source_index(self.currentIndex())
-        return self.model.index(index.row(), self.COLUMNS.index("group")).data()
+        index = proxy or self.currentIndex()
+        return self.proxy_model.index(index.row(), self.group_column).data()
 
     def get_interpreter(self) -> Interpreter:
         interpreter = Interpreter()
@@ -562,9 +540,9 @@ class ActivityParameterTable(BaseParameterTable):
         interpreter.symtable.update(ActivityParameter.static(group, full=True))
         return interpreter
 
-    def get_key(self) -> tuple:
-        index = self.get_source_index(self.currentIndex())
-        key = self.model.index(index.row(), self.COLUMNS.index("key")).data()
+    def get_key(self, proxy=None) -> tuple:
+        index = proxy or self.currentIndex()
+        key = self.proxy_model.index(index.row(), self.COLUMNS.index("key")).data()
         return literal_eval(key)
 
     def edit_single_parameter(self, proxy) -> None:
