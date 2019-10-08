@@ -73,13 +73,13 @@ def test_delete_project_param(qtbot):
 
     # The 2nd parameter cannot be deleted
     param = table.get_parameter(table.proxy_model.index(1, 0))
-    assert not table.parameter_is_deletable(param)
+    assert not param.is_deletable()
 
     # Delete the 3rd parameter, removing the dependency
     table.delete_parameter(table.proxy_model.index(2, 0))
 
     # 2nd parameter can now be deleted, so delete it.
-    assert table.parameter_is_deletable(param)
+    assert param.is_deletable()
     table.delete_parameter(table.proxy_model.index(1, 0))
 
 
@@ -146,7 +146,7 @@ def test_delete_database_params(qtbot):
 
     # Check that we can delete the parameter and remove it.
     proxy = table.proxy_model.index(1, 0)
-    assert table.parameter_is_deletable(table.get_parameter(proxy))
+    assert table.get_parameter(proxy).is_deletable()
     table.delete_parameter(proxy)
 
     # Now we have two rows left
@@ -165,7 +165,7 @@ def test_downstream_dependency(qtbot):
 
     # First parameter of the project table is used by the database parameter
     param = table.get_parameter(table.proxy_model.index(0, 0))
-    assert not table.parameter_is_deletable(param)
+    assert not param.is_deletable()
 
 
 def test_create_activity_param(qtbot):
@@ -257,11 +257,15 @@ def test_delete_activity_param(qtbot):
     group = table.get_current_group()
 
     # Now delete the parameter for the selected row.
-    table.delete_parameters()
+    table.delete_parameter(table.currentIndex())
+    assert table.rowCount() == 2
+    assert ActivityParameter.select().count() == 2
+    assert Group.get_or_none(name=group)
 
-    # Surprise, this deletes all the parameters, because they are all from the
-    # same activity.
+    # And delete the other two parameters one by one.
+    table.delete_parameter(table.proxy_model.index(0, 0))
+    table.delete_parameter(table.proxy_model.index(0, 0))
     assert table.rowCount() == 0
     assert ActivityParameter.select().count() == 0
-    # Note, this also removes the Group for those parameters.
+    # Group is automatically removed with the last parameter gone
     assert Group.get_or_none(name=group) is None
