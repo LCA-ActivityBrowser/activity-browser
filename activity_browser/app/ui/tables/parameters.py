@@ -9,7 +9,7 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from PyQt5.QtWidgets import QAction, QMenu, QMessageBox
+from PyQt5.QtWidgets import QAction, QMenu
 
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.settings import project_settings
@@ -20,7 +20,6 @@ from ..widgets import simple_warning_box
 from .delegates import (DatabaseDelegate, FloatDelegate, FormulaDelegate,
                         ListDelegate, StringDelegate, UncertaintyDelegate,
                         ViewOnlyDelegate)
-from .inventory import ActivitiesBiosphereTable
 from .models import ParameterTreeModel
 from .views import (ABDataFrameEdit, ABDictTreeView, dataframe_sync,
                     tree_model_decorate)
@@ -35,6 +34,11 @@ class BaseParameterTable(ABDataFrameEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.param_column = self.combine_columns().index("parameter")
+        self.setSelectionMode(ABDataFrameEdit.SingleSelection)
+        self.delete_action = QAction(qicons.delete, "Delete parameter", None)
+        self.delete_action.triggered.connect(
+            lambda: self.delete_parameter(self.currentIndex())
+        )
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ Handle updating the parameters whenever the user changes a value.
@@ -47,6 +51,22 @@ class BaseParameterTable(ABDataFrameEdit):
     @dataframe_sync
     def sync(self, df):
         self.dataframe = df
+
+    def _resize(self) -> None:
+        super()._resize()
+        self.setColumnHidden(self.param_column, True)
+
+    def contextMenuEvent(self, event: QContextMenuEvent):
+        """ Have the parameter test to see if it can be deleted safely.
+        """
+        menu = QMenu(self)
+        menu.addAction(self.delete_action)
+        param = self.get_parameter(self.indexAt(event.pos()))
+        if param.is_deletable():
+            self.delete_action.setEnabled(True)
+        else:
+            self.delete_action.setEnabled(False)
+        menu.exec(event.globalPos())
 
     @classmethod
     def build_df(cls) -> pd.DataFrame:
@@ -160,31 +180,6 @@ class ProjectParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(7, FloatDelegate(self))
         self.setItemDelegateForColumn(8, FloatDelegate(self))
 
-        # context menu
-        self.setSelectionMode(BaseParameterTable.SingleSelection)
-        self.delete_action = QAction(qicons.delete, "Delete parameter", None)
-        self.delete_action.triggered.connect(
-            lambda: self.delete_parameter(self.currentIndex())
-        )
-
-    def contextMenuEvent(self, event: QContextMenuEvent):
-        """ Override and activate QTableView.contextMenuEvent()
-
-        All possible menu events should be added and wired up here
-        """
-        menu = QMenu(self)
-        menu.addAction(self.delete_action)
-        param = self.get_parameter(self.indexAt(event.pos()))
-        if param.is_deletable():
-            self.delete_action.setEnabled(True)
-        else:
-            self.delete_action.setEnabled(False)
-        menu.exec(event.globalPos())
-
-    def _resize(self) -> None:
-        super()._resize()
-        self.setColumnHidden(self.param_column, True)
-
     @classmethod
     def build_df(cls):
         """ Build a dataframe using the ProjectParameters set in brightway
@@ -248,31 +243,6 @@ class DataBaseParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
 
-        # context menu
-        self.setSelectionMode(BaseParameterTable.SingleSelection)
-        self.delete_action = QAction(qicons.delete, "Delete parameter", None)
-        self.delete_action.triggered.connect(
-            lambda: self.delete_parameter(self.currentIndex())
-        )
-
-    def contextMenuEvent(self, event: QContextMenuEvent):
-        """ Override and activate QTableView.contextMenuEvent()
-
-        All possible menu events should be added and wired up here
-        """
-        menu = QMenu(self)
-        menu.addAction(self.delete_action)
-        param = self.get_parameter(self.indexAt(event.pos()))
-        if param is None or self.parameter_is_deletable(param):
-            self.delete_action.setEnabled(True)
-        else:
-            self.delete_action.setEnabled(False)
-        menu.exec(event.globalPos())
-
-    def _resize(self) -> None:
-        super()._resize()
-        self.setColumnHidden(self.param_column, True)
-
     @classmethod
     def build_df(cls) -> pd.DataFrame:
         """ Build a dataframe using the DatabaseParameters set in brightway
@@ -304,28 +274,6 @@ class DataBaseParameterTable(BaseParameterTable):
     def uncertainty_columns(self, show: bool):
         for i in range(4, 10):
             self.setColumnHidden(i, not show)
-
-    @staticmethod
-    def parameter_is_deletable(parameter: DatabaseParameter) -> bool:
-        """ Take a DatabaseParameter and determine if it can be deleted.
-
-        Iterate through the database and activity parameters, return False if
-        any of them use the parameter, otherwise return True.
-        """
-        chain = DatabaseParameter.dependency_chain(parameter.database)
-        data = next((x for x in chain if x.get("kind") == "database"), None)
-        if data and parameter.name in data.get("names", set()):
-            return False
-
-        possibles = (ActivityParameter
-                     .select(ActivityParameter.group)
-                     .distinct())
-        for param in possibles:
-            chain = ActivityParameter.dependency_chain(param.group)
-            data = next((x for x in chain if x.get("kind") == "database"), None)
-            if data and parameter.name in data.get("names", set()):
-                return False
-        return True
 
     @staticmethod
     def get_usable_parameters() -> list:
@@ -366,6 +314,7 @@ class ActivityParameterTable(BaseParameterTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.table_name = "activity_parameter"
+        self.group_column = self.COLUMNS.index("group")
 
         # Set delegates for specific columns
         self.setItemDelegateForColumn(0, StringDelegate(self))
@@ -392,8 +341,7 @@ class ActivityParameterTable(BaseParameterTable):
 
     def _resize(self) -> None:
         super()._resize()
-        self.setColumnHidden(self.param_column, True)
-        self.setColumnHidden(self.COLUMNS.index("group"), True)
+        self.setColumnHidden(self.group_column, True)
 
     @classmethod
     def build_df(cls):
@@ -427,7 +375,7 @@ class ActivityParameterTable(BaseParameterTable):
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         """ Check that the dragged row is from the databases table
         """
-        if isinstance(event.source(), ActivitiesBiosphereTable):
+        if hasattr(event.source(), "technosphere"):
             event.accept()
 
     def dropEvent(self, event: QDropEvent) -> None:
@@ -495,12 +443,12 @@ class ActivityParameterTable(BaseParameterTable):
         menu.addAction(
             qicons.add, "Open activity/activities", self.open_activity_tab
         )
-        menu.addAction(
-            qicons.delete, "Remove parameter(s)", self.delete_parameters
-        )
-        menu.addAction(
-            qicons.delete, "Remove order activity group", self.unset_group_order
-        )
+        menu.addAction(self.delete_action)
+        param = self.get_parameter(self.indexAt(event.pos()))
+        if param.is_deletable():
+            self.delete_action.setEnabled(True)
+        else:
+            self.delete_action.setEnabled(False)
         menu.exec(event.globalPos())
 
     @pyqtSlot()
