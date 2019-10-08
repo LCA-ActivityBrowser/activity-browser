@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+from ast import literal_eval
 import datetime
+import functools
+
 import arrow
 import brightway2 as bw
-from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore
 from bw2data.utils import natural_sort
-import functools
 import numpy as np
 import pandas as pd
 
@@ -12,10 +14,10 @@ from activity_browser.app.settings import project_settings
 
 from .delegates import CheckboxDelegate
 from .views import ABDataFrameView, dataframe_sync
-from ..icons import icons, qicons
+from ..icons import qicons
 from ...signals import signals
 from ...bwutils import AB_metadata
-from ...bwutils.commontasks import is_technosphere_db
+from ...bwutils.commontasks import bw_keys_to_AB_names, is_technosphere_db
 
 
 class DatabasesTable(ABDataFrameView):
@@ -32,11 +34,13 @@ class DatabasesTable(ABDataFrameView):
         super().__init__(parent)
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-        self.setItemDelegateForColumn(2, CheckboxDelegate(self))
+        # TODO: Figure out problems with MacOS painting CheckboxDelegate incorrectly.
+        # See https://github.com/LCA-ActivityBrowser/activity-browser/issues/278
+        # self.setItemDelegateForColumn(2, CheckboxDelegate(self))
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
+            QtWidgets.QSizePolicy.Maximum
+        ))
         self._connect_signals()
 
     def _connect_signals(self):
@@ -58,8 +62,7 @@ class DatabasesTable(ABDataFrameView):
             qicons.add, "Add new activity",
             lambda: signals.new_activity.emit(self.selected_db_name)
         )
-        menu.popup(a0.globalPos())
-        menu.exec()
+        menu.exec(a0.globalPos())
 
     def mousePressEvent(self, e):
         """ A single mouseclick should trigger the 'read-only' column to alter
@@ -71,11 +74,12 @@ class DatabasesTable(ABDataFrameView):
         (inspired by: https://stackoverflow.com/a/11778012)
         """
         if e.button() == QtCore.Qt.LeftButton:
-            index = self.indexAt(e.pos())
-            if index.column() == 2:
-                value = bool(index.data())
-                new_value = True if not value else False
-                db_name = self.dataframe.iloc[index.row(), ]["Name"]
+            proxy = self.indexAt(e.pos())
+            if proxy.column() == 2:
+                # Flip the read-only value for the database
+                new_value = not bool(proxy.data())
+                index = self.get_source_index(proxy)
+                db_name = self.model.index(index.row(), 0).data()
                 self.read_only_changed(db_name, new_value)
                 self.sync()
         super().mousePressEvent(e)
@@ -84,12 +88,12 @@ class DatabasesTable(ABDataFrameView):
     def selected_db_name(self) -> str:
         """ Return the database name of the user-selected index.
         """
-        index = self.get_source_index(next(p for p in self.selectedIndexes()))
-        return self.dataframe.iloc[index.row(), ]["Name"]
+        index = self.get_source_index(self.currentIndex())
+        return self.model.index(index.row(), 0).data()
 
     def open_database(self, proxy):
         index = self.get_source_index(proxy)
-        signals.database_selected.emit(self.dataframe.iloc[index.row(), ]["Name"])
+        signals.database_selected.emit(self.model.index(index.row(), 0).data())
 
     @staticmethod
     @QtCore.pyqtSlot(str, bool)
@@ -125,105 +129,87 @@ class DatabasesTable(ABDataFrameView):
 
 
 class ActivitiesBiosphereTable(ABDataFrameView):
-    def __init__(self):
-        super(ActivitiesBiosphereTable, self).__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.database_name = None
-        self.dataframe = pd.DataFrame()
         self.technosphere = True
         self.act_fields = lambda: AB_metadata.get_existing_fields(['reference product', 'name', 'location', 'unit'])
         self.ef_fields = lambda: AB_metadata.get_existing_fields(['name', 'categories', 'type', 'unit'])
         self.fields = list()  # set during sync
+        self.db_read_only = True
 
-        self.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.setDragEnabled(True)
         self.drag_model = True  # to enable the DragPandasModel (with flags for dragging)
-        self.setDragDropMode(1)  # QtGui.QAbstractItemView.DragOnly
+        self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
-        self.setup_context_menu()
-        self.connect_signals()
-
-    def setup_context_menu(self):
-        # context menu items are enabled/disabled elsewhere, in update_activity_table_read_only()
-        self.open_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.left), "Open activity", None)
-
-        self.open_graph_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.graph_explorer), "Open in Graph Explorer", None)
-
-        # self.calculate_LCA = QtWidgets.QAction(
-        #     QtGui.QIcon(icons.calculate), "calculate LCA", None)
-        #
         self.new_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add), "Add new activity", None
+            qicons.add, "Add new activity", None
         )
         self.duplicate_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.copy), "Duplicate activity", None
+            qicons.copy, "Duplicate activity", None
         )
         self.delete_activity_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.delete), "Delete activity", None
-        )
-        self.duplicate_activity_to_db_action = QtWidgets.QAction(
-            QtGui.QIcon(icons.add_db), 'Duplicate to other database', None
+            qicons.delete, "Delete activity", None
         )
 
-        self.actions = [
-            self.open_activity_action,
-            self.open_graph_action,
-            # self.calculate_LCA,
-            self.new_activity_action,
-            self.duplicate_activity_action,
-            self.delete_activity_action,
-            self.duplicate_activity_to_db_action,
-        ]
-        for action in self.actions:
-            self.addAction(action)
+        self.connect_signals()
 
-        # TODO: several of these actions could be done for several activities at
-        #  the same time (e.g. deleting), which is currently not supported
-
-        self.open_activity_action.triggered.connect(
-            lambda x: self.item_double_clicked(self.currentIndex())
+    def contextMenuEvent(self, event) -> None:
+        """ Construct and present a menu.
+        """
+        menu = QtWidgets.QMenu()
+        menu.addAction(
+            qicons.left, "Open activity",
+            lambda: self.open_activity_tab(self.currentIndex())
         )
-        self.open_graph_action.triggered.connect(
-            lambda x: signals.open_activity_graph_tab.emit(self.get_key(self.currentIndex()))
+        menu.addAction(
+            qicons.graph_explorer, "Open in Graph Explorer",
+            lambda: signals.open_activity_graph_tab.emit(self.get_key(self.currentIndex()))
         )
-        # self.calculate_LCA.triggered.connect(
-        #     lambda x: self.LCA_calculation(self.get_key(self.currentIndex()))
-        # )
-        self.new_activity_action.triggered.connect(
-            lambda: signals.new_activity.emit(self.database_name)
-        )
-        self.duplicate_activity_action.triggered.connect(
-            lambda x: signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
-        )
-        self.delete_activity_action.triggered.connect(
-            lambda x: signals.delete_activity.emit(self.get_key(self.currentIndex()))
-        )
-        self.duplicate_activity_to_db_action.triggered.connect(
+        menu.addAction(self.new_activity_action)
+        menu.addAction(self.duplicate_activity_action)
+        menu.addAction(self.delete_activity_action)
+        menu.addAction(
+            qicons.add_db, "Duplicate to other database",
             lambda: signals.show_duplicate_to_db_interface.emit(self.get_key(self.currentIndex()))
         )
+        menu.exec(event.globalPos())
 
     def connect_signals(self):
         signals.database_selected.connect(
             lambda name: self.sync(name)
         )
-        # signals.database_changed.connect(self.filter_database_changed)
         signals.database_changed.connect(self.check_database_changed)
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
-        self.doubleClicked.connect(self.item_double_clicked)
+        self.new_activity_action.triggered.connect(
+            lambda: signals.new_activity.emit(self.database_name)
+        )
+        self.duplicate_activity_action.triggered.connect(
+            lambda: signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
+        )
+        self.delete_activity_action.triggered.connect(
+            lambda: signals.delete_activity.emit(self.get_key(self.currentIndex()))
+        )
+        self.doubleClicked.connect(self.open_activity_tab)
 
-    def reset_table(self):
+    def reset_table(self) -> None:
         self.database_name = None
         self.dataframe = pd.DataFrame()
 
-    def get_key(self, proxy_index):
-        """Get the key from the mode.dataframe assuming the index provided refers to the proxy model."""
-        index = self.get_source_index(proxy_index)
-        return self.dataframe.iloc[index.row()]['key']
+    def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
+        """ Get the key from the model using the given proxy index.
 
-    def item_double_clicked(self, proxy_index):
-        key = self.get_key(proxy_index)
+        NOTE: PandasModel converts tuples to strings in the `data` method
+        due to PyQt QVariant typing nonsense.
+        """
+        index = self.get_source_index(proxy)
+        key = self.model.index(index.row(), self.fields.index("key")).data()
+        return literal_eval(key)
+
+    @QtCore.pyqtSlot(QtCore.QModelIndex)
+    def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
+        key = self.get_key(proxy)
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
@@ -234,16 +220,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         if db_name == self.database_name and db_name in bw.databases:
             self.sync(db_name)
 
-    # def LCA_calculation(self, key):
-    #     print(key)
-    #     func_unit = {key: 1.0}
-    #     for func_unit in bw.calculation_setups[name]['inv']:
-    #         for key, amount in func_unit.items():
-    #             self.append_row(key, str(amount))
-
     @dataframe_sync
-    def sync(self, db_name, df=None):
-        if isinstance(df, pd.DataFrame):  # skip the rest of the sync here if a dataframe is directly supplied
+    def sync(self, db_name: str, df: pd.DataFrame=None) -> None:
+        if df is not None:
+            # skip the rest of the sync here if a dataframe is directly supplied
             print('Pandas Dataframe passed to sync.', df.shape)
             self.dataframe = df
             return
@@ -252,41 +232,44 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             raise KeyError('This database does not exist!', db_name)
         self.database_name = db_name
         self.technosphere = is_technosphere_db(db_name)
-        AB_metadata.add_metadata([db_name])  # adds metadata if not already available; needs to come before fields
 
         # disable context menu (actions) if biosphere table and/or if db read-only
         if self.technosphere:
-            [action.setEnabled(True) for action in self.actions]
+            self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
             self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(db_name, True)
             self.update_activity_table_read_only(self.database_name, self.db_read_only)
         else:
-            [action.setEnabled(False) for action in self.actions]
+            self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
         # get fields
         fields = self.act_fields() if self.technosphere else self.ef_fields()
-        self.fields = fields + ['key']
+        self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
 
-        # get dataframe
-        df = AB_metadata.get_database_metadata(db_name)
-        self.dataframe = df[self.fields].reset_index(drop=True)
+        # Get dataframe from metadata and update column-names
+        df = AB_metadata.get_database_metadata(db_name)[fields + ["key"]]
+        df.columns = self.fields
+        self.dataframe = df.reset_index(drop=True)
 
-        # sort ignoring case sensitivity
+        # Sort dataframe on first column (activity name, usually)
+        # while ignoring case sensitivity
         sort_field = self.fields[0]
         self.dataframe = self.dataframe.iloc[self.dataframe[sort_field].str.lower().argsort()]
         sort_field_index = self.fields.index(sort_field)
         self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
         self.dataframe.reset_index(inplace=True, drop=True)
-        self.dataframe_search_copy = self.dataframe
 
-    def search(self, pattern1: str=None, pattern2: str=None, logic='AND'):
-        """Filter the dataframe with two filters and a logical element in between
-        to allow different filter combinations."""
+    def search(self, pattern1: str=None, pattern2: str=None, logic='AND') -> None:
+        """ Filter the dataframe with two filters and a logical element
+        in between to allow different filter combinations.
+
+        TODO: Look at the possibility of using the proxy model to filter instead
+        """
         if not pattern1 and not pattern2:
             self.reset_search()
         if pattern1 and pattern2:
             # print('filtering on both search terms')
-            mask1 = self.filter_dataframe(self.dataframe_search_copy, pattern1)
-            mask2 = self.filter_dataframe(self.dataframe_search_copy, pattern2)
+            mask1 = self.filter_dataframe(self.dataframe, pattern1)
+            mask2 = self.filter_dataframe(self.dataframe, pattern2)
             # applying the logic
             if logic == 'AND':
                 mask = np.logical_and(mask1, mask2)
@@ -297,11 +280,11 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         else:
             # print('filtering on ONE search term')
             pattern = pattern1 if pattern1 else pattern2
-            mask = self.filter_dataframe(self.dataframe_search_copy, pattern)
-        df = self.dataframe_search_copy.loc[mask].reset_index(drop=True)
+            mask = self.filter_dataframe(self.dataframe, pattern)
+        df = self.dataframe.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
 
-    def filter_dataframe(self, df: pd.DataFrame, pattern: str):
+    def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
         """ Filter the dataframe returning a mask that is True for all rows
         where a search string has been found.
 
@@ -313,6 +296,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         not work for columns containing tuples (https://stackoverflow.com/a/29463757)
         """
         search_columns = self.act_fields() if self.technosphere else self.ef_fields()
+        search_columns = [bw_keys_to_AB_names.get(c, c) for c in search_columns]
         mask = functools.reduce(
             np.logical_or, [
                 df[col].apply(lambda x: pattern.lower() in str(x).lower())
@@ -321,13 +305,18 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         )
         return mask
 
-    def reset_search(self):
-        # could also set the self.dataframe_search_copy here (but would have to test a bit)
+    def reset_search(self) -> None:
+        """ Explicitly reload the model data from the metadata.
+        """
         self.sync(self.database_name)
 
-    def update_activity_table_read_only(self, db_name, db_read_only):
-        """[new, duplicate & delete] actions can only be selected for databases that are not read-only
-                user can change state of dbs other than the open one: so check first"""
+    def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
+        """ [new, duplicate & delete] actions can only be selected for
+        databases that are not read-only.
+
+        The user can change state of dbs other than the open one, so check
+        if database name matches.
+        """
         if self.database_name == db_name:
             self.db_read_only = db_read_only
             self.new_activity_action.setEnabled(not self.db_read_only)

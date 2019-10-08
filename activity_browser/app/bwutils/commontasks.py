@@ -112,6 +112,8 @@ AB_names_to_bw_keys = {
     "Database": "database",
     "Uncertainty": "uncertainty type",
     "Formula": "formula",
+    "Categories": "categories",
+    "Type": "type",
 }
 
 bw_keys_to_AB_names = {v: k for k, v in AB_names_to_bw_keys.items()}

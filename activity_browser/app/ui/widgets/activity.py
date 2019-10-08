@@ -121,13 +121,14 @@ class ActivityDataGrid(QtWidgets.QWidget):
     def update_location_combo(self):
         """Update when in edit mode"""
         self.location_combo.blockSignals(True)
-        location = str(self.parent.activity.get('location', ''))
+        location = str(self.parent.activity.get('location', 'unknown'))
         self.location_combo._before = location
 
         # get all locations in db
         self.location_combo.clear()
         db = self.parent.activity.get('database', '')
         locations = sorted(AB_metadata.get_locations(db))
+        locations.append("unknown")
         self.location_combo.insertItems(0, locations)
         self.location_combo.setCurrentIndex(locations.index(location))
         self.location_combo.blockSignals(False)

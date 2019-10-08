@@ -143,6 +143,7 @@ class ActivityTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
+        signals.database_changed.connect(self.populate)
         signals.parameters_changed.connect(self.populate)
         # signals.activity_modified.connect(self.update_activity_values)
 
