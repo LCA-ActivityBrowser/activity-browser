@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from ast import literal_eval
-from typing import Optional
+import itertools
 
 from asteval import Interpreter
 import brightway2 as bw
@@ -146,7 +146,7 @@ class BaseParameterTable(ABDataFrameEdit):
         raise NotImplementedError
 
     @staticmethod
-    def get_usable_parameters() -> list:
+    def get_usable_parameters():
         """ Builds a simple list of parameters that can be used in `this`
         table for use in delegates
         """
@@ -208,10 +208,10 @@ class ProjectParameterTable(BaseParameterTable):
             self.setColumnHidden(i, not show)
 
     @staticmethod
-    def get_usable_parameters() -> list:
-        return [
+    def get_usable_parameters():
+        return (
             [k, v, "project"] for k, v in ProjectParameter.static().items()
-        ]
+        )
 
     @staticmethod
     def get_interpreter() -> Interpreter:
@@ -272,14 +272,15 @@ class DataBaseParameterTable(BaseParameterTable):
             self.setColumnHidden(i, not show)
 
     @staticmethod
-    def get_usable_parameters() -> list:
+    def get_usable_parameters():
         """ Include the project parameters, and generate database parameters.
         """
         project = ProjectParameterTable.get_usable_parameters()
-        return project + [
+        database = (
             [p.name, p.amount, "database ({})".format(p.database)]
             for p in DatabaseParameter.select()
-        ]
+        )
+        return itertools.chain(project, database)
 
     def get_current_database(self) -> str:
         """ Return the database name of the parameter currently selected.
@@ -514,19 +515,19 @@ class ActivityParameterTable(BaseParameterTable):
         )
 
     @staticmethod
-    def get_usable_parameters() -> list:
+    def get_usable_parameters():
         """ Include all types of parameters.
 
         NOTE: This method does not take into account which formula is being
         edited, and therefore does not restrict which database or activity
         parameters are returned.
         """
-        project = ProjectParameterTable.get_usable_parameters()
         database = DataBaseParameterTable.get_usable_parameters()
-        return project + database + [
+        activity = (
             [p.name, p.amount, "activity ({})".format(p.group)]
             for p in ActivityParameter.select()
-        ]
+        )
+        return itertools.chain(database, activity)
 
     def get_current_group(self, proxy=None) -> str:
         """ Retrieve the group of the activity currently selected.

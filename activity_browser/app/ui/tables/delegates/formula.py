@@ -122,7 +122,7 @@ class FormulaDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
         self.show()
 
-    def insert_parameters(self, items: list) -> None:
+    def insert_parameters(self, items) -> None:
         """ Take the given list of parameter names, amounts and types, insert
         them into the model.
         """

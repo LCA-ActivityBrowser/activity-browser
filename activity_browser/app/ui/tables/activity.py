@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import itertools
+
 from asteval import Interpreter
 import brightway2 as bw
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
@@ -189,45 +191,46 @@ class BaseExchangeTable(ABDataFrameEdit):
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
-    def get_usable_parameters(self) -> list:
+    def get_usable_parameters(self):
         """ Use the `key` set for the table to determine the database and
         group of the activity, using that information to constrain the usable
         parameters.
         """
-        project = [
+        project = (
             [k, v, "project"] for k, v in ProjectParameter.static().items()
-        ]
+        )
         if self.key is None:
             return project
 
-        database = [
+        database = (
             [k, v, "database"]
             for k, v in DatabaseParameter.static(self.key[0]).items()
-        ]
+        )
 
-        try:
-            # Get the parameter for the current activity
-            act = (ActivityParameter
-                   .get(ActivityParameter.database == self.key[0],
-                        ActivityParameter.code == self.key[1]))
+        # Determine if the activity is already part of a parameter group.
+        query = (Group.select()
+                 .join(ActivityParameter, on=(Group.name == ActivityParameter.group))
+                 .where(ActivityParameter.database == self.key[0],
+                        ActivityParameter.code == self.key[1])
+                 .distinct())
+        if query.exists():
+            group = query.get()
             # First, build a list for parameters in the same group
-            query = (ActivityParameter.select()
-                     .where(ActivityParameter.group == act.group))
-            activity = [
-                [p.name, p.amount, "activity"] for p in query.iterator()
-            ]
+            activity = (
+                [p.name, p.amount, "activity"]
+                for p in ActivityParameter.select().where(ActivityParameter.group == group.name)
+            )
             # Then extend the list with parameters from groups in the `order`
             # field
-            group = Group.get(name=act.group)
-            query = (ActivityParameter.select()
-                     .where(ActivityParameter.group.in_(group.order)))
-            activity += [
-                [p.name, p.amount, "activity"] for p in query.iterator()
-            ]
-        except ActivityParameter.DoesNotExist:
+            additions = (
+                [p.name, p.amount, "activity"]
+                for p in ActivityParameter.select().where(ActivityParameter.group << group.order)
+            )
+            activity = itertools.chain(activity, additions)
+        else:
             activity = []
 
-        return project + database + activity
+        return itertools.chain(project, database, activity)
 
     def get_interpreter(self) -> Interpreter:
         """ Use the activity key to determine which symbols are added
