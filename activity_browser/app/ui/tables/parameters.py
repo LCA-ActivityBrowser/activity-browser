@@ -521,16 +521,19 @@ class ActivityParameterTable(BaseParameterTable):
             bw.parameters.recalculate()
             signals.parameters_changed.emit()
 
-    @staticmethod
-    def get_activity_groups(ignore_groups: list = None) -> list:
+    def get_activity_groups(self, proxy, ignore_groups: list = None):
         """ Helper method to look into the Group and determine which if any
         other groups the current activity can depend on
         """
+        db = self.get_key(proxy)[0]
         ignore_groups = [] if ignore_groups is None else ignore_groups
-        return list(set([
-            param.group for param in ActivityParameter.select()
+        return (
+            param.group for param in (ActivityParameter
+                                      .select(ActivityParameter.group)
+                                      .where(ActivityParameter.database == db)
+                                      .distinct())
             if param.group not in ignore_groups
-        ]))
+        )
 
     @staticmethod
     def get_usable_parameters() -> list:
