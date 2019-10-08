@@ -6,7 +6,7 @@ from asteval import Interpreter
 import brightway2 as bw
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
-                                ProjectParameter, get_new_symbols)
+                                ProjectParameter)
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PyQt5.QtWidgets import QAction, QMenu, QMessageBox
@@ -175,7 +175,7 @@ class ProjectParameterTable(BaseParameterTable):
         menu = QMenu(self)
         menu.addAction(self.delete_action)
         param = self.get_parameter(self.indexAt(event.pos()))
-        if param is None or self.parameter_is_deletable(param):
+        if param.is_deletable():
             self.delete_action.setEnabled(True)
         else:
             self.delete_action.setEnabled(False)
@@ -213,62 +213,6 @@ class ProjectParameterTable(BaseParameterTable):
     def uncertainty_columns(self, show: bool):
         for i in range(3, 9):
             self.setColumnHidden(i, not show)
-
-    @staticmethod
-    def dependency_chain() -> list:
-        """ Implement a dependency_chain-lite call for ProjectParameters.
-
-        The only major difference with `DatabaseParameter.dependency_chain`
-        is that we do not pass a context to `get_new_symbols`.
-        """
-        data = ProjectParameter.load()
-        if not data:
-            return []
-
-        # Parse all formulas, find missing variables
-        needed = get_new_symbols(data.values())
-        if not needed:
-            return []
-
-        names, chain = set(), []
-        for name in ProjectParameter.static(only=needed):
-            names.add(name)
-            needed.remove(name)
-        if names:
-            chain.append({'kind': 'project', 'group': 'project', 'names': names})
-
-        return chain
-
-    @staticmethod
-    def parameter_is_deletable(parameter: ProjectParameter) -> bool:
-        """ Take a ProjectParameter and determine if it can be deleted.
-
-        Iterate through all of the parameters, return False if any of them
-        use the parameter, otherwise return True.
-        """
-        chain = ProjectParameterTable.dependency_chain()
-        data = next((x for x in chain if x.get("kind") == "project"), None)
-        if data and parameter.name in data.get("names", set()):
-            return False
-
-        possibles = (DatabaseParameter
-                     .select(DatabaseParameter.database)
-                     .distinct())
-        for param in possibles:
-            chain = DatabaseParameter.dependency_chain(param.database)
-            data = next((x for x in chain if x.get("kind") == "project"), None)
-            if data and parameter.name in data.get("names", set()):
-                return False
-
-        possibles = (ActivityParameter
-                     .select(ActivityParameter.group)
-                     .distinct())
-        for param in possibles:
-            chain = ActivityParameter.dependency_chain(param.group)
-            data = next((x for x in chain if x.get("kind") == "project"), None)
-            if data and parameter.name in data.get("names", set()):
-                return False
-        return True
 
     @staticmethod
     def get_usable_parameters() -> list:
