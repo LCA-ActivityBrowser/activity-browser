@@ -195,12 +195,10 @@ class ProjectParameterTable(BaseParameterTable):
         """
         counter = (ProjectParameter.select().count() +
                    DatabaseParameter.select().count())
-        param = {
-            "name": "param_{}".format(counter + 1),
-            "amount": 0.0
-        }
         try:
-            bw.parameters.new_project_parameters([param], False)
+            bw.parameters.new_project_parameters([
+                {"name": "param_{}".format(counter + 1), "amount": 0.0}
+            ], False)
             signals.parameters_changed.emit()
         except ValueError as e:
             simple_warning_box(self, "Name already in use!", str(e))
@@ -260,13 +258,11 @@ class DataBaseParameterTable(BaseParameterTable):
         """
         counter = (ProjectParameter.select().count() +
                    DatabaseParameter.select().count())
-        database = next(x for x in bw.databases)
-        param = {
-            "name": "param_{}".format(counter + 1),
-            "amount": 0.0
-        }
+        database = next(iter(bw.databases))
         try:
-            bw.parameters.new_database_parameters([param], database, False)
+            bw.parameters.new_database_parameters([
+                {"name": "param_{}".format(counter + 1), "amount": 0.0}
+            ], database, False)
             signals.parameters_changed.emit()
         except ValueError as e:
             simple_warning_box(self, "Name already in use!", str(e))
@@ -288,8 +284,8 @@ class DataBaseParameterTable(BaseParameterTable):
     def get_current_database(self) -> str:
         """ Return the database name of the parameter currently selected.
         """
-        index = self.get_source_index(self.currentIndex())
-        return self.model.index(index.row(), self.COLUMNS.index("database")).data()
+        return self.proxy_model.index(
+            self.currentIndex().row(), self.COLUMNS.index("database")).data()
 
     def get_interpreter(self) -> Interpreter:
         """ Take the interpreter from the ProjectParameterTable and add
@@ -474,8 +470,7 @@ class ActivityParameterTable(BaseParameterTable):
             order.remove(param.group)
         group = Group.get(name=param.group)
         group.order = order
-        group.fresh = False
-        group.save()
+        group.expire()
 
     @pyqtSlot()
     def delete_parameters(self) -> None:
@@ -602,18 +597,19 @@ class ExchangesTable(ABDictTreeView):
     def parameterize_exchanges(self, key: tuple) -> None:
         """ Used whenever a formula is set on an exchange in an activity.
 
-        NOTE: this will only work if the activity itself is also parameterized.
+        If no `ActivityParameter` exists for the key, generate one immediately
         """
-        try:
-            param = (ActivityParameter.select()
-                     .where(ActivityParameter.database == key[0],
-                            ActivityParameter.code == key[1])
-                     .limit(1)
-                     .get())
-        except ActivityParameter.DoesNotExist:
+        if not (ActivityParameter.select()
+                .where(ActivityParameter.database == key[0],
+                       ActivityParameter.code == key[1])
+                .exists()):
             signals.add_activity_parameter.emit(key)
-            param = ActivityParameter.get(database=key[0], code=key[1])
 
+        param = (ActivityParameter.select(ActivityParameter.group)
+                 .where(ActivityParameter.database == key[0],
+                        ActivityParameter.code == key[1])
+                 .limit(1)
+                 .get())
         act = bw.get_activity(key)
         bw.parameters.add_exchanges_to_group(param.group, act)
         ActivityParameter.recalculate_exchanges(param.group)
