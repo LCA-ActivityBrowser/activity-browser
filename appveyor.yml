@@ -10,6 +10,8 @@ environment:
   matrix:
     - CONDA_PY: "36"
       CONDA_INSTALL_LOCN: "C:\\Miniconda36-x64"
+    - CONDA_PY: "37"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda37-x64"
 
 install:
   - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
@@ -18,7 +20,7 @@ install:
   - conda info -a
   # Install package requirements & test suite
   # Do not use the conda-forge pytest version 3.2.2, it includes an old version of pluggy which breaks the test.
-  - conda install -q -c defaults -c conda-forge -c cmutel -c haasad arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib networkx pandas "pyqt==5.9.2" seaborn "pytest>3.2.2,<3.5" pytest-qt pytest-mock
+  - conda install -q -c defaults -c conda-forge -c cmutel -c haasad arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib networkx pandas "pyqt==5.9.2" seaborn pytest pytest-qt pytest-mock
 
 test_script:
-  - python -m pytest
+  - py.test
