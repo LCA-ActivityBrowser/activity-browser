@@ -10,3 +10,9 @@ class Application(object):
 
     def show(self):
         self.main_window.showMaximized()
+
+    def close(self):
+        self.main_window.close()
+
+    def deleteLater(self):
+        self.main_window.deleteLater()
