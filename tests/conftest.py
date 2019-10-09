@@ -15,6 +15,5 @@ def ab_application():
 
 @pytest.fixture()
 def ab_app(qtbot, ab_application):
-    qtbot.addWidget(ab_application)
     ab_application.show()
     return ab_application
