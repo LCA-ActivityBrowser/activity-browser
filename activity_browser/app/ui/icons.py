@@ -41,6 +41,7 @@ class Icons(object):
     right = create_path('main', 'right.png')
     left = create_path('main', 'left.png')
     backward = create_path('main', 'backward.png')
+    edit = create_path('main', 'edit.png')
     key = create_path('main', 'key.png')
     search = create_path('main', 'search.png')
     switch = create_path('main', 'switch-state.png')
