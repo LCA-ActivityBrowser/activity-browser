@@ -7,6 +7,13 @@ matrix:
       os: linux
       env: VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
     - python: "3.7"
+      os: linux
+      env: VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
+    - python: "3.6"
+      language: generic-covered
+      os: osx
+      env: pyver=3.6 VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
+    - python: "3.7"
       language: generic-covered
       os: osx
       env: pyver=3.7 VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
@@ -39,16 +46,15 @@ install:
 
   # Create a test environment because travis trips over itself otherwise
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      conda create -q -n test-environment python=$pyver pytest;
+      conda create -q -n test-environment python=$pyver pytest pytest-qt pytest-mock;
     else
-      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION;
+      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytest pytest-qt pytest-mock;
     fi
   - source activate test-environment
   - conda install -q --use-local activity-browser-dev
-  - conda install -q "pytest<3.5" pytest-qt pytest-mock
   # Include coverage packages for linux distro
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      conda install -q "pytest-cov<2.6" python-coveralls;
+  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
+      conda install -q pytest-cov python-coveralls;
     fi
 
 before_script:
@@ -60,16 +66,15 @@ before_script:
 
 script:
   # Run tests on the installed package, also do code coverage in linux.
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      py.test;
-      python -m pytest --cov=activity_browser;
+  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
+      py.test --cov=activity_browser;
     else
       py.test;
     fi
 
 after_success:
   # Only upload the code coverage if tests were successful
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then coveralls; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then coveralls; fi
 
 # https://docs.travis-ci.com/user/deployment/script/
 # https://docs.travis-ci.com/user/deployment/#pull-requests

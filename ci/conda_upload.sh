@@ -2,7 +2,7 @@
 # Script for building and uploading the dev and/or stable packages to conda
 
 # Only upload from linux, and use different variables for dev and stable builds
-if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
     USER=bsteubing
     mkdir -p ~/conda-bld
     conda config --set anaconda_upload no
@@ -36,5 +36,5 @@ if [ "$TRAVIS_OS_NAME" == "linux" ]; then
     anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l main $CONDA_BLD_PATH/noarch/$PKG_NAME-$VERSION-py_0.tar.bz2 $UPLOAD_ARGS
     echo "BUILD UPLOADED: $USER"
 else
-    echo "No uploads from MacOS"
+    echo "No uploads from MacOS or Linux python 3.6"
 fi
