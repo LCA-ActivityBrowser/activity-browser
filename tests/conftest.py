@@ -6,9 +6,14 @@ from activity_browser import Application
 
 
 @pytest.fixture(scope='session')
-def ab_app():
+def ab_application():
+    app = Application()
+    yield app
     if 'pytest_project' in bw.projects:
         bw.projects.delete_project('pytest_project', delete_dir=True)
-    application = Application()
-    application.show()
-    return application
+
+
+@pytest.fixture()
+def ab_app(qtbot, ab_application):
+    ab_application.show()
+    return ab_application
