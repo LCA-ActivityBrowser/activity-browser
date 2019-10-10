@@ -7,10 +7,10 @@ from activity_browser.app.signals import signals
 from activity_browser.app.ui.wizards.db_import_wizard import import_signals
 
 
-def test_add_default_data(qtbot, mock, ab_app):
+def test_add_default_data(qtbot, mocker, ab_app):
     assert bw.projects.current == 'default'
     qtbot.waitForWindowShown(ab_app.main_window)
-    mock.patch.object(Controller, 'get_new_project_name_dialog', return_value='pytest_project')
+    mocker.patch.object(Controller, 'get_new_project_name_dialog', return_value='pytest_project')
     project_tab = ab_app.main_window.left_panel.tabs['Project']
     qtbot.mouseClick(
         project_tab.projects_widget.new_project_button,

@@ -139,6 +139,13 @@ class BaseParameterTable(ABDataFrameEdit):
                 simple_warning_box(self, "Could not save changes", str(e))
 
     def handle_parameter_rename(self, proxy):
+        """ Creates an input dialog where users can set a new name for the
+        selected parameter.
+
+        NOTE: Currently defaults to updating downstream formulas if needed,
+        by sub-classing the QInputDialog class it becomes possible to allow
+        users to decide if they want to update downstream parameters.
+        """
         new_name, ok = QInputDialog.getText(
             self, "Rename parameter", "New parameter name:",
         )
