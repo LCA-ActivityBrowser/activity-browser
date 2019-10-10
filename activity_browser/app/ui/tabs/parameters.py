@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PyQt5.QtCore import pyqtSlot, QSize
-from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QMessageBox, QPushButton,
-                             QToolBar, QVBoxLayout, QTabWidget)
+from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QPushButton, QToolBar,
+                             QVBoxLayout, QTabWidget)
 
 from activity_browser.app.signals import signals
 
@@ -73,8 +73,10 @@ class ParameterDefinitionTab(BaseRightTab):
         }
 
         self.new_project_param = QPushButton(qicons.add, "New project parameter")
+        self.database_header = header("Database:")
         self.new_database_param = QPushButton(qicons.add, "New database parameter")
         self.show_order = QCheckBox("Show order column", self)
+        self.show_database_params = QCheckBox("Show database parameters", self)
         self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
 
         self._construct_layout()
@@ -136,6 +138,9 @@ parameter.</li>
         self.uncertainty_columns.stateChanged.connect(
             self.hide_uncertainty_columns
         )
+        self.show_database_params.stateChanged.connect(
+            self.hide_database_parameter
+        )
 
     def _construct_layout(self):
         """ Construct the widget layout for the variable parameters tab
@@ -145,6 +150,7 @@ parameter.</li>
         self.uncertainty_columns.setChecked(False)
         row = QToolBar()
         row.addWidget(header("Parameters "))
+        row.addWidget(self.show_database_params)
         row.addWidget(self.uncertainty_columns)
         row.addAction(
             qicons.question, "About brightway parameters",
@@ -161,7 +167,7 @@ parameter.</li>
         layout.addWidget(self.project_table)
 
         row = QHBoxLayout()
-        row.addWidget(header("Database:"))
+        row.addWidget(self.database_header)
         row.addWidget(self.new_database_param)
         row.addStretch(1)
         layout.addLayout(row)
@@ -185,6 +191,7 @@ parameter.</li>
         self.activity_table.sync(ActivityParameterTable.build_df())
         self.hide_uncertainty_columns()
         self.activity_order_column()
+        self.hide_database_parameter()
         # Cannot create database parameters without databases
         if not bw.databases:
             self.new_database_param.setEnabled(False)
@@ -206,6 +213,13 @@ parameter.</li>
         else:
             self.activity_table.setColumnHidden(col, False)
             self.activity_table.resizeColumnToContents(col)
+
+    @pyqtSlot()
+    def hide_database_parameter(self) -> None:
+        hide = not self.show_database_params.isChecked()
+        self.database_header.setHidden(hide)
+        self.new_database_param.setHidden(hide)
+        self.database_table.setHidden(hide)
 
 
 class ParameterExchangesTab(BaseRightTab):
