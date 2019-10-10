@@ -9,7 +9,7 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from PyQt5.QtWidgets import QAction, QMenu
+from PyQt5.QtWidgets import QAction, QInputDialog, QMenu
 
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.settings import project_settings
@@ -39,6 +39,10 @@ class BaseParameterTable(ABDataFrameEdit):
         self.delete_action.triggered.connect(
             lambda: self.delete_parameter(self.currentIndex())
         )
+        self.rename_action = QAction(qicons.edit, "Rename parameter", None)
+        self.rename_action.triggered.connect(
+            lambda: self.handle_parameter_rename(self.currentIndex())
+        )
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ Handle updating the parameters whenever the user changes a value.
@@ -60,6 +64,7 @@ class BaseParameterTable(ABDataFrameEdit):
         """ Have the parameter test to see if it can be deleted safely.
         """
         menu = QMenu(self)
+        menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
         param = self.get_parameter(self.indexAt(event.pos()))
         if param.is_deletable():
@@ -133,6 +138,21 @@ class BaseParameterTable(ABDataFrameEdit):
                 self.sync(self.build_df())
                 simple_warning_box(self, "Could not save changes", str(e))
 
+    def handle_parameter_rename(self, proxy):
+        new_name, ok = QInputDialog.getText(
+            self, "Rename parameter", "New parameter name:",
+        )
+        if ok and new_name:
+            try:
+                self.rename_parameter(proxy, new_name)
+                signals.parameters_changed.emit()
+            except Exception as e:
+                self.sync(self.build_df())
+                simple_warning_box(self, "Could not save changes", str(e))
+
+    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
+        raise NotImplementedError
+
     def delete_parameter(self, proxy) -> None:
         param = self.get_parameter(proxy)
         with bw.parameters.db.atomic():
@@ -170,7 +190,7 @@ class ProjectParameterTable(BaseParameterTable):
         self.table_name = "project_parameter"
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, StringDelegate(self))
+        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, UncertaintyDelegate(self))
@@ -203,6 +223,10 @@ class ProjectParameterTable(BaseParameterTable):
         except ValueError as e:
             simple_warning_box(self, "Name already in use!", str(e))
 
+    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
+        parameter = self.get_parameter(proxy)
+        bw.parameters.rename_project_parameter(parameter, new_name, update)
+
     def uncertainty_columns(self, show: bool):
         for i in range(3, 9):
             self.setColumnHidden(i, not show)
@@ -230,7 +254,7 @@ class DataBaseParameterTable(BaseParameterTable):
         self.table_name = "database_parameter"
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, StringDelegate(self))
+        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, DatabaseDelegate(self))
@@ -266,6 +290,10 @@ class DataBaseParameterTable(BaseParameterTable):
             signals.parameters_changed.emit()
         except ValueError as e:
             simple_warning_box(self, "Name already in use!", str(e))
+
+    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
+        parameter = self.get_parameter(proxy)
+        bw.parameters.rename_database_parameter(parameter, new_name, update)
 
     def uncertainty_columns(self, show: bool):
         for i in range(4, 10):
@@ -314,7 +342,7 @@ class ActivityParameterTable(BaseParameterTable):
         self.group_column = self.COLUMNS.index("group")
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, StringDelegate(self))
+        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
@@ -431,6 +459,10 @@ class ActivityParameterTable(BaseParameterTable):
         bw.parameters.new_activity_parameters([row], group)
         signals.parameters_changed.emit()
 
+    def rename_parameter(self, proxy, new_name: str, update: bool = False) -> None:
+        parameter = self.get_parameter(proxy)
+        bw.parameters.rename_activity_parameter(parameter, new_name, update)
+
     def contextMenuEvent(self, event: QContextMenuEvent):
         """ Override and activate QTableView.contextMenuEvent()
 
@@ -440,6 +472,7 @@ class ActivityParameterTable(BaseParameterTable):
         menu.addAction(
             qicons.add, "Open activity/activities", self.open_activity_tab
         )
+        menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
         param = self.get_parameter(self.indexAt(event.pos()))
         if param.is_deletable():
