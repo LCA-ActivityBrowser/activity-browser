@@ -2,13 +2,37 @@
 import brightway2 as bw
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
+import pytest
 
 from activity_browser.app.signals import signals
+from activity_browser.app.ui.tables.delegates import FormulaDelegate
 from activity_browser.app.ui.tables.parameters import (
-    ActivityParameterTable, DataBaseParameterTable, ProjectParameterTable
+    BaseParameterTable, ActivityParameterTable, DataBaseParameterTable,
+    ProjectParameterTable
 )
 from activity_browser.app.ui.tabs.parameters import ParameterDefinitionTab
+
+
+@pytest.mark.parametrize(
+    "method_call, parameters", [
+        ("build_df", None),
+        ("rename_parameter", ["", "", False]),
+        ("uncertainty_columns", [False]),
+        ("get_usable_parameters", None),
+        ("get_interpreter", None),
+    ]
+)
+def test_base_table_exceptions(qtbot, method_call, parameters):
+    """ Test most of the methods in the base table for exceptions.
+
+    Other methods are covered by subclasses using them.
+    """
+    table = BaseParameterTable()
+    qtbot.addWidget(table)
+    with pytest.raises(NotImplementedError):
+        func = getattr(table, method_call)
+        func(*parameters) if parameters else func()
 
 
 def test_create_project_param(qtbot):
@@ -48,7 +72,7 @@ def test_edit_project_param(qtbot):
     table.sync(table.build_df())
 
     # Edit both the name and the amount of the first parameter.
-    table.model.setData(table.model.index(0, 0), "test_project")
+    table.rename_parameter(table.proxy_model.index(0, 0), "test_project")
     table.model.setData(table.model.index(0, 1), 2.5)
 
     # Check that parameter is correctly stored in brightway.
@@ -62,6 +86,7 @@ def test_edit_project_param(qtbot):
     # Now edit the formula of the 3rd param to use the 2nd param
     with qtbot.waitSignal(signals.parameters_changed, timeout=1000):
         table.model.setData(table.model.index(2, 2), "param_2 + 3")
+    assert ProjectParameter.get(name="param_3").amount == 3
 
 
 def test_delete_project_param(qtbot):
@@ -84,10 +109,7 @@ def test_delete_project_param(qtbot):
 
 
 def test_create_database_params(qtbot):
-    """ Create two database parameters, one dependent on the above
-    project parameter and one dependent on the first database parameter.
-
-    Depends on the create_project_param test above
+    """ Create three database parameters
 
     Does not user the overarching application due to mouseClick failing
     """
@@ -98,10 +120,17 @@ def test_create_database_params(qtbot):
     project_db_tab.build_tables()
     table = project_db_tab.database_table
 
+    # Open the database foldout
+    assert table.isHidden()
+    with qtbot.waitSignal(project_db_tab.show_database_params.stateChanged, timeout=1000):
+        qtbot.mouseClick(project_db_tab.show_database_params, QtCore.Qt.LeftButton)
+    assert not table.isHidden()
+
     signal_list = [
         signals.parameters_changed, signals.parameters_changed,
         signals.parameters_changed
     ]
+    # Generate a few database parameters
     with qtbot.waitSignals(signal_list, timeout=1000):
         qtbot.mouseClick(project_db_tab.new_database_param, QtCore.Qt.LeftButton)
         qtbot.mouseClick(project_db_tab.new_database_param, QtCore.Qt.LeftButton)
@@ -119,11 +148,11 @@ def test_edit_database_params(qtbot):
     table.sync(table.build_df())
 
     # Fill rows with new variables
-    table.model.setData(table.model.index(0, 0), "test_db1")
+    table.rename_parameter(table.proxy_model.index(0, 0), "test_db1")
     table.model.setData(table.model.index(0, 2), "test_project + 3.5")
-    table.model.setData(table.model.index(1, 0), "test_db2")
+    table.rename_parameter(table.proxy_model.index(1, 0), "test_db2")
     table.model.setData(table.model.index(1, 2), "test_db1 ** 2")
-    table.model.setData(table.model.index(2, 0), "test_db3")
+    table.rename_parameter(table.proxy_model.index(2, 0), "test_db3")
     table.model.setData(table.model.index(2, 1), "8.5")
     table.model.setData(table.model.index(2, 3), "testdb")
 
@@ -180,6 +209,13 @@ def test_create_activity_param(qtbot):
     project_db_tab.build_tables()
     table = project_db_tab.activity_table
 
+    # Open the order column just because we can
+    col = table.COLUMNS.index("order")
+    assert table.isColumnHidden(col)
+    with qtbot.waitSignal(project_db_tab.show_order.stateChanged, timeout=1000):
+        qtbot.mouseClick(project_db_tab.show_order, QtCore.Qt.LeftButton)
+    assert not table.isColumnHidden(col)
+
     # Create multiple parameters for a single activity
     act_key = ("testdb", "act1")
     for _ in range(3):
@@ -208,14 +244,53 @@ def test_edit_activity_param(qtbot):
     table.sync(table.build_df())
 
     # Fill rows with new variables
-    table.model.setData(table.model.index(0, 0), "edit_act_1")
+    table.rename_parameter(table.proxy_model.index(0, 0), "edit_act_1", True)
     table.model.setData(table.model.index(0, 2), "test_db3 * 3")
-    table.model.setData(table.model.index(1, 0), "edit_act_2")
+    table.rename_parameter(table.proxy_model.index(1, 0), "edit_act_2", True)
     table.model.setData(table.model.index(1, 2), "edit_act_1 - 3")
 
     # Test updated values
     assert ActivityParameter.get(name="edit_act_1").amount == 25.5
     assert ActivityParameter.get(name="edit_act_2").amount == 22.5
+
+
+def test_activity_order_edit(qtbot):
+    table = ActivityParameterTable()
+    qtbot.addWidget(table)
+    table.sync(table.build_df())
+    group = table.model.index(0, table.group_column).data()
+    with qtbot.waitSignal(signals.parameters_changed, timeout=1000):
+        table.model.setData(table.model.index(0, 5), [group])
+
+
+@pytest.mark.parametrize(
+    "table_class", [
+        ProjectParameterTable,
+        DataBaseParameterTable,
+        ActivityParameterTable,
+    ]
+)
+def test_table_formula_delegates(qtbot, table_class):
+    """ Open the formula delegate to test all related methods within the table.
+    """
+    table = table_class()
+    qtbot.addWidget(table)
+    table.sync(table.build_df())
+
+    assert isinstance(table.itemDelegateForColumn(2), FormulaDelegate)
+
+    delegate = FormulaDelegate(table)
+    option = QtWidgets.QStyleOptionViewItem()
+    option.rect = QtCore.QRect(0, 0, 100, 100)
+    index = table.proxy_model.index(0, 2)
+    # Note: ActivityParameterTable depends on the user having clicked
+    # the table to correctly extract the group for the activity
+    rect = table.visualRect(index)
+    qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
+    editor = delegate.createEditor(table, option, index)
+    qtbot.addWidget(editor)
+    delegate.setEditorData(editor, index)
+    delegate.setModelData(editor, table.proxy_model, index)
 
 
 def test_open_activity_tab(qtbot, ab_app):
