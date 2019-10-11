@@ -52,7 +52,7 @@ install:
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytest pytest-qt pytest-mock;
     fi
   - source activate test-environment
-  - conda install -q -c $CONDA_BLD_PATH activity-browser-dev
+  - conda install -q -c "file://$CONDA_BLD_PATH" activity-browser-dev
   # Include coverage packages for linux distro
   - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
       conda install -q pytest-cov python-coveralls;
