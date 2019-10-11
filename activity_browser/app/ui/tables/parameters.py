@@ -621,17 +621,10 @@ class ExchangesTable(ABDictTreeView):
 
         If no `ActivityParameter` exists for the key, generate one immediately
         """
-        if not (ActivityParameter.select()
-                .where(ActivityParameter.database == key[0],
-                       ActivityParameter.code == key[1])
-                .exists()):
+        if ActivityParameter.get_or_none(database=key[0], code=key[1]) is None:
             signals.add_activity_parameter.emit(key)
 
-        param = (ActivityParameter.select(ActivityParameter.group)
-                 .where(ActivityParameter.database == key[0],
-                        ActivityParameter.code == key[1])
-                 .limit(1)
-                 .get())
+        param = ActivityParameter.get(database=key[0], code=key[1])
         act = bw.get_activity(key)
         bw.parameters.add_exchanges_to_group(param.group, act)
         ActivityParameter.recalculate_exchanges(param.group)

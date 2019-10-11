@@ -237,19 +237,14 @@ class BaseExchangeTable(ABDataFrameEdit):
         to the formula interpreter.
         """
         interpreter = Interpreter()
-        try:
-            act = (ActivityParameter
-                   .select(ActivityParameter.group)
-                   .where(ActivityParameter.database == self.key[0],
-                          ActivityParameter.code == self.key[1])
-                   .distinct().get())
+        act = ActivityParameter.get_or_none(database=self.key[0], code=self.key[1])
+        if act:
             interpreter.symtable.update(ActivityParameter.static(act.group, full=True))
-        except ActivityParameter.DoesNotExist:
+        else:
             print("No parameter found for {}, creating one on formula save".format(self.key))
             interpreter.symtable.update(ProjectParameter.static())
             interpreter.symtable.update(DatabaseParameter.static(self.key[0]))
-        finally:
-            return interpreter
+        return interpreter
 
 
 class ProductExchangeTable(BaseExchangeTable):
