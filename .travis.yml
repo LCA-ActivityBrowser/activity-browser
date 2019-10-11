@@ -29,11 +29,9 @@ install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-$MINICONDA_OS-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
-  - export CONDA_BLD_PATH="$HOME/test/build"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda install -q conda-build
   # Useful for debugging any issues with conda
   - conda info -a
 
@@ -42,17 +40,13 @@ install:
   - conda config --append channels cmutel
   - conda config --append channels haasad
 
-  # Build source into local package for testing
-  - conda build ./ci/travis/recipe
-
   # Create a test environment because travis trips over itself otherwise
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      conda create -q -n test-environment python=$pyver pytest pytest-qt pytest-mock;
+      conda create -q -n test-environment python=$pyver arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas "pyqt==5.9.2" seaborn "pytest>=5.2" pytest-qt pytest-mock;
     else
-      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytest pytest-qt pytest-mock;
+      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas "pyqt==5.9.2" seaborn "pytest>=5.2" pytest-qt pytest-mock;
     fi
   - source activate test-environment
-  - conda install -q -c "file://$CONDA_BLD_PATH" activity-browser-dev
   # Include coverage packages for linux distro
   - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
       conda install -q pytest-cov python-coveralls;
