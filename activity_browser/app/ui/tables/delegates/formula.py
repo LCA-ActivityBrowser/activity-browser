@@ -43,24 +43,20 @@ or the `ufuncs` in de Numpy documentation.
             [
                 ("+", "Add", lambda: self.button_press.emit(" + ")),
                 ("-", "Subtract", lambda: self.button_press.emit(" - ")),
-                ("X", "Multiply", lambda: self.button_press.emit(" * ")),
+                ("*", "Multiply", lambda: self.button_press.emit(" * ")),
+            ],
+            [
                 ("%", "Divide", lambda: self.button_press.emit(" / ")),
-            ],
-            [
                 ("x²", "X to the power of 2", lambda: self.button_press.emit(" ** 2 ")),
-                ("Xⁿ", "X to the power of N", lambda: self.button_press.emit(" ** ")),
-                ("mod", "Modulo", lambda: self.button_press.emit(" % ")),
-                ("C", "Clear Formula", lambda: self.clear.emit()),
-            ],
-            [
                 ("More...", "Additional functions", self.explanation),
             ],
         ]
         # Construct the layout from the list of lists above.
-        layout = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.addStretch(1)
         for row in rows:
             bar = QtWidgets.QToolBar()
+            bar.setOrientation(QtCore.Qt.Vertical)
             for btn in row:
                 w = QtWidgets.QPushButton(btn[0])
                 w.setToolTip(btn[1])
