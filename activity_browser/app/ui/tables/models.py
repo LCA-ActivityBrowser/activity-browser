@@ -28,7 +28,9 @@ class PandasModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:
             value = self._dataframe.iat[index.row(), index.column()]
-            if isinstance(value, np.bool_):
+            if isinstance(value, np.float):
+                value = float(value)
+            elif isinstance(value, np.bool_):
                 value = value.item()
             elif isinstance(value, np.int64):
                 value = value.item()
