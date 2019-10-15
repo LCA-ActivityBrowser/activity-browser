@@ -91,10 +91,10 @@ def is_database_read_only(db_name):
 def is_technosphere_db(db_name):
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
     if not db_name in bw.databases:
-        raise KeyError('Not an existing database:', db_name)
+        raise KeyError("Not an existing database:", db_name)
     db = bw.Database(db_name)
     act = db.random()
-    if act.get('type', 'process') == "process":
+    if (act and act.get("type", "process") == "process") or len(db) == 0:
         return True
     else:
         return False
