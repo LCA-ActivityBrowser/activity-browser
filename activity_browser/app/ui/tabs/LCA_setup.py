@@ -177,7 +177,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table.show()
 
     def enable_calculations(self):
-        valid_cs = bool(self.activities_table.rowCount()) and bool(self.methods_table.rowCount())
+        valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
         # self.sankey_button.setEnabled(valid_cs)
 
