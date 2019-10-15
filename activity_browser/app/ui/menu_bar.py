@@ -4,7 +4,7 @@ import json
 import requests
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from .icons import icons
+from .icons import qicons
 from .utils import abt1
 from ..signals import signals
 from .wizards.settings_wizard import SettingsWizard
@@ -87,7 +87,7 @@ class MenuBar(object):
 
     # HELP
     def setup_help_menu(self):
-        bug_icon = QtGui.QIcon(icons.debug)
+        bug_icon = qicons.debug
         help_menu = QtWidgets.QMenu('&Help', self.window)
         help_menu.addAction(
             self.window.icon,

@@ -5,11 +5,11 @@ from copy import deepcopy
 import networkx as nx
 
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets, QtWebChannel
+from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PyQt5.QtCore import Qt
 
 from .signals import graphsignals
-from ...icons import icons
+from ...icons import qicons
 from ....signals import signals
 from ....bwutils.commontasks import identify_activity_type
 
@@ -111,14 +111,12 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.button_toggle_help.clicked.connect(self.toggle_help)
 
         # button back
-        self.button_back = QtWidgets.QPushButton()
+        self.button_back = QtWidgets.QPushButton(qicons.backward, "")
         self.button_back.clicked.connect(self.go_back)
-        self.button_back.setIcon(QtGui.QIcon(icons.backward))
 
         # button forward
-        self.button_forward = QtWidgets.QPushButton()
+        self.button_forward = QtWidgets.QPushButton(qicons.forward, "")
         self.button_forward.clicked.connect(self.go_forward)
-        self.button_forward.setIcon(QtGui.QIcon(icons.forward))
 
         # button navigation/expansion mode
         self.navigation_label = {True: "Current mode: Navigation", False: "Current mode: Expansion"}

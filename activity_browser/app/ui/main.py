@@ -4,7 +4,7 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from .style import header
-from .icons import icons
+from .icons import qicons
 from .menu_bar import MenuBar
 from .panels import LeftPanel, RightPanel
 from .statusbar import Statusbar
@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.setPalette(p)
 
         # Small icon in main window titlebar
-        self.icon = QtGui.QIcon(icons.ab)
+        self.icon = qicons.ab
         self.setWindowIcon(self.icon)
 
         # Layout

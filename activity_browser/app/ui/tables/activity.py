@@ -27,7 +27,7 @@ class BaseExchangeTable(ABDataFrameEdit):
             qicons.delete, "Delete exchange(s)", None
         )
         self.remove_formula_action = QtWidgets.QAction(
-            qicons.delete, "Unset formula(s)", None
+            qicons.delete, "Clear formula(s)", None
         )
 
         self.downstream = False
@@ -63,7 +63,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         """
         adj_act = exchange.output if self.downstream else exchange.input
         row = {
-            "Amount": exchange.get("amount"),
+            "Amount": float(exchange.get("amount", 1)),
             "Unit": adj_act.get("unit", "Unknown"),
             "exchange": exchange,
         }
@@ -74,6 +74,14 @@ class BaseExchangeTable(ABDataFrameEdit):
         index = self.get_source_index(proxy)
         exchange = self.dataframe.iloc[index.row(), ]["exchange"]
         return exchange.output if self.downstream else exchange.input
+
+    def open_activities(self) -> None:
+        """ Take the selected indexes and attempt to open activity tabs.
+        """
+        for proxy in self.selectedIndexes():
+            act = self.get_key(proxy)
+            signals.open_activity_tab.emit(act.key)
+            signals.add_activity_to_history.emit(act.key)
 
     @QtCore.pyqtSlot()
     def delete_exchanges(self) -> None:
@@ -144,31 +152,6 @@ class BaseExchangeTable(ABDataFrameEdit):
         event.accept()
         signals.exchanges_add.emit(keys, self.key)
 
-    def mouseDoubleClickEvent(self, e: QtGui.QMouseEvent) -> None:
-        """ Be very strict in how double click events work.
-        """
-        proxy = self.indexAt(e.pos())
-        delegate = self.itemDelegateForColumn(proxy.column())
-
-        # If the column we're clicking on is not view-only try and edit
-        if not isinstance(delegate, ViewOnlyDelegate):
-            self.doubleClicked.emit(proxy)
-            # But only edit if the editTriggers contain DoubleClicked
-            if self.editTriggers() & self.DoubleClicked:
-                self.edit(proxy)
-            return
-
-        # No opening anything from the 'product' or 'biosphere' tables
-        if self.table_name in {"product", "biosphere"}:
-            return
-
-        # Grab the activity key from the exchange and open a tab
-        index = self.get_source_index(proxy)
-        row = self.dataframe.iloc[index.row(), ]
-        key = row["exchange"]["output"] if self.downstream else row["exchange"]["input"]
-        signals.open_activity_tab.emit(key)
-        signals.add_activity_to_history.emit(key)
-
 
 class ProductExchangeTable(BaseExchangeTable):
     COLUMNS = ["Amount", "Unit", "Product"]
@@ -192,6 +175,11 @@ class ProductExchangeTable(BaseExchangeTable):
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
         self.setColumnHidden(3, True)
+
+    def contextMenuEvent(self, a0) -> None:
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.remove_formula_action)
+        menu.exec(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Accept exchanges from a technosphere database table, and the
@@ -240,6 +228,13 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
         self.setColumnHidden(8, True)
+
+    def contextMenuEvent(self, a0) -> None:
+        menu = QtWidgets.QMenu()
+        menu.addAction(qicons.left, "Open activity/activities", self.open_activities)
+        menu.addAction(self.delete_exchange_action)
+        menu.addAction(self.remove_formula_action)
+        menu.exec(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Accept exchanges from a technosphere database table, and the
@@ -312,4 +307,6 @@ class DownstreamExchangeTable(TechnosphereExchangeTable):
         self.setColumnHidden(8, True)
 
     def contextMenuEvent(self, a0) -> None:
-        pass
+        menu = QtWidgets.QMenu()
+        menu.addAction(qicons.left, "Open activity/activities", self.open_activities)
+        menu.exec(a0.globalPos())

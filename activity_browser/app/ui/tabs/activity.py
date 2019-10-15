@@ -122,19 +122,20 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.downstream = DownstreamExchangeTable(self)
 
         self.exchange_tables = [
-            (self.production, "Products:"),
-            (self.technosphere, "Technosphere Inputs:"),
-            (self.biosphere, "Biosphere Flows:"),
-            (self.downstream, "Downstream Consumers:"),
+            ("Products:", self.production),
+            ("Technosphere Inputs:", self.technosphere),
+            ("Biosphere Flows:", self.biosphere),
+            ("Downstream Consumers:", self.downstream),
         ]
+        self.grouped_tables = [DetailsGroupBox(l, t) for l, t in self.exchange_tables]
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
         layout.addLayout(self.HL_toolbar)
         layout.addWidget(self.activity_data_grid)
         layout.addWidget(self.activity_description)
-        for table, label in self.exchange_tables:
-            layout.addWidget(DetailsGroupBox(label, table))
+        for group_box in self.grouped_tables:
+            layout.addWidget(group_box)
 
         self.exchange_tables_read_only_changed()
 
@@ -143,6 +144,8 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.setLayout(layout)
 
         self.populate()
+        # Hide the downstream table by default
+        self.grouped_tables[-1].setChecked(False)
         self.update_tooltips()
         self.update_style()
         self.connect_signals()
@@ -164,7 +167,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         self.downstream.sync(self.activity.upstream())
 
         # Potentially update `DetailsGroupBox` now that tables are populated
-        for table, _ in self.exchange_tables:
+        for _, table in self.exchange_tables:
             table.updated.emit()
 
         self.populate_description_box()
@@ -208,7 +211,7 @@ class ActivityTab(QtWidgets.QTabWidget):
                 EditTriggers turned off to prevent DoubleClick-selection editing
                 DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add"""
 
-        for table, label in self.exchange_tables:
+        for label, table in self.exchange_tables:
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
                 table.setAcceptDrops(False)

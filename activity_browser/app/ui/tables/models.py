@@ -28,12 +28,10 @@ class PandasModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:
             value = self._dataframe.iat[index.row(), index.column()]
-            if isinstance(value, np.float):
-                value = float(value)
-            elif isinstance(value, np.bool_):
-                value = bool(value)
+            if isinstance(value, np.bool_):
+                value = value.item()
             elif isinstance(value, np.int64):
-                value = int(value)
+                value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
             return QVariant() if value is None else QVariant(value)

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from ..style import header
-from ..icons import icons
+from ..icons import qicons
 from ..tables import (
     DatabasesTable,
     ProjectListWidget,
@@ -73,10 +73,10 @@ class ProjectsWidget(QtWidgets.QWidget):
         super(ProjectsWidget, self).__init__()
         self.projects_list = ProjectListWidget()
         # Buttons
-        self.new_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.add), 'New')
-        self.copy_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.copy), 'Copy current')
+        self.new_project_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.copy_project_button = QtWidgets.QPushButton(qicons.copy, "Copy")
         self.delete_project_button = QtWidgets.QPushButton(
-            QtGui.QIcon(icons.delete), 'Delete current'
+            qicons.delete, "Delete"
         )
         # Layout
         self.h_layout = QtWidgets.QHBoxLayout()
@@ -148,9 +148,10 @@ class DatabaseWidget(HeaderTableTemplate):
 
         # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
-            'Add Default Data (Biosphere flows, LCIA methods)')
-        self.new_database_button = QtWidgets.QPushButton('New Database')
-        self.import_database_button = QtWidgets.QPushButton('Import Database')
+            qicons.add_db, "Add Default Data (Biosphere flows, LCIA methods)"
+        )
+        self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.import_database_button = QtWidgets.QPushButton(qicons.add_db, "Import")
 
         # Header widget
         self.header_layout.addWidget(self.add_default_data_button)
@@ -239,13 +240,8 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.search_box2.returnPressed.connect(self.set_search_term)
 
         # search logic between both search fields
-        self.logic_fields = ['AND', 'OR']
         self.logic_dropdown = QtWidgets.QComboBox()
-        self.logic_dropdown.addItems(self.logic_fields)
-
-        self.logic_fields = ['AND', 'OR', 'AND NOT']
-        self.logic_dropdown = QtWidgets.QComboBox()
-        self.logic_dropdown.addItems(self.logic_fields)
+        self.logic_dropdown.addItems(['AND', 'OR', 'AND NOT'])
 
         # reset search
         reset_search_button = QtWidgets.QPushButton("Reset")
