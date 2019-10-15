@@ -246,7 +246,12 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
 
         # Get dataframe from metadata and update column-names
-        df = AB_metadata.get_database_metadata(db_name)[fields + ["key"]]
+        df = AB_metadata.get_database_metadata(db_name)
+        # New / empty database? Shortcut the sorting / structuring process
+        if df.empty:
+            self.dataframe = df
+            return
+        df = df[fields + ["key"]]
         df.columns = self.fields
         self.dataframe = df.reset_index(drop=True)
 
