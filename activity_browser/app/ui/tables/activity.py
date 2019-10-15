@@ -144,31 +144,6 @@ class BaseExchangeTable(ABDataFrameEdit):
         event.accept()
         signals.exchanges_add.emit(keys, self.key)
 
-    def mouseDoubleClickEvent(self, e: QtGui.QMouseEvent) -> None:
-        """ Be very strict in how double click events work.
-        """
-        proxy = self.indexAt(e.pos())
-        delegate = self.itemDelegateForColumn(proxy.column())
-
-        # If the column we're clicking on is not view-only try and edit
-        if not isinstance(delegate, ViewOnlyDelegate):
-            self.doubleClicked.emit(proxy)
-            # But only edit if the editTriggers contain DoubleClicked
-            if self.editTriggers() & self.DoubleClicked:
-                self.edit(proxy)
-            return
-
-        # No opening anything from the 'product' or 'biosphere' tables
-        if self.table_name in {"product", "biosphere"}:
-            return
-
-        # Grab the activity key from the exchange and open a tab
-        index = self.get_source_index(proxy)
-        row = self.dataframe.iloc[index.row(), ]
-        key = row["exchange"]["output"] if self.downstream else row["exchange"]["input"]
-        signals.open_activity_tab.emit(key)
-        signals.add_activity_to_history.emit(key)
-
 
 class ProductExchangeTable(BaseExchangeTable):
     COLUMNS = ["Amount", "Unit", "Product"]
