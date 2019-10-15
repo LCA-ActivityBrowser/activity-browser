@@ -240,13 +240,8 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.search_box2.returnPressed.connect(self.set_search_term)
 
         # search logic between both search fields
-        self.logic_fields = ['AND', 'OR']
         self.logic_dropdown = QtWidgets.QComboBox()
-        self.logic_dropdown.addItems(self.logic_fields)
-
-        self.logic_fields = ['AND', 'OR', 'AND NOT']
-        self.logic_dropdown = QtWidgets.QComboBox()
-        self.logic_dropdown.addItems(self.logic_fields)
+        self.logic_dropdown.addItems(['AND', 'OR', 'AND NOT'])
 
         # reset search
         reset_search_button = QtWidgets.QPushButton("Reset")
