@@ -18,6 +18,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__(None)
 
+        self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
+
         # Window title
         self.setWindowTitle("Activity Browser")
 

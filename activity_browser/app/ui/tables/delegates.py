@@ -11,13 +11,13 @@ class FloatDelegate(QStyledItemDelegate):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.locale = QLocale(QLocale.English, QLocale.UnitedStates)
-        self.locale.setNumberOptions(QLocale.RejectGroupSeparator)
 
     def createEditor(self, parent, option, index):
         editor = QLineEdit(parent)
+        locale = QLocale(QLocale.English)
+        locale.setNumberOptions(QLocale.RejectGroupSeparator)
         validator = QDoubleValidator()
-        validator.setLocale(self.locale)
+        validator.setLocale(locale)
         editor.setValidator(validator)
         return editor
 
@@ -37,12 +37,6 @@ class FloatDelegate(QStyledItemDelegate):
             model.setData(index, value, Qt.EditRole)
         except ValueError:
             pass
-
-    def displayText(self, value, locale: QLocale) -> str:
-        """ Qt will always attempt to use the locale of the system, so we
-        override this to instead use the en_US locale.
-        """
-        return self.locale.toString(float(value))
 
 
 class StringDelegate(QStyledItemDelegate):
