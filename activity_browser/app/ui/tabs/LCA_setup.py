@@ -126,11 +126,11 @@ class LCASetupTab(QtWidgets.QWidget):
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.delete_cs_button.clicked.connect(
             lambda x: signals.delete_calculation_setup.emit(
-            self.list_widget.currentText()
+                self.list_widget.name
         ))
         self.rename_cs_button.clicked.connect(
             lambda x: signals.rename_calculation_setup.emit(
-                self.list_widget.currentText()
+                self.list_widget.name
         ))
         signals.calculation_setup_changed.connect(self.save_cs_changes)
 
@@ -142,7 +142,7 @@ class LCASetupTab(QtWidgets.QWidget):
         signals.calculation_setup_changed.connect(self.enable_calculations)
 
     def save_cs_changes(self):
-        name = self.list_widget.currentText()
+        name = self.list_widget.name
         if name:
             calculation_setups[name] = {
                 'inv': self.activities_table.to_python(),

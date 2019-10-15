@@ -3,7 +3,7 @@ import brightway2 as bw
 import pandas as pd
 from PyQt5 import QtWidgets
 
-from activity_browser.app.bwutils.commontasks import bw_keys_to_AB_names
+from activity_browser.app.bwutils.commontasks import AB_names_to_bw_keys
 
 from .delegates import FloatDelegate, ViewOnlyDelegate
 from .impact_categories import MethodsTable
@@ -20,22 +20,25 @@ class CSList(QtWidgets.QComboBox):
         signals.calculation_setup_selected.connect(self.sync)
 
     def sync(self, name):
+        self.blockSignals(True)
         self.clear()
         keys = sorted(bw.calculation_setups)
         self.insertItems(0, keys)
+        self.blockSignals(False)
         self.setCurrentIndex(keys.index(name))
 
-    def set_cs(self, name):
+    @staticmethod
+    def set_cs(name: str):
         signals.calculation_setup_selected.emit(name)
 
     @property
-    def name(self):
-        return self.itemText(self.currentIndex())
+    def name(self) -> str:
+        return self.currentText()
 
 
 class CSActivityTable(ABDataFrameEdit):
-    FIELDS = [
-        "amount", "unit", "reference product", "name", "location", "database",
+    HEADERS = [
+        "Amount", "Unit", "Product", "Activity", "Location", "Database"
     ]
 
     def __init__(self, parent=None):
@@ -66,8 +69,8 @@ class CSActivityTable(ABDataFrameEdit):
             if act.get("type", "process") != "process":
                 raise TypeError("Activity is not of type 'process'")
             row = {
-                bw_keys_to_AB_names[field]: act.get(field)
-                for field in self.FIELDS
+                key: act.get(AB_names_to_bw_keys[key])
+                for key in self.HEADERS
             }
             row.update({"Amount": amount, "key": key})
             return row
