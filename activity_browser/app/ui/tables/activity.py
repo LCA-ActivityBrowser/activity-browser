@@ -63,7 +63,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         """
         adj_act = exchange.output if self.downstream else exchange.input
         row = {
-            "Amount": exchange.get("amount"),
+            "Amount": float(exchange.get("amount", 1)),
             "Unit": adj_act.get("unit", "Unknown"),
             "exchange": exchange,
         }
