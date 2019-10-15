@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtGui import QIcon
 
 from activity_browser.app.bwutils import commontasks as bc
 from .line_edit import SignalledLineEdit, SignalledComboEdit
-from ..icons import icons
+from ..icons import qicons
 from ...signals import signals
 from ...bwutils import AB_metadata
 
@@ -150,7 +149,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             available_target_dbs.remove(current_db)
 
         for db_name in available_target_dbs:
-            self.database_combo.addItem(QIcon(icons.duplicate), db_name)
+            self.database_combo.addItem(qicons.duplicate, db_name)
         self.database_combo.blockSignals(False)
 
     def duplicate_confirm_dialog(self, target_db):

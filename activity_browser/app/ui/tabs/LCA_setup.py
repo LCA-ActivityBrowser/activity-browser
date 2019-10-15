@@ -3,6 +3,7 @@ from PyQt5 import QtWidgets
 from brightway2 import calculation_setups
 
 # from activity_browser.app.ui.web.sankey import SankeyWidget
+from ..icons import qicons
 from ..style import horizontal_line, header
 from ..tables import (
     CSActivityTable,
@@ -85,10 +86,10 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList()
 
-        self.new_cs_button = QtWidgets.QPushButton('New')
-        self.rename_cs_button = QtWidgets.QPushButton('Rename')
-        self.delete_cs_button = QtWidgets.QPushButton('Delete')
-        self.calculate_button = QtWidgets.QPushButton('Calculate')
+        self.new_cs_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
+        self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         # self.sankey_button = QtWidgets.QPushButton('Sankey')
 
         name_row = QtWidgets.QHBoxLayout()
