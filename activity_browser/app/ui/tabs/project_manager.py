@@ -145,6 +145,11 @@ class DatabaseWidget(HeaderTableTemplate):
         self.label_no_database_selected = QtWidgets.QLabel(
             "Select a database (double-click on table)."
         )
+        # Temporary inclusion to explain things before checkbox is back
+        self.label_change_readonly = QtWidgets.QLabel(
+            "To change a database from read-only to editable and back," +
+            " click on the 'true/false' value in the table."
+        )
 
         # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
@@ -161,6 +166,7 @@ class DatabaseWidget(HeaderTableTemplate):
 
         # Overall Layout
         # self.v_layout.addWidget(self.label_no_database_selected)
+        self.v_layout.insertWidget(1, self.label_change_readonly)
 
         self.connect_signals()
 
@@ -177,11 +183,13 @@ class DatabaseWidget(HeaderTableTemplate):
             self.new_database_button.hide()
             self.table.hide()
             self.label_no_database_selected.hide()
+            self.label_change_readonly.hide()
         else:
             self.add_default_data_button.hide()
             self.import_database_button.show()
             self.new_database_button.show()
             self.table.show()
+            self.label_change_readonly.show()
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):

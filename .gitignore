@@ -16,3 +16,4 @@ activity_browser/ABSettings.json
 *.bak
 /.idea
 /.vscode
+.coverage
