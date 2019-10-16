@@ -36,7 +36,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
       conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev pytest-cov python-coveralls;
     else
-      conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev
+      conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev;
     fi
 
 before_script:
