@@ -17,7 +17,7 @@ for dirpath, dirnames, filenames in os.walk('activity_browser'):
 
 setup(
     name='activity-browser',
-    version="2.3.3",
+    version="2.3.4",
     packages=packages,
     include_package_data=True,
     author="Bernhard Steubing",
@@ -42,8 +42,6 @@ setup(
         'Operating System :: POSIX',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Topic :: Scientific/Engineering :: Information Analysis',
