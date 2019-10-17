@@ -10,11 +10,11 @@ matrix:
       os: linux
       env: PYENV=3.7 VERSION=2.3.5.dev PKG_NAME=activity-browser-dev
     - python: "3.6"
-      language: minimal
+      language: generic
       os: osx
       env: PYENV=3.6 VERSION=2.3.5.dev PKG_NAME=activity-browser-dev
     - python: "3.7"
-      language: minimal
+      language: generic
       os: osx
       env: PYENV=3.7 VERSION=2.3.5.dev PKG_NAME=activity-browser-dev
 
@@ -23,7 +23,7 @@ install:
   - wget https://repo.anaconda.com/pkgs/misc/conda-execs/conda-latest-$TRAVIS_OS_NAME-64.exe -O conda.exe
   - chmod +x conda.exe
   - export CONDA_ALWAYS_YES=1
-  - ./conda.exe create -p $HOME/miniconda -c defaults -c conda-forge python=$PYENV conda conda-build pytest pytest-qt pytest-mock
+  - ./conda.exe create -p $HOME/miniconda -c defaults -c conda-forge python=$PYENV conda conda-build pytest pytest-qt pytest-mock pytest-cov python-coveralls
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   # Useful for debugging any issues with conda
@@ -31,13 +31,7 @@ install:
 
   # Build source into local package for testing
   - conda build ./ci/travis/recipe --no-test
-
-  # Include coverage packages for linux distro
-  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$PYENV" == "3.7" ]; then
-      conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev pytest-cov python-coveralls;
-    else
-      conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev;
-    fi
+  - conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -48,14 +42,10 @@ before_script:
 
 script:
   # Run tests on the installed package, also do code coverage in linux.
-  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$PYENV" == "3.7" ]; then
-      py.test --cov=activity_browser;
-    else
-      py.test;
-    fi
+  - py.test --cov=activity_browser;
 
 after_success:
-  # Only upload the code coverage if tests were successful
+  # Only upload the code coverage from linux py37 machine
   - if [ "$TRAVIS_OS_NAME" == "linux" -a "$PYENV" == "3.7" ]; then coveralls; fi
 
 # https://docs.travis-ci.com/user/deployment/script/
