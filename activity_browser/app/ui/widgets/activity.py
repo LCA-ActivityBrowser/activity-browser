@@ -2,9 +2,9 @@
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 
-from activity_browser.app.bwutils import commontasks as bc
 from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import qicons
+from ...settings import project_settings
 from ...signals import signals
 from ...bwutils import AB_metadata
 
@@ -144,7 +144,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.addItem(current_db)
 
         # other items are the dbs that the activity can be duplicated to: find them and add
-        available_target_dbs = bc.get_editable_databases()
+        available_target_dbs = project_settings.get_editable_databases()
         if current_db in available_target_dbs:
             available_target_dbs.remove(current_db)
 
