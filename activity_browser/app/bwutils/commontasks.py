@@ -5,8 +5,6 @@ import brightway2 as bw
 from bw2data import databases
 from bw2data.utils import natural_sort
 
-from ..settings import ab_settings, project_settings
-
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
 re-typing the same code in different parts of the Activity Browser.
@@ -72,20 +70,6 @@ def get_databases_data(databases):
     for row, name in enumerate(natural_sort(databases)):
         data.append(get_database_metadata(name))
     yield data
-
-
-def get_editable_databases():
-    editable_dbs = []
-    databases_read_only_settings = project_settings.settings.get('read-only-databases', {})
-    for db_name, read_only in databases_read_only_settings.items():
-        if not read_only and db_name != 'biosphere3':
-            editable_dbs.append(db_name)
-    return editable_dbs
-
-
-def is_database_read_only(db_name):
-    if "read-only-databases" in project_settings.settings:
-        return project_settings.settings["read-only-databases"].get(db_name, True)
 
 
 def is_technosphere_db(db_name):
@@ -177,42 +161,6 @@ def get_exchanges_data(exchanges):
         results.append(exc)
     for r in results:
         print(r)
-
-
-# Settings (directory, project, etc.)
-def get_startup_bw_dir():
-    """Returns the brightway directory as defined in the settings file.
-    If it has not been defined here, it returns the brightway default directory."""
-    return ab_settings.settings.get('custom_bw_dir', get_default_bw_dir())
-
-
-def get_default_bw_dir():
-    """Returns the default brightway directory."""
-    return bw.projects._get_base_directories()[0]
-
-
-def get_current_bw_dir():
-    """Returns the current used brightway directory."""
-    return bw.projects._base_data_dir
-
-
-def get_startup_project_name():
-    """Returns the startup or default project name."""
-    custom_startup = ab_settings.settings.get('startup_project')
-    if custom_startup in bw.projects:
-        return ab_settings.settings['startup_project']
-    else:
-        return get_default_project_name()
-
-
-def get_default_project_name():
-    """Returns the default project name."""
-    if "default" in bw.projects:
-        return "default"
-    elif len(bw.projects):
-        return next(iter(bw.projects)).name
-    else:
-        return None
 
 
 # LCIA
