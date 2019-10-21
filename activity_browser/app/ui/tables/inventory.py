@@ -279,12 +279,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
         TODO: Look at the possibility of using the proxy model to filter instead
         """
-        if not pattern1 and not pattern2:
-            self.reset_search()
-        if pattern1 and pattern2:
-            # print('filtering on both search terms')
-            mask1 = self.filter_dataframe(self.dataframe, pattern1)
-            mask2 = self.filter_dataframe(self.dataframe, pattern2)
+        df = self.df_from_metadata(self.database_name, self.get_fields())
+        if all((pattern1, pattern2)):
+            mask1 = self.filter_dataframe(df, pattern1)
+            mask2 = self.filter_dataframe(df, pattern2)
             # applying the logic
             if logic == 'AND':
                 mask = np.logical_and(mask1, mask2)
@@ -292,11 +290,12 @@ class ActivitiesBiosphereTable(ABDataFrameView):
                 mask = np.logical_or(mask1, mask2)
             elif logic == 'AND NOT':
                 mask = np.logical_and(mask1, ~mask2)
+        elif any((pattern1, pattern2)):
+            mask = self.filter_dataframe(df, pattern1 or pattern2)
         else:
-            # print('filtering on ONE search term')
-            pattern = pattern1 if pattern1 else pattern2
-            mask = self.filter_dataframe(self.dataframe, pattern)
-        df = self.dataframe.loc[mask].reset_index(drop=True)
+            self.reset_search()
+            return
+        df = df.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
 
     def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
