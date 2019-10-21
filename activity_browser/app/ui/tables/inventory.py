@@ -268,27 +268,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         else:
             self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
-        # get fields
-        fields = self.act_fields() if self.technosphere else self.ef_fields()
-        self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
-
         # Get dataframe from metadata and update column-names
-        df = AB_metadata.get_database_metadata(db_name)
-        # New / empty database? Shortcut the sorting / structuring process
-        if df.empty:
-            self.dataframe = df
-            return
-        df = df[fields + ["key"]]
-        df.columns = self.fields
-        self.dataframe = df.reset_index(drop=True)
-
-        # Sort dataframe on first column (activity name, usually)
-        # while ignoring case sensitivity
-        sort_field = self.fields[0]
-        self.dataframe = self.dataframe.iloc[self.dataframe[sort_field].str.lower().argsort()]
-        sort_field_index = self.fields.index(sort_field)
-        self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
-        self.dataframe.reset_index(inplace=True, drop=True)
+        fields = self.get_fields()
+        self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
+        self.dataframe = self.df_from_metadata(db_name, fields)
 
     def search(self, pattern1: str=None, pattern2: str=None, logic='AND') -> None:
         """ Filter the dataframe with two filters and a logical element
@@ -327,8 +310,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         An alternative solution would be to use .str.contains, but this does
         not work for columns containing tuples (https://stackoverflow.com/a/29463757)
         """
-        search_columns = self.act_fields() if self.technosphere else self.ef_fields()
-        search_columns = [bw_keys_to_AB_names.get(c, c) for c in search_columns]
+        search_columns = (bw_keys_to_AB_names.get(c, c) for c in self.get_fields())
         mask = functools.reduce(
             np.logical_or, [
                 df[col].apply(lambda x: pattern.lower() in str(x).lower())
