@@ -220,6 +220,33 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         if db_name == self.database_name and db_name in bw.databases:
             self.sync(db_name)
 
+    def df_from_metadata(self, db_name: str, fields: list) -> pd.DataFrame:
+        """ Take the given database name and return the complete subset
+        of that database from the metadata.
+
+        The fields are used to prune the dataset of unused columns.
+        """
+        df = AB_metadata.get_database_metadata(db_name)
+        # New / empty database? Shortcut the sorting / structuring process
+        if df.empty:
+            return df
+        df = df[fields + ["key"]]
+        df.columns = self.fields
+
+        # Sort dataframe on first column (activity name, usually)
+        # while ignoring case sensitivity
+        sort_field = self.fields[0]
+        df = df.iloc[df[sort_field].str.lower().argsort()]
+        sort_field_index = self.fields.index(sort_field)
+        self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
+        df.reset_index(inplace=True, drop=True)
+        return df
+
+    def get_fields(self) -> list:
+        """ Constructs a list of fields relevant for the type of database.
+        """
+        return self.act_fields() if self.technosphere else self.ef_fields()
+
     @dataframe_sync
     def sync(self, db_name: str, df: pd.DataFrame=None) -> None:
         if df is not None:
