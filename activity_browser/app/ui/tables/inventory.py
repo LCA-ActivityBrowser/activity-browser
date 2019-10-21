@@ -239,7 +239,6 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         df = df.iloc[df[sort_field].str.lower().argsort()]
         sort_field_index = self.fields.index(sort_field)
         self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
-        df.reset_index(inplace=True, drop=True)
         return df
 
     def get_fields(self) -> list:
@@ -272,6 +271,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         fields = self.get_fields()
         self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
         self.dataframe = self.df_from_metadata(db_name, fields)
+        self.dataframe.reset_index(inplace=True, drop=True)
 
     def search(self, pattern1: str=None, pattern2: str=None, logic='AND') -> None:
         """ Filter the dataframe with two filters and a logical element
