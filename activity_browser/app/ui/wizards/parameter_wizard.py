@@ -75,6 +75,11 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
 
         layout = QtWidgets.QVBoxLayout()
         box = QtWidgets.QGroupBox("Types:")
+        # Explicitly set the stylesheet to avoid parent classes overriding
+        box.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 5px; margin-top: 7px; margin-bottom: 7px; padding: 0px}"
+            "QGroupBox::title {top:-7 ex;left: 10px; subcontrol-origin: border}"
+        )
         box_layout = QtWidgets.QVBoxLayout()
         buttons = [QtWidgets.QRadioButton(PARAMETER_STRING_ENUM[i])
                    for i in sorted(PARAMETER_STRING_ENUM)]
