@@ -72,9 +72,9 @@ class ParameterDefinitionTab(BaseRightTab):
             "activity": self.activity_table,
         }
 
-        self.new_project_param = QPushButton(qicons.add, "New project parameter")
+        self.new_project_param = QPushButton(qicons.add, "New")
         self.database_header = header("Database:")
-        self.new_database_param = QPushButton(qicons.add, "New database parameter")
+        self.new_database_param = QPushButton(qicons.add, "New")
         self.show_order = QCheckBox("Show order column", self)
         self.show_database_params = QCheckBox("Show database parameters", self)
         self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
