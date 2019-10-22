@@ -144,7 +144,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.addItem(current_db)
 
         # other items are the dbs that the activity can be duplicated to: find them and add
-        available_target_dbs = project_settings.get_editable_databases()
+        available_target_dbs = list(project_settings.get_editable_databases())
         if current_db in available_target_dbs:
             available_target_dbs.remove(current_db)
 
