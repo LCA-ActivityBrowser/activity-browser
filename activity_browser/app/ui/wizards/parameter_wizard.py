@@ -7,13 +7,13 @@ from activity_browser.app.bwutils import commontasks as bc
 
 PARAMETER_STRING_ENUM = {
     0: "Project: Available to all other parameters",
-    1: "Database: Available to Database and Activity parameters of the same database",
-    2: "Activity: Available to Activity parameters within the same Group",
+    # 1: "Database: Available to Database and Activity parameters of the same database",
+    1: "Activity: Available to Activity and exchange parameters within the group",
 }
 PARAMETER_FIELDS_ENUM = {
     0: ("name", "amount"),
-    1: ("name", "amount", "database"),
-    2: ("name", "amount"),
+    # 1: ("name", "amount", "database"),
+    1: ("name", "amount"),
 }
 
 
@@ -49,11 +49,11 @@ class ParameterWizard(QtWidgets.QWizard):
         p_type = "project"
         if selected == 0:
             bw.parameters.new_project_parameters([data])
+        # elif selected == 1:
+        #     db = data.pop("database")
+        #     bw.parameters.new_database_parameters([data], db)
+        #     p_type = "database ({})".format(db)
         elif selected == 1:
-            db = data.pop("database")
-            bw.parameters.new_database_parameters([data], db)
-            p_type = "database ({})".format(db)
-        elif selected == 2:
             group = bc.build_activity_group_name(self.key)
             data["database"] = self.key[0]
             data["code"] = self.key[1]
@@ -86,7 +86,7 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
         for b in buttons:
             box_layout.addWidget(b)
         # If we have a complete key, pre-select the activity parameter btn.
-        buttons[2].setChecked(True) if all(self.key) else buttons[0].setChecked(True)
+        buttons[1].setChecked(True) if all(self.key) else buttons[0].setChecked(True)
 
         # If we don't have a complete key, we can't create an activity parameter
         if self.key[1] == "":
@@ -96,8 +96,8 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("btn_project", buttons[0])
-        self.registerField("btn_database", buttons[1])
-        self.registerField("btn_activity", buttons[2])
+        # self.registerField("btn_database", buttons[1])
+        self.registerField("btn_activity", buttons[1])
 
 
 class CompleteParameterPage(QtWidgets.QWizardPage):
@@ -148,18 +148,18 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
             self.name.clear()
             self.database.setHidden(True)
             self.database_label.setHidden(True)
+        # elif selected == 1:
+        #     self.name.clear()
+        #     self.database.clear()
+        #     dbs = bw.databases.list
+        #     self.database.insertItems(0, dbs)
+        #     if self.key[0] != "":
+        #         self.database.setCurrentIndex(
+        #             dbs.index(self.key[0])
+        #         )
+        #     self.database.setHidden(False)
+        #     self.database_label.setHidden(False)
         elif selected == 1:
-            self.name.clear()
-            self.database.clear()
-            dbs = bw.databases.list
-            self.database.insertItems(0, dbs)
-            if self.key[0] != "":
-                self.database.setCurrentIndex(
-                    dbs.index(self.key[0])
-                )
-            self.database.setHidden(False)
-            self.database_label.setHidden(False)
-        elif selected == 2:
             self.name.clear()
             self.database.setHidden(True)
             self.database_label.setHidden(True)
