@@ -3,6 +3,7 @@ from PyQt5 import QtWidgets
 from brightway2 import calculation_setups
 
 # from activity_browser.app.ui.web.sankey import SankeyWidget
+from ..icons import qicons
 from ..style import horizontal_line, header
 from ..tables import (
     CSActivityTable,
@@ -85,10 +86,10 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList()
 
-        self.new_cs_button = QtWidgets.QPushButton('New')
-        self.rename_cs_button = QtWidgets.QPushButton('Rename')
-        self.delete_cs_button = QtWidgets.QPushButton('Delete')
-        self.calculate_button = QtWidgets.QPushButton('Calculate')
+        self.new_cs_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
+        self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         # self.sankey_button = QtWidgets.QPushButton('Sankey')
 
         name_row = QtWidgets.QHBoxLayout()
@@ -126,11 +127,11 @@ class LCASetupTab(QtWidgets.QWidget):
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.delete_cs_button.clicked.connect(
             lambda x: signals.delete_calculation_setup.emit(
-            self.list_widget.currentText()
+                self.list_widget.name
         ))
         self.rename_cs_button.clicked.connect(
             lambda x: signals.rename_calculation_setup.emit(
-                self.list_widget.currentText()
+                self.list_widget.name
         ))
         signals.calculation_setup_changed.connect(self.save_cs_changes)
 
@@ -142,7 +143,7 @@ class LCASetupTab(QtWidgets.QWidget):
         signals.calculation_setup_changed.connect(self.enable_calculations)
 
     def save_cs_changes(self):
-        name = self.list_widget.currentText()
+        name = self.list_widget.name
         if name:
             calculation_setups[name] = {
                 'inv': self.activities_table.to_python(),
@@ -177,7 +178,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table.show()
 
     def enable_calculations(self):
-        valid_cs = bool(self.activities_table.rowCount()) and bool(self.methods_table.rowCount())
+        valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
         # self.sankey_button.setEnabled(valid_cs)
 

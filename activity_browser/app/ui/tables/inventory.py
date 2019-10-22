@@ -105,7 +105,6 @@ class DatabasesTable(ABDataFrameView):
 
     @dataframe_sync
     def sync(self):
-        databases_read_only_settings = project_settings.settings.get("read-only-databases", {})
         # code below is based on the assumption that bw uses utc timestamps
         tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
         time_shift = - tz.utcoffset().total_seconds()
@@ -116,7 +115,7 @@ class DatabasesTable(ABDataFrameView):
             if dt:
                 dt = arrow.get(dt).shift(seconds=time_shift).humanize()
             # final column includes interactive checkbox which shows read-only state of db
-            database_read_only = databases_read_only_settings.get(name, True)
+            database_read_only = project_settings.db_is_readonly(name)
             data.append({
                 "Name": name,
                 "Depends": ", ".join(bw.databases[name].get("depends", [])),
@@ -220,6 +219,32 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         if db_name == self.database_name and db_name in bw.databases:
             self.sync(db_name)
 
+    def df_from_metadata(self, db_name: str, fields: list) -> pd.DataFrame:
+        """ Take the given database name and return the complete subset
+        of that database from the metadata.
+
+        The fields are used to prune the dataset of unused columns.
+        """
+        df = AB_metadata.get_database_metadata(db_name)
+        # New / empty database? Shortcut the sorting / structuring process
+        if df.empty:
+            return df
+        df = df[fields + ["key"]]
+        df.columns = self.fields
+
+        # Sort dataframe on first column (activity name, usually)
+        # while ignoring case sensitivity
+        sort_field = self.fields[0]
+        df = df.iloc[df[sort_field].str.lower().argsort()]
+        sort_field_index = self.fields.index(sort_field)
+        self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
+        return df
+
+    def get_fields(self) -> list:
+        """ Constructs a list of fields relevant for the type of database.
+        """
+        return self.act_fields() if self.technosphere else self.ef_fields()
+
     @dataframe_sync
     def sync(self, db_name: str, df: pd.DataFrame=None) -> None:
         if df is not None:
@@ -236,26 +261,15 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         # disable context menu (actions) if biosphere table and/or if db read-only
         if self.technosphere:
             self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
-            self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(db_name, True)
+            self.db_read_only = project_settings.db_is_readonly(db_name)
             self.update_activity_table_read_only(self.database_name, self.db_read_only)
         else:
             self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
-        # get fields
-        fields = self.act_fields() if self.technosphere else self.ef_fields()
-        self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
-
         # Get dataframe from metadata and update column-names
-        df = AB_metadata.get_database_metadata(db_name)[fields + ["key"]]
-        df.columns = self.fields
-        self.dataframe = df.reset_index(drop=True)
-
-        # Sort dataframe on first column (activity name, usually)
-        # while ignoring case sensitivity
-        sort_field = self.fields[0]
-        self.dataframe = self.dataframe.iloc[self.dataframe[sort_field].str.lower().argsort()]
-        sort_field_index = self.fields.index(sort_field)
-        self.horizontalHeader().setSortIndicator(sort_field_index, QtCore.Qt.AscendingOrder)
+        fields = self.get_fields()
+        self.fields = [bw_keys_to_AB_names.get(c, c) for c in fields] + ["key"]
+        self.dataframe = self.df_from_metadata(db_name, fields)
         self.dataframe.reset_index(inplace=True, drop=True)
 
     def search(self, pattern1: str=None, pattern2: str=None, logic='AND') -> None:
@@ -264,12 +278,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
         TODO: Look at the possibility of using the proxy model to filter instead
         """
-        if not pattern1 and not pattern2:
-            self.reset_search()
-        if pattern1 and pattern2:
-            # print('filtering on both search terms')
-            mask1 = self.filter_dataframe(self.dataframe, pattern1)
-            mask2 = self.filter_dataframe(self.dataframe, pattern2)
+        df = self.df_from_metadata(self.database_name, self.get_fields())
+        if all((pattern1, pattern2)):
+            mask1 = self.filter_dataframe(df, pattern1)
+            mask2 = self.filter_dataframe(df, pattern2)
             # applying the logic
             if logic == 'AND':
                 mask = np.logical_and(mask1, mask2)
@@ -277,11 +289,12 @@ class ActivitiesBiosphereTable(ABDataFrameView):
                 mask = np.logical_or(mask1, mask2)
             elif logic == 'AND NOT':
                 mask = np.logical_and(mask1, ~mask2)
+        elif any((pattern1, pattern2)):
+            mask = self.filter_dataframe(df, pattern1 or pattern2)
         else:
-            # print('filtering on ONE search term')
-            pattern = pattern1 if pattern1 else pattern2
-            mask = self.filter_dataframe(self.dataframe, pattern)
-        df = self.dataframe.loc[mask].reset_index(drop=True)
+            self.reset_search()
+            return
+        df = df.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
 
     def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
@@ -295,8 +308,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         An alternative solution would be to use .str.contains, but this does
         not work for columns containing tuples (https://stackoverflow.com/a/29463757)
         """
-        search_columns = self.act_fields() if self.technosphere else self.ef_fields()
-        search_columns = [bw_keys_to_AB_names.get(c, c) for c in search_columns]
+        search_columns = (bw_keys_to_AB_names.get(c, c) for c in self.get_fields())
         mask = functools.reduce(
             np.logical_or, [
                 df[col].apply(lambda x: pattern.lower() in str(x).lower())

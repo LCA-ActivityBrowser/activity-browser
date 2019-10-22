@@ -3,7 +3,7 @@ import brightway2 as bw
 import pandas as pd
 from PyQt5 import QtWidgets
 
-from activity_browser.app.bwutils.commontasks import bw_keys_to_AB_names
+from activity_browser.app.bwutils.commontasks import AB_names_to_bw_keys
 
 from .delegates import FloatDelegate, ViewOnlyDelegate
 from .impact_categories import MethodsTable
@@ -20,22 +20,25 @@ class CSList(QtWidgets.QComboBox):
         signals.calculation_setup_selected.connect(self.sync)
 
     def sync(self, name):
+        self.blockSignals(True)
         self.clear()
         keys = sorted(bw.calculation_setups)
         self.insertItems(0, keys)
+        self.blockSignals(False)
         self.setCurrentIndex(keys.index(name))
 
-    def set_cs(self, name):
+    @staticmethod
+    def set_cs(name: str):
         signals.calculation_setup_selected.emit(name)
 
     @property
-    def name(self):
-        return self.itemText(self.currentIndex())
+    def name(self) -> str:
+        return self.currentText()
 
 
 class CSActivityTable(ABDataFrameEdit):
-    FIELDS = [
-        "amount", "unit", "reference product", "name", "location", "database",
+    HEADERS = [
+        "Amount", "Unit", "Product", "Activity", "Location", "Database"
     ]
 
     def __init__(self, parent=None):
@@ -66,8 +69,8 @@ class CSActivityTable(ABDataFrameEdit):
             if act.get("type", "process") != "process":
                 raise TypeError("Activity is not of type 'process'")
             row = {
-                bw_keys_to_AB_names[field]: act.get(field)
-                for field in self.FIELDS
+                key: act.get(AB_names_to_bw_keys[key])
+                for key in self.HEADERS
             }
             row.update({"Amount": amount, "key": key})
             return row
@@ -80,20 +83,19 @@ class CSActivityTable(ABDataFrameEdit):
             raise ValueError("'name' cannot be None if no name is set")
         if name:
             self.current_cs = name
-        data = [
-            self.build_row(key, amount)
-            for func_unit in bw.calculation_setups[self.current_cs]['inv']
-            for key, amount in func_unit.items()
-        ]
-        colnames = [bw_keys_to_AB_names[x] for x in self.FIELDS] + ["key"]
-        self.dataframe = pd.DataFrame(data, columns=colnames)
+            data = [
+                self.build_row(key, amount)
+                for func_unit in bw.calculation_setups[self.current_cs]['inv']
+                for key, amount in func_unit.items()
+            ]
+            self.dataframe = pd.DataFrame(data, columns=self.HEADERS + ["key"])
 
     def delete_rows(self):
         indices = [self.get_source_index(p) for p in self.selectedIndexes()]
         rows = [i.row() for i in indices]
         self.dataframe.drop(rows, axis=0, inplace=True)
-        signals.calculation_setup_changed.emit()
         self.sync()
+        signals.calculation_setup_changed.emit()
 
     def to_python(self) -> list:
         data = self.dataframe[["Amount", "key"]].to_dict(orient="records")
@@ -114,8 +116,7 @@ class CSActivityTable(ABDataFrameEdit):
         signals.calculation_setup_changed.emit()
 
     def dragEnterEvent(self, event):
-        source = event.source()
-        if hasattr(source, "technosphere") and source.technosphere:
+        if getattr(event.source(), "technosphere", False):
             event.accept()
 
     def dragMoveEvent(self, event) -> None:
@@ -128,8 +129,8 @@ class CSActivityTable(ABDataFrameEdit):
         keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
         data = [self.build_row(key) for key in keys]
         self.dataframe = self.dataframe.append(data, ignore_index=True)
-        signals.calculation_setup_changed.emit()
         self.sync()
+        signals.calculation_setup_changed.emit()
 
 
 class CSMethodsTable(ABDataFrameView):
@@ -163,28 +164,25 @@ class CSMethodsTable(ABDataFrameView):
     def sync(self, name: str = None):
         if name:
             self.current_cs = name
-        data = [
-            self.build_row(method)
-            for method in bw.calculation_setups[self.current_cs]["ia"]
-        ]
-        self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
+            self.dataframe = pd.DataFrame([
+                self.build_row(method)
+                for method in bw.calculation_setups[self.current_cs]["ia"]
+            ], columns=self.HEADERS)
 
     def delete_rows(self):
         indices = [self.get_source_index(p) for p in self.selectedIndexes()]
         rows = [i.row() for i in indices]
         self.dataframe.drop(rows, axis=0, inplace=True)
-        signals.calculation_setup_changed.emit()
         self.sync()
+        signals.calculation_setup_changed.emit()
 
     def to_python(self):
-        data = self.dataframe[["method"]].to_dict(orient="list")
-        return data["method"]
+        return self.dataframe["method"].to_list()
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.delete, "Remove row", self.delete_rows)
-        menu.popup(a0.globalPos())
-        menu.exec()
+        menu.exec(a0.globalPos())
 
     def dragEnterEvent(self, event):
         if isinstance(event.source(), MethodsTable):
@@ -194,11 +192,11 @@ class CSMethodsTable(ABDataFrameView):
         pass
 
     def dropEvent(self, event):
+        event.accept()
         new_methods = [row["method"] for row in event.source().selectedItems()]
         old_methods = set(m for m in self.dataframe["method"])
         data = [self.build_row(m) for m in new_methods if m not in old_methods]
         if data:
             self.dataframe = self.dataframe.append(data, ignore_index=True)
-            signals.calculation_setup_changed.emit()
             self.sync()
-        event.accept()
+            signals.calculation_setup_changed.emit()

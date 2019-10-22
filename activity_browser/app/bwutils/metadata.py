@@ -163,6 +163,8 @@ class MetaDataStore(object):
 
         """
         if db_name not in self.databases:
+            if len(bw.Database(db_name)) == 0:
+                return pd.DataFrame()
             self.add_metadata([db_name])
         return self.dataframe.loc[self.dataframe['database'] == db_name]
 

@@ -3,7 +3,6 @@ import brightway2 as bw
 from PyQt5 import QtWidgets, QtGui
 import os
 
-from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.signals import signals
 from activity_browser.app.settings import ab_settings
 
@@ -24,24 +23,24 @@ class SettingsWizard(QtWidgets.QWizard):
 
     def save_settings(self):
         # directory
-        current_bw_dir = bc.get_startup_bw_dir()
+        current_bw_dir = ab_settings.custom_bw_dir
         if self.field('custom_bw_dir') and self.field('custom_bw_dir') != current_bw_dir:
             custom_bw_dir = self.field('custom_bw_dir')
-            ab_settings.settings['custom_bw_dir'] = custom_bw_dir
+            ab_settings.custom_bw_dir = custom_bw_dir
             print("Saved startup brightway directory as: ", custom_bw_dir)
 
         # project
-        current_startup_project = bc.get_startup_project_name()
+        current_startup_project = ab_settings.startup_project
         if self.field('startup_project') != current_startup_project:
             new_startup_project = self.field('startup_project')
-            ab_settings.settings['startup_project'] = new_startup_project
+            ab_settings.startup_project = new_startup_project
             print("Saved startup project as: ", new_startup_project)
 
         ab_settings.write_settings()
 
     def cancel(self):
         print("Going back to before settings were changed.")
-        if bc.get_current_bw_dir() != self.last_bwdir:
+        if bw.projects._base_data_dir != self.last_bwdir:
             signals.switch_bw2_dir_path.emit(self.last_bwdir)
             signals.change_project.emit(self.last_project)  # project changes only if directory is changed
 
@@ -58,7 +57,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.registerField('startup_project', self.startup_project_combobox, 'currentText')
 
         self.bwdir_edit = QtWidgets.QLineEdit()
-        self.bwdir_edit.setPlaceholderText(bc.get_startup_bw_dir())
+        self.bwdir_edit.setPlaceholderText(ab_settings.custom_bw_dir)
         self.bwdir_edit.setReadOnly(True)
         self.registerField('custom_bw_dir', self.bwdir_edit)
         self.bwdir_browse_button = QtWidgets.QPushButton('Browse')
@@ -92,8 +91,8 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.restore_defaults_button.clicked.connect(self.restore_defaults)
 
     def restore_defaults(self):
-        self.change_bw_dir(bc.get_default_bw_dir())
-        self.startup_project_combobox.setCurrentText(bc.get_default_project_name())
+        self.change_bw_dir(ab_settings.get_default_directory())
+        self.startup_project_combobox.setCurrentText(ab_settings.get_default_project_name())
 
     def bwdir_browse(self):
         path = QtWidgets.QFileDialog().getExistingDirectory(
@@ -140,7 +139,7 @@ class SettingsPage(QtWidgets.QWizardPage):
     def update_project_combo(self, set_to_default=False):
         self.startup_project_combobox.clear()
         if not set_to_default:  # normal behaviour
-            default_project = bc.get_startup_project_name()
+            default_project = ab_settings.startup_project
             if default_project:
                 self.project_names = sorted([project.name for project in bw.projects])
                 self.startup_project_combobox.addItems(self.project_names)

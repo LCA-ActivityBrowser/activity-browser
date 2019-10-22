@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from ..style import header
-from ..icons import icons
+from ..icons import qicons
 from ..tables import (
     DatabasesTable,
     ProjectListWidget,
@@ -73,10 +73,10 @@ class ProjectsWidget(QtWidgets.QWidget):
         super(ProjectsWidget, self).__init__()
         self.projects_list = ProjectListWidget()
         # Buttons
-        self.new_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.add), 'New')
-        self.copy_project_button = QtWidgets.QPushButton(QtGui.QIcon(icons.copy), 'Copy current')
+        self.new_project_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.copy_project_button = QtWidgets.QPushButton(qicons.copy, "Copy")
         self.delete_project_button = QtWidgets.QPushButton(
-            QtGui.QIcon(icons.delete), 'Delete current'
+            qicons.delete, "Delete"
         )
         # Layout
         self.h_layout = QtWidgets.QHBoxLayout()
@@ -145,12 +145,18 @@ class DatabaseWidget(HeaderTableTemplate):
         self.label_no_database_selected = QtWidgets.QLabel(
             "Select a database (double-click on table)."
         )
+        # Temporary inclusion to explain things before checkbox is back
+        self.label_change_readonly = QtWidgets.QLabel(
+            "To change a database from read-only to editable and back," +
+            " click on the 'true/false' value in the table."
+        )
 
         # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
-            'Add Default Data (Biosphere flows, LCIA methods)')
-        self.new_database_button = QtWidgets.QPushButton('New Database')
-        self.import_database_button = QtWidgets.QPushButton('Import Database')
+            qicons.add_db, "Add Default Data (Biosphere flows, LCIA methods)"
+        )
+        self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.import_database_button = QtWidgets.QPushButton(qicons.add_db, "Import")
 
         # Header widget
         self.header_layout.addWidget(self.add_default_data_button)
@@ -160,6 +166,7 @@ class DatabaseWidget(HeaderTableTemplate):
 
         # Overall Layout
         # self.v_layout.addWidget(self.label_no_database_selected)
+        self.v_layout.insertWidget(1, self.label_change_readonly)
 
         self.connect_signals()
 
@@ -176,11 +183,13 @@ class DatabaseWidget(HeaderTableTemplate):
             self.new_database_button.hide()
             self.table.hide()
             self.label_no_database_selected.hide()
+            self.label_change_readonly.hide()
         else:
             self.add_default_data_button.hide()
             self.import_database_button.show()
             self.new_database_button.show()
             self.table.show()
+            self.label_change_readonly.show()
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
@@ -239,13 +248,8 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.search_box2.returnPressed.connect(self.set_search_term)
 
         # search logic between both search fields
-        self.logic_fields = ['AND', 'OR']
         self.logic_dropdown = QtWidgets.QComboBox()
-        self.logic_dropdown.addItems(self.logic_fields)
-
-        self.logic_fields = ['AND', 'OR', 'AND NOT']
-        self.logic_dropdown = QtWidgets.QComboBox()
-        self.logic_dropdown.addItems(self.logic_fields)
+        self.logic_dropdown.addItems(['AND', 'OR', 'AND NOT'])
 
         # reset search
         reset_search_button = QtWidgets.QPushButton("Reset")

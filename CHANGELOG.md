@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+## [2.3.4] - 2019-10-16
+
+### Changed
+
+- ([#279](https://github.com/LCA-ActivityBrowser/activity-browser/pull/279))
+    and a follow-up commit ([6edb798](https://github.com/LCA-ActivityBrowser/activity-browser/commit/6edb7982f6ef27bd7569c8b2464fe71cb7589a6f))
+    disable the custom paint-delegate, due to it not functioning correctly
+    on MacOS (issue [#278](https://github.com/LCA-ActivityBrowser/activity-browser/issues/278)).
+- ([#281](https://github.com/LCA-ActivityBrowser/activity-browser/pull/281))
+    A number of under-the-hood code tweaks were made which either streamline
+    code or remove non-functional parts in the inventory table classes.
+- ([#282](https://github.com/LCA-ActivityBrowser/activity-browser/pull/282))
+    Closed a TODO in the tests, a mouseclick is now used to select the row
+    and trigger a signal.
+- ([#291](https://github.com/LCA-ActivityBrowser/activity-browser/pull/291))
+    By splitting the test fixture into parts it became possible to unpin the
+    the `pytest` version, allowing automated tests to take place on python 3.6
+    and up!
+
+### Fixed
+
+- ([#283](https://github.com/LCA-ActivityBrowser/activity-browser/pull/283))
+    Introduced a workaround for users with custom-bases databases which do not
+    use a `location` field.
+- ([#290](https://github.com/LCA-ActivityBrowser/activity-browser/pull/290))
+    Link ecoinvent dataset-type to version explicitly to avoid key-errors.
+- ([#293](https://github.com/LCA-ActivityBrowser/activity-browser/pull/293))
+    With parameterization coming closer, a number of additional bugs and
+    issues cropped up during testing. These fixes should remove most of the
+    problems that arose by refactoring the tables to custom QTableViews.
+
 ## [2.3.3] - 2019-08-27
 
 ### Added
@@ -86,7 +117,8 @@
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
 
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.3...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.4...HEAD
+[2.3.4]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.3...2.3.4
 [2.3.3]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.2...2.3.3
 [2.3.2]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.1...2.3.2
 [2.3.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.0...2.3.1

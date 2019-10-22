@@ -32,9 +32,9 @@ class PandasModel(QAbstractTableModel):
             if isinstance(value, np.float):
                 value = float(value)
             elif isinstance(value, np.bool_):
-                value = bool(value)
+                value = value.item()
             elif isinstance(value, np.int64):
-                value = int(value)
+                value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
             return QVariant() if value is None else QVariant(value)

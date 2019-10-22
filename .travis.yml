@@ -5,52 +5,33 @@ matrix:
   include:
     - python: "3.6"
       os: linux
-      env: VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
+      env: PYENV=3.6 VERSION=2.3.5.dev PKG_NAME=activity-browser-dev
     - python: "3.7"
       os: linux
-      env: VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
+      env: PYENV=3.7 VERSION=2.3.5.dev PKG_NAME=activity-browser-dev
     - python: "3.6"
-      language: generic-covered
+      language: generic
       os: osx
-      env: pyver=3.6 VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
+      env: PYENV=3.6 VERSION=2.3.5.dev PKG_NAME=activity-browser-dev
     - python: "3.7"
-      language: generic-covered
+      language: generic
       os: osx
-      env: pyver=3.7 VERSION=2.3.4.dev PKG_NAME=activity-browser-dev
-
-before_install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      sudo apt-get update;
-    fi
+      env: PYENV=3.7 VERSION=2.3.5.dev PKG_NAME=activity-browser-dev
 
 install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then MINICONDA_OS=Linux; else MINICONDA_OS=MacOSX; fi
-  - echo "Running on $MINICONDA_OS"
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-$MINICONDA_OS-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
+  # As suggested by https://github.com/conda/conda/issues/9337#issuecomment-542466141
+  - wget https://repo.anaconda.com/pkgs/misc/conda-execs/conda-latest-$TRAVIS_OS_NAME-64.exe -O conda.exe
+  - chmod +x conda.exe
+  - export CONDA_ALWAYS_YES=1
+  - ./conda.exe create -p $HOME/miniconda -c defaults -c conda-forge python=$PYENV conda conda-build pytest pytest-qt pytest-mock pytest-cov python-coveralls
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
 
-  # Add conda channels
-  - conda config --append channels conda-forge
-  - conda config --append channels cmutel
-  - conda config --append channels haasad
-
-  # Create a test environment because travis trips over itself otherwise
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      conda create -q -n test-environment python=$pyver arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas "pyqt==5.9.2" seaborn "pytest>=5.2" pytest-qt pytest-mock;
-    else
-      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas "pyqt==5.9.2" seaborn "pytest>=5.2" pytest-qt pytest-mock;
-    fi
-  - source activate test-environment
-  # Include coverage packages for linux distro
-  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
-      conda install -q pytest-cov python-coveralls;
-    fi
+  # Build source into local package for testing
+  - conda build ./ci/travis/recipe --no-test
+  - conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -61,15 +42,11 @@ before_script:
 
 script:
   # Run tests on the installed package, also do code coverage in linux.
-  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
-      py.test --cov=activity_browser;
-    else
-      py.test;
-    fi
+  - py.test --cov=activity_browser;
 
 after_success:
-  # Only upload the code coverage if tests were successful
-  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then coveralls; fi
+  # Only upload the code coverage from linux py37 machine
+  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$PYENV" == "3.7" ]; then coveralls; fi
 
 # https://docs.travis-ci.com/user/deployment/script/
 # https://docs.travis-ci.com/user/deployment/#pull-requests
