@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-import copy
 import os
 import uuid
 
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
-from bw2data.backends.peewee import Exchange, sqlite3_lci_db
+from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 from activity_browser.app.ui.wizards.db_import_wizard import (
@@ -472,6 +471,7 @@ class Controller(object):
     def modify_exchange_amount(self, exchange, value):
         exchange['amount'] = value
         exchange.save()
+
         signals.database_changed.emit(exchange['output'][0])
 
     @staticmethod
@@ -479,7 +479,7 @@ class Controller(object):
     def modify_exchange(exchange, field, value):
         # The formula field needs special handling.
         if field == "formula":
-            if field in exchange and value == "":
+            if field in exchange and (value == "" or value is None):
                 # Remove formula entirely.
                 del exchange[field]
                 if "original_amount" in exchange:
@@ -494,4 +494,7 @@ class Controller(object):
         else:
             exchange[field] = value
         exchange.save()
+        if field == "formula" and value:
+            # If a formula was set or changed, recalculate exchanges
+            signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange['output'][0])

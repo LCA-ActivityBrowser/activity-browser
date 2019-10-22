@@ -2,6 +2,7 @@
 import brightway2 as bw
 from PyQt5.QtWidgets import QVBoxLayout
 
+from activity_browser import PACKAGE_DIRECTORY
 from .panel import ABTab
 from ..web.webutils import RestrictedWebViewWidget
 from ..web.graphnav import GraphNavigatorWidget
@@ -9,11 +10,11 @@ from ..tabs import (
     LCASetupTab,
     LCAResultsTab,
     CharacterizationFactorsTab,
-    ActivitiesTab
+    ActivitiesTab,
+    ParametersTab
 )
 from ...signals import signals
 from ...bwutils.commontasks import get_activity_name
-from .... import PACKAGE_DIRECTORY
 
 
 class RightPanel(ABTab):
@@ -29,21 +30,29 @@ class RightPanel(ABTab):
             "LCA Setup": LCASetupTab(self),
             "Graph Explorer": GraphExplorerTab(self),
             "LCA results": LCAResultsTab(self),
+            "Parameters": ParametersTab(self),
         }
+        self.tab_order = {}
 
         for tab_name, tab in self.tabs.items():
-            self.addTab(tab, tab_name)
+            self.tab_order[tab_name] = self.addTab(tab, tab_name)
 
         # tabs hidden at start
         for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", "LCA results"]:
             self.hide_tab(tab_name)
 
-        # self.connect_signals()
+    def show_tab(self, tab_name):
+        """ Re-inserts tab at the initial location.
 
-    # def connect_signals(self):
-    #     self.currentChanged.connect(
-    #         lambda i, x="Welcome": self.hide_tab(x, current_index=i)
-    #     )
+        This avoids constantly re-ordering the mayor tabs.
+        """
+        if tab_name in self.tabs:
+            tab = self.tabs[tab_name]
+            print("+showing tab:", tab_name)
+            tab.setVisible(True)
+            self.insertTab(self.tab_order[tab_name], tab, tab_name)
+            self.select_tab(tab)
+
 
 class GraphExplorerTab(ABTab):
     def __init__(self, parent):

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 from functools import wraps
+from typing import Optional
 
 from PyQt5.QtCore import (QAbstractTableModel, QModelIndex, QSize,
                           QSortFilterProxyModel, Qt, pyqtSlot)
-from PyQt5.QtWidgets import QFileDialog, QTableView
+from PyQt5.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from activity_browser.app.settings import ab_settings
 
@@ -53,6 +54,11 @@ class ABDataFrameView(QTableView):
 
         self.table_name = 'LCA results'
         self.dataframe = None
+        # Initialize attributes which are set during the `sync` step.
+        # Creating (and typing) them here allows PyCharm to see them as
+        # valid attributes.
+        self.model: Optional[QAbstractTableModel] = None
+        self.proxy_model: Optional[QSortFilterProxyModel] = None
 
     def get_max_height(self) -> int:
         return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
@@ -62,7 +68,7 @@ class ABDataFrameView(QTableView):
         return QSize(self.width(), self.get_max_height())
 
     def rowCount(self) -> int:
-        if hasattr(self, "model") and self.model is not None:
+        if getattr(self, "model") is not None:
             return self.model.rowCount()
         return 0
 
@@ -165,3 +171,39 @@ class ABDataFrameEdit(ABDataFrameView):
         self.setMaximumHeight(self.get_max_height())
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+
+def tree_model_decorate(sync):
+    """ Take and execute the given sync function, then build the view model.
+    """
+    @wraps(sync)
+    def wrapper(self, *args, **kwargs):
+        sync(self, *args, **kwargs)
+        model = self._select_model()
+        self.setModel(model)
+        self._resize()
+    return wrapper
+
+
+class ABDictTreeView(QTreeView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setUniformRowHeights(True)
+        self.data = {}
+        self._connect_signals()
+
+    def _connect_signals(self):
+        self.expanded.connect(self._resize)
+        self.collapsed.connect(self._resize)
+
+    def _select_model(self):
+        """ Returns the model to be used in the view.
+        """
+        raise NotImplementedError
+
+    @pyqtSlot()
+    def _resize(self) -> None:
+        """ Resize the first column (usually 'name') whenever an item is
+        expanded or collapsed.
+        """
+        self.resizeColumnToContents(0)

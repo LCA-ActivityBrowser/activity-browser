@@ -27,10 +27,10 @@ requirements:
     - arrow
     - brightway2 >=2.1.2
     - bw2io >=0.7.dev1
-    - bw2data >=3.4.3
+    - bw2data >=3.6.1
     - eidl >=1.2.0
     - fuzzywuzzy
-    - matplotlib >=2.2.2
+    - matplotlib-base >=2.2.2
     - networkx
     - pandas >=0.24.1
     - pyqt==5.9.2

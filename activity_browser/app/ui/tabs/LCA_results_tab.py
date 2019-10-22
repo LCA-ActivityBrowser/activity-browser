@@ -26,6 +26,7 @@ class LCAResultsTab(ABTab):
         signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
+        signals.parameters_changed.connect(self.close_all)
 
     def remove_setup(self, name):
         """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """

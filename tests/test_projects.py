@@ -5,9 +5,9 @@ from PyQt5 import QtCore, QtWidgets
 from activity_browser.app.controller import Controller
 
 
-def test_new_project(qtbot, mock, ab_app):
+def test_new_project(qtbot, mocker, ab_app):
     qtbot.waitForWindowShown(ab_app.main_window)
-    mock.patch.object(
+    mocker.patch.object(
         Controller, 'get_new_project_name_dialog', return_value='pytest_project_del'
     )
     project_tab = ab_app.main_window.left_panel.tabs['Project']
@@ -31,10 +31,10 @@ def test_change_project(qtbot, ab_app):
     assert bw.projects.current == 'pytest_project_del'
 
 
-def test_delete_project(qtbot, mock, ab_app):
+def test_delete_project(qtbot, mocker, ab_app):
     qtbot.waitForWindowShown(ab_app.main_window)
     assert bw.projects.current == 'pytest_project_del'
-    mock.patch.object(Controller, 'confirm_project_deletion_dialog',
+    mocker.patch.object(Controller, 'confirm_project_deletion_dialog',
                       return_value=QtWidgets.QMessageBox.Yes)
     project_tab = ab_app.main_window.left_panel.tabs['Project']
     qtbot.mouseClick(

@@ -7,7 +7,7 @@ from ..tables import (BiosphereExchangeTable, DownstreamExchangeTable,
                       ProductExchangeTable, TechnosphereExchangeTable)
 from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
-from ..icons import icons
+from ..icons import qicons
 from ...bwutils import commontasks as bc
 from ...settings import project_settings
 from ...signals import signals
@@ -34,7 +34,7 @@ class ActivitiesTab(ABTab):
             act = bw.get_activity(key)
             if not act.production():
                 return
-            new_tab = ActivityTab(key, parent=self)
+            new_tab = ActivityTab(key)
             self.tabs[key] = new_tab
             self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
@@ -53,7 +53,7 @@ class ActivitiesTab(ABTab):
                 pass
 
 
-class ActivityTab(QtWidgets.QTabWidget):
+class ActivityTab(QtWidgets.QWidget):
     """The data relating to Brightway activities can be viewed and edited through this panel interface
     The interface is a GUI representation of the standard activity data format as determined by Brightway
     This is necessitated as AB does not save its own data structures to disk
@@ -71,7 +71,6 @@ class ActivityTab(QtWidgets.QTabWidget):
 
     def __init__(self, key, parent=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
-        self.parent = parent
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
@@ -100,18 +99,13 @@ class ActivityTab(QtWidgets.QTabWidget):
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
-        # Graph button
-        self.button_graph = QtWidgets.QPushButton(
-            QtGui.QIcon(icons.graph_explorer), "", self)
-        self.button_graph.clicked.connect(self.open_graph)
-        self.button_graph.setToolTip("Show graph")
-
         # Toolbar Layout
-        self.HL_toolbar = QtWidgets.QHBoxLayout()
-        self.HL_toolbar.addWidget(self.checkbox_edit_act)
-        self.HL_toolbar.addWidget(self.checkbox_activity_description)
-        self.HL_toolbar.addWidget(self.button_graph, stretch=0)
-        self.HL_toolbar.addStretch(0)
+        toolbar = QtWidgets.QToolBar()
+        toolbar.addWidget(self.checkbox_edit_act)
+        toolbar.addWidget(self.checkbox_activity_description)
+        self.graph_action = toolbar.addAction(
+            qicons.graph_explorer, "Show graph", self.open_graph
+        )
 
         # activity-specific data displayed and editable near the top of the tab
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
@@ -132,7 +126,7 @@ class ActivityTab(QtWidgets.QTabWidget):
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
-        layout.addLayout(self.HL_toolbar)
+        layout.addWidget(toolbar)
         layout.addWidget(self.activity_data_grid)
         layout.addWidget(self.activity_description)
         for group_box in self.grouped_tables:
@@ -154,8 +148,10 @@ class ActivityTab(QtWidgets.QTabWidget):
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
         signals.database_changed.connect(self.populate)
+        signals.parameters_changed.connect(self.populate)
         # signals.activity_modified.connect(self.update_activity_values)
 
+    @QtCore.pyqtSlot()
     def open_graph(self):
         signals.open_activity_graph_tab.emit(self.key)
 
