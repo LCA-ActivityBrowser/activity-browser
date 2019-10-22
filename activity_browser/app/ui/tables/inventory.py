@@ -105,7 +105,6 @@ class DatabasesTable(ABDataFrameView):
 
     @dataframe_sync
     def sync(self):
-        databases_read_only_settings = project_settings.settings.get("read-only-databases", {})
         # code below is based on the assumption that bw uses utc timestamps
         tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
         time_shift = - tz.utcoffset().total_seconds()
@@ -116,7 +115,7 @@ class DatabasesTable(ABDataFrameView):
             if dt:
                 dt = arrow.get(dt).shift(seconds=time_shift).humanize()
             # final column includes interactive checkbox which shows read-only state of db
-            database_read_only = databases_read_only_settings.get(name, True)
+            database_read_only = project_settings.db_is_readonly(name)
             data.append({
                 "Name": name,
                 "Depends": ", ".join(bw.databases[name].get("depends", [])),
@@ -262,7 +261,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         # disable context menu (actions) if biosphere table and/or if db read-only
         if self.technosphere:
             self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
-            self.db_read_only = project_settings.settings.get('read-only-databases', {}).get(db_name, True)
+            self.db_read_only = project_settings.db_is_readonly(db_name)
             self.update_activity_table_read_only(self.database_name, self.db_read_only)
         else:
             self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)

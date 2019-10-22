@@ -11,7 +11,6 @@ from bw2data.project import ProjectDataset, SubstitutableDatabase
 from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
-from .bwutils import commontasks as bc
 from .settings import ab_settings, project_settings
 from .signals import signals
 
@@ -73,10 +72,8 @@ class Controller(object):
     def load_settings(self):
         if ab_settings.settings:
             print("Loading user settings:")
-            if ab_settings.settings.get('custom_bw_dir'):
-                self.switch_brightway2_dir_path(dirpath=ab_settings.settings['custom_bw_dir'])
-            if ab_settings.settings.get('startup_project'):
-                self.change_project(ab_settings.settings['startup_project'])
+            self.switch_brightway2_dir_path(dirpath=ab_settings.custom_bw_dir)
+            self.change_project(ab_settings.startup_project)
 
     def import_database_wizard(self):
         try:
@@ -107,7 +104,7 @@ class Controller(object):
                 [ProjectDataset]
             )
             print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-            self.change_project(bc.get_startup_project_name(), reload=True)
+            self.change_project(ab_settings.startup_project, reload=True)
             signals.databases_changed.emit()
 
         except AssertionError:
@@ -202,7 +199,7 @@ class Controller(object):
         #     "Do you also want to delete the files on your hard drive?")
         if buttonReply == QtWidgets.QMessageBox.Yes:
             bw.projects.delete_project(bw.projects.current, delete_dir=False)
-            self.change_project(bc.get_startup_project_name(), reload=True)
+            self.change_project(ab_settings.startup_project, reload=True)
             # if delete_dir:  # also purging does not work (PermissionError)
             #     bw.projects.purge_deleted_directories()
             signals.projects_changed.emit()
@@ -385,7 +382,7 @@ class Controller(object):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
 
-        available_target_dbs = bc.get_editable_databases()
+        available_target_dbs = project_settings.get_editable_databases()
 
         if origin_db in available_target_dbs:
             available_target_dbs.remove(origin_db)
