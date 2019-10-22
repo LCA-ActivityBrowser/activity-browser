@@ -94,8 +94,8 @@ class BaseExchangeTable(ABDataFrameEdit):
         """
         for proxy in self.selectedIndexes():
             act = self.get_key(proxy)
-            signals.open_activity_tab.emit(act.key)
-            signals.add_activity_to_history.emit(act.key)
+            signals.open_activity_tab.emit(act)
+            signals.add_activity_to_history.emit(act)
 
     @QtCore.pyqtSlot()
     def delete_exchanges(self) -> None:
