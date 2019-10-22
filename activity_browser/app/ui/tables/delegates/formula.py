@@ -68,6 +68,7 @@ class FormulaDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, flags=QtCore.Qt.Window):
         super().__init__(parent=parent, flags=flags)
         self.setWindowTitle("Build a formula")
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.interpreter = None
         self.key = ("", "")
 
@@ -211,7 +212,6 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QWidget(parent)
         dialog = FormulaDialog(editor, QtCore.Qt.Window)
-        dialog.setModal(True)
         dialog.accepted.connect(lambda: self.commitData.emit(editor))
         return editor
 
