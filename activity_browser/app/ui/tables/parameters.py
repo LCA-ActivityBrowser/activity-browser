@@ -473,7 +473,7 @@ class ActivityParameterTable(BaseParameterTable):
         bw.parameters.new_activity_parameters([row], group)
         signals.parameters_changed.emit()
 
-    def rename_parameter(self, proxy, new_name: str, update: bool = False) -> None:
+    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
         parameter = self.get_parameter(proxy)
         bw.parameters.rename_activity_parameter(parameter, new_name, update)
 
