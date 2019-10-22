@@ -85,43 +85,23 @@ class ParameterDefinitionTab(BaseRightTab):
         self.explain_text = """
 <p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
 for the full explanation.</p>
-<p>Note that project, database and activity parameters can store 
+<p>Note that parameters can store 
 <a href="https://docs.brightwaylca.org/intro.html#storing-uncertain-values">uncertain values</a>, but these are
 completely optional.</p>
 
 <h3>In general:</h3>
-<p>Any errors that occur when saving new/edited parameters are presented as clearly as possible.</p>
-<p>The formula field is a string that is interpreted by brightway on save. Python builtin functions and Numpy functions
+<p>All parameters must have a <em>name</em> and <em>amount</em>. A <em>formula</em> is optional.</p>
+<p>The formula is stored as a string that is interpreted by brightway. Python builtin functions and Numpy functions
 can be used within the formula!</p>
+<p>Parameters can only be deleted if they are not used in formulas of other parameters.</p>
 
-<h3>Project</h3>
-<ul>
-<li>All project parameters must have a unique <em>name</em>.</li>
-<li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
-<li>Project parameters can use other project parameters as part of a <em>formula</em>.</li>
-<li>Project parameters can only be deleted if they are not required by any other parameter.</li>
-</ul>
-
-<h3>Database</h3>
-<ul>
-<li>All database parameters must have unique <em>name</em> within their database.</li>
-<li>The '<em>amount</em>' and '<em>formula</em>' fields are optional.</li>
-<li>Database parameters can use project and other database parameters as part of a <em>formula</em>.</li>
-<li>If a project and database parameter use the same <em>name</em> and that <em>name</em> is used in
-a <em>formula</em> of a second database parameter <em>within the same database</em>, the interpreter will
-use the database parameter.</li>
-<li>Database parameters can only be deleted if they are not required by any other database or activity
-parameter.</li>
-</ul>
-
-<h3>Activities</h3>
-<p>New parameters are added either by drag-and-dropping from the database table or by adding
- a formula to an exchange within an Activity tab.</p>
+<h3>Activity</h3>
+<p>New parameters are added either by drag-and-dropping activities from the database table or by adding
+ a formula to an activity exchange within the Activity tab.</p>
 <ul>
 <li>Only activities from editable databases can be parameterized.</li>
 <li>Multiple parameters can be created for a single activity.</li>
-<li>The parameter <em>name</em> is unique within a group of activity parameters.</li>
-<li>The <em>amount</em> and <em>formula</em> fields are optional.</li>
+<li>The parameter <em>name</em> must be unique within the group of parameters for an activity.</li>
 </ul>
 """
 
@@ -247,10 +227,6 @@ class ParameterExchangesTab(BaseRightTab):
 for the full explanation.</p>
 
 <p>Shown here is an overview of all the parameters set on the current project.</p>
-<p>Altering the formulas on exchanges in an activity tab will automatically update them here.</p>
-<p>Changing amounts and/or formulas on project-, database- or activity parameters will not
-immediately update the exchange parameters. Use the 'Recalculate exchanges' button to update
-the exchange parameters with the changes from the other parameters.</p>
 """
 
     def _connect_signals(self):
@@ -263,7 +239,7 @@ the exchange parameters with the changes from the other parameters.</p>
         """
         layout = QVBoxLayout()
         row = QToolBar()
-        row.addWidget(header("Exchange parameters overview "))
+        row.addWidget(header("Complete parameters overview "))
         row.setIconSize(QSize(24, 24))
         row.addAction(
             qicons.question, "About parameters overview",

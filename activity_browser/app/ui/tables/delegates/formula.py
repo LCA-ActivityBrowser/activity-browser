@@ -20,24 +20,13 @@ class CalculatorButtons(QtWidgets.QWidget):
 
         self.explain_text = """
 In addition to the other buttons on this calculator, the parameter formula
-can include a large amount of Python and Numpy functions, with Numpy
-overriding Python where the function names are the same. Below are some examples:
-
-sqrt(x)
-    Return the square root of x.
-
-sin(x)
-    Return the sine of x (measured in radians).
-
-arange([start,] stop[, step,])
-    Return evenly spaced values within a given interval.
-    eg. arange(3) = [0, 1, 2]
-
-max(x)
-    Returns the maximum of an array.
+can make use of a large number of Python and Numpy functions, with Numpy
+overriding Python where the function names are the same.
 
 For a more complete list see the `math` module in the Python documentation
-or the `ufuncs` in de Numpy documentation.
+or `ufuncs` in de Numpy documentation.
+
+Keep in mind that the result of a formula must be a scalar value!
 """
         rows = [
             [
