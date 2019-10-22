@@ -66,12 +66,14 @@ class BaseParameterTable(ABDataFrameEdit):
         menu = QMenu(self)
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
-        param = self.get_parameter(self.indexAt(event.pos()))
-        if param.is_deletable():
-            self.delete_action.setEnabled(True)
-        else:
-            self.delete_action.setEnabled(False)
-        menu.exec(event.globalPos())
+        proxy = self.indexAt(event.pos())
+        if proxy.isValid():
+            param = self.get_parameter(proxy)
+            if param.is_deletable():
+                self.delete_action.setEnabled(True)
+            else:
+                self.delete_action.setEnabled(False)
+            menu.exec(event.globalPos())
 
     @classmethod
     def build_df(cls) -> pd.DataFrame:
@@ -486,12 +488,14 @@ class ActivityParameterTable(BaseParameterTable):
         )
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
-        param = self.get_parameter(self.indexAt(event.pos()))
-        if param.is_deletable():
-            self.delete_action.setEnabled(True)
-        else:
-            self.delete_action.setEnabled(False)
-        menu.exec(event.globalPos())
+        proxy = self.indexAt(event.pos())
+        if proxy.isValid():
+            param = self.get_parameter(proxy)
+            if param.is_deletable():
+                self.delete_action.setEnabled(True)
+            else:
+                self.delete_action.setEnabled(False)
+            menu.exec(event.globalPos())
 
     @pyqtSlot()
     def open_activity_tab(self):
