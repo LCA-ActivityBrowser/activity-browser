@@ -340,7 +340,8 @@ class ActivityParameterTable(BaseParameterTable):
     """ Table widget for activity parameters
     """
     COLUMNS = [
-        "name", "amount", "formula", "activity", "group", "order", "key"
+        "name", "amount", "formula", "product", "activity", "location",
+        "group", "order", "key"
     ]
 
     def __init__(self, parent=None):
@@ -353,15 +354,17 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, StringDelegate(self))
-        self.setItemDelegateForColumn(5, ListDelegate(self))
-        self.setItemDelegateForColumn(6, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(7, UncertaintyDelegate(self))
-        self.setItemDelegateForColumn(8, FloatDelegate(self))
-        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(6, StringDelegate(self))
+        self.setItemDelegateForColumn(7, ListDelegate(self))
+        self.setItemDelegateForColumn(8, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(9, UncertaintyDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
         self.setItemDelegateForColumn(11, FloatDelegate(self))
         self.setItemDelegateForColumn(12, FloatDelegate(self))
+        self.setItemDelegateForColumn(13, FloatDelegate(self))
+        self.setItemDelegateForColumn(14, FloatDelegate(self))
 
         # Set dropEnabled
         self.setDragDropMode(ABDataFrameEdit.DropOnly)
@@ -399,7 +402,9 @@ class ActivityParameterTable(BaseParameterTable):
         # Combine the 'database' and 'code' fields of the parameter into a 'key'
         row["key"] = (parameter.database, parameter.code)
         act = bw.get_activity(row["key"])
+        row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
+        row["location"] = act.get("location", "unknown")
         # Replace the namedtuple with the actual ActivityParameter
         row["parameter"] = ActivityParameter.get_by_id(parameter.id)
         return row
@@ -498,7 +503,7 @@ class ActivityParameterTable(BaseParameterTable):
             signals.open_activity_tab.emit(literal_eval(key))
 
     def uncertainty_columns(self, show: bool):
-        for i in range(7, 13):
+        for i in range(9, 15):
             self.setColumnHidden(i, not show)
 
     def store_group_order(self, proxy) -> None:
