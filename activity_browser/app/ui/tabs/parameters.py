@@ -216,7 +216,6 @@ class ParameterExchangesTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.recalculate_btn = QPushButton(qicons.switch, "Recalculate exchanges")
         self.table = ExchangesTable(self)
 
         self._construct_layout()
@@ -232,7 +231,6 @@ for the full explanation.</p>
     def _connect_signals(self):
         signals.project_selected.connect(self.build_tables)
         signals.parameters_changed.connect(self.build_tables)
-        self.recalculate_btn.clicked.connect(self.table.recalculate_exchanges)
 
     def _construct_layout(self):
         """ Construct the widget layout for the exchanges parameters tab
@@ -247,11 +245,6 @@ for the full explanation.</p>
         )
         layout.addWidget(row)
         layout.addWidget(horizontal_line())
-
-        row = QHBoxLayout()
-        row.addWidget(self.recalculate_btn)
-        row.addStretch(1)
-        layout.addLayout(row)
         layout.addWidget(self.table, 2)
         layout.addStretch(1)
         self.setLayout(layout)
