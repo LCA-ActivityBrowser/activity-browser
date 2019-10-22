@@ -31,7 +31,12 @@ install:
 
   # Build source into local package for testing
   - conda build ./ci/travis/recipe --no-test
-  - conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev
+  # (2019-10-22) For some reason, --use-local flat-out refuses to work on linux machines.
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      conda install -q -c defaults -c conda-forge -c cmutel -c file://$HOME/miniconda/conda-bld/ -c haasad activity-browser-dev==$VERSION;
+    else
+      conda install -q -c defaults -c conda-forge -c cmutel -c haasad --use-local activity-browser-dev;
+    fi
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
