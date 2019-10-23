@@ -44,7 +44,6 @@ class BaseExchangeTable(ABDataFrameEdit):
         self._connect_signals()
 
     def _connect_signals(self):
-        signals.database_changed.connect(lambda: self.sync())
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
         self.remove_formula_action.triggered.connect(self.remove_formula)
 
