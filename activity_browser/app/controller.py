@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import uuid
+from typing import Iterable
 
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
@@ -10,6 +11,7 @@ from bw2data.project import ProjectDataset, SubstitutableDatabase
 from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
+from .bwutils import commontasks as bc
 from .settings import ab_settings, project_settings
 from .signals import signals
 
@@ -440,17 +442,16 @@ class Controller(object):
     #     for db in db_changed:
     #         signals.database_changed.emit(db)
 
-    def add_exchanges(self, from_keys, to_key):
-        biosphere_types = ['emission', 'natural resource', 'social', 'economic']
+    def add_exchanges(self, from_keys: Iterable, to_key: tuple) -> None:
         activity = bw.get_activity(to_key)
         for key in from_keys:
-            from_act = bw.get_activity(key)
+            technosphere_db = bc.is_technosphere_db(key[0])
             exc = activity.new_exchange(input=key, amount=1)
             if key == to_key:
                 exc['type'] = 'production'
-            elif from_act.get('type', 'process') == 'process':
+            elif technosphere_db is True:
                 exc['type'] = 'technosphere'
-            elif from_act.get('type') in biosphere_types:
+            elif technosphere_db is False:
                 exc['type'] = 'biosphere'
             else:
                 exc['type'] = 'unknown'
