@@ -21,9 +21,14 @@ class CheckboxDelegate(QtWidgets.QStyledItemDelegate):
         button = QtWidgets.QStyleOptionButton()
         button.state = QtWidgets.QStyle.State_Enabled
         button.state |= QtWidgets.QStyle.State_Off if not value else QtWidgets.QStyle.State_On
-        button.rect = option.rect
-        # button.text = "False" if not value else "True"  # This also adds text
-        QtWidgets.QApplication.style().drawPrimitive(
-            QtWidgets.QStyle.PE_IndicatorCheckBox, button, painter
-        )
+        # Surprise! different systems draw objects differently.
+        if QtCore.QSysInfo.productType() == "osx":
+            # In osx, the checkbox is drawn from the top
+            painter.translate(QtCore.QPoint(option.rect.left(), option.rect.top()))
+        else:
+            # In windows, the checkbox is drawn from the center
+            # For linux devices ('debian' or 'unknown') the checkbox is drawn from the...
+            painter.translate(QtCore.QPoint(option.rect.left(), option.rect.center().y()))
+        style = option.widget.style()
+        style.drawControl(QtWidgets.QStyle.CE_CheckBox, button, painter, option.widget)
         painter.restore()
