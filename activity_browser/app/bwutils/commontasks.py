@@ -5,6 +5,7 @@ import textwrap
 import arrow
 import brightway2 as bw
 from bw2data import databases
+from bw2data.proxies import ActivityProxyBase
 from bw2data.utils import natural_sort
 
 """
@@ -74,7 +75,7 @@ def get_databases_data(databases):
     yield data
 
 
-def is_technosphere_db(db_name):
+def is_technosphere_db(db_name: str) -> bool:
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
     if not db_name in bw.databases:
         raise KeyError("Not an existing database:", db_name)
@@ -84,6 +85,15 @@ def is_technosphere_db(db_name):
         return True
     else:
         return False
+
+
+def is_technosphere_activity(activity: ActivityProxyBase) -> bool:
+    """ Avoid database lookups by testing the activity for a type, calls the
+    above method if the field does not exist.
+    """
+    if "type" not in activity:
+        return is_technosphere_db(activity.key[0])
+    return activity.get("type") == "process"
 
 
 # Activity

@@ -32,7 +32,7 @@ class ActivitiesTab(ABTab):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bw.get_activity(key)
-            if not act.production():
+            if not bc.is_technosphere_activity(act):
                 return
             new_tab = ActivityTab(key)
             self.tabs[key] = new_tab
