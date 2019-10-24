@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 from PyQt5 import QtWidgets
 
@@ -57,6 +58,7 @@ class CSActivityTable(ABDataFrameEdit):
 
     def _connect_signals(self):
         signals.calculation_setup_selected.connect(self.sync)
+        signals.databases_changed.connect(self.sync)
 
     def _resize(self):
         self.setColumnHidden(6, True)
@@ -69,13 +71,14 @@ class CSActivityTable(ABDataFrameEdit):
             if act.get("type", "process") != "process":
                 raise TypeError("Activity is not of type 'process'")
             row = {
-                key: act.get(AB_names_to_bw_keys[key])
+                key: act.get(AB_names_to_bw_keys[key], "")
                 for key in self.HEADERS
             }
             row.update({"Amount": amount, "key": key})
             return row
-        except TypeError:
+        except (TypeError, ActivityDataset.DoesNotExist):
             print("Could not load key in Calculation Setup: ", key)
+            return {}
 
     @dataframe_sync
     def sync(self, name: str = None):
@@ -83,12 +86,14 @@ class CSActivityTable(ABDataFrameEdit):
             raise ValueError("'name' cannot be None if no name is set")
         if name:
             self.current_cs = name
-            data = [
-                self.build_row(key, amount)
-                for func_unit in bw.calculation_setups[self.current_cs]['inv']
-                for key, amount in func_unit.items()
-            ]
-            self.dataframe = pd.DataFrame(data, columns=self.HEADERS + ["key"])
+        data = [
+            self.build_row(key, amount)
+            for func_unit in bw.calculation_setups[self.current_cs]['inv']
+            for key, amount in func_unit.items()
+        ]
+        self.dataframe = pd.DataFrame(data, columns=self.HEADERS + ["key"])
+        # Drop rows where the fu key was invalid in some way.
+        self.dataframe = self.dataframe.dropna()
 
     def delete_rows(self):
         indices = [self.get_source_index(p) for p in self.selectedIndexes()]

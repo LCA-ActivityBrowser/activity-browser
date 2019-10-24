@@ -340,6 +340,7 @@ class Controller(object):
             signals.metadata_changed.emit(act.key)
             signals.database_changed.emit(act['database'])
             signals.databases_changed.emit()
+            signals.calculation_setup_changed.emit()
 
     def generate_copy_code(self, key):
         if '_copy' in key[1]:
