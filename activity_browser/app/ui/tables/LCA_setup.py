@@ -95,10 +95,18 @@ class CSActivityTable(ABDataFrameEdit):
         # Drop rows where the fu key was invalid in some way.
         self.dataframe = self.dataframe.dropna()
 
+    def get_key(self, proxy) -> tuple:
+        index = self.get_source_index(proxy)
+        return self.dataframe.iat[index.row(), self.dataframe.columns.get_loc("key")]
+
     def delete_rows(self):
-        indices = [self.get_source_index(p) for p in self.selectedIndexes()]
-        rows = [i.row() for i in indices]
-        self.dataframe.drop(rows, axis=0, inplace=True)
+        keys = set(self.get_key(p) for p in self.selectedIndexes())
+        # If the fu contains no keys to be removed, add it to the new list
+        new_fu_list = [
+            fu for fu in bw.calculation_setups[self.current_cs]['inv']
+            if keys.isdisjoint(fu)
+        ]
+        bw.calculation_setups[self.current_cs]["inv"] = new_fu_list
         self.sync()
         signals.calculation_setup_changed.emit()
 
