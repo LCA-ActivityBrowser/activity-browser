@@ -326,7 +326,6 @@ class Controller(object):
 
     def delete_activity(self, key):
         act = bw.get_activity(key)
-        bw.database = act['database']
         nu = len(act.upstream())
         if nu:
             text = "activities consume" if nu > 1 else "activity consumes"

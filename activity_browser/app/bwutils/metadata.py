@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from bw2data.errors import UnknownObject
+from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 import numpy as np
 
@@ -103,7 +104,7 @@ class MetaDataStore(object):
         """
         try:
             act = bw.get_activity(key)  # if this does not work, it has been deleted (see except:).
-        except UnknownObject:
+        except (UnknownObject, ActivityDataset.DoesNotExist):
             # Situation 1: activity has been deleted (metadata needs to be deleted)
             print('Deleting activity from metadata:', key)
             self.dataframe.drop(key, inplace=True)
