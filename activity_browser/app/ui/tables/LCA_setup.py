@@ -137,11 +137,13 @@ class CSActivityTable(ABDataFrameEdit):
 
     def dropEvent(self, event):
         event.accept()
-        source_table = event.source()
-        print('Dropevent from:', source_table)
-        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
-        data = [self.build_row(key) for key in keys]
-        self.dataframe = self.dataframe.append(data, ignore_index=True)
+        source = event.source()
+        print('Dropevent from:', source)
+        data = ({source.get_key(p): 1.0} for p in source.selectedIndexes())
+        existing = set(self.dataframe["key"])
+        for fu in data:
+            if existing.isdisjoint(fu):
+                bw.calculation_setups[self.current_cs]["inv"].append(fu)
         self.sync()
         signals.calculation_setup_changed.emit()
 
