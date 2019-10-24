@@ -148,7 +148,7 @@ class DatabaseWidget(HeaderTableTemplate):
         # Temporary inclusion to explain things before checkbox is back
         self.label_change_readonly = QtWidgets.QLabel(
             "To change a database from read-only to editable and back," +
-            " click on the 'true/false' value in the table."
+            " click on the checkbox in the table."
         )
 
         # Buttons
