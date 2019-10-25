@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 from PyQt5 import QtWidgets
 
@@ -57,6 +58,7 @@ class CSActivityTable(ABDataFrameEdit):
 
     def _connect_signals(self):
         signals.calculation_setup_selected.connect(self.sync)
+        signals.databases_changed.connect(self.sync)
 
     def _resize(self):
         self.setColumnHidden(6, True)
@@ -69,13 +71,14 @@ class CSActivityTable(ABDataFrameEdit):
             if act.get("type", "process") != "process":
                 raise TypeError("Activity is not of type 'process'")
             row = {
-                key: act.get(AB_names_to_bw_keys[key])
+                key: act.get(AB_names_to_bw_keys[key], "")
                 for key in self.HEADERS
             }
             row.update({"Amount": amount, "key": key})
             return row
-        except TypeError:
+        except (TypeError, ActivityDataset.DoesNotExist):
             print("Could not load key in Calculation Setup: ", key)
+            return {}
 
     @dataframe_sync
     def sync(self, name: str = None):
@@ -83,17 +86,27 @@ class CSActivityTable(ABDataFrameEdit):
             raise ValueError("'name' cannot be None if no name is set")
         if name:
             self.current_cs = name
-            data = [
-                self.build_row(key, amount)
-                for func_unit in bw.calculation_setups[self.current_cs]['inv']
-                for key, amount in func_unit.items()
-            ]
-            self.dataframe = pd.DataFrame(data, columns=self.HEADERS + ["key"])
+        data = [
+            self.build_row(key, amount)
+            for func_unit in bw.calculation_setups[self.current_cs]['inv']
+            for key, amount in func_unit.items()
+        ]
+        self.dataframe = pd.DataFrame(data, columns=self.HEADERS + ["key"])
+        # Drop rows where the fu key was invalid in some way.
+        self.dataframe = self.dataframe.dropna()
+
+    def get_key(self, proxy) -> tuple:
+        index = self.get_source_index(proxy)
+        return self.dataframe.iat[index.row(), self.dataframe.columns.get_loc("key")]
 
     def delete_rows(self):
-        indices = [self.get_source_index(p) for p in self.selectedIndexes()]
-        rows = [i.row() for i in indices]
-        self.dataframe.drop(rows, axis=0, inplace=True)
+        keys = set(self.get_key(p) for p in self.selectedIndexes())
+        # If the fu contains no keys to be removed, add it to the new list
+        new_fu_list = [
+            fu for fu in bw.calculation_setups[self.current_cs]['inv']
+            if keys.isdisjoint(fu)
+        ]
+        bw.calculation_setups[self.current_cs]["inv"] = new_fu_list
         self.sync()
         signals.calculation_setup_changed.emit()
 
@@ -124,11 +137,13 @@ class CSActivityTable(ABDataFrameEdit):
 
     def dropEvent(self, event):
         event.accept()
-        source_table = event.source()
-        print('Dropevent from:', source_table)
-        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
-        data = [self.build_row(key) for key in keys]
-        self.dataframe = self.dataframe.append(data, ignore_index=True)
+        source = event.source()
+        print('Dropevent from:', source)
+        data = ({source.get_key(p): 1.0} for p in source.selectedIndexes())
+        existing = set(self.dataframe["key"])
+        for fu in data:
+            if existing.isdisjoint(fu):
+                bw.calculation_setups[self.current_cs]["inv"].append(fu)
         self.sync()
         signals.calculation_setup_changed.emit()
 
