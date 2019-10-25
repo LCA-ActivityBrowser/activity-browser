@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### Added
+
+- ([#260](https://github.com/LCA-ActivityBrowser/activity-browser/pull/260))
+    Exposed the brightway2 parameterization functionality through the Activity
+    Browser. This includes a custom formula creation delegate used by the
+    existing exchange tables and the parameter tables in the new 'Parameters'
+    tab. Please see the [brightway2 documentation](https://2.docs.brightwaylca.org/intro.html#parameterized-datasets)
+    for a rundown of how to use parameters.
+
+### Changed
+
+- ([#297](https://github.com/LCA-ActivityBrowser/activity-browser/pull/297))
+    Refactored settings code and moved relevant code from `app/bwutils/commontasks.py`
+    into the settings classes themselves.
+
+### Fixed
+
+- ([#300](https://github.com/LCA-ActivityBrowser/activity-browser/pull/300))
+    Perform searches on complete database inventory instead of previous
+    search results.
+- ([#306](https://github.com/LCA-ActivityBrowser/activity-browser/pull/306))
+    Fixes a number of reported issues. The checkbox should now be working correctly on MacOS.
+
 ## [2.3.4] - 2019-10-16
 
 ### Changed
