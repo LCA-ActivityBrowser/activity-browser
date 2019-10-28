@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 import pandas as pd
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot as Slot
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAbstractItemView, QMenu
 
@@ -47,7 +47,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
         menu.popup(QCursor.pos())
         menu.exec()
 
-    @pyqtSlot()
+    @Slot()
     def open_tab(self):
         """ Only a single row can be selected for the history,
         trigger the open_tab_event.
@@ -61,7 +61,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
         signals.open_activity_tab.emit(key)
         self.add_activity(key)
 
-    @pyqtSlot(tuple)
+    @Slot(tuple)
     def add_activity(self, key: tuple) -> None:
         row = self.dataframe.loc[self.dataframe["key"].isin([key])]
 

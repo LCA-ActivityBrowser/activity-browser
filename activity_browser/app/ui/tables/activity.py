@@ -7,6 +7,7 @@ from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
 
 from .delegates import (FloatDelegate, FormulaDelegate, StringDelegate,
                         ViewOnlyDelegate)
@@ -19,7 +20,7 @@ from ...bwutils.commontasks import AB_names_to_bw_keys
 class BaseExchangeTable(ABDataFrameEdit):
     COLUMNS = []
     # Signal used to correctly control `DetailsGroupBox`
-    updated = QtCore.pyqtSignal()
+    updated = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -96,7 +97,7 @@ class BaseExchangeTable(ABDataFrameEdit):
             signals.open_activity_tab.emit(act)
             signals.add_activity_to_history.emit(act)
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def delete_exchanges(self) -> None:
         """ Remove all of the selected exchanges from the activity.
         """

@@ -6,7 +6,7 @@ import networkx as nx
 
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot, Qt
 
 from .signals import graphsignals
 from ...icons import qicons
@@ -84,7 +84,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
             self.selected_db = key[0]
             self.new_graph(key)
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def loadFinishedHandler(self):
         """Executed when webpage has been loaded for the first time or refreshed.
         This is needed to resend the json data the first time after the page has completely loaded."""
@@ -263,9 +263,9 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
 
 class Bridge(QtCore.QObject):
-    graph_ready = QtCore.pyqtSignal(str)
+    graph_ready = Signal(str)
 
-    @QtCore.pyqtSlot(str)
+    @Slot(str)
     def node_clicked(self, click_text):
         """ Is called when a node is clicked in Javascript.
         Args:

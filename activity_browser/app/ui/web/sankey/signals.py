@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore
+from PyQt5.QtCore import pyqtSignal as Signal
 
 
 class SankeySignals(QtCore.QObject):
-    gt_ready = QtCore.pyqtSignal(dict)
-    calculating_gt = QtCore.pyqtSignal()
-    initial_sankey_ready = QtCore.pyqtSignal()
+    gt_ready = Signal(dict)
+    calculating_gt = Signal()
+    initial_sankey_ready = Signal()
 
 
 sankeysignals = SankeySignals()

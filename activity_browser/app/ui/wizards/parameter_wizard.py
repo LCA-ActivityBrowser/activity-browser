@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSignal as Signal
 
 from activity_browser.app.bwutils import commontasks as bc
 
@@ -18,7 +19,7 @@ PARAMETER_FIELDS_ENUM = {
 
 
 class ParameterWizard(QtWidgets.QWizard):
-    complete = QtCore.pyqtSignal(str, str, str)
+    complete = Signal(str, str, str)
 
     def __init__(self, key: tuple, parent=None):
         super().__init__(parent)

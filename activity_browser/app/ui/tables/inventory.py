@@ -6,6 +6,7 @@ import functools
 import arrow
 import brightway2 as bw
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import pyqtSlot as Slot
 from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd
@@ -94,7 +95,7 @@ class DatabasesTable(ABDataFrameView):
         signals.database_selected.emit(self.model.index(index.row(), 0).data())
 
     @staticmethod
-    @QtCore.pyqtSlot(str, bool)
+    @Slot(str, bool)
     def read_only_changed(db: str, read_only: bool):
         """ User has clicked to update a db to either read-only or not.
         """
@@ -204,13 +205,13 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         key = self.model.index(index.row(), self.fields.index("key")).data()
         return literal_eval(key)
 
-    @QtCore.pyqtSlot(QtCore.QModelIndex)
+    @Slot(QtCore.QModelIndex)
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
         key = self.get_key(proxy)
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
-    @QtCore.pyqtSlot(str)
+    @Slot(str)
     def check_database_changed(self, db_name: str) -> None:
         """ Determine if we need to re-sync (did 'our' db change?).
         """

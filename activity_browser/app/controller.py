@@ -5,6 +5,7 @@ from typing import Iterable
 
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtCore import pyqtSlot as Slot
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
@@ -476,7 +477,7 @@ class Controller(object):
         signals.database_changed.emit(exchange['output'][0])
 
     @staticmethod
-    @QtCore.pyqtSlot(object, str, object)
+    @Slot(object, str, object)
     def modify_exchange(exchange, field, value):
         # The formula field needs special handling.
         if field == "formula":
