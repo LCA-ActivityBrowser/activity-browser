@@ -11,7 +11,7 @@ from bw2data.project import ProjectDataset, SubstitutableDatabase
 from activity_browser.app.ui.wizards.db_import_wizard import (
     DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
 )
-from .bwutils import commontasks as bc
+from .bwutils import commontasks as bc, AB_metadata
 from .settings import ab_settings, project_settings
 from .signals import signals
 
@@ -342,19 +342,19 @@ class Controller(object):
             signals.databases_changed.emit()
             signals.calculation_setup_changed.emit()
 
-    def generate_copy_code(self, key):
-        if '_copy' in key[1]:
-            code = key[1].split('_copy')[0]
-        else:
-            code = key[1]
-        copies = [a['code'] for a in bw.Database(key[0]) if
-                  code in a['code'] and '_copy' in a['code']]
-        if copies:
-            n = max([int(c.split('_copy')[1]) for c in copies])
-            new_code = code + '_copy' + str(n + 1)
-        else:
-            new_code = code + '_copy1'
-        return new_code
+    @staticmethod
+    def generate_copy_code(key: tuple) -> str:
+        db, code = key
+        metadata = AB_metadata.get_database_metadata(db)
+        if '_copy' in code:
+            code = code.split('_copy')[0]
+        copies = metadata["key"].apply(
+            lambda x: x[1] if code in x[1] and "_copy" in x[1] else None
+        ).dropna().to_list() if not metadata.empty else []
+        if not copies:
+            return "{}_copy1".format(code)
+        n = max((int(c.split('_copy')[1]) for c in copies))
+        return "{}_copy{}}".format(code, n+1)
 
     def duplicate_activity(self, key):
         """duplicates the selected activity in the same db, with a new BW code
