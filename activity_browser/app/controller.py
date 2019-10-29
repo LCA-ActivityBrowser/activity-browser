@@ -383,7 +383,7 @@ class Controller(object):
         origin_db = activity_key[0]
         activity = bw.get_activity(activity_key)
 
-        available_target_dbs = project_settings.get_editable_databases()
+        available_target_dbs = list(project_settings.get_editable_databases())
 
         if origin_db in available_target_dbs:
             available_target_dbs.remove(origin_db)
