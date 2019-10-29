@@ -1,18 +1,23 @@
 # -*- coding: utf-8 -*-
 import json
 
+import brightway2 as bw
 import requests
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from .icons import qicons
 from .utils import abt1
 from ..signals import signals
+from .widgets import BiosphereUpdater
 from .wizards.settings_wizard import SettingsWizard
 
 
 class MenuBar(object):
     def __init__(self, window):
         self.window = window
+        self.update_biosphere_action = QtWidgets.QAction("&Update biosphere...")
+        self.biosphere_updater = None
+
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
         # self.menubar.addMenu(self.setup_tools_menu())
@@ -24,6 +29,9 @@ class MenuBar(object):
 
     def connect_signals(self):
         signals.update_windows.connect(self.update_windows_menu)
+        signals.project_selected.connect(self.biosphere_exists)
+        signals.databases_changed.connect(self.biosphere_exists)
+        self.update_biosphere_action.triggered.connect(self.update_biosphere)
 
     # FILE
     def setup_file_menu(self):
@@ -32,6 +40,7 @@ class MenuBar(object):
             '&Import database...',
             signals.import_database.emit
         )
+        menu.addAction(self.update_biosphere_action)
         menu.addAction(
             '&Settings...',
             self.open_settings_wizard
@@ -172,3 +181,15 @@ You should have received a copy of the GNU General Public License along with thi
 
     def open_settings_wizard(self):
         self.settings_wizard = SettingsWizard()
+
+    def biosphere_exists(self) -> None:
+        """ Test if the default biosphere exists as a database in the project
+        """
+        exists = True if bw.config.biosphere in bw.databases else False
+        self.update_biosphere_action.setEnabled(exists)
+
+    def update_biosphere(self):
+        """ Open a popup with progression bar and run through the different
+        functions for adding ecoinvent biosphere flows.
+        """
+        self.biosphere_updater = BiosphereUpdater()
