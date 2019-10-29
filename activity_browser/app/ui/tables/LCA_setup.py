@@ -86,9 +86,9 @@ class CSActivityTable(ABDataFrameEdit):
             raise ValueError("'name' cannot be None if no name is set")
         if name:
             self.current_cs = name
+        setup = bw.calculation_setups.get(self.current_cs, {})
         data = [
-            self.build_row(key, amount)
-            for func_unit in bw.calculation_setups[self.current_cs]['inv']
+            self.build_row(key, amount) for func_unit in setup.get('inv', [])
             for key, amount in func_unit.items()
         ]
         self.dataframe = pd.DataFrame(data, columns=self.HEADERS + ["key"])
