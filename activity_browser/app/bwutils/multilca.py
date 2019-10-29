@@ -194,13 +194,17 @@ class MLCA(object):
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
     @property
-    def all_databases(self):
-        """Get all databases linked to the functional units."""
-        databases = list()
-        for f in self.fu_activity_keys:
-            databases.append(f[0])
-            databases.extend(bw.databases[f[0]].get('depends', []))
-        return set(databases)
+    def all_databases(self) -> set:
+        """ Get all databases linked to the functional units.
+        """
+        databases = set(f[0] for f in self.fu_activity_keys)
+        for dep in (bw.databases[db].get('depends', []) for db in databases):
+            databases = databases.union(dep)
+        # In rare cases, the default biosphere is not found as a dependency, see:
+        # https://github.com/LCA-ActivityBrowser/activity-browser/issues/298
+        # Always include it.
+        databases.add(bw.config.biosphere)
+        return databases
 
     @property
     def lca_scores_normalized(self):
