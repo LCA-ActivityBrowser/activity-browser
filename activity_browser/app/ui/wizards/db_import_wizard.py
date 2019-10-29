@@ -11,6 +11,7 @@ from bw2io.extractors import Ecospold2DataExtractor
 from bw2io import SingleOutputEcospold2Importer
 from bw2data import config
 from bw2data.backends import SQLiteBackend
+from bw2data.errors import InvalidExchange
 from PyQt5 import QtWidgets, QtCore
 
 from activity_browser.app.signals import signals
@@ -52,6 +53,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_extraction)
 
         import_signals.connection_problem.connect(self.show_info)
+        import_signals.biosphere_incomplete.connect(self.show_info)
 
     @property
     def version(self):
@@ -526,6 +528,15 @@ class MainWorkerThread(QtCore.QThread):
                 self.delete_canceled_db()
         except ImportCanceledError:
             self.delete_canceled_db()
+        except InvalidExchange:
+            # Likely caused by new version of ecoinvent not finding required
+            # biosphere flows.
+            self.delete_canceled_db()
+            import_signals.biosphere_incomplete.emit(
+                ("Missing exchanges", "The import failed as required biosphere"
+                 " exchanges are missing from the biosphere3 database. Please"
+                 " update the biosphere by using 'File' -> 'Update biosphere...'")
+            )
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
@@ -734,6 +745,7 @@ class ImportSignals(QtCore.QObject):
     unarchive_finished = QtCore.pyqtSignal()
     download_complete = QtCore.pyqtSignal()
     biosphere_finished = QtCore.pyqtSignal()
+    biosphere_incomplete = QtCore.pyqtSignal(tuple)
     copydb_finished = QtCore.pyqtSignal()
     cancel_sentinel = False
     login_success = QtCore.pyqtSignal(bool)
