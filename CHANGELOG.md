@@ -10,6 +10,12 @@
     existing exchange tables and the parameter tables in the new 'Parameters'
     tab. Please see the [brightway2 documentation](https://2.docs.brightwaylca.org/intro.html#parameterized-datasets)
     for a rundown of how to use parameters.
+- ([#308](https://github.com/LCA-ActivityBrowser/activity-browser/pull/308))
+    Added a small biosphere3 updater for users with long-running projects.
+    This will allow users to update their biosphere3 database allowing the
+    importer to correctly link never versions of ecoinvent. Also includes
+    an exception handler which explicitly explains what to do when an ecoinvent
+    import fails.
 
 ### Changed
 
@@ -24,6 +30,13 @@
     search results.
 - ([#306](https://github.com/LCA-ActivityBrowser/activity-browser/pull/306))
     Fixes a number of reported issues. The checkbox should now be working correctly on MacOS.
+- ([#309](https://github.com/LCA-ActivityBrowser/activity-browser/pull/309))
+    Corrects an edge-case bug which causes the AB to complain when a calculation
+    setup could not be found.
+- ([#310](https://github.com/LCA-ActivityBrowser/activity-browser/pull/310))
+    Fixes an edge-case issue caused by copying a process with only technosphere
+    exchanges to a new database. Fixes the `copy to a different db` command,
+    and add minor changes to ensure that copying to a large database is snappy.
 
 ## [2.3.4] - 2019-10-16
 
