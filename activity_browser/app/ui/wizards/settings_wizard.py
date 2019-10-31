@@ -82,7 +82,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.setLayout(self.layout)
 
         self.setFinalPage(True)
-        self.setButtonText(3, 'Save')
+        self.setButtonText(QtWidgets.QWizard.FinishButton, 'Save')
 
         # signals
         self.startup_project_combobox.currentIndexChanged.connect(self.changed)
