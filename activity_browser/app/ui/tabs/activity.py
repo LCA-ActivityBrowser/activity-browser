@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import pyqtSlot as Slot
 
 from ..style import style_activity_tab
 from ..tables import (BiosphereExchangeTable, DownstreamExchangeTable,
@@ -27,7 +28,7 @@ class ActivitiesTab(ABTab):
         signals.delete_activity.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
 
-    @QtCore.pyqtSlot(tuple)
+    @Slot(tuple)
     def open_activity_tab(self, key: tuple) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
@@ -151,7 +152,7 @@ class ActivityTab(QtWidgets.QWidget):
         signals.parameters_changed.connect(self.populate)
         # signals.activity_modified.connect(self.update_activity_values)
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def open_graph(self):
         signals.open_activity_graph_tab.emit(self.key)
 

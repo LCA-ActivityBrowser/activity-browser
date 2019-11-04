@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5.QtCore import pyqtSlot, QSize
+from PyQt5.QtCore import pyqtSlot as Slot, QSize
 from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QPushButton, QToolBar,
                              QVBoxLayout, QTabWidget)
 
@@ -41,7 +41,7 @@ class ParametersTab(QTabWidget):
         # signals.add_activity_parameter.connect(self.activity_parameter_added)
         pass
 
-    @pyqtSlot()
+    @Slot()
     def activity_parameter_added(self) -> None:
         """ Selects the correct sub-tab to show and trigger a switch to
         the Parameters tab.
@@ -178,13 +178,13 @@ can be used within the formula!</p>
         else:
             self.new_database_param.setEnabled(True)
 
-    @pyqtSlot()
+    @Slot()
     def hide_uncertainty_columns(self):
         show = self.uncertainty_columns.isChecked()
         for table in self.tables.values():
             table.uncertainty_columns(show)
 
-    @pyqtSlot()
+    @Slot()
     def activity_order_column(self) -> None:
         col = self.activity_table.combine_columns().index("order")
         state = self.show_order.isChecked()
@@ -194,7 +194,7 @@ can be used within the formula!</p>
             self.activity_table.setColumnHidden(col, False)
             self.activity_table.resizeColumnToContents(col)
 
-    @pyqtSlot()
+    @Slot()
     def hide_database_parameter(self) -> None:
         hide = not self.show_database_params.isChecked()
         self.database_header.setHidden(hide)

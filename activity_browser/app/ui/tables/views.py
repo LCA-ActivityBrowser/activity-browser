@@ -4,7 +4,7 @@ from functools import wraps
 from typing import Optional
 
 from PyQt5.QtCore import (QAbstractTableModel, QModelIndex, QSize,
-                          QSortFilterProxyModel, Qt, pyqtSlot)
+                          QSortFilterProxyModel, Qt, pyqtSlot as Slot)
 from PyQt5.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from activity_browser.app.settings import ab_settings
@@ -133,7 +133,7 @@ class ABDataFrameView(QTableView):
                 filepath += '.xlsx'
             self.dataframe.to_excel(filepath)
 
-    @pyqtSlot()
+    @Slot()
     def keyPressEvent(self, e):
         """ Allow user to copy selected data from the table
 
@@ -201,7 +201,7 @@ class ABDictTreeView(QTreeView):
         """
         raise NotImplementedError
 
-    @pyqtSlot()
+    @Slot()
     def _resize(self) -> None:
         """ Resize the first column (usually 'name') whenever an item is
         expanded or collapsed.

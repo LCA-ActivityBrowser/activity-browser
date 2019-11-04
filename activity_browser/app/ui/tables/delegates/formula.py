@@ -3,6 +3,7 @@ from os import devnull
 
 from asteval import Interpreter
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
 
 from ...icons import qicons
 from ...wizards import ParameterWizard
@@ -12,8 +13,8 @@ class CalculatorButtons(QtWidgets.QWidget):
     """ A custom layout containing calculator buttons, emits a signal
     for each button pressed.
     """
-    button_press = QtCore.pyqtSignal(str)
-    clear = QtCore.pyqtSignal()
+    button_press = Signal(str)
+    clear = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -56,7 +57,7 @@ Keep in mind that the result of a formula must be a scalar value!
         layout.addStretch(1)
         self.setLayout(layout)
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def explanation(self):
         return QtWidgets.QMessageBox.question(
             self, "More...", self.explain_text, QtWidgets.QMessageBox.Ok,
@@ -122,7 +123,7 @@ class FormulaDialog(QtWidgets.QDialog):
                 model.setItem(x, y, model_item)
         self.parameters.resizeColumnsToContents()
 
-    @QtCore.pyqtSlot(str, str, str)
+    @Slot(str, str, str)
     def append_parameter(self, name: str, amount: str, p_type: str) -> None:
         """ Catch new parameters from the wizard and add them to the list.
         """
@@ -145,7 +146,7 @@ class FormulaDialog(QtWidgets.QDialog):
         """
         self.key = key
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def create_parameter(self):
         wizard = ParameterWizard(self.key, self)
         wizard.complete.connect(self.append_parameter)
@@ -165,7 +166,7 @@ class FormulaDialog(QtWidgets.QDialog):
         else:
             self.text_field.setText(str(value))
 
-    @QtCore.pyqtSlot(QtCore.QModelIndex)
+    @Slot(QtCore.QModelIndex)
     def append_parameter_name(self, index: QtCore.QModelIndex) -> None:
         """ Take the index from the parameters table and append the parameter
         name to the formula.
@@ -173,7 +174,7 @@ class FormulaDialog(QtWidgets.QDialog):
         param_name = self.parameters.model().index(index.row(), 0).data()
         self.text_field.insert(param_name)
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def validate_formula(self) -> None:
         """ Qt slot triggered whenever a change is detected in the text_field.
         """
