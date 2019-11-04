@@ -2,8 +2,8 @@
 import numpy as np
 import brightway2 as bw
 from pandas import DataFrame
-from PyQt5.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt
-from PyQt5.QtGui import QBrush
+from PySide2.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt
+from PySide2.QtGui import QBrush
 
 from ..style import style_item
 from ...bwutils.commontasks import AB_names_to_bw_keys

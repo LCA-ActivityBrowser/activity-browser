@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QVBoxLayout
+from PySide2.QtWidgets import QVBoxLayout
 
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import pyqtSignal as Signal
+from PySide2 import QtCore, QtWidgets
+from PySide2.QtCore import Signal
 
 
 class Signals(QtCore.QObject):

@@ -2,8 +2,8 @@
 from os import devnull
 
 from asteval import Interpreter
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import Signal, Slot
 
 from ...icons import qicons
 from ...wizards import ParameterWizard
@@ -67,7 +67,7 @@ Keep in mind that the result of a formula must be a scalar value!
 
 class FormulaDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, flags=QtCore.Qt.Window):
-        super().__init__(parent=parent, flags=flags)
+        super().__init__(parent=parent, f=flags)
         self.setWindowTitle("Build a formula")
         self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.interpreter = None

@@ -4,8 +4,8 @@ import uuid
 from typing import Iterable
 
 import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import pyqtSlot as Slot
+from PySide2 import QtCore, QtWidgets
+from PySide2.QtCore import Slot
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 

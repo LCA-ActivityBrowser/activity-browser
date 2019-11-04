@@ -5,8 +5,8 @@ import functools
 
 import arrow
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import pyqtSlot as Slot
+from PySide2 import QtWidgets, QtCore
+from PySide2.QtCore import Slot
 from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd

@@ -5,8 +5,8 @@ from bw2io.data import (
     add_ecoinvent_33_biosphere_flows, add_ecoinvent_34_biosphere_flows,
     add_ecoinvent_35_biosphere_flows, add_ecoinvent_36_biosphere_flows,
 )
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from PySide2 import QtCore, QtWidgets
+from PySide2.QtCore import Signal, Slot
 
 from ...signals import signals
 

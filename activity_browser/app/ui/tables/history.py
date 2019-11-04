@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 import pandas as pd
-from PyQt5.QtCore import pyqtSlot as Slot
-from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QAbstractItemView, QMenu
+from PySide2.QtCore import Slot
+from PySide2.QtGui import QCursor
+from PySide2.QtWidgets import QAbstractItemView, QMenu
 
 from activity_browser.app.bwutils.commontasks import bw_keys_to_AB_names
 from activity_browser.app.signals import signals

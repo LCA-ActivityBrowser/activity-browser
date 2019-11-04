@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore
+from PySide2 import QtCore
 
 from activity_browser.app.controller import Controller
 from activity_browser.app.signals import signals

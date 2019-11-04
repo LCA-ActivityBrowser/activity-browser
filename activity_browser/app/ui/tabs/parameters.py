@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5.QtCore import pyqtSlot as Slot, QSize
-from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QPushButton, QToolBar,
+from PySide2.QtCore import Slot, QSize
+from PySide2.QtWidgets import (QCheckBox, QHBoxLayout, QPushButton, QToolBar,
                              QVBoxLayout, QTabWidget)
 
 from activity_browser.app.signals import signals

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtCore, QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSlot as Slot
+from PySide2 import QtCore, QtWidgets, QtGui
+from PySide2.QtCore import Slot
 
 from ..style import style_activity_tab
 from ..tables import (BiosphereExchangeTable, DownstreamExchangeTable,

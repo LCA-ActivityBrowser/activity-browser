@@ -2,7 +2,7 @@
 import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from activity_browser.app.bwutils.commontasks import AB_names_to_bw_keys
 

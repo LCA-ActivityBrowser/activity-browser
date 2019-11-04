@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
+from PySide2.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
     QScrollArea, QRadioButton, QLabel, QCheckBox, QPushButton, QComboBox)
-from PyQt5 import QtGui, QtWidgets, QtCore
+from PySide2 import QtGui, QtWidgets, QtCore
 
 from stats_arrays.errors import InvalidParamsError
 

@@ -2,7 +2,7 @@
 import brightway2 as bw
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 import pytest
 
 from activity_browser.app.signals import signals

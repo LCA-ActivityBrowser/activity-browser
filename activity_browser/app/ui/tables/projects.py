@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from bw2data import projects
-from PyQt5.QtWidgets import QComboBox
+from PySide2.QtWidgets import QComboBox
 
 from ...signals import signals
 

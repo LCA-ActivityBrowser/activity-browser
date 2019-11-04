@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-from PyQt5.QtGui import QIcon
+from PySide2.QtGui import QIcon
 
 from activity_browser import PACKAGE_DIRECTORY
 

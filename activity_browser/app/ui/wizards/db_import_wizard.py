@@ -11,8 +11,8 @@ from bw2io.extractors import Ecospold2DataExtractor
 from bw2io import SingleOutputEcospold2Importer
 from bw2data import config
 from bw2data.backends import SQLiteBackend
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from PySide2 import QtWidgets, QtCore
+from PySide2.QtCore import Signal, Slot
 
 from activity_browser.app.signals import signals
 

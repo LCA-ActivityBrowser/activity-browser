@@ -3,9 +3,9 @@ import os
 from functools import wraps
 from typing import Optional
 
-from PyQt5.QtCore import (QAbstractTableModel, QModelIndex, QSize,
-                          QSortFilterProxyModel, Qt, pyqtSlot as Slot)
-from PyQt5.QtWidgets import QFileDialog, QTableView, QTreeView
+from PySide2.QtCore import (QAbstractTableModel, QModelIndex, QSize,
+                          QSortFilterProxyModel, Qt, Slot)
+from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from activity_browser.app.settings import ab_settings
 

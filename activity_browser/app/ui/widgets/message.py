@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox
+from PySide2.QtCore import Qt
+from PySide2.QtWidgets import QMessageBox
 
 
 def parameter_save_errorbox(parent, error) -> int:
