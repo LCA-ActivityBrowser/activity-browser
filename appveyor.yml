@@ -19,8 +19,7 @@ install:
   - conda update -q conda
   - conda info -a
   # Install package requirements & test suite
-  # Do not use the conda-forge pytest version 3.2.2, it includes an old version of pluggy which breaks the test.
-  - conda install -q -c defaults -c conda-forge -c cmutel -c haasad arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas "pyqt==5.9.2" seaborn "pytest>=5.2" pytest-qt pytest-mock
+  - conda install -q -c conda-forge -c cmutel -c haasad arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas pyside2=5.13 seaborn "pytest>=5.2" pytest-qt pytest-mock
 
 test_script:
   - py.test
