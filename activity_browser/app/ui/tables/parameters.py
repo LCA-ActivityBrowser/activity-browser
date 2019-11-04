@@ -484,7 +484,7 @@ class ActivityParameterTable(BaseParameterTable):
         """
         menu = QMenu(self)
         menu.addAction(
-            qicons.add, "Open activity/activities", self.open_activity_tab
+            qicons.add, "Open activities", self.open_activity_tab
         )
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)

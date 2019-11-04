@@ -58,6 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vertical_container.addLayout(self.main_horizontal_box)
 
         self.main_widget = QtWidgets.QWidget()
+        self.main_widget.icon = qicons.main_window
         self.main_widget.name = "&Main Window"
         self.main_widget.setLayout(self.vertical_container)
 
@@ -71,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         working_layout.addWidget(self.log)
 
         self.debug_widget = QtWidgets.QWidget()
+        self.debug_widget.icon = qicons.debug
         self.debug_widget.name = "&Debug Window"
         self.debug_widget.setLayout(working_layout)
 

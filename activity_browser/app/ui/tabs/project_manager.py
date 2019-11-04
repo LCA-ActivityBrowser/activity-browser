@@ -153,10 +153,10 @@ class DatabaseWidget(HeaderTableTemplate):
 
         # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
-            qicons.add_db, "Add Default Data (Biosphere flows, LCIA methods)"
+            qicons.import_db, "Add Default Data (Biosphere flows, LCIA methods)"
         )
         self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
-        self.import_database_button = QtWidgets.QPushButton(qicons.add_db, "Import")
+        self.import_database_button = QtWidgets.QPushButton(qicons.import_db, "Import")
 
         # Header widget
         self.header_layout.addWidget(self.add_default_data_button)

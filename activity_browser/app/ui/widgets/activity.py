@@ -149,7 +149,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             available_target_dbs.remove(current_db)
 
         for db_name in available_target_dbs:
-            self.database_combo.addItem(qicons.duplicate, db_name)
+            self.database_combo.addItem(qicons.duplicate_activity, db_name)
         self.database_combo.blockSignals(False)
 
     def duplicate_confirm_dialog(self, target_db):

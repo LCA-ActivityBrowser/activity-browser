@@ -312,7 +312,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
-        menu.addAction(qicons.left, "Open activity/activities", self.open_activities)
+        menu.addAction(qicons.right, "Open activities", self.open_activities)
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
         menu.exec_(a0.globalPos())
@@ -387,5 +387,5 @@ class DownstreamExchangeTable(TechnosphereExchangeTable):
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
-        menu.addAction(qicons.left, "Open activity/activities", self.open_activities)
+        menu.addAction(qicons.right, "Open activities", self.open_activities)
         menu.exec_(a0.globalPos())

@@ -2,11 +2,9 @@
 import json
 
 import brightway2 as bw
-import requests
 from PySide2 import QtCore, QtWidgets, QtGui
 
 from .icons import qicons
-from .utils import abt1
 from ..signals import signals
 from .widgets import BiosphereUpdater
 from .wizards.settings_wizard import SettingsWizard
@@ -22,6 +20,7 @@ class MenuBar(object):
         self.menubar.addMenu(self.setup_file_menu())
         # self.menubar.addMenu(self.setup_tools_menu())
         # self.menubar.addMenu(self.setup_extensions_menu())
+        self.menubar.addMenu(self.setup_view_menu())
         self.menubar.addMenu(self.setup_windows_menu())
         self.menubar.addMenu(self.setup_help_menu())
         window.setMenuBar(self.menubar)
@@ -37,50 +36,41 @@ class MenuBar(object):
     def setup_file_menu(self):
         menu = QtWidgets.QMenu('&File', self.window)
         menu.addAction(
+            qicons.import_db,
             '&Import database...',
             signals.import_database.emit
         )
         menu.addAction(self.update_biosphere_action)
         menu.addAction(
+            qicons.settings,
             '&Settings...',
             self.open_settings_wizard
         )
         return menu
 
-    # # TOOLS
-    # def setup_tools_menu(self):
-    #     menu = QtWidgets.QMenu('&Tools', self.window)
-    #     menu.addAction(
-    #         '&Graph Explorer',
-    #         lambda x="Graph Explorer": signals.show_tab.emit(x)
-    #     )
-    #     # menu.addAction(
-    #     #     '&Show/hide history',
-    #     #     lambda x="Project History": signals.show_or_hide_tab.emit(x)
-    #     # )
-    #
-    #     # self.graph_navigator = QtWidgets.QMenu('&Windows', self.window)
-    #     # self.update_windows_menu()
-    #     return menu
+    # VIEW
+    def setup_view_menu(self):
+        view_menu = QtWidgets.QMenu('&View', self.window)
+        view_menu.addAction(
+            qicons.graph_explorer,
+            '&Graph Explorer',
+            lambda x="Graph Explorer": signals.toggle_show_or_hide_tab.emit(x)
+        )
+        view_menu.addAction(
+            qicons.history,
+            '&Activity History',
+            lambda x="History": signals.toggle_show_or_hide_tab.emit(x)
+        )
+        view_menu.addAction(
+            qicons.welcome,
+            '&Welcome screen',
+            lambda x="Welcome": signals.toggle_show_or_hide_tab.emit(x)
+        )
+        return view_menu
 
     # WINDOWS
     def setup_windows_menu(self):
         self.windows_menu = QtWidgets.QMenu('&Windows', self.window)
-
-        self.show_hide_menu = QtWidgets.QMenu('&Show/hide...', self.window)
-        self.show_hide_menu.addAction(
-            '&Project History',
-            lambda x="Project History": signals.toggle_show_or_hide_tab.emit(x)
-        )
-        self.show_hide_menu.addAction(
-            '&Graph Explorer',
-            lambda x="Graph Explorer": signals.toggle_show_or_hide_tab.emit(x)
-        )
-        self.show_hide_menu.addAction(
-            '&Welcome screen',
-            lambda x="Welcome": signals.toggle_show_or_hide_tab.emit(x)
-        )
-        # self.windows_menu.addMenu(self.show_hide_menu)
         self.update_windows_menu()
         return self.windows_menu
 
@@ -89,34 +79,28 @@ class MenuBar(object):
         for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
             widget = self.window.stacked.widget(index)
             self.windows_menu.addAction(
+                widget.icon,
                 widget.name,
                 lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
             )
-        self.windows_menu.addMenu(self.show_hide_menu)
 
     # HELP
     def setup_help_menu(self):
-        bug_icon = qicons.debug
         help_menu = QtWidgets.QMenu('&Help', self.window)
         help_menu.addAction(
             self.window.icon,
             '&About Activity Browser',
             self.about)
-
         help_menu.addAction(
             '&About Qt',
             lambda: QtWidgets.QMessageBox.aboutQt(self.window)
         )
         help_menu.addAction(
-            bug_icon,
-            '&Report Bug on github',
+            qicons.issue,
+            '&Report an idea/issue on GitHub',
             self.raise_issue_github
         )
-        help_menu.addAction(
-            bug_icon,
-            '&Report Bug',
-            self.raise_issue_from_app
-        )
+
         return help_menu
 
     def about(self):
@@ -148,37 +132,6 @@ You should have received a copy of the GNU Lesser General Public License along w
     def raise_issue_github(self):
         url = QtCore.QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
         QtGui.QDesktopServices.openUrl(url)
-
-    def raise_issue_api(self, content):
-        abt2 = 'C5F02AZ12E56E6D46Z811D'
-        auth = (
-            'ActivityBrowser',
-            ''.join(reversed(abt1 + ''.join(reversed(abt2.lower())))).replace('z', '')
-        )
-        data = {
-            'title': 'New issue reported from app',
-            'body': content
-        }
-
-        url = 'https://api.github.com/repos/LCA-ActivityBrowser/activity-browser/issues'
-        response = requests.post(url, data=json.dumps(data), auth=auth)
-        if response.status_code != 201:
-            print(response)
-            print(response.text)
-
-    def raise_issue_from_app(self):
-        text, _ = QtWidgets.QInputDialog.getMultiLineText(
-            None,
-            'Report new bug',
-            ('Please describe the buggy behaviour. View existing issues on ' +
-             '<a href="https://github.com/LCA-ActivityBrowser/activity-browser/issues">github</a>.'+
-             '<br>If you have a github account, please consider raising the issue directly on github.'
-             ),
-        )
-        if text:
-            content = text + '\n\nLog Output:\n```\n{}```'.format(self.window.log.toPlainText())
-            self.raise_issue_api(content)
-            print(content)
 
     def open_settings_wizard(self):
         self.settings_wizard = SettingsWizard()

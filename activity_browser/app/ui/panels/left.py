@@ -12,10 +12,10 @@ class LeftPanel(ABTab):
         self.tabs = {
             "Project": ProjectTab(self),
             "Impact Categories": MethodsTab(self),
-            "Project History": HistoryTab(self),
+            "History": HistoryTab(self),
         }
         for tab_name, tab in self.tabs.items():
             self.addTab(tab, tab_name)
         # tabs hidden at start
-        self.hide_tab("Project History")
+        self.hide_tab("History")
 
