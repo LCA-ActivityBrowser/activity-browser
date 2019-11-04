@@ -120,22 +120,23 @@ class MenuBar(object):
         return help_menu
 
     def about(self):
-        text = '''
+        text = """
 Activity Browser - a graphical interface for Brightway2.<br><br>
 All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
 Main developers:<br>
 - Bernhard Steubing (CML Leiden University, b.steubing@cml.leidenuniv.nl)<br>
 - Chris Mutel (Paul Scherer Institut, cmutel@gmail.com)<br>
-- Adrian Haas (ETH Zurich, haasad@ethz.ch)<br><br>
+- Adrian Haas (ETH Zurich, haasad@ethz.ch)<br>
+- Daniel de Koning (CML Leiden University, d.g.de.koning@cml.leidenuniv.nl<br><br>
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich<br>
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut<br>
 Copyright (c) 2017, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)<br>
 <br>
 LICENSE:<br>
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<br><br>
-You should have received a copy of the GNU General Public License along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.
-'''
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.<br><br>
+You should have received a copy of the GNU Lesser General Public License along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.
+"""
         msgBox = QtWidgets.QMessageBox()
         msgBox.setWindowTitle('About the Activity Browser')
         pixmap = self.window.icon.pixmap(QtCore.QSize(150, 150))
