@@ -113,6 +113,7 @@ __Brightway2__:
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl)
 - Adrian Haas (haasad@ethz.ch)
 - Chris Mutel (cmutel@gmail.com)
+- Daniel de Koning (d.g.de.koning@cml.leidenuniv.nl)
 
 
 ## Copyright

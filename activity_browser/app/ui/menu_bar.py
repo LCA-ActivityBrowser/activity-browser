@@ -126,7 +126,8 @@ All development happens on <a href="https://github.com/LCA-ActivityBrowser/activ
 Main developers:<br>
 - Bernhard Steubing (CML Leiden University, b.steubing@cml.leidenuniv.nl)<br>
 - Chris Mutel (Paul Scherer Institut, cmutel@gmail.com)<br>
-- Adrian Haas (ETH Zurich, haasad@ethz.ch)<br><br>
+- Adrian Haas (ETH Zurich, haasad@ethz.ch)<br>
+- Daniel de Koning (CML Leiden University, d.g.de.koning@cml.leidenuniv.nl<br><br>
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich<br>
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut<br>
 Copyright (c) 2017, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)<br>
