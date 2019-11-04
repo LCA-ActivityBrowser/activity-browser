@@ -18,7 +18,7 @@ def parameter_save_errorbox(parent, error) -> int:
     msgbox.setWindowModality(Qt.ApplicationModal)
     msgbox.setDetailedText(str(error))
     msgbox.setDefaultButton(QMessageBox.Cancel)
-    result = msgbox.exec()
+    result = msgbox.exec_()
     return result
 
 
