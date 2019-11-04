@@ -32,14 +32,17 @@ Skip this step if you already have a working installation of anaconda or minicon
 ### Configure conda channels
 
 The activity-browser has many dependencies and you need to add four [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal and type the following (order is important):
-```
+
+```bash
 conda config --append channels conda-forge
 conda config --append channels cmutel
 conda config --append channels bsteubing
 conda config --append channels haasad
 ```
+
 If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly:
-```
+
+```bash
 channels:
   - defaults
   - conda-forge
@@ -51,9 +54,11 @@ channels:
 ### Install the activity browser
 
 After configuring your conda channels, the activity browser can be installed with this command:
+
+```bash
+conda create --yes --name ab --channel conda-forge activity-browser
 ```
-conda create --yes --name ab activity-browser
-```
+
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
 
 It is recommended that you have a separate conda environment for the activity browser like explained above, but you can also install the activity browser in your root, brightway2 or other existing conda environment if you prefer. Having separate environments for different projects generally reduces unwanted side-effects and incompatibilities between packages. You can still access the same brightway-projects even if you work with different conda environments.
@@ -61,9 +66,11 @@ It is recommended that you have a separate conda environment for the activity br
 ### Run the activity browser
 
 First activate the environment where the activity browser is installed:
-```
+
+```bash
 conda activate ab
 ```
+
 Then simply run `activity-browser` and the application will open.
 
 ### Import an LCI database
@@ -81,13 +88,16 @@ Then simply run `activity-browser` and the application will open.
 The most recent version of the master branch is automatically uploaded and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
 Install the development version like this:
+
+```bash
+conda create --yes --name ab_dev --channel conda-forge activity-browser-dev
 ```
-conda create --yes --name ab_dev activity-browser-dev
-```
+
 Or update like this if you already have a dev environment:
-```
+
+```bash
 conda activate ab_dev
-conda update activity-browser-dev
+conda update --channel conda-forge activity-browser-dev
 ```
 
 ## Contributing
