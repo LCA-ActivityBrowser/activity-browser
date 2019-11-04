@@ -40,7 +40,10 @@ class OrderedListInputDialog(QtWidgets.QDialog):
         for i, checked in items:
             item = QtGui.QStandardItem(i)
             item.setCheckable(True)
-            item.setCheckState(checked)
+            if checked:
+                item.setCheckState(QtCore.Qt.CheckState.Checked)
+            else:
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             model.appendRow(item)
         self.list_view.setModel(model)
 
