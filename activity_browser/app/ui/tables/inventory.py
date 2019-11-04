@@ -53,7 +53,7 @@ class DatabasesTable(ABDataFrameView):
             lambda: signals.delete_database.emit(self.selected_db_name)
         )
         menu.addAction(
-            qicons.duplicate, "Copy database",
+            qicons.duplicate_database, "Copy database",
             lambda: signals.copy_database.emit(self.selected_db_name)
         )
         menu.addAction(
@@ -156,7 +156,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         """
         menu = QtWidgets.QMenu()
         menu.addAction(
-            qicons.left, "Open activity",
+            qicons.right, "Open activity",
             lambda: self.open_activity_tab(self.currentIndex())
         )
         menu.addAction(
@@ -167,7 +167,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         menu.addAction(self.duplicate_activity_action)
         menu.addAction(self.delete_activity_action)
         menu.addAction(
-            qicons.add_db, "Duplicate to other database",
+            qicons.duplicate_to_other_database, "Duplicate to other database",
             lambda: signals.show_duplicate_to_db_interface.emit(self.get_key(self.currentIndex()))
         )
         menu.exec(event.globalPos())
