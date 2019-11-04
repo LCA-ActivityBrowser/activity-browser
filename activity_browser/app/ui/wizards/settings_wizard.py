@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtGui
+from PySide2 import QtWidgets, QtGui
 import os
 
 from activity_browser.app.signals import signals
@@ -82,7 +82,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.setLayout(self.layout)
 
         self.setFinalPage(True)
-        self.setButtonText(3, 'Save')
+        self.setButtonText(QtWidgets.QWizard.FinishButton, 'Save')
 
         # signals
         self.startup_project_combobox.currentIndexChanged.connect(self.changed)

@@ -6,7 +6,8 @@ import brightway2 as bw
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
+from PySide2.QtCore import Signal, Slot
 
 from .delegates import (FloatDelegate, FormulaDelegate, StringDelegate,
                         ViewOnlyDelegate)
@@ -19,7 +20,7 @@ from ...bwutils.commontasks import AB_names_to_bw_keys
 class BaseExchangeTable(ABDataFrameEdit):
     COLUMNS = []
     # Signal used to correctly control `DetailsGroupBox`
-    updated = QtCore.pyqtSignal()
+    updated = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -96,7 +97,7 @@ class BaseExchangeTable(ABDataFrameEdit):
             signals.open_activity_tab.emit(act)
             signals.add_activity_to_history.emit(act)
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def delete_exchanges(self) -> None:
         """ Remove all of the selected exchanges from the activity.
         """
@@ -133,7 +134,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         menu = QtWidgets.QMenu()
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ Override the slot which handles data changes in the model.
@@ -260,7 +261,7 @@ class ProductExchangeTable(BaseExchangeTable):
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(self.remove_formula_action)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Accept exchanges from a technosphere database table, and the
@@ -314,7 +315,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         menu.addAction(qicons.right, "Open activities", self.open_activities)
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Accept exchanges from a technosphere database table, and the
@@ -387,4 +388,4 @@ class DownstreamExchangeTable(TechnosphereExchangeTable):
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.right, "Open activities", self.open_activities)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())

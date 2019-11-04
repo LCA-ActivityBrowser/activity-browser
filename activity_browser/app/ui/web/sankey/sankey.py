@@ -6,7 +6,8 @@ import collections
 import numpy as np
 import brightway2 as bw
 import matplotlib.pyplot as plt
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PySide2.QtCore import Signal, Slot
 
 from .. import wait_html
 from .signals import sankeysignals
@@ -130,19 +131,19 @@ class SankeyWidget(QtWidgets.QWidget):
 
 
 class Bridge(QtCore.QObject):
-    link_clicked = QtCore.pyqtSignal(int)
-    lca_calc_finished = QtCore.pyqtSignal(str)
-    viewer_waiting = QtCore.pyqtSignal()
-    sankey_ready = QtCore.pyqtSignal(str)
+    link_clicked = Signal(int)
+    lca_calc_finished = Signal(str)
+    viewer_waiting = Signal()
+    sankey_ready = Signal(str)
 
-    @QtCore.pyqtSlot(str)
+    @Slot(str)
     def link_selected(self, link):
         target_key = link.split('-')[-2]
         if target_key.startswith('__'):
             target_key = target_key.split('_')[-2]
         self.link_clicked.emit(int(target_key))
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def viewer_ready(self):
         # print("Viewer ready!")
         self.viewer_waiting.emit()

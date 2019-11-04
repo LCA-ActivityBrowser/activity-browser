@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 import pandas as pd
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QAbstractItemView, QMenu
+from PySide2.QtCore import Slot
+from PySide2.QtWidgets import QAbstractItemView, QMenu
 
 from activity_browser.app.bwutils.commontasks import bw_keys_to_AB_names
 from activity_browser.app.signals import signals
@@ -44,10 +43,9 @@ class ActivitiesHistoryTable(ABDataFrameView):
         menu.addAction(
             qicons.right, "Open in new tab", self.open_tab
         )
-        menu.popup(QCursor.pos())
-        menu.exec()
+        menu.exec_(a0.globalPos())
 
-    @pyqtSlot()
+    @Slot()
     def open_tab(self):
         """ Only a single row can be selected for the history,
         trigger the open_tab_event.
@@ -61,7 +59,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
         signals.open_activity_tab.emit(key)
         self.add_activity(key)
 
-    @pyqtSlot(tuple)
+    @Slot(tuple)
     def add_activity(self, key: tuple) -> None:
         row = self.dataframe.loc[self.dataframe["key"].isin([key])]
 

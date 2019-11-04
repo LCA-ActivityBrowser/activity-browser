@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QMessageBox, QWidget
+from PySide2.QtCore import Slot
+from PySide2.QtWidgets import QMessageBox, QWidget
 
 
 class BaseRightTab(QWidget):
@@ -28,7 +28,7 @@ class BaseRightTab(QWidget):
         """
         raise NotImplementedError
 
-    @pyqtSlot()
+    @Slot()
     def explanation(self):
         """ Builds and shows a message box containing whatever text is set
         on self.explain_text

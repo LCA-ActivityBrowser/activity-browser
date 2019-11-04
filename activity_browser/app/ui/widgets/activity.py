@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QMessageBox
+from PySide2 import QtCore, QtWidgets
+from PySide2.QtWidgets import QMessageBox
 
 from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import qicons

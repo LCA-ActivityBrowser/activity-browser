@@ -6,7 +6,8 @@
 
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
-The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle assessment framework.
+The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle
+assessment framework, making use of `Qt` through `Qt for Python` under the [LGPLv3 license](https://www.gnu.org/licenses/lgpl-3.0.html).
 
 - [Installation](#installation)
     - [Miniconda](#miniconda)
@@ -31,14 +32,17 @@ Skip this step if you already have a working installation of anaconda or minicon
 ### Configure conda channels
 
 The activity-browser has many dependencies and you need to add four [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal and type the following (order is important):
-```
+
+```bash
 conda config --append channels conda-forge
 conda config --append channels cmutel
 conda config --append channels bsteubing
 conda config --append channels haasad
 ```
+
 If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly:
-```
+
+```bash
 channels:
   - defaults
   - conda-forge
@@ -50,9 +54,11 @@ channels:
 ### Install the activity browser
 
 After configuring your conda channels, the activity browser can be installed with this command:
+
+```bash
+conda create --yes --name ab --channel conda-forge activity-browser
 ```
-conda create --yes --name ab activity-browser
-```
+
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
 
 It is recommended that you have a separate conda environment for the activity browser like explained above, but you can also install the activity browser in your root, brightway2 or other existing conda environment if you prefer. Having separate environments for different projects generally reduces unwanted side-effects and incompatibilities between packages. You can still access the same brightway-projects even if you work with different conda environments.
@@ -60,9 +66,11 @@ It is recommended that you have a separate conda environment for the activity br
 ### Run the activity browser
 
 First activate the environment where the activity browser is installed:
-```
+
+```bash
 conda activate ab
 ```
+
 Then simply run `activity-browser` and the application will open.
 
 ### Import an LCI database
@@ -80,13 +88,16 @@ Then simply run `activity-browser` and the application will open.
 The most recent version of the master branch is automatically uploaded and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
 Install the development version like this:
+
+```bash
+conda create --yes --name ab_dev --channel conda-forge activity-browser-dev
 ```
-conda create --yes --name ab_dev activity-browser-dev
-```
+
 Or update like this if you already have a dev environment:
-```
+
+```bash
 conda activate ab_dev
-conda update activity-browser-dev
+conda update --channel conda-forge activity-browser-dev
 ```
 
 ## Contributing
@@ -112,6 +123,7 @@ __Brightway2__:
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl)
 - Adrian Haas (haasad@ethz.ch)
 - Chris Mutel (cmutel@gmail.com)
+- Daniel de Koning (d.g.de.koning@cml.leidenuniv.nl)
 
 
 ## Copyright
@@ -122,14 +134,14 @@ Copyright (c) 2015, Bernhard Steubing and ETH Zurich
 
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
+it under the terms of the GNU Lesser General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.

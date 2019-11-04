@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices
 
 

@@ -22,7 +22,7 @@ setup(
     include_package_data=True,
     author="Bernhard Steubing",
     author_email="b.steubing@cml.leidenuniv.nl",
-    license=open('LICENSE').read(),
+    license=open('LICENSE.txt').read(),
     install_requires=[], # dependency management in conda recipe
     url="https://github.com/LCA-ActivityBrowser/activity-browser",
     long_description=open('README.md').read(),
@@ -36,7 +36,7 @@ setup(
         'Intended Audience :: End Users/Desktop',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',

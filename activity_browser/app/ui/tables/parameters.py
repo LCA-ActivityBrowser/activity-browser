@@ -7,9 +7,9 @@ import brightway2 as bw
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
-from PyQt5.QtCore import pyqtSlot, Qt
-from PyQt5.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from PyQt5.QtWidgets import QAction, QInputDialog, QMenu
+from PySide2.QtCore import Slot, Qt
+from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
+from PySide2.QtWidgets import QAction, QInputDialog, QMenu
 
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.settings import project_settings
@@ -73,7 +73,7 @@ class BaseParameterTable(ABDataFrameEdit):
                 self.delete_action.setEnabled(True)
             else:
                 self.delete_action.setEnabled(False)
-            menu.exec(event.globalPos())
+            menu.exec_(event.globalPos())
 
     @classmethod
     def build_df(cls) -> pd.DataFrame:
@@ -452,7 +452,7 @@ class ActivityParameterTable(BaseParameterTable):
         signals.blockSignals(False)
         signals.parameters_changed.emit()
 
-    @pyqtSlot(tuple)
+    @Slot(tuple)
     def add_parameter(self, key: tuple) -> None:
         """ Given the activity key, generate a new row with data from
         the activity and immediately call `new_activity_parameters`.
@@ -495,9 +495,9 @@ class ActivityParameterTable(BaseParameterTable):
                 self.delete_action.setEnabled(True)
             else:
                 self.delete_action.setEnabled(False)
-            menu.exec(event.globalPos())
+            menu.exec_(event.globalPos())
 
-    @pyqtSlot()
+    @Slot()
     def open_activity_tab(self):
         """ Triggers the activity tab to open one or more activities.
         """
@@ -522,7 +522,7 @@ class ActivityParameterTable(BaseParameterTable):
         group.order = order
         group.expire()
 
-    @pyqtSlot()
+    @Slot()
     def delete_parameter(self, proxy) -> None:
         """ Override the base method to include additional logic.
 
@@ -624,7 +624,7 @@ class ExchangesTable(ABDictTreeView):
     def _select_model(self):
         return ParameterTreeModel(self.data)
 
-    @pyqtSlot(tuple)
+    @Slot(tuple)
     def parameterize_exchanges(self, key: tuple) -> None:
         """ Used whenever a formula is set on an exchange in an activity.
 
@@ -640,7 +640,7 @@ class ExchangesTable(ABDictTreeView):
         signals.parameters_changed.emit()
 
     @staticmethod
-    @pyqtSlot()
+    @Slot()
     def recalculate_exchanges():
         """ Will iterate through all activity parameters and rerun the
         formula interpretation for all exchanges.

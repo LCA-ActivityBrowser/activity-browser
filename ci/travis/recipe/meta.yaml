@@ -32,14 +32,14 @@ requirements:
     - matplotlib-base >=2.2.2
     - networkx
     - pandas >=0.24.1
-    - pyqt==5.9.2
+    - pyside2==5.13.1
     - seaborn
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
-  license: GPL3+
-  license_family: GPL3
-  license_file: LICENSE
+  license: LGPL3+
+  license_family: LGPL
+  license_file: LICENSE.txt
   summary: "{{ os.environ.get('SUMMARY', 'Development version of the Activity Browser') }}"
   description: |
     The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)

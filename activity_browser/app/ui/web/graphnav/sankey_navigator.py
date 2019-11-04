@@ -5,8 +5,8 @@ from copy import deepcopy
 import time
 
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from PyQt5.QtCore import Qt
+from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PySide2.QtCore import Signal, Slot, Qt
 
 from .signals import graphsignals
 from ...icons import qicons
@@ -63,7 +63,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
 
         self.connect_signals()
 
-    @QtCore.pyqtSlot()
+    @Slot()
     def loadFinishedHandler(self):
         """Executed when webpage has been loaded for the first time or refreshed.
         Can be used to trigger a calculation after the webpage has been completely loaded."""
@@ -277,9 +277,9 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
 
 
 class Bridge(QtCore.QObject):
-    graph_ready = QtCore.pyqtSignal(str)
+    graph_ready = Signal(str)
 
-    @QtCore.pyqtSlot(str)
+    @Slot(str)
     def node_clicked(self, click_text):
         """ Is called when a node is clicked in Javascript.
         Args:

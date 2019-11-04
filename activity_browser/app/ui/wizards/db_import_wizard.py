@@ -11,8 +11,8 @@ from bw2io.extractors import Ecospold2DataExtractor
 from bw2io import SingleOutputEcospold2Importer
 from bw2data import config
 from bw2data.backends import SQLiteBackend
-from bw2data.errors import InvalidExchange
-from PyQt5 import QtWidgets, QtCore
+from PySide2 import QtWidgets, QtCore
+from PySide2.QtCore import Signal, Slot
 
 from activity_browser.app.signals import signals
 
@@ -267,7 +267,7 @@ class ConfirmationPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = self.parent()
         self.setCommitPage(True)
-        self.setButtonText(2, 'Import Database')
+        self.setButtonText(QtWidgets.QWizard.CommitButton, 'Import Database')
         self.current_project_label = QtWidgets.QLabel('empty')
         self.db_name_label = QtWidgets.QLabel('empty')
         self.path_label = QtWidgets.QLabel('empty')
@@ -401,17 +401,17 @@ class ImportPage(QtWidgets.QWizardPage):
             self.main_worker_thread.update(db_name=self.field('db_name'))
         self.main_worker_thread.start()
 
-    @QtCore.pyqtSlot(int, int)
+    @Slot(int, int)
     def update_extraction_progress(self, i, tot):
         self.extraction_progressbar.setMaximum(tot)
         self.extraction_progressbar.setValue(i)
 
-    @QtCore.pyqtSlot(int, int)
+    @Slot(int, int)
     def update_strategy_progress(self, i, tot):
         self.strategy_progressbar.setMaximum(tot)
         self.strategy_progressbar.setValue(i)
 
-    @QtCore.pyqtSlot(int, int)
+    @Slot(int, int)
     def update_db_progress(self, i, tot):
         self.db_progressbar.setMaximum(tot)
         self.db_progressbar.setValue(i)
@@ -596,7 +596,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.login_thread.update(self.username, self.password)
         self.login_thread.start()
 
-    @QtCore.pyqtSlot(bool)
+    @Slot(bool)
     def login_response(self, success):
         if not success:
             self.success_label.setText('Login failed!')
@@ -670,7 +670,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
     def nextId(self):
         return self.wizard.pages.index(self.wizard.db_name_page)
 
-    @QtCore.pyqtSlot(str)
+    @Slot(str)
     def update_system_model_combobox(self, version: str) -> None:
         """ Updates the `system_model_combobox` whenever the user selects a
         different ecoinvent version.
@@ -737,19 +737,19 @@ class ImportCanceledError(Exception):
 
 
 class ImportSignals(QtCore.QObject):
-    extraction_progress = QtCore.pyqtSignal(int, int)
-    strategy_progress = QtCore.pyqtSignal(int, int)
-    db_progress = QtCore.pyqtSignal(int, int)
-    finalizing = QtCore.pyqtSignal()
-    finished = QtCore.pyqtSignal()
-    unarchive_finished = QtCore.pyqtSignal()
-    download_complete = QtCore.pyqtSignal()
-    biosphere_finished = QtCore.pyqtSignal()
-    biosphere_incomplete = QtCore.pyqtSignal(tuple)
-    copydb_finished = QtCore.pyqtSignal()
+    extraction_progress = Signal(int, int)
+    strategy_progress = Signal(int, int)
+    db_progress = Signal(int, int)
+    finalizing = Signal()
+    finished = Signal()
+    unarchive_finished = Signal()
+    download_complete = Signal()
+    biosphere_finished = Signal()
+    biosphere_incomplete = Signal(tuple)
+    copydb_finished = Signal()
     cancel_sentinel = False
-    login_success = QtCore.pyqtSignal(bool)
-    connection_problem = QtCore.pyqtSignal(tuple)
+    login_success = Signal(bool)
+    connection_problem = Signal(tuple)
 
 
 import_signals = ImportSignals()

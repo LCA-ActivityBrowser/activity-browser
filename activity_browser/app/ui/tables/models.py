@@ -2,8 +2,8 @@
 import numpy as np
 import brightway2 as bw
 from pandas import DataFrame
-from PyQt5.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, QVariant
-from PyQt5.QtGui import QBrush
+from PySide2.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt
+from PySide2.QtGui import QBrush
 
 from ..style import style_item
 from ...bwutils.commontasks import AB_names_to_bw_keys
@@ -25,7 +25,7 @@ class PandasModel(QAbstractTableModel):
 
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
-            return QVariant()
+            return None
 
         if role == Qt.DisplayRole:
             value = self._dataframe.iat[index.row(), index.column()]
@@ -37,7 +37,7 @@ class PandasModel(QAbstractTableModel):
                 value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
-            return QVariant() if value is None else QVariant(value)
+            return value
 
         if role == Qt.ForegroundRole:
             col_name = self._dataframe.columns[index.column()]
@@ -45,7 +45,7 @@ class PandasModel(QAbstractTableModel):
                 col_name = AB_names_to_bw_keys.get(col_name, "")
             return QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
 
-        return QVariant()
+        return None
 
     def flags(self, index):
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
@@ -228,11 +228,11 @@ class BaseTreeModel(QAbstractItemModel):
 
     def data(self, index, role: int = Qt.DisplayRole):
         if not index.isValid():
-            return QVariant()
+            return None
 
         item = index.internalPointer()
         if role == Qt.DisplayRole:
-            return QVariant(item.data(index.column()))
+            return item.data(index.column())
 
         if role == Qt.ForegroundRole:
             col_name = self.root.COLUMNS[index.column()]
@@ -243,10 +243,10 @@ class BaseTreeModel(QAbstractItemModel):
     def headerData(self, column, orientation, role: int = Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             try:
-                return QVariant(self.root.COLUMNS[column])
+                return self.root.COLUMNS[column]
             except IndexError:
                 pass
-        return QVariant()
+        return None
 
     def index(self, row, column, parent=None):
         if not self.hasIndex(row, column, parent):

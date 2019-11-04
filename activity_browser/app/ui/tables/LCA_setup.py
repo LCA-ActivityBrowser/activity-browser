@@ -2,7 +2,7 @@
 import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from activity_browser.app.bwutils.commontasks import AB_names_to_bw_keys
 
@@ -117,8 +117,7 @@ class CSActivityTable(ABDataFrameEdit):
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.delete, "Remove row", self.delete_rows)
-        menu.popup(a0.globalPos())
-        menu.exec()
+        menu.exec_(a0.globalPos())
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ If data in the model is changed, update the dataframe to match.
@@ -197,7 +196,7 @@ class CSMethodsTable(ABDataFrameView):
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.delete, "Remove row", self.delete_rows)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
         if isinstance(event.source(), MethodsTable):
