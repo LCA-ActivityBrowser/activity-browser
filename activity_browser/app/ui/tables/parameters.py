@@ -7,9 +7,9 @@ import brightway2 as bw
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
-from PyQt5.QtCore import pyqtSlot as Slot, Qt
-from PyQt5.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from PyQt5.QtWidgets import QAction, QInputDialog, QMenu
+from PySide2.QtCore import Slot, Qt
+from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
+from PySide2.QtWidgets import QAction, QInputDialog, QMenu
 
 from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.settings import project_settings
@@ -73,7 +73,7 @@ class BaseParameterTable(ABDataFrameEdit):
                 self.delete_action.setEnabled(True)
             else:
                 self.delete_action.setEnabled(False)
-            menu.exec(event.globalPos())
+            menu.exec_(event.globalPos())
 
     @classmethod
     def build_df(cls) -> pd.DataFrame:
@@ -495,7 +495,7 @@ class ActivityParameterTable(BaseParameterTable):
                 self.delete_action.setEnabled(True)
             else:
                 self.delete_action.setEnabled(False)
-            menu.exec(event.globalPos())
+            menu.exec_(event.globalPos())
 
     @Slot()
     def open_activity_tab(self):

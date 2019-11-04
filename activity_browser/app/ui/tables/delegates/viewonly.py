@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QStyledItemDelegate
+from PySide2.QtWidgets import QStyledItemDelegate
 
 
 class ViewOnlyDelegate(QStyledItemDelegate):

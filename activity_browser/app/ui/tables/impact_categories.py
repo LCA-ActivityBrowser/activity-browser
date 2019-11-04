@@ -3,7 +3,7 @@ import numbers
 
 import brightway2 as bw
 from pandas import DataFrame
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from activity_browser.app.signals import signals
 

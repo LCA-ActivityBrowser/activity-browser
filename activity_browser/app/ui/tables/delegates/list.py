@@ -2,7 +2,7 @@
 from itertools import zip_longest
 from typing import List
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 
 class OrderedListInputDialog(QtWidgets.QDialog):
@@ -10,7 +10,7 @@ class OrderedListInputDialog(QtWidgets.QDialog):
     and https://stackoverflow.com/q/26936585
     """
     def __init__(self, parent=None, flags=QtCore.Qt.Window):
-        super().__init__(parent=parent, flags=flags)
+        super().__init__(parent=parent, f=flags)
         self.setWindowTitle("Select and order items")
 
         form = QtWidgets.QFormLayout(self)
@@ -40,7 +40,10 @@ class OrderedListInputDialog(QtWidgets.QDialog):
         for i, checked in items:
             item = QtGui.QStandardItem(i)
             item.setCheckable(True)
-            item.setCheckState(checked)
+            if checked:
+                item.setCheckState(QtCore.Qt.CheckState.Checked)
+            else:
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             model.appendRow(item)
         self.list_view.setModel(model)
 

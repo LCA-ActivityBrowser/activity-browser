@@ -5,8 +5,8 @@ from copy import deepcopy
 import time
 
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot, Qt
+from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PySide2.QtCore import Signal, Slot, Qt
 
 from .signals import graphsignals
 from ...icons import qicons

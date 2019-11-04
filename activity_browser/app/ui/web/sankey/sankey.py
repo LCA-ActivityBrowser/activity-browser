@@ -6,8 +6,8 @@ import collections
 import numpy as np
 import brightway2 as bw
 import matplotlib.pyplot as plt
-from PyQt5 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PySide2.QtCore import Signal, Slot
 
 from .. import wait_html
 from .signals import sankeysignals

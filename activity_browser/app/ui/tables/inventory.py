@@ -5,8 +5,8 @@ import functools
 
 import arrow
 import brightway2 as bw
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import pyqtSlot as Slot
+from PySide2 import QtWidgets, QtCore
+from PySide2.QtCore import Slot
 from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd
@@ -61,7 +61,7 @@ class DatabasesTable(ABDataFrameView):
             qicons.add, "Add new activity",
             lambda: signals.new_activity.emit(self.selected_db_name)
         )
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def mousePressEvent(self, e):
         """ A single mouseclick should trigger the 'read-only' column to alter
@@ -171,7 +171,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             qicons.add_db, "Duplicate to other database",
             lambda: signals.show_duplicate_to_db_interface.emit(self.get_key(self.currentIndex()))
         )
-        menu.exec(event.globalPos())
+        menu.exec_(event.globalPos())
 
     def connect_signals(self):
         signals.database_selected.connect(

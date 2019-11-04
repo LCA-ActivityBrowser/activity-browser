@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PyQt5.QtWidgets import QVBoxLayout
+from PySide2.QtWidgets import QVBoxLayout
 
 from activity_browser import PACKAGE_DIRECTORY
 from .panel import ABTab

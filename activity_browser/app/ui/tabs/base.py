@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtCore import pyqtSlot as Slot
-from PyQt5.QtWidgets import QMessageBox, QWidget
+from PySide2.QtCore import Slot
+from PySide2.QtWidgets import QMessageBox, QWidget
 
 
 class BaseRightTab(QWidget):

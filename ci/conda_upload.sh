@@ -27,7 +27,7 @@ if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
 
     conda install -q conda-build anaconda-client conda-verify
     echo "RUNNING BUILD"
-    conda build -c defaults -c conda-forge -c cmutel -c haasad $TRAVIS_BUILD_DIR/ci/travis/recipe $BUILD_ARGS
+    conda build -c conda-forge -c cmutel -c haasad $TRAVIS_BUILD_DIR/ci/travis/recipe $BUILD_ARGS
     echo "BUILD FINISHED"
 
     ls $CONDA_BLD_PATH/noarch/

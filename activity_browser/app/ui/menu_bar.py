@@ -3,7 +3,7 @@ import json
 
 import brightway2 as bw
 import requests
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PySide2 import QtCore, QtWidgets, QtGui
 
 from .icons import qicons
 from .utils import abt1

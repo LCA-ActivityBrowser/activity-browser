@@ -2,7 +2,7 @@
 import uuid
 from io import StringIO
 
-from PyQt5 import QtGui
+from PySide2 import QtGui
 
 
 class StdRedirector(StringIO):

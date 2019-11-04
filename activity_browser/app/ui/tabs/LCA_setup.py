@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 from brightway2 import calculation_setups
 
 # from activity_browser.app.ui.web.sankey import SankeyWidget

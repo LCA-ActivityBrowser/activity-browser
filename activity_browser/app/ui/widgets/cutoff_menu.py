@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QRadioButton, QSlider, \
+from PySide2.QtCore import Qt
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QRadioButton, QSlider, \
     QLabel, QLineEdit, QPushButton
-from PyQt5.QtGui import QIntValidator, QDoubleValidator
+from PySide2.QtGui import QIntValidator, QDoubleValidator
 from math import log10
 
 from activity_browser.app.ui.style import vertical_line
