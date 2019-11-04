@@ -39,7 +39,7 @@ requirements:
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
   license: LGPL3+
-  license_family: LGPL3
+  license_family: LGPL
   license_file: LICENSE.txt
   summary: GUI for brightway2
   description: |
