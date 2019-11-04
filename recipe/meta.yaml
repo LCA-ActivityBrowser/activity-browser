@@ -33,7 +33,7 @@ requirements:
     - matplotlib-base >=2.2.2
     - networkx
     - pandas >=0.24.1
-    - pyqt==5.9.2
+    - pyside2==5.13.1
     - seaborn
 
 about:
