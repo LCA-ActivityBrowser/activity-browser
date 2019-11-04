@@ -73,7 +73,7 @@ class BaseParameterTable(ABDataFrameEdit):
                 self.delete_action.setEnabled(True)
             else:
                 self.delete_action.setEnabled(False)
-            menu.exec(event.globalPos())
+            menu.exec_(event.globalPos())
 
     @classmethod
     def build_df(cls) -> pd.DataFrame:
@@ -495,7 +495,7 @@ class ActivityParameterTable(BaseParameterTable):
                 self.delete_action.setEnabled(True)
             else:
                 self.delete_action.setEnabled(False)
-            menu.exec(event.globalPos())
+            menu.exec_(event.globalPos())
 
     @Slot()
     def open_activity_tab(self):

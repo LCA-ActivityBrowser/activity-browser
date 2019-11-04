@@ -134,7 +134,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         menu = QtWidgets.QMenu()
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ Override the slot which handles data changes in the model.
@@ -261,7 +261,7 @@ class ProductExchangeTable(BaseExchangeTable):
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(self.remove_formula_action)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Accept exchanges from a technosphere database table, and the
@@ -315,7 +315,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         menu.addAction(qicons.left, "Open activity/activities", self.open_activities)
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Accept exchanges from a technosphere database table, and the
@@ -388,4 +388,4 @@ class DownstreamExchangeTable(TechnosphereExchangeTable):
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.left, "Open activity/activities", self.open_activities)
-        menu.exec(a0.globalPos())
+        menu.exec_(a0.globalPos())

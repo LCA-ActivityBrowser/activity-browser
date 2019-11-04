@@ -44,8 +44,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
         menu.addAction(
             qicons.right, "Open in new tab", self.open_tab
         )
-        menu.popup(QCursor.pos())
-        menu.exec()
+        menu.exec_(a0.globalPos())
 
     @Slot()
     def open_tab(self):
