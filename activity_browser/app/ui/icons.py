@@ -31,10 +31,6 @@ def create_path(folder: str, filename: str) -> str:
     # search = create_path('main', 'search.png')
     # switch = create_path('main', 'switch-state.png')
 
-    # left = create_path('main', 'left.png')
-    # forward = create_path('main', 'forward.png')
-    # backward = create_path('main', 'backward.png')
-
 
 class Icons(object):
     # Icons from href="https://www.flaticon.com/
@@ -44,6 +40,9 @@ class Icons(object):
 
     # arrows
     right = create_path('main', 'right.png')
+    left = create_path('main', 'left.png')
+    forward = create_path('main', 'forward.png')
+    backward = create_path('main', 'backward.png')
 
     # Simple actions
     delete = create_path('context', 'delete.png')
