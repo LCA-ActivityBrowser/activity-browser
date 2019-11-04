@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Signal
+from PySide2.QtCore import QObject, Signal
 
 
-class Signals(QtCore.QObject):
+class Signals(QObject):
     """ Signals used for the Activity Browser should be defined here.
     While arguments can be passed to signals, it is good practice not to do this if possible. """
 

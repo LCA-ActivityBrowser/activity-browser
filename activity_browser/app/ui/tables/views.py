@@ -4,7 +4,7 @@ from functools import wraps
 from typing import Optional
 
 from PySide2.QtCore import (QAbstractTableModel, QModelIndex, QSize,
-                          QSortFilterProxyModel, Qt, Slot)
+                            QSortFilterProxyModel, Qt, Slot)
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from activity_browser.app.settings import ab_settings

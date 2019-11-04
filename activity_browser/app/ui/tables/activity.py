@@ -6,7 +6,7 @@ import brightway2 as bw
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 import pandas as pd
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from .delegates import (FloatDelegate, FormulaDelegate, StringDelegate,
