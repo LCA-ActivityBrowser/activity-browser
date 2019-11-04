@@ -37,9 +37,9 @@ requirements:
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
-  license: GPL3+
-  license_family: GPL3
-  license_file: LICENSE
+  license: LGPL3+
+  license_family: LGPL3
+  license_file: LICENSE.txt
   summary: "{{ os.environ.get('SUMMARY', 'Development version of the Activity Browser') }}"
   description: |
     The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
