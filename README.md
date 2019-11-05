@@ -136,7 +136,7 @@ conda update --channel conda-forge activity-browser-dev
 
 ## Contributing
 
-If you have ideas for improvements to the code or documentation or want to propose new features, don't hesitate to look at our [contributing guidelines](CONTRIBUTING.md) and open issues and/or pull-requests.
+If you have ideas for improvements to the code or documentation or want to propose new features, please take a look at our [contributing guidelines](CONTRIBUTING.md) and open issues and/or pull-requests.
 
 If you experience problems or are suffering from a specific bug, please [raise an issue](https://github.com/LCA-ActivityBrowser/activity-browser/issues) here on github.
 
