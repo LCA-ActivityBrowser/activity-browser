@@ -16,7 +16,7 @@ assessment framework, making use of `Qt` through `Qt for Python` under the [LGPL
     - [Running the activity browser](#running-the-activity-browser)
     - [Importing an LCI database](#importing-an-lci-database)
 - [Development Version](#development-version)
-    - [Important Notice: the AB switched from PyQt5 to PySide2](#Important-Notice:-the-AB-switched-from-PyQt5-to-PySide2)
+    - [Important Notice: the AB switched from PyQt5 to PySide2](#important-notice-the-ab-switched-from-pyqt5-to-pyside2)
         - [Why?](#why)
         - [What do I need to do if I have the AB-dev already installed?](#what-do-i-need-to-do-if-i-have-the-ab-dev-already-installed)
 - [Contributing](#contributing)
