@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed
+
+- ([#312](https://github.com/LCA-ActivityBrowser/activity-browser/pull/312))
+    Slight changes to the main drop-down menu's, adding relevant icons to
+    functionality.
+- ([#315](https://github.com/LCA-ActivityBrowser/activity-browser/pull/315))
+    Refactor code to use PySide2, use LGPL license.
+
+
+## [2.4.0] - 2019-10-30
+
 ### Added
 
 - ([#260](https://github.com/LCA-ActivityBrowser/activity-browser/pull/260))
@@ -153,7 +164,8 @@
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
 
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.4...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.4.0...HEAD
+[2.4.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.4...2.4.0
 [2.3.4]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.3...2.3.4
 [2.3.3]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.2...2.3.3
 [2.3.2]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.1...2.3.2
