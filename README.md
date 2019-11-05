@@ -1,7 +1,6 @@
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)[![Build Status](https://travis-ci.org/LCA-ActivityBrowser/activity-browser.svg?branch=master)](https://travis-ci.org/LCA-ActivityBrowser/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)[![Build status](https://ci.appveyor.com/api/projects/status/8cljoh7o1jrof8tf/branch/master?svg=true)](https://ci.appveyor.com/project/bsteubing/activity-browser/branch/master)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=master)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=master)
 
 
-
 # Activity Browser - a GUI for Brightway2
 
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
@@ -14,11 +13,12 @@ assessment framework, making use of `Qt` through `Qt for Python` under the [LGPL
     - [Configure conda channels](#configure-conda-channels)
     - [Install the activity browser](#install-the-activity-browser)
 - [Getting started](#getting-started)
-    - [Run the the activity browser](#run-the-activity-browser)
-    - [Import an LCI database](#import-an-lci-database)
+    - [Running the the activity browser](#running-the-activity-browser)
+    - [Importing an LCI database](#importing-an-lci-database)
 - [Development Version](#development-version)
-    - [PyQt5 vs PySide2](#pyqt5-vs-pyside2)
-    - [Updating to PySide2](#updating-to-pyside2)
+    - [Important Notice: the AB switched from PyQt5 to PySide2](#Important-Notice:-the-AB-switched-from-PyQt5-to-PySide2)
+        - [Why?](#why?)
+        - [What do I need to do if I have the AB-dev already installed?](#What-do-I-need-to-do-if-I-have-the-AB-dev-already-installed?)
 - [Contributing](#contributing)
 - [Authors](#authors)
 - [Copyright](#copyright)
@@ -105,6 +105,7 @@ conda activate ab_dev
 conda update --channel conda-forge activity-browser-dev
 ```
 
+---
 ### Important Notice: the AB switched from PyQt5 to PySide2
 
 After the 4th of november 2019 conda builds for the activity browser will make use of PySide2 instead of PyQt5.
@@ -137,6 +138,7 @@ You basically have 3 options:
     ```bash
     conda install pyside2
     ```
+---
 
 ## Contributing
 
