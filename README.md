@@ -16,6 +16,8 @@ assessment framework, making use of `Qt` through `Qt for Python` under the [LGPL
     - [Run the the activity browser](#run-the-activity-browser)
     - [Import an LCI database](#import-an-lci-database)
 - [Development Version](#development-version)
+    - [PyQt5 vs PySide2](#pyqt5-vs-pyside2)
+    - [Updating to PySide2](#updating-to-pyside2)
 - [Contributing](#contributing)
 - [Additional Resources](#additional-resources)
 - [Authors](#authors)
@@ -84,6 +86,39 @@ Then simply run `activity-browser` and the application will open.
 
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
+
+### PyQt5 vs PySide2
+
+The newest builds after 2019-11-04 for the activity browser makes use of PySide2 instead of PyQt5. This change made due
+to a number of reasons, most importantly:
+
+- PyQt5 [requires](https://www.riverbankcomputing.com/static/Docs/PyQt5/introduction.html#license) that the Activity
+Browser uses the GPL license, where PySide2 [allows](https://doc.qt.io/qtforpython/licenses.html#licenses-used-in-qt-for-python)
+the Activity Browser to use a more permissive license.
+  - Activity Browser is now published under the LGPL license, if a more permissive license is needed, please contact the developers.
+- PySide2 is maintained and developed by [The Qt Company](https://groups.google.com/forum/#!topic/pyside-dev/pqwzngAGLWE),
+and deemed more likely to be future-proof.
+
+### Updating to PySide2
+
+In order to update the conda environment for the Activity Browser one of three different options can be used:
+
+1. Create a new environment entirely
+    ```bash
+    conda create -n new_ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad activity-browser-dev
+    ```
+2. Remove PyQt5 and install PySide2
+    ```bash
+    # Remove only the 'pyqt', 'matplotlib' and 'seaborn' packages
+    conda remove --force pyqt matplotlib seaborn
+    # Install the replacements from the conda-forge channel
+    conda install -c conda-forge pyside2 matplotlib-base seaborn
+    ```
+3. (Not recommended) Install PySide2 next to PyQt5
+    ```bash
+    # Will sometimes work, causes issues other times.
+    conda install pyside2
+    ```
 
 The most recent version of the master branch is automatically uploaded and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
