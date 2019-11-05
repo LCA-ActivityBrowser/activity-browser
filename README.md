@@ -13,7 +13,7 @@ assessment framework, making use of `Qt` through `Qt for Python` under the [LGPL
     - [Configure conda channels](#configure-conda-channels)
     - [Install the activity browser](#install-the-activity-browser)
 - [Getting started](#getting-started)
-    - [Running the the activity browser](#running-the-activity-browser)
+    - [Running the activity browser](#running-the-activity-browser)
     - [Importing an LCI database](#importing-an-lci-database)
 - [Development Version](#development-version)
     - [Important Notice: the AB switched from PyQt5 to PySide2](#Important-Notice:-the-AB-switched-from-PyQt5-to-PySide2)
@@ -69,7 +69,7 @@ It is recommended that you have a separate conda environment for the activity br
 
 ## Getting started
 
-### Runing the activity browser
+### Running the activity browser
 
 First activate the environment where the activity browser is installed:
 
