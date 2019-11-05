@@ -89,8 +89,8 @@ Then simply run `activity-browser` and the application will open.
 
 ### PyQt5 vs PySide2
 
-The newest builds after 2019-11-04 for the activity browser makes use of PySide2 instead of PyQt5. This change made due
-to a number of reasons, most importantly:
+After the 4th of november 2019 conda builds for the activity browser will make use of PySide2 instead of PyQt5.
+This change was made due to a number of reasons, most importantly:
 
 - PyQt5 [requires](https://www.riverbankcomputing.com/static/Docs/PyQt5/introduction.html#license) that the Activity
 Browser uses the GPL license, where PySide2 [allows](https://doc.qt.io/qtforpython/licenses.html#licenses-used-in-qt-for-python)
@@ -114,9 +114,8 @@ In order to update the conda environment for the Activity Browser one of three d
     # Install the replacements from the conda-forge channel
     conda install -c conda-forge pyside2 matplotlib-base seaborn
     ```
-3. (Not recommended) Install PySide2 next to PyQt5
+3. Install PySide2 next to PyQt5 (we cannot guarantee this works due to possible environment differences)
     ```bash
-    # Will sometimes work, causes issues other times.
     conda install pyside2
     ```
 
