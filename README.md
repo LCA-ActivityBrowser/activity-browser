@@ -8,6 +8,7 @@
 The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle
 assessment framework, making use of `Qt` through `Qt for Python` under the [LGPLv3 license](https://www.gnu.org/licenses/lgpl-3.0.html).
 
+## Contents
 - [Installation](#installation)
     - [Miniconda](#miniconda)
     - [Configure conda channels](#configure-conda-channels)
