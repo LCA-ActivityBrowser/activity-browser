@@ -7,6 +7,7 @@ import zipfile
 import eidl
 import requests
 import brightway2 as bw
+from bw2data.errors import InvalidExchange
 from bw2io.extractors import Ecospold2DataExtractor
 from bw2io import SingleOutputEcospold2Importer
 from bw2data import config
