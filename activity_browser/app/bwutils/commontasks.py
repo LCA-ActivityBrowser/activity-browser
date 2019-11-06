@@ -55,26 +55,6 @@ def format_activity_label(key, style='pnl', max_length=40):
 
 
 # Database
-def get_database_metadata(name):
-    """ Returns a dictionary with database meta-information. """
-    d = dict()
-    d['Name'] = name
-    d['Depends'] = "; ".join(databases[name].get('depends', []))
-    dt = databases[name].get('modified', '')
-    if dt:
-        dt = arrow.get(dt).humanize()
-    d['Last modified'] = dt
-    return d
-
-
-def get_databases_data(databases):
-    """Returns a list with dictionaries that describe the available databases."""
-    data = []
-    for row, name in enumerate(natural_sort(databases)):
-        data.append(get_database_metadata(name))
-    yield data
-
-
 def is_technosphere_db(db_name: str) -> bool:
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
     if not db_name in bw.databases:
@@ -111,26 +91,6 @@ AB_names_to_bw_keys = {
 }
 
 bw_keys_to_AB_names = {v: k for k, v in AB_names_to_bw_keys.items()}
-
-def get_activity_data(datasets):
-    # if not fields:
-    #     fields = ["name", "reference product", "amount", "location", "unit", "database"]
-    # obj = {}
-    # for field in fields:
-    #     obj.update({field: key.get(field, '')})
-    # obj.update({"key": key})
-    for ds in datasets:
-        obj = {
-            'Activity': ds.get('name', ''),
-            'Reference product': ds.get('reference product', ''),  # only in v3
-            'Location': ds.get('location', 'unknown'),
-            # 'Amount': "{:.4g}".format(key['amount']),
-            'Unit': ds.get('unit', 'unknown'),
-            'Database': ds.get(['database'], 'unknown'),
-            'Uncertain': "True" if ds.get("uncertainty type", 0) > 1 else "False",
-            'key': ds,
-        }
-        yield obj
 
 
 def get_activity_name(key, str_length=22):
@@ -207,20 +167,11 @@ def identify_activity_type(activity):
         return "production"
 
 
-# Exchanges
-def get_exchanges_data(exchanges):
-    # TODO: not finished
-    results = []
-    for exc in exchanges:
-        results.append(exc)
-    for r in results:
-        print(r)
-
-
 # LCIA
 def unit_of_method(method):
     assert method in bw.methods
     return bw.methods[method].get('unit')
+
 
 def get_LCIA_method_name_dict(keys):
     """LCIA methods in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
@@ -229,12 +180,3 @@ def get_LCIA_method_name_dict(keys):
     values: brightway2 method tuples
     """
     return {', '.join(key): key for key in keys}
-
-
-#
-# def get_locations_in_db(db_name):
-#     """returns the set of locations in a database"""
-#     db = bw.Database(db_name)
-#     loc_set = set()
-#     [loc_set.add(act.get("location")) for act in db]
-#     return loc_set
