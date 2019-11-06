@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
+import os
+
 import numpy as np
 import seaborn as sns
 import pandas as pd
@@ -7,11 +9,11 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide2 import QtWidgets
-import appdirs
 import brightway2 as bw
-# from time import time
+from bw2data.filesystem import safe_filename
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
+from ..settings import ab_settings
 
 
 # todo: sizing of the figures needs to be improved and systematized...
@@ -39,11 +41,15 @@ class Plot(QtWidgets.QWidget):
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
     def savefilepath(self, default_file_name="LCA results", filter="All Files (*.*)"):
+        """ Present a save-file dialog to the user.
 
+        Create a 'safe' filename from the given `default_file_name`
+        """
+        file_name = safe_filename(default_file_name, add_hash=False)
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
+            parent=self,
             caption='Choose location to save lca results',
-            directory=appdirs.AppDirs('ActivityBrowser', 'ActivityBrowser').user_data_dir+"\\" + default_file_name,
+            dir=os.path.join(ab_settings.data_dir, file_name),
             filter=filter,
         )
         return filepath
