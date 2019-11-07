@@ -13,7 +13,10 @@ from .wizards.settings_wizard import SettingsWizard
 class MenuBar(object):
     def __init__(self, window):
         self.window = window
-        self.update_biosphere_action = QtWidgets.QAction("&Update biosphere...")
+        self.update_biosphere_action = QtWidgets.QAction(
+            window.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload),
+            "&Update biosphere...", None
+        )
         self.biosphere_updater = None
 
         self.menubar = QtWidgets.QMenuBar()
@@ -146,4 +149,11 @@ You should have received a copy of the GNU Lesser General Public License along w
         """ Open a popup with progression bar and run through the different
         functions for adding ecoinvent biosphere flows.
         """
-        self.biosphere_updater = BiosphereUpdater()
+        ok = QtWidgets.QMessageBox.question(
+            self.window, "Update biosphere3?",
+            "Updating the biosphere3 database cannot be undone!",
+            buttons=QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
+            defaultButton=QtWidgets.QMessageBox.Abort
+        )
+        if ok == QtWidgets.QMessageBox.Ok:
+            self.biosphere_updater = BiosphereUpdater()
