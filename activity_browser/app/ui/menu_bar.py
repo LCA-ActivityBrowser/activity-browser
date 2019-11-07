@@ -8,6 +8,7 @@ from .icons import qicons
 from ..signals import signals
 from .widgets import BiosphereUpdater
 from .wizards.settings_wizard import SettingsWizard
+from .wizards.db_transfer_wizard import DatabaseTransferWizard
 
 
 class MenuBar(object):
@@ -37,8 +38,13 @@ class MenuBar(object):
         menu = QtWidgets.QMenu('&File', self.window)
         menu.addAction(
             qicons.import_db,
-            '&Import database...',
+            '&Import remote database...',
             signals.import_database.emit
+        )
+        menu.addAction(
+            self.window.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon),
+            "&Import/export local database...",
+            self.transfer_database_wizard
         )
         menu.addAction(self.update_biosphere_action)
         menu.addAction(
@@ -135,6 +141,9 @@ You should have received a copy of the GNU Lesser General Public License along w
 
     def open_settings_wizard(self):
         self.settings_wizard = SettingsWizard()
+
+    def transfer_database_wizard(self) -> None:
+        wizard = DatabaseTransferWizard()
 
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
