@@ -260,6 +260,12 @@ class DBNamePage(QtWidgets.QWizardPage):
             self.name_edit.setText(sys_mod + version.replace('.', ''))
         elif self.wizard.import_type == 'forwast':
             self.name_edit.setText('Forwast')
+        elif self.wizard.import_type == "local":
+            filename = os.path.basename(self.field("archive_path"))
+            if "." in filename:
+                self.name_edit.setText(filename.split(".")[0])
+            else:
+                self.name_edit.setText(filename)
 
     def validatePage(self):
         db_name = self.name_edit.text()
@@ -570,7 +576,8 @@ class MainWorkerThread(QtCore.QThread):
             result = bw.BW2Package.import_file(self.archive_path)
             if not import_signals.cancel_sentinel:
                 db = next(iter(result))
-                db.rename(self.db_name)
+                if db.name != self.db_name:
+                    db.rename(self.db_name)
                 import_signals.db_progress.emit(1, 1)
                 import_signals.finished.emit()
             else:
@@ -740,7 +747,6 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
         self.path.textChanged.connect(self.changed)
         self.path_btn = QtWidgets.QPushButton("Browse")
         self.path_btn.clicked.connect(self.browse)
-        self.alt_name = QtWidgets.QLineEdit()
         self.complete = False
 
         option_box = QtWidgets.QGroupBox("Import local database file:")
@@ -749,29 +755,19 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
         grid_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
         grid_layout.addWidget(self.path, 0, 1, 1, 2)
         grid_layout.addWidget(self.path_btn, 0, 3, 1, 1)
-        grid_layout.addWidget(QtWidgets.QLabel("Alternate database name"), 1, 0, 1, 1)
-        grid_layout.addWidget(self.alt_name, 1, 1, 1, 2)
         option_box.setLayout(grid_layout)
         layout.addWidget(option_box)
         self.setLayout(layout)
 
+        # Register field to ensure user cannot advance without selecting file.
         self.registerField("import_path*", self.path)
 
     def initializePage(self):
         self.path.clear()
-        self.alt_name.clear()
 
     def nextId(self):
-        self.wizard.setField("archive_path", self.field("import_path"))
-        if self.alt_name.text():
-            self.wizard.setField("db_name", self.alt_name.text())
-        else:
-            filename = os.path.basename(self.path.text())
-            if "." in filename:
-                self.wizard.setField("db_name", filename.split(".")[0])
-            else:
-                self.wizard.setField("db_name", filename)
-        return self.wizard.pages.index(self.wizard.confirmation_page)
+        self.wizard.setField("archive_path", self.path.text())
+        return self.wizard.pages.index(self.wizard.db_name_page)
 
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
