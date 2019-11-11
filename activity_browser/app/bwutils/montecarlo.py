@@ -56,7 +56,7 @@ class CSMonteCarloLCA(object):
         self.lca.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
         self.lca.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed)
         if self.lca.lcia:
-            self.cf_rngs = dict()  # we need as many cf_rng as LCIA methods, because they are of different size
+            self.cf_rngs = dict()  # we need as many cf_rng as impact categories, because they are of different size
             for method in self.methods:
                 self.lca.switch_method(method)
                 self.lca.load_lcia_data()

@@ -43,7 +43,7 @@ class ActivitiesTab(ABTab):
             # new_tab.setToolTip(bw.get_activity(key).as_dict()['name'])
 
         self.select_tab(self.tabs[key])
-        signals.show_tab.emit("Activities")
+        signals.show_tab.emit("Activity Details")
 
     def update_activity_name(self, key, field, value):
         if key in self.tabs and field == 'name':

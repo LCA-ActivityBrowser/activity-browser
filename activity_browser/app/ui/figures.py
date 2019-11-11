@@ -254,7 +254,7 @@ class MonteCarloPlot(Plot):
     """ Monte Carlo plot."""
     def __init__(self, parent=None):
         super(MonteCarloPlot, self).__init__(parent)
-        self.plot_name = 'MonteCarlo'
+        self.plot_name = 'Monte Carlo'
 
     def plot(self, df, method):
         # self.figure.clf()

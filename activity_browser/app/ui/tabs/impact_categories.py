@@ -31,12 +31,12 @@ class MethodsTab(QtWidgets.QWidget):
 
         self.table = MethodsTable()
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("Filter LCIA methods")
+        self.search_box.setPlaceholderText("Filter impact categories")
         reset_search_button = QtWidgets.QPushButton("Reset")
         #
         search_layout = QtWidgets.QHBoxLayout()
         search_layout.setAlignment(QtCore.Qt.AlignTop)
-        search_layout.addWidget(header('LCIA Methods:'))
+        search_layout.addWidget(header('Impact Categories'))
         search_layout.addWidget(self.search_box)
         search_layout.addWidget(reset_search_button)
         #

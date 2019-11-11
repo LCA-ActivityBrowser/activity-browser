@@ -26,7 +26,7 @@ class RightPanel(ABTab):
         self.tabs = {
             "Welcome": RestrictedWebViewWidget(html_file=PACKAGE_DIRECTORY + r'/app/ui/web/startscreen/welcome.html'),
             "Characterization Factors": CharacterizationFactorsTab(self),
-            "Activities": ActivitiesTab(self),
+            "Activity Details": ActivitiesTab(self),
             "LCA Setup": LCASetupTab(self),
             "Graph Explorer": GraphExplorerTab(self),
             "LCA results": LCAResultsTab(self),
@@ -38,7 +38,7 @@ class RightPanel(ABTab):
             self.tab_order[tab_name] = self.addTab(tab, tab_name)
 
         # tabs hidden at start
-        for tab_name in ["Activities", "Characterization Factors", "Graph Explorer", "LCA results"]:
+        for tab_name in ["Activity Details", "Characterization Factors", "Graph Explorer", "LCA results"]:
             self.hide_tab(tab_name)
 
     def show_tab(self, tab_name):
