@@ -37,7 +37,8 @@ class ParameterWizard(QtWidgets.QWizard):
         """ Here is where we create the actual parameter.
         """
         selected = [
-            self.field("btn_project"), self.field("btn_database"),
+            self.field("btn_project"),
+            # self.field("btn_database"),
             self.field("btn_activity")
         ].index(True)
 
@@ -140,7 +141,8 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
 
     def initializePage(self) -> None:
         selected = [
-            self.field("btn_project"), self.field("btn_database"),
+            self.field("btn_project"),
+            # self.field("btn_database"),
             self.field("btn_activity")
         ].index(True)
 
