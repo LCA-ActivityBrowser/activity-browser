@@ -11,7 +11,7 @@ from .metadata import AB_metadata
 
 
 class MLCA(object):
-    """Wrapper class for performing LCA calculations with many functional units and LCIA methods.
+    """Wrapper class for performing LCA calculations with many functional units and impact categories.
 
     Needs to be passed a brightway ``calculation_setup`` name.
 
@@ -19,7 +19,7 @@ class MLCA(object):
     calculations upon instantiation.
 
     Initialization creates `self.lca_scores`, which is a NumPy array
-    of LCA scores, with rows of functional units and columns of LCIA methods.
+    of LCA scores, with rows of functional units and columns of impact categories.
     Ordering is the same as in the `calculation_setup`.
 
     This class is adapted from `bw2calc.multi_lca.MultiLCA` and includes a
@@ -46,9 +46,9 @@ class MLCA(object):
     rev_fu_index: dict
         Same as `fu_index` but using the indexes as keys
     methods: list
-        The LCIA methods of the calculation setup
+        The impact categories of the calculation setup
     method_index: dict
-        Links the LCIA methods to a specific index
+        Links the impact categories to a specific index
     rev_method_index: dict
         Same as `method_index` but using the indexes as keys
     lca: `bw2calc.lca.LCA`

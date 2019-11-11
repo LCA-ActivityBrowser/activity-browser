@@ -59,7 +59,7 @@ def get_radio_buttons(names=['first', 'second'], states=[True, False]):
 def get_unit(method, relative):
     """Determine the unit based on whether a plot is shown:
     - for a number of functional units
-    - for a number of LCIA methods
+    - for a number of impact categories
     and whether the axis are related to:
     - relative or
     - absolute numbers."""
@@ -894,7 +894,7 @@ class MonteCarloTab(NewAnalysisTab):
         super(MonteCarloTab, self).__init__(parent)
         self.parent = parent
 
-        self.layout.addLayout(get_header_layout('MonteCarlo'))
+        self.layout.addLayout(get_header_layout('Monte Carlo Simulation'))
 
         self.add_MC_ui_elements()
 

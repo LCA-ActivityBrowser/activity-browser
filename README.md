@@ -82,7 +82,7 @@ Then simply run `activity-browser` and the application will open.
 
 ### Importing an LCI database
 
-- In the `inventory`-tab there is a button called _"Add Default Data (Biosphere flows, LCIA methods)"_. Click this button to add the default data. This is equivalent to `brightway2.bw2setup()` in python.
+- In the `inventory`-tab there is a button called _"Add default data (biosphere flows and impact categories)"_. Click this button to add the default data. This is equivalent to `brightway2.bw2setup()` in python.
 - After adding the default data, you can import a database with the _"Import Database"_-Button. Follow the instructions of the database import wizard. There are currently three types of imports possible:
     - Directly from the ecoinvent homepage (ecoinvent login credentials required)
     - From a 7zip archive

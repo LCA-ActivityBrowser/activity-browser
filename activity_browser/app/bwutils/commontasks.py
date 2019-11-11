@@ -223,7 +223,7 @@ def unit_of_method(method):
     return bw.methods[method].get('unit')
 
 def get_LCIA_method_name_dict(keys):
-    """LCIA methods in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
+    """Impact categories in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
     Returns a dictionary with
     keys: comma separated strings
     values: brightway2 method tuples

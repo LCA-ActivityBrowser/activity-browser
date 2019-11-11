@@ -299,7 +299,7 @@ def test_open_activity_tab(qtbot, ab_app):
     # First, look at the parameters tab
     panel = ab_app.main_window.right_panel
     param_tab = panel.tabs["Parameters"]
-    activities_tab = panel.tabs["Activities"]
+    activities_tab = panel.tabs["Activity Details"]
     ab_app.main_window.right_panel.select_tab(param_tab)
 
     # Select an activity

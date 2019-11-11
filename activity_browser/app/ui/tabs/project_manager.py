@@ -80,7 +80,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         )
         # Layout
         self.h_layout = QtWidgets.QHBoxLayout()
-        self.h_layout.addWidget(header('Project:'))
+        self.h_layout.addWidget(header('Projects:'))
         self.h_layout.addWidget(self.projects_list)
         self.h_layout.addWidget(self.new_project_button)
         self.h_layout.addWidget(self.copy_project_button)
@@ -153,7 +153,7 @@ class DatabaseWidget(HeaderTableTemplate):
 
         # Buttons
         self.add_default_data_button = QtWidgets.QPushButton(
-            qicons.import_db, "Add Default Data (Biosphere flows, LCIA methods)"
+            qicons.import_db, "Add default data (biosphere flows and impact categories)"
         )
         self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
         self.import_database_button = QtWidgets.QPushButton(qicons.import_db, "Import")
@@ -195,7 +195,7 @@ class DatabaseWidget(HeaderTableTemplate):
 class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
-        self.header = 'Datasets'
+        self.header = 'Activities'
 
         self.table = ActivitiesBiosphereTable(self)
 

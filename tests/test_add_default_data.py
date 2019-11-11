@@ -66,7 +66,7 @@ def test_fail_open_biosphere(ab_app):
     """ Specifically fail to open an activity tab for a biosphere flow
     """
     assert bw.projects.current == "pytest_project"
-    activities_tab = ab_app.main_window.right_panel.tabs["Activities"]
+    activities_tab = ab_app.main_window.right_panel.tabs["Activity Details"]
     # Select any biosphere activity and emit signal to trigger opening the tab
     biosphere_flow = bw.Database("biosphere3").random()
     signals.open_activity_tab.emit(biosphere_flow.key)
@@ -88,7 +88,7 @@ def test_succceed_open_activity(ab_app):
             ]
         }
     })
-    activities_tab = ab_app.main_window.right_panel.tabs["Activities"]
+    activities_tab = ab_app.main_window.right_panel.tabs["Activity Details"]
     # Select the activity and emit signal to trigger opening the tab
     act = bw.get_activity(act_key)
     signals.open_activity_tab.emit(act_key)
