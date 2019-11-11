@@ -96,6 +96,31 @@ def is_technosphere_activity(activity: ActivityProxyBase) -> bool:
     return activity.get("type") == "process"
 
 
+def store_database_as_package(db_name: str, directory: str = None) -> bool:
+    """ Attempt to use `bw.BW2Package` to save the given database as an
+    isolated package that can be shared with others.
+    Returns a boolean signifying success or failure.
+    """
+    if db_name not in bw.databases:
+        return False
+    output_dir = directory or "export"
+    bw.BW2Package.export_obj(bw.Database(db_name), db_name, output_dir)
+    return True
+
+
+def import_database_from_package(filepath: str, alternate_name: str = None) -> (str, bool):
+    """ Make use of `bw.BW2Package` to import a database-like object
+    from the given file path.
+    Returns a string and boolean signifying the database name (if found)
+    and the success or failure of the import.
+    """
+    data = bw.BW2Package.import_file(filepath=filepath)
+    db = next(iter(data))
+    if alternate_name:
+        db.rename(alternate_name)
+    return db.name, True
+
+
 # Activity
 AB_names_to_bw_keys = {
     "Amount": "amount",
