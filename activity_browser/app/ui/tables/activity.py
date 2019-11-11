@@ -300,7 +300,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
             "Activity": adj_act.get("name"),
             "Location": adj_act.get("location", "Unknown"),
             "Database": adj_act.get("database"),
-            "Uncertainty": adj_act.get("uncertainty type", 0),
+            "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
         return row, adj_act
@@ -351,7 +351,7 @@ class BiosphereExchangeTable(BaseExchangeTable):
             "Flow Name": adj_act.get("name"),
             "Compartments": " - ".join(adj_act.get('categories', [])),
             "Database": adj_act.get("database"),
-            "Uncertainty": adj_act.get("uncertainty type", 0),
+            "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
         return row, adj_act
@@ -366,24 +366,42 @@ class BiosphereExchangeTable(BaseExchangeTable):
             event.accept()
 
 
-class DownstreamExchangeTable(TechnosphereExchangeTable):
-    """ Inherit from the `TechnosphereExchangeTable` as the downstream class is
-    very similar, just more restricted.
+class DownstreamExchangeTable(BaseExchangeTable):
+    """ Downstream table class is very similar to technosphere table, just more
+    restricted.
     """
+    COLUMNS = [
+        "Amount", "Unit", "Product", "Activity", "Location", "Database"
+    ]
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        # Override the amount column to be a view-only delegate
         self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
+        self.setDragDropMode(QtWidgets.QTableView.DragOnly)
+
         self.downstream = True
         self.table_name = "downstream"
         self.drag_model = True
-        self.setDragDropMode(QtWidgets.QTableView.DragOnly)
+
+    def create_row(self, exchange) -> (dict, object):
+        row, adj_act = super().create_row(exchange)
+        row.update({
+            "Product": adj_act.get("reference product") or adj_act.get("name"),
+            "Activity": adj_act.get("name"),
+            "Location": adj_act.get("location", "Unknown"),
+            "Database": adj_act.get("database"),
+        })
+        return row, adj_act
 
     def _resize(self) -> None:
         """ Next to `exchange`, also hide the `formula` column.
         """
-        self.setColumnHidden(7, True)
-        self.setColumnHidden(8, True)
+        self.setColumnHidden(6, True)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
