@@ -3,12 +3,12 @@ import os
 from functools import wraps
 from typing import Optional
 
+from bw2data.filesystem import safe_filename
 from PySide2.QtCore import (QAbstractTableModel, QModelIndex, QSize,
                             QSortFilterProxyModel, Qt, Slot)
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 
-from activity_browser.app.settings import ab_settings
-
+from ...settings import ab_settings
 from .models import (DragPandasModel, EditableDragPandasModel,
                      EditablePandasModel, PandasModel,
                      SimpleCopyDragPandasModel, SimpleCopyPandasModel)
@@ -107,10 +107,11 @@ class ABDataFrameView(QTableView):
 
         Uses the application directory for AB
         """
+        safe_name = safe_filename(default_file_name, add_hash=False)
         filepath, _ = QFileDialog.getSaveFileName(
-            self,
+            parent=self,
             caption='Choose location to save lca results',
-            directory=os.path.join(ab_settings.data_dir, default_file_name),
+            dir=os.path.join(ab_settings.data_dir, safe_name),
             filter=file_filter or self.ALL_FILTER,
         )
         return filepath
