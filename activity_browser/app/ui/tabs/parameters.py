@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PySide2.QtCore import Slot, QSize
-from PySide2.QtWidgets import (QCheckBox, QHBoxLayout, QPushButton, QToolBar,
-                             QVBoxLayout, QTabWidget)
+from PySide2.QtWidgets import (
+    QCheckBox, QFileDialog, QHBoxLayout, QInputDialog, QPushButton, QToolBar,
+    QStyle, QVBoxLayout, QTabWidget
+)
 
-from activity_browser.app.signals import signals
-
+from ...bwutils.presamples import (
+    PresamplesParameterManager, load_scenarios_from_file, save_scenarios_to_file
+)
+from ...settings import project_settings
+from ...signals import signals
 from ..icons import qicons
 from ..style import header, horizontal_line
-from ..tables import (ActivityParameterTable, DataBaseParameterTable,
-                      ExchangesTable, ProjectParameterTable)
+from ..tables import (
+    ActivityParameterTable, DataBaseParameterTable, ExchangesTable,
+    ProjectParameterTable, ScenarioTable
+)
 from .base import BaseRightTab
 
 
@@ -27,6 +34,7 @@ class ParametersTab(QTabWidget):
         self.tabs = {
             "Definitions": ParameterDefinitionTab(self),
             "Exchanges": ParameterExchangesTab(self),
+            "Scenarios": PresamplesTab(self),
         }
         for name, tab in self.tabs.items():
             self.addTab(tab, name)
@@ -253,3 +261,72 @@ for the full explanation.</p>
         """ Read parameters from brightway and build tree tables
         """
         self.table.sync()
+
+
+class PresamplesTab(BaseRightTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.load_btn = QPushButton(qicons.add, "Load parameter scenarios", self)
+        self.save_btn = QPushButton(
+            self.style().standardIcon(QStyle.SP_DialogSaveButton),
+            "Save parameter scenarios", self
+        )
+        self.refresh_btn = QPushButton(
+            self.style().standardIcon(QStyle.SP_BrowserReload),
+            "Clear scenarios and restore defaults", self
+        )
+        self.presamples_btn = QPushButton(qicons.debug, "Calculate and store as presamples", self)
+        self.tbl = ScenarioTable(self)
+        self.tbl.sync()
+
+        self._construct_layout()
+        self._connect_signals()
+
+        self.explain_text = """Textificate"""
+
+    def _connect_signals(self):
+        self.load_btn.clicked.connect(self.select_read_file)
+        self.save_btn.clicked.connect(self.save_scenarios)
+        self.refresh_btn.clicked.connect(self.tbl.sync)
+        self.presamples_btn.clicked.connect(self.build_presamples_packages)
+
+    def _construct_layout(self):
+        layout = QVBoxLayout()
+        row = QHBoxLayout()
+        row.addWidget(self.load_btn)
+        row.addWidget(self.save_btn)
+        row.addWidget(self.presamples_btn)
+        row.addWidget(self.refresh_btn)
+        layout.addLayout(row)
+        layout.addWidget(self.tbl)
+        layout.addStretch(1)
+        self.setLayout(layout)
+
+    def select_read_file(self):
+        path, _ = QFileDialog().getOpenFileName(
+            self, caption="Select prepared scenario file",
+            dir=project_settings.data_dir, filter=self.tbl.TSV_FILTER
+        )
+        if path:
+            df = load_scenarios_from_file(path)
+            self.tbl.sync(df=df)
+
+    def save_scenarios(self):
+        filename, _ = QFileDialog().getSaveFileName(
+            self, caption="Save current scenarios to TSV",
+            dir=project_settings.data_dir, filter=self.tbl.TSV_FILTER
+        )
+        if filename:
+            save_scenarios_to_file(self.tbl.dataframe, filename)
+
+    def build_presamples_packages(self):
+        """ Calculate and store presamples arrays from parameter scenarios.
+        """
+        name, ok = QInputDialog().getText(
+            self, "Presamples name", "Unique name for presamples package:",
+        )
+        if ok and name:
+            ppm = PresamplesParameterManager.construct()
+            ps_id, path = ppm.presamples_from_scenarios(name, self.tbl.iterate_scenarios())
+            ppm.store_presamples_as_resource(name, path)

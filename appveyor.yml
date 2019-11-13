@@ -19,7 +19,7 @@ install:
   - conda update -q conda
   - conda info -a
   # Install package requirements & test suite
-  - conda install -q -c conda-forge -c cmutel -c haasad arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas pyside2=5.13 seaborn "pytest>=5.2" pytest-qt pytest-mock
+  - conda install -q -c conda-forge -c cmutel -c haasad -c pascallesage arrow brightway2 bw2io bw2data eidl fuzzywuzzy matplotlib-base networkx pandas pyside2=5.13 seaborn "pytest>=5.2" pytest-qt pytest-mock
 
 test_script:
   - py.test
