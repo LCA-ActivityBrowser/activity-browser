@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import os
+
 import brightway2 as bw
+from bw2data.filesystem import safe_filename
 from PySide2.QtCore import Slot, QSize
 from PySide2.QtWidgets import (
-    QCheckBox, QFileDialog, QHBoxLayout, QInputDialog, QPushButton, QToolBar,
+    QCheckBox, QFileDialog, QHBoxLayout, QPushButton, QToolBar,
     QStyle, QVBoxLayout, QTabWidget
 )
 
@@ -267,41 +270,45 @@ class PresamplesTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.load_btn = QPushButton(qicons.add, "Load parameter scenarios", self)
+        self.load_btn = QPushButton(qicons.add, "Load parameter scenarios")
         self.save_btn = QPushButton(
             self.style().standardIcon(QStyle.SP_DialogSaveButton),
-            "Save parameter scenarios", self
+            "Save parameter scenarios"
         )
         self.refresh_btn = QPushButton(
             self.style().standardIcon(QStyle.SP_BrowserReload),
-            "Clear scenarios and restore defaults", self
+            "Clear scenarios and restore defaults"
         )
-        self.presamples_btn = QPushButton(qicons.debug, "Calculate and store as presamples", self)
+
         self.tbl = ScenarioTable(self)
-        self.tbl.sync()
 
         self._construct_layout()
         self._connect_signals()
-
-        self.explain_text = """Textificate"""
 
     def _connect_signals(self):
         self.load_btn.clicked.connect(self.select_read_file)
         self.save_btn.clicked.connect(self.save_scenarios)
         self.refresh_btn.clicked.connect(self.tbl.sync)
-        self.presamples_btn.clicked.connect(self.build_presamples_packages)
+        signals.project_selected.connect(self.build_tables)
 
     def _construct_layout(self):
         layout = QVBoxLayout()
         row = QHBoxLayout()
-        row.addWidget(self.load_btn)
-        row.addWidget(self.save_btn)
-        row.addWidget(self.presamples_btn)
-        row.addWidget(self.refresh_btn)
+        row.addWidget(header("Parameter Scenarios"))
+        layout.addLayout(row)
+        layout.addWidget(horizontal_line())
+        row = QHBoxLayout()
+        row.addWidget(self.load_btn, 2)
+        row.addWidget(self.save_btn, 2)
+        row.addStretch(3)
+        row.addWidget(self.refresh_btn, 1)
         layout.addLayout(row)
         layout.addWidget(self.tbl)
         layout.addStretch(1)
         self.setLayout(layout)
+
+    def build_tables(self) -> None:
+        self.tbl.sync()
 
     def select_read_file(self):
         path, _ = QFileDialog().getOpenFileName(
@@ -319,14 +326,16 @@ class PresamplesTab(BaseRightTab):
         )
         if filename:
             save_scenarios_to_file(self.tbl.dataframe, filename)
+            basename = os.path.basename(filename)
+            package_name, _ = os.path.splitext(basename)
+            self.build_presamples_packages(safe_filename(package_name, False))
 
-    def build_presamples_packages(self):
+    def build_presamples_packages(self, name: str):
         """ Calculate and store presamples arrays from parameter scenarios.
         """
-        name, ok = QInputDialog().getText(
-            self, "Presamples name", "Unique name for presamples package:",
-        )
-        if ok and name:
-            ppm = PresamplesParameterManager.construct()
-            ps_id, path = ppm.presamples_from_scenarios(name, self.tbl.iterate_scenarios())
-            ppm.store_presamples_as_resource(name, path)
+        ppm = PresamplesParameterManager.construct()
+        names, data = zip(*self.tbl.iterate_scenarios())
+        ps_id, path = ppm.presamples_from_scenarios(name, zip(names, data))
+        description = "{}".format(tuple(names))
+        ppm.store_presamples_as_resource(name, path, description)
+        signals.presample_package_created.emit(name)

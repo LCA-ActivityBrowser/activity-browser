@@ -1,29 +1,26 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
-    QScrollArea, QRadioButton, QLabel, QCheckBox, QPushButton, QComboBox)
-from PySide2 import QtGui, QtWidgets, QtCore
+from collections import namedtuple
+from typing import List, Optional, Union
 
+from PySide2.QtWidgets import (
+    QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
+    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox
+)
+from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
 
-from ..style import horizontal_line, vertical_line, header
-from ..tables import (
-    LCAResultsTable,
-    ContributionTable,
-    InventoryTable,
+from ...bwutils import (
+    Contributions, CSMonteCarloLCA, MLCA, PresamplesMLCA, commontasks as bc
 )
+from ...signals import signals
 from ..figures import (
-    LCAResultsPlot,
-    ContributionPlot,
-    CorrelationPlot,
-    LCAResultsBarChart,
-    MonteCarloPlot,
+    LCAResultsPlot, ContributionPlot, CorrelationPlot, LCAResultsBarChart,
+    MonteCarloPlot
 )
+from ..style import horizontal_line, vertical_line, header
+from ..tables import ContributionTable, InventoryTable, LCAResultsTable
 from ..widgets import CutoffMenu
 from ..web.graphnav import SankeyNavigatorWidget
-from ...signals import signals
-from ...bwutils.multilca import MLCA, Contributions
-from ...bwutils.montecarlo import CSMonteCarloLCA
-from ...bwutils import commontasks as bc
 
 
 # TODO: This module needs a revision
@@ -38,46 +35,40 @@ def get_header_layout(header_text="A new Widget"):
     return vlayout
 
 
-def get_radio_buttons(names=['first', 'second'], states=[True, False]):
-    """ Add the radio buttons."""
-    # buttons
-    buttons = []
-    for name in names:
-        buttons.append(QRadioButton(name))
-
-    for i, state in enumerate(states):
-        buttons[i].setChecked(state)
-
-    # layout
-    combobox_menu = QHBoxLayout()
-    for button in buttons:
-        combobox_menu.addWidget(button)
-    combobox_menu.addStretch(1)
-    return buttons, combobox_menu
-
-
-def get_unit(method, relative):
-    """Determine the unit based on whether a plot is shown:
+def get_unit(method: tuple, relative: bool = False) -> str:
+    """ Determine the unit based on whether a plot is shown:
     - for a number of functional units
     - for a number of impact categories
     and whether the axis are related to:
     - relative or
-    - absolute numbers."""
+    - absolute numbers.
+    """
     if relative:
-        unit = 'relative share'
-    else:
-        if method:  # for all functional units
-            unit = bc.unit_of_method(method)
-        else:
-            unit = 'units of each LCIA method'
-    return unit
+        return "relative share"
+    if method:  # for all functional units
+        return bc.unit_of_method(method)
+    return "units of each LCIA method"
+
+
+# Special namedtuple for the LCAResults TabWidget.
+Tabs = namedtuple(
+    "tabs", ["inventory", "results", "ef", "process", "mc", "sankey"]
+)
 
 
 class LCAResultsSubTab(QTabWidget):
-    def __init__(self, parent, name):
-        super(LCAResultsSubTab, self).__init__(parent)
+    update_scenario_box_index = QtCore.Signal(int)
+
+    def __init__(self, name: str, ps_name: str = None, parent=None):
+        super().__init__(parent)
         self.cs_name = name
+        self.ps_name = ps_name
+        self.mlca: Optional[Union[MLCA, PresamplesMLCA]] = None
+        self.contributions: Optional[Contributions] = None
+        self.mc: Optional[CSMonteCarloLCA] = None
         self.method_dict = dict()
+        self.single_func_unit = False
+        self.single_method = False
 
         self.setMovable(True)
         self.setVisible(False)
@@ -87,14 +78,32 @@ class LCAResultsSubTab(QTabWidget):
         # self.setTabPosition(1)  # South-facing Tabs
 
         self.do_calculations()
+        self.tabs = Tabs(
+            inventory=InventoryTab(self),
+            results=LCAResultsTab(self),
+            ef=ElementaryFlowContributionTab(self, relativity=True),
+            process=ProcessContributionsTab(self, relativity=True),
+            mc=None if self.mc is None else MonteCarloTab(self),
+            sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
+        )
+        self.tab_names = Tabs(
+            inventory="Inventory",
+            results="LCA Results",
+            ef="EF Contributions",
+            process="Process Contributions",
+            mc="Monte Carlo",
+            sankey="Sankey",
+        )
         self.setup_tabs()
-
-        self.setCurrentWidget(self.LCA_results_tab)
+        self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
 
     def do_calculations(self):
         """ Update the mlca calculation. """
-        self.mlca = MLCA(self.cs_name)
+        if self.ps_name is None:
+            self.mlca = MLCA(self.cs_name)
+        else:
+            self.mlca = PresamplesMLCA(self.cs_name, self.ps_name)
         self.contributions = Contributions(self.mlca)
         try:
             self.mc = CSMonteCarloLCA(self.cs_name)
@@ -107,49 +116,57 @@ class LCAResultsSubTab(QTabWidget):
         # self.mct.initialize(self.cs_name)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
-
         self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
         self.single_method = True if len(self.mlca.methods) == 1 else False
 
     def setup_tabs(self):
-        """ Update the calculation setup. """
+        """ Have all of the tabs pull in their required data and add them.
+        """
+        self._update_tabs()
+        visible = self.ps_name and isinstance(self.mlca, PresamplesMLCA)
+        for name, tab in zip(self.tab_names, self.tabs):
+            if tab is not None:
+                self.addTab(tab, name)
+                combobox = getattr(tab, "scenario_box", None)
+                if combobox and not visible:
+                    combobox.setVisible(False)
+                elif combobox and visible:
+                    combobox.addItems(self.mlca.get_scenario_names())
 
-        # the LCA results tabs (order matters)
-        self.inventory_tab = InventoryTab(self)
-        self.inventory_tab.update_table()
-
-        self.LCA_results_tab = LCAResultsTab(self)
-        self.LCA_results_tab.update_tab()
-        self.addTab(self.LCA_results_tab, "LCA Results")
-
-        self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
-        self.EF_contribution_tab.update_analysis_tab()
-
-        self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
-        self.process_contributions_tab.update_analysis_tab()
-
+    def _update_tabs(self):
+        self.tabs.inventory.clear_tables()
+        self.tabs.inventory.update_table()
+        self.tabs.results.update_tab()
+        self.tabs.ef.update_analysis_tab()
+        self.tabs.process.update_analysis_tab()
         if self.mc:
-            self.monte_carlo_tab = MonteCarloTab(self)
-            self.monte_carlo_tab.update_tab()
-
+            self.tabs.mc.update_tab()
         # self.correlations_tab = CorrelationsTab(self)
         # self.correlations_tab.update_analysis_tab()
+        self.tabs.sankey.update_calculation_setup(cs_name=self.cs_name)
 
-        self.sankey_tab = SankeyNavigatorWidget(self.cs_name, parent=self)
-        self.sankey_tab.update_calculation_setup(cs_name=self.cs_name)
-        self.addTab(self.sankey_tab, "Sankey")
+    @QtCore.Slot(int)
+    def update_scenario_data(self, index: int) -> None:
+        """ Will calculate which presamples array to use and update all child tabs.
+        """
+        if index == self.mlca.current:
+            return
+        steps = self.mlca.get_steps_to_index(index)
+        self.mlca.calculate_scenario(steps)
+        self._update_tabs()
+        self.update_scenario_box_index.emit(index)
 
     def generate_content_on_click(self, index):
-        if index == self.indexOf(self.sankey_tab):
-            if not self.sankey_tab.has_sankey:
+        if index == self.indexOf(self.tabs.sankey):
+            if not self.tabs.sankey.has_sankey:
                 print('Generating Sankey Tab')
-                self.sankey_tab.new_sankey()
+                self.tabs.sankey.new_sankey()
 
 
 class AnalysisTab(QWidget):
-    def __init__(self, parent, combobox=None, table=None,\
+    def __init__(self, parent, combobox=None, table=None,
                  plot=None, export=None, relativity=None, custom=False, *args, **kwargs):
-        super(AnalysisTab, self).__init__(parent)
+        super().__init__(parent)
         self.parent = parent
         self.first_time_calculated = False
 
@@ -161,6 +178,7 @@ class AnalysisTab(QWidget):
         self.export_menu = export
         self.relativity = relativity
         self.relative = True
+        self.scenario_box = QComboBox()
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -366,6 +384,9 @@ class AnalysisTab(QWidget):
 
             self.combobox_menu.addWidget(self.combobox_menu_switch_fun)
 
+        # Add scenario dropdown menu here
+        self.combobox_menu.addWidget(self.scenario_box)
+
         # Aggregator combobox goes here
         self.aggregator_label = QLabel("Aggregate by: ")
         self.aggregator_combobox = QComboBox()
@@ -383,22 +404,28 @@ class AnalysisTab(QWidget):
         self.layout.addLayout(self.combobox_menu)
         self.layout.addWidget(self.combobox_menu_horizontal)
 
+    @staticmethod
+    @QtCore.Slot(int)
+    def set_combobox_index(box: QComboBox, index: int) -> None:
+        """ Update the index on the given QComboBox without sending a signal.
+        """
+        box.blockSignals(True)
+        box.setCurrentIndex(index)
+        box.blockSignals(False)
+
     def update_combobox(self):
         """ Update the combobox menu. """
+        self.combobox_menu_combobox.blockSignals(True)
         self.combobox_menu_combobox.clear()
         visibility = True
-        self.combobox_menu_combobox.blockSignals(True)
-
         if self.combobox_menu_label.text() == self.combobox_menu_method_label: # if is assessment methods
             self.combobox_list = list(self.parent.method_dict.keys())
             # if self.parent.single_method:
             #     visibility = False
-
         else:
             self.combobox_list = list(self.parent.mlca.func_unit_translation_dict.keys())
             # if self.parent.single_func_unit:
             #     visibility = False
-
         self.combobox_menu_combobox.insertItems(0, self.combobox_list)
         self.combobox_menu_combobox.blockSignals(False)
 
@@ -455,8 +482,10 @@ class AnalysisTab(QWidget):
 
 
 class NewAnalysisTab(QWidget):
-    def __init__(self, parent):
-        super(NewAnalysisTab, self).__init__(parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+        self.scenario_box = QComboBox()
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
@@ -473,12 +502,22 @@ class NewAnalysisTab(QWidget):
 
         self.layout.addLayout(self.combobox_menu)
 
-    def update_combobox(self, labels):
+    @staticmethod
+    @QtCore.Slot(int)
+    def set_combobox_index(box: QComboBox, index: int) -> None:
+        """ Update the index on the given QComboBox without sending a signal.
+        """
+        box.blockSignals(True)
+        box.setCurrentIndex(index)
+        box.blockSignals(False)
+
+    @staticmethod
+    def update_combobox(box: QComboBox, labels: List[str]) -> None:
         """ Update the combobox menu. """
-        self.combobox.clear()
-        self.combobox.blockSignals(True)
-        self.combobox.insertItems(0, labels)
-        self.combobox.blockSignals(False)
+        box.blockSignals(True)
+        box.clear()
+        box.insertItems(0, labels)
+        box.blockSignals(False)
 
     def add_export(self):
         """ Add the export menu to the tab. """
@@ -532,17 +571,21 @@ class NewAnalysisTab(QWidget):
 
 class InventoryTab(NewAnalysisTab):
     def __init__(self, parent=None):
-        super(InventoryTab, self).__init__(parent)
-        self.parent = parent
+        super().__init__(parent)
         self.df_biosphere = None
         self.df_technosphere = None
 
         self.layout.addLayout(get_header_layout('Inventory'))
 
         # buttons
-        button, button_layout = get_radio_buttons(names=['Biosphere flows', 'Technosphere flows'], states=[True, False])
-        self.radio_button_biosphere = button[0]
-        self.radio_button_technosphere = button[1]
+        button_layout = QHBoxLayout()
+        self.radio_button_biosphere = QRadioButton("Biosphere flows")
+        self.radio_button_biosphere.setChecked(True)
+        button_layout.addWidget(self.radio_button_biosphere)
+        self.radio_button_technosphere = QRadioButton("Technosphere flows")
+        button_layout.addWidget(self.radio_button_technosphere)
+        button_layout.addWidget(self.scenario_box)
+        button_layout.addStretch(1)
         self.layout.addLayout(button_layout)
 
         # table
@@ -551,14 +594,16 @@ class InventoryTab(NewAnalysisTab):
         self.layout.addWidget(self.table)
 
         self.add_export()
-
-        self.parent.addTab(self, 'Inventory')
-
         self.connect_signals()
 
     def connect_signals(self):
         self.radio_button_biosphere.clicked.connect(self.button_clicked)
         self.radio_button_technosphere.clicked.connect(self.button_clicked)
+        if self.parent:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
 
     def button_clicked(self):
         """Update table according to radiobutton selected."""
@@ -575,17 +620,21 @@ class InventoryTab(NewAnalysisTab):
             if self.df_biosphere is None:
                 self.df_biosphere = self.parent.contributions.inventory_df(inventory_type='biosphere')
             self.table.sync(self.df_biosphere)
-
         else:
             if self.df_technosphere is None:
                 self.df_technosphere = self.parent.contributions.inventory_df(inventory_type='technosphere')
             self.table.sync(self.df_technosphere)
 
+    def clear_tables(self) -> None:
+        """ Set the biosphere and technosphere to None.
+        """
+        self.df_biosphere, self.df_technosphere = None, None
+
 
 class LCAResultsTab(QWidget):
     def __init__(self, parent=None):
-        super(LCAResultsTab, self).__init__(parent)
-
+        super().__init__(parent)
+        self.parent = parent
         self.lca_scores_widget = LCAScoresTab(parent)
         self.lca_overview_widget = LCIAResultsTab(parent)
 
@@ -594,9 +643,15 @@ class LCAResultsTab(QWidget):
         self.layout.addLayout(get_header_layout('LCA Results'))
 
         # buttons
-        button, button_layout = get_radio_buttons(names=['Overview', 'by LCIA method'], states=[False, True])
-        self.button_overview = button[0]
-        self.button_by_method = button[1]
+        button_layout = QHBoxLayout()
+        self.button_overview = QRadioButton("Overview")
+        button_layout.addWidget(self.button_overview)
+        self.button_by_method = QRadioButton("by LCIA method")
+        self.button_by_method.setChecked(True)
+        button_layout.addWidget(self.button_by_method)
+        self.scenario_box = QComboBox()
+        button_layout.addWidget(self.scenario_box)
+        button_layout.addStretch(1)
         self.layout.addLayout(button_layout)
 
         self.layout.addWidget(self.lca_scores_widget)
@@ -609,6 +664,9 @@ class LCAResultsTab(QWidget):
     def connect_signals(self):
         self.button_overview.clicked.connect(self.button_clicked)
         self.button_by_method.clicked.connect(self.button_clicked)
+        if self.parent:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(self.update_scenario_box)
 
     def button_clicked(self):
         if self.button_overview.isChecked():
@@ -622,6 +680,12 @@ class LCAResultsTab(QWidget):
         self.lca_scores_widget.update_tab()
         self.lca_overview_widget.update_plot()
         self.lca_overview_widget.update_table()
+
+    @QtCore.Slot(int)
+    def update_scenario_box(self, index: int) -> None:
+        self.scenario_box.blockSignals(True)
+        self.scenario_box.setCurrentIndex(index)
+        self.scenario_box.blockSignals(False)
 
 
 class LCAScoresTab(NewAnalysisTab):
@@ -647,7 +711,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
     def update_tab(self):
-        self.update_combobox([str(m) for m in self.parent.mlca.methods])
+        self.update_combobox(self.combobox, [str(m) for m in self.parent.mlca.methods])
         self.update_plot(method_index=0)
 
     def update_plot(self, method_index=None):
@@ -707,8 +771,8 @@ class ContributionTab(AnalysisTab):
     def update_aggregation_combobox(self):
         """Contribution-specific aggregation combobox
         """
-        self.aggregator_combobox.clear()
         self.aggregator_combobox.blockSignals(True)
+        self.aggregator_combobox.clear()
         if self.contribution_type == 'EF':
             self.aggregator_list = self.parent.contributions.DEFAULT_EF_AGGREGATES
         elif self.contribution_type == 'PC':
@@ -746,6 +810,13 @@ class ContributionTab(AnalysisTab):
                     lambda name: self.update_table(method=name))
                 self.aggregator_combobox.currentTextChanged.connect(
                     lambda a: self.update_table())
+
+        # Add wiring for presamples scenarios
+        if self.parent:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
 
         # Mainspace Checkboxes
         self.main_space_tb_grph_table.stateChanged.connect(
@@ -815,8 +886,6 @@ class ElementaryFlowContributionTab(ContributionTab):
 
         self.contribution_type = 'EF'
         self.contribution_fn = 'EF contributions'
-        self.parent.addTab(self, 'EF Contributions')
-
         self.connect_signals()
 
     def update_dataframe(self):
@@ -842,8 +911,6 @@ class ProcessContributionsTab(ContributionTab):
 
         self.contribution_type = 'PC'
         self.contribution_fn = 'Process contributions'
-        self.parent.addTab(self, 'Process Contributions')
-
         self.connect_signals()
 
     def update_dataframe(self):
@@ -906,9 +973,6 @@ class MonteCarloTab(NewAnalysisTab):
         self.layout.addWidget(self.plot)
         self.add_export()
         self.layout.setAlignment(QtCore.Qt.AlignTop)
-
-        self.parent.addTab(self, "Monte Carlo")
-
         self.connect_signals()
 
     def connect_signals(self):
@@ -922,6 +986,12 @@ class MonteCarloTab(NewAnalysisTab):
         # signals
         # self.radio_button_biosphere.clicked.connect(self.button_clicked)
         # self.radio_button_technosphere.clicked.connect(self.button_clicked)
+
+        if self.parent:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
 
         # Export Plot
         if self.plot and self.export_menu:
@@ -940,11 +1010,12 @@ class MonteCarloTab(NewAnalysisTab):
         # H-LAYOUT start simulation
         self.button_run = QPushButton('Run Simulation')
         self.label_runs = QLabel('Iterations:')
-        self.iterations = QtWidgets.QLineEdit('10')
+        self.iterations = QLineEdit('10')
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
 
         self.hlayout_run = QHBoxLayout()
+        self.hlayout_run.addWidget(self.scenario_box)
         self.hlayout_run.addWidget(self.button_run)
         self.hlayout_run.addWidget(self.label_runs)
         self.hlayout_run.addWidget(self.iterations)
@@ -1038,13 +1109,6 @@ class MonteCarloTab(NewAnalysisTab):
         # add widget, but hide until MC is calculated
         self.layout.addWidget(self.export_widget)
         self.export_widget.hide()
-
-    def update_combobox(self, combobox, labels):
-        """ Update the combobox menu. """
-        combobox.clear()
-        combobox.blockSignals(True)
-        combobox.insertItems(0, labels)
-        combobox.blockSignals(False)
 
     def calculate_MC_LCA(self):
         iterations = int(self.iterations.text())

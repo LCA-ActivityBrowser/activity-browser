@@ -11,6 +11,7 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter,
 from bw2parameters import ParameterSet
 from bw2parameters.errors import MissingName
 import numpy as np
+from peewee import IntegrityError
 import presamples as ps
 
 
@@ -217,11 +218,24 @@ class PresamplesParameterManager(object):
         return ps_id, ps_path
 
     @staticmethod
-    def store_presamples_as_resource(name: str, path: str) -> Optional[ps.PresampleResource]:
+    def store_presamples_as_resource(name: str, path: str, description: str = None) -> Optional[ps.PresampleResource]:
         if not name or not path:
             return
-        resource = ps.PresampleResource.create(name=name, path=path)
-        return resource
+        data = {"name": name, "path": path}
+        if description:
+            data["description"] = description
+        try:
+            resource = ps.PresampleResource.create(**data)
+        except IntegrityError as e:
+            print(e, "\nUpdating with new path.")
+            q = (ps.PresampleResource
+                 .update({ps.PresampleResource.path: path,
+                          ps.PresampleResource.description: description})
+                 .where(ps.PresampleResource.name == name)
+                 .execute())
+            resource = ps.PresampleResource.get(name=name)
+        finally:
+            return resource
 
 
 def process_brightway_parameters() -> Iterable[tuple]:

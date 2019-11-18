@@ -99,7 +99,7 @@ class MLCA(object):
         If the given `cs_name` cannot be found in brightway calculation_setups
 
     """
-    def __init__(self, cs_name):
+    def __init__(self, cs_name: str):
         try:
             cs = bw.calculation_setups[cs_name]
         except KeyError:
@@ -118,7 +118,7 @@ class MLCA(object):
         self.rev_method_index = {v: k for k, v in self.method_index.items()}
 
         # initial LCA and prepare method matrices
-        self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+        self.lca = self._construct_lca()
         self.lca.lci(factorize=True)
         self.method_matrices = []
         for method in self.methods:
@@ -148,6 +148,22 @@ class MLCA(object):
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
 
+        self._perform_calculations()
+
+        # TODO: get rid of the below
+        self.func_unit_translation_dict = {
+            str(bw.get_activity(list(func_unit.keys())[0])): func_unit for func_unit in self.func_units
+        }
+        self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
+        self.func_key_list = list(self.func_key_dict.keys())
+
+    def _construct_lca(self):
+        return bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+
+    def _perform_calculations(self):
+        """ Isolates the code which performs calculations to allow subclasses
+        to either alter the code or redo calculations after matrix substitution.
+        """
         for row, func_unit in enumerate(self.func_units):
             # Do the LCA for the current functional unit
             self.lca.redo_lci(func_unit)
@@ -181,15 +197,8 @@ class MLCA(object):
                     self.lca.characterized_inventory.sum(axis=1)).ravel()
                 self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
 
-        # TODO: get rid of the below
-        self.func_unit_translation_dict = {
-            str(bw.get_activity(list(func_unit.keys())[0])): func_unit for func_unit in self.func_units
-        }
-        self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
-        self.func_key_list = list(self.func_key_dict.keys())
-
     @property
-    def func_units_dict(self):
+    def func_units_dict(self) -> dict:
         """Return a dictionary of functional units (key, demand)."""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
@@ -207,25 +216,18 @@ class MLCA(object):
         return databases
 
     @property
-    def lca_scores_normalized(self):
+    def lca_scores_normalized(self) -> np.ndarray:
         """Normalize LCA scores by impact assessment method.
         """
         return self.lca_scores / self.lca_scores.max(axis=0)
 
-    def get_all_metadata(self):
+    def get_all_metadata(self) -> None:
         """Populate AB_metadata with relevant database values.
 
         Set metadata in form of a Pandas DataFrame for biosphere and
         technosphere databases for tables and additional aggregation.
         """
         AB_metadata.add_metadata(self.all_databases)
-        # print('Making metadata DataFrame.')
-        # dfs = []
-        # for db in self.all_databases:
-        #     df_temp = pd.DataFrame(bw.Database(db))
-        #     df_temp.index = pd.MultiIndex.from_tuples(zip(df_temp['database'], df_temp['code']))
-        #     dfs.append(df_temp)
-        # self.df_meta = pd.concat(dfs, sort=False)
 
 
 class Contributions(object):

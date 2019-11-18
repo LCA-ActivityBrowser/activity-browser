@@ -5,6 +5,9 @@ re-typing the same code in different parts of the Activity Browser.
 """
 import brightway2 as bw
 from .metadata import AB_metadata
+from .montecarlo import CSMonteCarloLCA
+from .multilca import MLCA, Contributions
+from .presamples import PresamplesMLCA
 
 
 def cleanup():

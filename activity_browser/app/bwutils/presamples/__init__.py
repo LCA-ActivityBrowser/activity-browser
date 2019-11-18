@@ -2,6 +2,7 @@
 import pandas as pd
 
 from .manager import PresamplesParameterManager, process_brightway_parameters
+from .presamples_mlca import PresamplesMLCA
 
 
 def load_scenarios_from_file(path: str) -> pd.DataFrame:

@@ -1,12 +1,53 @@
 # -*- coding: utf-8 -*-
-import itertools
-from typing import Iterable, Tuple
+from typing import Iterable, List, Tuple
 
 import pandas as pd
+from presamples import PresampleResource
+from PySide2.QtCore import Slot
+from PySide2.QtWidgets import QComboBox
 
 from ...bwutils.presamples import process_brightway_parameters
+from ...signals import signals
 from .delegates import FloatDelegate, ViewOnlyDelegate
 from .views import ABDataFrameEdit, dataframe_sync
+
+
+class PresamplesList(QComboBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._connect_signals()
+
+    def _connect_signals(self):
+        # If a calculation is run with presamples, catch the signal and
+        # update all instances of PresamplesList.
+        signals.lca_presamples_calculation.connect(
+            lambda _, ps: self.sync(ps)
+        )
+        signals.presample_package_created.connect(self.sync)
+        signals.presample_package_removed.connect(self.sync)
+        signals.project_selected.connect(self.sync)
+
+    @Slot(name="syncAll")
+    @Slot(str, name="syncOnName")
+    def sync(self, name: str = None) -> None:
+        self.blockSignals(True)
+        self.clear()
+        resources = self.get_package_names()
+        self.insertItems(0, resources)
+        self.blockSignals(False)
+        if name and name in resources:
+            self.setCurrentIndex(resources.index(name))
+
+    @property
+    def selection(self) -> str:
+        return self.currentText()
+
+    @property
+    def has_packages(self) -> bool:
+        return PresampleResource.select().exists()
+
+    def get_package_names(self) -> List[str]:
+        return [r.name for r in PresampleResource.select(PresampleResource.name)]
 
 
 class ScenarioTable(ABDataFrameEdit):
