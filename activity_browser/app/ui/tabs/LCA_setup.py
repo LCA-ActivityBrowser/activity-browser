@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from collections import namedtuple
+
 from PySide2 import QtWidgets
+from PySide2.QtCore import Slot
 from brightway2 import calculation_setups
 
 from ...signals import signals
@@ -70,6 +73,7 @@ State data
 The currently selected calculation setup is retrieved by getting the currently selected value in ``CSList``.
 
 """
+PresamplesTuple = namedtuple("presamples", ["label", "list", "button"])
 
 
 class LCASetupTab(QtWidgets.QWidget):
@@ -83,10 +87,16 @@ class LCASetupTab(QtWidgets.QWidget):
         self.new_cs_button = QtWidgets.QPushButton(qicons.add, "New")
         self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
         self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.calculation_type = QtWidgets.QComboBox()
+        self.calculation_type.addItems(["Standard LCA", "Scenario-based LCA"])
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
-        self.presamples_label = QtWidgets.QLabel("Use prepared scenario presamples:")
-        self.presamples_list = PresamplesList()
-        self.presamples_button = QtWidgets.QPushButton(qicons.calculate, "Calculate with presamples")
+        self.presamples = PresamplesTuple(
+            QtWidgets.QLabel("Prepared scenarios:"),
+            PresamplesList(self),
+            QtWidgets.QPushButton(qicons.calculate, "Calculate"),
+        )
+        for obj in self.presamples:
+            obj.hide()
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -97,10 +107,10 @@ class LCASetupTab(QtWidgets.QWidget):
         name_row.addStretch(1)
 
         calc_row = QtWidgets.QHBoxLayout()
+        calc_row.addWidget(self.calculation_type)
         calc_row.addWidget(self.calculate_button)
-        calc_row.addWidget(self.presamples_label)
-        calc_row.addWidget(self.presamples_list)
-        calc_row.addWidget(self.presamples_button)
+        for obj in self.presamples:
+            calc_row.addWidget(obj)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
@@ -120,7 +130,7 @@ class LCASetupTab(QtWidgets.QWidget):
     def connect_signals(self):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
-        self.presamples_button.clicked.connect(self.presamples_calculation)
+        self.presamples.button.clicked.connect(self.presamples_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.delete_cs_button.clicked.connect(
@@ -132,6 +142,7 @@ class LCASetupTab(QtWidgets.QWidget):
                 self.list_widget.name
         ))
         signals.calculation_setup_changed.connect(self.save_cs_changes)
+        self.calculation_type.currentIndexChanged.connect(self.select_calculation_type)
 
         # Slots
         signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
@@ -155,10 +166,11 @@ class LCASetupTab(QtWidgets.QWidget):
 
     def presamples_calculation(self):
         signals.lca_presamples_calculation.emit(
-            self.list_widget.name, self.presamples_list.selection
+            self.list_widget.name, self.presamples.list.selection
         )
 
     def set_default_calculation_setup(self):
+        self.calculation_type.setCurrentIndex(0)
         if not len(calculation_setups):
             self.show_details(False)
             self.calculate_button.setEnabled(False)
@@ -170,11 +182,11 @@ class LCASetupTab(QtWidgets.QWidget):
     def valid_presamples(self):
         """ Determine if calculate with presamples is active.
         """
-        valid = self.calculate_button.isEnabled() and self.presamples_list.has_packages
+        valid = self.calculate_button.isEnabled() and self.presamples.list.has_packages
         if valid:
-            self.presamples_list.sync()
-        self.presamples_list.setEnabled(valid)
-        self.presamples_button.setEnabled(valid)
+            self.presamples.list.sync()
+        self.presamples.list.setEnabled(valid)
+        self.presamples.button.setEnabled(valid)
 
     def show_details(self, show: bool = True):
         self.rename_cs_button.setVisible(show)
@@ -182,6 +194,19 @@ class LCASetupTab(QtWidgets.QWidget):
         self.list_widget.setVisible(show)
         self.activities_table.setVisible(show)
         self.methods_table.setVisible(show)
+
+    @Slot(int, name="changeCalculationType")
+    def select_calculation_type(self, index: int):
+        if index == 0:
+            # Standard LCA.
+            self.calculate_button.show()
+            for obj in self.presamples:
+                obj.hide()
+        elif index == 1:
+            # Presamples / Scenarios LCA.
+            self.calculate_button.hide()
+            for obj in self.presamples:
+                obj.show()
 
     def enable_calculations(self):
         valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
