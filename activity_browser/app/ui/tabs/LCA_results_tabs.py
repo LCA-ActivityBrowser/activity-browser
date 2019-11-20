@@ -129,33 +129,29 @@ class LCAResultsSubTab(QTabWidget):
         self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
         self.single_method = True if len(self.mlca.methods) == 1 else False
 
+    @property
+    def using_presamples(self) -> bool:
+        """ Used to determine if a Scenario Analysis is performed
+        """
+        return all([self.ps_name, isinstance(self.mlca, PresamplesMLCA)])
+
     def setup_tabs(self):
         """ Have all of the tabs pull in their required data and add them.
         """
         self._update_tabs()
-        visible = self.ps_name and isinstance(self.mlca, PresamplesMLCA)
         for name, tab in zip(self.tab_names, self.tabs):
-            if tab is not None:
+            if tab:
                 self.addTab(tab, name)
-                combobox = getattr(tab, "scenario_box", None)
-                if combobox and not visible:
-                    combobox.setVisible(False)
-                elif combobox and visible:
-                    combobox.addItems(self.mlca.get_scenario_names())
+                if hasattr(tab, "configure_scenario"):
+                    tab.configure_scenario()
 
     def _update_tabs(self):
-        self.tabs.inventory.clear_tables()
-        self.tabs.inventory.update_table()
-        self.tabs.results.update_tab()
-        self.tabs.ef.update_tab()
-        self.tabs.process.update_tab()
-        if self.mc:
-            self.tabs.mc.update_tab()
-        # self.correlations_tab = CorrelationsTab(self)
-        # self.correlations_tab.update_tab()
+        for tab in self.tabs:
+            if tab and hasattr(tab, "update_tab"):
+                tab.update_tab()
         self.tabs.sankey.update_calculation_setup(cs_name=self.cs_name)
 
-    @QtCore.Slot(int)
+    @QtCore.Slot(int, name="updateUnderlyingMatrices")
     def update_scenario_data(self, index: int) -> None:
         """ Will calculate which presamples array to use and update all child tabs.
         """
@@ -243,6 +239,18 @@ class NewAnalysisTab(QWidget):
     def relativity_check(self, checked: bool):
         self.relative = checked
         self.update_tab()
+
+    def configure_scenario(self):
+        """ Determine if scenario Qt widgets are visible or not and retrieve
+         scenario labels for the selection drop-down box.
+        """
+        visible = self.parent.using_presamples if self.parent else False
+        if self.scenario_box:
+            print(f"Tab: {type(self)}, visible? {visible}")
+            self.scenario_box.setVisible(visible)
+            if visible:
+                labels = self.parent.mlca.get_scenario_names()
+                self.update_combobox(self.scenario_box, labels)
 
     @staticmethod
     @QtCore.Slot(int, name="setBoxIndex")
@@ -363,6 +371,10 @@ class InventoryTab(NewAnalysisTab):
             self.update_table(inventory='biosphere')
             self.table.table_name = self.parent.cs_name + '_Inventory'
 
+    def update_tab(self):
+        self.clear_tables()
+        super().update_tab()
+
     def update_table(self, inventory='biosphere'):
         if inventory == 'biosphere':
             if self.df_biosphere is None:
@@ -426,6 +438,9 @@ class LCAResultsTab(NewAnalysisTab):
         self.lca_scores_widget.update_tab()
         self.lca_overview_widget.update_plot()
         self.lca_overview_widget.update_table()
+
+    def update_plot(self, *args, **kwargs):
+        pass
 
 
 class LCAScoresTab(NewAnalysisTab):
