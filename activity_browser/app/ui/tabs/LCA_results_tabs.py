@@ -382,14 +382,13 @@ class InventoryTab(NewAnalysisTab):
         self.df_biosphere, self.df_technosphere = None, None
 
 
-class LCAResultsTab(QWidget):
+class LCAResultsTab(NewAnalysisTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
         self.lca_scores_widget = LCAScoresTab(parent)
         self.lca_overview_widget = LCIAResultsTab(parent)
 
-        self.layout = QVBoxLayout()
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.layout.addLayout(get_header_layout('LCA Results'))
 
@@ -403,14 +402,12 @@ class LCAResultsTab(QWidget):
         self.button_group.addButton(self.button_overview, 0)
         self.button_group.addButton(self.button_by_method, 1)
         button_layout.addWidget(self.button_by_method)
-        self.scenario_box = QComboBox()
         button_layout.addWidget(self.scenario_box)
         button_layout.addStretch(1)
         self.layout.addLayout(button_layout)
 
         self.layout.addWidget(self.lca_scores_widget)
         self.layout.addWidget(self.lca_overview_widget)
-        self.setLayout(self.layout)
 
         self.button_clicked(False)
         self.connect_signals()
@@ -419,7 +416,6 @@ class LCAResultsTab(QWidget):
         self.button_overview.toggled.connect(self.button_clicked)
         if self.parent:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
-            self.parent.update_scenario_box_index.connect(self.update_scenario_box)
 
     @QtCore.Slot(bool, name="overviewToggled")
     def button_clicked(self, is_overview: bool):
@@ -430,12 +426,6 @@ class LCAResultsTab(QWidget):
         self.lca_scores_widget.update_tab()
         self.lca_overview_widget.update_plot()
         self.lca_overview_widget.update_table()
-
-    @QtCore.Slot(int)
-    def update_scenario_box(self, index: int) -> None:
-        self.scenario_box.blockSignals(True)
-        self.scenario_box.setCurrentIndex(index)
-        self.scenario_box.blockSignals(False)
 
 
 class LCAScoresTab(NewAnalysisTab):
