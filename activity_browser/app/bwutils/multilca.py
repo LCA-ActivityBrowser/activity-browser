@@ -148,8 +148,6 @@ class MLCA(object):
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
 
-        self._perform_calculations()
-
         # TODO: get rid of the below
         self.func_unit_translation_dict = {
             str(bw.get_activity(list(func_unit.keys())[0])): func_unit for func_unit in self.func_units
@@ -196,6 +194,9 @@ class MLCA(object):
                 self.elementary_flow_contributions[row, col] = np.array(
                     self.lca.characterized_inventory.sum(axis=1)).ravel()
                 self.process_contributions[row, col] = self.lca.characterized_inventory.sum(axis=0)
+
+    def calculate(self):
+        self._perform_calculations()
 
     @property
     def func_units_dict(self) -> dict:
@@ -332,8 +333,9 @@ class Contributions(object):
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
 
-    def get_labels(self, key_list, fields=['name', 'reference product', 'location', 'database'],
-                   separator=' | ', max_length=False, mask=None):
+    @staticmethod
+    def get_labels(key_list, fields=None, separator=' | ',
+                   max_length=False, mask=None):
         """Generate labels from metadata information.
 
         Setting max_length will wrap the label into a multi-line string if
@@ -360,7 +362,8 @@ class Contributions(object):
             Translated and/or joined (and wrapped) labels matching the keys
 
         """
-        keys = [k for k in key_list]  # need to do this as the keys come from a pd.Multiindex
+        fields = fields if fields else ['name', 'reference product', 'location', 'database']
+        keys = (k for k in key_list)  # need to do this as the keys come from a pd.Multiindex
         translated_keys = []
         for k in keys:
             if mask and k in mask:
@@ -373,7 +376,8 @@ class Contributions(object):
             translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys
 
-    def join_df_with_metadata(self, df, x_fields=None, y_fields=None,
+    @classmethod
+    def join_df_with_metadata(cls, df, x_fields=None, y_fields=None,
                               special_keys=None):
         """Join a dataframe that has keys on the index with metadata.
 
@@ -400,7 +404,7 @@ class Contributions(object):
         """
 
         # replace column keys with labels
-        df.columns = self.get_labels(df.columns, fields=y_fields)#, separator='\n')
+        df.columns = cls.get_labels(df.columns, fields=y_fields)#, separator='\n')
 
         # get metadata for rows
         keys = [k for k in df.index if k in AB_metadata.index]
@@ -416,7 +420,7 @@ class Contributions(object):
                 joined = joined.loc[index_for_Rest_Total]
             except:
                 print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
-        joined.index = self.get_labels(joined.index, fields=x_fields)
+        joined.index = cls.get_labels(joined.index, fields=x_fields)
         return joined
 
     def get_labelled_contribution_dict(self, cont_dict, x_fields=None,
@@ -460,58 +464,75 @@ class Contributions(object):
 
         return joined.reset_index(drop=False)
 
+    @staticmethod
+    def _build_inventory(inventory: dict, indices: dict, columns: list,
+                         fields: list) -> pd.DataFrame:
+        df = pd.DataFrame(inventory)
+        df.index = pd.MultiIndex.from_tuples(indices.values())
+        df.columns = Contributions.get_labels(columns, max_length=30)
+        metadata = AB_metadata.get_metadata(list(indices.values()), fields)
+        joined = metadata.join(df)
+        joined.reset_index(inplace=True, drop=True)
+        return joined
+
     def inventory_df(self, inventory_type='biosphere'):
         """Returns an inventory dataframe with metadata of the given type.
         """
         if inventory_type == 'biosphere':
-            df = pd.DataFrame(self.mlca.inventory)
-            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
-            df.columns = self.get_labels(self.mlca.fu_activity_keys, max_length=30)
-            metadata = AB_metadata.get_metadata(list(self.mlca.rev_biosphere_dict.values()), self.ef_fields)
+            data = (self.mlca.inventory, self.mlca.rev_biosphere_dict,
+                    self.mlca.fu_activity_keys, self.ef_fields)
         elif inventory_type == 'technosphere':
-            df = pd.DataFrame(self.mlca.technosphere_flows)
-            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
-            df.columns = self.get_labels(self.mlca.fu_activity_keys, max_length=30)
-            metadata = AB_metadata.get_metadata(list(self.mlca.rev_activity_dict.values()), self.act_fields)
+            data = (self.mlca.technosphere_flows, self.mlca.rev_activity_dict,
+                    self.mlca.fu_activity_keys, self.act_fields)
         else:
             raise ValueError(
-                "Type must be either 'biosphere' or 'technosphere', " + \
-                    "'{}' given.".format(inventory_type)
+                "Type must be either 'biosphere' or 'technosphere', "
+                "'{}' given.".format(inventory_type)
             )
+        return self._build_inventory(*data)
 
-        joined = metadata.join(df)
-        joined.reset_index(inplace=True, drop=True)
-        return joined
+    @staticmethod
+    def _build_lca_scores_df(scores: np.ndarray, indices: list,
+                             columns: list, fields: list) -> pd.DataFrame:
+        df = pd.DataFrame(
+            scores, index=pd.MultiIndex.from_tuples(indices), columns=columns
+        )
+        joined = Contributions.join_df_with_metadata(df, x_fields=fields, y_fields=None)
+        return joined.reset_index(drop=False)
 
     def lca_scores_df(self, normalized=False):
         """Returns a metadata-annotated DataFrame of the LCA scores.
         """
         scores = self.mlca.lca_scores if not normalized else self.mlca.lca_scores_normalized
-        df = pd.DataFrame(
-            scores,
-            index=pd.MultiIndex.from_tuples(self.mlca.fu_activity_keys),
-            columns=self.mlca.methods
+        return self._build_lca_scores_df(
+            scores, self.mlca.fu_activity_keys, self.mlca.methods, self.act_fields
         )
-        joined = self.join_df_with_metadata(df, x_fields=self.act_fields, y_fields=None)
-        return joined.reset_index(drop=False)
 
-    def get_contributions(self, contribution, functional_unit=None, method=None):
+    @staticmethod
+    def _build_contributions(data: np.ndarray, index: int, axis: int) -> np.ndarray:
+        return data.take(index, axis=axis)
+
+    def get_contributions(self, contribution, functional_unit=None,
+                          method=None) -> np.ndarray:
         """Return a contribution matrix given the type and fu / method
         """
-        if (functional_unit and method) or (not functional_unit and not method):
+        if all([functional_unit, method]) or not any([functional_unit, method]):
             raise ValueError(
-                "It must be either by functional unit or by method. Provided:" + \
-                    "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
+                "It must be either by functional unit or by method. Provided:"
+                "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
             )
         dataset = {
             'process': self.mlca.process_contributions,
             'elementary_flow': self.mlca.elementary_flow_contributions,
         }
         if method:
-            C = dataset[contribution].take(self.mlca.method_index[method], axis=1)
+            return self._build_contributions(
+                dataset[contribution], self.mlca.method_index[method], 1
+            )
         elif functional_unit:
-            C = dataset[contribution].take(self.mlca.func_key_dict[functional_unit], axis=0)
-        return C
+            return self._build_contributions(
+                dataset[contribution], self.mlca.func_key_dict[functional_unit], 0
+            )
 
     def aggregate_by_parameters(self, C, parameters, inventory):
         """Perform aggregation of the contribution data given parameters

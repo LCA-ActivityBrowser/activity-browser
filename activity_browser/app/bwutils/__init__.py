@@ -7,7 +7,7 @@ import brightway2 as bw
 from .metadata import AB_metadata
 from .montecarlo import CSMonteCarloLCA
 from .multilca import MLCA, Contributions
-from .presamples import PresamplesMLCA
+from .presamples import PresamplesContributions, PresamplesMLCA
 
 
 def cleanup():

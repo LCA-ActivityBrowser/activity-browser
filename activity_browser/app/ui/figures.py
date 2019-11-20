@@ -84,7 +84,11 @@ class LCAResultsBarChart(Plot):
 
         functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
 
-        values = mlca.lca_scores[:, mlca.method_index[method]]
+        # Account for MLCA having additional dimensions
+        if hasattr(mlca, "slice"):
+            values = mlca.slice(mlca.lca_scores)[:, mlca.method_index[method]]
+        else:
+            values = mlca.lca_scores[:, mlca.method_index[method]]
         y_pos = np.arange(len(functional_units))
 
         # color_iterate = iter(plt.rcParams['axes.prop_cycle'])
