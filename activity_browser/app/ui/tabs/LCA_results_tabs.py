@@ -540,7 +540,6 @@ class ContributionTab(NewAnalysisTab):
         self.df = None
         self.plot = ContributionPlot()
         self.table = ContributionTable(self)
-        self.contribution_type = None
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
         self.current_method = None
@@ -599,25 +598,6 @@ class ContributionTab(NewAnalysisTab):
             self.combobox_menu.method.setVisible(True)
             self.combobox_menu.label.setText(self.combobox_menu.method_label)
         self.update_tab()
-
-    def update_aggregation_combobox(self):
-        """Contribution-specific aggregation combobox
-        """
-        self.combobox_menu.agg.blockSignals(True)
-        self.combobox_menu.agg.clear()
-        aggregator_list = []
-        if self.contribution_type == 'EF':
-            aggregator_list.extend(self.parent.contributions.DEFAULT_EF_AGGREGATES)
-        elif self.contribution_type == 'PC':
-            aggregator_list.extend(self.parent.contributions.DEFAULT_ACT_AGGREGATES)
-        self.combobox_menu.agg.addItems(aggregator_list)
-        self.combobox_menu.agg.blockSignals(False)
-
-    def update_tab(self):
-        """Override and include call to update aggregation combobox"""
-        if self.combobox_menu.agg:
-            self.update_aggregation_combobox()
-        super().update_tab()
 
     def connect_signals(self):
         """Override the inherited method to perform the same thing plus aggregation
@@ -707,9 +687,13 @@ class ElementaryFlowContributionTab(ContributionTab):
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
-        self.contribution_type = 'EF'
         self.contribution_fn = 'EF contributions'
         self.connect_signals()
+
+    def build_combobox(self, has_method: bool = True,
+                       has_func: bool = False) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_EF_AGGREGATES)
+        return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self):
         """Retrieve the top elementary flow contributions
@@ -733,9 +717,13 @@ class ProcessContributionsTab(ContributionTab):
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
-        self.contribution_type = 'PC'
         self.contribution_fn = 'Process contributions'
         self.connect_signals()
+
+    def build_combobox(self, has_method: bool = True,
+                       has_func: bool = False) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_ACT_AGGREGATES)
+        return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self):
         """Retrieve the top process contributions
