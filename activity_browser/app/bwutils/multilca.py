@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Iterable, Optional, Union
+
 import numpy as np
 import pandas as pd
 import brightway2 as bw
@@ -590,6 +592,16 @@ class Contributions(object):
         mask_index = {i: m for i, m in enumerate(aggregated.index)}
 
         return aggregated.T.values, mask_index
+
+    def _contribution_rows(self, contribution: str, aggregator=None):
+        if aggregator is None:
+            return self.act_fields if contribution == self.ACT else self.ef_fields
+        return aggregator if isinstance(aggregator, list) else [aggregator]
+
+    def _contribution_index_cols(self, method=None) -> (dict, Optional[Iterable]):
+        if method:
+            return self.mlca.fu_index, self.act_fields
+        return self.mlca.method_index, None
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None,
                                           aggregator=None, limit=5, normalize=False,
