@@ -581,6 +581,15 @@ class ContributionTab(NewAnalysisTab):
         self.has_func = has_func
         return menu
 
+    def configure_scenario(self):
+        """ Supplement the superclass method because there are more things to
+         hide in these tabs.
+        """
+        super().configure_scenario()
+        visible = self.parent.using_presamples if self.parent else False
+        self.switches.scenario.setVisible(visible)
+        self.combobox_menu.scenario_label.setVisible(visible)
+
     @QtCore.Slot(bool, name="hideScenarioCombo")
     def toggle_scenario(self, active: bool):
         self.combobox_menu.scenario.setHidden(active)
