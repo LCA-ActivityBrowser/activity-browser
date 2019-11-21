@@ -493,16 +493,12 @@ class Contributions(object):
         joined.reset_index(inplace=True, drop=True)
         return joined
 
-    def inventory_df(self, inventory_type='biosphere'):
+    def inventory_df(self, inventory_type: str):
         """Returns an inventory dataframe with metadata of the given type.
         """
-        if inventory_type == 'biosphere':
-            data = (self.mlca.inventory, self.mlca.rev_biosphere_dict,
-                    self.mlca.fu_activity_keys, self.ef_fields)
-        elif inventory_type == 'technosphere':
-            data = (self.mlca.technosphere_flows, self.mlca.rev_activity_dict,
-                    self.mlca.fu_activity_keys, self.act_fields)
-        else:
+        try:
+            data = self.inventory_data[inventory_type]
+        except KeyError:
             raise ValueError(
                 "Type must be either 'biosphere' or 'technosphere', "
                 "'{}' given.".format(inventory_type)
@@ -597,7 +593,7 @@ class Contributions(object):
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None,
                                           aggregator=None, limit=5, normalize=False,
-                                          limit_type="number"):
+                                          limit_type="number", **kwargs):
         """Return top EF contributions for either functional_unit or method.
 
         * If functional_unit: Compare the unit against all considered impact
@@ -654,7 +650,7 @@ class Contributions(object):
 
     def top_process_contributions(self, functional_unit=None, method=None,
                                   aggregator=None, limit=5, normalize=False,
-                                  limit_type="number"):
+                                  limit_type="number", **kwargs):
         """Return top process contributions for functional_unit or method
 
         * If functional_unit: Compare the process against all considered impact
