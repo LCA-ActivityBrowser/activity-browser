@@ -575,15 +575,14 @@ class Contributions(object):
         -------
 
         """
+        rev_index, keys, fields = self.aggregate_data[inventory]
+        if not parameters:
+            return C, rev_index
+
         df = pd.DataFrame(C).T
         columns = list(range(C.shape[0]))
-
-        if inventory == 'biosphere':
-            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_biosphere_dict.values())
-            metadata = AB_metadata.get_metadata(list(self.mlca.lca.biosphere_dict), self.ef_fields)
-        elif inventory == 'technosphere':
-            df.index = pd.MultiIndex.from_tuples(self.mlca.rev_activity_dict.values())
-            metadata = AB_metadata.get_metadata(list(self.mlca.lca.activity_dict), self.act_fields)
+        df.index = pd.MultiIndex.from_tuples(rev_index.values())
+        metadata = AB_metadata.get_metadata(list(keys), fields)
 
         joined = metadata.join(df)
         joined.reset_index(inplace=True, drop=True)
