@@ -636,29 +636,23 @@ class Contributions(object):
         """
         C = self.get_contributions('elementary_flow', functional_unit, method)
 
+        x_fields = self._contribution_rows(self.EF, aggregator)
+        index, y_fields = self._contribution_index_cols(method)
         if aggregator:
             (C, rev_index) = self.aggregate_by_parameters(C, aggregator, 'biosphere')
-            x_fields = aggregator if isinstance(aggregator, list) else [aggregator]
             mask = rev_index.values()
         else:
             rev_index = self.mlca.rev_biosphere_dict
-            x_fields = self.ef_fields
             mask = None
 
         # Normalise if required
         if normalize:
             C = self.normalize(C)
 
-        if method:
-            top_cont_dict = self._build_dict(
-                C, self.mlca.fu_index, rev_index, limit, limit_type)
-            return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=x_fields, y_fields=self.act_fields, mask=mask)
-        elif functional_unit:
-            top_cont_dict = self._build_dict(
-                C, self.mlca.method_index, rev_index, limit, limit_type)
-            return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=x_fields, y_fields=None, mask=mask)
+        top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
+        return self.get_labelled_contribution_dict(
+            top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
+        )
 
     def top_process_contributions(self, functional_unit=None, method=None,
                                   aggregator=None, limit=5, normalize=False,
@@ -692,26 +686,20 @@ class Contributions(object):
         """
         C = self.get_contributions('process', functional_unit, method)
 
+        x_fields = self._contribution_rows(self.ACT, aggregator)
+        index, y_fields = self._contribution_index_cols(method)
         if aggregator:
             (C, rev_index) = self.aggregate_by_parameters(C, aggregator, 'technosphere')
-            x_fields = aggregator if isinstance(aggregator, list) else [aggregator]
             mask = rev_index.values()
         else:
             rev_index = self.mlca.rev_activity_dict
-            x_fields = self.act_fields
             mask = None
 
         # Normalise if required
         if normalize:
             C = self.normalize(C)
 
-        if method:
-            top_cont_dict = self._build_dict(
-                C, self.mlca.fu_index, rev_index, limit, limit_type)
-            return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=x_fields, y_fields=self.act_fields, mask=mask)
-        elif functional_unit:
-            top_cont_dict = self._build_dict(
-                C, self.mlca.method_index, rev_index, limit, limit_type)
-            return self.get_labelled_contribution_dict(
-                top_cont_dict, x_fields=x_fields, y_fields=None, mask=mask)
+        top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
+        return self.get_labelled_contribution_dict(
+            top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
+        )
