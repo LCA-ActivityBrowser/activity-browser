@@ -608,30 +608,28 @@ class ContributionTab(NewAnalysisTab):
     def connect_signals(self):
         """Override the inherited method to perform the same thing plus aggregation
         """
-        if self.combobox_menu:
-            if self.has_method and self.has_func:
-                self.switches.method.toggled.connect(self.toggle_method)
-                self.switches.func.toggled.connect(self.toggle_func)
-                self.switch_buttons.buttonToggled.connect(self.update_tab)
+        if self.has_method and self.has_func:
+            self.switches.method.toggled.connect(self.toggle_method)
+            self.switches.func.toggled.connect(self.toggle_func)
+            self.switch_buttons.buttonToggled.connect(self.update_tab)
 
-            if self.plot:
-                self.combobox_menu.method.currentTextChanged.connect(
-                    lambda name: self.update_plot(method=name)
-                )
-                self.combobox_menu.func.currentTextChanged.connect(
-                    lambda name: self.update_plot(method=name)
-                )
-                self.combobox_menu.agg.currentTextChanged.connect(
-                    lambda a: self.update_plot(aggregator=a))
-            if self.table:
-                self.combobox_menu.method.currentTextChanged.connect(
-                    lambda name: self.update_table(method=name)
-                )
-                self.combobox_menu.func.currentTextChanged.connect(
-                    lambda name: self.update_table(method=name)
-                )
-                self.combobox_menu.agg.currentTextChanged.connect(
-                    lambda a: self.update_table())
+        self.combobox_menu.method.currentTextChanged.connect(
+            lambda name: self.update_plot(method=name)
+        )
+        self.combobox_menu.func.currentTextChanged.connect(
+            lambda name: self.update_plot(method=name)
+        )
+        self.combobox_menu.agg.currentTextChanged.connect(
+            lambda a: self.update_plot(aggregator=a))
+
+        self.combobox_menu.method.currentTextChanged.connect(
+            lambda name: self.update_table(method=name)
+        )
+        self.combobox_menu.func.currentTextChanged.connect(
+            lambda name: self.update_table(method=name)
+        )
+        self.combobox_menu.agg.currentTextChanged.connect(
+            lambda a: self.update_table())
 
         # Add wiring for presamples scenarios
         if self.parent:
