@@ -260,6 +260,10 @@ class Contributions(object):
         If the given `mlca` object is not an instance of `MLCA`
 
     """
+    ACT = "process"
+    EF = "elementary_flow"
+    TECH = "technosphere"
+    BIOS = "biosphere"
 
     DEFAULT_ACT_FIELDS = ['reference product', 'name', 'location', 'unit', 'database']
     DEFAULT_EF_FIELDS = ['name', 'categories', 'type', 'unit', 'database']
@@ -277,6 +281,20 @@ class Contributions(object):
         # Set default metadata keys (those not in the dataframe will be eliminated)
         self.act_fields = AB_metadata.get_existing_fields(self.DEFAULT_ACT_FIELDS)
         self.ef_fields = AB_metadata.get_existing_fields(self.DEFAULT_EF_FIELDS)
+
+        # Specific datastructures for retrieving relevant MLCA data
+        # inventory: inventory, reverse index, metadata keys, metadata fields
+        self.inventory_data = {
+            "biosphere": (self.mlca.inventory, self.mlca.rev_biosphere_dict,
+                          self.mlca.fu_activity_keys, self.ef_fields),
+            "technosphere": (self.mlca.technosphere_flows, self.mlca.rev_activity_dict,
+                             self.mlca.fu_activity_keys, self.act_fields),
+        }
+        # aggregation: reverse index, metadata keys, metadata fields
+        self.aggregate_data = {
+            "biosphere": (self.mlca.rev_biosphere_dict, self.mlca.lca.biosphere_dict, self.ef_fields),
+            "technosphere": (self.mlca.rev_activity_dict, self.mlca.lca.activity_dict, self.act_fields),
+        }
 
     def normalize(self, contribution_array):
         """Normalise the contribution array.
