@@ -240,16 +240,20 @@ class NewAnalysisTab(QWidget):
         self.relative = checked
         self.update_tab()
 
+    @property
+    def using_presamples(self) -> bool:
+        return self.parent.using_presamples if self.parent else False
+
+    def get_scenario_labels(self) -> List[str]:
+        return self.parent.mlca.get_scenario_names() if self.using_presamples else []
+
     def configure_scenario(self):
         """ Determine if scenario Qt widgets are visible or not and retrieve
          scenario labels for the selection drop-down box.
         """
-        visible = self.parent.using_presamples if self.parent else False
         if self.scenario_box:
-            self.scenario_box.setVisible(visible)
-            if visible:
-                labels = self.parent.mlca.get_scenario_names()
-                self.update_combobox(self.scenario_box, labels)
+            self.scenario_box.setVisible(self.using_presamples)
+            self.update_combobox(self.scenario_box, self.get_scenario_labels())
 
     @staticmethod
     @QtCore.Slot(int, name="setBoxIndex")
@@ -586,7 +590,7 @@ class ContributionTab(NewAnalysisTab):
          hide in these tabs.
         """
         super().configure_scenario()
-        visible = self.parent.using_presamples if self.parent else False
+        visible = self.using_presamples
         self.switches.scenario.setVisible(visible)
         self.combobox_menu.scenario_label.setVisible(visible)
 
@@ -632,13 +636,12 @@ class ContributionTab(NewAnalysisTab):
             lambda a: self.update_table())
 
         # Add wiring for presamples scenarios
-        if self.parent:
+        if self.using_presamples:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
-            if self.parent.using_presamples:
-                self.switches.scenario.toggled.connect(self.toggle_scenario)
+            self.switches.scenario.toggled.connect(self.toggle_scenario)
 
     def update_dataframe(self):
         """Updates the underlying dataframe. Implement in sublass.
