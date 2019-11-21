@@ -58,8 +58,8 @@ PlotTableCheck = namedtuple("plot_table_space", ("plot", "table"))
 SwitchButtons = namedtuple("switch_buttons", ("func", "method", "scenario"))
 Combobox = namedtuple(
     "combobox_menu", (
-        "func", "func_label", "method", "method_label", "label",
-        "agg", "agg_label",
+        "func", "func_label", "method", "method_label",
+        "agg", "agg_label", "scenario", "scenario_label",
     )
 )
 
@@ -246,7 +246,6 @@ class NewAnalysisTab(QWidget):
         """
         visible = self.parent.using_presamples if self.parent else False
         if self.scenario_box:
-            print(f"Tab: {type(self)}, visible? {visible}")
             self.scenario_box.setVisible(visible)
             if visible:
                 labels = self.parent.mlca.get_scenario_names()
@@ -513,12 +512,13 @@ class ContributionTab(NewAnalysisTab):
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.combobox_menu = Combobox(
             func=QComboBox(),
-            func_label="Choose Functional Unit: ",
+            func_label=QLabel("Functional Unit: "),
             method=QComboBox(),
-            method_label="Choose LCIA Method: ",
-            label=QLabel("Choose LCIA Method: "),
+            method_label=QLabel("Impact Category: "),
             agg=QComboBox(),
             agg_label=QLabel("Aggregate by: "),
+            scenario=self.scenario_box,
+            scenario_label=QLabel("Scenario: "),
         )
         # Group the switch buttons to ensure only one can be active
         self.switches = SwitchButtons(
@@ -544,7 +544,7 @@ class ContributionTab(NewAnalysisTab):
         self.has_method, self.has_func = False, False
         self.current_method = None
         self.current_func = None
-        self.current_agg = None#'none' # Default to no aggregation
+        self.current_agg = None  # Default to no aggregation
 
     def build_combobox(self, has_method: bool = True,
                        has_func: bool = False) -> QHBoxLayout:
@@ -558,25 +558,20 @@ class ContributionTab(NewAnalysisTab):
         )
         self.combobox_menu.method.addItems(list(self.parent.method_dict.keys()))
 
-        if has_func:
-            self.combobox_menu.func.scroll = False
-            self.combobox_menu.label.setText(self.combobox_menu.func_label)
-        if has_method:
-            self.combobox_menu.method.scroll = False
-            self.combobox_menu.label.setText(self.combobox_menu.method_label)
+        menu.addStretch(1)
+        menu.addWidget(self.switches.scenario)
         if has_method and has_func:
-            menu.addStretch(1)
-            menu.addWidget(self.switches.method)
             self.switches.func.setChecked(True)
             self.combobox_menu.func.setVisible(False)
+            self.combobox_menu.func_label.setVisible(False)
+            menu.addWidget(self.switches.method)
             menu.addWidget(self.switches.func)
-        self.combobox_menu.agg.scroll = False
-
-        # Add scenario dropdown menu here
-        menu.addWidget(self.scenario_box)
         menu.addWidget(vertical_line())
-        menu.addWidget(self.combobox_menu.label)
+        menu.addWidget(self.combobox_menu.scenario_label)
+        menu.addWidget(self.combobox_menu.scenario, 1)
+        menu.addWidget(self.combobox_menu.method_label)
         menu.addWidget(self.combobox_menu.method, 1)
+        menu.addWidget(self.combobox_menu.func_label)
         menu.addWidget(self.combobox_menu.func, 1)
         menu.addWidget(self.combobox_menu.agg_label)
         menu.addWidget(self.combobox_menu.agg)
@@ -586,25 +581,29 @@ class ContributionTab(NewAnalysisTab):
         self.has_func = has_func
         return menu
 
-    @QtCore.Slot(int, name="comboSwitch")
-    def combo_switch(self, button_id: int):
-        """ Show either the functional units or methods combo-box, dependent on button state. """
-        if self.switches.method.isChecked():
-            self.combobox_menu.func.setVisible(True)
-            self.combobox_menu.method.setVisible(False)
-            self.combobox_menu.label.setText(self.combobox_menu.func_label)
-        elif self.switches.func.isChecked():
-            self.combobox_menu.func.setVisible(False)
-            self.combobox_menu.method.setVisible(True)
-            self.combobox_menu.label.setText(self.combobox_menu.method_label)
-        self.update_tab()
+    @QtCore.Slot(bool, name="hideScenarioCombo")
+    def toggle_scenario(self, active: bool):
+        self.combobox_menu.scenario.setHidden(active)
+        self.combobox_menu.scenario_label.setHidden(active)
+
+    @QtCore.Slot(bool, name="hideFuCombo")
+    def toggle_func(self, active: bool):
+        self.combobox_menu.func.setHidden(active)
+        self.combobox_menu.func_label.setHidden(active)
+
+    @QtCore.Slot(bool, name="hideMethodCombo")
+    def toggle_method(self, active: bool):
+        self.combobox_menu.method.setHidden(active)
+        self.combobox_menu.method_label.setHidden(active)
 
     def connect_signals(self):
         """Override the inherited method to perform the same thing plus aggregation
         """
         if self.combobox_menu:
             if self.has_method and self.has_func:
-                self.switch_buttons.buttonClicked.connect(self.combo_switch)
+                self.switches.method.toggled.connect(self.toggle_method)
+                self.switches.func.toggled.connect(self.toggle_func)
+                self.switch_buttons.buttonToggled.connect(self.update_tab)
 
             if self.plot:
                 self.combobox_menu.method.currentTextChanged.connect(
@@ -631,6 +630,8 @@ class ContributionTab(NewAnalysisTab):
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
+            if self.parent.using_presamples:
+                self.switches.scenario.toggled.connect(self.toggle_scenario)
 
     def update_dataframe(self):
         """Updates the underlying dataframe. Implement in sublass.
@@ -641,7 +642,7 @@ class ContributionTab(NewAnalysisTab):
         super().update_table(*args, **kwargs)
 
     def update_plot(self, method=None, aggregator=None):
-        if self.combobox_menu.label.text() == self.combobox_menu.method_label:
+        if self.switches.func.isChecked():
             if self.current_method and method is None:
                 method = self.current_method
             elif method is None or method == '':
