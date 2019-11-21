@@ -550,19 +550,20 @@ class Contributions(object):
                 dataset[contribution], self.mlca.func_key_dict[functional_unit], 0
             )
 
-    def aggregate_by_parameters(self, C, parameters, inventory):
+    def aggregate_by_parameters(self, C: np.ndarray, inventory: str,
+                                parameters: Union[str, list] = None):
         """Perform aggregation of the contribution data given parameters
 
         Parameters
         ----------
         C : `numpy.ndarray`
             2-dimensional contribution array
-        parameters : str or list
-            One or more parameters by which to aggregate the given contribution
-            array.
         inventory: str
             Either 'biosphere' or 'technosphere', used to determine which
             inventory to use
+        parameters : str or list
+            One or more parameters by which to aggregate the given contribution
+            array.
 
         Returns
         -------
@@ -571,13 +572,15 @@ class Contributions(object):
         mask_index : dict
             Contains all of the values of the aggregation mask, linked to
             their indexes
+        mask : list or dictview or None
+            An optional list or dictview of the mask_index values
 
         -------
 
         """
         rev_index, keys, fields = self.aggregate_data[inventory]
         if not parameters:
-            return C, rev_index
+            return C, rev_index, None
 
         df = pd.DataFrame(C).T
         columns = list(range(C.shape[0]))
@@ -590,7 +593,7 @@ class Contributions(object):
         aggregated = grouped[columns].sum()
         mask_index = {i: m for i, m in enumerate(aggregated.index)}
 
-        return aggregated.T.values, mask_index
+        return aggregated.T.values, mask_index, mask_index.values()
 
     def _contribution_rows(self, contribution: str, aggregator=None):
         if aggregator is None:
@@ -633,16 +636,11 @@ class Contributions(object):
             Annotated top-contribution dataframe
 
         """
-        C = self.get_contributions('elementary_flow', functional_unit, method)
+        C = self.get_contributions(self.EF, functional_unit, method)
 
         x_fields = self._contribution_rows(self.EF, aggregator)
         index, y_fields = self._contribution_index_cols(method)
-        if aggregator:
-            (C, rev_index) = self.aggregate_by_parameters(C, aggregator, 'biosphere')
-            mask = rev_index.values()
-        else:
-            rev_index = self.mlca.rev_biosphere_dict
-            mask = None
+        C, rev_index, mask = self.aggregate_by_parameters(C, self.BIOS, aggregator)
 
         # Normalise if required
         if normalize:
@@ -683,16 +681,11 @@ class Contributions(object):
             Annotated top-contribution dataframe
 
         """
-        C = self.get_contributions('process', functional_unit, method)
+        C = self.get_contributions(self.ACT, functional_unit, method)
 
         x_fields = self._contribution_rows(self.ACT, aggregator)
         index, y_fields = self._contribution_index_cols(method)
-        if aggregator:
-            (C, rev_index) = self.aggregate_by_parameters(C, aggregator, 'technosphere')
-            mask = rev_index.values()
-        else:
-            rev_index = self.mlca.rev_activity_dict
-            mask = None
+        C, rev_index, mask = self.aggregate_by_parameters(C, self.TECH, aggregator)
 
         # Normalise if required
         if normalize:
