@@ -358,7 +358,7 @@ class InventoryTab(NewAnalysisTab):
     def connect_signals(self):
         self.radio_button_biosphere.clicked.connect(self.button_clicked)
         self.radio_button_technosphere.clicked.connect(self.button_clicked)
-        if self.parent:
+        if self.using_presamples:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
@@ -429,8 +429,11 @@ class LCAResultsTab(NewAnalysisTab):
 
     def connect_signals(self):
         self.button_overview.toggled.connect(self.button_clicked)
-        if self.parent:
+        if self.using_presamples:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
 
     @QtCore.Slot(bool, name="overviewToggled")
     def button_clicked(self, is_overview: bool):
@@ -627,10 +630,10 @@ class ContributionTab(NewAnalysisTab):
             lambda a: self.update_plot(aggregator=a))
 
         self.combobox_menu.method.currentTextChanged.connect(
-            lambda name: self.update_table(method=name)
+            lambda name: self.update_table()
         )
         self.combobox_menu.func.currentTextChanged.connect(
-            lambda name: self.update_table(method=name)
+            lambda name: self.update_table()
         )
         self.combobox_menu.agg.currentTextChanged.connect(
             lambda a: self.update_table())
@@ -646,7 +649,7 @@ class ContributionTab(NewAnalysisTab):
     def update_dataframe(self):
         """Updates the underlying dataframe. Implement in sublass.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def update_table(self, *args, **kwargs):
         super().update_table(*args, **kwargs)
@@ -809,7 +812,7 @@ class MonteCarloTab(NewAnalysisTab):
         # self.radio_button_biosphere.clicked.connect(self.button_clicked)
         # self.radio_button_technosphere.clicked.connect(self.button_clicked)
 
-        if self.parent:
+        if self.using_presamples:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
