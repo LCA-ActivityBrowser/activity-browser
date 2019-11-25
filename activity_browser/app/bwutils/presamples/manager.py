@@ -193,7 +193,7 @@ class PresamplesParameterManager(object):
                 input_key = (exc.input_database, exc.input_code)
                 output_key = (exc.output_database, exc.output_code)
                 if exc.input_database == bw.config.biosphere:
-                    indices.append((input_key, output_key))
+                    indices.append((input_key, output_key, "biosphere"))
                 else:
                     indices.append((input_key, output_key, "technosphere"))
             complete_data.extend(data)
