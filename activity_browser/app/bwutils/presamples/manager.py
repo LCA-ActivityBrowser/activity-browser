@@ -181,8 +181,12 @@ class PresamplesParameterManager(object):
             act = self.recalculate_activity_parameters(p.group, combination)
             combination.update(act)
 
+            recalculated = self.recalculate_exchanges(p.group, global_params=combination)
+            # If the parameter group contains no ParameterizedExchanges, skip.
+            if not recalculated:
+                continue
             # `data` contains the recalculated amounts for the exchanges.
-            ids, data = zip(*self.recalculate_exchanges(p.group, global_params=combination))
+            ids, data = zip(*recalculated)
             indices = []
             for pk in ids:
                 exc = ExchangeDataset.get_by_id(pk)
