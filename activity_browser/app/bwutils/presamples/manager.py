@@ -207,6 +207,13 @@ class PresamplesParameterManager(object):
         indices = np.array(complete_indices)
         return samples, indices
 
+    @staticmethod
+    def can_build_presamples() -> bool:
+        """ Test if ParameterizedExchanges exist, no point to building presamples
+         otherwise
+        """
+        return ParameterizedExchange.select().exists()
+
     def presamples_from_scenarios(self, name: str, scenarios: Iterable[Tuple[str, Iterable]]) -> (str, str):
         """ When given a iterable of multiple parameter scenarios, construct
         a presamples package with all of the recalculated exchange amounts.
