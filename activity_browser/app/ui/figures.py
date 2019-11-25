@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
 import os
+from typing import List
 
 import brightway2 as bw
 from bw2data.filesystem import safe_filename
@@ -13,6 +14,7 @@ from PySide2 import QtWidgets
 import seaborn as sns
 
 from ..bwutils.commontasks import format_activity_label, wrap_text
+from ..bwutils import MLCA
 from ..settings import ab_settings
 
 
@@ -21,8 +23,12 @@ from ..settings import ab_settings
 #  but this issue needs to be resolved first: https://github.com/bokeh/bokeh/issues/8169
 
 class Plot(QtWidgets.QWidget):
+    ALL_FILTER = "All Files (*.*)"
+    PNG_FILTER = "PNG (*.png)"
+    SVG_FILTER = "SVG (*.svg)"
+
     def __init__(self, parent=None):
-        super(Plot, self).__init__(parent)
+        super().__init__(parent)
         # create figure, canvas, and axis
         # self.figure = Figure(tight_layout=True)
         self.figure = Figure(constrained_layout=True)
@@ -34,25 +40,30 @@ class Plot(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
         self.setLayout(layout)
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+    def reset_plot(self) -> None:
+        self.figure.clf()
+        self.ax = self.figure.add_subplot(111)
 
     def get_canvas_size_in_inches(self):
         # print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
-    def savefilepath(self, default_file_name="LCA results", filter="All Files (*.*)"):
-        safe_name = safe_filename(default_file_name, add_hash=False)
+    def savefilepath(self, default_file_name: str, file_filter: str = ALL_FILTER):
+        default = default_file_name or "LCA results"
+        safe_name = safe_filename(default, add_hash=False)
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self,
             caption='Choose location to save lca results',
             dir=os.path.join(ab_settings.data_dir, safe_name),
-            filter=filter,
+            filter=file_filter,
         )
         return filepath
 
     def to_png(self):
         """ Export to .png format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, filter="PNG (*.png)")
+        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
@@ -60,7 +71,7 @@ class Plot(QtWidgets.QWidget):
 
     def to_svg(self):
         """ Export to .svg format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, filter="SVG (*.svg)")
+        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
@@ -70,16 +81,15 @@ class Plot(QtWidgets.QWidget):
 class LCAResultsBarChart(Plot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
     def __init__(self, parent=None, *args):
-        super(LCAResultsBarChart, self).__init__(parent, *args)
+        super().__init__(parent)
         self.plot_name = 'LCA scores'
 
-    def plot(self, mlca, method=None):
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
+    def plot(self, mlca: MLCA, method: tuple = None):
+        self.reset_plot()
         height_inches, width_inches = self.get_canvas_size_in_inches()
         self.figure.set_size_inches(height_inches, width_inches)
 
-        if method == None:
+        if method is None:
             method = mlca.methods[0]
 
         functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
@@ -111,15 +121,14 @@ class LCAResultsBarChart(Plot):
 
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None, *args):
-        super(LCAResultsPlot, self).__init__(parent, *args)
+        super().__init__(parent)
         self.plot_name = 'LCA heatmap'
 
-    def plot(self, df):
+    def plot(self, df: pd.DataFrame):
         """ Plot a heatmap grid of the different methods and functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
+        self.reset_plot()
 
         dfp = df.copy()
         dfp.index = dfp['index']
@@ -155,10 +164,10 @@ class LCAResultsPlot(Plot):
 
 class ContributionPlot(Plot):
     def __init__(self):
-        super(ContributionPlot, self).__init__()
+        super().__init__()
         self.plot_name = 'Contributions'
 
-    def plot(self, df, unit=None):
+    def plot(self, df: pd.DataFrame, unit: str = None):
         """ Plot a horizontal bar chart of the process contributions. """
         max_legend_items = 30
         dfp = df.copy()
@@ -213,15 +222,14 @@ class ContributionPlot(Plot):
 
 class CorrelationPlot(Plot):
     def __init__(self, parent=None, *args):
-        super(CorrelationPlot, self).__init__(parent, *args)
+        super().__init__(parent)
         sns.set(style="darkgrid")
 
-    def plot(self, mlca, labels):
+    def plot(self, mlca: MLCA, labels: List[str]):
         """ Plot a heatmap of correlations between different functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
+        self.reset_plot()
         canvas_size = self.canvas.get_width_height()
         # print("Canvas size:", canvas_size)
         size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
@@ -259,12 +267,10 @@ class CorrelationPlot(Plot):
 class MonteCarloPlot(Plot):
     """ Monte Carlo plot."""
     def __init__(self, parent=None):
-        super(MonteCarloPlot, self).__init__(parent)
+        super().__init__(parent)
         self.plot_name = 'Monte Carlo'
 
-    def plot(self, df, method):
-        # self.figure.clf()
-        # self.ax = self.figure.add_subplot(111)
+    def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
 
         for col in df.columns:
