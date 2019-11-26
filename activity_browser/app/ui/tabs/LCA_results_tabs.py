@@ -664,25 +664,17 @@ class ContributionTab(NewAnalysisTab):
         if self.has_method and self.has_func:
             self.switches.method.toggled.connect(self.toggle_method)
             self.switches.func.toggled.connect(self.toggle_func)
+            if self.using_presamples:
+                self.switches.scenario.toggled.connect(self.toggle_scenario)
+            self.switch_buttons.buttonToggled.connect(self.set_combobox_changes)
             self.switch_buttons.buttonToggled.connect(self.update_tab)
 
-        self.combobox_menu.method.currentTextChanged.connect(
-            lambda name: self.update_plot(method=name)
-        )
-        self.combobox_menu.func.currentTextChanged.connect(
-            lambda name: self.update_plot(method=name)
-        )
-        self.combobox_menu.agg.currentTextChanged.connect(
-            lambda a: self.update_plot(aggregator=a))
-
-        self.combobox_menu.method.currentTextChanged.connect(
-            lambda name: self.update_table()
-        )
-        self.combobox_menu.func.currentTextChanged.connect(
-            lambda name: self.update_table()
-        )
-        self.combobox_menu.agg.currentTextChanged.connect(
-            lambda a: self.update_table())
+        self.combobox_menu.method.currentIndexChanged.connect(self.set_combobox_changes)
+        self.combobox_menu.func.currentIndexChanged.connect(self.set_combobox_changes)
+        self.combobox_menu.agg.currentIndexChanged.connect(self.set_combobox_changes)
+        self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
+        self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
+        self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
 
         # Add wiring for presamples scenarios
         if self.using_presamples:
@@ -690,48 +682,14 @@ class ContributionTab(NewAnalysisTab):
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
-            self.switches.scenario.toggled.connect(self.toggle_scenario)
 
     def update_dataframe(self, *args, **kwargs):
         """Updates the underlying dataframe. Implement in subclass.
         """
         raise NotImplementedError
 
-    def update_table(self, *args, **kwargs):
-        super().update_table(*args, **kwargs)
-
-    def update_plot(self, method=None, aggregator=None):
-        if self.switches.func.isChecked():
-            if self.current_method and method is None:
-                method = self.current_method
-            elif method is None or method == '':
-                method = self.parent.mlca.methods[0]
-            else:
-                method = self.parent.method_dict[method]
-            func = None
-        else:
-            func = method
-            if self.current_func and func is None:
-                func = self.current_func
-            if func is None or func == '':
-                func = self.parent.mlca.func_key_list[0]
-            method = None
-
-        if self.current_agg and aggregator is None:
-            aggregator = self.current_agg
-        elif aggregator == 'none':
-            aggregator = None
-
-        self.current_method = method
-        self.current_func = func
-        self.current_agg = aggregator
-
-        self.df = self.update_dataframe()
-        unit = get_unit(method, self.relative)
-        self.plot.plot(self.df, unit=unit)
-        filename = '_'.join([str(x) for x in [self.parent.cs_name, self.contribution_fn, method, func, unit]
-                             if x is not None])
-        self.plot.plot_name, self.table.table_name = filename, filename
+    def update_plot(self):
+        self.plot.plot(self.df, unit=self.unit)
 
 
 class ElementaryFlowContributionTab(ContributionTab):
