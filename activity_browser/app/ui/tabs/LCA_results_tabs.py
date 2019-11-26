@@ -161,6 +161,7 @@ class LCAResultsSubTab(QTabWidget):
         self._update_tabs()
         self.update_scenario_box_index.emit(index)
 
+    @QtCore.Slot(int, name="generateSankeyOnClick")
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.tabs.sankey):
             if not self.tabs.sankey.has_sankey:
@@ -478,9 +479,15 @@ class LCAScoresTab(NewAnalysisTab):
         self.update_combobox(self.combobox, [str(m) for m in self.parent.mlca.methods])
         super().update_tab()
 
+    @QtCore.Slot(int, name="updatePlotWithIndex")
     def update_plot(self, method_index: int = 0):
         method = self.parent.mlca.methods[method_index]
-        self.plot.plot(self.parent.mlca, method=method)
+        df = self.parent.mlca.get_results_for_method(method_index)
+        labels = [
+            bc.format_activity_label(next(iter(fu.keys())), style='pnl')
+            for fu in self.parent.mlca.func_units
+        ]
+        self.plot.plot(df, method=method, labels=labels)
         self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
 
 
@@ -749,7 +756,7 @@ class ProcessContributionsTab(ContributionTab):
 
 
 class CorrelationsTab(NewAnalysisTab):
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
 
@@ -765,13 +772,10 @@ class CorrelationsTab(NewAnalysisTab):
         ))
 
     def update_plot(self):
-        if isinstance(self.plot, CorrelationPlot):
-            labels = [str(x + 1) for x in range(len(self.parent.mlca.func_units))]
-            self.plot.plot(self.parent.mlca, labels)
-        else:
+        if self.plot is None:
             self.plot = CorrelationPlot(self.parent)
-            labels = [str(x + 1) for x in range(len(self.parent.mlca.func_units))]
-            self.plot.plot(self.parent.mlca, labels)
+        df = self.parent.mlca.get_normalized_scores_df()
+        self.plot.plot(df)
 
 
 class SankeyTab(QWidget):
