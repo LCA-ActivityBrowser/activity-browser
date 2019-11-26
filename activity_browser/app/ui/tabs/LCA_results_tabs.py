@@ -551,9 +551,6 @@ class ContributionTab(NewAnalysisTab):
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
         self.unit = None
-        self.current_method = None
-        self.current_func = None
-        self.current_agg = None  # Default to no aggregation
 
     def set_filename(self, optional_fields: dict = None):
         """ Given a dictionary of fields, put together a usable filename
@@ -666,12 +663,9 @@ class ContributionTab(NewAnalysisTab):
             self.switches.func.toggled.connect(self.toggle_func)
             if self.using_presamples:
                 self.switches.scenario.toggled.connect(self.toggle_scenario)
-            self.switch_buttons.buttonToggled.connect(self.set_combobox_changes)
+                self.combobox_menu.scenario.currentIndexChanged.connect(self.update_tab)
             self.switch_buttons.buttonToggled.connect(self.update_tab)
 
-        self.combobox_menu.method.currentIndexChanged.connect(self.set_combobox_changes)
-        self.combobox_menu.func.currentIndexChanged.connect(self.set_combobox_changes)
-        self.combobox_menu.agg.currentIndexChanged.connect(self.set_combobox_changes)
         self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
@@ -682,6 +676,10 @@ class ContributionTab(NewAnalysisTab):
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
+
+    def update_tab(self):
+        self.set_combobox_changes()
+        super().update_tab()
 
     def update_dataframe(self, *args, **kwargs):
         """Updates the underlying dataframe. Implement in subclass.

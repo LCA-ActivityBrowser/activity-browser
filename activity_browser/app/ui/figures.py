@@ -40,6 +40,7 @@ class Plot(QtWidgets.QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.updateGeometry()
 
     def plot(self, *args, **kwargs):
         raise NotImplementedError
