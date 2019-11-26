@@ -165,3 +165,29 @@ class PresamplesContributions(Contributions):
     def _build_contributions(self, data: np.ndarray, index: int, axis: int) -> np.ndarray:
         data = data[:, :, self.mlca.current]
         return super()._build_contributions(data, index, axis)
+
+    @staticmethod
+    def _build_scenario_contributions(data: np.ndarray, fu_index: int, m_index: int) -> np.ndarray:
+        return data[fu_index, m_index, :]
+
+    def get_contributions(self, contribution, functional_unit=None,
+                          method=None) -> np.ndarray:
+        """Return a contribution matrix given the type and fu / method
+
+        Allow for both fu and method to exist.
+        """
+        if not any([functional_unit, method]):
+            raise ValueError(
+                "Either functional unit, method or both should be given. Provided:"
+                "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
+            )
+        dataset = {
+            'process': self.mlca.process_contributions,
+            'elementary_flow': self.mlca.elementary_flow_contributions,
+        }
+        if method and functional_unit:
+            return self._build_scenario_contributions(
+                dataset[contribution], self.mlca.func_key_dict[functional_unit],
+                self.mlca.method_index[method]
+            )
+        return super().get_contributions(contribution, functional_unit, method)
