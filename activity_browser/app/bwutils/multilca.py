@@ -228,6 +228,12 @@ class MLCA(object):
         """
         return self.lca_scores / self.lca_scores.max(axis=0)
 
+    def get_normalized_scores_df(self) -> pd.DataFrame:
+        """ To be used for the currently inactive CorrelationPlot.
+        """
+        labels = [str(x + 1) for x in range(len(self.func_units))]
+        return pd.DataFrame(data=self.lca_scores_normalized.T, columns=labels)
+
     def get_all_metadata(self) -> None:
         """Populate AB_metadata with relevant database values.
 
