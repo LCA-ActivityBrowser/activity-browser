@@ -107,20 +107,6 @@ class PresamplesMLCA(MLCA):
             data, index=self.func_key_list, columns=self.get_scenario_names()
         )
 
-    @property
-    def lca_scores_normalized(self) -> np.ndarray:
-        """Normalize LCA scores by impact assessment method.
-        """
-        return self.lca_scores[:, :, self.current] / self.lca_scores[:, :, self.current].max(axis=0)
-
-    def slice(self, obj: Union[dict, np.ndarray]) -> Union[dict, np.ndarray]:
-        """ Return a slice of the given object for the current presample array.
-        """
-        if isinstance(obj, dict):
-            return {k[0]: v for k, v in obj.items() if k[1] == self.current}
-        if isinstance(obj, np.ndarray):
-            return obj[:, :, self.current]
-
     def _get_steps_to_index(self, index: int) -> list:
         """ Determine how many steps to take when given the index we want
          to land on.
@@ -164,17 +150,18 @@ class PresamplesContributions(Contributions):
 
     def _build_inventory(self, inventory: dict, indices: dict, columns: list,
                          fields: list) -> pd.DataFrame:
-        inventory = self.mlca.slice(inventory)
+        inventory = {k[0]: v for k, v in inventory.items() if k[1] == self.mlca.current}
         return super()._build_inventory(inventory, indices, columns, fields)
 
     def lca_scores_df(self, normalized: bool = False) -> pd.DataFrame:
         """Returns a metadata-annotated DataFrame of the LCA scores.
         """
-        scores = self.mlca.slice(self.mlca.lca_scores) if not normalized else self.mlca.lca_scores_normalized
+        scores = self.mlca.lca_scores_normalized if normalized else self.mlca.lca_scores
+        scores = scores[:, :, self.mlca.current]
         return super()._build_lca_scores_df(
             scores, self.mlca.fu_activity_keys, self.mlca.methods, self.act_fields
         )
 
     def _build_contributions(self, data: np.ndarray, index: int, axis: int) -> np.ndarray:
-        data = self.mlca.slice(data)
+        data = data[:, :, self.mlca.current]
         return super()._build_contributions(data, index, axis)
