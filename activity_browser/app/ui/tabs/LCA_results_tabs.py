@@ -284,8 +284,8 @@ class NewAnalysisTab(QWidget):
         self.table.sync(*args, **kwargs)
 
     def update_plot(self, *args, **kwargs):
-        """Updates the plot. Method will be added in subclass."""
-        raise NotImplementedError
+        """Updates the plot. """
+        self.plot.plot(*args, **kwargs)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
         """ Construct a custom export button layout. """
@@ -389,9 +389,6 @@ class InventoryTab(NewAnalysisTab):
                 self.df_technosphere = self.parent.contributions.inventory_df(inventory_type='technosphere')
             self.table.sync(self.df_technosphere)
 
-    def update_plot(self):
-        pass
-
     def clear_tables(self) -> None:
         """ Set the biosphere and technosphere to None.
         """
@@ -445,9 +442,6 @@ class LCAResultsTab(NewAnalysisTab):
         self.lca_scores_widget.update_tab()
         self.lca_overview_widget.update_plot()
         self.lca_overview_widget.update_table()
-
-    def update_plot(self, *args, **kwargs):
-        pass
 
 
 class LCAScoresTab(NewAnalysisTab):
