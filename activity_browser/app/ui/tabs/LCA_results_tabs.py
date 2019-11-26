@@ -692,8 +692,8 @@ class ContributionTab(NewAnalysisTab):
             )
             self.switches.scenario.toggled.connect(self.toggle_scenario)
 
-    def update_dataframe(self):
-        """Updates the underlying dataframe. Implement in sublass.
+    def update_dataframe(self, *args, **kwargs):
+        """Updates the underlying dataframe. Implement in subclass.
         """
         raise NotImplementedError
 
@@ -755,13 +755,13 @@ class ElementaryFlowContributionTab(ContributionTab):
         self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_EF_AGGREGATES)
         return super().build_combobox(has_method, has_func)
 
-    def update_dataframe(self):
+    def update_dataframe(self, *args, **kwargs):
         """Retrieve the top elementary flow contributions
         """
         return self.parent.contributions.top_elementary_flow_contributions(
-            functional_unit=self.current_func, method=self.current_method,
-            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
-            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+            **kwargs, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative
+        )
 
 
 class ProcessContributionsTab(ContributionTab):
@@ -785,13 +785,13 @@ class ProcessContributionsTab(ContributionTab):
         self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_ACT_AGGREGATES)
         return super().build_combobox(has_method, has_func)
 
-    def update_dataframe(self):
+    def update_dataframe(self, *args, **kwargs):
         """Retrieve the top process contributions
         """
         return self.parent.contributions.top_process_contributions(
-            functional_unit=self.current_func, method=self.current_method,
-            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
-            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+            **kwargs, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative
+        )
 
 
 class CorrelationsTab(NewAnalysisTab):
