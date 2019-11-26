@@ -13,8 +13,7 @@ import pandas as pd
 from PySide2 import QtWidgets
 import seaborn as sns
 
-from ..bwutils.commontasks import format_activity_label, wrap_text
-from ..bwutils import MLCA
+from ..bwutils.commontasks import wrap_text
 from ..settings import ab_settings
 
 
@@ -41,6 +40,9 @@ class Plot(QtWidgets.QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+    def plot(self, *args, **kwargs):
+        raise NotImplementedError
 
     def reset_plot(self) -> None:
         self.figure.clf()
@@ -80,36 +82,23 @@ class Plot(QtWidgets.QWidget):
 
 class LCAResultsBarChart(Plot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
-    def __init__(self, parent=None, *args):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.plot_name = 'LCA scores'
 
-    def plot(self, mlca: MLCA, method: tuple = None):
+    def plot(self, df: pd.DataFrame, method: tuple, labels: list):
         self.reset_plot()
         height_inches, width_inches = self.get_canvas_size_in_inches()
         self.figure.set_size_inches(height_inches, width_inches)
 
-        if method is None:
-            method = mlca.methods[0]
-
-        functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
-
-        # Account for MLCA having additional dimensions
-        if hasattr(mlca, "slice"):
-            values = mlca.slice(mlca.lca_scores)[:, mlca.method_index[method]]
-        else:
-            values = mlca.lca_scores[:, mlca.method_index[method]]
-        y_pos = np.arange(len(functional_units))
-
-        # color_iterate = iter(plt.rcParams['axes.prop_cycle'])
-        for i in range(len(values)):
-            self.ax.barh(y_pos[i], values[i], align='center', alpha=1)  # color=next(color_iterate)['color'],
+        show_legend = df.shape[1] != 1  # Do not show the legend for 1 column
+        df.plot.barh(ax=self.ax, legend=show_legend)
 
         # labels
-        self.ax.set_yticks(y_pos)
+        self.ax.set_yticks(np.arange(len(labels)))
         self.ax.set_xlabel(bw.methods[method].get('unit'))
         self.ax.set_title(', '.join([m for m in method]))
-        self.ax.set_yticklabels(functional_units, minor=False)
+        self.ax.set_yticklabels(labels, minor=False)
 
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
@@ -221,21 +210,20 @@ class ContributionPlot(Plot):
 
 
 class CorrelationPlot(Plot):
-    def __init__(self, parent=None, *args):
+    def __init__(self, parent=None):
         super().__init__(parent)
         sns.set(style="darkgrid")
 
-    def plot(self, mlca: MLCA, labels: List[str]):
+    def plot(self, df: pd.DataFrame):
         """ Plot a heatmap of correlations between different functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()
         canvas_size = self.canvas.get_width_height()
         # print("Canvas size:", canvas_size)
-        size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
+        size = (4 + df.shape[1] * 0.3, 4 + df.shape[1] * 0.3)
         self.figure.set_size_inches(size[0], size[1])
 
-        df = pd.DataFrame(data=mlca.lca_scores_normalized.T, columns=labels)
         corr = df.corr()
         # Generate a mask for the upper triangle
         mask = np.zeros_like(corr, dtype=np.bool)
@@ -248,14 +236,14 @@ class CorrelationPlot(Plot):
         for i in range(len(corr)):
             self.ax.text(i + 0.5, i + 0.5, corr.columns[i],
                       ha="center", va="center",
-                      rotation=0 if len(labels) <= 8 else 45,
-                      size=11 if len(labels) <= 8 else 9)
+                      rotation=0 if df.shape[1] <= 8 else 45,
+                      size=11 if df.shape[1] <= 8 else 9)
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
                 self.ax.text(j + 0.5, i + 0.5, s,
                           ha="center", va="center",
-                          rotation=0 if len(labels) <= 8 else 45,
-                          size=11 if len(labels) <= 8 else 9)
+                          rotation=0 if df.shape[1] <= 8 else 45,
+                          size=11 if df.shape[1] <= 8 else 9)
         self.ax.axis("off")
 
         # refresh canvas
