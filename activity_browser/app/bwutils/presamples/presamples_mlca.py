@@ -56,7 +56,9 @@ class PresamplesMLCA(MLCA):
         """ Set the current scenario index given a new index to go to
         """
         steps = self._get_steps_to_index(index)
-        self.current = steps[-1] + 1  # Walk the steps to the new index
+        # self.current = steps[-1] + 1  # Walk the steps to the new index
+        for _ in steps:
+            self.next_scenario()
 
     def _construct_lca(self) -> bw.LCA:
         return bw.LCA(
@@ -153,6 +155,8 @@ class PresamplesMLCA(MLCA):
 
 
 class PresamplesContributions(Contributions):
+    mlca: PresamplesMLCA
+
     def __init__(self, mlca):
         if not isinstance(mlca, PresamplesMLCA):
             raise TypeError("Must pass a PresamplesMLCA object. Passed: {}".format(type(mlca)))
