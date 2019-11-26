@@ -218,6 +218,10 @@ class MLCA(object):
         databases.add(bw.config.biosphere)
         return databases
 
+    def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
+        data = self.lca_scores[:, index]
+        return pd.DataFrame(data, index=self.func_key_list)
+
     @property
     def lca_scores_normalized(self) -> np.ndarray:
         """Normalize LCA scores by impact assessment method.

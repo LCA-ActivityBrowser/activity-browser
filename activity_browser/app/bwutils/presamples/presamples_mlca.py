@@ -96,6 +96,15 @@ class PresamplesMLCA(MLCA):
                     self.process_contributions[row, col, ps_col] = self.lca.characterized_inventory.sum(axis=0)
             self.next_scenario()
 
+    def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
+        """ Overrides the parent and returns a dataframe with the scenarios
+         as columns
+        """
+        data = self.lca_scores[:, index, :]
+        return pd.DataFrame(
+            data, index=self.func_key_list, columns=self.get_scenario_names()
+        )
+
     @property
     def lca_scores_normalized(self) -> np.ndarray:
         """Normalize LCA scores by impact assessment method.
