@@ -550,9 +550,22 @@ class ContributionTab(NewAnalysisTab):
         self.table = ContributionTable(self)
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
+        self.unit = None
         self.current_method = None
         self.current_func = None
         self.current_agg = None  # Default to no aggregation
+
+    def set_filename(self, optional_fields: dict = None):
+        """ Given a dictionary of fields, put together a usable filename
+         for the plot and table.
+        """
+        optional = optional_fields or {}
+        fields = (
+            self.parent.cs_name, self.contribution_fn, optional.get("method"),
+            optional.get("functional_unit"), self.unit
+        )
+        filename = '_'.join((str(x) for x in fields if x is not None))
+        self.plot.plot_name, self.table.table_name = filename, filename
 
     def build_combobox(self, has_method: bool = True,
                        has_func: bool = False) -> QHBoxLayout:
@@ -612,6 +625,38 @@ class ContributionTab(NewAnalysisTab):
     def toggle_method(self, active: bool):
         self.combobox_menu.method.setHidden(active)
         self.combobox_menu.method_label.setHidden(active)
+
+    @QtCore.Slot(name="comboboxTriggerUpdate")
+    def set_combobox_changes(self):
+        """ Any trigger linked to this slot will cause the values in the
+         combobox objects to be read out (which comparison, drop-down indexes,
+         etc.) and fed into update calls.
+        """
+        if self.combobox_menu.agg.currentText() != 'none':
+            compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
+        else:
+            compare_fields = {"aggregator": None}
+
+        # Determine which comparison is active and update the comparison.
+        if self.switches.func.isChecked():
+            compare_fields.update({
+                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
+            })
+        elif self.switches.method.isChecked():
+            compare_fields.update({
+                "functional_unit": self.combobox_menu.func.currentText(),
+            })
+        elif self.switches.scenario.isChecked():
+            compare_fields.update({
+                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
+                "functional_unit": self.combobox_menu.func.currentText(),
+            })
+
+        # Determine the unit for the figure, update the filenames and the
+        # underlying dataframe.
+        self.unit = get_unit(compare_fields.get("method"), self.relative)
+        self.set_filename(compare_fields)
+        self.df = self.update_dataframe(**compare_fields)
 
     def connect_signals(self):
         """Override the inherited method to perform the same thing plus aggregation
