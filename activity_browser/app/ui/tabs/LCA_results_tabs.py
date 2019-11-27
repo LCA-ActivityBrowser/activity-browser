@@ -702,7 +702,6 @@ class ElementaryFlowContributionTab(ContributionTab):
         self.layout.addWidget(horizontal_line())
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
-        self.set_combobox_changes()
 
         self.contribution_fn = 'EF contributions'
         self.connect_signals()
@@ -733,7 +732,6 @@ class ProcessContributionsTab(ContributionTab):
         self.layout.addWidget(horizontal_line())
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
-        self.set_combobox_changes()
 
         self.contribution_fn = 'Process contributions'
         self.connect_signals()
