@@ -153,13 +153,14 @@ class LCAResultsPlot(Plot):
 
 
 class ContributionPlot(Plot):
+    MAX_LEGEND = 30
+
     def __init__(self):
         super().__init__()
         self.plot_name = 'Contributions'
 
     def plot(self, df: pd.DataFrame, unit: str = None):
         """ Plot a horizontal bar chart of the process contributions. """
-        max_legend_items = 30
         dfp = df.copy()
         dfp.index = dfp['index']
         dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
@@ -169,29 +170,29 @@ class ContributionPlot(Plot):
         self.ax.clear()
         canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
         optimal_height_inches = 4 + dfp.shape[1] * 0.55
-        print('Optimal Contribution plot height:', optimal_height_inches)
+        # print('Optimal Contribution plot height:', optimal_height_inches)
         self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(str(i), max_length=40) for i in dfp.index]
         dfp.columns = [wrap_text(i, max_length=40) for i in dfp.columns]
 
-        plot = dfp.T.plot.barh(
+        dfp.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax,
-            legend=False if dfp.shape[0] >= max_legend_items else True,
+            legend=False if dfp.shape[0] >= self.MAX_LEGEND else True,
         )
-        plot.tick_params(labelsize=8)
+        self.ax.tick_params(labelsize=8)
         if unit:
             self.ax.set_xlabel(unit)
 
         # show legend if not too many items
-        if not dfp.shape[0] >= max_legend_items:
+        if not dfp.shape[0] >= self.MAX_LEGEND:
             plt.rc('legend', **{'fontsize': 8})
             ncols = math.ceil(dfp.shape[0] * 0.6 / optimal_height_inches)
             # print('Ncols:', ncols, dfp.shape[0] * 0.55, optimal_height_inches)
-            legend = plot.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
+            self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
 
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
@@ -204,10 +205,6 @@ class ContributionPlot(Plot):
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
         self.canvas.draw()
-
-        # self.canvas.draw()
-        # size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        # self.setMinimumHeight(size_pixels[1])
 
 
 class CorrelationPlot(Plot):
