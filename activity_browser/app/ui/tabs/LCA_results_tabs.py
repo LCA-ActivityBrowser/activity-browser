@@ -431,11 +431,18 @@ class LCAResultsTab(NewAnalysisTab):
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
+            self.button_by_method.toggled.connect(
+                lambda on_lcia: self.scenario_box.setHidden(on_lcia)
+            )
 
     @QtCore.Slot(bool, name="overviewToggled")
     def button_clicked(self, is_overview: bool):
         self.lca_overview_widget.setVisible(is_overview)
         self.lca_scores_widget.setHidden(is_overview)
+
+    def configure_scenario(self):
+        super().configure_scenario()
+        self.scenario_box.setHidden(self.button_by_method.isChecked())
 
     def update_tab(self):
         self.lca_scores_widget.update_tab()
