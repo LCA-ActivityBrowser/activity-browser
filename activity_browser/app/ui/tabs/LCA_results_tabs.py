@@ -21,7 +21,7 @@ from ..figures import (
 )
 from ..style import horizontal_line, vertical_line, header
 from ..tables import ContributionTable, InventoryTable, LCAResultsTable
-from ..widgets import CutoffMenu
+from ..widgets import CutoffMenu, SwitchComboBox
 from ..web.graphnav import SankeyNavigatorWidget
 
 
@@ -55,7 +55,6 @@ Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
 ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
 PlotTableCheck = namedtuple("plot_table_space", ("plot", "table"))
-SwitchButtons = namedtuple("switch_buttons", ("func", "method", "scenario"))
 Combobox = namedtuple(
     "combobox_menu", (
         "func", "func_label", "method", "method_label",
@@ -519,24 +518,17 @@ class ContributionTab(NewAnalysisTab):
         super().__init__(parent)
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.combobox_menu = Combobox(
-            func=QComboBox(),
-            func_label=QLabel("Functional Unit: "),
-            method=QComboBox(),
-            method_label=QLabel("Impact Category: "),
-            agg=QComboBox(),
-            agg_label=QLabel("Aggregate by: "),
+            func=QComboBox(self),
+            func_label=QLabel("Functional Unit:"),
+            method=QComboBox(self),
+            method_label=QLabel("Impact Category:"),
+            agg=QComboBox(self),
+            agg_label=QLabel("Aggregate by:"),
             scenario=self.scenario_box,
-            scenario_label=QLabel("Scenario: "),
+            scenario_label=QLabel("Scenario:"),
         )
-        # Group the switch buttons to ensure only one can be active
-        self.switches = SwitchButtons(
-            func=QRadioButton("Compare Functional Units"),
-            method=QRadioButton("Compare Impact Categories"),
-            scenario=QRadioButton("Compare Scenarios"),
-        )
-        self.switch_buttons = QButtonGroup()
-        for i, btn in enumerate(self.switches):
-            self.switch_buttons.addButton(btn, i)
+        self.switch_label = QLabel("Compare:")
+        self.switches = SwitchComboBox(self)
 
         self.relativity = Relativity(
             QRadioButton("Relative"),
@@ -576,24 +568,19 @@ class ContributionTab(NewAnalysisTab):
         )
         self.combobox_menu.method.addItems(list(self.parent.method_dict.keys()))
 
-        menu.addStretch(1)
-        menu.addWidget(self.switches.scenario)
-        if has_method and has_func:
-            self.switches.func.setChecked(True)
-            self.combobox_menu.func.setVisible(False)
-            self.combobox_menu.func_label.setVisible(False)
-            menu.addWidget(self.switches.method)
-            menu.addWidget(self.switches.func)
+        menu.addStretch()
+        menu.addWidget(self.switch_label)
+        menu.addWidget(self.switches)
         menu.addWidget(vertical_line())
         menu.addWidget(self.combobox_menu.scenario_label)
-        menu.addWidget(self.combobox_menu.scenario, 1)
+        menu.addWidget(self.combobox_menu.scenario)
         menu.addWidget(self.combobox_menu.method_label)
-        menu.addWidget(self.combobox_menu.method, 1)
+        menu.addWidget(self.combobox_menu.method)
         menu.addWidget(self.combobox_menu.func_label)
-        menu.addWidget(self.combobox_menu.func, 1)
+        menu.addWidget(self.combobox_menu.func)
         menu.addWidget(self.combobox_menu.agg_label)
         menu.addWidget(self.combobox_menu.agg)
-        menu.addStretch(1)
+        menu.addStretch()
 
         self.has_method = has_method
         self.has_func = has_func
@@ -605,13 +592,20 @@ class ContributionTab(NewAnalysisTab):
         """
         super().configure_scenario()
         visible = self.using_presamples
-        self.switches.scenario.setVisible(visible)
         self.combobox_menu.scenario_label.setVisible(visible)
+
+    @QtCore.Slot(int, name="changeComparisonView")
+    def toggle_comparisons(self, index: int):
+        self.toggle_func(index == self.switches.indexes.func)
+        self.toggle_method(index == self.switches.indexes.method)
+        self.toggle_scenario(index == self.switches.indexes.scenario)
+        self.update_tab()
 
     @QtCore.Slot(bool, name="hideScenarioCombo")
     def toggle_scenario(self, active: bool):
-        self.combobox_menu.scenario.setHidden(active)
-        self.combobox_menu.scenario_label.setHidden(active)
+        if self.using_presamples:
+            self.combobox_menu.scenario.setHidden(active)
+            self.combobox_menu.scenario_label.setHidden(active)
 
     @QtCore.Slot(bool, name="hideFuCombo")
     def toggle_func(self, active: bool):
@@ -635,15 +629,15 @@ class ContributionTab(NewAnalysisTab):
             compare_fields = {"aggregator": None}
 
         # Determine which comparison is active and update the comparison.
-        if self.switches.func.isChecked():
+        if self.switches.currentIndex() == self.switches.indexes.func:
             compare_fields.update({
                 "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
             })
-        elif self.switches.method.isChecked():
+        elif self.switches.currentIndex() == self.switches.indexes.method:
             compare_fields.update({
                 "functional_unit": self.combobox_menu.func.currentText(),
             })
-        elif self.switches.scenario.isChecked():
+        elif self.switches.currentIndex() == self.switches.indexes.scenario:
             compare_fields.update({
                 "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
                 "functional_unit": self.combobox_menu.func.currentText(),
@@ -658,14 +652,7 @@ class ContributionTab(NewAnalysisTab):
     def connect_signals(self):
         """Override the inherited method to perform the same thing plus aggregation
         """
-        if self.has_method and self.has_func:
-            self.switches.method.toggled.connect(self.toggle_method)
-            self.switches.func.toggled.connect(self.toggle_func)
-            if self.using_presamples:
-                self.switches.scenario.toggled.connect(self.toggle_scenario)
-                self.combobox_menu.scenario.currentIndexChanged.connect(self.update_tab)
-            self.switch_buttons.buttonToggled.connect(self.update_tab)
-
+        self.switches.currentIndexChanged.connect(self.toggle_comparisons)
         self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
@@ -691,8 +678,8 @@ class ContributionTab(NewAnalysisTab):
 
 
 class ElementaryFlowContributionTab(ContributionTab):
-    def __init__(self, parent, **kwargs):
-        super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
         self.layout.addWidget(self.cutoff_menu)
@@ -704,7 +691,9 @@ class ElementaryFlowContributionTab(ContributionTab):
         self.layout.addLayout(self.build_export(True, True))
 
         self.contribution_fn = 'EF contributions'
+        self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
+        self.toggle_comparisons(self.switches.indexes.func)
 
     def build_combobox(self, has_method: bool = True,
                        has_func: bool = False) -> QHBoxLayout:
@@ -721,8 +710,8 @@ class ElementaryFlowContributionTab(ContributionTab):
 
 
 class ProcessContributionsTab(ContributionTab):
-    def __init__(self, parent, **kwargs):
-        super(ProcessContributionsTab, self).__init__(parent, **kwargs)
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.layout.addLayout(get_header_layout('Process Contributions'))
         self.layout.addWidget(self.cutoff_menu)
@@ -734,7 +723,9 @@ class ProcessContributionsTab(ContributionTab):
         self.layout.addLayout(self.build_export(True, True))
 
         self.contribution_fn = 'Process contributions'
+        self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
+        self.toggle_comparisons(self.switches.indexes.func)
 
     def build_combobox(self, has_method: bool = True,
                        has_func: bool = False) -> QHBoxLayout:
