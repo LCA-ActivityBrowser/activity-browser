@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from ast import literal_eval
-from typing import List, Union
+from typing import Iterable, List, Optional
 
 import brightway2 as bw
 import numpy as np
@@ -26,6 +26,9 @@ class PresamplesMLCA(MLCA):
         data = self.resource.metadata
         self.total = data.get("ncols", 1)
         self._current_index = 0
+
+        # Construct an index dictionary similar to fu_index and method_index
+        self.presamples_index = {k: i for i, k in enumerate(self.get_scenario_names())}
 
         # Rebuild numpy arrays with presample dimension included.
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods), self.total))
@@ -191,3 +194,10 @@ class PresamplesContributions(Contributions):
                 self.mlca.method_index[method]
             )
         return super().get_contributions(contribution, functional_unit, method)
+
+    def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
+        # If both functional_unit and method are given, return presamples index.
+        if all(kwargs.values()):
+            return self.mlca.presamples_index, self.act_fields
+        else:
+            return super()._contribution_index_cols(**kwargs)

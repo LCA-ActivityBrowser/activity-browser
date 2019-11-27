@@ -398,6 +398,8 @@ class Contributions(object):
         for k in keys:
             if mask and k in mask:
                 translated_keys.append(k)
+            elif isinstance(k, str):
+                translated_keys.append(k)
             elif k in AB_metadata.index:
                 translated_keys.append(separator.join([str(l) for l in list(AB_metadata.get_metadata(k, fields))]))
             else:
@@ -610,8 +612,8 @@ class Contributions(object):
             return self.act_fields if contribution == self.ACT else self.ef_fields
         return aggregator if isinstance(aggregator, list) else [aggregator]
 
-    def _contribution_index_cols(self, method=None) -> (dict, Optional[Iterable]):
-        if method:
+    def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
+        if kwargs.get("method") is not None:
             return self.mlca.fu_index, self.act_fields
         return self.mlca.method_index, None
 
@@ -649,7 +651,9 @@ class Contributions(object):
         C = self.get_contributions(self.EF, functional_unit, method)
 
         x_fields = self._contribution_rows(self.EF, aggregator)
-        index, y_fields = self._contribution_index_cols(method)
+        index, y_fields = self._contribution_index_cols(
+            functional_unit=functional_unit, method=method
+        )
         C, rev_index, mask = self.aggregate_by_parameters(C, self.BIOS, aggregator)
 
         # Normalise if required
@@ -694,7 +698,9 @@ class Contributions(object):
         C = self.get_contributions(self.ACT, functional_unit, method)
 
         x_fields = self._contribution_rows(self.ACT, aggregator)
-        index, y_fields = self._contribution_index_cols(method)
+        index, y_fields = self._contribution_index_cols(
+            functional_unit=functional_unit, method=method
+        )
         C, rev_index, mask = self.aggregate_by_parameters(C, self.TECH, aggregator)
 
         # Normalise if required
