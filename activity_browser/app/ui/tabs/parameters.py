@@ -5,7 +5,7 @@ import brightway2 as bw
 from bw2data.filesystem import safe_filename
 from PySide2.QtCore import Slot, QSize
 from PySide2.QtWidgets import (
-    QCheckBox, QFileDialog, QHBoxLayout, QPushButton, QToolBar,
+    QCheckBox, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QToolBar,
     QStyle, QVBoxLayout, QTabWidget
 )
 
@@ -320,6 +320,13 @@ class PresamplesTab(BaseRightTab):
             self.tbl.sync(df=df)
 
     def save_scenarios(self):
+        if not PresamplesParameterManager.can_build_presamples():
+            QMessageBox.warning(
+                self, "No parameterized exchanges", "Please set formulas on"
+                " exchanges to make use of scenario analysis.",
+                QMessageBox.Ok, QMessageBox.Ok
+            )
+            return
         filename, _ = QFileDialog().getSaveFileName(
             self, caption="Save current scenarios to TSV",
             dir=project_settings.data_dir, filter=self.tbl.TSV_FILTER

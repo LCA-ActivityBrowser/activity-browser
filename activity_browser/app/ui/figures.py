@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
 import os
+from typing import List
 
 import brightway2 as bw
 from bw2data.filesystem import safe_filename
@@ -12,7 +13,7 @@ import pandas as pd
 from PySide2 import QtWidgets
 import seaborn as sns
 
-from ..bwutils.commontasks import format_activity_label, wrap_text
+from ..bwutils.commontasks import wrap_text
 from ..settings import ab_settings
 
 
@@ -21,8 +22,12 @@ from ..settings import ab_settings
 #  but this issue needs to be resolved first: https://github.com/bokeh/bokeh/issues/8169
 
 class Plot(QtWidgets.QWidget):
+    ALL_FILTER = "All Files (*.*)"
+    PNG_FILTER = "PNG (*.png)"
+    SVG_FILTER = "SVG (*.svg)"
+
     def __init__(self, parent=None):
-        super(Plot, self).__init__(parent)
+        super().__init__(parent)
         # create figure, canvas, and axis
         # self.figure = Figure(tight_layout=True)
         self.figure = Figure(constrained_layout=True)
@@ -34,25 +39,34 @@ class Plot(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
         self.setLayout(layout)
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.updateGeometry()
+
+    def plot(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def reset_plot(self) -> None:
+        self.figure.clf()
+        self.ax = self.figure.add_subplot(111)
 
     def get_canvas_size_in_inches(self):
         # print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
-    def savefilepath(self, default_file_name="LCA results", filter="All Files (*.*)"):
-        safe_name = safe_filename(default_file_name, add_hash=False)
+    def savefilepath(self, default_file_name: str, file_filter: str = ALL_FILTER):
+        default = default_file_name or "LCA results"
+        safe_name = safe_filename(default, add_hash=False)
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self,
             caption='Choose location to save lca results',
             dir=os.path.join(ab_settings.data_dir, safe_name),
-            filter=filter,
+            filter=file_filter,
         )
         return filepath
 
     def to_png(self):
         """ Export to .png format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, filter="PNG (*.png)")
+        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
@@ -60,7 +74,7 @@ class Plot(QtWidgets.QWidget):
 
     def to_svg(self):
         """ Export to .svg format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, filter="SVG (*.svg)")
+        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
@@ -69,37 +83,23 @@ class Plot(QtWidgets.QWidget):
 
 class LCAResultsBarChart(Plot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
-    def __init__(self, parent=None, *args):
-        super(LCAResultsBarChart, self).__init__(parent, *args)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.plot_name = 'LCA scores'
 
-    def plot(self, mlca, method=None):
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
+    def plot(self, df: pd.DataFrame, method: tuple, labels: list):
+        self.reset_plot()
         height_inches, width_inches = self.get_canvas_size_in_inches()
         self.figure.set_size_inches(height_inches, width_inches)
 
-        if method == None:
-            method = mlca.methods[0]
-
-        functional_units = [format_activity_label(next(iter(fu.keys())), style='pnl') for fu in mlca.func_units]
-
-        # Account for MLCA having additional dimensions
-        if hasattr(mlca, "slice"):
-            values = mlca.slice(mlca.lca_scores)[:, mlca.method_index[method]]
-        else:
-            values = mlca.lca_scores[:, mlca.method_index[method]]
-        y_pos = np.arange(len(functional_units))
-
-        # color_iterate = iter(plt.rcParams['axes.prop_cycle'])
-        for i in range(len(values)):
-            self.ax.barh(y_pos[i], values[i], align='center', alpha=1)  # color=next(color_iterate)['color'],
+        show_legend = df.shape[1] != 1  # Do not show the legend for 1 column
+        df.plot.barh(ax=self.ax, legend=show_legend)
 
         # labels
-        self.ax.set_yticks(y_pos)
+        self.ax.set_yticks(np.arange(len(labels)))
         self.ax.set_xlabel(bw.methods[method].get('unit'))
         self.ax.set_title(', '.join([m for m in method]))
-        self.ax.set_yticklabels(functional_units, minor=False)
+        self.ax.set_yticklabels(labels, minor=False)
 
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
@@ -111,15 +111,14 @@ class LCAResultsBarChart(Plot):
 
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None, *args):
-        super(LCAResultsPlot, self).__init__(parent, *args)
+        super().__init__(parent)
         self.plot_name = 'LCA heatmap'
 
-    def plot(self, df):
+    def plot(self, df: pd.DataFrame):
         """ Plot a heatmap grid of the different methods and functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
+        self.reset_plot()
 
         dfp = df.copy()
         dfp.index = dfp['index']
@@ -154,13 +153,14 @@ class LCAResultsPlot(Plot):
 
 
 class ContributionPlot(Plot):
+    MAX_LEGEND = 30
+
     def __init__(self):
-        super(ContributionPlot, self).__init__()
+        super().__init__()
         self.plot_name = 'Contributions'
 
-    def plot(self, df, unit=None):
+    def plot(self, df: pd.DataFrame, unit: str = None):
         """ Plot a horizontal bar chart of the process contributions. """
-        max_legend_items = 30
         dfp = df.copy()
         dfp.index = dfp['index']
         dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
@@ -170,29 +170,29 @@ class ContributionPlot(Plot):
         self.ax.clear()
         canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
         optimal_height_inches = 4 + dfp.shape[1] * 0.55
-        print('Optimal Contribution plot height:', optimal_height_inches)
+        # print('Optimal Contribution plot height:', optimal_height_inches)
         self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(str(i), max_length=40) for i in dfp.index]
         dfp.columns = [wrap_text(i, max_length=40) for i in dfp.columns]
 
-        plot = dfp.T.plot.barh(
+        dfp.T.plot.barh(
             stacked=True,
             cmap=plt.cm.nipy_spectral_r,
             ax=self.ax,
-            legend=False if dfp.shape[0] >= max_legend_items else True,
+            legend=False if dfp.shape[0] >= self.MAX_LEGEND else True,
         )
-        plot.tick_params(labelsize=8)
+        self.ax.tick_params(labelsize=8)
         if unit:
             self.ax.set_xlabel(unit)
 
         # show legend if not too many items
-        if not dfp.shape[0] >= max_legend_items:
+        if not dfp.shape[0] >= self.MAX_LEGEND:
             plt.rc('legend', **{'fontsize': 8})
             ncols = math.ceil(dfp.shape[0] * 0.6 / optimal_height_inches)
             # print('Ncols:', ncols, dfp.shape[0] * 0.55, optimal_height_inches)
-            legend = plot.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
+            self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
 
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
@@ -206,28 +206,22 @@ class ContributionPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
         self.canvas.draw()
 
-        # self.canvas.draw()
-        # size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        # self.setMinimumHeight(size_pixels[1])
-
 
 class CorrelationPlot(Plot):
-    def __init__(self, parent=None, *args):
-        super(CorrelationPlot, self).__init__(parent, *args)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         sns.set(style="darkgrid")
 
-    def plot(self, mlca, labels):
+    def plot(self, df: pd.DataFrame):
         """ Plot a heatmap of correlations between different functional units. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
+        self.reset_plot()
         canvas_size = self.canvas.get_width_height()
         # print("Canvas size:", canvas_size)
-        size = (4 + len(labels) * 0.3, 4 + len(labels) * 0.3)
+        size = (4 + df.shape[1] * 0.3, 4 + df.shape[1] * 0.3)
         self.figure.set_size_inches(size[0], size[1])
 
-        df = pd.DataFrame(data=mlca.lca_scores_normalized.T, columns=labels)
         corr = df.corr()
         # Generate a mask for the upper triangle
         mask = np.zeros_like(corr, dtype=np.bool)
@@ -240,14 +234,14 @@ class CorrelationPlot(Plot):
         for i in range(len(corr)):
             self.ax.text(i + 0.5, i + 0.5, corr.columns[i],
                       ha="center", va="center",
-                      rotation=0 if len(labels) <= 8 else 45,
-                      size=11 if len(labels) <= 8 else 9)
+                      rotation=0 if df.shape[1] <= 8 else 45,
+                      size=11 if df.shape[1] <= 8 else 9)
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
                 self.ax.text(j + 0.5, i + 0.5, s,
                           ha="center", va="center",
-                          rotation=0 if len(labels) <= 8 else 45,
-                          size=11 if len(labels) <= 8 else 9)
+                          rotation=0 if df.shape[1] <= 8 else 45,
+                          size=11 if df.shape[1] <= 8 else 9)
         self.ax.axis("off")
 
         # refresh canvas
@@ -259,12 +253,10 @@ class CorrelationPlot(Plot):
 class MonteCarloPlot(Plot):
     """ Monte Carlo plot."""
     def __init__(self, parent=None):
-        super(MonteCarloPlot, self).__init__(parent)
+        super().__init__(parent)
         self.plot_name = 'Monte Carlo'
 
-    def plot(self, df, method):
-        # self.figure.clf()
-        # self.ax = self.figure.add_subplot(111)
+    def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
 
         for col in df.columns:

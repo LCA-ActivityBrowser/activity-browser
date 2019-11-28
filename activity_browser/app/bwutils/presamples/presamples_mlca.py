@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from ast import literal_eval
-from typing import List, Union
+from typing import Iterable, List, Optional
 
 import brightway2 as bw
 import numpy as np
@@ -26,6 +26,9 @@ class PresamplesMLCA(MLCA):
         data = self.resource.metadata
         self.total = data.get("ncols", 1)
         self._current_index = 0
+
+        # Construct an index dictionary similar to fu_index and method_index
+        self.presamples_index = {k: i for i, k in enumerate(self.get_scenario_names())}
 
         # Rebuild numpy arrays with presample dimension included.
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods), self.total))
@@ -56,7 +59,9 @@ class PresamplesMLCA(MLCA):
         """ Set the current scenario index given a new index to go to
         """
         steps = self._get_steps_to_index(index)
-        self.current = steps[-1] + 1  # Walk the steps to the new index
+        # self.current = steps[-1] + 1  # Walk the steps to the new index
+        for _ in steps:
+            self.next_scenario()
 
     def _construct_lca(self) -> bw.LCA:
         return bw.LCA(
@@ -96,19 +101,14 @@ class PresamplesMLCA(MLCA):
                     self.process_contributions[row, col, ps_col] = self.lca.characterized_inventory.sum(axis=0)
             self.next_scenario()
 
-    @property
-    def lca_scores_normalized(self) -> np.ndarray:
-        """Normalize LCA scores by impact assessment method.
+    def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
+        """ Overrides the parent and returns a dataframe with the scenarios
+         as columns
         """
-        return self.lca_scores[:, :, self.current] / self.lca_scores[:, :, self.current].max(axis=0)
-
-    def slice(self, obj: Union[dict, np.ndarray]) -> Union[dict, np.ndarray]:
-        """ Return a slice of the given object for the current presample array.
-        """
-        if isinstance(obj, dict):
-            return {k[0]: v for k, v in obj.items() if k[1] == self.current}
-        if isinstance(obj, np.ndarray):
-            return obj[:, :, self.current]
+        data = self.lca_scores[:, index, :]
+        return pd.DataFrame(
+            data, index=self.func_key_list, columns=self.get_scenario_names()
+        )
 
     def _get_steps_to_index(self, index: int) -> list:
         """ Determine how many steps to take when given the index we want
@@ -144,6 +144,8 @@ class PresamplesMLCA(MLCA):
 
 
 class PresamplesContributions(Contributions):
+    mlca: PresamplesMLCA
+
     def __init__(self, mlca):
         if not isinstance(mlca, PresamplesMLCA):
             raise TypeError("Must pass a PresamplesMLCA object. Passed: {}".format(type(mlca)))
@@ -151,17 +153,51 @@ class PresamplesContributions(Contributions):
 
     def _build_inventory(self, inventory: dict, indices: dict, columns: list,
                          fields: list) -> pd.DataFrame:
-        inventory = self.mlca.slice(inventory)
+        inventory = {k[0]: v for k, v in inventory.items() if k[1] == self.mlca.current}
         return super()._build_inventory(inventory, indices, columns, fields)
 
     def lca_scores_df(self, normalized: bool = False) -> pd.DataFrame:
         """Returns a metadata-annotated DataFrame of the LCA scores.
         """
-        scores = self.mlca.slice(self.mlca.lca_scores) if not normalized else self.mlca.lca_scores_normalized
+        scores = self.mlca.lca_scores_normalized if normalized else self.mlca.lca_scores
+        scores = scores[:, :, self.mlca.current]
         return super()._build_lca_scores_df(
             scores, self.mlca.fu_activity_keys, self.mlca.methods, self.act_fields
         )
 
     def _build_contributions(self, data: np.ndarray, index: int, axis: int) -> np.ndarray:
-        data = self.mlca.slice(data)
+        data = data[:, :, self.mlca.current]
         return super()._build_contributions(data, index, axis)
+
+    @staticmethod
+    def _build_scenario_contributions(data: np.ndarray, fu_index: int, m_index: int) -> np.ndarray:
+        return data[fu_index, m_index, :]
+
+    def get_contributions(self, contribution, functional_unit=None,
+                          method=None) -> np.ndarray:
+        """Return a contribution matrix given the type and fu / method
+
+        Allow for both fu and method to exist.
+        """
+        if not any([functional_unit, method]):
+            raise ValueError(
+                "Either functional unit, method or both should be given. Provided:"
+                "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
+            )
+        dataset = {
+            'process': self.mlca.process_contributions,
+            'elementary_flow': self.mlca.elementary_flow_contributions,
+        }
+        if method and functional_unit:
+            return self._build_scenario_contributions(
+                dataset[contribution], self.mlca.func_key_dict[functional_unit],
+                self.mlca.method_index[method]
+            )
+        return super().get_contributions(contribution, functional_unit, method)
+
+    def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
+        # If both functional_unit and method are given, return presamples index.
+        if all(kwargs.values()):
+            return self.mlca.presamples_index, self.act_fields
+        else:
+            return super()._contribution_index_cols(**kwargs)

@@ -152,6 +152,7 @@ class LCASetupTab(QtWidgets.QWidget):
         signals.calculation_setup_selected.connect(lambda: self.show_details())
         signals.calculation_setup_selected.connect(self.enable_calculations)
         signals.calculation_setup_changed.connect(self.enable_calculations)
+        signals.presample_package_created.connect(self.valid_presamples)
 
     def save_cs_changes(self):
         name = self.list_widget.name
@@ -169,6 +170,7 @@ class LCASetupTab(QtWidgets.QWidget):
             self.list_widget.name, self.presamples.list.selection
         )
 
+    @Slot(name="toggleDefaultCalculation")
     def set_default_calculation_setup(self):
         self.calculation_type.setCurrentIndex(0)
         if not len(calculation_setups):
@@ -179,6 +181,7 @@ class LCASetupTab(QtWidgets.QWidget):
                 sorted(calculation_setups)[0]
             )
 
+    @Slot(name="togglePresampleCalculation")
     def valid_presamples(self):
         """ Determine if calculate with presamples is active.
         """

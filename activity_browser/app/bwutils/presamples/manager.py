@@ -181,15 +181,19 @@ class PresamplesParameterManager(object):
             act = self.recalculate_activity_parameters(p.group, combination)
             combination.update(act)
 
+            recalculated = self.recalculate_exchanges(p.group, global_params=combination)
+            # If the parameter group contains no ParameterizedExchanges, skip.
+            if not recalculated:
+                continue
             # `data` contains the recalculated amounts for the exchanges.
-            ids, data = zip(*self.recalculate_exchanges(p.group, global_params=combination))
+            ids, data = zip(*recalculated)
             indices = []
             for pk in ids:
                 exc = ExchangeDataset.get_by_id(pk)
                 input_key = (exc.input_database, exc.input_code)
                 output_key = (exc.output_database, exc.output_code)
                 if exc.input_database == bw.config.biosphere:
-                    indices.append((input_key, output_key))
+                    indices.append((input_key, output_key, "biosphere"))
                 else:
                     indices.append((input_key, output_key, "technosphere"))
             complete_data.extend(data)
@@ -202,6 +206,13 @@ class PresamplesParameterManager(object):
         samples = samples.reshape(1, -1).T
         indices = np.array(complete_indices)
         return samples, indices
+
+    @staticmethod
+    def can_build_presamples() -> bool:
+        """ Test if ParameterizedExchanges exist, no point to building presamples
+         otherwise
+        """
+        return ParameterizedExchange.select().exists()
 
     def presamples_from_scenarios(self, name: str, scenarios: Iterable[Tuple[str, Iterable]]) -> (str, str):
         """ When given a iterable of multiple parameter scenarios, construct
