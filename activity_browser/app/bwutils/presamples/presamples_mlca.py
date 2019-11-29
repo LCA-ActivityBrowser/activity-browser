@@ -8,6 +8,7 @@ import pandas as pd
 import presamples as ps
 
 from ..multilca import MLCA, Contributions
+from .utils import get_package_path
 
 
 class PresamplesMLCA(MLCA):
@@ -19,12 +20,12 @@ class PresamplesMLCA(MLCA):
      matrices and recalculate the results.
     """
     def __init__(self, cs_name: str, ps_name: str):
-        self.resource = ps.PresampleResource.get_or_none(name=ps_name)
-        if not self.resource:
-            raise ValueError("Presamples resource with name '{}' not found.".format(ps_name))
+        self.package = ps.PresamplesPackage(get_package_path(ps_name))
+        self.resource = ps.PresampleResource.get_or_none(name=self.package.name)
+        if not self.package:
+            raise ValueError("Presamples package with name or id '{}' not found.".format(ps_name))
         super().__init__(cs_name)
-        data = self.resource.metadata
-        self.total = data.get("ncols", 1)
+        self.total = self.package.ncols
         self._current_index = 0
 
         # Construct an index dictionary similar to fu_index and method_index
@@ -66,7 +67,7 @@ class PresamplesMLCA(MLCA):
     def _construct_lca(self) -> bw.LCA:
         return bw.LCA(
             demand=self.func_units_dict, method=self.methods[0],
-            presamples=[self.resource.path]
+            presamples=[self.package.path]
         )
 
     def _perform_calculations(self):
@@ -128,7 +129,7 @@ class PresamplesMLCA(MLCA):
             return list(range(self.current, index))
 
     def get_scenario_names(self) -> List[str]:
-        description = self.resource.description
+        description = self.resource.description if self.resource else None
         if description is None:
             return ["Scenario{}".format(i) for i in range(self.total)]
         # Attempt to convert the string description

@@ -2,11 +2,10 @@
 from typing import Iterable, List, Tuple
 
 import pandas as pd
-from presamples import PresampleResource
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from ...bwutils.presamples import process_brightway_parameters
+from ...bwutils import presamples as ps_utils
 from ...signals import signals
 from .delegates import FloatDelegate, ViewOnlyDelegate
 from .views import ABDataFrameEdit, dataframe_sync
@@ -44,10 +43,11 @@ class PresamplesList(QComboBox):
 
     @property
     def has_packages(self) -> bool:
-        return PresampleResource.select().exists()
+        return bool(ps_utils.count_presample_packages())
 
-    def get_package_names(self) -> List[str]:
-        return [r.name for r in PresampleResource.select(PresampleResource.name)]
+    @staticmethod
+    def get_package_names() -> List[str]:
+        return ps_utils.find_all_package_names()
 
 
 class ScenarioTable(ABDataFrameEdit):
@@ -75,7 +75,7 @@ class ScenarioTable(ABDataFrameEdit):
             assert df.columns.get_loc("Group") == 1
             self.dataframe = df.set_index("Name")
             return
-        data = process_brightway_parameters()
+        data = ps_utils.process_brightway_parameters()
         self.dataframe = pd.DataFrame(data, columns=["Name", "Group", "default"])
         self.dataframe.set_index("Name", inplace=True)
 

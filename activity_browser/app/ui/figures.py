@@ -110,7 +110,7 @@ class LCAResultsBarChart(Plot):
 
 
 class LCAResultsPlot(Plot):
-    def __init__(self, parent=None, *args):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.plot_name = 'LCA heatmap'
 
@@ -130,18 +130,15 @@ class LCAResultsPlot(Plot):
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
         dfp.columns = [wrap_text(i, max_length=20) for i in dfp.columns]
 
-        hm = sns.heatmap(dfp,
-                    ax=self.ax,
-                    cmap='Blues',
-                    annot=True,
-                    linewidths=.05,
-                    annot_kws={"size": 11 if dfp.shape[1] <= 8 else 9,
-                            'rotation': 0 if dfp.shape[1] <= 8 else 60}
-                    )
-        hm.tick_params(labelsize=8)
+        sns.heatmap(
+            dfp, ax=self.ax, cmap="Blues", annot=True, linewidths=0.05,
+            annot_kws={"size": 11 if dfp.shape[1] <= 8 else 9,
+                       "rotation": 0 if dfp.shape[1] <= 8 else 60}
+        )
+        self.ax.tick_params(labelsize=8)
         if dfp.shape[1] > 5:
-            self.ax.set_xticklabels(self.ax.get_xticklabels(), rotation='vertical')
-        self.ax.set_yticklabels(self.ax.get_yticklabels(), rotation='horizontal')
+            self.ax.set_xticklabels(self.ax.get_xticklabels(), rotation="vertical")
+        self.ax.set_yticklabels(self.ax.get_yticklabels(), rotation="horizontal")
 
         # refresh canvas
         size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[0] * 0.55)
@@ -231,23 +228,25 @@ class CorrelationPlot(Plot):
         # vmax = np.abs(corr).max()
         sns.heatmap(corr, mask=mask, cmap=plt.cm.PuOr, vmin=-vmax, vmax=vmax,
                     square=True, linecolor="lightgray", linewidths=1, ax=self.ax)
+
+        df_lte8_cols = df.shape[1] <= 8
         for i in range(len(corr)):
-            self.ax.text(i + 0.5, i + 0.5, corr.columns[i],
-                      ha="center", va="center",
-                      rotation=0 if df.shape[1] <= 8 else 45,
-                      size=11 if df.shape[1] <= 8 else 9)
+            self.ax.text(
+                i + 0.5, i + 0.5, corr.columns[i], ha="center", va="center",
+                rotation=0 if df_lte8_cols else 45, size=11 if df_lte8_cols else 9
+            )
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
-                self.ax.text(j + 0.5, i + 0.5, s,
-                          ha="center", va="center",
-                          rotation=0 if df.shape[1] <= 8 else 45,
-                          size=11 if df.shape[1] <= 8 else 9)
+                self.ax.text(
+                    j + 0.5, i + 0.5, s, ha="center", va="center",
+                    rotation=0 if df_lte8_cols else 45, size=11 if df_lte8_cols else 9
+                )
         self.ax.axis("off")
 
         # refresh canvas
-        self.canvas.draw()
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+        self.canvas.draw()
 
 
 class MonteCarloPlot(Plot):

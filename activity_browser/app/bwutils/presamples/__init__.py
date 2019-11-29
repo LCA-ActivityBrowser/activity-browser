@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
-import pandas as pd
-
 from .manager import PresamplesParameterManager, process_brightway_parameters
 from .presamples_mlca import PresamplesContributions, PresamplesMLCA
-
-
-def load_scenarios_from_file(path: str) -> pd.DataFrame:
-    df = pd.read_table(path)
-    return df
-
-
-def save_scenarios_to_file(data: pd.DataFrame, path: str) -> None:
-    data.to_csv(path_or_buf=path, sep="\t")
+from .utils import (
+    count_presample_packages, find_all_package_names, get_package_path,
+    load_scenarios_from_file, presamples_dir, presamples_packages,
+    save_scenarios_to_file
+)

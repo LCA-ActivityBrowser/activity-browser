@@ -313,7 +313,7 @@ class PresamplesTab(BaseRightTab):
     def select_read_file(self):
         path, _ = QFileDialog().getOpenFileName(
             self, caption="Select prepared scenario file",
-            dir=project_settings.data_dir, filter=self.tbl.TSV_FILTER
+            dir=project_settings.data_dir, filter=self.tbl.EXCEL_FILTER
         )
         if path:
             df = load_scenarios_from_file(path)
@@ -328,8 +328,8 @@ class PresamplesTab(BaseRightTab):
             )
             return
         filename, _ = QFileDialog().getSaveFileName(
-            self, caption="Save current scenarios to TSV",
-            dir=project_settings.data_dir, filter=self.tbl.TSV_FILTER
+            self, caption="Save current scenarios to Excel",
+            dir=project_settings.data_dir, filter=self.tbl.EXCEL_FILTER
         )
         if filename:
             save_scenarios_to_file(self.tbl.dataframe, filename)

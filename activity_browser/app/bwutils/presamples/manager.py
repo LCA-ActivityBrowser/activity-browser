@@ -176,7 +176,7 @@ class PresamplesParameterManager(object):
         complete_indices = []
 
         for p in ActivityParameter.select(ActivityParameter.group, ActivityParameter.database).distinct():
-            combination = {x: y for x, y in global_project.items()}
+            combination = {x: y for x, y in global_project.items()} if global_project else {}
             combination.update(all_db.get(p.database, {}))
             act = self.recalculate_activity_parameters(p.group, combination)
             combination.update(act)
