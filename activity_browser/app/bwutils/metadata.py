@@ -3,13 +3,14 @@ import brightway2 as bw
 from bw2data.errors import UnknownObject
 from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
+from PySide2.QtCore import Slot, QObject
 import numpy as np
 
 from ..signals import signals
 # todo: extend store over several projects
 
 
-class MetaDataStore(object):
+class MetaDataStore(QObject):
     """A container for technosphere and biosphere metadata during an AB session.
 
     This is to prevent multiple time-expensive repetitions such as the code
@@ -29,7 +30,8 @@ class MetaDataStore(object):
     index
 
     """
-    def __init__(self):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.dataframe = pd.DataFrame()
         self.databases = set()
         self._connect_signals()
@@ -89,6 +91,7 @@ class MetaDataStore(object):
         self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
         # print('Dimensions of the Metadata:', self.dataframe.shape)
 
+    @Slot(tuple, name="updateMetadata")
     def update_metadata(self, key: tuple) -> None:
         """Update metadata when an activity has changed.
 
@@ -130,6 +133,7 @@ class MetaDataStore(object):
                 self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
             # print('Dimensions of the Metadata:', self.dataframe.shape)
 
+    @Slot(name="resetMetadata")
     def reset_metadata(self) -> None:
         """Deletes metadata when the project is changed."""
         # todo: metadata could be collected across projects...
@@ -195,6 +199,7 @@ class MetaDataStore(object):
         units = data["unit"].unique()
         return set(units[units != ""])
 
+    @Slot(str, name="printConvenienceInformation")
     def print_convenience_information(self, db_name: str) -> None:
         """ Reports how many unique locations and units the database has.
         """
