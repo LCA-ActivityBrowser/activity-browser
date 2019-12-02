@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import os
+import uuid
 
 import brightway2 as bw
 from bw2data.filesystem import safe_filename
 from PySide2.QtCore import Slot, QSize
 from PySide2.QtWidgets import (
-    QCheckBox, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QToolBar,
+    QCheckBox, QFileDialog, QInputDialog, QHBoxLayout, QMessageBox, QPushButton, QToolBar,
     QStyle, QVBoxLayout, QTabWidget
 )
 
@@ -270,14 +270,17 @@ class PresamplesTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.load_btn = QPushButton(qicons.add, "Load parameter scenarios")
+        self.load_btn = QPushButton(qicons.add, "Load scenario table")
         self.save_btn = QPushButton(
             self.style().standardIcon(QStyle.SP_DialogSaveButton),
-            "Save parameter scenarios"
+            "Save scenario table"
+        )
+        self.calculate_btn = QPushButton(
+            qicons.calculate, "Process scenario table for LCA calculations"
         )
         self.refresh_btn = QPushButton(
             self.style().standardIcon(QStyle.SP_BrowserReload),
-            "Clear scenarios and restore defaults"
+            "Clear table and reload parameters"
         )
 
         self.tbl = ScenarioTable(self)
@@ -288,6 +291,7 @@ class PresamplesTab(BaseRightTab):
     def _connect_signals(self):
         self.load_btn.clicked.connect(self.select_read_file)
         self.save_btn.clicked.connect(self.save_scenarios)
+        self.calculate_btn.clicked.connect(self.calculate_scenarios)
         self.refresh_btn.clicked.connect(self.tbl.sync)
         signals.project_selected.connect(self.build_tables)
 
@@ -298,10 +302,12 @@ class PresamplesTab(BaseRightTab):
         layout.addLayout(row)
         layout.addWidget(horizontal_line())
         row = QHBoxLayout()
-        row.addWidget(self.load_btn, 2)
-        row.addWidget(self.save_btn, 2)
-        row.addStretch(3)
-        row.addWidget(self.refresh_btn, 1)
+        row.addWidget(self.load_btn)
+        row.addWidget(self.save_btn)
+        row.addStretch(1)
+        row.addWidget(self.calculate_btn)
+        row.addStretch(1)
+        row.addWidget(self.refresh_btn)
         layout.addLayout(row)
         layout.addWidget(self.tbl)
         layout.addStretch(1)
@@ -310,6 +316,7 @@ class PresamplesTab(BaseRightTab):
     def build_tables(self) -> None:
         self.tbl.sync()
 
+    @Slot(name="loadSenarioTable")
     def select_read_file(self):
         path, _ = QFileDialog().getOpenFileName(
             self, caption="Select prepared scenario file",
@@ -319,23 +326,31 @@ class PresamplesTab(BaseRightTab):
             df = load_scenarios_from_file(path)
             self.tbl.sync(df=df)
 
+    @Slot(name="saveScenarioTable")
     def save_scenarios(self):
-        if not PresamplesParameterManager.can_build_presamples():
-            QMessageBox.warning(
-                self, "No parameterized exchanges", "Please set formulas on"
-                " exchanges to make use of scenario analysis.",
-                QMessageBox.Ok, QMessageBox.Ok
-            )
-            return
         filename, _ = QFileDialog().getSaveFileName(
             self, caption="Save current scenarios to Excel",
             dir=project_settings.data_dir, filter=self.tbl.EXCEL_FILTER
         )
         if filename:
             save_scenarios_to_file(self.tbl.dataframe, filename)
-            basename = os.path.basename(filename)
-            package_name, _ = os.path.splitext(basename)
-            self.build_presamples_packages(safe_filename(package_name, False))
+
+    @Slot(name="createPresamplesPackage")
+    def calculate_scenarios(self):
+        if not PresamplesParameterManager.can_build_presamples():
+            QMessageBox.warning(
+                self, "No parameterized exchanges", "Please set formulas on"
+                                                    " exchanges to make use of scenario analysis.",
+                QMessageBox.Ok, QMessageBox.Ok
+            )
+            return
+        pkg_label, ok = QInputDialog().getText(
+            self, "Add label to calculated scenarios",
+            "Optionally add a label to the calculated scenarios",
+        )
+        if ok:
+            pkg_label = pkg_label or uuid.uuid4().hex
+            self.build_presamples_packages(safe_filename(pkg_label, False))
 
     def build_presamples_packages(self, name: str):
         """ Calculate and store presamples arrays from parameter scenarios.
