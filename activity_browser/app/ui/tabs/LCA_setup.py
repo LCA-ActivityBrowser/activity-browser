@@ -107,10 +107,11 @@ class LCASetupTab(QtWidgets.QWidget):
         name_row.addStretch(1)
 
         calc_row = QtWidgets.QHBoxLayout()
-        calc_row.addWidget(self.calculation_type)
         calc_row.addWidget(self.calculate_button)
-        for obj in self.presamples:
-            calc_row.addWidget(obj)
+        calc_row.addWidget(self.presamples.button)
+        calc_row.addWidget(self.calculation_type)
+        calc_row.addWidget(self.presamples.label)
+        calc_row.addWidget(self.presamples.list)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()

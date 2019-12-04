@@ -342,7 +342,9 @@ class InventoryTab(NewAnalysisTab):
         self.radio_button_biosphere.setChecked(True)
         button_layout.addWidget(self.radio_button_biosphere)
         self.radio_button_technosphere = QRadioButton("Technosphere flows")
+        self.scenario_label = QLabel("Scenario:")
         button_layout.addWidget(self.radio_button_technosphere)
+        button_layout.addWidget(self.scenario_label)
         button_layout.addWidget(self.scenario_box)
         button_layout.addStretch(1)
         self.layout.addLayout(button_layout)
@@ -356,23 +358,26 @@ class InventoryTab(NewAnalysisTab):
         self.connect_signals()
 
     def connect_signals(self):
-        self.radio_button_biosphere.clicked.connect(self.button_clicked)
-        self.radio_button_technosphere.clicked.connect(self.button_clicked)
+        self.radio_button_biosphere.toggled.connect(self.button_clicked)
         if self.using_presamples:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
 
-    def button_clicked(self):
+    @QtCore.Slot(bool, name="isBiosphereToggled")
+    def button_clicked(self, toggled: bool):
         """Update table according to radiobutton selected."""
-        if self.radio_button_technosphere.isChecked():
+        if not toggled:
             self.update_table(inventory='technosphere')
             self.table.table_name = self.parent.cs_name + '_Inventory_technosphere'
-
         else:
             self.update_table(inventory='biosphere')
             self.table.table_name = self.parent.cs_name + '_Inventory'
+
+    def configure_scenario(self):
+        super().configure_scenario()
+        self.scenario_label.setVisible(self.using_presamples)
 
     def update_tab(self):
         self.clear_tables()
@@ -411,9 +416,11 @@ class LCAResultsTab(NewAnalysisTab):
         button_layout.addWidget(self.button_overview)
         self.button_by_method = QRadioButton("by LCIA method")
         self.button_by_method.setChecked(True)
+        self.scenario_label = QLabel("Scenario:")
         self.button_group.addButton(self.button_overview, 0)
         self.button_group.addButton(self.button_by_method, 1)
         button_layout.addWidget(self.button_by_method)
+        button_layout.addWidget(self.scenario_label)
         button_layout.addWidget(self.scenario_box)
         button_layout.addStretch(1)
         self.layout.addLayout(button_layout)
@@ -434,6 +441,9 @@ class LCAResultsTab(NewAnalysisTab):
             self.button_by_method.toggled.connect(
                 lambda on_lcia: self.scenario_box.setHidden(on_lcia)
             )
+            self.button_by_method.toggled.connect(
+                lambda on_lcia: self.scenario_label.setHidden(on_lcia)
+            )
 
     @QtCore.Slot(bool, name="overviewToggled")
     def button_clicked(self, is_overview: bool):
@@ -443,6 +453,7 @@ class LCAResultsTab(NewAnalysisTab):
     def configure_scenario(self):
         super().configure_scenario()
         self.scenario_box.setHidden(self.button_by_method.isChecked())
+        self.scenario_label.setHidden(self.button_by_method.isChecked())
 
     def update_tab(self):
         self.lca_scores_widget.update_tab()
@@ -575,7 +586,6 @@ class ContributionTab(NewAnalysisTab):
         )
         self.combobox_menu.method.addItems(list(self.parent.method_dict.keys()))
 
-        menu.addStretch()
         menu.addWidget(self.switch_label)
         menu.addWidget(self.switches)
         menu.addWidget(vertical_line())
@@ -784,6 +794,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.parent = parent
 
         self.layout.addLayout(get_header_layout('Monte Carlo Simulation'))
+        self.scenario_label = QLabel("Scenario:")
 
         self.add_MC_ui_elements()
 
@@ -827,6 +838,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
 
         self.hlayout_run = QHBoxLayout()
+        self.hlayout_run.addWidget(self.scenario_label)
         self.hlayout_run.addWidget(self.scenario_box)
         self.hlayout_run.addWidget(self.button_run)
         self.hlayout_run.addWidget(self.label_runs)
@@ -949,6 +961,10 @@ class MonteCarloTab(NewAnalysisTab):
         # self.method_selection_widget.show()
         # self.plot.show()
         # self.export_widget.show()
+
+    def configure_scenario(self):
+        super().configure_scenario()
+        self.scenario_label.setVisible(self.using_presamples)
 
     def update_tab(self):
         self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
