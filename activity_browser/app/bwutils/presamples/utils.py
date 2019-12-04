@@ -56,3 +56,15 @@ def get_package_path(name_id: str) -> Optional[Path]:
         metadata = json.loads(p.read_text())
         if name_id in {metadata.get("name"), metadata.get("id")}:
             return p.parent
+
+
+def remove_package(path: Path) -> bool:
+    """ Attempt to remove a presamples package with the given path
+    returns success.
+    """
+    if path.parent == presamples_dir() and path.is_dir():
+        for p in path.iterdir():
+            p.unlink()
+        path.rmdir()
+        return True
+    return False

@@ -659,6 +659,7 @@ class ContributionTab(NewAnalysisTab):
     def connect_signals(self):
         """Override the inherited method to perform the same thing plus aggregation
         """
+        self.cutoff_menu.slider_change.connect(self.update_tab)
         self.switches.currentIndexChanged.connect(self.toggle_comparisons)
         self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
