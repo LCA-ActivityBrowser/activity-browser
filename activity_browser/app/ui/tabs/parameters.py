@@ -278,10 +278,6 @@ class PresamplesTab(BaseRightTab):
             qicons.calculate, "Process scenario table for LCA calculations"
         )
         self.hide_group = QCheckBox("Show group column")
-        self.refresh_btn = QPushButton(
-            self.style().standardIcon(QStyle.SP_BrowserReload),
-            "Clear table and reload parameters"
-        )
 
         self.tbl = ScenarioTable(self)
 
@@ -293,7 +289,6 @@ class PresamplesTab(BaseRightTab):
         self.save_btn.clicked.connect(self.save_scenarios)
         self.calculate_btn.clicked.connect(self.calculate_scenarios)
         self.hide_group.toggled.connect(self.tbl.group_column)
-        self.refresh_btn.clicked.connect(self.tbl.sync)
         signals.project_selected.connect(self.build_tables)
         signals.parameters_changed.connect(self.tbl.rebuild_table)
         signals.parameter_renamed.connect(self.tbl.update_param_name)
@@ -310,7 +305,6 @@ class PresamplesTab(BaseRightTab):
         row.addWidget(self.calculate_btn)
         row.addWidget(self.hide_group)
         row.addStretch(1)
-        row.addWidget(self.refresh_btn)
         layout.addLayout(row)
         layout.addWidget(self.tbl)
         layout.addStretch(1)

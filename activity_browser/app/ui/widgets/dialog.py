@@ -34,7 +34,7 @@ class ForceInputDialog(QtWidgets.QDialog):
 
     @Slot(name="inputChanged")
     def changed(self):
-        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(bool(self.input.text()))
 
     @classmethod
     def get_text(cls, parent: QtWidgets.QWidget, title: str, label: str, text: str = "") -> 'ForceInputDialog':
