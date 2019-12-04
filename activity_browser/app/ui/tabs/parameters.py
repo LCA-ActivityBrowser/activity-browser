@@ -8,6 +8,7 @@ from PySide2.QtWidgets import (
     QCheckBox, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QToolBar,
     QStyle, QVBoxLayout, QTabWidget
 )
+from xlsxwriter.exceptions import FileCreateError
 
 from ...bwutils import presamples as ps_utils
 from ...settings import project_settings
@@ -331,7 +332,16 @@ class PresamplesTab(BaseRightTab):
             dir=project_settings.data_dir, filter=self.tbl.EXCEL_FILTER
         )
         if filename:
-            ps_utils.save_scenarios_to_file(self.tbl.dataframe, filename)
+            try:
+                ps_utils.save_scenarios_to_file(self.tbl.dataframe, filename)
+            except FileCreateError as e:
+                QMessageBox.warning(
+                    self, "File save error",
+                    "Cannot save the file, please see if it is opened elsewhere or "
+                    "if you are allowed to save files in that location:\n\n{}".format(e),
+                    QMessageBox.Ok, QMessageBox.Ok
+                )
+
 
     @Slot(name="createPresamplesPackage")
     def calculate_scenarios(self):
