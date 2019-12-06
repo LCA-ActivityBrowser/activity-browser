@@ -156,10 +156,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         """ Construct and present a menu.
         """
         menu = QtWidgets.QMenu()
-        menu.addAction(
-            qicons.right, "Open activity",
-            lambda: self.open_activity_tab(self.currentIndex())
-        )
+        menu.addAction(qicons.right, "Open activity", self.open_activity_tabs)
         menu.addAction(
             qicons.graph_explorer, "Open in Graph Explorer",
             lambda: signals.open_activity_graph_tab.emit(self.get_key(self.currentIndex()))
@@ -205,11 +202,17 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         key = self.model.index(index.row(), self.fields.index("key")).data()
         return literal_eval(key)
 
-    @Slot(QtCore.QModelIndex)
+    @Slot(QtCore.QModelIndex, name="openActivityTab")
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
         key = self.get_key(proxy)
         signals.open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
+
+    @Slot(name="openActivityTabs")
+    def open_activity_tabs(self) -> None:
+        for key in (self.get_key(p) for p in self.selectedIndexes()):
+            signals.open_activity_tab.emit(key)
+            signals.add_activity_to_history.emit(key)
 
     @Slot(str)
     def check_database_changed(self, db_name: str) -> None:
