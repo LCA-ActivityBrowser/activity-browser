@@ -36,7 +36,7 @@ Keep in mind that the result of a formula must be a scalar value!
                 ("*", "Multiply", lambda: self.button_press.emit(" * ")),
             ],
             [
-                ("%", "Divide", lambda: self.button_press.emit(" / ")),
+                ("/", "Divide", lambda: self.button_press.emit(" / ")),
                 ("x²", "X to the power of 2", lambda: self.button_press.emit(" ** 2 ")),
                 ("More...", "Additional functions", self.explanation),
             ],

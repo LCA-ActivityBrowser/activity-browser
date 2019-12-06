@@ -184,7 +184,7 @@ class ParameterItem(TreeItem):
         item = cls([
             getattr(param, "name", ""),
             group,
-            getattr(param, "amount", 0.0),
+            getattr(param, "amount", 1.0),  # set to 1 instead of 0 as division by 0 causes problems
             getattr(param, "formula", ""),
         ], parent)
 

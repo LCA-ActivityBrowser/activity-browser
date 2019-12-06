@@ -355,7 +355,7 @@ class Controller(object):
         if not copies:
             return "{}_copy1".format(code)
         n = max((int(c.split('_copy')[1]) for c in copies))
-        return "{}_copy{}}".format(code, n+1)
+        return "{}_copy{}".format(code, n+1)
 
     def duplicate_activity(self, key):
         """duplicates the selected activity in the same db, with a new BW code
