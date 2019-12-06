@@ -638,6 +638,7 @@ class ExchangesTable(ABDictTreeView):
 
         param = ActivityParameter.get(database=key[0], code=key[1])
         act = bw.get_activity(key)
+        bw.parameters.remove_exchanges_from_group(param.group, act)
         bw.parameters.add_exchanges_to_group(param.group, act)
         ActivityParameter.recalculate_exchanges(param.group)
         signals.parameters_changed.emit()
