@@ -226,7 +226,7 @@ class ProjectParameterTable(BaseParameterTable):
                    DatabaseParameter.select().count())
         try:
             bw.parameters.new_project_parameters([
-                {"name": "param_{}".format(counter + 1), "amount": 0.0}
+                {"name": "param_{}".format(counter + 1), "amount": 1.0}
             ], False)
             signals.parameters_changed.emit()
         except ValueError as e:
@@ -295,7 +295,7 @@ class DataBaseParameterTable(BaseParameterTable):
         database = next(iter(bw.databases))
         try:
             bw.parameters.new_database_parameters([
-                {"name": "param_{}".format(counter + 1), "amount": 0.0}
+                {"name": "param_{}".format(counter + 1), "amount": 1.0}
             ], database, False)
             signals.parameters_changed.emit()
         except ValueError as e:
@@ -466,7 +466,7 @@ class ActivityParameterTable(BaseParameterTable):
                  .where(ActivityParameter.group == group).count())
         row = {
             "name": "{}_{}".format(prep_name, count + 1),
-            "amount": act.get("amount", 0.0),
+            "amount": act.get("amount", 1.0),
             "formula": act.get("formula", ""),
             "database": key[0],
             "code": key[1],
