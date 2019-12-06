@@ -496,7 +496,7 @@ class Controller(object):
         else:
             exchange[field] = value
         exchange.save()
-        if field == "formula" and value:
-            # If a formula was set or changed, recalculate exchanges
+        if field == "formula":
+            # If a formula was set, removed or changed, recalculate exchanges
             signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange['output'][0])
