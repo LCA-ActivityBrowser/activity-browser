@@ -86,7 +86,7 @@ def test_edit_project_param(qtbot):
     # Now edit the formula of the 3rd param to use the 2nd param
     with qtbot.waitSignal(signals.parameters_changed, timeout=1000):
         table.model.setData(table.model.index(2, 2), "param_2 + 3")
-    assert ProjectParameter.get(name="param_3").amount == 3
+    assert ProjectParameter.get(name="param_3").amount == 4
 
 
 def test_delete_project_param(qtbot):
