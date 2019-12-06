@@ -35,6 +35,7 @@ requirements:
     - pandas >=0.24.1
     - pyside2==5.13.1
     - seaborn
+    - presamples
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

@@ -1,83 +1,81 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtWidgets import (QWidget, QTabWidget, QVBoxLayout, QHBoxLayout,
-    QScrollArea, QRadioButton, QLabel, QCheckBox, QPushButton, QComboBox)
-from PySide2 import QtGui, QtWidgets, QtCore
+from collections import namedtuple
+from typing import List, Optional, Union
 
+from PySide2.QtWidgets import (
+    QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
+    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
+    QButtonGroup,
+)
+from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
 
-from ..style import horizontal_line, vertical_line, header
-from ..tables import (
-    LCAResultsTable,
-    ContributionTable,
-    InventoryTable,
+from ...bwutils import (
+    Contributions, CSMonteCarloLCA, MLCA, PresamplesContributions,
+    PresamplesMLCA, commontasks as bc
 )
-from ..figures import (
-    LCAResultsPlot,
-    ContributionPlot,
-    CorrelationPlot,
-    LCAResultsBarChart,
-    MonteCarloPlot,
-)
-from ..widgets import CutoffMenu
-from ..web.graphnav import SankeyNavigatorWidget
 from ...signals import signals
-from ...bwutils.multilca import MLCA, Contributions
-from ...bwutils.montecarlo import CSMonteCarloLCA
-from ...bwutils import commontasks as bc
+from ..figures import (
+    LCAResultsPlot, ContributionPlot, CorrelationPlot, LCAResultsBarChart,
+    MonteCarloPlot
+)
+from ..style import horizontal_line, vertical_line, header
+from ..tables import ContributionTable, InventoryTable, LCAResultsTable
+from ..widgets import CutoffMenu, SwitchComboBox
+from ..web.graphnav import SankeyNavigatorWidget
 
 
-# TODO: This module needs a revision
-# - LCA Results tabs inherit from AnalysisTab, which is still a bit overly complex, and NewAnalysis Tab,
-# which is an attempt for simplification; perhaps the best solution would be to outsource more of the visual elements
-# generation to functions, like those below
-
-def get_header_layout(header_text="A new Widget"):
+def get_header_layout(header_text: str) -> QVBoxLayout:
     vlayout = QVBoxLayout()
     vlayout.addWidget(header(header_text))
     vlayout.addWidget(horizontal_line())
     return vlayout
 
 
-def get_radio_buttons(names=['first', 'second'], states=[True, False]):
-    """ Add the radio buttons."""
-    # buttons
-    buttons = []
-    for name in names:
-        buttons.append(QRadioButton(name))
-
-    for i, state in enumerate(states):
-        buttons[i].setChecked(state)
-
-    # layout
-    combobox_menu = QHBoxLayout()
-    for button in buttons:
-        combobox_menu.addWidget(button)
-    combobox_menu.addStretch(1)
-    return buttons, combobox_menu
-
-
-def get_unit(method, relative):
-    """Determine the unit based on whether a plot is shown:
+def get_unit(method: tuple, relative: bool = False) -> str:
+    """ Determine the unit based on whether a plot is shown:
     - for a number of functional units
     - for a number of impact categories
     and whether the axis are related to:
     - relative or
-    - absolute numbers."""
+    - absolute numbers.
+    """
     if relative:
-        unit = 'relative share'
-    else:
-        if method:  # for all functional units
-            unit = bc.unit_of_method(method)
-        else:
-            unit = 'units of each LCIA method'
-    return unit
+        return "relative share"
+    if method:  # for all functional units
+        return bc.unit_of_method(method)
+    return "units of each LCIA method"
+
+
+# Special namedtuple for the LCAResults TabWidget.
+Tabs = namedtuple(
+    "tabs", ("inventory", "results", "ef", "process", "mc", "sankey")
+)
+Relativity = namedtuple("relativity", ("relative", "absolute"))
+ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
+ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
+PlotTableCheck = namedtuple("plot_table_space", ("plot", "table"))
+Combobox = namedtuple(
+    "combobox_menu", (
+        "func", "func_label", "method", "method_label",
+        "agg", "agg_label", "scenario", "scenario_label",
+    )
+)
 
 
 class LCAResultsSubTab(QTabWidget):
-    def __init__(self, parent, name):
-        super(LCAResultsSubTab, self).__init__(parent)
+    update_scenario_box_index = QtCore.Signal(int)
+
+    def __init__(self, name: str, ps_name: str = None, parent=None):
+        super().__init__(parent)
         self.cs_name = name
+        self.ps_name = ps_name
+        self.mlca: Optional[Union[MLCA, PresamplesMLCA]] = None
+        self.contributions: Optional[Contributions] = None
+        self.mc: Optional[CSMonteCarloLCA] = None
         self.method_dict = dict()
+        self.single_func_unit = False
+        self.single_method = False
 
         self.setMovable(True)
         self.setVisible(False)
@@ -87,15 +85,35 @@ class LCAResultsSubTab(QTabWidget):
         # self.setTabPosition(1)  # South-facing Tabs
 
         self.do_calculations()
+        self.tabs = Tabs(
+            inventory=InventoryTab(self),
+            results=LCAResultsTab(self),
+            ef=ElementaryFlowContributionTab(self),
+            process=ProcessContributionsTab(self),
+            mc=None if self.mc is None else MonteCarloTab(self),
+            sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
+        )
+        self.tab_names = Tabs(
+            inventory="Inventory",
+            results="LCA Results",
+            ef="EF Contributions",
+            process="Process Contributions",
+            mc="Monte Carlo",
+            sankey="Sankey",
+        )
         self.setup_tabs()
-
-        self.setCurrentWidget(self.LCA_results_tab)
+        self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
 
     def do_calculations(self):
         """ Update the mlca calculation. """
-        self.mlca = MLCA(self.cs_name)
-        self.contributions = Contributions(self.mlca)
+        if self.ps_name is None:
+            self.mlca = MLCA(self.cs_name)
+            self.contributions = Contributions(self.mlca)
+        else:
+            self.mlca = PresamplesMLCA(self.cs_name, self.ps_name)
+            self.contributions = PresamplesContributions(self.mlca)
+        self.mlca.calculate()
         try:
             self.mc = CSMonteCarloLCA(self.cs_name)
         except InvalidParamsError as e:
@@ -107,442 +125,228 @@ class LCAResultsSubTab(QTabWidget):
         # self.mct.initialize(self.cs_name)
 
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
-
         self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
         self.single_method = True if len(self.mlca.methods) == 1 else False
 
+    @property
+    def using_presamples(self) -> bool:
+        """ Used to determine if a Scenario Analysis is performed
+        """
+        return all([self.ps_name, isinstance(self.mlca, PresamplesMLCA)])
+
     def setup_tabs(self):
-        """ Update the calculation setup. """
+        """ Have all of the tabs pull in their required data and add them.
+        """
+        self._update_tabs()
+        for name, tab in zip(self.tab_names, self.tabs):
+            if tab:
+                self.addTab(tab, name)
+                if hasattr(tab, "configure_scenario"):
+                    tab.configure_scenario()
 
-        # the LCA results tabs (order matters)
-        self.inventory_tab = InventoryTab(self)
-        self.inventory_tab.update_table()
+    def _update_tabs(self):
+        for tab in self.tabs:
+            if tab and hasattr(tab, "update_tab"):
+                tab.update_tab()
+        self.tabs.sankey.update_calculation_setup(cs_name=self.cs_name)
 
-        self.LCA_results_tab = LCAResultsTab(self)
-        self.LCA_results_tab.update_tab()
-        self.addTab(self.LCA_results_tab, "LCA Results")
+    @QtCore.Slot(int, name="updateUnderlyingMatrices")
+    def update_scenario_data(self, index: int) -> None:
+        """ Will calculate which presamples array to use and update all child tabs.
+        """
+        if index == self.mlca.current:
+            return
+        self.mlca.set_scenario(index)
+        self._update_tabs()
+        self.update_scenario_box_index.emit(index)
 
-        self.EF_contribution_tab = ElementaryFlowContributionTab(self, relativity=True)
-        self.EF_contribution_tab.update_analysis_tab()
-
-        self.process_contributions_tab = ProcessContributionsTab(self, relativity=True)
-        self.process_contributions_tab.update_analysis_tab()
-
-        if self.mc:
-            self.monte_carlo_tab = MonteCarloTab(self)
-            self.monte_carlo_tab.update_tab()
-
-        # self.correlations_tab = CorrelationsTab(self)
-        # self.correlations_tab.update_analysis_tab()
-
-        self.sankey_tab = SankeyNavigatorWidget(self.cs_name, parent=self)
-        self.sankey_tab.update_calculation_setup(cs_name=self.cs_name)
-        self.addTab(self.sankey_tab, "Sankey")
-
+    @QtCore.Slot(int, name="generateSankeyOnClick")
     def generate_content_on_click(self, index):
-        if index == self.indexOf(self.sankey_tab):
-            if not self.sankey_tab.has_sankey:
+        if index == self.indexOf(self.tabs.sankey):
+            if not self.tabs.sankey.has_sankey:
                 print('Generating Sankey Tab')
-                self.sankey_tab.new_sankey()
+                self.tabs.sankey.new_sankey()
 
 
-class AnalysisTab(QWidget):
-    def __init__(self, parent, combobox=None, table=None,\
-                 plot=None, export=None, relativity=None, custom=False, *args, **kwargs):
-        super(AnalysisTab, self).__init__(parent)
+class NewAnalysisTab(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.parent = parent
-        self.first_time_calculated = False
 
-        self.custom = custom
+        # Important variables optionally used in subclasses
+        self.table: Optional[QTableView] = None
+        self.plot: Optional[QWidget] = None
+        self.plot_table: Optional[PlotTableCheck] = None
+        self.relativity: Optional[Relativity] = None
+        self.relative: Optional[bool] = None
+        self.export_plot: Optional[ExportPlot] = None
+        self.export_table: Optional[ExportTable] = None
 
-        self.combobox_menu_combobox = combobox
-        self.table = table
-        self.plot = plot
-        self.export_menu = export
-        self.relativity = relativity
-        self.relative = True
-
+        self.scenario_box = QComboBox()
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # self.connect_signals()  # called by the sub-classes
+    def build_main_space(self) -> QScrollArea:
+        space = QScrollArea()
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        widget.setLayout(layout)
+        space.setWidget(widget)
+        space.setWidgetResizable(True)
 
-    def connect_signals(self):
-        # Combo box signal
-        if self.combobox_menu_combobox != None:
-            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-                self.combobox_menu_switch_met.clicked.connect(self.combo_switch_check)
-                self.combobox_menu_switch_fun.clicked.connect(self.combo_switch_check)
+        # Option switches
+        self.plot_table = PlotTableCheck(
+            QCheckBox("Plot"), QCheckBox("Table")
+        )
+        self.plot_table.plot.setChecked(True)
+        self.plot_table.table.setChecked(True)
+        self.plot_table.table.stateChanged.connect(self.space_check)
+        self.plot_table.plot.stateChanged.connect(self.space_check)
 
-            if self.plot:
-                self.combobox_menu_combobox.currentTextChanged.connect(
-                    lambda name: self.update_plot(method=name))
+        # Assemble option row
+        row = QHBoxLayout()
+        row.addWidget(self.plot_table.plot)
+        row.addWidget(self.plot_table.table)
+        row.addWidget(vertical_line())
+        row.addStretch(1)
+        if self.relativity:
+            row.addWidget(self.relativity.relative)
+            row.addWidget(self.relativity.absolute)
+            self.relativity.relative.toggled.connect(self.relativity_check)
+        row.addStretch()
 
-            if self.table:
-                self.combobox_menu_combobox.currentTextChanged.connect(
-                    lambda name: self.update_table(method=name))
+        # Assemble Table and Plot area
+        if self.table and self.plot:
+            layout.addLayout(row)
+        if self.plot:
+            layout.addWidget(self.plot, 1)
+        if self.table:
+            layout.addWidget(self.table)
+        layout.addStretch()
+        return space
 
-        # Mainspace Checkboxes
-        self.main_space_tb_grph_table.stateChanged.connect(
-            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
-        self.main_space_tb_grph_plot.stateChanged.connect(
-            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
-
-        # Export Table
-        if self.table and self.export_menu:
-            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
-            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
-            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
-
-        # Export Plot
-        if self.plot and self.export_menu:
-            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
-            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
-
-    def add_header(self, header_text):
-        if isinstance(header_text, str):
-            self.header.setText(header_text)
-
-    def combo_switch_check(self):
-        """ Show either the functional units or methods combo-box, dependent on button state. """
-        if self.combo_box_menu_options == "Compare LCIA Methods":
-            self.combo_box_menu_options = "Compare Functional Units"
-            self.combobox_menu_label.setText(self.combobox_menu_method_label)
-            self.combobox_menu_switch_met.setChecked(False)
-            self.combobox_menu_switch_fun.setChecked(True)
-        else:
-            self.combo_box_menu_options = "Compare LCIA Methods"
-            self.combobox_menu_label.setText(self.combobox_menu_func_label)
-            self.combobox_menu_switch_met.setChecked(True)
-            self.combobox_menu_switch_fun.setChecked(False)
-        self.update_combobox()
-
-    def main_space_check(self, table_ch, plot_ch):
+    @QtCore.Slot(name="checkboxChanges")
+    def space_check(self):
         """ Show graph and/or table, whichever is selected.
 
         Can also hide both, if you want to do that.
         """
-        table_state = table_ch.isChecked()
-        plot_state = plot_ch.isChecked()
+        self.table.setVisible(self.plot_table.table.isChecked())
+        self.plot.setVisible(self.plot_table.plot.isChecked())
 
-        if table_state and plot_state:
-            self.main_space_table.setVisible(True)
-            self.main_space_plot.setVisible(True)
-        elif not table_state and plot_state:
-            self.main_space_table.setVisible(False)
-            self.main_space_plot.setVisible(True)
-        elif table_state and not plot_state:
-            self.main_space_table.setVisible(True)
-            self.main_space_plot.setVisible(False)
-        else:
-            self.main_space_table.setVisible(False)
-            self.main_space_plot.setVisible(False)
+    @QtCore.Slot(bool, name="isRelativeToggled")
+    def relativity_check(self, checked: bool):
+        self.relative = checked
+        self.update_tab()
 
-    def add_main_space(self):
-        """ Add the main space to the tab. """
-        # Why is this a function and not implemented in the init?;
-        # This way, the main space can easily be altered for a specific use if required
+    @property
+    def using_presamples(self) -> bool:
+        return self.parent.using_presamples if self.parent else False
 
-        # Generate Table and Plot area
-        self.main_space = QScrollArea()
-        self.main_space_widget = QWidget()
-        self.main_space_widget_layout = QVBoxLayout()
-        self.main_space_widget_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.main_space_widget.setLayout(self.main_space_widget_layout)
-        self.main_space.setWidget(self.main_space_widget)
-        self.main_space.setWidgetResizable(True)
+    def get_scenario_labels(self) -> List[str]:
+        return self.parent.mlca.get_scenario_names() if self.using_presamples else []
 
-        # Option switches
-        self.main_space_tb_grph = QHBoxLayout()
-        self.main_space_tb_grph_plot = QCheckBox("Plot")
-        self.main_space_tb_grph_plot.setChecked(True)
-        self.main_space_tb_grph_table = QCheckBox("Table")
-        self.main_space_tb_grph_table.setChecked(True)
+    def configure_scenario(self):
+        """ Determine if scenario Qt widgets are visible or not and retrieve
+         scenario labels for the selection drop-down box.
+        """
+        if self.scenario_box:
+            self.scenario_box.setVisible(self.using_presamples)
+            self.update_combobox(self.scenario_box, self.get_scenario_labels())
 
-        # Plot
-        self.main_space_plot = self.plot
-        # Table
-        self.main_space_table = self.table
+    @staticmethod
+    @QtCore.Slot(int, name="setBoxIndex")
+    def set_combobox_index(box: QComboBox, index: int) -> None:
+        """ Update the index on the given QComboBox without sending a signal.
+        """
+        box.blockSignals(True)
+        box.setCurrentIndex(index)
+        box.blockSignals(False)
 
-        # Assemble option switch
-        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_plot)
-        self.main_space_tb_grph.addWidget(self.main_space_tb_grph_table)
-        self.main_space_tb_grph.addWidget(vertical_line())
-        self.relativity_button(self.main_space_tb_grph)
-        self.main_space_tb_grph.addStretch()
+    @staticmethod
+    def update_combobox(box: QComboBox, labels: List[str]) -> None:
+        """ Update the combobox menu. """
+        box.blockSignals(True)
+        box.clear()
+        box.insertItems(0, labels)
+        box.blockSignals(False)
 
-        # Assemble Table and Plot area
-        if self.table and self.plot:
-            self.main_space_widget_layout.addLayout(self.main_space_tb_grph)
-        if self.plot:
-            self.main_space_widget_layout.addWidget(self.main_space_plot, 1)
-        if self.table:
-            self.main_space_widget_layout.addWidget(self.main_space_table)
-        self.main_space_widget_layout.addStretch()
-
-        if not self.custom:
-            pass
-            # self.main_space_widget_layout.addStretch()
-
-        self.layout.addWidget(self.main_space)
-
-    def update_analysis_tab(self):
-        if self.combobox_menu_combobox != None:
-            self.update_combobox()
+    def update_tab(self):
         if self.plot:
             self.update_plot()
         if self.table:
             self.update_table()
-            self.first_time_calculated = True
 
-    def update_table(self, method=None, *args, **kwargs):
+    def update_table(self, *args, **kwargs):
         """ Update the table. """
-        # self.table.sync(self.parent.mlca, *args, **kwargs)
         self.table.sync(*args, **kwargs)
 
-    def update_plot(self, method=None):
-        """Updates the plot. Method will be added in subclass."""
-        raise NotImplemented
+    def update_plot(self, *args, **kwargs):
+        """Updates the plot. """
+        self.plot.plot(*args, **kwargs)
 
-    def relativity_button(self, layout):
-        if self.relativity is not None:
-            self.button1 = QRadioButton("Relative")
-            self.button1.setChecked(True)
-            self.button2 = QRadioButton("Absolute")
-            layout.addStretch(1)
-            layout.addWidget(self.button1)
-            layout.addWidget(self.button2)
-            self.button1.clicked.connect(self.relativity_check)
-            self.button2.clicked.connect(self.relativity_check)
-
-    def relativity_check(self):
-        if self.relative == False:
-            self.button1.setChecked(True)
-            self.button2.setChecked(False)
-            self.relative = True
-        else:
-            self.button1.setChecked(False)
-            self.button2.setChecked(True)
-            self.relative = False
-        if self.plot:
-            self.update_plot()
-        if self.table:
-            self.update_table()
-
-    def add_combobox(self, method=True, func=False):
-        """ Add the combobox menu to the tab. """
-        self.combobox_menu = QHBoxLayout()
-
-        self.combobox_menu_label = QLabel()
-
-        self.combobox_menu_combobox = None
-        self.combobox_menu_switch_met = None
-        self.combobox_menu_method_label = None
-        self.combobox_menu_method_bool = method
-        self.combobox_menu_func_bool = func
-
-        if self.combobox_menu_func_bool:
-            self.combobox_menu_func_label = "Choose Functional Unit: "
-            self.combobox_menu_combobox_func = QComboBox()
-            self.combobox_menu_combobox_func.scroll = False
-            self.combobox_menu_combobox = self.combobox_menu_combobox_func
-            self.combobox_menu_label.setText(self.combobox_menu_func_label)
-
-        if self.combobox_menu_method_bool:
-            self.combobox_menu_method_label = "Choose LCIA Method: "
-            self.combobox_menu_combobox_method = QComboBox()
-            self.combobox_menu_combobox_method.scroll = False
-            self.combobox_menu_combobox = self.combobox_menu_combobox_method
-            self.combobox_menu_label.setText(self.combobox_menu_method_label)
-
-        if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-            self.combobox_menu.addStretch(1)
-            self.combo_box_menu_options = "Functional Units"
-            self.combobox_menu_switch_met = QRadioButton("Compare LCIA Methods")
-            self.combobox_menu.addWidget(self.combobox_menu_switch_met)
-
-            self.combobox_menu_switch_fun = QRadioButton("Compare Functional Units")
-            self.combobox_menu_switch_fun.setChecked(True)
-
-            self.combobox_menu.addWidget(self.combobox_menu_switch_fun)
-
-        # Aggregator combobox goes here
-        self.aggregator_label = QLabel("Aggregate by: ")
-        self.aggregator_combobox = QComboBox()
-        self.aggregator_combobox.scroll = False
-
-        self.combobox_menu.addWidget(vertical_line())
-        self.combobox_menu.addWidget(self.combobox_menu_label)
-        self.combobox_menu.addWidget(self.combobox_menu_combobox, 1)
-        self.combobox_menu.addWidget(self.aggregator_label)
-        self.combobox_menu.addWidget(self.aggregator_combobox)
-
-        self.combobox_menu_horizontal = horizontal_line()
-        self.combobox_menu.addStretch(1)
-
-        self.layout.addLayout(self.combobox_menu)
-        self.layout.addWidget(self.combobox_menu_horizontal)
-
-    def update_combobox(self):
-        """ Update the combobox menu. """
-        self.combobox_menu_combobox.clear()
-        visibility = True
-        self.combobox_menu_combobox.blockSignals(True)
-
-        if self.combobox_menu_label.text() == self.combobox_menu_method_label: # if is assessment methods
-            self.combobox_list = list(self.parent.method_dict.keys())
-            # if self.parent.single_method:
-            #     visibility = False
-
-        else:
-            self.combobox_list = list(self.parent.mlca.func_unit_translation_dict.keys())
-            # if self.parent.single_func_unit:
-            #     visibility = False
-
-        self.combobox_menu_combobox.insertItems(0, self.combobox_list)
-        self.combobox_menu_combobox.blockSignals(False)
-
-        if visibility:
-            self.combobox_menu_label.setVisible(True)
-            self.combobox_menu_combobox.setVisible(True)
-            self.combobox_menu_horizontal.setVisible(True)
-            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-                self.combobox_menu_switch_met.setVisible(True)
-        else:
-            self.combobox_menu_label.setVisible(False)
-            self.combobox_menu_combobox.setVisible(False)
-            self.combobox_menu_horizontal.setVisible(False)
-            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-                self.combobox_menu_switch_met.setVisible(False)
-
-    def add_export(self):
-        """ Add the export menu to the tab. """
-        self.export_menu = QHBoxLayout()
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+        """ Construct a custom export button layout. """
+        export_menu = QHBoxLayout()
 
         # Export Plot
-        self.export_plot = QHBoxLayout()
-        self.export_plot_label = QLabel("Export plot:")
-        self.export_plot_buttons_png = QPushButton(".png")
-        self.export_plot_buttons_svg = QPushButton(".svg")
-        # Export Table
-        self.export_table = QHBoxLayout()
-        self.export_table_label = QLabel("Export table:")
-        self.export_table_buttons_copy = QPushButton("Copy")
-        self.export_table_buttons_csv = QPushButton(".csv")
-        self.export_table_buttons_excel = QPushButton("Excel")
-        # Assemble export plot
-        self.export_plot.addWidget(self.export_plot_label)
-        self.export_plot.addWidget(self.export_plot_buttons_png)
-        self.export_plot.addWidget(self.export_plot_buttons_svg)
-        # Assemble export table
-        self.export_table.addWidget(self.export_table_label)
-        self.export_table.addWidget(self.export_table_buttons_copy)
-        self.export_table.addWidget(self.export_table_buttons_csv)
-        self.export_table.addWidget(self.export_table_buttons_excel)
+        if has_plot:
+            plot_layout = QHBoxLayout()
+            self.export_plot = ExportPlot(
+                QLabel("Export plot:"),
+                QPushButton(".png"),
+                QPushButton(".svg"),
+            )
+            self.export_plot.png.clicked.connect(self.plot.to_png)
+            self.export_plot.svg.clicked.connect(self.plot.to_svg)
+            for obj in self.export_plot:
+                plot_layout.addWidget(obj)
+            export_menu.addLayout(plot_layout)
 
-        # Assemble export menu
-        if self.plot:
-            self.export_menu.addLayout(self.export_plot)
-        if self.table and self.plot:
-            self.export_menu_vert_line = vertical_line()
-            self.export_menu.addWidget(self.export_menu_vert_line)
-        if self.table:
-            self.export_menu.addLayout(self.export_table)
-        self.export_menu.addStretch()
-
-        self.layout.addWidget(horizontal_line())
-        self.layout.addLayout(self.export_menu)
-
-
-class NewAnalysisTab(QWidget):
-    def __init__(self, parent):
-        super(NewAnalysisTab, self).__init__(parent)
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-
-    def add_combobox(self, label='Choose LCIA method:'):
-        """ Add the combobox menu to the tab. """
-        self.combobox_label = QLabel(label)
-        self.combobox = QComboBox()
-        self.combobox.scroll = False
-
-        self.combobox_menu = QHBoxLayout()
-        self.combobox_menu.addWidget(self.combobox_label)
-        self.combobox_menu.addWidget(self.combobox, 1)
-        self.combobox_menu.addStretch(1)
-
-        self.layout.addLayout(self.combobox_menu)
-
-    def update_combobox(self, labels):
-        """ Update the combobox menu. """
-        self.combobox.clear()
-        self.combobox.blockSignals(True)
-        self.combobox.insertItems(0, labels)
-        self.combobox.blockSignals(False)
-
-    def add_export(self):
-        """ Add the export menu to the tab. """
-        self.export_menu = QHBoxLayout()
-
-        # Export Plot
-        self.export_plot = QHBoxLayout()
-        self.export_plot_label = QLabel("Export plot:")
-        self.export_plot_buttons_png = QPushButton(".png")
-        self.export_plot_buttons_svg = QPushButton(".svg")
-        # Export Table
-        self.export_table = QHBoxLayout()
-        self.export_table_label = QLabel("Export table:")
-        self.export_table_buttons_copy = QPushButton("Copy")
-        self.export_table_buttons_csv = QPushButton(".csv")
-        self.export_table_buttons_excel = QPushButton("Excel")
-        # Assemble export plot
-        self.export_plot.addWidget(self.export_plot_label)
-        self.export_plot.addWidget(self.export_plot_buttons_png)
-        self.export_plot.addWidget(self.export_plot_buttons_svg)
-        # Assemble export table
-        self.export_table.addWidget(self.export_table_label)
-        self.export_table.addWidget(self.export_table_buttons_copy)
-        self.export_table.addWidget(self.export_table_buttons_csv)
-        self.export_table.addWidget(self.export_table_buttons_excel)
-
-        # Assemble export menu
-        if hasattr(self, 'plot'):
-            self.export_menu.addLayout(self.export_plot)
-        if hasattr(self, 'table') and hasattr(self, 'plot'):
-            self.export_menu_vert_line = vertical_line()
-            self.export_menu.addWidget(self.export_menu_vert_line)
-        if hasattr(self, 'table'):
-            self.export_menu.addLayout(self.export_table)
-        self.export_menu.addStretch()
-
-        # self.layout.addWidget(horizontal_line())
-        self.layout.addLayout(self.export_menu)
+        # Add seperator if both table and plot exist
+        if has_table and has_plot:
+            export_menu.addWidget(vertical_line())
 
         # Export Table
-        if hasattr(self, 'table') and self.export_menu:
-            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
-            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
-            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
+        if has_table:
+            table_layout = QHBoxLayout()
+            self.export_table = ExportTable(
+                QLabel("Export table:"),
+                QPushButton("Copy"),
+                QPushButton(".csv"),
+                QPushButton("Excel"),
+            )
+            self.export_table.copy.clicked.connect(self.table.to_clipboard)
+            self.export_table.csv.clicked.connect(self.table.to_csv)
+            self.export_table.excel.clicked.connect(self.table.to_excel)
+            for obj in self.export_table:
+                table_layout.addWidget(obj)
+            export_menu.addLayout(table_layout)
 
-        # Export Plot
-        if hasattr(self, 'plot') and self.export_menu:
-            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
-            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+        export_menu.addStretch()
+        return export_menu
 
 
 class InventoryTab(NewAnalysisTab):
     def __init__(self, parent=None):
-        super(InventoryTab, self).__init__(parent)
-        self.parent = parent
+        super().__init__(parent)
         self.df_biosphere = None
         self.df_technosphere = None
 
         self.layout.addLayout(get_header_layout('Inventory'))
 
         # buttons
-        button, button_layout = get_radio_buttons(names=['Biosphere flows', 'Technosphere flows'], states=[True, False])
-        self.radio_button_biosphere = button[0]
-        self.radio_button_technosphere = button[1]
+        button_layout = QHBoxLayout()
+        self.radio_button_biosphere = QRadioButton("Biosphere flows")
+        self.radio_button_biosphere.setChecked(True)
+        button_layout.addWidget(self.radio_button_biosphere)
+        self.radio_button_technosphere = QRadioButton("Technosphere flows")
+        self.scenario_label = QLabel("Scenario:")
+        button_layout.addWidget(self.radio_button_technosphere)
+        button_layout.addWidget(self.scenario_label)
+        button_layout.addWidget(self.scenario_box)
+        button_layout.addStretch(1)
         self.layout.addLayout(button_layout)
 
         # table
@@ -550,73 +354,106 @@ class InventoryTab(NewAnalysisTab):
         self.table.table_name = 'Inventory_' + self.parent.cs_name
         self.layout.addWidget(self.table)
 
-        self.add_export()
-
-        self.parent.addTab(self, 'Inventory')
-
+        self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
         self.connect_signals()
 
     def connect_signals(self):
-        self.radio_button_biosphere.clicked.connect(self.button_clicked)
-        self.radio_button_technosphere.clicked.connect(self.button_clicked)
+        self.radio_button_biosphere.toggled.connect(self.button_clicked)
+        if self.using_presamples:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
 
-    def button_clicked(self):
+    @QtCore.Slot(bool, name="isBiosphereToggled")
+    def button_clicked(self, toggled: bool):
         """Update table according to radiobutton selected."""
-        if self.radio_button_technosphere.isChecked():
-            self.update_table(type='technosphere')
+        if not toggled:
+            self.update_table(inventory='technosphere')
             self.table.table_name = self.parent.cs_name + '_Inventory_technosphere'
-
         else:
-            self.update_table(type='biosphere')
+            self.update_table(inventory='biosphere')
             self.table.table_name = self.parent.cs_name + '_Inventory'
 
-    def update_table(self, type='biosphere'):
-        if type == 'biosphere':
+    def configure_scenario(self):
+        super().configure_scenario()
+        self.scenario_label.setVisible(self.using_presamples)
+
+    def update_tab(self):
+        self.clear_tables()
+        super().update_tab()
+
+    def update_table(self, inventory='biosphere'):
+        if inventory == 'biosphere':
             if self.df_biosphere is None:
                 self.df_biosphere = self.parent.contributions.inventory_df(inventory_type='biosphere')
             self.table.sync(self.df_biosphere)
-
         else:
             if self.df_technosphere is None:
                 self.df_technosphere = self.parent.contributions.inventory_df(inventory_type='technosphere')
             self.table.sync(self.df_technosphere)
 
+    def clear_tables(self) -> None:
+        """ Set the biosphere and technosphere to None.
+        """
+        self.df_biosphere, self.df_technosphere = None, None
 
-class LCAResultsTab(QWidget):
+
+class LCAResultsTab(NewAnalysisTab):
     def __init__(self, parent=None):
-        super(LCAResultsTab, self).__init__(parent)
-
+        super().__init__(parent)
+        self.parent = parent
         self.lca_scores_widget = LCAScoresTab(parent)
         self.lca_overview_widget = LCIAResultsTab(parent)
 
-        self.layout = QVBoxLayout()
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.layout.addLayout(get_header_layout('LCA Results'))
 
         # buttons
-        button, button_layout = get_radio_buttons(names=['Overview', 'by LCIA method'], states=[False, True])
-        self.button_overview = button[0]
-        self.button_by_method = button[1]
+        button_layout = QHBoxLayout()
+        self.button_group = QButtonGroup()
+        self.button_overview = QRadioButton("Overview")
+        button_layout.addWidget(self.button_overview)
+        self.button_by_method = QRadioButton("by LCIA method")
+        self.button_by_method.setChecked(True)
+        self.scenario_label = QLabel("Scenario:")
+        self.button_group.addButton(self.button_overview, 0)
+        self.button_group.addButton(self.button_by_method, 1)
+        button_layout.addWidget(self.button_by_method)
+        button_layout.addWidget(self.scenario_label)
+        button_layout.addWidget(self.scenario_box)
+        button_layout.addStretch(1)
         self.layout.addLayout(button_layout)
 
         self.layout.addWidget(self.lca_scores_widget)
         self.layout.addWidget(self.lca_overview_widget)
-        self.setLayout(self.layout)
 
-        self.button_clicked()
+        self.button_clicked(False)
         self.connect_signals()
 
     def connect_signals(self):
-        self.button_overview.clicked.connect(self.button_clicked)
-        self.button_by_method.clicked.connect(self.button_clicked)
+        self.button_overview.toggled.connect(self.button_clicked)
+        if self.using_presamples:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
+            self.button_by_method.toggled.connect(
+                lambda on_lcia: self.scenario_box.setHidden(on_lcia)
+            )
+            self.button_by_method.toggled.connect(
+                lambda on_lcia: self.scenario_label.setHidden(on_lcia)
+            )
 
-    def button_clicked(self):
-        if self.button_overview.isChecked():
-            self.lca_overview_widget.show()
-            self.lca_scores_widget.hide()
-        else:
-            self.lca_overview_widget.hide()
-            self.lca_scores_widget.show()
+    @QtCore.Slot(bool, name="overviewToggled")
+    def button_clicked(self, is_overview: bool):
+        self.lca_overview_widget.setVisible(is_overview)
+        self.lca_scores_widget.setHidden(is_overview)
+
+    def configure_scenario(self):
+        super().configure_scenario()
+        self.scenario_box.setHidden(self.button_by_method.isChecked())
+        self.scenario_label.setHidden(self.button_by_method.isChecked())
 
     def update_tab(self):
         self.lca_scores_widget.update_tab()
@@ -626,20 +463,23 @@ class LCAResultsTab(QWidget):
 
 class LCAScoresTab(NewAnalysisTab):
     def __init__(self, parent=None):
-        super(LCAScoresTab, self).__init__(parent)
+        super().__init__(parent)
         self.parent = parent
 
-        # self.header_text = "LCA scores comparison"
-        # self.add_header(self.header_text)
-
-        self.add_combobox(label='Choose LCIA method')
+        self.combobox_menu = QHBoxLayout()
+        self.combobox_label = QLabel("Choose LCIA method:")
+        self.combobox = QComboBox()
+        self.combobox.scroll = False
+        self.combobox_menu.addWidget(self.combobox_label)
+        self.combobox_menu.addWidget(self.combobox, 1)
+        self.combobox_menu.addStretch(1)
+        self.layout.addLayout(self.combobox_menu)
 
         self.plot = LCAResultsBarChart(self.parent)
         self.plot.plot_name = 'LCA scores_' + self.parent.cs_name
         self.layout.addWidget(self.plot)
 
-        self.add_export()
-        # self.parent.addTab(self, "LCA scores")
+        self.layout.addLayout(self.build_export(has_plot=True, has_table=False))
 
         self.connect_signals()
 
@@ -647,18 +487,22 @@ class LCAScoresTab(NewAnalysisTab):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
     def update_tab(self):
-        self.update_combobox([str(m) for m in self.parent.mlca.methods])
-        self.update_plot(method_index=0)
+        self.update_combobox(self.combobox, [str(m) for m in self.parent.mlca.methods])
+        super().update_tab()
 
-    def update_plot(self, method_index=None):
-        if method_index is None or isinstance(method_index, str):
-            method_index = 0
+    @QtCore.Slot(int, name="updatePlotWithIndex")
+    def update_plot(self, method_index: int = 0):
         method = self.parent.mlca.methods[method_index]
-        self.plot.plot(self.parent.mlca, method=method)
+        df = self.parent.mlca.get_results_for_method(method_index)
+        labels = [
+            bc.format_activity_label(next(iter(fu.keys())), style='pnl')
+            for fu in self.parent.mlca.func_units
+        ]
+        self.plot.plot(df, method=method, labels=labels)
         self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
 
 
-class LCIAResultsTab(AnalysisTab):
+class LCIAResultsTab(NewAnalysisTab):
     def __init__(self, parent, **kwargs):
         super(LCIAResultsTab, self).__init__(parent, **kwargs)
         self.parent = parent
@@ -669,13 +513,10 @@ class LCIAResultsTab(AnalysisTab):
         self.plot.plot_name = self.parent.cs_name + '_LCIA results'
         self.table = LCAResultsTable(self.parent)
         self.table.table_name = self.parent.cs_name + '_LCIA results'
-
-        self.add_main_space()
-        self.add_export()
-
-        # self.parent.addTab(self, self.header_text)
-        self.connect_signals()
         self.relative = False
+
+        self.layout.addWidget(self.build_main_space())
+        self.layout.addLayout(self.build_export(True, True))
 
     def update_plot(self):
         if not isinstance(self.plot, LCAResultsPlot):
@@ -690,174 +531,237 @@ class LCIAResultsTab(AnalysisTab):
         self.table.sync(self.df)
 
 
-class ContributionTab(AnalysisTab):
+class ContributionTab(NewAnalysisTab):
     def __init__(self, parent, **kwargs):
-        super(ContributionTab, self).__init__(parent, **kwargs)
+        super().__init__(parent)
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
+        self.combobox_menu = Combobox(
+            func=QComboBox(self),
+            func_label=QLabel("Functional Unit:"),
+            method=QComboBox(self),
+            method_label=QLabel("Impact Category:"),
+            agg=QComboBox(self),
+            agg_label=QLabel("Aggregate by:"),
+            scenario=self.scenario_box,
+            scenario_label=QLabel("Scenario:"),
+        )
+        self.switch_label = QLabel("Compare:")
+        self.switches = SwitchComboBox(self)
+
+        self.relativity = Relativity(
+            QRadioButton("Relative"),
+            QRadioButton("Absolute"),
+        )
+        self.relativity.relative.setChecked(True)
+        self.relative = True
 
         self.df = None
         self.plot = ContributionPlot()
         self.table = ContributionTable(self)
-        self.contribution_type = None
         self.contribution_fn = None
-        self.current_method = None
-        self.current_func = None
-        self.current_agg = None#'none' # Default to no aggregation
+        self.has_method, self.has_func = False, False
+        self.unit = None
 
-    def update_aggregation_combobox(self):
-        """Contribution-specific aggregation combobox
+    def set_filename(self, optional_fields: dict = None):
+        """ Given a dictionary of fields, put together a usable filename
+         for the plot and table.
         """
-        self.aggregator_combobox.clear()
-        self.aggregator_combobox.blockSignals(True)
-        if self.contribution_type == 'EF':
-            self.aggregator_list = self.parent.contributions.DEFAULT_EF_AGGREGATES
-        elif self.contribution_type == 'PC':
-            self.aggregator_list = self.parent.contributions.DEFAULT_ACT_AGGREGATES
-        self.aggregator_combobox.insertItems(0, self.aggregator_list)
-        self.aggregator_combobox.blockSignals(False)
+        optional = optional_fields or {}
+        fields = (
+            self.parent.cs_name, self.contribution_fn, optional.get("method"),
+            optional.get("functional_unit"), self.unit
+        )
+        filename = '_'.join((str(x) for x in fields if x is not None))
+        self.plot.plot_name, self.table.table_name = filename, filename
 
-    def combo_switch_check(self):
-        """Show either the functional units or methods combo-box, dependent on button state.
+    def build_combobox(self, has_method: bool = True,
+                       has_func: bool = False) -> QHBoxLayout:
+        """ Construct and return a horizontal layout for picking and
+         choosing what data to show and how.
         """
-        self.update_aggregation_combobox()
-        super(ContributionTab, self).combo_switch_check()
+        menu = QHBoxLayout()
+        # Populate the drop-down boxes with their relevant values.
+        self.combobox_menu.func.addItems(
+            list(self.parent.mlca.func_unit_translation_dict.keys())
+        )
+        self.combobox_menu.method.addItems(list(self.parent.method_dict.keys()))
 
-    def update_analysis_tab(self):
-        """Override and include call to update aggregation combobox"""
-        if self.aggregator_combobox != None:
-            self.update_aggregation_combobox()
-        super(ContributionTab, self).update_analysis_tab()
+        menu.addWidget(self.switch_label)
+        menu.addWidget(self.switches)
+        menu.addWidget(vertical_line())
+        menu.addWidget(self.combobox_menu.scenario_label)
+        menu.addWidget(self.combobox_menu.scenario)
+        menu.addWidget(self.combobox_menu.method_label)
+        menu.addWidget(self.combobox_menu.method)
+        menu.addWidget(self.combobox_menu.func_label)
+        menu.addWidget(self.combobox_menu.func)
+        menu.addWidget(self.combobox_menu.agg_label)
+        menu.addWidget(self.combobox_menu.agg)
+        menu.addStretch()
+
+        self.has_method = has_method
+        self.has_func = has_func
+        return menu
+
+    def configure_scenario(self):
+        """ Supplement the superclass method because there are more things to
+         hide in these tabs.
+        """
+        super().configure_scenario()
+        visible = self.using_presamples
+        self.combobox_menu.scenario_label.setVisible(visible)
+
+    @QtCore.Slot(int, name="changeComparisonView")
+    def toggle_comparisons(self, index: int):
+        self.toggle_func(index == self.switches.indexes.func)
+        self.toggle_method(index == self.switches.indexes.method)
+        self.toggle_scenario(index == self.switches.indexes.scenario)
+        self.update_tab()
+
+    @QtCore.Slot(bool, name="hideScenarioCombo")
+    def toggle_scenario(self, active: bool):
+        if self.using_presamples:
+            self.combobox_menu.scenario.setHidden(active)
+            self.combobox_menu.scenario_label.setHidden(active)
+
+    @QtCore.Slot(bool, name="hideFuCombo")
+    def toggle_func(self, active: bool):
+        self.combobox_menu.func.setHidden(active)
+        self.combobox_menu.func_label.setHidden(active)
+
+    @QtCore.Slot(bool, name="hideMethodCombo")
+    def toggle_method(self, active: bool):
+        self.combobox_menu.method.setHidden(active)
+        self.combobox_menu.method_label.setHidden(active)
+
+    @QtCore.Slot(name="comboboxTriggerUpdate")
+    def set_combobox_changes(self):
+        """ Any trigger linked to this slot will cause the values in the
+         combobox objects to be read out (which comparison, drop-down indexes,
+         etc.) and fed into update calls.
+        """
+        if self.combobox_menu.agg.currentText() != 'none':
+            compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
+        else:
+            compare_fields = {"aggregator": None}
+
+        # Determine which comparison is active and update the comparison.
+        if self.switches.currentIndex() == self.switches.indexes.func:
+            compare_fields.update({
+                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
+            })
+        elif self.switches.currentIndex() == self.switches.indexes.method:
+            compare_fields.update({
+                "functional_unit": self.combobox_menu.func.currentText(),
+            })
+        elif self.switches.currentIndex() == self.switches.indexes.scenario:
+            compare_fields.update({
+                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
+                "functional_unit": self.combobox_menu.func.currentText(),
+            })
+
+        # Determine the unit for the figure, update the filenames and the
+        # underlying dataframe.
+        self.unit = get_unit(compare_fields.get("method"), self.relative)
+        self.set_filename(compare_fields)
+        self.df = self.update_dataframe(**compare_fields)
 
     def connect_signals(self):
         """Override the inherited method to perform the same thing plus aggregation
         """
-        if self.combobox_menu_combobox != None:
-            if self.combobox_menu_method_bool and self.combobox_menu_func_bool:
-                self.combobox_menu_switch_met.clicked.connect(self.combo_switch_check)
-                self.combobox_menu_switch_fun.clicked.connect(self.combo_switch_check)
+        self.cutoff_menu.slider_change.connect(self.update_tab)
+        self.switches.currentIndexChanged.connect(self.toggle_comparisons)
+        self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
+        self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
+        self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
 
-            if self.plot:
-                self.combobox_menu_combobox.currentTextChanged.connect(
-                    lambda name: self.update_plot(method=name))
-                self.aggregator_combobox.currentTextChanged.connect(
-                    lambda a: self.update_plot(aggregator=a))
-            if self.table:
-                self.combobox_menu_combobox.currentTextChanged.connect(
-                    lambda name: self.update_table(method=name))
-                self.aggregator_combobox.currentTextChanged.connect(
-                    lambda a: self.update_table())
+        # Add wiring for presamples scenarios
+        if self.using_presamples:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
 
-        # Mainspace Checkboxes
-        self.main_space_tb_grph_table.stateChanged.connect(
-            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
-        self.main_space_tb_grph_plot.stateChanged.connect(
-            lambda: self.main_space_check(self.main_space_tb_grph_table, self.main_space_tb_grph_plot))
-        # Export Table
-        if self.table and self.export_menu:
-            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
-            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
-            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
-        # Export Plot
-        if self.plot and self.export_menu:
-            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
-            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
+    def update_tab(self):
+        self.set_combobox_changes()
+        super().update_tab()
 
-    def update_dataframe(self):
-        """Updates the underlying dataframe. Implement in sublass.
+    def update_dataframe(self, *args, **kwargs):
+        """Updates the underlying dataframe. Implement in subclass.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
-    def update_plot(self, method=None, aggregator=None):
-        if self.combobox_menu_label.text() == self.combobox_menu_method_label:
-            if self.current_method and method is None:
-                method = self.current_method
-            elif method is None or method == '':
-                method = self.parent.mlca.methods[0]
-            else:
-                method = self.parent.method_dict[method]
-            func = None
-        else:
-            func = method
-            if self.current_func and func is None:
-                func = self.current_func
-            if func is None or func == '':
-                func = self.parent.mlca.func_key_list[0]
-            method = None
-
-        if self.current_agg and aggregator is None:
-            aggregator = self.current_agg
-        elif aggregator == 'none':
-            aggregator = None
-
-        self.current_method = method
-        self.current_func = func
-        self.current_agg = aggregator
-
-        self.df = self.update_dataframe()
-        unit = get_unit(method, self.relative)
-        self.plot.plot(self.df, unit=unit)
-        filename = '_'.join([str(x) for x in [self.parent.cs_name, self.contribution_fn, method, func, unit]
-                             if x is not None])
-        self.plot.plot_name, self.table.table_name = filename, filename
+    def update_plot(self):
+        self.plot.plot(self.df, unit=self.unit)
 
 
 class ElementaryFlowContributionTab(ContributionTab):
-    def __init__(self, parent, **kwargs):
-        super(ElementaryFlowContributionTab, self).__init__(parent, **kwargs)
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
+        combobox = self.build_combobox(has_method=True, has_func=True)
+        self.layout.addLayout(combobox)
+        self.layout.addWidget(horizontal_line())
+        self.layout.addWidget(self.build_main_space())
+        self.layout.addLayout(self.build_export(True, True))
 
-        self.add_combobox(method=True, func=True)
-        self.add_main_space()
-        self.add_export()
-
-        self.contribution_type = 'EF'
         self.contribution_fn = 'EF contributions'
-        self.parent.addTab(self, 'EF Contributions')
-
+        self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
+        self.toggle_comparisons(self.switches.indexes.func)
 
-    def update_dataframe(self):
+    def build_combobox(self, has_method: bool = True,
+                       has_func: bool = False) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_EF_AGGREGATES)
+        return super().build_combobox(has_method, has_func)
+
+    def update_dataframe(self, *args, **kwargs):
         """Retrieve the top elementary flow contributions
         """
         return self.parent.contributions.top_elementary_flow_contributions(
-            functional_unit=self.current_func, method=self.current_method,
-            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
-            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+            **kwargs, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative
+        )
 
 
 class ProcessContributionsTab(ContributionTab):
-    def __init__(self, parent, **kwargs):
-        super(ProcessContributionsTab, self).__init__(parent, **kwargs)
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.layout.addLayout(get_header_layout('Process Contributions'))
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
+        combobox = self.build_combobox(has_method=True, has_func=True)
+        self.layout.addLayout(combobox)
+        self.layout.addWidget(horizontal_line())
+        self.layout.addWidget(self.build_main_space())
+        self.layout.addLayout(self.build_export(True, True))
 
-        self.add_combobox(method=True, func=True)
-        self.add_main_space()
-        self.add_export()
-
-        self.contribution_type = 'PC'
         self.contribution_fn = 'Process contributions'
-        self.parent.addTab(self, 'Process Contributions')
-
+        self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
+        self.toggle_comparisons(self.switches.indexes.func)
 
-    def update_dataframe(self):
+    def build_combobox(self, has_method: bool = True,
+                       has_func: bool = False) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_ACT_AGGREGATES)
+        return super().build_combobox(has_method, has_func)
+
+    def update_dataframe(self, *args, **kwargs):
         """Retrieve the top process contributions
         """
         return self.parent.contributions.top_process_contributions(
-            functional_unit=self.current_func, method=self.current_method,
-            aggregator=self.current_agg, limit=self.cutoff_menu.cutoff_value,
-            limit_type=self.cutoff_menu.limit_type, normalize=self.relative)
+            **kwargs, limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type, normalize=self.relative
+        )
 
 
-class CorrelationsTab(AnalysisTab):
-    def __init__(self, parent, **kwargs):
-        super(CorrelationsTab, self).__init__(parent, **kwargs)
+class CorrelationsTab(NewAnalysisTab):
+    def __init__(self, parent):
+        super().__init__(parent)
         self.parent = parent
 
         self.tab_text = "Correlations"
@@ -866,21 +770,16 @@ class CorrelationsTab(AnalysisTab):
         if not self.parent.single_func_unit:
             self.plot = CorrelationPlot(self.parent)
 
-        self.add_main_space()
-        self.add_export()
-
-        self.parent.addTab(self, self.tab_text)
-
-        self.connect_signals()
+        self.layout.addWidget(self.build_main_space())
+        self.layout.addLayout(self.build_export(
+            has_table=False, has_plot=not self.parent.single_func_unit
+        ))
 
     def update_plot(self):
-        if isinstance(self.plot, CorrelationPlot):
-            labels = [str(x + 1) for x in range(len(self.parent.mlca.func_units))]
-            self.plot.plot(self.parent.mlca, labels)
-        else:
+        if self.plot is None:
             self.plot = CorrelationPlot(self.parent)
-            labels = [str(x + 1) for x in range(len(self.parent.mlca.func_units))]
-            self.plot.plot(self.parent.mlca, labels)
+        df = self.parent.mlca.get_normalized_scores_df()
+        self.plot.plot(df)
 
 
 class SankeyTab(QWidget):
@@ -895,6 +794,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.parent = parent
 
         self.layout.addLayout(get_header_layout('Monte Carlo Simulation'))
+        self.scenario_label = QLabel("Scenario:")
 
         self.add_MC_ui_elements()
 
@@ -904,11 +804,9 @@ class MonteCarloTab(NewAnalysisTab):
         self.plot.hide()
         self.plot.plot_name = 'MonteCarlo_' + self.parent.cs_name
         self.layout.addWidget(self.plot)
-        self.add_export()
+        self.export_widget = self.build_export(has_plot=True, has_table=True)
+        self.layout.addWidget(self.export_widget)
         self.layout.setAlignment(QtCore.Qt.AlignTop)
-
-        self.parent.addTab(self, "Monte Carlo")
-
         self.connect_signals()
 
     def connect_signals(self):
@@ -923,16 +821,11 @@ class MonteCarloTab(NewAnalysisTab):
         # self.radio_button_biosphere.clicked.connect(self.button_clicked)
         # self.radio_button_technosphere.clicked.connect(self.button_clicked)
 
-        # Export Plot
-        if self.plot and self.export_menu:
-            self.export_plot_buttons_png.clicked.connect(self.plot.to_png)
-            self.export_plot_buttons_svg.clicked.connect(self.plot.to_svg)
-
-        # Export Table
-        if self.table and self.export_menu:
-            self.export_table_buttons_copy.clicked.connect(self.table.to_clipboard)
-            self.export_table_buttons_csv.clicked.connect(self.table.to_csv)
-            self.export_table_buttons_excel.clicked.connect(self.table.to_excel)
+        if self.using_presamples:
+            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.parent.update_scenario_box_index.connect(
+                lambda index: self.set_combobox_index(self.scenario_box, index)
+            )
 
     def add_MC_ui_elements(self):
         self.layout_mc = QVBoxLayout()
@@ -940,11 +833,13 @@ class MonteCarloTab(NewAnalysisTab):
         # H-LAYOUT start simulation
         self.button_run = QPushButton('Run Simulation')
         self.label_runs = QLabel('Iterations:')
-        self.iterations = QtWidgets.QLineEdit('10')
+        self.iterations = QLineEdit('10')
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
 
         self.hlayout_run = QHBoxLayout()
+        self.hlayout_run.addWidget(self.scenario_label)
+        self.hlayout_run.addWidget(self.scenario_box)
         self.hlayout_run.addWidget(self.button_run)
         self.hlayout_run.addWidget(self.label_runs)
         self.hlayout_run.addWidget(self.iterations)
@@ -993,58 +888,16 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.layout.addLayout(self.layout_mc)
 
-    def add_export(self):
-        """ Add the export menu to the tab. """
-
-        self.export_menu = QHBoxLayout()
-
-        # Export Plot
-        self.export_plot = QHBoxLayout()
-        self.export_plot_label = QLabel("Export plot:")
-        self.export_plot_buttons_png = QPushButton(".png")
-        self.export_plot_buttons_svg = QPushButton(".svg")
-        # Export Table
-        self.export_table = QHBoxLayout()
-        self.export_table_label = QLabel("Export table:")
-        self.export_table_buttons_copy = QPushButton("Copy")
-        self.export_table_buttons_csv = QPushButton(".csv")
-        self.export_table_buttons_excel = QPushButton("Excel")
-        # Assemble export plot
-        self.export_plot.addWidget(self.export_plot_label)
-        self.export_plot.addWidget(self.export_plot_buttons_png)
-        self.export_plot.addWidget(self.export_plot_buttons_svg)
-        # Assemble export table
-        self.export_table.addWidget(self.export_table_label)
-        self.export_table.addWidget(self.export_table_buttons_copy)
-        self.export_table.addWidget(self.export_table_buttons_csv)
-        self.export_table.addWidget(self.export_table_buttons_excel)
-
-        # Assemble export menu
-        if self.plot:
-            self.export_menu.addLayout(self.export_plot)
-        if self.table and self.plot:
-            self.export_menu_vert_line = vertical_line()
-            self.export_menu.addWidget(self.export_menu_vert_line)
-        if self.table:
-            self.export_menu.addLayout(self.export_table)
-        self.export_menu.addStretch()
-
-        # self.layout.addWidget(horizontal_line())
-        # self.layout.addLayout(self.export_menu)
-
-        # set layout to export widget
-        self.export_widget = QWidget()
-        self.export_widget.setLayout(self.export_menu)
-        # add widget, but hide until MC is calculated
-        self.layout.addWidget(self.export_widget)
-        self.export_widget.hide()
-
-    def update_combobox(self, combobox, labels):
-        """ Update the combobox menu. """
-        combobox.clear()
-        combobox.blockSignals(True)
-        combobox.insertItems(0, labels)
-        combobox.blockSignals(False)
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
+        """ Construct the export layout but set it into a widget because we
+         want to hide it.
+        """
+        export_layout = super().build_export(has_table, has_plot)
+        export_widget = QWidget()
+        export_widget.setLayout(export_layout)
+        # Hide widget until MC is calculated
+        export_widget.hide()
+        return export_widget
 
     def calculate_MC_LCA(self):
         iterations = int(self.iterations.text())
@@ -1108,6 +961,10 @@ class MonteCarloTab(NewAnalysisTab):
         # self.method_selection_widget.show()
         # self.plot.show()
         # self.export_widget.show()
+
+    def configure_scenario(self):
+        super().configure_scenario()
+        self.scenario_label.setVisible(self.using_presamples)
 
     def update_tab(self):
         self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])

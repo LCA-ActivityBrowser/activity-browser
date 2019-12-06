@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QVBoxLayout
 
 from .LCA_results_tabs import LCAResultsSubTab
@@ -23,6 +24,7 @@ class LCAResultsTab(ABTab):
 
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
+        signals.lca_presamples_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
@@ -34,12 +36,13 @@ class LCAResultsTab(ABTab):
             index = self.indexOf(self.tabs[name])
             self.close_tab(index)
 
-    def generate_setup(self, name):
+    @Slot(str, name="generateSimpleLCA")
+    @Slot(str, str, name="generatePresamplesLCA")
+    def generate_setup(self, name: str, presamples: str = None):
         """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
-        if isinstance(self.tabs.get(name), LCAResultsSubTab):  # remove, if necessary
-            self.remove_setup(name)
+        self.remove_setup(name)
 
-        new_tab = LCAResultsSubTab(self, name)
+        new_tab = LCAResultsSubTab(name, presamples, self)
         self.tabs[name] = new_tab
         self.addTab(new_tab, name)
 

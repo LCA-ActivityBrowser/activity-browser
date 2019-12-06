@@ -1,15 +1,25 @@
 # -*- coding: utf-8 -*-
+import uuid
+
 import brightway2 as bw
+from bw2data.filesystem import safe_filename
 from PySide2.QtCore import Slot, QSize
-from PySide2.QtWidgets import (QCheckBox, QHBoxLayout, QPushButton, QToolBar,
-                             QVBoxLayout, QTabWidget)
+from PySide2.QtWidgets import (
+    QCheckBox, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QToolBar,
+    QStyle, QVBoxLayout, QTabWidget
+)
+from xlsxwriter.exceptions import FileCreateError
 
-from activity_browser.app.signals import signals
-
+from ...bwutils import presamples as ps_utils
+from ...settings import project_settings
+from ...signals import signals
 from ..icons import qicons
 from ..style import header, horizontal_line
-from ..tables import (ActivityParameterTable, DataBaseParameterTable,
-                      ExchangesTable, ProjectParameterTable)
+from ..tables import (
+    ActivityParameterTable, DataBaseParameterTable, ExchangesTable,
+    ProjectParameterTable, ScenarioTable
+)
+from ..widgets import ForceInputDialog
 from .base import BaseRightTab
 
 
@@ -27,6 +37,7 @@ class ParametersTab(QTabWidget):
         self.tabs = {
             "Definitions": ParameterDefinitionTab(self),
             "Exchanges": ParameterExchangesTab(self),
+            "Scenarios": PresamplesTab(self),
         }
         for name, tab in self.tabs.items():
             self.addTab(tab, name)
@@ -253,3 +264,117 @@ for the full explanation.</p>
         """ Read parameters from brightway and build tree tables
         """
         self.table.sync()
+
+
+class PresamplesTab(BaseRightTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.load_btn = QPushButton(qicons.add, "Load scenario table")
+        self.save_btn = QPushButton(
+            self.style().standardIcon(QStyle.SP_DialogSaveButton),
+            "Save scenario table"
+        )
+        self.calculate_btn = QPushButton(
+            qicons.calculate, "Process scenario table for LCA calculations"
+        )
+        self.hide_group = QCheckBox("Show group column")
+
+        self.tbl = ScenarioTable(self)
+
+        self._construct_layout()
+        self._connect_signals()
+
+    def _connect_signals(self):
+        self.load_btn.clicked.connect(self.select_read_file)
+        self.save_btn.clicked.connect(self.save_scenarios)
+        self.calculate_btn.clicked.connect(self.calculate_scenarios)
+        self.hide_group.toggled.connect(self.tbl.group_column)
+        signals.project_selected.connect(self.build_tables)
+        signals.parameters_changed.connect(self.tbl.rebuild_table)
+        signals.parameter_renamed.connect(self.tbl.update_param_name)
+
+    def _construct_layout(self):
+        layout = QVBoxLayout()
+        row = QHBoxLayout()
+        row.addWidget(header("Parameter Scenarios"))
+        layout.addLayout(row)
+        layout.addWidget(horizontal_line())
+        row = QHBoxLayout()
+        row.addWidget(self.load_btn)
+        row.addWidget(self.save_btn)
+        row.addWidget(self.calculate_btn)
+        row.addWidget(self.hide_group)
+        row.addStretch(1)
+        layout.addLayout(row)
+        layout.addWidget(self.tbl)
+        layout.addStretch(1)
+        self.setLayout(layout)
+
+    def build_tables(self) -> None:
+        self.tbl.sync()
+        self.tbl.group_column(False)
+
+    @Slot(name="loadSenarioTable")
+    def select_read_file(self):
+        path, _ = QFileDialog().getOpenFileName(
+            self, caption="Select prepared scenario file",
+            dir=project_settings.data_dir, filter=self.tbl.EXCEL_FILTER
+        )
+        if path:
+            df = ps_utils.load_scenarios_from_file(path)
+            self.tbl.sync(df=df)
+
+    @Slot(name="saveScenarioTable")
+    def save_scenarios(self):
+        filename, _ = QFileDialog().getSaveFileName(
+            self, caption="Save current scenarios to Excel",
+            dir=project_settings.data_dir, filter=self.tbl.EXCEL_FILTER
+        )
+        if filename:
+            try:
+                ps_utils.save_scenarios_to_file(self.tbl.dataframe, filename)
+            except FileCreateError as e:
+                QMessageBox.warning(
+                    self, "File save error",
+                    "Cannot save the file, please see if it is opened elsewhere or "
+                    "if you are allowed to save files in that location:\n\n{}".format(e),
+                    QMessageBox.Ok, QMessageBox.Ok
+                )
+
+
+    @Slot(name="createPresamplesPackage")
+    def calculate_scenarios(self):
+        if not ps_utils.PresamplesParameterManager.can_build_presamples():
+            QMessageBox.warning(
+                self, "No parameterized exchanges",
+                "Please set formulas on exchanges to make use of scenario analysis.",
+                QMessageBox.Ok, QMessageBox.Ok
+            )
+            return
+        dialog = ForceInputDialog.get_text(
+            self, "Add label", "Add a label to the calculated scenarios"
+        )
+        if dialog.exec_() == ForceInputDialog.Accepted:
+            result = dialog.output
+            if result in ps_utils.find_all_package_names():
+                overwrite = QMessageBox.question(
+                    self, "Label already in use", "Overwrite the old calculations?",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                )
+                if overwrite == QMessageBox.Yes:
+                    older = ps_utils.get_package_path(result)
+                    ps_utils.remove_package(older)
+                    self.build_presamples_packages(safe_filename(result, False))
+            else:
+                self.build_presamples_packages(safe_filename(result, False))
+
+    def build_presamples_packages(self, name: str):
+        """ Calculate and store presamples arrays from parameter scenarios.
+        """
+        ppm = ps_utils.PresamplesParameterManager.construct()
+        names, data = zip(*self.tbl.iterate_scenarios())
+        ps_id, path = ppm.presamples_from_scenarios(name, zip(names, data))
+        description = "{}".format(tuple(names))
+        ppm.store_presamples_as_resource(name, path, description)
+        signals.presample_package_created.emit(name)

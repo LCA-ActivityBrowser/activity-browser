@@ -31,7 +31,7 @@ install:
 
   # Build source into local package for testing
   - conda build ./ci/travis/recipe --no-test
-  - conda install -q -c conda-forge -c cmutel -c file://$HOME/miniconda/conda-bld/ -c haasad activity-browser-dev==$VERSION;
+  - conda install -q -c conda-forge -c cmutel -c file://$HOME/miniconda/conda-bld/ -c haasad -c pascallesage activity-browser-dev==$VERSION;
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then

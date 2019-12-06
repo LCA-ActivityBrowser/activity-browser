@@ -40,6 +40,7 @@ class ABDataFrameView(QTableView):
     """
     ALL_FILTER = "All Files (*.*)"
     CSV_FILTER = "CSV (*.csv);; All Files (*.*)"
+    TSV_FILTER = "TSV (*.tsv);; All Files (*.*)"
     EXCEL_FILTER = "Excel (*.xlsx);; All Files (*.*)"
 
     def __init__(self, parent=None):

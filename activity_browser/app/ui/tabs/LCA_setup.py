@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
+from collections import namedtuple
+
 from PySide2 import QtWidgets
+from PySide2.QtCore import Slot
 from brightway2 import calculation_setups
 
-# from activity_browser.app.ui.web.sankey import SankeyWidget
+from ...signals import signals
 from ..icons import qicons
 from ..style import horizontal_line, header
-from ..tables import (
-    CSActivityTable,
-    CSList,
-    CSMethodsTable,
-)
-from ...signals import signals
+from ..tables import CSActivityTable, CSList, CSMethodsTable, PresamplesList
 
 """
 Lifecycle of a calculation setup
@@ -75,22 +73,30 @@ State data
 The currently selected calculation setup is retrieved by getting the currently selected value in ``CSList``.
 
 """
+PresamplesTuple = namedtuple("presamples", ["label", "list", "button"])
 
 
 class LCASetupTab(QtWidgets.QWidget):
-    def __init__(self, parent):
-        super(LCASetupTab, self).__init__(parent)
-        self.window = self.window()
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.activities_table = CSActivityTable(self)
         self.methods_table = CSMethodsTable(self)
-        self.list_widget = CSList()
+        self.list_widget = CSList(self)
 
         self.new_cs_button = QtWidgets.QPushButton(qicons.add, "New")
         self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
         self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.calculation_type = QtWidgets.QComboBox()
+        self.calculation_type.addItems(["Standard LCA", "Scenario-based LCA"])
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
-        # self.sankey_button = QtWidgets.QPushButton('Sankey')
+        self.presamples = PresamplesTuple(
+            QtWidgets.QLabel("Prepared scenarios:"),
+            PresamplesList(self),
+            QtWidgets.QPushButton(qicons.calculate, "Calculate"),
+        )
+        for obj in self.presamples:
+            obj.hide()
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -102,7 +108,10 @@ class LCASetupTab(QtWidgets.QWidget):
 
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
-        # calc_row.addWidget(self.sankey_button)
+        calc_row.addWidget(self.presamples.button)
+        calc_row.addWidget(self.calculation_type)
+        calc_row.addWidget(self.presamples.label)
+        calc_row.addWidget(self.presamples.list)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
@@ -122,7 +131,7 @@ class LCASetupTab(QtWidgets.QWidget):
     def connect_signals(self):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
-        # self.sankey_button.clicked.connect(self.open_sankey)
+        self.presamples.button.clicked.connect(self.presamples_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.delete_cs_button.clicked.connect(
@@ -134,13 +143,17 @@ class LCASetupTab(QtWidgets.QWidget):
                 self.list_widget.name
         ))
         signals.calculation_setup_changed.connect(self.save_cs_changes)
+        self.calculation_type.currentIndexChanged.connect(self.select_calculation_type)
 
         # Slots
         signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
+        signals.set_default_calculation_setup.connect(self.valid_presamples)
         signals.project_selected.connect(self.set_default_calculation_setup)
-        signals.calculation_setup_selected.connect(self.show_details)
+        signals.project_selected.connect(self.valid_presamples)
+        signals.calculation_setup_selected.connect(lambda: self.show_details())
         signals.calculation_setup_selected.connect(self.enable_calculations)
         signals.calculation_setup_changed.connect(self.enable_calculations)
+        signals.presample_package_created.connect(self.valid_presamples)
 
     def save_cs_changes(self):
         name = self.list_widget.name
@@ -153,42 +166,52 @@ class LCASetupTab(QtWidgets.QWidget):
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)
 
+    def presamples_calculation(self):
+        signals.lca_presamples_calculation.emit(
+            self.list_widget.name, self.presamples.list.selection
+        )
+
+    @Slot(name="toggleDefaultCalculation")
     def set_default_calculation_setup(self):
+        self.calculation_type.setCurrentIndex(0)
         if not len(calculation_setups):
-            self.hide_details()
+            self.show_details(False)
             self.calculate_button.setEnabled(False)
-            # self.sankey_button.setEnabled(False)
         else:
             signals.calculation_setup_selected.emit(
                 sorted(calculation_setups)[0]
             )
 
-    def hide_details(self):
-        self.rename_cs_button.hide()
-        self.delete_cs_button.hide()
-        self.list_widget.hide()
-        self.activities_table.hide()
-        self.methods_table.hide()
+    @Slot(name="togglePresampleCalculation")
+    def valid_presamples(self):
+        """ Determine if calculate with presamples is active.
+        """
+        valid = self.calculate_button.isEnabled() and self.presamples.list.has_packages
+        if valid:
+            self.presamples.list.sync()
+        self.presamples.list.setEnabled(valid)
+        self.presamples.button.setEnabled(valid)
 
-    def show_details(self):
-        self.rename_cs_button.show()
-        self.delete_cs_button.show()
-        self.list_widget.show()
-        self.activities_table.show()
-        self.methods_table.show()
+    def show_details(self, show: bool = True):
+        self.rename_cs_button.setVisible(show)
+        self.delete_cs_button.setVisible(show)
+        self.list_widget.setVisible(show)
+        self.activities_table.setVisible(show)
+        self.methods_table.setVisible(show)
+
+    @Slot(int, name="changeCalculationType")
+    def select_calculation_type(self, index: int):
+        if index == 0:
+            # Standard LCA.
+            self.calculate_button.show()
+            for obj in self.presamples:
+                obj.hide()
+        elif index == 1:
+            # Presamples / Scenarios LCA.
+            self.calculate_button.hide()
+            for obj in self.presamples:
+                obj.show()
 
     def enable_calculations(self):
         valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
-        # self.sankey_button.setEnabled(valid_cs)
-
-    # def open_sankey(self):
-    #     if self.list_widget.currentText():
-    #         cs = self.list_widget.currentText()
-    #         if hasattr(self, 'sankey'):
-    #             self.window.stacked.removeWidget(self.sankey)
-    #             self.sankey.deleteLater()
-    #         self.sankey = SankeyWidget(self, cs=cs)
-    #         self.window.stacked.addWidget(self.sankey)
-    #         self.window.stacked.setCurrentWidget(self.sankey)
-    #         signals.update_windows.emit()
