@@ -478,7 +478,19 @@ class Contributions(object):
             Annotated contribution dict inside a pandas dataframe
 
         """
-        df = pd.DataFrame(cont_dict)
+        # TODO the IF part fixes the problem that when only a single functional unit is present and
+        #  pandas returns a TypeError: '<' not supported between instances of 'str' and 'tuple'
+        #  but this is a hack, so a better solution should eventually be implemented
+        if len(cont_dict) == 1:
+            print('cont_dict:', cont_dict)
+            df = pd.DataFrame(cont_dict.values(), index=cont_dict.keys()).T
+            # print('df:', df)
+            try:
+                df.index = pd.MultiIndex.from_tuples(df.index)
+            except:
+                pass
+        else:
+            df = pd.DataFrame(cont_dict)
         special_keys = [('Total', ''), ('Rest', '')]
 
         if not mask:
