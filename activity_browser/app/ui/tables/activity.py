@@ -126,8 +126,6 @@ class BaseExchangeTable(ABDataFrameEdit):
         # Clear out all ParameterizedExchanges before recalculating
         param = ActivityParameter.get_or_none(database=self.key[0], code=self.key[1])
         if param:
-            activity = bw.get_activity(self.key)
-            bw.parameters.remove_exchanges_from_group(param.group, activity)
             signals.exchange_formula_changed.emit(self.key)
 
     def contextMenuEvent(self, a0) -> None:

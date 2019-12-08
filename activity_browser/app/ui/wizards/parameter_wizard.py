@@ -146,7 +146,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
             self.field("btn_activity")
         ].index(True)
 
-        self.amount.setText("0.0")
+        self.amount.setText("1.0")
         if selected == 0:
             self.name.clear()
             self.database.setHidden(True)
