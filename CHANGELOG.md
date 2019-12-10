@@ -2,14 +2,56 @@
 
 ## [Unreleased]
 
+### Added
+
+- ([#330](https://github.com/LCA-ActivityBrowser/activity-browser/pull/330))
+    Added scenario analysis! It is now possible to create scenarios for
+    parameters and store the calculated new exchange amounts for each
+    scenario as a presamples package. It is also possible to select presamples
+    packages created outside of the Activity Browser for use in LCA
+    calculations. 
+- ([#323](https://github.com/LCA-ActivityBrowser/activity-browser/pull/323))
+    Make use of the builtin import/export fuctionality of brightway to
+    allow quick imports and exports of databases. Note that there are a lot
+    of rules and complications involved!
+
 ### Changed
 
+
+- ([#322](https://github.com/LCA-ActivityBrowser/activity-browser/pull/322))
+    Updating the biosphere through the menu-option will now warn the user
+    that the action is not reversible.
+- ([#325](https://github.com/LCA-ActivityBrowser/activity-browser/pull/325))
+    Changing the naming of 'LCIA methods' into 'Impact Categories'.
 - ([#312](https://github.com/LCA-ActivityBrowser/activity-browser/pull/312))
     Slight changes to the main drop-down menu's, adding relevant icons to
     functionality.
 - ([#315](https://github.com/LCA-ActivityBrowser/activity-browser/pull/315))
     Refactor code to use PySide2, use LGPL license.
 
+### Fixed
+
+- ([51e073e](https://github.com/LCA-ActivityBrowser/activity-browser/commit/51e073ec799a1b2c0c17a6776563c50b2802f420))
+    Temporary patch for the aggregation issue, dataframe is now correctly
+    created when a single functional unit is passed into the calculation setup.
+- ([#340](https://github.com/LCA-ActivityBrowser/activity-browser/pull/340))
+    It is now again possible to open multiple activities at once when selecting
+    them from the database table.
+- ([#339](https://github.com/LCA-ActivityBrowser/activity-browser/pull/339))
+    Clearing the formula in the formula delegate will now properly signal
+    the parameter recalculation, ensuring the same functionality as the
+    'clear formula' action in the right-click menu.
+- ([b08b9a8](https://github.com/LCA-ActivityBrowser/activity-browser/commit/b08b9a8351a6d2d4af54eab1e98f9b29e1a2ceca))
+    Fixed typo, clarified division button, use default value of 1.0 for
+    new parameters to avoid sudden division by 0 errors.
+- ([#335](https://github.com/LCA-ActivityBrowser/activity-browser/pull/335))
+    Change to PySide2 has caused the signal/slot mechanics to be a bit more
+    rigid in what it accepts and ignores. Changed the MetaDataStore class to
+    inherit from QObject to ensure signals are properly handled.
+- ([#327](https://github.com/LCA-ActivityBrowser/activity-browser/pull/327))
+    Indexes in ParameterWizard now correctly set. Uncertainty type is
+    grabbed from the exchanges instead of processes, as it should be.
+    Code improvements to ensure filenames are 'safe' when exporting figures.
 
 ## [2.4.0] - 2019-10-30
 
