@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 
-import brightway2 as bw
 import pytest
 
 from activity_browser.app.settings import (ABSettings, BaseSettings,
                                            ProjectSettings)
+from activity_browser.app.signals import signals
 
 
 @pytest.fixture()
@@ -54,14 +54,12 @@ def test_ab_edit_settings(ab_settings):
     assert ab_settings.custom_bw_dir != ABSettings.get_default_directory()
 
 
-@pytest.mark.skipif("pytest_project" not in bw.projects, reason="test project not created")
-def test_ab_existing_startup(ab_settings):
+def test_ab_existing_startup(qtbot, ab_app, ab_settings, bw2test):
     """ Alter the startup project and assert that it is correctly changed.
-
-    Will be skipped if test_settings.py is run in isolation because the test
-    project has not been created (results in duplicate of test below)
     """
-    ab_settings.startup_project = "pytest_project"
+    with qtbot.waitSignal(signals.projects_changed, timeout=500):
+        ab_app.controller.new_project("new_test")
+    ab_settings.startup_project = "new_test"
     assert ab_settings.startup_project != ABSettings.get_default_project_name()
 
 
