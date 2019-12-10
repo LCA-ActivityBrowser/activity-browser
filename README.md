@@ -43,6 +43,7 @@ conda config --append channels conda-forge
 conda config --append channels cmutel
 conda config --append channels bsteubing
 conda config --append channels haasad
+conda config --append channels pascallesage
 ```
 
 If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly:
@@ -54,6 +55,7 @@ channels:
   - cmutel
   - bsteubing
   - haasad
+  - pascallesage
 ```
 
 ### Install the activity browser
@@ -96,14 +98,14 @@ The most recent version of the master branch is automatically uploaded and gener
 Install the development version like this:
 
 ```bash
-conda create --yes --name ab_dev --channel conda-forge activity-browser-dev
+conda create --yes --name ab_dev --channel conda-forge --channel pascallesage activity-browser-dev
 ```
 
 Or update like this if you already have a dev environment:
 
 ```bash
 conda activate ab_dev
-conda update --channel conda-forge activity-browser-dev
+conda update --channel conda-forge --channel pascallesage activity-browser-dev
 ```
 
 ---
@@ -126,7 +128,7 @@ You basically have 3 options:
 
 1. Create a new environment entirely (recommended)
     ```bash
-    conda create -n new_ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad activity-browser-dev
+    conda create -n new_ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage activity-browser-dev
     ```
 2. Remove PyQt5 and install PySide2 (within your existing environment)
     ```bash
