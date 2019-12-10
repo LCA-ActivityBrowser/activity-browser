@@ -23,7 +23,7 @@ requirements:
     - python
     - setuptools
   run:
-    - python
+    - python<3.8  # https://github.com/conda-forge/pyside2-feedstock/issues/56
     - arrow
     - brightway2 >=2.1.2
     - bw2io >=0.7.dev1
