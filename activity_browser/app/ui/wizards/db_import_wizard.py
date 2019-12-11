@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import io
+import subprocess
 import tempfile
 import zipfile
 
@@ -95,9 +96,10 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.cleanup()
 
     def cancel_extraction(self):
-        if hasattr(self.downloader, 'extraction_process'):
-            self.downloader.extraction_process.kill()
-            self.downloader.extraction_process.communicate()
+        process = getattr(self.downloader, "extraction_process", None)
+        if process is not None:
+            process.kill()
+            process.communicate()
 
     def cleanup(self):
         self.reject()
@@ -946,8 +948,19 @@ class CopyDatabaseThread(QtCore.QThread):
 
 
 class ABEcoinventDownloader(eidl.EcoinventDownloader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.extraction_process = None
+
     def login_success(self, success):
         import_signals.login_success.emit(success)
+
+    def extract(self, target_dir):
+        """ Override extract method to redirect the stdout to dev null.
+        """
+        extract_cmd = '7za x {} -o{}'.format(self.out_path, target_dir)
+        self.extraction_process = subprocess.Popen(extract_cmd.split(), stdout=subprocess.DEVNULL)
+        self.extraction_process.wait()
 
     def handle_connection_timeout(self):
         msg = "The request timed out, please check your internet connection!"
