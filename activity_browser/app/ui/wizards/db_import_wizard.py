@@ -22,8 +22,18 @@ from ...signals import signals
 
 
 class DatabaseImportWizard(QtWidgets.QWizard):
-    def __init__(self):
-        super().__init__()
+    IMPORT_TYPE = 1
+    EI_LOGIN = 2
+    EI_VERSION = 3
+    ARCHIVE = 4
+    DIR = 5
+    LOCAL = 6
+    DB_NAME = 7
+    CONFIRM = 8
+    IMPORT = 9
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.downloader = ABEcoinventDownloader()
         self.setWindowTitle('Database Import Wizard')
         self.import_type_page = ImportTypePage(self)
@@ -35,19 +45,16 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.ecoinvent_login_page = EcoinventLoginPage(self)
         self.ecoinvent_version_page = EcoinventVersionPage(self)
         self.local_import_page = LocalDatabaseImportPage(self)
-        self.pages = [
-            self.import_type_page,
-            self.ecoinvent_login_page,
-            self.ecoinvent_version_page,
-            self.archive_page,
-            self.choose_dir_page,
-            self.local_import_page,
-            self.db_name_page,
-            self.confirmation_page,
-            self.import_page,
-        ]
-        for page in self.pages:
-            self.addPage(page)
+        self.setPage(self.IMPORT_TYPE, self.import_type_page)
+        self.setPage(self.EI_LOGIN, self.ecoinvent_login_page)
+        self.setPage(self.EI_VERSION, self.ecoinvent_version_page)
+        self.setPage(self.ARCHIVE, self.archive_page)
+        self.setPage(self.DIR, self.choose_dir_page)
+        self.setPage(self.LOCAL, self.local_import_page)
+        self.setPage(self.DB_NAME, self.db_name_page)
+        self.setPage(self.CONFIRM, self.confirmation_page)
+        self.setPage(self.IMPORT, self.import_page)
+        self.setStartId(self.IMPORT_TYPE)
         self.show()
 
         # with this line, finish behaves like cancel and the wizard can be reused
@@ -104,7 +111,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 class ImportTypePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
+        self.wizard = parent
         options = ['Ecoinvent: download (login required)',
                    'Ecoinvent: local 7z-archive or previously downloaded database',
                    'Ecoinvent: local directory with ecospold2 files',
@@ -127,22 +134,22 @@ class ImportTypePage(QtWidgets.QWizardPage):
         option_id = [b.isChecked() for b in self.radio_buttons].index(True)
         if option_id == 4:
             self.wizard.import_type = "local"
-            return self.wizard.pages.index(self.wizard.local_import_page)
+            return DatabaseImportWizard.LOCAL
         if option_id == 3:
             self.wizard.import_type = 'forwast'
-            return self.wizard.pages.index(self.wizard.db_name_page)
+            return DatabaseImportWizard.DB_NAME
         if option_id == 2:
             self.wizard.import_type = 'directory'
-            return self.wizard.pages.index(self.wizard.choose_dir_page)
+            return DatabaseImportWizard.DIR
         elif option_id == 1:
             self.wizard.import_type = 'archive'
-            return self.wizard.pages.index(self.wizard.archive_page)
+            return DatabaseImportWizard.ARCHIVE
         else:
             self.wizard.import_type = 'homepage'
             if hasattr(self.wizard.ecoinvent_login_page, 'valid_pw'):
-                return self.wizard.pages.index(self.wizard.ecoinvent_version_page)
+                return DatabaseImportWizard.EI_VERSION
             else:
-                return self.wizard.pages.index(self.wizard.ecoinvent_login_page)
+                return DatabaseImportWizard.EI_LOGIN
 
 
 class ChooseDirPage(QtWidgets.QWizardPage):
@@ -183,11 +190,14 @@ class ChooseDirPage(QtWidgets.QWizardPage):
             else:
                 return True
 
+    def nextId(self):
+        return DatabaseImportWizard.DB_NAME
+
 
 class Choose7zArchivePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
+        self.wizard = parent
         self.path_edit = QtWidgets.QLineEdit()
         self.registerField('archive_path*', self.path_edit)
         self.browse_button = QtWidgets.QPushButton('Browse')
@@ -237,13 +247,13 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
             return False
 
     def nextId(self):
-        return self.wizard.pages.index(self.wizard.db_name_page)
+        return DatabaseImportWizard.DB_NAME
 
 
 class DBNamePage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
+        self.wizard = parent
         self.name_edit = QtWidgets.QLineEdit()
         self.registerField('db_name*', self.name_edit)
 
@@ -277,11 +287,14 @@ class DBNamePage(QtWidgets.QWizardPage):
         else:
             return True
 
+    def nextId(self):
+        return DatabaseImportWizard.CONFIRM
+
 
 class ConfirmationPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
+        self.wizard = parent
         self.setCommitPage(True)
         self.setButtonText(QtWidgets.QWizard.CommitButton, 'Import Database')
         self.current_project_label = QtWidgets.QLabel('empty')
@@ -328,6 +341,9 @@ class ConfirmationPage(QtWidgets.QWizardPage):
         """
         running = self.wizard.import_page.main_worker_thread.isRunning()
         return not running
+
+    def nextId(self):
+        return DatabaseImportWizard.IMPORT
 
 
 class ImportPage(QtWidgets.QWizardPage):
@@ -606,7 +622,7 @@ class MainWorkerThread(QtCore.QThread):
 class EcoinventLoginPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
+        self.wizard = parent
         self.complete = False
         self.description_label = QtWidgets.QLabel('Login to the ecoinvent homepage:')
         self.username_edit = QtWidgets.QLineEdit()
@@ -674,6 +690,9 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
             self.login_button.setChecked(False)
             self.wizard.next()
 
+    def nextId(self):
+        return DatabaseImportWizard.EI_VERSION
+
 
 class LoginThread(QtCore.QThread):
     def __init__(self, downloader):
@@ -727,7 +746,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.update_system_model_combobox(self.version_combobox.currentText())
 
     def nextId(self):
-        return self.wizard.pages.index(self.wizard.db_name_page)
+        return DatabaseImportWizard.DB_NAME
 
     @Slot(str)
     def update_system_model_combobox(self, version: str) -> None:
@@ -767,7 +786,7 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
 
     def nextId(self):
         self.wizard.setField("archive_path", self.path.text())
-        return self.wizard.pages.index(self.wizard.db_name_page)
+        return DatabaseImportWizard.DB_NAME
 
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
