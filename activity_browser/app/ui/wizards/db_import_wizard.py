@@ -638,7 +638,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.login_button.clicked.connect(self.login)
         self.login_button.setCheckable(True)
         self.password_edit.returnPressed.connect(self.login_button.click)
-        self.success_label = QtWidgets.QLabel('')
+        self.success_label = QtWidgets.QLabel()
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.description_label)
         layout.addWidget(self.username_edit)
@@ -675,8 +675,8 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.login_thread.update(self.username, self.password)
         self.login_thread.start()
 
-    @Slot(bool)
-    def login_response(self, success):
+    @Slot(bool, name="handleLoginResponse")
+    def login_response(self, success: bool):
         if not success:
             self.success_label.setText('Login failed!')
             self.complete = False
@@ -731,7 +731,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        if getattr(self, "db_dict") is None:
+        if self.db_dict is None:
             self.wizard.downloader.db_dict = self.wizard.downloader.get_available_files()
             self.db_dict = self.wizard.downloader.db_dict
         self.system_models = {
@@ -745,9 +745,17 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.version_combobox.clear()
         self.system_model_combobox.clear()
         self.version_combobox.addItems(list(self.system_models.keys()))
-        # Adding the items will cause system_model_combobox to update
-        # and show the correct list, this is just to be sure.
-        self.update_system_model_combobox(self.version_combobox.currentText())
+        if bool(self.version_combobox.count()):
+            # Adding the items will cause system_model_combobox to update
+            # and show the correct list, this is just to be sure.
+            self.update_system_model_combobox(self.version_combobox.currentText())
+        else:
+            # Raise an error if the version_combobox is empty
+            import_signals.connection_problem.emit((
+                "Cannot find files",
+                "Cannot find any valid data with the given login credentials"
+            ))
+            self.wizard.back()
 
     def nextId(self):
         return DatabaseImportWizard.DB_NAME
