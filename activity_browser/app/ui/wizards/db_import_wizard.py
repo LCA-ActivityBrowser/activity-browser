@@ -9,8 +9,9 @@ import eidl
 import requests
 import brightway2 as bw
 from bw2data.errors import InvalidExchange, UnknownObject
+from bw2io import BW2Package, SingleOutputEcospold2Importer
+from bw2io.errors import InvalidPackage
 from bw2io.extractors import Ecospold2DataExtractor
-from bw2io import SingleOutputEcospold2Importer
 from bw2data import config
 from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
@@ -591,7 +592,7 @@ class MainWorkerThread(QtCore.QThread):
     def run_local_import(self):
         try:
             import_signals.db_progress.emit(0, 0)
-            result = bw.BW2Package.import_file(self.archive_path)
+            result = ABPackage.import_file(self.archive_path)
             if not import_signals.cancel_sentinel:
                 db = next(iter(result))
                 if db.name != self.db_name:
@@ -600,11 +601,14 @@ class MainWorkerThread(QtCore.QThread):
                 import_signals.finished.emit()
             else:
                 self.delete_canceled_db()
+        except InvalidPackage as e:
+            self.delete_canceled_db()
+            import_signals.biosphere_incomplete.emit(
+                ("Missing databases", str(e))
+            )
         except ImportCanceledError:
             self.delete_canceled_db()
         except InvalidExchange:
-            # Likely caused by new version of ecoinvent not finding required
-            # biosphere flows.
             self.delete_canceled_db()
             import_signals.biosphere_incomplete.emit(
                 ("Missing exchanges", "The import has failed, likely due missing exchanges.")
@@ -968,3 +972,32 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
             msg += ("\n\nIf you work offline you can use your previously downloaded databases" +
                     " via the archive option of the import wizard.")
         import_signals.connection_problem.emit(('Connection problem', msg))
+
+
+class ABPackage(BW2Package):
+    """ Inherits from brightway2 `BW2Package` and handles importing BW2Packages.
+
+    This implementation is done to raise exceptions and show errors on imports
+    much faster.
+    """
+    @classmethod
+    def evaluate_metadata(cls, metadata: dict):
+        """ Take the given metadata dictionary and test it against realities
+        of the current brightway project.
+        """
+        if "depends" in metadata:
+            missing = set(metadata["depends"]).difference(bw.databases)
+            if missing:
+                raise InvalidPackage("Package data links to database names that do not exist: {}".format(missing))
+
+    @classmethod
+    def load_file(cls, filepath, whitelist=True):
+        data = super().load_file(filepath, whitelist)
+        if isinstance(data, dict):
+            if "metadata" in data:
+                cls.evaluate_metadata(data["metadata"])
+        else:
+            for obj in data:
+                if "metadata" in obj:
+                    cls.evaluate_metadata(obj["metadata"])
+        return data
