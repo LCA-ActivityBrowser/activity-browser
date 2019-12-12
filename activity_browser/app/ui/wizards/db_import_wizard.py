@@ -9,10 +9,9 @@ import eidl
 import requests
 import brightway2 as bw
 from bw2data.errors import InvalidExchange, UnknownObject
-from bw2io import BW2Package, SingleOutputEcospold2Importer
+from bw2io import SingleOutputEcospold2Importer
 from bw2io.errors import InvalidPackage
 from bw2io.extractors import Ecospold2DataExtractor
-from bw2data import config
 from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
@@ -68,7 +67,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_extraction)
 
         import_signals.connection_problem.connect(self.show_info)
-        import_signals.biosphere_incomplete.connect(self.show_info)
+        import_signals.import_failure.connect(self.show_info)
 
     @property
     def version(self):
@@ -582,7 +581,7 @@ class MainWorkerThread(QtCore.QThread):
             # Likely caused by new version of ecoinvent not finding required
             # biosphere flows.
             self.delete_canceled_db()
-            import_signals.biosphere_incomplete.emit(
+            import_signals.import_failure.emit(
                 ("Missing exchanges", "The import failed as required biosphere"
                  " exchanges are missing from the biosphere3 database. Please"
                  " update the biosphere by using 'File' -> 'Update biosphere...'")
@@ -602,19 +601,19 @@ class MainWorkerThread(QtCore.QThread):
                 self.delete_canceled_db()
         except InvalidPackage as e:
             self.delete_canceled_db()
-            import_signals.biosphere_incomplete.emit(
+            import_signals.import_failure.emit(
                 ("Missing databases", str(e))
             )
         except ImportCanceledError:
             self.delete_canceled_db()
         except InvalidExchange:
             self.delete_canceled_db()
-            import_signals.biosphere_incomplete.emit(
+            import_signals.import_failure.emit(
                 ("Missing exchanges", "The import has failed, likely due missing exchanges.")
             )
         except UnknownObject as e:
             self.delete_canceled_db()
-            import_signals.biosphere_incomplete.emit(
+            import_signals.import_failure.emit(
                 ("Unknown object", str(e))
             )
 
@@ -858,7 +857,7 @@ class ActivityBrowserBackend(SQLiteBackend):
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
-config.backends['activitybrowser'] = ActivityBrowserBackend
+bw.config.backends['activitybrowser'] = ActivityBrowserBackend
 
 
 class ImportCanceledError(Exception):
@@ -874,7 +873,7 @@ class ImportSignals(QtCore.QObject):
     unarchive_finished = Signal()
     download_complete = Signal()
     biosphere_finished = Signal()
-    biosphere_incomplete = Signal(tuple)
+    import_failure = Signal(tuple)
     copydb_finished = Signal()
     cancel_sentinel = False
     login_success = Signal(bool)
@@ -973,7 +972,7 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
         import_signals.connection_problem.emit(('Connection problem', msg))
 
 
-class ABPackage(BW2Package):
+class ABPackage(bw.BW2Package):
     """ Inherits from brightway2 `BW2Package` and handles importing BW2Packages.
 
     This implementation is done to raise exceptions and show errors on imports
