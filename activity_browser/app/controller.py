@@ -28,10 +28,10 @@ class Controller(object):
     It is different from bwutils in that it also contains Qt elements such as dialogs.
     - """
     def __init__(self):
+        self.db_wizard = None
         self.connect_signals()
         signals.project_selected.emit()
         self.load_settings()
-        self.db_wizard = None
         print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
 
@@ -77,18 +77,21 @@ class Controller(object):
             self.switch_brightway2_dir_path(dirpath=ab_settings.custom_bw_dir)
             self.change_project(ab_settings.startup_project)
 
+    def clear_database_wizard(self):
+        """ Separate cleanup method, used to clear out existing import wizard
+        when switching projects.
+        """
+        if self.db_wizard is None:
+            return
+        self.db_wizard.deleteLater()
+        self.db_wizard = None
+
     def import_database_wizard(self):
-        try:
-            if self.db_wizard is None:
-                self.db_wizard = DatabaseImportWizard()
-            else:
-                self.db_wizard.show()
-                self.db_wizard.activateWindow()
-        except:
-            QtWidgets.QMessageBox.warning(None,
-                                              "Error during importing.",
-                                              "Oops. Something went wrong with the data import. "
-                                              "Please check the console for details.")
+        """ Create a database import wizard, if it already exists, set the
+        previous one to delete and recreate it.
+        """
+        self.clear_database_wizard()
+        self.db_wizard = DatabaseImportWizard()
 
     def switch_brightway2_dir_path(self, dirpath):
         if dirpath == bw.projects._base_data_dir:
@@ -128,6 +131,7 @@ class Controller(object):
 
     def change_project(self, name=None, reload=False):
         # TODO: what should happen if a new project is opened? (all activities, etc. closed?)
+        self.clear_database_wizard()
         if not name:
             print("No project name given.")
             return
