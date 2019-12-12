@@ -511,8 +511,9 @@ class MainWorkerThread(QtCore.QThread):
 
     def run_ecoinvent(self):
         import_signals.cancel_sentinel = False
-        with tempfile.TemporaryDirectory() as self.tempdir:
-            if self.datasets_path is None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            dataset_dir = self.datasets_path or os.path.join(tempdir, "datasets")
+            if not os.path.isdir(dataset_dir):
                 if self.archive_path is None:
                     self.downloader.outdir = eidl.eidlstorage.eidl_dir
                     if self.downloader.check_stored():
@@ -522,9 +523,9 @@ class MainWorkerThread(QtCore.QThread):
                 else:
                     self.downloader.out_path = self.archive_path
                 if not import_signals.cancel_sentinel:
-                    self.run_extract()
+                    self.run_extract(tempdir)
             if not import_signals.cancel_sentinel:
-                self.run_import()
+                self.run_import(dataset_dir)
 
     def run_forwast(self):
         """
@@ -557,16 +558,14 @@ class MainWorkerThread(QtCore.QThread):
         self.downloader.download()
         import_signals.download_complete.emit()
 
-    def run_extract(self):
-        self.downloader.extract(target_dir=self.tempdir)
+    def run_extract(self, temp_dir):
+        self.downloader.extract(target_dir=temp_dir)
         import_signals.unarchive_finished.emit()
 
-    def run_import(self):
-        if self.datasets_path is None:
-            self.datasets_path = os.path.join(self.tempdir, 'datasets')
+    def run_import(self, import_dir):
         try:
             importer = SingleOutputEcospold2Importer(
-                self.datasets_path,
+                import_dir,
                 self.db_name,
                 extractor=ActivityBrowserExtractor,
                 signal=import_signals.strategy_progress
