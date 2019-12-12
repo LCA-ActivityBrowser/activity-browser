@@ -209,7 +209,6 @@ class NewAnalysisTab(QWidget):
         row.addWidget(self.plot_table.plot)
         row.addWidget(self.plot_table.table)
         row.addWidget(vertical_line())
-        row.addStretch(1)
         if self.relativity:
             row.addWidget(self.relativity.relative)
             row.addWidget(self.relativity.absolute)
