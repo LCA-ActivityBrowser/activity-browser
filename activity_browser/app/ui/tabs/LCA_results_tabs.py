@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
-    QButtonGroup,
+    QButtonGroup, QToolTip
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
@@ -413,8 +413,10 @@ class LCAResultsTab(NewAnalysisTab):
         button_layout = QHBoxLayout()
         self.button_group = QButtonGroup()
         self.button_overview = QRadioButton("Overview")
+        self.button_overview.setToolTip("Show a matrix of all functional units and all LCIA methods")
         button_layout.addWidget(self.button_overview)
         self.button_by_method = QRadioButton("by LCIA method")
+        self.button_by_method.setToolTip("Show the impacts of each functional unit for the selected LCIA method")
         self.button_by_method.setChecked(True)
         self.scenario_label = QLabel("Scenario:")
         self.button_group.addButton(self.button_overview, 0)
@@ -554,6 +556,8 @@ class ContributionTab(NewAnalysisTab):
         )
         self.relativity.relative.setChecked(True)
         self.relative = True
+        self.relativity.relative.setToolTip("Show relative values (compare fraction of each contribution)")
+        self.relativity.absolute.setToolTip("Show absolute values (compare magnitudes of each contribution)")
 
         self.df = None
         self.plot = ContributionPlot()
