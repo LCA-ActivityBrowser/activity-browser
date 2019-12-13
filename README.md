@@ -2,16 +2,15 @@
 
 
 # Activity Browser - a GUI for Brightway2
-## Scientific paper
-Please have a look at our scientific paper on the Activity Browser and cite it in your work if it has been useful to you:
-https://doi.org/10.1016/j.simpa.2019.100012 
 
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
 The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle
 assessment framework, making use of `Qt` through `Qt for Python` under the [LGPLv3 license](https://www.gnu.org/licenses/lgpl-3.0.html).
 
-
+## Scientific paper
+Please have a look at our scientific paper on the Activity Browser and cite it in your work if it has been useful to you:
+https://doi.org/10.1016/j.simpa.2019.100012 
 
 ## Contents
 - [Installation](#installation)
