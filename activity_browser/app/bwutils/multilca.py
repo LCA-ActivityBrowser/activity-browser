@@ -220,7 +220,7 @@ class MLCA(object):
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         data = self.lca_scores[:, index]
-        return pd.DataFrame(data, index=self.func_key_list)
+        return pd.DataFrame(data, index=self.fu_activity_keys)
 
     @property
     def lca_scores_normalized(self) -> np.ndarray:

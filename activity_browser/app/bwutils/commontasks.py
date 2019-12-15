@@ -35,6 +35,9 @@ def format_activity_label(key, style='pnl', max_length=40):
         elif style == 'pnl_':
             label = ' | '.join([act.get('reference product', ''), act.get('name', ''),
                            str(act.get('location', ''))])
+        elif style == 'pnld':
+            label = ' | '.join([act.get('reference product', ''), act.get('name', ''),
+                           str(act.get('location', '')), act.get('database', ''),])
         elif style == 'pl':
             label = ', '.join([act.get('reference product', '') or act.get('name', ''),
                                          str(act.get('location', '')),])
