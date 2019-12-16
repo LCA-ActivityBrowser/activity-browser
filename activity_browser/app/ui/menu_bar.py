@@ -19,6 +19,9 @@ class MenuBar(object):
             "&Update biosphere...", None
         )
         self.biosphere_updater = None
+        self.import_db_action = QtWidgets.QAction(
+            qicons.import_db, '&Import database...', None
+        )
 
         self.menubar = QtWidgets.QMenuBar()
         self.menubar.addMenu(self.setup_file_menu())
@@ -35,15 +38,12 @@ class MenuBar(object):
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
         self.update_biosphere_action.triggered.connect(self.update_biosphere)
+        self.import_db_action.triggered.connect(signals.import_database.emit)
 
     # FILE
     def setup_file_menu(self):
         menu = QtWidgets.QMenu('&File', self.window)
-        menu.addAction(
-            qicons.import_db,
-            '&Import database...',
-            signals.import_database.emit
-        )
+        menu.addAction(self.import_db_action)
         menu.addAction(
             self.window.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon),
             "&Export database...",
@@ -153,6 +153,7 @@ You should have received a copy of the GNU Lesser General Public License along w
         """
         exists = True if bw.config.biosphere in bw.databases else False
         self.update_biosphere_action.setEnabled(exists)
+        self.import_db_action.setEnabled(exists)
 
     def update_biosphere(self):
         """ Open a popup with progression bar and run through the different

@@ -118,10 +118,10 @@ class LCASetupTab(QtWidgets.QWidget):
         container.addLayout(name_row)
         container.addLayout(calc_row)
         container.addWidget(horizontal_line())
-        container.addWidget(header('Products and amounts:'))
+        container.addWidget(header('Functional units:'))
         container.addWidget(self.activities_table)
         container.addWidget(horizontal_line())
-        container.addWidget(header('LCIA Methods:'))
+        container.addWidget(header('Impact categories:'))
         container.addWidget(self.methods_table)
 
         self.setLayout(container)

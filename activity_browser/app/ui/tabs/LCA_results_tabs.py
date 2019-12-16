@@ -496,7 +496,7 @@ class LCAScoresTab(NewAnalysisTab):
         method = self.parent.mlca.methods[method_index]
         df = self.parent.mlca.get_results_for_method(method_index)
         labels = [
-            bc.format_activity_label(next(iter(fu.keys())), style='pnl')
+            bc.format_activity_label(next(iter(fu.keys())), style='pnld')
             for fu in self.parent.mlca.func_units
         ]
         self.plot.plot(df, method=method, labels=labels)
