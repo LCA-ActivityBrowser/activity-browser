@@ -808,7 +808,16 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
             self.path.setText(path)
 
     def changed(self):
-        self.complete = True if os.path.isfile(self.path.text()) else False
+        exists = True if os.path.isfile(self.path.text()) else False
+        valid = False
+        if exists:
+            base, ext = os.path.splitext(self.path.text())
+            valid = True if ext.lower() == ".bw2package" else False
+            if not valid:
+                import_signals.import_failure.emit(
+                    ("Invalid extension", "Expecting 'local' import database file to have '.bw2package' extension")
+                )
+        self.complete = all([exists, valid])
         self.completeChanged.emit()
 
     def isComplete(self):
