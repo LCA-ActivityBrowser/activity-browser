@@ -808,7 +808,16 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
             self.path.setText(path)
 
     def changed(self):
-        self.complete = True if os.path.isfile(self.path.text()) else False
+        exists = True if os.path.isfile(self.path.text()) else False
+        valid = False
+        if exists:
+            base, ext = os.path.splitext(self.path.text())
+            valid = True if ext.lower() == ".bw2package" else False
+            if not valid:
+                import_signals.import_failure.emit(
+                    ("Invalid extension", "Expecting 'local' import database file to have '.bw2package' extension")
+                )
+        self.complete = all([exists, valid])
         self.completeChanged.emit()
 
     def isComplete(self):
@@ -882,7 +891,6 @@ class ImportSignals(QtCore.QObject):
     download_complete = Signal()
     biosphere_finished = Signal()
     import_failure = Signal(tuple)
-    copydb_finished = Signal()
     cancel_sentinel = False
     login_success = Signal(bool)
     connection_problem = Signal(tuple)
@@ -922,39 +930,6 @@ class DefaultBiosphereThread(QtCore.QThread):
         import_signals.biosphere_finished.emit()
         signals.change_project.emit(bw.projects.current)
         signals.project_selected.emit()
-
-
-class CopyDatabaseDialog(QtWidgets.QProgressDialog):
-    def __init__(self, copy_from, copy_to):
-        super().__init__()
-        self.setWindowTitle('Copying database')
-        self.setLabelText(
-            'Copying existing database <b>{}</b> to new database <b>{}</b>:'.format(
-                copy_from, copy_to)
-        )
-        self.setRange(0, 0)
-        self.show()
-
-        self.copydb_thread = CopyDatabaseThread(copy_from, copy_to)
-        import_signals.copydb_finished.connect(self.finished)
-        import_signals.copydb_finished.connect(self.copydb_thread.exit)
-        self.copydb_thread.start()
-
-    def finished(self):
-        self.setMaximum(1)
-        self.setValue(1)
-
-
-class CopyDatabaseThread(QtCore.QThread):
-    def __init__(self, copy_from, copy_to):
-        super().__init__()
-        self.copy_from = copy_from
-        self.copy_to = copy_to
-
-    def run(self):
-        bw.Database(self.copy_from).copy(self.copy_to)
-        import_signals.copydb_finished.emit()
-        signals.databases_changed.emit()
 
 
 class ABEcoinventDownloader(eidl.EcoinventDownloader):

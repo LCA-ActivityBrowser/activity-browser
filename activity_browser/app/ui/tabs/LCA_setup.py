@@ -153,6 +153,7 @@ class LCASetupTab(QtWidgets.QWidget):
         signals.calculation_setup_selected.connect(lambda: self.show_details())
         signals.calculation_setup_selected.connect(self.enable_calculations)
         signals.calculation_setup_changed.connect(self.enable_calculations)
+        signals.calculation_setup_changed.connect(self.valid_presamples)
         signals.presample_package_created.connect(self.valid_presamples)
 
     def save_cs_changes(self):
