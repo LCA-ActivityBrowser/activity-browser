@@ -482,10 +482,13 @@ class Contributions(object):
 
         """
         dfs = (
-            pd.DataFrame(v.values(), index=list(v.keys()), columns=pd.MultiIndex.from_tuples([k]))
+            pd.DataFrame(v.values(), index=list(v.keys()), columns=[k])
             for k, v in cont_dict.items()
         )
         df = pd.concat(dfs, sort=False, axis=1)
+        # If the cont_dict has tuples for keys, coerce df.columns into MultiIndex
+        if all(isinstance(k, tuple) for k in cont_dict.keys()):
+            df.columns = pd.MultiIndex.from_tuples(df.columns)
         special_keys = [('Total', ''), ('Rest', '')]
 
         if not mask:
