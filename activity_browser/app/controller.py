@@ -76,6 +76,11 @@ class Controller(object):
         # Other
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
 
+        # Metadata
+        signals.project_selected.connect(self.reset_metadata)
+        signals.metadata_changed.connect(self.update_metadata)
+        signals.edit_activity.connect(self.print_convenience_information)
+
 # SETTINGS
     def load_settings(self):
         if ab_settings.settings:
@@ -511,3 +516,18 @@ class Controller(object):
             # If a formula was set, removed or changed, recalculate exchanges
             signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange['output'][0])
+
+    @staticmethod
+    @Slot(name="triggerMetadataReset")
+    def reset_metadata() -> None:
+        AB_metadata.reset_metadata()
+
+    @staticmethod
+    @Slot(tuple, name="updateMetadataActivity")
+    def update_metadata(key: tuple) -> None:
+        AB_metadata.update_metadata(key)
+
+    @staticmethod
+    @Slot(str, name="printDatabaseInformation")
+    def print_convenience_information(db_name: str) -> None:
+        AB_metadata.print_convenience_information(db_name)
