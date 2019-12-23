@@ -9,12 +9,11 @@ from PySide2.QtCore import Slot
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
-from activity_browser.app.ui.wizards.db_import_wizard import (
-    DatabaseImportWizard, DefaultBiosphereDialog, CopyDatabaseDialog
-)
 from .bwutils import commontasks as bc, AB_metadata
 from .settings import ab_settings, project_settings
 from .signals import signals
+from .ui.widgets import CopyDatabaseDialog
+from .ui.wizards.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
 
 
 class Controller(object):
@@ -26,9 +25,16 @@ class Controller(object):
     - calculation setups
     - activities/exchanges
     It is different from bwutils in that it also contains Qt elements such as dialogs.
-    - """
+
+    TODO: Have the controller class inherit from QObject to allow Qt to handle
+     signal/slot tree construction and thread management.
+    TODO: Look into the possibility of separating the controller into multiple
+     parts, possibly moving data management out of the table/view classes.
+     (https://stackoverflow.com/questions/26698628/mvc-design-with-qt-designer-and-pyqt-pyside)
+    """
     def __init__(self):
         self.db_wizard = None
+        self.copy_progress = None
         self.connect_signals()
         signals.project_selected.emit()
         self.load_settings()
@@ -69,6 +75,11 @@ class Controller(object):
         signals.delete_calculation_setup.connect(self.delete_calculation_setup)
         # Other
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
+
+        # Metadata
+        signals.project_selected.connect(self.reset_metadata)
+        signals.metadata_changed.connect(self.update_metadata)
+        signals.edit_activity.connect(self.print_convenience_information)
 
 # SETTINGS
     def load_settings(self):
@@ -249,13 +260,14 @@ class Controller(object):
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if ok and new_name:
-            if new_name not in bw.databases:
-                self.copydb_dialog = CopyDatabaseDialog(name, new_name)
+            try:
+                # Attaching the created wizard to the class avoids the copying
+                # thread being prematurely destroyed.
+                self.copy_progress = CopyDatabaseDialog()
+                self.copy_progress.begin_copy(name, new_name)
                 project_settings.add_db(new_name)
-            else:
-                QtWidgets.QMessageBox.information(None,
-                                                  "Not possible",
-                                                  'Database <b>{}</b> already exists!'.format(new_name))
+            except ValueError as e:
+                QtWidgets.QMessageBox.information(None, "Not possible", str(e))
 
     def delete_database(self, name):
         ok = QtWidgets.QMessageBox.question(
@@ -504,3 +516,18 @@ class Controller(object):
             # If a formula was set, removed or changed, recalculate exchanges
             signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange['output'][0])
+
+    @staticmethod
+    @Slot(name="triggerMetadataReset")
+    def reset_metadata() -> None:
+        AB_metadata.reset_metadata()
+
+    @staticmethod
+    @Slot(tuple, name="updateMetadataActivity")
+    def update_metadata(key: tuple) -> None:
+        AB_metadata.update_metadata(key)
+
+    @staticmethod
+    @Slot(str, name="printDatabaseInformation")
+    def print_convenience_information(db_name: str) -> None:
+        AB_metadata.print_convenience_information(db_name)
