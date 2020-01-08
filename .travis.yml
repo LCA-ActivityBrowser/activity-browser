@@ -23,7 +23,7 @@ install:
   - wget https://repo.anaconda.com/pkgs/misc/conda-execs/conda-latest-$TRAVIS_OS_NAME-64.exe -O conda.exe
   - chmod +x conda.exe
   - export CONDA_ALWAYS_YES=1
-  - ./conda.exe create -p $HOME/miniconda -c conda-forge python=$PYENV conda conda-build pytest pytest-qt pytest-mock pytest-cov python-coveralls
+  - ./conda.exe create -p $HOME/miniconda -c conda-forge python=$PYENV conda conda-build pytest pytest-qt pytest-mock pytest-cov python-coveralls "coverage<5.0"
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   # Useful for debugging any issues with conda
@@ -42,7 +42,7 @@ before_script:
 
 script:
   # Run tests on the installed package, also do code coverage in linux.
-  - py.test --cov=activity_browser;
+  - py.test -v --cov=activity_browser;
 
 after_success:
   # Only upload the code coverage from linux py37 machine
