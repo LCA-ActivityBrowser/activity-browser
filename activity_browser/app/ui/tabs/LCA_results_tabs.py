@@ -300,16 +300,16 @@ class NewAnalysisTab(QWidget):
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
         """Construct a custom export button layout.
-
+        
         Produces layout with buttons for export of relevant sections (plot, table).
-        Options for figure are:
+        Options for figure are: 
             .png (image format useful for computer generated graphics)
-            .svg (scalable vector graphic, image is not pixels but data on where lines are,
+            .svg (scalable vector graphic, image is not pixels but data on where lines are, 
                 useful in reports)
         Options for Table are:
             copy (copies the table to clipboard)
             .csv (a comma separated values file of the table, useful for data storage)
-            Excel (an excel file, useful for exchanging with people and making visualizations)
+            Excel (an excel file, useful for exchanging with people and making visualizations) 
         """
         export_menu = QHBoxLayout()
 
@@ -698,7 +698,7 @@ class ContributionTab(NewAnalysisTab):
     @QtCore.Slot(name="comboboxTriggerUpdate")
     def set_combobox_changes(self):
         """Update fields based on user-made changes in combobox.
-
+        
         Any trigger linked to this slot will cause the values in the
         combobox objects to be read out (which comparison, drop-down indexes,
         etc.) and fed into update calls.
@@ -750,8 +750,8 @@ class ContributionTab(NewAnalysisTab):
         super().update_tab()
 
     def update_dataframe(self, *args, **kwargs):
-        """Update the underlying dataframe.
-
+        """Update the underlying dataframe. 
+        
         Implement in subclass."""
         raise NotImplementedError
 
@@ -1101,7 +1101,7 @@ class MonteCarloTab(NewAnalysisTab):
 
 class MonteCarloWorkerThread(QtCore.QThread):
     """A worker for Monte Carlo simulations.
-    
+
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
     So this is for future reference in case this issue is solved... """
     def set_mc(self, mc, iterations=10):
