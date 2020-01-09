@@ -115,7 +115,7 @@ class LCAResultsSubTab(QTabWidget):
         self.currentChanged.connect(self.generate_content_on_click)
 
     def do_calculations(self):
-        """Update the MLCA calculation."""
+        """Perform the MLCA calculation."""
         if self.ps_name is None:
             self.mlca = MLCA(self.cs_name)
             self.contributions = Contributions(self.mlca)
@@ -196,6 +196,7 @@ class NewAnalysisTab(QWidget):
         self.setLayout(self.layout)
 
     def build_main_space(self) -> QScrollArea:
+        """Assemble main space where plots, tables and relevant options are shown."""
         space = QScrollArea()
         widget = QWidget()
         layout = QVBoxLayout()
@@ -251,9 +252,11 @@ class NewAnalysisTab(QWidget):
 
     @property
     def using_presamples(self) -> bool:
+        """Check if presamples is used."""
         return self.parent.using_presamples if self.parent else False
 
     def get_scenario_labels(self) -> List[str]:
+        """Get scenario labels if presamples is used."""
         return self.parent.mlca.get_scenario_names() if self.using_presamples else []
 
     def configure_scenario(self):
@@ -292,11 +295,22 @@ class NewAnalysisTab(QWidget):
         self.table.sync(*args, **kwargs)
 
     def update_plot(self, *args, **kwargs):
-        """Updates the plot."""
+        """Update the plot."""
         self.plot.plot(*args, **kwargs)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
-        """Construct a custom export button layout."""
+        """Construct a custom export button layout.
+
+        Produces layout with buttons for export of relevant sections (plot, table).
+        Options for figure are:
+            .png (image format useful for computer generated graphics)
+            .svg (scalable vector graphic, image is not pixels but data on where lines are,
+                useful in reports)
+        Options for Table are:
+            copy (copies the table to clipboard)
+            .csv (a comma separated values file of the table, useful for data storage)
+            Excel (an excel file, useful for exchanging with people and making visualizations)
+        """
         export_menu = QHBoxLayout()
 
         # Export Plot
@@ -395,14 +409,17 @@ class InventoryTab(NewAnalysisTab):
             self.table.table_name = self.parent.cs_name + '_Inventory'
 
     def configure_scenario(self):
+        """Allow scenarios options to be visible when used."""
         super().configure_scenario()
         self.scenario_label.setVisible(self.using_presamples)
 
     def update_tab(self):
+        """Update the tab."""
         self.clear_tables()
         super().update_tab()
 
     def update_table(self, inventory='biosphere'):
+        """Update the table."""
         if inventory == 'biosphere':
             if self.df_biosphere is None:
                 self.df_biosphere = self.parent.contributions.inventory_df(
@@ -485,11 +502,13 @@ class LCAResultsTab(NewAnalysisTab):
         self.lca_scores_widget.setHidden(is_overview)
 
     def configure_scenario(self):
+        """Allow scenarios options to be visible when used."""
         super().configure_scenario()
         self.scenario_box.setHidden(self.button_by_method.isChecked())
         self.scenario_label.setHidden(self.button_by_method.isChecked())
 
     def update_tab(self):
+        """Update the tab."""
         self.lca_scores_widget.update_tab()
         self.lca_overview_widget.update_plot()
         self.lca_overview_widget.update_table()
@@ -523,11 +542,13 @@ class LCAScoresTab(NewAnalysisTab):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
     def update_tab(self):
+        """Update the tab."""
         self.update_combobox(self.combobox, [str(m) for m in self.parent.mlca.methods])
         super().update_tab()
 
     @QtCore.Slot(int, name="updatePlotWithIndex")
     def update_plot(self, method_index: int = 0):
+        """Update the plot."""
         method = self.parent.mlca.methods[method_index]
         df = self.parent.mlca.get_results_for_method(method_index)
         labels = [
@@ -557,12 +578,14 @@ class LCIAResultsTab(NewAnalysisTab):
         self.layout.addLayout(self.build_export(True, True))
 
     def update_plot(self):
+        """Update the plot."""
         if not isinstance(self.plot, LCAResultsPlot):
             self.plot = LCAResultsPlot(self.parent)
         self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
         self.plot.plot(self.df)
 
     def update_table(self):
+        """Update the table."""
         if not isinstance(self.table, LCAResultsTable):
             self.table = LCAResultsTable()
         self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
@@ -657,6 +680,7 @@ class ContributionTab(NewAnalysisTab):
 
     @QtCore.Slot(bool, name="hideScenarioCombo")
     def toggle_scenario(self, active: bool):
+        """Allow scenarios options to be visible when used."""
         if self.using_presamples:
             self.combobox_menu.scenario.setHidden(active)
             self.combobox_menu.scenario_label.setHidden(active)
@@ -673,9 +697,11 @@ class ContributionTab(NewAnalysisTab):
 
     @QtCore.Slot(name="comboboxTriggerUpdate")
     def set_combobox_changes(self):
-        """ Any trigger linked to this slot will cause the values in the
-         combobox objects to be read out (which comparison, drop-down indexes,
-         etc.) and fed into update calls.
+        """Update fields based on user-made changes in combobox.
+
+        Any trigger linked to this slot will cause the values in the
+        combobox objects to be read out (which comparison, drop-down indexes,
+        etc.) and fed into update calls.
         """
         if self.combobox_menu.agg.currentText() != 'none':
             compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
@@ -719,14 +745,18 @@ class ContributionTab(NewAnalysisTab):
             )
 
     def update_tab(self):
+        """Update the tab."""
         self.set_combobox_changes()
         super().update_tab()
 
     def update_dataframe(self, *args, **kwargs):
-        """Updates the underlying dataframe. Implement in subclass."""
+        """Update the underlying dataframe.
+
+        Implement in subclass."""
         raise NotImplementedError
 
     def update_plot(self):
+        """Update the plot."""
         self.plot.plot(self.df, unit=self.unit)
 
 
@@ -771,8 +801,7 @@ class ElementaryFlowContributionTab(ContributionTab):
         return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self, *args, **kwargs):
-        """Retrieve the top elementary flow contributions
-        """
+        """Retrieve the top elementary flow contributions."""
         return self.parent.contributions.top_elementary_flow_contributions(
             **kwargs, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative
@@ -821,8 +850,7 @@ class ProcessContributionsTab(ContributionTab):
         return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self, *args, **kwargs):
-        """Retrieve the top process contributions
-        """
+        """Retrieve the top process contributions"""
         return self.parent.contributions.top_process_contributions(
             **kwargs, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative
@@ -846,6 +874,7 @@ class CorrelationsTab(NewAnalysisTab):
         ))
 
     def update_plot(self):
+        """Update the plot."""
         if self.plot is None:
             self.plot = CorrelationPlot(self.parent)
         df = self.parent.mlca.get_normalized_scores_df()
@@ -960,9 +989,8 @@ class MonteCarloTab(NewAnalysisTab):
         self.layout.addLayout(self.layout_mc)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
-        """ Construct the export layout but set it into a widget because we
-         want to hide it.
-        """
+        """Construct the export layout but set it into a widget because we
+         want to hide it."""
         export_layout = super().build_export(has_table, has_plot)
         export_widget = QWidget()
         export_widget.setLayout(export_layout)
@@ -1073,6 +1101,7 @@ class MonteCarloTab(NewAnalysisTab):
 
 class MonteCarloWorkerThread(QtCore.QThread):
     """A worker for Monte Carlo simulations.
+    
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
     So this is for future reference in case this issue is solved... """
     def set_mc(self, mc, iterations=10):
