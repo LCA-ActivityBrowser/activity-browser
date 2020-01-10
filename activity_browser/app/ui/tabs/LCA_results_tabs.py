@@ -2,6 +2,7 @@
 from collections import namedtuple
 from typing import List, Optional, Union
 
+from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
@@ -111,8 +112,15 @@ class LCAResultsSubTab(QTabWidget):
             self.mlca = MLCA(self.cs_name)
             self.contributions = Contributions(self.mlca)
         else:
-            self.mlca = PresamplesMLCA(self.cs_name, self.ps_name)
-            self.contributions = PresamplesContributions(self.mlca)
+            try:
+                self.mlca = PresamplesMLCA(self.cs_name, self.ps_name)
+                self.contributions = PresamplesContributions(self.mlca)
+            except IndexError as e:
+                # Occurs when a presamples package is used that refers to old
+                # or non-existing array indices.
+                msg = "Given scenario package refers to non-existent exchanges."\
+                      " It is suggested to remove or edit this package."
+                raise BW2CalcError(msg) from e
         self.mlca.calculate()
         try:
             self.mc = CSMonteCarloLCA(self.cs_name)

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+from bw2calc.errors import BW2CalcError
 from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QVBoxLayout
+from PySide2.QtWidgets import QMessageBox, QVBoxLayout
 
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
@@ -42,9 +43,13 @@ class LCAResultsTab(ABTab):
         """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
         self.remove_setup(name)
 
-        new_tab = LCAResultsSubTab(name, presamples, self)
-        self.tabs[name] = new_tab
-        self.addTab(new_tab, name)
-
-        self.select_tab(self.tabs[name])
-        signals.show_tab.emit("LCA results")
+        try:
+            new_tab = LCAResultsSubTab(name, presamples, self)
+            self.tabs[name] = new_tab
+            self.addTab(new_tab, name)
+            self.select_tab(self.tabs[name])
+            signals.show_tab.emit("LCA results")
+        except BW2CalcError as e:
+            QMessageBox.warning(
+                self, "Could not run calculation", str(e), QMessageBox.Ok, QMessageBox.Ok
+            )
