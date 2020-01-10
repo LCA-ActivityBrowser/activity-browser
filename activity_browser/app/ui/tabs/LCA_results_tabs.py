@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
+"""Classes related to the LCA results sub-tabs in the main LCA results tab.
+
+Each of these classes is either a parent for - or a sub-LCA results tab.
+"""
+
 from collections import namedtuple
 from typing import List, Optional, Union
 
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
-    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
-    QButtonGroup, QToolTip
+    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView, QButtonGroup
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
@@ -16,8 +20,7 @@ from ...bwutils import (
 )
 from ...signals import signals
 from ..figures import (
-    LCAResultsPlot, ContributionPlot, CorrelationPlot, LCAResultsBarChart,
-    MonteCarloPlot
+    LCAResultsPlot, ContributionPlot, CorrelationPlot, LCAResultsBarChart, MonteCarloPlot
 )
 from ..style import horizontal_line, vertical_line, header
 from ..tables import ContributionTable, InventoryTable, LCAResultsTable
@@ -33,7 +36,9 @@ def get_header_layout(header_text: str) -> QVBoxLayout:
 
 
 def get_unit(method: tuple, relative: bool = False) -> str:
-    """ Determine the unit based on whether a plot is shown:
+    """Get the unit for plot axis naming.
+
+    Determine the unit based on whether a plot is shown:
     - for a number of functional units
     - for a number of impact categories
     and whether the axis are related to:
@@ -64,6 +69,13 @@ Combobox = namedtuple(
 
 
 class LCAResultsSubTab(QTabWidget):
+    """Class for the main 'LCA Results' tab.
+
+    Shows:
+        One sub-tab for each calculation setup
+        For each calculation setup-tab one array of relevant tabs.
+    """
+
     update_scenario_box_index = QtCore.Signal(int)
 
     def __init__(self, name: str, ps_name: str = None, parent=None):
@@ -80,9 +92,6 @@ class LCAResultsSubTab(QTabWidget):
         self.setMovable(True)
         self.setVisible(False)
         self.visible = False
-
-        # self.setTabShape(2)  # Triangular-shaped Tabs
-        # self.setTabPosition(1)  # South-facing Tabs
 
         self.do_calculations()
         self.tabs = Tabs(
@@ -106,7 +115,7 @@ class LCAResultsSubTab(QTabWidget):
         self.currentChanged.connect(self.generate_content_on_click)
 
     def do_calculations(self):
-        """ Update the mlca calculation. """
+        """Perform the MLCA calculation."""
         if self.ps_name is None:
             self.mlca = MLCA(self.cs_name)
             self.contributions = Contributions(self.mlca)
@@ -130,13 +139,11 @@ class LCAResultsSubTab(QTabWidget):
 
     @property
     def using_presamples(self) -> bool:
-        """ Used to determine if a Scenario Analysis is performed
-        """
+        """Used to determine if a Scenario Analysis is performed."""
         return all([self.ps_name, isinstance(self.mlca, PresamplesMLCA)])
 
     def setup_tabs(self):
-        """ Have all of the tabs pull in their required data and add them.
-        """
+        """Have all of the tabs pull in their required data and add them."""
         self._update_tabs()
         for name, tab in zip(self.tab_names, self.tabs):
             if tab:
@@ -145,6 +152,7 @@ class LCAResultsSubTab(QTabWidget):
                     tab.configure_scenario()
 
     def _update_tabs(self):
+        """Update each sub-tab that can be updated."""
         for tab in self.tabs:
             if tab and hasattr(tab, "update_tab"):
                 tab.update_tab()
@@ -152,8 +160,7 @@ class LCAResultsSubTab(QTabWidget):
 
     @QtCore.Slot(int, name="updateUnderlyingMatrices")
     def update_scenario_data(self, index: int) -> None:
-        """ Will calculate which presamples array to use and update all child tabs.
-        """
+        """Will calculate which presamples array to use and update all child tabs."""
         if index == self.mlca.current:
             return
         self.mlca.set_scenario(index)
@@ -169,6 +176,8 @@ class LCAResultsSubTab(QTabWidget):
 
 
 class NewAnalysisTab(QWidget):
+    """Parent class around which all sub-tabs are built."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -187,6 +196,7 @@ class NewAnalysisTab(QWidget):
         self.setLayout(self.layout)
 
     def build_main_space(self) -> QScrollArea:
+        """Assemble main space where plots, tables and relevant options are shown."""
         space = QScrollArea()
         widget = QWidget()
         layout = QVBoxLayout()
@@ -227,7 +237,7 @@ class NewAnalysisTab(QWidget):
 
     @QtCore.Slot(name="checkboxChanges")
     def space_check(self):
-        """ Show graph and/or table, whichever is selected.
+        """Show graph and/or table, whichever is selected.
 
         Can also hide both, if you want to do that.
         """
@@ -236,19 +246,22 @@ class NewAnalysisTab(QWidget):
 
     @QtCore.Slot(bool, name="isRelativeToggled")
     def relativity_check(self, checked: bool):
+        """Check if the relative or absolute option is selected."""
         self.relative = checked
         self.update_tab()
 
     @property
     def using_presamples(self) -> bool:
+        """Check if presamples is used."""
         return self.parent.using_presamples if self.parent else False
 
     def get_scenario_labels(self) -> List[str]:
+        """Get scenario labels if presamples is used."""
         return self.parent.mlca.get_scenario_names() if self.using_presamples else []
 
     def configure_scenario(self):
-        """ Determine if scenario Qt widgets are visible or not and retrieve
-         scenario labels for the selection drop-down box.
+        """Determine if scenario Qt widgets are visible or not and retrieve
+        scenario labels for the selection drop-down box.
         """
         if self.scenario_box:
             self.scenario_box.setVisible(self.using_presamples)
@@ -257,36 +270,47 @@ class NewAnalysisTab(QWidget):
     @staticmethod
     @QtCore.Slot(int, name="setBoxIndex")
     def set_combobox_index(box: QComboBox, index: int) -> None:
-        """ Update the index on the given QComboBox without sending a signal.
-        """
+        """Update the index on the given QComboBox without sending a signal."""
         box.blockSignals(True)
         box.setCurrentIndex(index)
         box.blockSignals(False)
 
     @staticmethod
     def update_combobox(box: QComboBox, labels: List[str]) -> None:
-        """ Update the combobox menu. """
+        """Update the combobox menu."""
         box.blockSignals(True)
         box.clear()
         box.insertItems(0, labels)
         box.blockSignals(False)
 
     def update_tab(self):
+        """Update the plot and table if they are present."""
         if self.plot:
             self.update_plot()
         if self.table:
             self.update_table()
 
     def update_table(self, *args, **kwargs):
-        """ Update the table. """
+        """Update the table."""
         self.table.sync(*args, **kwargs)
 
     def update_plot(self, *args, **kwargs):
-        """Updates the plot. """
+        """Update the plot."""
         self.plot.plot(*args, **kwargs)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
-        """ Construct a custom export button layout. """
+        """Construct a custom export button layout.
+        
+        Produces layout with buttons for export of relevant sections (plot, table).
+        Options for figure are: 
+            .png (image format useful for computer generated graphics)
+            .svg (scalable vector graphic, image is not pixels but data on where lines are, 
+                useful in reports)
+        Options for Table are:
+            copy (copies the table to clipboard)
+            .csv (a comma separated values file of the table, useful for data storage)
+            Excel (an excel file, useful for exchanging with people and making visualizations) 
+        """
         export_menu = QHBoxLayout()
 
         # Export Plot
@@ -328,6 +352,16 @@ class NewAnalysisTab(QWidget):
 
 
 class InventoryTab(NewAnalysisTab):
+    """Class for the 'Inventory' sub-tab.
+
+    This tab allows for investigation of the inventories of the calculation.
+
+    Shows:
+        Option to choose between 'Biosphere flows' and 'Technosphere flows'
+        Inventory table for either 'Biosphere flows' or 'Technosphere flows'
+        Export options
+    """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.df_biosphere = None
@@ -375,30 +409,44 @@ class InventoryTab(NewAnalysisTab):
             self.table.table_name = self.parent.cs_name + '_Inventory'
 
     def configure_scenario(self):
+        """Allow scenarios options to be visible when used."""
         super().configure_scenario()
         self.scenario_label.setVisible(self.using_presamples)
 
     def update_tab(self):
+        """Update the tab."""
         self.clear_tables()
         super().update_tab()
 
     def update_table(self, inventory='biosphere'):
+        """Update the table."""
         if inventory == 'biosphere':
             if self.df_biosphere is None:
-                self.df_biosphere = self.parent.contributions.inventory_df(inventory_type='biosphere')
+                self.df_biosphere = self.parent.contributions.inventory_df(
+                    inventory_type='biosphere')
             self.table.sync(self.df_biosphere)
         else:
             if self.df_technosphere is None:
-                self.df_technosphere = self.parent.contributions.inventory_df(inventory_type='technosphere')
+                self.df_technosphere = self.parent.contributions.inventory_df(
+                    inventory_type='technosphere')
             self.table.sync(self.df_technosphere)
 
     def clear_tables(self) -> None:
-        """ Set the biosphere and technosphere to None.
-        """
+        """Set the biosphere and technosphere to None."""
         self.df_biosphere, self.df_technosphere = None, None
 
 
 class LCAResultsTab(NewAnalysisTab):
+    """Class for the 'LCA Results' sub-tab.
+
+    This tab allows the user to get a basic overview of the results of the calculation setup.
+
+    Shows:
+        'Overview' and 'by LCIA method' options for different plots/graphs
+        Plots/graphs
+        Export buttons
+    """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -412,10 +460,12 @@ class LCAResultsTab(NewAnalysisTab):
         button_layout = QHBoxLayout()
         self.button_group = QButtonGroup()
         self.button_overview = QRadioButton("Overview")
-        self.button_overview.setToolTip("Show a matrix of all functional units and all impact categories")
+        self.button_overview.setToolTip(
+            "Show a matrix of all functional units and all impact categories")
         button_layout.addWidget(self.button_overview)
         self.button_by_method = QRadioButton("by LCIA method")
-        self.button_by_method.setToolTip("Show the impacts of each functional unit for the selected impact categories")
+        self.button_by_method.setToolTip(
+            "Show the impacts of each functional unit for the selected impact categories")
         self.button_by_method.setChecked(True)
         self.scenario_label = QLabel("Scenario:")
         self.button_group.addButton(self.button_overview, 0)
@@ -452,17 +502,21 @@ class LCAResultsTab(NewAnalysisTab):
         self.lca_scores_widget.setHidden(is_overview)
 
     def configure_scenario(self):
+        """Allow scenarios options to be visible when used."""
         super().configure_scenario()
         self.scenario_box.setHidden(self.button_by_method.isChecked())
         self.scenario_label.setHidden(self.button_by_method.isChecked())
 
     def update_tab(self):
+        """Update the tab."""
         self.lca_scores_widget.update_tab()
         self.lca_overview_widget.update_plot()
         self.lca_overview_widget.update_table()
 
 
 class LCAScoresTab(NewAnalysisTab):
+    """Class for when 'by LCIA method' is chosen in the 'LCA Results' sub-tab."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -488,11 +542,13 @@ class LCAScoresTab(NewAnalysisTab):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
     def update_tab(self):
+        """Update the tab."""
         self.update_combobox(self.combobox, [str(m) for m in self.parent.mlca.methods])
         super().update_tab()
 
     @QtCore.Slot(int, name="updatePlotWithIndex")
     def update_plot(self, method_index: int = 0):
+        """Update the plot."""
         method = self.parent.mlca.methods[method_index]
         df = self.parent.mlca.get_results_for_method(method_index)
         labels = [
@@ -504,6 +560,8 @@ class LCAScoresTab(NewAnalysisTab):
 
 
 class LCIAResultsTab(NewAnalysisTab):
+    """Class for when 'Overview' is chosen in the 'LCA Results' sub-tab."""
+
     def __init__(self, parent, **kwargs):
         super(LCIAResultsTab, self).__init__(parent, **kwargs)
         self.parent = parent
@@ -520,12 +578,14 @@ class LCIAResultsTab(NewAnalysisTab):
         self.layout.addLayout(self.build_export(True, True))
 
     def update_plot(self):
+        """Update the plot."""
         if not isinstance(self.plot, LCAResultsPlot):
             self.plot = LCAResultsPlot(self.parent)
         self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
         self.plot.plot(self.df)
 
     def update_table(self):
+        """Update the table."""
         if not isinstance(self.table, LCAResultsTable):
             self.table = LCAResultsTable()
         self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
@@ -533,6 +593,8 @@ class LCIAResultsTab(NewAnalysisTab):
 
 
 class ContributionTab(NewAnalysisTab):
+    """Parent class for any 'XXX Contributions' sub-tab."""
+
     def __init__(self, parent, **kwargs):
         super().__init__(parent)
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
@@ -555,8 +617,10 @@ class ContributionTab(NewAnalysisTab):
         )
         self.relativity.relative.setChecked(True)
         self.relative = True
-        self.relativity.relative.setToolTip("Show relative values (compare fraction of each contribution)")
-        self.relativity.absolute.setToolTip("Show absolute values (compare magnitudes of each contribution)")
+        self.relativity.relative.setToolTip(
+            "Show relative values (compare fraction of each contribution)")
+        self.relativity.absolute.setToolTip(
+            "Show absolute values (compare magnitudes of each contribution)")
 
         self.df = None
         self.plot = ContributionPlot()
@@ -566,9 +630,7 @@ class ContributionTab(NewAnalysisTab):
         self.unit = None
 
     def set_filename(self, optional_fields: dict = None):
-        """ Given a dictionary of fields, put together a usable filename
-         for the plot and table.
-        """
+        """Given a dictionary of fields, put together a usable filename for the plot and table."""
         optional = optional_fields or {}
         fields = (
             self.parent.cs_name, self.contribution_fn, optional.get("method"),
@@ -577,11 +639,8 @@ class ContributionTab(NewAnalysisTab):
         filename = '_'.join((str(x) for x in fields if x is not None))
         self.plot.plot_name, self.table.table_name = filename, filename
 
-    def build_combobox(self, has_method: bool = True,
-                       has_func: bool = False) -> QHBoxLayout:
-        """ Construct and return a horizontal layout for picking and
-         choosing what data to show and how.
-        """
+    def build_combobox(self, has_method: bool = True, has_func: bool = False) -> QHBoxLayout:
+        """Construct a horizontal layout for picking and choosing what data to show and how."""
         menu = QHBoxLayout()
         # Populate the drop-down boxes with their relevant values.
         self.combobox_menu.func.addItems(
@@ -607,9 +666,7 @@ class ContributionTab(NewAnalysisTab):
         return menu
 
     def configure_scenario(self):
-        """ Supplement the superclass method because there are more things to
-         hide in these tabs.
-        """
+        """Supplement the superclass method because there are more things to hide in these tabs."""
         super().configure_scenario()
         visible = self.using_presamples
         self.combobox_menu.scenario_label.setVisible(visible)
@@ -623,6 +680,7 @@ class ContributionTab(NewAnalysisTab):
 
     @QtCore.Slot(bool, name="hideScenarioCombo")
     def toggle_scenario(self, active: bool):
+        """Allow scenarios options to be visible when used."""
         if self.using_presamples:
             self.combobox_menu.scenario.setHidden(active)
             self.combobox_menu.scenario_label.setHidden(active)
@@ -639,9 +697,11 @@ class ContributionTab(NewAnalysisTab):
 
     @QtCore.Slot(name="comboboxTriggerUpdate")
     def set_combobox_changes(self):
-        """ Any trigger linked to this slot will cause the values in the
-         combobox objects to be read out (which comparison, drop-down indexes,
-         etc.) and fed into update calls.
+        """Update fields based on user-made changes in combobox.
+        
+        Any trigger linked to this slot will cause the values in the
+        combobox objects to be read out (which comparison, drop-down indexes,
+        etc.) and fed into update calls.
         """
         if self.combobox_menu.agg.currentText() != 'none':
             compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
@@ -670,8 +730,7 @@ class ContributionTab(NewAnalysisTab):
         self.df = self.update_dataframe(**compare_fields)
 
     def connect_signals(self):
-        """Override the inherited method to perform the same thing plus aggregation
-        """
+        """Override the inherited method to perform the same thing plus aggregation."""
         self.cutoff_menu.slider_change.connect(self.update_tab)
         self.switches.currentIndexChanged.connect(self.toggle_comparisons)
         self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
@@ -686,19 +745,39 @@ class ContributionTab(NewAnalysisTab):
             )
 
     def update_tab(self):
+        """Update the tab."""
         self.set_combobox_changes()
         super().update_tab()
 
     def update_dataframe(self, *args, **kwargs):
-        """Updates the underlying dataframe. Implement in subclass.
-        """
+        """Update the underlying dataframe. 
+        
+        Implement in subclass."""
         raise NotImplementedError
 
     def update_plot(self):
+        """Update the plot."""
         self.plot.plot(self.df, unit=self.unit)
 
 
 class ElementaryFlowContributionTab(ContributionTab):
+    """Class for the 'Elementary flow Contributions' sub-tab.
+
+    This tab allows for analysis of elementary flows.
+
+    Example questions that can be answered by this tab:
+        What is the CO2 production caused by functional unit XXX?
+        Which impact is largest on the impact category YYY?
+        What are the 5 largest elementary flows caused by functional unit ZZZ?
+
+    Shows:
+        Cutoff menu for determining cutoff values
+        Compare options button to change between 'Functional Units' and 'Impact Categories'
+        'Impact Category'/'Functional Unit' chooser with aggregation method
+        Plot/Table on/off and Relative/Absolute options for data
+        Plot/Table
+        Export options
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -722,8 +801,7 @@ class ElementaryFlowContributionTab(ContributionTab):
         return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self, *args, **kwargs):
-        """Retrieve the top elementary flow contributions
-        """
+        """Retrieve the top elementary flow contributions."""
         return self.parent.contributions.top_elementary_flow_contributions(
             **kwargs, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative
@@ -731,6 +809,24 @@ class ElementaryFlowContributionTab(ContributionTab):
 
 
 class ProcessContributionsTab(ContributionTab):
+    """Class for the 'Process Contributions' sub-tab.
+
+    This tab allows for analysis of process contributions.
+
+    Example questions that can be answered by this tab:
+        What is the contribution of electricity production to functional unit XXX?
+        Which process contributes the most to impact category YYY?
+        What are the top 5 contributing processes to functional unit ZZZ?
+
+    Shows:
+        Cutoff menu for determining cutoff values
+        Compare options button to change between 'Functional Units' and 'Impact Categories'
+        'Impact Category'/'Functional Unit' chooser with aggregation method
+        Plot/Table on/off and Relative/Absolute options for data
+        Plot/Table
+        Export options
+    """
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -754,8 +850,7 @@ class ProcessContributionsTab(ContributionTab):
         return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self, *args, **kwargs):
-        """Retrieve the top process contributions
-        """
+        """Retrieve the top process contributions"""
         return self.parent.contributions.top_process_contributions(
             **kwargs, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative
@@ -779,6 +874,7 @@ class CorrelationsTab(NewAnalysisTab):
         ))
 
     def update_plot(self):
+        """Update the plot."""
         if self.plot is None:
             self.plot = CorrelationPlot(self.parent)
         df = self.parent.mlca.get_normalized_scores_df()
@@ -817,7 +913,8 @@ class MonteCarloTab(NewAnalysisTab):
         # signals.monte_carlo_ready.connect(self.update_mc)
         # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
         self.combobox_methods.currentIndexChanged.connect(
-            lambda x: self.update_mc(cs_name=self.parent.cs_name)  # ignore the index and send the cs_name instead
+            # ignore the index and send the cs_name instead
+            lambda x: self.update_mc(cs_name=self.parent.cs_name)
         )
 
         # signals
@@ -892,9 +989,8 @@ class MonteCarloTab(NewAnalysisTab):
         self.layout.addLayout(self.layout_mc)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
-        """ Construct the export layout but set it into a widget because we
-         want to hide it.
-        """
+        """Construct the export layout but set it into a widget because we
+         want to hide it."""
         export_layout = super().build_export(has_table, has_plot)
         export_widget = QWidget()
         export_widget.setLayout(export_layout)
@@ -1005,6 +1101,7 @@ class MonteCarloTab(NewAnalysisTab):
 
 class MonteCarloWorkerThread(QtCore.QThread):
     """A worker for Monte Carlo simulations.
+
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
     So this is for future reference in case this issue is solved... """
     def set_mc(self, mc, iterations=10):
