@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import math
-
 from PySide2 import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
 
@@ -48,7 +46,12 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         take the value and set the index in that way.
         """
         value = index.data(QtCore.Qt.DisplayRole)
-        value = value if not math.isnan(value) else 0
+        if isinstance(value, (str, float)):
+            try:
+                value = int(value)
+            except ValueError as e:
+                print("{}, using 0 instead".format(str(e)))
+                value = 0
         editor.setCurrentIndex(uc.choices.index(uc[value]))
 
     def setModelData(self, editor: QtWidgets.QComboBox, model: QtCore.QAbstractItemModel,
