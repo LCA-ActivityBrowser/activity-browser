@@ -128,7 +128,11 @@ class BaseParameterTable(ABDataFrameEdit):
         with bw.parameters.db.atomic() as transaction:
             try:
                 field = self.model.headerData(proxy.column(), Qt.Horizontal)
-                setattr(param, field, proxy.data())
+                if field not in self.COLUMNS:
+                    # Must store value inside 'data' field.
+                    param.data[field] = proxy.data()
+                else:
+                    setattr(param, field, proxy.data())
                 param.save()
                 # Saving the parameter expires the related group, so recalculate.
                 bw.parameters.recalculate()
