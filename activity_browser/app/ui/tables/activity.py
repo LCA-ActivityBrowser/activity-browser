@@ -56,12 +56,16 @@ class BaseExchangeTable(ABDataFrameEdit):
             self.exchanges = exchanges
         self.dataframe = self.build_df()
 
+    @property
+    def df_columns(self) -> list:
+        return self.COLUMNS + ["exchange"]
+
     def build_df(self) -> pd.DataFrame:
         """ Use the Exchanges Iterable to construct a dataframe.
 
         Make sure to store the Exchange object itself in the dataframe as well.
         """
-        columns = self.COLUMNS + ["exchange"]
+        columns = self.df_columns
         df = pd.DataFrame([
             self.create_row(exchange=exc)[0] for exc in self.exchanges
         ], columns=columns)
@@ -101,7 +105,7 @@ class BaseExchangeTable(ABDataFrameEdit):
     def delete_exchanges(self) -> None:
         """ Remove all of the selected exchanges from the activity.
         """
-        indexes = [self.get_source_index(p) for p in self.selectedIndexes()]
+        indexes = (self.get_source_index(p) for p in self.selectedIndexes())
         exchanges = [
             self.model.index(index.row(), self.exchange_column).data()
             for index in indexes
@@ -115,7 +119,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         attempt to overwrite the `amount` with that value after removing the
         `formula` field.
         """
-        indexes = [self.get_source_index(p) for p in self.selectedIndexes()]
+        indexes = (self.get_source_index(p) for p in self.selectedIndexes())
         exchanges = [
             self.model.index(index.row(), self.exchange_column).data()
             for index in indexes
@@ -254,7 +258,7 @@ class ProductExchangeTable(BaseExchangeTable):
     def _resize(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
-        self.setColumnHidden(4, True)
+        self.setColumnHidden(self.exchange_column, True)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -306,7 +310,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
     def _resize(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
-        self.setColumnHidden(8, True)
+        self.setColumnHidden(self.exchange_column, True)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -355,7 +359,7 @@ class BiosphereExchangeTable(BaseExchangeTable):
         return row, adj_act
 
     def _resize(self) -> None:
-        self.setColumnHidden(7, True)
+        self.setColumnHidden(self.exchange_column, True)
 
     def dragEnterEvent(self, event):
         """ Only accept exchanges from a technosphere database table
@@ -399,7 +403,7 @@ class DownstreamExchangeTable(BaseExchangeTable):
     def _resize(self) -> None:
         """ Next to `exchange`, also hide the `formula` column.
         """
-        self.setColumnHidden(6, True)
+        self.setColumnHidden(self.exchange_column, True)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
