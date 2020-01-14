@@ -4,12 +4,13 @@ import itertools
 from asteval import Interpreter
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
+from bw2data.proxies import ExchangeProxyBase
 import pandas as pd
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from .delegates import (FloatDelegate, FormulaDelegate, StringDelegate,
-                        ViewOnlyDelegate)
+                        UncertaintyDelegate, ViewOnlyDelegate)
 from .views import ABDataFrameEdit, dataframe_sync
 from ..icons import qicons
 from ...signals import signals
@@ -281,6 +282,9 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         "Amount", "Unit", "Product", "Activity", "Location", "Database",
         "Uncertainty", "Formula"
     ]
+    UNCERTAINTY = [
+        "loc", "scale", "shape", "minimum", "maximum"
+    ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -290,13 +294,25 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(6, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(7, FormulaDelegate(self))
+        self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(7, FloatDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.setItemDelegateForColumn(11, FloatDelegate(self))
+        self.setItemDelegateForColumn(12, FormulaDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
         self.drag_model = True
 
-    def create_row(self, exchange) -> (dict, object):
+    @property
+    def df_columns(self) -> list:
+        columns = super().df_columns
+        start = columns[:columns.index("Formula")]
+        end = columns[columns.index("Formula"):]
+        return start + self.UNCERTAINTY + end
+
+    def create_row(self, exchange: ExchangeProxyBase) -> (dict, object):
         row, adj_act = super().create_row(exchange)
         row.update({
             "Product": adj_act.get("reference product") or adj_act.get("name"),
@@ -306,12 +322,23 @@ class TechnosphereExchangeTable(BaseExchangeTable):
             "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
+        row.update({
+            k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
+        })
         return row, adj_act
 
     def _resize(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
         self.setColumnHidden(self.exchange_column, True)
+        self.show_uncertainty()
+
+    def show_uncertainty(self, show: bool = False) -> None:
+        """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
+        """
+        cols = self.df_columns
+        for c in self.UNCERTAINTY:
+            self.setColumnHidden(cols.index(c), not show)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -335,6 +362,9 @@ class BiosphereExchangeTable(BaseExchangeTable):
         "Amount", "Unit", "Flow Name", "Compartments", "Database",
         "Uncertainty", "Formula"
     ]
+    UNCERTAINTY = [
+        "loc", "scale", "shape", "minimum", "maximum"
+    ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -343,10 +373,22 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(6, FormulaDelegate(self))
+        self.setItemDelegateForColumn(5, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(6, FloatDelegate(self))
+        self.setItemDelegateForColumn(7, FloatDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.setItemDelegateForColumn(11, FormulaDelegate(self))
         self.table_name = "biosphere"
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+
+    @property
+    def df_columns(self) -> list:
+        columns = super().df_columns
+        start = columns[:columns.index("Formula")]
+        end = columns[columns.index("Formula"):]
+        return start + self.UNCERTAINTY + end
 
     def create_row(self, exchange) -> (dict, object):
         row, adj_act = super().create_row(exchange)
@@ -357,10 +399,21 @@ class BiosphereExchangeTable(BaseExchangeTable):
             "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
+        row.update({
+            k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
+        })
         return row, adj_act
 
     def _resize(self) -> None:
         self.setColumnHidden(self.exchange_column, True)
+        self.show_uncertainty()
+
+    def show_uncertainty(self, show: bool = False) -> None:
+        """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
+        """
+        cols = self.df_columns
+        for c in self.UNCERTAINTY:
+            self.setColumnHidden(cols.index(c), not show)
 
     def dragEnterEvent(self, event):
         """ Only accept exchanges from a technosphere database table
