@@ -100,10 +100,16 @@ class ActivityTab(QtWidgets.QWidget):
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
+        # Reveal/hide uncertainty columns
+        self.show_uncertainty = QtWidgets.QCheckBox("Show Uncertainty", self)
+        self.show_uncertainty.setChecked(False)
+        self.show_uncertainty.toggled.connect(self.show_exchange_uncertainty)
+
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
         toolbar.addWidget(self.checkbox_edit_act)
         toolbar.addWidget(self.checkbox_activity_description)
+        toolbar.addWidget(self.show_uncertainty)
         self.graph_action = toolbar.addAction(
             qicons.graph_explorer, "Show graph", self.open_graph
         )
@@ -169,6 +175,7 @@ class ActivityTab(QtWidgets.QWidget):
             table.updated.emit()
 
         self.populate_description_box()
+        self.show_exchange_uncertainty(self.show_uncertainty.isChecked())
 
     def populate_description_box(self):
         # activity description
@@ -187,6 +194,11 @@ class ActivityTab(QtWidgets.QWidget):
     def toggle_activity_description_visibility(self):
         """Show only if checkbox is checked."""
         self.activity_description.setVisible(self.checkbox_activity_description.isChecked())
+
+    @QtCore.Slot(bool, name="toggleUncertaintyColumns")
+    def show_exchange_uncertainty(self, toggled: bool) -> None:
+        self.technosphere.show_uncertainty(toggled)
+        self.biosphere.show_uncertainty(toggled)
 
     def act_read_only_changed(self, read_only):
         """ When read_only=False specific data fields in the tables below become user-editable
