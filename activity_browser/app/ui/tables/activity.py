@@ -2,7 +2,6 @@
 import itertools
 
 from asteval import Interpreter
-import brightway2 as bw
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 import pandas as pd
@@ -21,6 +20,11 @@ class BaseExchangeTable(ABDataFrameEdit):
     COLUMNS = []
     # Signal used to correctly control `DetailsGroupBox`
     updated = Signal()
+    # Fields accepted by brightway to be stored in exchange objects.
+    VALID_FIELDS = {
+        "amount", "formula", "uncertainty type", "loc", "scale", "shape",
+        "minimum", "maximum"
+    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -154,11 +158,8 @@ class BaseExchangeTable(ABDataFrameEdit):
                 self.model.headerData(index.column(), QtCore.Qt.Horizontal)
             )
             exchange = self.model.index(index.row(), self.exchange_column).data()
-            if field in {"amount", "formula"}:
-                if field == "amount":
-                    value = float(topLeft.data())
-                else:
-                    value = str(topLeft.data()) if topLeft.data() is not None else ""
+            if field in self.VALID_FIELDS:
+                value = topLeft.data() if topLeft.data() is not None else ""
                 signals.exchange_modified.emit(exchange, field, value)
             else:
                 value = str(topLeft.data())
