@@ -155,9 +155,8 @@ class BaseExchangeTable(ABDataFrameEdit):
         # A single cell was edited.
         if topLeft == bottomRight and topLeft.isValid():
             index = self.get_source_index(topLeft)
-            field = AB_names_to_bw_keys.get(
-                self.model.headerData(index.column(), QtCore.Qt.Horizontal)
-            )
+            header = self.model.headerData(index.column(), QtCore.Qt.Horizontal)
+            field = AB_names_to_bw_keys.get(header, header)
             exchange = self.model.index(index.row(), self.exchange_column).data()
             if field in self.VALID_FIELDS:
                 value = topLeft.data() if topLeft.data() is not None else ""
