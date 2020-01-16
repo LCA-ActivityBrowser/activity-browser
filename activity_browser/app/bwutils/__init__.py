@@ -7,6 +7,7 @@ import brightway2 as bw
 from .metadata import AB_metadata
 from .montecarlo import CSMonteCarloLCA
 from .multilca import MLCA, Contributions
+from .pedigree import PedigreeMatrix
 from .presamples import PresamplesContributions, PresamplesMLCA
 
 
