@@ -87,7 +87,19 @@ class TableItemStyle:
             })
 
 
+class GroupBoxStyle:
+    __slots__ = []
+    border_title = """
+    QGroupBox {
+        border: 1px solid gray; border-radius: 5px; margin-top: 7px; margin-bottom: 7px; padding: 0px
+    }
+    QGroupBox::title {top:-7 ex;left: 10px; subcontrol-origin: border}
+    """
+
+
 style_activity_panel = ActivitiesPanel
 style_activity_tab = ActivitiesTab
 style_table = TableStyle()
 style_item = TableItemStyle()
+style_group_box = GroupBoxStyle
+
