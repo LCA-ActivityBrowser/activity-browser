@@ -13,6 +13,7 @@ from .delegates import (FloatDelegate, FormulaDelegate, StringDelegate,
                         UncertaintyDelegate, ViewOnlyDelegate)
 from .views import ABDataFrameEdit, dataframe_sync
 from ..icons import qicons
+from ..wizards import UncertaintyWizard
 from ...signals import signals
 from ...bwutils.commontasks import AB_names_to_bw_keys
 
@@ -42,6 +43,9 @@ class BaseExchangeTable(ABDataFrameEdit):
         self.remove_formula_action = QtWidgets.QAction(
             qicons.delete, "Clear formula(s)", None
         )
+        self.modify_uncertainty_action = QtWidgets.QAction(
+            qicons.edit, "Modify uncertainty", None
+        )
 
         self.downstream = False
         self.key = None if not hasattr(parent, "key") else parent.key
@@ -52,6 +56,7 @@ class BaseExchangeTable(ABDataFrameEdit):
     def _connect_signals(self):
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
         self.remove_formula_action.triggered.connect(self.remove_formula)
+        self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
 
     @dataframe_sync
     def sync(self, exchanges=None):
@@ -136,6 +141,14 @@ class BaseExchangeTable(ABDataFrameEdit):
         param = ActivityParameter.get_or_none(database=self.key[0], code=self.key[1])
         if param:
             signals.exchange_formula_changed.emit(self.key)
+
+    @Slot(name="modifyExchangeUncertainty")
+    def modify_uncertainty(self) -> None:
+        """Need to know both keys to select the correct exchange to update"""
+        index = self.get_source_index(next(p for p in self.selectedIndexes()))
+        exchange = self.model.index(index.row(), self.exchange_column).data()
+        wizard = UncertaintyWizard(exchange, self)
+        wizard.show()
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -344,6 +357,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         menu.addAction(qicons.right, "Open activities", self.open_activities)
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
+        menu.addAction(self.modify_uncertainty_action)
         menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
@@ -413,6 +427,13 @@ class BiosphereExchangeTable(BaseExchangeTable):
         cols = self.df_columns
         for c in self.UNCERTAINTY:
             self.setColumnHidden(cols.index(c), not show)
+
+    def contextMenuEvent(self, a0) -> None:
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.delete_exchange_action)
+        menu.addAction(self.remove_formula_action)
+        menu.addAction(self.modify_uncertainty_action)
+        menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Only accept exchanges from a technosphere database table
