@@ -376,8 +376,9 @@ class UncertaintyValuesPage(QtWidgets.QWizardPage):
     @QtCore.Slot(name="regenPlot")
     def generate_plot(self) -> None:
         """ Called whenever a value changes, regenerate the plot based on """
-        data = DistributionGenerator.generate_distribution(
-            self.extract_values(), self.field("distribution")
-        )
+        # data = DistributionGenerator.generate_distribution(
+        #     self.extract_values(), self.field("distribution")
+        # )
+        data = None
         if data is not None and not any(np.isnan(data)):
             self.plot.plot(data)
