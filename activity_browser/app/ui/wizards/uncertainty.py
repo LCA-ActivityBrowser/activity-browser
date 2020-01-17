@@ -9,7 +9,7 @@ from stats_arrays import uncertainty_choices as uc
 
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
-from ...bwutils import DistributionGenerator, PedigreeMatrix, UncertainValues
+from ...bwutils import PedigreeMatrix
 from ...signals import signals
 
 
@@ -361,17 +361,6 @@ class UncertaintyValuesPage(QtWidgets.QWizardPage):
             self.hide_param("min", "max")
             self.hide_param("loc", "scale", "shape", hide=False)
 
-    def extract_values(self) -> UncertainValues:
-        """Return a namedtuple containing values for all of the registered
-        fields on this page.
-        """
-        return UncertainValues(
-            loc=float(self.field("loc")) if self.field("loc") else np.nan,
-            scale=float(self.field("scale")) if self.field("scale") else np.nan,
-            shape=float(self.field("shape")) if self.field("shape") else np.nan,
-            min=float(self.field("minimum")) if self.field("minimum") else np.nan,
-            max=float(self.field("maximum")) if self.field("maximum") else np.nan
-        )
 
     @QtCore.Slot(name="regenPlot")
     def generate_plot(self) -> None:

@@ -12,13 +12,8 @@ In turn, this CV can then be used to generate required values for a number of ot
 Any additions made should improve the transition of the calculated sigma (or Geometric Standard Deviation/GSD)
 smoothly into the related uncertainty distributions.
 """
-from collections import namedtuple
 import math
 from pprint import pformat
-
-import numpy as np
-from stats_arrays import uncertainty_choices as uc
-
 
 VERSION_2 = {
     "reliability": (1., 1.54, 1.61, 1.69, 1.69),
@@ -70,41 +65,3 @@ class PedigreeMatrix(object):
 
     def __repr__(self) -> str:
         return "Empty Pedigree Matrix" if not self.factors else pformat(self.factors)
-
-
-UncertainValues = namedtuple("values", ("loc", "scale", "shape", "min", "max"))
-
-
-class DistributionGenerator(object):
-    """Generator class that is mostly here to have a central place to store
-    logic on which values are used in which distributions.
-
-    TODO: finish this at a later date.
-    """
-    @staticmethod
-    def generate_distribution(data: UncertainValues, dist_id: int, size: int = 1000) -> np.ndarray:
-        assert dist_id in uc.id_dict
-        if dist_id == 2:
-            return DistributionGenerator._log_normal(data, size)
-        elif dist_id == 3:
-            return DistributionGenerator._normal(data, size)
-
-    @staticmethod
-    def _log_normal(data: UncertainValues, size: int) -> np.ndarray:
-        assert not any(np.isnan([data.loc, data.scale]))
-        return np.random.lognormal(mean=data.loc, sigma=data.scale, size=size)
-
-    @staticmethod
-    def _normal(data: UncertainValues, size: int) -> np.ndarray:
-        assert not any(np.isnan([data.loc, data.scale]))
-        return np.random.normal(loc=data.loc, scale=data.scale, size=size)
-
-    @staticmethod
-    def _uniform(data: UncertainValues, size: int) -> np.ndarray:
-        assert not any(np.isnan([data.min, data.max]))
-        return np.random.uniform(low=data.min, high=data.max, size=size)
-
-    @staticmethod
-    def _triangular(data: UncertainValues, size: int) -> np.ndarray:
-        pass
-
