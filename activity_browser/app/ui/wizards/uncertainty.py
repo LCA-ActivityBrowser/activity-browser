@@ -120,7 +120,6 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.is_complete = False
 
         box = QtWidgets.QGroupBox("Fill out pedigree matrix")
         box.setStyleSheet(style_group_box.border_title)
@@ -176,7 +175,6 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.geographical.currentIndexChanged.connect(self.check_complete)
         self.technological.currentIndexChanged.connect(self.check_complete)
 
-
         box_layout = QtWidgets.QGridLayout()
         box_layout.addWidget(QtWidgets.QLabel("Reliability"), 0, 0, 2, 2)
         box_layout.addWidget(self.reliable, 0, 2, 2, 3)
@@ -209,10 +207,6 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         ))
         self.setField("loc", 1)
         self.setField("scale", matrix.calculate())
-        self.is_complete = True
-
-    def isComplete(self):
-        return self.is_complete
 
     def nextId(self):
         """ Calculate and set values for fields before moving to next page.
