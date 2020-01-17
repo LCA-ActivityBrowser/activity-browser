@@ -48,11 +48,11 @@ class UncertaintyWizard(QtWidgets.QWizard):
     def uncertainty_info(self):
         return {
             "uncertainty type": self.field("distribution"),
-            "loc": self.field("loc"),
-            "scale": self.field("scale"),
-            "shape": self.field("shape"),
-            "minimum": self.field("minimum"),
-            "maximum": self.field("maximum"),
+            "loc": float(self.field("loc")) if self.field("loc") else float("nan"),
+            "scale": float(self.field("scale")) if self.field("scale") else float("nan"),
+            "shape": float(self.field("shape")) if self.field("shape") else float("nan"),
+            "minimum": float(self.field("minimum")) if self.field("minimum") else float("nan"),
+            "maximum": float(self.field("maximum")) if self.field("maximum") else float("nan"),
             "negative": False,
         }
 
