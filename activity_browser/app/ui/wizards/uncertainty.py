@@ -248,18 +248,15 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 class UncertaintyValuesPage(QtWidgets.QWizardPage):
     """Show values for specific fields and allow user to edit.
 
-    Also, possibly show a graph of the distribution that is updated as
+    Also, show a graph of the distribution that is updated as
     the values change.
-
-    ('loc', np.NaN),
-    ('scale', np.NaN),
-    ('shape', np.NaN),
-    ('minimum', np.NaN),
-    ('maximum', np.NaN),
     """
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.wizard = parent
         self.setFinalPage(True)
+        self.complete = False
+        self.dist = None
 
         self.locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
         self.locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
@@ -273,11 +270,11 @@ class UncertaintyValuesPage(QtWidgets.QWizardPage):
         self.loc = QtWidgets.QLineEdit()
         self.loc.setValidator(self.validator)
         self.loc.textEdited.connect(self.generate_plot)
-        self.loc_label = QtWidgets.QLabel("Mean:")
+        self.loc_label = QtWidgets.QLabel("Mean/loc:")
         self.scale = QtWidgets.QLineEdit()
         self.scale.setValidator(self.validator)
         self.scale.textEdited.connect(self.generate_plot)
-        self.scale_label = QtWidgets.QLabel("Scale:")
+        self.scale_label = QtWidgets.QLabel("Sigma/scale:")
         self.shape = QtWidgets.QLineEdit()
         self.shape.setValidator(self.validator)
         self.shape.textEdited.connect(self.generate_plot)
@@ -342,32 +339,57 @@ class UncertaintyValuesPage(QtWidgets.QWizardPage):
         See https://stats-arrays.readthedocs.io/en/latest/index.html for which
         fields to show and hide.
         """
-        ud = uc.id_dict[self.field("distribution")]
-        self.distribution.setText("<strong>{}</strong>".format(ud.description))
+        self.dist = uc.id_dict[self.field("distribution")]
+        self.distribution.setText("<strong>{}</strong>".format(self.dist.description))
 
         # Huge if/elif tree to ensure the correct fields are shown.
-        if ud.id in {0, 1}:
+        if self.dist.id in {0, 1}:
             self.hide_param("loc", "scale", "shape", "min", "max")
-        elif ud.id in {2, 3}:
+        elif self.dist.id in {2, 3}:
             self.hide_param("shape", "min", "max")
             self.hide_param("loc", "scale", hide=False)
-        elif ud.id in {4, 7}:
+        elif self.dist.id in {4, 7}:
             self.hide_param("loc", "scale", "shape")
             self.hide_param("min", "max", hide=False)
-        elif ud.id in {5, 6}:
+        elif self.dist.id in {5, 6}:
             self.hide_param("scale", "shape")
             self.hide_param("loc", "min", "max", hide=False)
-        elif ud.id in {8, 9, 10, 11}:
+        elif self.dist.id in {8, 9, 10, 11}:
             self.hide_param("min", "max")
             self.hide_param("loc", "scale", "shape", hide=False)
+        self.generate_plot()
 
+    @property
+    def active_fields(self) -> tuple:
+        """Returns anywhere from 0 to 3 fields"""
+        if self.dist.id in {0, 1}:
+            return ()
+        elif self.dist.id in {2, 3}:
+            return self.loc, self.scale
+        elif self.dist.id in {4, 7}:
+            return self.minimum, self.maximum
+        elif self.dist.id in {5, 6}:
+            return self.loc, self.minimum, self.maximum
+        elif self.dist.id in {8, 9, 10, 11}:
+            return self.loc, self.scale, self.shape
+
+    def isComplete(self):
+        return self.complete
 
     @QtCore.Slot(name="regenPlot")
     def generate_plot(self) -> None:
-        """ Called whenever a value changes, regenerate the plot based on """
-        # data = DistributionGenerator.generate_distribution(
-        #     self.extract_values(), self.field("distribution")
-        # )
-        data = None
-        if data is not None and not any(np.isnan(data)):
-            self.plot.plot(data)
+        """Called whenever a value changes, (re)generate the plot.
+
+        Also tests if all of the visible QLineEdit fields have valid values.
+        """
+        self.complete = all(
+            (field.hasAcceptableInput() and field.text())
+            for field in self.active_fields
+        )
+        if self.complete:
+            data = self.dist.random_variables(
+                self.dist.from_dicts(self.wizard.uncertainty_info), 1000
+            )
+            if not np.any(np.isnan(data)):
+                self.plot.plot(data)
+        self.completeChanged.emit()
