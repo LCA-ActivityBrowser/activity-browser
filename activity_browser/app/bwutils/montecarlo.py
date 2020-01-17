@@ -49,7 +49,7 @@ class CSMonteCarloLCA(object):
         self.results = list()
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
-        self.load_data()
+
 
     def load_data(self):
         self.lca.load_lci_data()
@@ -64,6 +64,7 @@ class CSMonteCarloLCA(object):
 
     def calculate(self, iterations=10):
         start = time()
+        self.load_data()
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
         for iteration in range(iterations):

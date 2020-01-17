@@ -10,10 +10,11 @@ from typing import List, Optional, Union
 from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
-    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView, QButtonGroup
+    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView, QButtonGroup, QMessageBox
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
+import traceback
 
 from ...bwutils import (
     Contributions, CSMonteCarloLCA, MLCA, PresamplesContributions,
@@ -100,7 +101,8 @@ class LCAResultsSubTab(QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
-            mc=None if self.mc is None else MonteCarloTab(self),
+            # mc=None if self.mc is None else MonteCarloTab(self),
+            mc=MonteCarloTab(self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
         )
         self.tab_names = Tabs(
@@ -131,12 +133,8 @@ class LCAResultsSubTab(QTabWidget):
                       " It is suggested to remove or edit this package."
                 raise BW2CalcError(msg) from e
         self.mlca.calculate()
-        try:
-            self.mc = CSMonteCarloLCA(self.cs_name)
-        except InvalidParamsError as e:
-            # This can occur if uncertainty data is missing or otherwise broken
-            print(e)
-            self.mc = None
+        self.mc = CSMonteCarloLCA(self.cs_name)
+
         # self.mct = CSMonteCarloLCAThread()
         # self.mct.start()
         # self.mct.initialize(self.cs_name)
@@ -1012,8 +1010,13 @@ class MonteCarloTab(NewAnalysisTab):
         self.plot.hide()
         self.export_widget.hide()
 
-        self.parent.mc.calculate(iterations=iterations)
-        self.update_mc()
+        try:
+            self.parent.mc.calculate(iterations=iterations)
+            self.update_mc()
+        except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
+            # print(e)
+            traceback.print_exc()
+            QMessageBox.warning(self, 'Could not perform Monte Carlo simulation', str(e))
 
         # a threaded way for this - unfortunatley this crashes as:
         # pypardsio_solver is used for the 'spsolve' and 'factorized' functions. Python crashes on windows if multiple
