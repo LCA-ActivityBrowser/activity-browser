@@ -271,3 +271,9 @@ class MonteCarloPlot(Plot):
         # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
 
         self.canvas.draw()
+
+
+class SimpleDistributionPlot(Plot):
+    def plot(self, data: np.ndarray):
+        self.reset_plot()
+        sns.distplot(data, ax=self.ax)
