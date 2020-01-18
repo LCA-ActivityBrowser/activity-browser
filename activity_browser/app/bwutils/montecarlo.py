@@ -5,6 +5,7 @@ from bw2calc.utils import get_seed
 import numpy as np
 import pandas as pd
 from time import time
+from collections import defaultdict
 
 
 class CSMonteCarloLCA(object):
@@ -50,6 +51,10 @@ class CSMonteCarloLCA(object):
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
+        # GSA input
+        self.A_matrices = list()
+        self.B_matrices = list()
+        self.CF_dict = defaultdict(list)
 
     def load_data(self):
         self.lca.load_lci_data()
@@ -62,6 +67,8 @@ class CSMonteCarloLCA(object):
                 self.lca.load_lcia_data()
                 self.cf_rngs[method] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
 
+        self.lca.activity_dict_rev, self.lca.product_dict_rev, self.lca.biosphere_dict_rev = self.lca.reverse_dict()
+
     def calculate(self, iterations=10):
         start = time()
         self.load_data()
@@ -73,16 +80,20 @@ class CSMonteCarloLCA(object):
             self.lca.rebuild_technosphere_matrix(self.lca.tech_rng.next())
             self.lca.rebuild_biosphere_matrix(self.lca.bio_rng.next())
 
+            # store matrices for GSA
+            self.A_matrices.append(self.lca.technosphere_matrix)
+            self.B_matrices.append(self.lca.biosphere_matrix)
+
             if not hasattr(self.lca, "demand_array"):
                 self.lca.build_demand_array()
             self.lca.lci_calculation()
 
-            # pre-calculating CF vectors enables the use of the SAME CF vector for each FU in a given run
+            # pre-calculating CF vectors enables the use of the SAME CFs for each FU in a given run
             self.CF_rngs = dict()
             for method in self.methods:
                 self.CF_rngs[method] = self.cf_rngs[method].next()
-
-            # lca_scores = np.zeros((len(self.func_units), len(self.methods)))
+                # store CFs for GSA (in a list defaultdict)
+                self.CF_dict[method].append(self.CF_rngs[method])
 
             # iterate over FUs
             for row, func_unit in self.rev_fu_index.items():
@@ -93,14 +104,11 @@ class CSMonteCarloLCA(object):
                     self.lca.switch_method(method)
                     self.lca.rebuild_characterization_matrix(self.CF_rngs[method])
                     self.lca.lcia_calculation()
-                    # lca_scores[row, col] = self.lca.score
                     self.results[iteration, row, col] = self.lca.score
 
         print('CSMonteCarloLCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
             iterations, len(self.func_units), len(self.methods), time() - start
         ))
-            # self.results.append(lca_scores)
-            # self.results[(method, func_unit)] = lca_scores
 
     @property
     def func_units_dict(self):

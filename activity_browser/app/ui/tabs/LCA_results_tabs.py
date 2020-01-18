@@ -101,17 +101,16 @@ class LCAResultsSubTab(QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
-            # mc=None if self.mc is None else MonteCarloTab(self),
-            mc=MonteCarloTab(self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
+            mc=MonteCarloTab(self),  # mc=None if self.mc is None else MonteCarloTab(self),
         )
         self.tab_names = Tabs(
             inventory="Inventory",
             results="LCA Results",
             ef="EF Contributions",
             process="Process Contributions",
-            mc="Monte Carlo",
             sankey="Sankey",
+            mc="Monte Carlo",
         )
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
