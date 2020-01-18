@@ -8,7 +8,7 @@ from time import time
 from collections import defaultdict
 
 
-class CSMonteCarloLCA(object):
+class MonteCarloLCA(object):
     """A Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
     def __init__(self, cs_name, seed=None):
         try:
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     print(bw.databases)
 
     cs = bw.calculation_setups['A']
-    mc = CSMonteCarloLCA('A')
+    mc = MonteCarloLCA('A')
     mc.calculate(iterations=5)
 
     # test the get_results_by() method

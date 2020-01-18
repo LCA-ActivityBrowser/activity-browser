@@ -17,7 +17,7 @@ from stats_arrays.errors import InvalidParamsError
 import traceback
 
 from ...bwutils import (
-    Contributions, CSMonteCarloLCA, MLCA, PresamplesContributions,
+    Contributions, MonteCarloLCA, MLCA, PresamplesContributions,
     PresamplesMLCA, commontasks as bc
 )
 from ...signals import signals
@@ -86,7 +86,7 @@ class LCAResultsSubTab(QTabWidget):
         self.ps_name = ps_name
         self.mlca: Optional[Union[MLCA, PresamplesMLCA]] = None
         self.contributions: Optional[Contributions] = None
-        self.mc: Optional[CSMonteCarloLCA] = None
+        self.mc: Optional[MonteCarloLCA] = None
         self.method_dict = dict()
         self.single_func_unit = False
         self.single_method = False
@@ -132,7 +132,7 @@ class LCAResultsSubTab(QTabWidget):
                       " It is suggested to remove or edit this package."
                 raise BW2CalcError(msg) from e
         self.mlca.calculate()
-        self.mc = CSMonteCarloLCA(self.cs_name)
+        self.mc = MonteCarloLCA(self.cs_name)
 
         # self.mct = CSMonteCarloLCAThread()
         # self.mct.start()
