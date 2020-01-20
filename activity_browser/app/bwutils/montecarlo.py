@@ -9,7 +9,7 @@ from collections import defaultdict
 
 
 class MonteCarloLCA(object):
-    """A Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
+    """Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
     def __init__(self, cs_name, seed=None):
         try:
             cs = bw.calculation_setups[cs_name]

@@ -82,6 +82,9 @@ class Signals(QObject):
     method_selected = Signal(tuple)
     method_tabs_changed = Signal()
 
+    # Monte Carlo LCA
+    monte_carlo_finished = Signal()
+
     # Qt Windows
     update_windows = Signal()
     new_statusbar_message = Signal(str)

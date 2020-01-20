@@ -56,7 +56,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "mc", "sankey")
+    "tabs", ("inventory", "results", "ef", "process", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
@@ -103,6 +103,7 @@ class LCAResultsSubTab(QTabWidget):
             process=ProcessContributionsTab(self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(self),  # mc=None if self.mc is None else MonteCarloTab(self),
+            gsa=GSATab(self),
         )
         self.tab_names = Tabs(
             inventory="Inventory",
@@ -111,6 +112,7 @@ class LCAResultsSubTab(QTabWidget):
             process="Process Contributions",
             sankey="Sankey",
             mc="Monte Carlo",
+            gsa="Sensitivity Analysis",
         )
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
@@ -1011,6 +1013,7 @@ class MonteCarloTab(NewAnalysisTab):
 
         try:
             self.parent.mc.calculate(iterations=iterations)
+            signals.monte_carlo_finished.emit()
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
@@ -1107,6 +1110,174 @@ class MonteCarloTab(NewAnalysisTab):
 
     def update_table(self):
         self.table.sync(self.df)
+
+
+class GSATab(NewAnalysisTab):
+    def __init__(self, parent=None):
+        super(GSATab, self).__init__(parent)
+        self.parent = parent
+
+        self.layout.addLayout(get_header_layout('Sensitivity Analysis'))
+        # self.scenario_label = QLabel("Scenario:")
+
+        self.add_GSA_ui_elements()
+
+        # self.table = LCAResultsTable()
+        # self.table.table_name = 'GSA_' + self.parent.cs_name
+        # self.plot = MonteCarloPlot(self.parent)
+        # self.plot.hide()
+        # self.plot.plot_name = 'GSA_' + self.parent.cs_name
+        # self.layout.addWidget(self.plot)
+        # self.export_widget = self.build_export(has_plot=True, has_table=True)
+        # self.layout.addWidget(self.export_widget)
+        self.layout.setAlignment(QtCore.Qt.AlignTop)
+        self.connect_signals()
+
+    def connect_signals(self):
+        # self.button_run.clicked.connect(self.calculate_MC_LCA)
+        # signals.monte_carlo_ready.connect(self.update_mc)
+        signals.monte_carlo_finished.connect(self.update_mc)
+        # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
+        self.combobox_methods.currentIndexChanged.connect(
+            # ignore the index and send the cs_name instead
+            lambda x: self.update_mc(cs_name=self.parent.cs_name)
+        )
+
+    def add_GSA_ui_elements(self):
+        # H-LAYOUT SETTINGS ROW 1
+        
+        # run button
+        self.button_run = QPushButton('Run')
+        self.button_run.setEnabled(False)
+
+        # functional unit selection
+        self.label_fu = QLabel('Functional unit:')
+        self.combobox_fu = QComboBox()
+
+        # method selection
+        self.label_methods = QLabel('LCIA method:')
+        self.combobox_methods = QComboBox()
+
+        # arrange layout
+        self.hlayout_row1 = QHBoxLayout()
+        self.hlayout_row1.addWidget(self.button_run)
+        self.hlayout_row1.addWidget(self.label_fu)
+        self.hlayout_row1.addWidget(self.combobox_fu)
+        self.hlayout_row1.addWidget(self.label_methods)
+        self.hlayout_row1.addWidget(self.combobox_methods)
+
+        # self.hlayout_row1.addWidget(self.fu_selection_widget)
+        # self.hlayout_row1.addWidget(self.method_selection_widget)
+        self.hlayout_row1.addStretch(1)
+        
+        # H-LAYOUT SETTINGS ROW 2
+        self.hlayout_row2 = QHBoxLayout()
+        
+        # cutoff technosphere
+        self.label_cutoff_technosphere = QLabel('Cut-off technosphere:')
+        self.cutoff_technosphere = QLineEdit('0.01')
+        self.cutoff_technosphere.setFixedWidth(40)
+        self.cutoff_technosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
+
+        # cutoff biosphere
+        self.label_cutoff_biosphere = QLabel('Cut-off biosphere:')
+        self.cutoff_biosphere = QLineEdit('0.01')
+        self.cutoff_biosphere.setFixedWidth(40)
+        self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
+
+        # exclude Pedigree
+        self.checkbox_pedigree = QCheckBox('Include Pedigree uncertainties')
+        self.checkbox_pedigree.setChecked(True)
+
+        # arrange layout
+        self.hlayout_row2.addWidget(self.label_cutoff_technosphere)
+        self.hlayout_row2.addWidget(self.cutoff_technosphere)
+        self.hlayout_row2.addWidget(self.label_cutoff_biosphere)
+        self.hlayout_row2.addWidget(self.cutoff_biosphere)
+        self.hlayout_row2.addWidget(self.checkbox_pedigree)
+        self.hlayout_row2.addStretch(1)
+
+        # OVERALL LAYOUT OF SETTINGS
+        self.layout_settings = QVBoxLayout()
+        self.layout_settings.addLayout(self.hlayout_row1)
+        self.layout_settings.addLayout(self.hlayout_row2)
+        self.widget_settings = QWidget()
+        self.widget_settings.setLayout(self.layout_settings)
+
+        # add to GSA layout
+        self.label_monte_carlo_first = QLabel('You need to run a Monte Carlo Simulation first.')
+        self.layout.addWidget(self.label_monte_carlo_first)
+        self.layout.addWidget(self.widget_settings)
+
+        # at start
+        # todo: this is just for development, should be reversed later:
+        # self.widget_settings.hide()
+        self.label_monte_carlo_first.hide()
+
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
+        """Construct the export layout but set it into a widget because we
+         want to hide it."""
+        export_layout = super().build_export(has_table, has_plot)
+        export_widget = QWidget()
+        export_widget.setLayout(export_layout)
+        # Hide widget until MC is calculated
+        export_widget.hide()
+        return export_widget
+
+    def calculate_GSA(self):
+        iterations = int(self.cutoff_technosphere.text())
+        self.method_selection_widget.hide()
+        self.plot.hide()
+        self.export_widget.hide()
+
+        try:
+            self.parent.mc.calculate(iterations=iterations)
+            self.update_mc()
+        except Exception as e:  # Catch any error...
+            traceback.print_exc()
+            QMessageBox.warning(self, 'Could not perform GSA', str(e))
+
+    def update_tab(self):
+        self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
+        # self.update_combobox(self.combobox_fu, [str(bw.get(m) for m in self.parent.mc.activity_keys])
+        self.update_combobox(self.combobox_fu, list(self.parent.mlca.func_unit_translation_dict.keys()))
+
+
+    def update_mc(self):
+        self.button_run.setEnabled(True)
+        self.widget_settings.show()
+        self.label_monte_carlo_first.hide()
+
+
+    def update_gsa(self, cs_name=None):
+        # act = self.combobox_fu.currentText()
+        # activity_index = self.combobox_fu.currentIndex()
+        # act_key = self.parent.mc.activity_keys[activity_index]
+        # if cs_name != self.parent.cs_name:  # relevant if several CS are open at the same time
+        #     return
+
+        # self.label_running.hide()
+        self.method_selection_widget.show()
+        self.export_widget.show()
+
+        method_index = self.combobox_methods.currentIndex()
+        method = self.parent.mc.methods[method_index]
+
+        # data = self.parent.mc.get_results_by(act_key=act_key, method=method)
+        self.df = self.parent.mc.get_results_dataframe(method=method)
+
+        self.update_table()
+        self.update_plot(method=method)
+        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Monte Carlo results', str(method)]])
+        self.plot.plot_name, self.table.table_name = filename, filename
+
+    def update_plot(self, method):
+        self.plot.plot(self.df, method=method)
+        self.plot.show()
+
+    def update_table(self):
+        self.table.sync(self.df)
+
 
 
 class MonteCarloWorkerThread(QtCore.QThread):
