@@ -10,9 +10,10 @@ from collections import defaultdict
 
 class MonteCarloLCA(object):
     """Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
+
     def __init__(self, cs_name, seed=None):
         try:
-            cs = bw.calculation_setups[cs_name]
+            self.cs = bw.calculation_setups[cs_name]
             self.cs_name = cs_name
         except KeyError:
             raise ValueError(
@@ -22,19 +23,20 @@ class MonteCarloLCA(object):
         self.seed = seed or get_seed()
 
         # functional units
-        self.func_units = cs['inv']
+        self.func_units = self.cs['inv']
         self.rev_fu_index = {i: fu for i, fu in enumerate(self.func_units)}
 
         # activities
         self.activity_keys = [list(fu.keys())[0] for fu in self.func_units]
         self.activity_index = {key: index for index, key in enumerate(self.activity_keys)}
-        self.rev_activity_index = {v: k for k, v in self.activity_keys}
+        self.rev_activity_index = {index: key for index, key in enumerate(self.activity_keys)}
         # self.fu_index = {k: i for i, k in enumerate(self.activity_keys)}
 
         # methods
-        self.methods = cs['ia']
+        self.methods = self.cs['ia']
         self.method_index = {m: i for i, m in enumerate(self.methods)}
-        self.rev_method_index = {v: k for k, v in self.method_index.items()}
+        self.rev_method_index = {i: m for i, m in enumerate(self.methods)}
+        # self.rev_method_index = {v: k for k, v in self.method_index.items()}
 
         # todo: get rid of the below
         self.func_unit_translation_dict = {str(bw.get_activity(list(func_unit.keys())[0])): func_unit
@@ -47,7 +49,7 @@ class MonteCarloLCA(object):
         for i, m in enumerate(self.methods):
             self.method_dict_list.append({m: i})
 
-        self.results = list()
+        # self.results = list()
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
@@ -71,6 +73,7 @@ class MonteCarloLCA(object):
 
     def calculate(self, iterations=10):
         start = time()
+        self.iterations = iterations
         self.load_data()
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
@@ -106,8 +109,11 @@ class MonteCarloLCA(object):
                     self.lca.lcia_calculation()
                     self.results[iteration, row, col] = self.lca.score
 
-        print('CSMonteCarloLCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
-            iterations, len(self.func_units), len(self.methods), time() - start
+        print('Monte Carlo LCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
+            iterations,
+            len(self.func_units),
+            len(self.methods),
+            np.round(time() - start, 2)
         ))
 
     @property
@@ -121,6 +127,11 @@ class MonteCarloLCA(object):
         - if a functional unit is provided, results will be given for all methods and runs
         - if a functional unit and method is provided, results will be given for all runs of that combination
         - if nothing is given, all results are returned"""
+
+        if not self.results.any():
+            raise ValueError('You need to perform a Monte Carlo Simulation first.')
+            return None
+
         if act_key:
             act_index = self.activity_index.get(act_key)
             print('Activity key provided:', act_key, act_index)
@@ -146,6 +157,11 @@ Return a Pandas DataFrame with results for all runs either for
 
 If labelled=True, then the activity keys are converted to a human readable format.
         """
+
+        if not self.results.any():
+            raise ValueError('You need to perform a Monte Carlo Simulation first.')
+            return None
+
         if act_key and method or not act_key and not method:
             raise ValueError('Must provide activity key or method, but not both.')
         data = self.get_results_by(act_key=act_key, method=method)
@@ -175,23 +191,29 @@ If labelled=True, then the activity keys are converted to a human readable forma
         return translated_keys
 
 
-if __name__ == "__main__":
-    print(bw.projects)
-    bw.projects.set_current('default')
-    print(bw.databases)
+def perform_MonteCarlo_LCA(project='default', cs_name=None, iterations=10):
+    """Performs Monte Carlo LCA based on a calculation setup and returns the
+    Monte Carlo LCA object."""
+    print('-- Monte Carlo LCA --\n Project:', project, 'CS:', cs_name)
+    bw.projects.set_current(project)
 
-    cs = bw.calculation_setups['A']
-    mc = MonteCarloLCA('A')
-    mc.calculate(iterations=5)
+    # perform Monte Carlo simulation
+    mc = MonteCarloLCA(cs_name)
+    mc.calculate(iterations=iterations)
+    return mc
+
+
+if __name__ == "__main__":
+    mc = perform_MonteCarlo_LCA(project='ei34', cs_name='kraft paper', iterations=15)
 
     # test the get_results_by() method
-    print('Testing the get_results_by() method')
+    print('\nTesting the get_results_by() method')
     act_key = mc.activity_keys[0]
     method = mc.methods[0]
     print(mc.get_results_by(act_key=act_key, method=method))
-    print(mc.get_results_by(act_key=act_key, method=None))
-    print(mc.get_results_by(act_key=None, method=method))
-    print(mc.get_results_by(act_key=None, method=None))
+    #    print(mc.get_results_by(act_key=act_key, method=None))
+    #    print(mc.get_results_by(act_key=None, method=method))
+    #    print(mc.get_results_by(act_key=None, method=None))
 
     # testing the dataframe output
     print(mc.get_results_dataframe(method=mc.methods[0]))
