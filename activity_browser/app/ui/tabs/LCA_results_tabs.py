@@ -940,7 +940,7 @@ class MonteCarloTab(NewAnalysisTab):
         # H-LAYOUT start simulation
         self.button_run = QPushButton('Run Simulation')
         self.label_runs = QLabel('Iterations:')
-        self.iterations = QLineEdit('10')
+        self.iterations = QLineEdit('20')
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
 
@@ -1124,26 +1124,23 @@ class GSATab(NewAnalysisTab):
 
         self.add_GSA_ui_elements()
 
-        # self.table = LCAResultsTable()
-        # self.table.table_name = 'GSA_' + self.parent.cs_name
+        self.table = LCAResultsTable()
+        self.table.table_name = 'GSA_' + self.parent.cs_name
+        self.layout.addWidget(self.table)
+        self.table.hide()
         # self.plot = MonteCarloPlot(self.parent)
         # self.plot.hide()
         # self.plot.plot_name = 'GSA_' + self.parent.cs_name
         # self.layout.addWidget(self.plot)
-        # self.export_widget = self.build_export(has_plot=True, has_table=True)
-        # self.layout.addWidget(self.export_widget)
+
+        self.export_widget = self.build_export(has_plot=False, has_table=True)
+        self.layout.addWidget(self.export_widget)
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.connect_signals()
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_GSA)
-        # signals.monte_carlo_ready.connect(self.update_mc)
-        signals.monte_carlo_finished.connect(self.update_mc)
-        # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
-        # self.combobox_methods.currentIndexChanged.connect(
-        #     # ignore the index and send the cs_name instead
-        #     lambda x: self.update_mc(cs_name=self.parent.cs_name)
-        # )
+        signals.monte_carlo_finished.connect(self.monte_carlo_finished)
 
     def add_GSA_ui_elements(self):
         # H-LAYOUT SETTINGS ROW 1
@@ -1213,21 +1210,19 @@ class GSATab(NewAnalysisTab):
 
         # at start
         # todo: this is just for development, should be reversed later:
-        # self.widget_settings.hide()
+        self.widget_settings.hide()
+        # self.label_monte_carlo_first.hide()
+
+    def update_tab(self):
+        self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
+        self.update_combobox(self.combobox_fu, list(self.parent.mlca.func_unit_translation_dict.keys()))
+
+    def monte_carlo_finished(self):
+        self.button_run.setEnabled(True)
+        self.widget_settings.show()
         self.label_monte_carlo_first.hide()
 
-    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
-        """Construct the export layout but set it into a widget because we
-         want to hide it."""
-        export_layout = super().build_export(has_table, has_plot)
-        export_widget = QWidget()
-        export_widget.setLayout(export_layout)
-        # Hide widget until MC is calculated
-        export_widget.hide()
-        return export_widget
-
     def calculate_GSA(self):
-
         act_number = self.combobox_fu.currentIndex()
         method_number = self.combobox_methods.currentIndex()
         cutoff_technosphere = float(self.cutoff_technosphere.text())
@@ -1245,47 +1240,47 @@ class GSATab(NewAnalysisTab):
             traceback.print_exc()
             QMessageBox.warning(self, 'Could not perform GSA', str(e))  #+ " Try increasing the Monte Carlo iterations.")
 
-    def update_tab(self):
-        self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
-        # self.update_combobox(self.combobox_fu, [str(bw.get(m) for m in self.parent.mc.activity_keys])
-        self.update_combobox(self.combobox_fu, list(self.parent.mlca.func_unit_translation_dict.keys()))
-
-
-    def update_mc(self):
-        self.button_run.setEnabled(True)
-        self.widget_settings.show()
-        self.label_monte_carlo_first.hide()
+        self.update_gsa()
 
 
     def update_gsa(self, cs_name=None):
-        # act = self.combobox_fu.currentText()
-        # activity_index = self.combobox_fu.currentIndex()
-        # act_key = self.parent.mc.activity_keys[activity_index]
-        # if cs_name != self.parent.cs_name:  # relevant if several CS are open at the same time
-        #     return
+        self.df = self.GSA.df_final
+        self.update_table()
+        self.table.show()
+
 
         # self.label_running.hide()
-        self.method_selection_widget.show()
+        # self.method_selection_widget.show()
         self.export_widget.show()
 
-        method_index = self.combobox_methods.currentIndex()
-        method = self.parent.mc.methods[method_index]
+        # method_index = self.combobox_methods.currentIndex()
+        # method = self.parent.mc.methods[method_index]
 
         # data = self.parent.mc.get_results_by(act_key=act_key, method=method)
-        self.df = self.parent.mc.get_results_dataframe(method=method)
+        # self.df = self.parent.mc.get_results_dataframe(method=method)
 
-        self.update_table()
-        self.update_plot(method=method)
-        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Monte Carlo results', str(method)]])
-        self.plot.plot_name, self.table.table_name = filename, filename
+        # self.update_table()
+        # self.update_plot(method=method)
+        # filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Monte Carlo results', str(method)]])
+        # self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
-        self.plot.plot(self.df, method=method)
-        self.plot.show()
+        pass
+        # self.plot.plot(self.df, method=method)
+        # self.plot.show()
 
     def update_table(self):
         self.table.sync(self.df)
 
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
+        """Construct the export layout but set it into a widget because we
+         want to hide it."""
+        export_layout = super().build_export(has_table, has_plot)
+        export_widget = QWidget()
+        export_widget.setLayout(export_layout)
+        # Hide widget until MC is calculated
+        export_widget.hide()
+        return export_widget
 
 
 class MonteCarloWorkerThread(QtCore.QThread):
@@ -1293,7 +1288,7 @@ class MonteCarloWorkerThread(QtCore.QThread):
 
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
     So this is for future reference in case this issue is solved... """
-    def set_mc(self, mc, iterations=10):
+    def set_mc(self, mc, iterations=20):
         self.mc = mc
         self.iterations = iterations
 

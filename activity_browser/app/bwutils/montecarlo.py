@@ -80,6 +80,7 @@ class MonteCarloLCA(object):
         self.B_matrices = list()
         self.CF_dict = defaultdict(list)
 
+
         for iteration in range(iterations):
             if not hasattr(self.lca, "tech_rng"):
                 self.load_data()
