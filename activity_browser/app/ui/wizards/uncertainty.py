@@ -353,6 +353,12 @@ class UncertaintyValuesPage(QtWidgets.QWizardPage):
             self.hide_param("loc", "scale", "shape", hide=False)
         self.generate_plot()
 
+    def cleanupPage(self):
+        """Remove values from fields and reset the plot."""
+        super().cleanupPage()
+        self.plot.reset_plot()
+        self.plot.canvas.draw()
+
     @property
     def active_fields(self) -> tuple:
         """Returns anywhere from 0 to 3 fields"""
