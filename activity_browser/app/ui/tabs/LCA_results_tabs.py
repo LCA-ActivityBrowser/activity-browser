@@ -17,8 +17,8 @@ from stats_arrays.errors import InvalidParamsError
 import traceback
 
 from ...bwutils import (
-    Contributions, MonteCarloLCA, MLCA, PresamplesContributions,
-    PresamplesMLCA, commontasks as bc
+    MLCA, Contributions, PresamplesContributions, PresamplesMLCA, MonteCarloLCA, GlobalSensitivityAnalysis,
+     commontasks as bc
 )
 from ...signals import signals
 from ..figures import (
@@ -1117,6 +1117,8 @@ class GSATab(NewAnalysisTab):
         super(GSATab, self).__init__(parent)
         self.parent = parent
 
+        self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
+
         self.layout.addLayout(get_header_layout('Sensitivity Analysis'))
         # self.scenario_label = QLabel("Scenario:")
 
@@ -1134,14 +1136,14 @@ class GSATab(NewAnalysisTab):
         self.connect_signals()
 
     def connect_signals(self):
-        # self.button_run.clicked.connect(self.calculate_MC_LCA)
+        self.button_run.clicked.connect(self.calculate_GSA)
         # signals.monte_carlo_ready.connect(self.update_mc)
         signals.monte_carlo_finished.connect(self.update_mc)
         # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
-        self.combobox_methods.currentIndexChanged.connect(
-            # ignore the index and send the cs_name instead
-            lambda x: self.update_mc(cs_name=self.parent.cs_name)
-        )
+        # self.combobox_methods.currentIndexChanged.connect(
+        #     # ignore the index and send the cs_name instead
+        #     lambda x: self.update_mc(cs_name=self.parent.cs_name)
+        # )
 
     def add_GSA_ui_elements(self):
         # H-LAYOUT SETTINGS ROW 1
@@ -1225,17 +1227,23 @@ class GSATab(NewAnalysisTab):
         return export_widget
 
     def calculate_GSA(self):
-        iterations = int(self.cutoff_technosphere.text())
-        self.method_selection_widget.hide()
-        self.plot.hide()
-        self.export_widget.hide()
+
+        act_number = self.combobox_fu.currentIndex()
+        method_number = self.combobox_methods.currentIndex()
+        cutoff_technosphere = float(self.cutoff_technosphere.text())
+        cutoff_biosphere = float(self.cutoff_biosphere.text())
+        # print('Calculating GSA for: ', act_number, method_number, cutoff_technosphere, cutoff_biosphere)
+
+        # self.plot.hide()
+        # self.export_widget.hide()
 
         try:
-            self.parent.mc.calculate(iterations=iterations)
-            self.update_mc()
+            self.GSA.perform_GSA(act_number=act_number, method_number=method_number,
+                                 cutoff_technosphere=cutoff_technosphere, cutoff_biosphere=cutoff_biosphere)
+            # self.update_mc()
         except Exception as e:  # Catch any error...
             traceback.print_exc()
-            QMessageBox.warning(self, 'Could not perform GSA', str(e))
+            QMessageBox.warning(self, 'Could not perform GSA', str(e))  #+ " Try increasing the Monte Carlo iterations.")
 
     def update_tab(self):
         self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])

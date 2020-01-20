@@ -5,10 +5,10 @@ re-typing the same code in different parts of the Activity Browser.
 """
 import brightway2 as bw
 from .metadata import AB_metadata
-from .montecarlo import MonteCarloLCA
 from .multilca import MLCA, Contributions
 from .presamples import PresamplesContributions, PresamplesMLCA
-
+from .montecarlo import MonteCarloLCA
+from .sensitivity_analysis import GlobalSensitivityAnalysis
 
 def cleanup():
     n_dir = bw.projects.purge_deleted_directories()

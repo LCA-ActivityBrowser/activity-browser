@@ -128,7 +128,6 @@ def drop_no_uncertainty_exchanges(excs, indices):
 
 def get_exchanges_dataframe(exchanges, indices, biosphere=False):
     """Returns a Dataframe from the exchange data and a bit of additional information."""
-    print(type(exchanges), type(indices))
 
     for exc, i in zip(exchanges, indices):
         from_act = bw.get_activity(exc.get('input'))
@@ -237,7 +236,7 @@ def get_problem(X, names):
     }
 
 
-class GSA(object):
+class GlobalSensitivityAnalysis(object):
     """Class for Global Sensitivity Analysis.
     For now Delta Moment Independent Measure based on:
     https://salib.readthedocs.io/en/latest/api.html#delta-moment-independent-measure
@@ -274,7 +273,7 @@ class GSA(object):
             self.cutoff_biosphere = cutoff_biosphere
 
             self.fu = self.mc.cs['inv'][act_number]
-            self.activity = bw.get_activity(mc.rev_activity_index[act_number])
+            self.activity = bw.get_activity(self.mc.rev_activity_index[act_number])
             self.method = self.mc.cs['ia'][method_number]
 
         except Exception as e:
@@ -309,8 +308,6 @@ class GSA(object):
 
         # Join dataframes to get metadata
         dfs = [self.dft, self.dfb, self.dfcf]
-        # if not self.dfcf.empty: # if CFs
-        # dfs.append(self.dfcf)
         dfs_valid = [df for df in dfs if not df.empty]  # A, B, or CF values may not be present
         self.metadata = pd.concat(dfs_valid, axis=0, ignore_index=True, sort=False)
         self.metadata.set_index('GSA name', inplace=True)
@@ -344,14 +341,8 @@ class GSA(object):
 
         # perform delta analysis
         time_delta = time()
-        try:
-            self.Si = delta.analyze(self.problem, self.X, self.Y, print_to_console=False)
-            print('Delta analysis took {} seconds'.format(np.round(time() - time_delta, 2), ))
-        except Exception as e:
-            traceback.print_exc()
-            # todo: QMessageBox.warning(self, 'Could not perform Delta analysis', str(e))
-            print('Could not perform Delta analysis.')
-            return None
+        self.Si = delta.analyze(self.problem, self.X, self.Y, print_to_console=False)
+        print('Delta analysis took {} seconds'.format(np.round(time() - time_delta, 2), ))
 
         # put GSA results in to dataframe
         self.dfgsa = pd.DataFrame(self.Si, index=self.names).sort_values(by='delta', ascending=False)
@@ -371,6 +362,6 @@ class GSA(object):
 
 if __name__ == "__main__":
     mc = perform_MonteCarlo_LCA(project='ei34', cs_name='kraft paper', iterations=20)
-    g = GSA(mc)
+    g = GlobalSensitivityAnalysis(mc)
     g.perform_GSA(act_number=0, method_number=1, cutoff_technosphere=0.01, cutoff_biosphere=0.01)
     g.export()
