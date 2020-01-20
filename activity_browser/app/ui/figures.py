@@ -277,3 +277,6 @@ class SimpleDistributionPlot(Plot):
     def plot(self, data: np.ndarray):
         self.reset_plot()
         sns.distplot(data, ax=self.ax)
+        _, height = self.canvas.get_width_height()
+        self.setMinimumHeight(height / 2)
+        self.canvas.draw()
