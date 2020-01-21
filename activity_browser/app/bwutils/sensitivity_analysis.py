@@ -349,7 +349,9 @@ class GlobalSensitivityAnalysis(object):
         self.dfgsa.index.names = ['GSA name']
 
         # join with metadata
-        self.df_final = self.dfgsa.join(self.metadata, on='GSA name').reset_index()
+        self.df_final = self.dfgsa.join(self.metadata, on='GSA name')
+        self.df_final.reset_index(inplace=True)
+        self.df_final['pedigree'] = [str(x) for x in self.df_final['pedigree']]
 
         print('GSA took {} seconds'.format(np.round(time() - start, 2)))
 

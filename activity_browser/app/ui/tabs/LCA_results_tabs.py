@@ -1139,7 +1139,7 @@ class GSATab(NewAnalysisTab):
         self.connect_signals()
 
     def connect_signals(self):
-        self.button_run.clicked.connect(self.calculate_GSA)
+        self.button_run.clicked.connect(self.calculate_gsa)
         signals.monte_carlo_finished.connect(self.monte_carlo_finished)
 
     def add_GSA_ui_elements(self):
@@ -1222,15 +1222,12 @@ class GSATab(NewAnalysisTab):
         self.widget_settings.show()
         self.label_monte_carlo_first.hide()
 
-    def calculate_GSA(self):
+    def calculate_gsa(self):
         act_number = self.combobox_fu.currentIndex()
         method_number = self.combobox_methods.currentIndex()
         cutoff_technosphere = float(self.cutoff_technosphere.text())
         cutoff_biosphere = float(self.cutoff_biosphere.text())
         # print('Calculating GSA for: ', act_number, method_number, cutoff_technosphere, cutoff_biosphere)
-
-        # self.plot.hide()
-        # self.export_widget.hide()
 
         try:
             self.GSA.perform_GSA(act_number=act_number, method_number=method_number,
@@ -1238,36 +1235,24 @@ class GSATab(NewAnalysisTab):
             # self.update_mc()
         except Exception as e:  # Catch any error...
             traceback.print_exc()
-            QMessageBox.warning(self, 'Could not perform GSA', str(e))  #+ " Try increasing the Monte Carlo iterations.")
+            message = str(e)
+            message_addition = ''
+            if message == 'singular matrix':
+                message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
+            elif message == "`dataset` input should have multiple elements.":
+                message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
+            QMessageBox.warning(self, 'Could not perform GSA', str(message) + message_addition)
 
         self.update_gsa()
-
 
     def update_gsa(self, cs_name=None):
         self.df = self.GSA.df_final
         self.update_table()
         self.table.show()
-
-
-        # self.label_running.hide()
-        # self.method_selection_widget.show()
         self.export_widget.show()
-
-        # method_index = self.combobox_methods.currentIndex()
-        # method = self.parent.mc.methods[method_index]
-
-        # data = self.parent.mc.get_results_by(act_key=act_key, method=method)
-        # self.df = self.parent.mc.get_results_dataframe(method=method)
-
-        # self.update_table()
-        # self.update_plot(method=method)
-        # filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Monte Carlo results', str(method)]])
-        # self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
         pass
-        # self.plot.plot(self.df, method=method)
-        # self.plot.show()
 
     def update_table(self):
         self.table.sync(self.df)
