@@ -72,8 +72,10 @@ class Controller(object):
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         signals.exchange_modified.connect(self.modify_exchange)
         signals.exchange_uncertainty_modified.connect(self.modify_exchange_uncertainty)
+        signals.exchange_pedigree_modified.connect(self.modify_exchange_pedigree)
         # Parameters
         signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
+        signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
@@ -534,6 +536,13 @@ class Controller(object):
         exc.save()
         signals.database_changed.emit(exc['output'][0])
 
+    @staticmethod
+    @Slot(object, object, name="modifyExchangePedigree")
+    def modify_exchange_pedigree(exc: ExchangeProxyBase, pedigree: dict) -> None:
+        exc["pedigree"] = pedigree
+        exc.save()
+        signals.database_changed.emit(exc['output'][0])
+
 # PARAMETERS
     @staticmethod
     @Slot(object, object, name="modifyParameterUncertainty")
@@ -544,6 +553,13 @@ class Controller(object):
                 # Convert empty values into nan, accepted by stats_arrays
                 v = float("nan") if not v else float(v)
             param.data[k] = v
+        param.save()
+        signals.parameters_changed.emit()
+
+    @staticmethod
+    @Slot(object, object, name="modifyParameterPedigree")
+    def modify_parameter_pedigree(param: ParameterBase, pedigree: dict) -> None:
+        param.data["pedigree"] = pedigree
         param.save()
         signals.parameters_changed.emit()
 

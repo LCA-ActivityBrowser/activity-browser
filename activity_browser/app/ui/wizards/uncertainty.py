@@ -65,10 +65,17 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     @Slot(name="modifyUncertainty")
     def update_uncertainty(self):
+        """ Update the uncertainty information of the relevant object, optionally
+        including a pedigree update.
+        """
         if isinstance(self.obj, ExchangeProxyBase):
             signals.exchange_uncertainty_modified.emit(self.obj, self.uncertainty_info)
+            if self.using_pedigree:
+                signals.exchange_pedigree_modified.emit(self.obj, self.pedigree.matrix.factors)
         elif isinstance(self.obj, ParameterBase):
             signals.parameter_uncertainty_modified.emit(self.obj, self.uncertainty_info)
+            if self.using_pedigree:
+                signals.parameter_pedigree_modified.emit(self.obj, self.pedigree.matrix.factors)
 
     def extract_uncertainty(self) -> None:
         """Used to extract possibly existing uncertainty information from the

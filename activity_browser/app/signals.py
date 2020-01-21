@@ -55,6 +55,7 @@ class Signals(QObject):
     exchange_modified = Signal(object, str, object)
     # Exchange object and uncertainty dictionary
     exchange_uncertainty_modified = Signal(object, object)
+    exchange_pedigree_modified = Signal(object, object)
 
     # Parameters
     add_activity_parameter = Signal(tuple)
@@ -64,6 +65,7 @@ class Signals(QObject):
     exchange_formula_changed = Signal(tuple)
     # Parameter object and uncertainty dictionary
     parameter_uncertainty_modified = Signal(object, object)
+    parameter_pedigree_modified = Signal(object, object)
 
     # Presamples
     presample_package_created = Signal(str)
