@@ -360,7 +360,27 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.setFinalPage(True)
         self.matrix = None
 
-        box = QtWidgets.QGroupBox("Fill out pedigree matrix")
+        self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
+        self.field_box.setStyleSheet(style_group_box.border_title)
+        self.locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
+        self.locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
+        self.validator = QtGui.QDoubleValidator()
+        self.validator.setLocale(self.locale)
+        self.loc = QtWidgets.QLineEdit()
+        self.loc.setValidator(self.validator)
+        self.loc.textEdited.connect(self.balance_mean_with_loc)
+        self.loc.textChanged.connect(self.check_complete)
+        self.mean = QtWidgets.QLineEdit()
+        self.mean.setValidator(self.validator)
+        self.mean.textEdited.connect(self.balance_loc_with_mean)
+        box_layout = QtWidgets.QGridLayout()
+        box_layout.addWidget(QtWidgets.QLabel("Loc:"), 0, 0)
+        box_layout.addWidget(self.loc, 0, 1)
+        box_layout.addWidget(QtWidgets.QLabel("Mean:"), 0, 3)
+        box_layout.addWidget(self.mean, 0, 4)
+        self.field_box.setLayout(box_layout)
+
+        box = QtWidgets.QGroupBox("Select pedigree values")
         box.setStyleSheet(style_group_box.border_title)
 
         self.reliable = QtWidgets.QComboBox(box)
@@ -425,6 +445,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.plot = SimpleDistributionPlot(self)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.field_box)
         layout.addWidget(box)
         layout.addWidget(self.plot)
         self.setLayout(layout)
@@ -435,6 +456,8 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
     def initializePage(self):
         # if the parent contains an 'obj' with uncertainty, extract data
         self.setField("uncertainty type", 2)
+        self.loc.setText(self.field("loc"))
+        self.balance_mean_with_loc()
         obj = getattr(self.wizard(), "obj")
         try:
             matrix = PedigreeMatrix.from_bw_object(obj)
@@ -465,6 +488,17 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.temporal.setCurrentIndex(data.get("temporal correlation", 1) - 1)
         self.geographical.setCurrentIndex(data.get("geographical correlation", 1) - 1)
         self.technological.setCurrentIndex(data.get("further technological correlation", 1) - 1)
+
+    @Slot(name="meanToLoc")
+    def balance_mean_with_loc(self):
+        if self.loc.text():
+            self.mean.setText(str(np.exp(float(self.loc.text()))))
+
+    @Slot(name="locToMean")
+    def balance_loc_with_mean(self):
+        loc_val = str(np.log(float(self.mean.text())))
+        self.loc.setText(loc_val)
+        self.setField("loc", loc_val)
 
     @Slot(name="constructPedigreeMatrix")
     def check_complete(self) -> None:
