@@ -274,9 +274,10 @@ class MonteCarloPlot(Plot):
 
 
 class SimpleDistributionPlot(Plot):
-    def plot(self, data: np.ndarray):
+    def plot(self, data: np.ndarray, label: str = "Mean of amount"):
         self.reset_plot()
-        sns.distplot(data, ax=self.ax)
+        sns.distplot(data, axlabel=label, ax=self.ax)
+        self.ax.set_ylabel("Probability density")
         _, height = self.canvas.get_width_height()
         self.setMinimumHeight(height / 2)
         self.canvas.draw()
