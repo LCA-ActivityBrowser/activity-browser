@@ -51,6 +51,21 @@ class PedigreeMatrix(object):
             matrix.factors[cls.labels[index]] = factor
         return matrix
 
+    @classmethod
+    def from_dict(cls, data: dict) -> 'PedigreeMatrix':
+        return cls.from_numbers(
+            tuple(data.get(k) for k in cls.labels if k in data)
+        )
+
+    @classmethod
+    def from_bw_object(cls, obj) -> 'PedigreeMatrix':
+        if hasattr(obj, "pedigree"):
+            return cls.from_dict(obj.get("pedigree"))
+        elif hasattr(obj, "data") and "pedigree" in obj.data:
+            return cls.from_dict(obj.data.get("pedigree"))
+        else:
+            raise AssertionError("Could not find pedigree in object")
+
     def calculate(self, basic_uncertainty: float = 1.,
                   as_geometric_sigma: bool = False) -> float:
         """ Calculates the sigma or geometric standard deviation from the factors.

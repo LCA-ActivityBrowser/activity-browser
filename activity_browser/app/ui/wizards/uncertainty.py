@@ -326,6 +326,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFinalPage(True)
+        self.matrix = None
 
         box = QtWidgets.QGroupBox("Fill out pedigree matrix")
         box.setStyleSheet(style_group_box.border_title)
@@ -403,11 +404,12 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         # if the parent contains an 'obj' with uncertainty, extract data
         self.setField("uncertainty type", 2)
         obj = getattr(self.wizard(), "obj")
-        if isinstance(obj, ExchangeProxyBase) and "pedigree" in obj:
-            self.pedigree = obj.get("pedigree", {})
-        # Otherwise, try and get something from the parameter.
-        elif isinstance(obj, ParameterBase) and "pedigree" in obj.data:
-            self.pedigree = obj.data.get("pedigree", {})
+        try:
+            matrix = PedigreeMatrix.from_bw_object(obj)
+            self.pedigree = matrix.factors
+        except AssertionError as e:
+            print("Could not extract pedigree data: {}".format(str(e)))
+            self.pedigree = {}
         self.check_complete()
 
     def nextId(self):
@@ -434,8 +436,8 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
 
     @Slot(name="constructPedigreeMatrix")
     def check_complete(self) -> None:
-        matrix = PedigreeMatrix.from_numbers(self.pedigree)
-        self.setField("scale", matrix.calculate())
+        self.matrix = PedigreeMatrix.from_numbers(self.pedigree)
+        self.setField("scale", self.matrix.calculate())
         self.generate_plot()
 
     @Slot(name="regenPlot")
