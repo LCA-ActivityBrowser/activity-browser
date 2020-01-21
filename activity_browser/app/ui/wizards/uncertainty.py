@@ -94,6 +94,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.dist = None
         self.complete = False
         self.goto_pedigree = False
+        self.previous = None
 
         # Selection of uncertainty distribution.
         box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
@@ -111,8 +112,8 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         box1.setLayout(box_layout)
 
         # Set values for selected uncertainty distribution.
-        box2 = QtWidgets.QGroupBox("Fill out or change required parameters")
-        box2.setStyleSheet(style_group_box.border_title)
+        self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
+        self.field_box.setStyleSheet(style_group_box.border_title)
         self.locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
         self.locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
         self.validator = QtGui.QDoubleValidator()
@@ -120,7 +121,12 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.loc = QtWidgets.QLineEdit()
         self.loc.setValidator(self.validator)
         self.loc.textEdited.connect(self.generate_plot)
-        self.loc_label = QtWidgets.QLabel("Mean/loc:")
+        self.loc.textEdited.connect(self.balance_mean_with_loc)
+        self.loc_label = QtWidgets.QLabel("Loc:")
+        self.mean = QtWidgets.QLineEdit()
+        self.mean.setValidator(self.validator)
+        self.mean.textEdited.connect(self.balance_loc_with_mean)
+        self.mean_label = QtWidgets.QLabel("Mean:")
         self.scale = QtWidgets.QLineEdit()
         self.scale.setValidator(self.validator)
         self.scale.textEdited.connect(self.generate_plot)
@@ -141,17 +147,19 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.negative.setChecked(False)
         self.negative.setHidden(True)
         box_layout = QtWidgets.QGridLayout()
-        box_layout.addWidget(self.loc_label, 0, 0, 2, 1)
-        box_layout.addWidget(self.loc, 0, 1, 2, 2)
-        box_layout.addWidget(self.scale_label, 2, 0, 2, 1)
-        box_layout.addWidget(self.scale, 2, 1, 2, 2)
-        box_layout.addWidget(self.shape_label, 4, 0, 2, 1)
-        box_layout.addWidget(self.shape, 4, 1, 2, 2)
-        box_layout.addWidget(self.min_label, 6, 0, 2, 1)
-        box_layout.addWidget(self.minimum, 6, 1, 2, 2)
-        box_layout.addWidget(self.max_label, 8, 0, 2, 1)
-        box_layout.addWidget(self.maximum, 8, 1, 2, 2)
-        box2.setLayout(box_layout)
+        box_layout.addWidget(self.loc_label, 0, 0)
+        box_layout.addWidget(self.loc, 0, 1)
+        box_layout.addWidget(self.mean_label, 0, 3)
+        box_layout.addWidget(self.mean, 0, 4)
+        box_layout.addWidget(self.scale_label, 2, 0)
+        box_layout.addWidget(self.scale, 2, 1)
+        box_layout.addWidget(self.shape_label, 4, 0)
+        box_layout.addWidget(self.shape, 4, 1)
+        box_layout.addWidget(self.min_label, 6, 0)
+        box_layout.addWidget(self.minimum, 6, 1)
+        box_layout.addWidget(self.max_label, 8, 0)
+        box_layout.addWidget(self.maximum, 8, 1)
+        self.field_box.setLayout(box_layout)
 
         self.registerField("loc", self.loc, "text")
         self.registerField("scale", self.scale, "text")
@@ -164,7 +172,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(box1)
-        layout.addWidget(box2)
+        layout.addWidget(self.field_box)
         layout.addWidget(self.plot)
         self.setLayout(layout)
 
@@ -184,6 +192,29 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         if "max" in params:
             self.max_label.setHidden(hide)
             self.maximum.setHidden(hide)
+
+    def special_lognormal_handling(self):
+        """Special kansas city shuffling for this distribution."""
+        if self.dist is None:
+            return
+        if self.dist.id == LognormalUncertainty.id:
+            self.mean.setHidden(False)
+            self.mean_label.setHidden(False)
+            self.loc_label.setText("Loc:")
+            self.loc_label.setToolTip("Lognormal of the mean.")
+            # Convert 'mean' to lognormal mean
+            if self.previous and self.previous != LognormalUncertainty.id:
+                self.loc.setText(str(np.log(float(self.loc.text()))))
+        else:
+            self.mean.setHidden(True)
+            self.mean_label.setHidden(True)
+            self.loc_label.setText("Mean:")
+            self.loc_label.setToolTip("")
+            # Convert lognormal mean to mean, otherwise do nothing
+            if self.previous and self.previous == LognormalUncertainty.id:
+                self.loc.setText(str(np.exp(float(self.loc.text()))))
+        self.previous = self.dist.id
+        self.field_box.updateGeometry()
 
     @QtCore.Slot(name="changeDistribution")
     def distribution_selection(self):
@@ -209,6 +240,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         elif self.dist.id in {8, 9, 10, 11, 12}:
             self.hide_param("min", "max")
             self.hide_param("loc", "scale", "shape", hide=False)
+        self.special_lognormal_handling()
         self.generate_plot()
 
     @property
@@ -225,6 +257,14 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         elif self.dist.id in {8, 9, 10, 11, 12}:
             return self.loc, self.scale, self.shape
 
+    @QtCore.Slot(name="meanToLoc")
+    def balance_mean_with_loc(self):
+        self.mean.setText(str(np.exp(float(self.loc.text()))))
+
+    @QtCore.Slot(name="locToMean")
+    def balance_loc_with_mean(self):
+        self.loc.setText(str(np.log(float(self.mean.text()))))
+
     def cleanupPage(self):
         """Remove values from fields and reset the plot."""
         super().cleanupPage()
@@ -233,6 +273,9 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         self.distribution_selection()
+        # Set the mean field if the loc field is not empty.
+        if self.loc:
+            self.mean.setText(str(np.exp(np.asarray(self.loc.text(), float))))
 
     def nextId(self):
         if self.goto_pedigree:
