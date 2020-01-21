@@ -97,6 +97,28 @@ class UncertaintyWizard(QtWidgets.QWizard):
         if (loc is None or loc == "nan") and hasattr(self.obj, "amount"):
             self.setField("loc", str(np.log(self.obj.amount)))
 
+    def extract_lognormal_loc(self) -> None:
+        """ Special handling for looking at the uncertainty['loc'] field
+
+        This should only be used when the 'original' set uncertainty is
+        lognormal.
+        """
+        if self.obj is None:
+            return
+        mean = getattr(self.obj, "amount", 1.0)
+        loc = None
+        if isinstance(self.obj, ExchangeProxyBase):
+            loc = self.obj.uncertainty.get("loc", None)
+            if loc and self.obj.uncertainty_type != LognormalUncertainty:
+                loc = np.log(loc)
+        elif isinstance(self.obj, ParameterBase):
+            loc = self.obj.data.get("loc", None)
+            if loc and self.obj.data.get("uncertainty type", 0) != LognormalUncertainty.id:
+                loc = np.log(loc)
+        if loc is None:
+            loc = np.log(mean)
+        self.setField("loc", str(loc))
+
 
 class UncertaintyTypePage(QtWidgets.QWizardPage):
     """Present a list of uncertainty types directly retrieved from the `stats_arrays` package.
@@ -217,15 +239,18 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
             self.loc_label.setToolTip("Lognormal of the mean.")
             # Convert 'mean' to lognormal mean
             if self.previous and self.previous != LognormalUncertainty.id:
-                self.loc.setText(str(np.log(float(self.loc.text()))))
+                self.wizard().extract_lognormal_loc()
+                self.balance_mean_with_loc()
         else:
             self.mean.setHidden(True)
             self.mean_label.setHidden(True)
             self.loc_label.setText("Mean:")
             self.loc_label.setToolTip("")
-            # Convert lognormal mean to mean, otherwise do nothing
+            # Override the lognormal mean and copy the amount in its place
             if self.previous and self.previous == LognormalUncertainty.id:
-                self.loc.setText(str(np.exp(float(self.loc.text()))))
+                obj = getattr(self.wizard(), "obj")
+                if obj:
+                    self.loc.setText(str(getattr(obj, "amount", 1)))
         self.previous = self.dist.id
         self.field_box.updateGeometry()
 
@@ -281,7 +306,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
     def initializePage(self):
         self.distribution_selection()
         # Set the mean field if the loc field is not empty.
-        if self.loc:
+        if self.loc.text():
             self.mean.setText(str(np.exp(np.asarray(self.loc.text(), float))))
 
     def nextId(self):
