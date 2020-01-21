@@ -4,6 +4,7 @@ from typing import Union
 from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase
 from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import Signal, Slot
 import numpy as np
 from stats_arrays import LognormalUncertainty, uncertainty_choices as uc
 
@@ -31,6 +32,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         self.obj = unc_object
+        self.using_pedigree = False
 
         self.pedigree = PedigreeMatrixPage(self)
         self.type = UncertaintyTypePage(self)
@@ -40,9 +42,9 @@ class UncertaintyWizard(QtWidgets.QWizard):
             self.setPage(i, p)
         self.setStartId(self.TYPE)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setOption(QtWidgets.QWizard.IndependentPages, True)
 
         self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.update_uncertainty)
+        self.pedigree.enable_pedigree.connect(self.used_pedigree)
         self.extract_uncertainty()
 
     @property
@@ -57,7 +59,11 @@ class UncertaintyWizard(QtWidgets.QWizard):
             "negative": bool(self.field("negative")),
         }
 
-    @QtCore.Slot(name="modifyUncertainty")
+    @Slot(bool, name="togglePedigree")
+    def used_pedigree(self, toggle: bool) -> None:
+        self.using_pedigree = toggle
+
+    @Slot(name="modifyUncertainty")
     def update_uncertainty(self):
         if isinstance(self.obj, ExchangeProxyBase):
             signals.exchange_uncertainty_modified.emit(self.obj, self.uncertainty_info)
@@ -216,7 +222,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.previous = self.dist.id
         self.field_box.updateGeometry()
 
-    @QtCore.Slot(name="changeDistribution")
+    @Slot(name="changeDistribution")
     def distribution_selection(self):
         """Selected distribution and present the correct uncertainty parameters.
 
@@ -257,19 +263,13 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         elif self.dist.id in {8, 9, 10, 11, 12}:
             return self.loc, self.scale, self.shape
 
-    @QtCore.Slot(name="meanToLoc")
+    @Slot(name="meanToLoc")
     def balance_mean_with_loc(self):
         self.mean.setText(str(np.exp(float(self.loc.text()))))
 
-    @QtCore.Slot(name="locToMean")
+    @Slot(name="locToMean")
     def balance_loc_with_mean(self):
         self.loc.setText(str(np.log(float(self.mean.text()))))
-
-    def cleanupPage(self):
-        """Remove values from fields and reset the plot."""
-        super().cleanupPage()
-        self.plot.reset_plot()
-        self.plot.canvas.draw()
 
     def initializePage(self):
         self.distribution_selection()
@@ -285,12 +285,12 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
     def isComplete(self):
         return self.complete
 
-    @QtCore.Slot(name="gotoPedigreePage")
+    @Slot(name="gotoPedigreePage")
     def pedigree_page(self) -> None:
         self.goto_pedigree = True
         self.wizard().next()
 
-    @QtCore.Slot(name="regenPlot")
+    @Slot(name="regenPlot")
     def generate_plot(self) -> None:
         """Called whenever a value changes, (re)generate the plot.
 
@@ -321,6 +321,8 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
     'Empirically based uncertainty factors for the pedigree matrix in ecoinvent' (2016)
     doi: 10.1007/s11367-013-0670-5
     """
+    enable_pedigree = Signal(bool)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFinalPage(True)
@@ -394,6 +396,9 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         layout.addWidget(self.plot)
         self.setLayout(layout)
 
+    def cleanupPage(self):
+        self.enable_pedigree.emit(False)
+
     def initializePage(self):
         # if the parent contains an 'obj' with uncertainty, extract data
         self.setField("uncertainty type", 2)
@@ -427,13 +432,13 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.geographical.setCurrentIndex(data.get("geographical correlation", 1) - 1)
         self.technological.setCurrentIndex(data.get("further technological correlation", 1) - 1)
 
-    @QtCore.Slot(name="constructPedigreeMatrix")
+    @Slot(name="constructPedigreeMatrix")
     def check_complete(self) -> None:
         matrix = PedigreeMatrix.from_numbers(self.pedigree)
         self.setField("scale", matrix.calculate())
         self.generate_plot()
 
-    @QtCore.Slot(name="regenPlot")
+    @Slot(name="regenPlot")
     def generate_plot(self) -> None:
         """Called whenever a value changes, (re)generate the plot.
 
@@ -444,3 +449,4 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         )
         if not np.any(np.isnan(data)):
             self.plot.plot(data)
+        self.enable_pedigree.emit(True)
