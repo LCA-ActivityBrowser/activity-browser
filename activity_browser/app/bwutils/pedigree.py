@@ -78,5 +78,8 @@ class PedigreeMatrix(object):
         assert self.factors, "Must provide Pedigree Matrix factors"
         return [VERSION_2[key][index - 1] for key, index in self.factors.items()]
 
+    def factors_as_tuple(self):
+        return tuple(self.factors[k] for k in self.labels if k in self.factors)
+
     def __repr__(self) -> str:
         return "Empty Pedigree Matrix" if not self.factors else pformat(self.factors)

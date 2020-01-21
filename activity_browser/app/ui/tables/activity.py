@@ -15,6 +15,7 @@ from .views import ABDataFrameEdit, dataframe_sync
 from ..icons import qicons
 from ..wizards import UncertaintyWizard
 from ...signals import signals
+from ...bwutils import PedigreeMatrix
 from ...bwutils.commontasks import AB_names_to_bw_keys
 
 
@@ -307,12 +308,13 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
-        self.setItemDelegateForColumn(7, FloatDelegate(self))
+        self.setItemDelegateForColumn(7, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
         self.setItemDelegateForColumn(11, FloatDelegate(self))
-        self.setItemDelegateForColumn(12, FormulaDelegate(self))
+        self.setItemDelegateForColumn(12, FloatDelegate(self))
+        self.setItemDelegateForColumn(13, FormulaDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
         self.drag_model = True
@@ -322,7 +324,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         columns = super().df_columns
         start = columns[:columns.index("Formula")]
         end = columns[columns.index("Formula"):]
-        return start + self.UNCERTAINTY + end
+        return start + ["pedigree"] + self.UNCERTAINTY + end
 
     def create_row(self, exchange: ExchangeProxyBase) -> (dict, object):
         row, adj_act = super().create_row(exchange)
@@ -334,6 +336,11 @@ class TechnosphereExchangeTable(BaseExchangeTable):
             "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
+        try:
+            matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
+            row.update({"pedigree": matrix.factors_as_tuple()})
+        except AssertionError:
+            row.update({"pedigree": None})
         row.update({
             k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
         })
@@ -349,6 +356,8 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
         cols = self.df_columns
+        self.setColumnHidden(cols.index("Uncertainty"), not show)
+        self.setColumnHidden(cols.index("pedigree"), not show)
         for c in self.UNCERTAINTY:
             self.setColumnHidden(cols.index(c), not show)
 
@@ -387,12 +396,13 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(5, UncertaintyDelegate(self))
-        self.setItemDelegateForColumn(6, FloatDelegate(self))
+        self.setItemDelegateForColumn(6, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(7, FloatDelegate(self))
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
-        self.setItemDelegateForColumn(11, FormulaDelegate(self))
+        self.setItemDelegateForColumn(11, FloatDelegate(self))
+        self.setItemDelegateForColumn(12, FormulaDelegate(self))
         self.table_name = "biosphere"
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
 
@@ -401,7 +411,7 @@ class BiosphereExchangeTable(BaseExchangeTable):
         columns = super().df_columns
         start = columns[:columns.index("Formula")]
         end = columns[columns.index("Formula"):]
-        return start + self.UNCERTAINTY + end
+        return start + ["pedigree"] + self.UNCERTAINTY + end
 
     def create_row(self, exchange) -> (dict, object):
         row, adj_act = super().create_row(exchange)
@@ -412,6 +422,11 @@ class BiosphereExchangeTable(BaseExchangeTable):
             "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
+        try:
+            matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
+            row.update({"pedigree": matrix.factors_as_tuple()})
+        except AssertionError:
+            row.update({"pedigree": None})
         row.update({
             k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
         })
@@ -425,6 +440,8 @@ class BiosphereExchangeTable(BaseExchangeTable):
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
         cols = self.df_columns
+        self.setColumnHidden(cols.index("Uncertainty"), not show)
+        self.setColumnHidden(cols.index("pedigree"), not show)
         for c in self.UNCERTAINTY:
             self.setColumnHidden(cols.index(c), not show)
 
