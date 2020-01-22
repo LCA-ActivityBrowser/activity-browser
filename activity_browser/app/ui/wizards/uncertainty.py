@@ -155,12 +155,15 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.validator.setLocale(self.locale)
         self.loc = QtWidgets.QLineEdit()
         self.loc.setValidator(self.validator)
-        self.loc.textEdited.connect(self.generate_plot)
         self.loc.textEdited.connect(self.balance_mean_with_loc)
+        self.loc.textEdited.connect(self.check_negative)
+        self.loc.textEdited.connect(self.generate_plot)
         self.loc_label = QtWidgets.QLabel("Loc:")
         self.mean = QtWidgets.QLineEdit()
         self.mean.setValidator(self.validator)
         self.mean.textEdited.connect(self.balance_loc_with_mean)
+        self.mean.textEdited.connect(self.check_negative)
+        self.mean.textEdited.connect(self.generate_plot)
         self.mean_label = QtWidgets.QLabel("Mean:")
         self.scale = QtWidgets.QLineEdit()
         self.scale.setValidator(self.validator)
@@ -295,26 +298,40 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         elif self.dist.id in {8, 9, 10, 11, 12}:
             return self.loc, self.scale, self.shape
 
-    @Slot(name="meanToLoc")
+    @Slot(name="locToMean")
     def balance_mean_with_loc(self):
         self.mean.setText(str(np.exp(float(self.loc.text()))))
 
-    @Slot(name="locToMean")
+    @Slot(name="meanToLoc")
     def balance_loc_with_mean(self):
-        self.loc.setText(str(np.log(float(self.mean.text()))))
+        val_str = self.mean.text()
+        if val_str.startswith("-"):
+            val_str = val_str.lstrip("-")
+        self.loc.setText(str(np.log(float(val_str))))
 
-    def initializePage(self):
+    @Slot(name="testValueNegative")
+    def check_negative(self) -> None:
+        """Determine which QLineEdit to use to set the negative value.
+
+        Another special edge-case for the lognormal distribution.
+        """
+        if self.dist.id == LognormalUncertainty.id and self.mean.text().startswith("-"):
+            self.setField("negative", True)
+        else:
+            self.setField("negative", False)
+
+    def initializePage(self) -> None:
         self.distribution_selection()
         # Set the mean field if the loc field is not empty.
         if self.loc.text():
-            self.mean.setText(str(np.exp(np.asarray(self.loc.text(), float))))
+            self.mean.setText(str(np.exp(float(self.loc.text()))))
 
-    def nextId(self):
+    def nextId(self) -> int:
         if self.goto_pedigree:
             return UncertaintyWizard.PEDIGREE
         return -1
 
-    def isComplete(self):
+    def isComplete(self) -> bool:
         return self.complete
 
     @Slot(name="gotoPedigreePage")
