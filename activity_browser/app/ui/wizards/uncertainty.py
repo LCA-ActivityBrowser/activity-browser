@@ -323,9 +323,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
     def initializePage(self) -> None:
         self.distribution_selection()
-        # Set the mean field if the loc field is not empty.
-        if self.loc.text():
-            self.mean.setText(str(np.exp(float(self.loc.text()))))
+        self.balance_mean_with_loc()
 
     def nextId(self) -> int:
         if self.goto_pedigree:
@@ -512,6 +510,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
 
     @Slot(name="locToMean")
     def balance_mean_with_loc(self):
+        self.setField("loc", self.loc.text())
         if self.loc.text():
             self.mean.setText(str(np.exp(float(self.loc.text()))))
 
