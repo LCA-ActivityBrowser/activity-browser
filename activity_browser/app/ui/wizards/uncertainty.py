@@ -388,7 +388,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.loc.setValidator(self.validator)
         self.loc.textEdited.connect(self.balance_mean_with_loc)
         self.loc.textEdited.connect(self.check_negative)
-        self.loc.textChanged.connect(self.check_complete)
+        self.loc.textEdited.connect(self.check_complete)
         self.mean = QtWidgets.QLineEdit()
         self.mean.setValidator(self.validator)
         self.mean.textEdited.connect(self.balance_loc_with_mean)
