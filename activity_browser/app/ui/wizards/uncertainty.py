@@ -238,8 +238,8 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         if self.dist.id == LognormalUncertainty.id:
             self.mean.setHidden(False)
             self.mean_label.setHidden(False)
-            self.loc_label.setText("Loc:")
-            self.loc_label.setToolTip("Lognormal of the mean.")
+            self.loc_label.setText("Loc (ln(mean)):")
+            self.loc_label.setToolTip("Natural logarithm of mean")
             # Convert 'mean' to lognormal mean
             if self.previous and self.previous != LognormalUncertainty.id:
                 self.wizard().extract_lognormal_loc()
@@ -300,7 +300,8 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
     @Slot(name="locToMean")
     def balance_mean_with_loc(self):
-        self.mean.setText(str(np.exp(float(self.loc.text()))))
+        if self.loc.text():
+            self.mean.setText(str(np.exp(float(self.loc.text()))))
 
     @Slot(name="meanToLoc")
     def balance_loc_with_mean(self):
@@ -386,12 +387,15 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.loc = QtWidgets.QLineEdit()
         self.loc.setValidator(self.validator)
         self.loc.textEdited.connect(self.balance_mean_with_loc)
+        self.loc.textEdited.connect(self.check_negative)
         self.loc.textChanged.connect(self.check_complete)
         self.mean = QtWidgets.QLineEdit()
         self.mean.setValidator(self.validator)
         self.mean.textEdited.connect(self.balance_loc_with_mean)
+        self.mean.textEdited.connect(self.check_negative)
+        self.mean.textEdited.connect(self.check_complete)
         box_layout = QtWidgets.QGridLayout()
-        box_layout.addWidget(QtWidgets.QLabel("Loc:"), 0, 0)
+        box_layout.addWidget(QtWidgets.QLabel("Loc (ln(mean)):"), 0, 0)
         box_layout.addWidget(self.loc, 0, 1)
         box_layout.addWidget(QtWidgets.QLabel("Mean:"), 0, 3)
         box_layout.addWidget(self.mean, 0, 4)
@@ -506,17 +510,30 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.geographical.setCurrentIndex(data.get("geographical correlation", 1) - 1)
         self.technological.setCurrentIndex(data.get("further technological correlation", 1) - 1)
 
-    @Slot(name="meanToLoc")
+    @Slot(name="locToMean")
     def balance_mean_with_loc(self):
         if self.loc.text():
             self.mean.setText(str(np.exp(float(self.loc.text()))))
 
-    @Slot(name="locToMean")
+    @Slot(name="meanToLoc")
     def balance_loc_with_mean(self):
-        loc_val = str(np.log(float(self.mean.text())))
+        val_str = self.mean.text()
+        if val_str.startswith("-"):
+            val_str = val_str.lstrip("-")
+        loc_val = str(np.log(float(val_str)))
         self.loc.setText(loc_val)
         self.setField("loc", loc_val)
-        self.check_complete()
+
+    @Slot(name="testValueNegative")
+    def check_negative(self) -> None:
+        """Determine which QLineEdit to use to set the negative value.
+
+        Another special edge-case for the lognormal distribution.
+        """
+        if self.mean.text().startswith("-"):
+            self.setField("negative", True)
+        else:
+            self.setField("negative", False)
 
     @Slot(name="constructPedigreeMatrix")
     def check_complete(self) -> None:
