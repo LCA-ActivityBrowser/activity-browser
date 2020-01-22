@@ -15,6 +15,9 @@ smoothly into the related uncertainty distributions.
 import math
 from pprint import pformat
 
+from bw2data.parameters import ParameterBase
+from bw2data.proxies import ExchangeProxyBase
+
 VERSION_2 = {
     "reliability": (1., 1.54, 1.61, 1.69, 1.69),
     "completeness": (1., 1.03, 1.04, 1.08, 1.08),
@@ -59,9 +62,9 @@ class PedigreeMatrix(object):
 
     @classmethod
     def from_bw_object(cls, obj) -> 'PedigreeMatrix':
-        if hasattr(obj, "pedigree"):
+        if isinstance(obj, ExchangeProxyBase):
             return cls.from_dict(obj.get("pedigree"))
-        elif hasattr(obj, "data") and "pedigree" in obj.data:
+        elif isinstance(obj, ParameterBase) and "pedigree" in obj.data:
             return cls.from_dict(obj.data.get("pedigree"))
         else:
             raise AssertionError("Could not find pedigree in object")

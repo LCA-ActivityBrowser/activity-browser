@@ -499,6 +499,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         loc_val = str(np.log(float(self.mean.text())))
         self.loc.setText(loc_val)
         self.setField("loc", loc_val)
+        self.check_complete()
 
     @Slot(name="constructPedigreeMatrix")
     def check_complete(self) -> None:
