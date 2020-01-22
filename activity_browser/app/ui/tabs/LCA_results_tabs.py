@@ -1184,16 +1184,16 @@ class GSATab(NewAnalysisTab):
         self.cutoff_biosphere.setFixedWidth(40)
         self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
 
-        # exclude Pedigree
-        self.checkbox_pedigree = QCheckBox('Include Pedigree uncertainties')
-        self.checkbox_pedigree.setChecked(True)
+        # # exclude Pedigree
+        # self.checkbox_pedigree = QCheckBox('Include Pedigree uncertainties')
+        # self.checkbox_pedigree.setChecked(True)
 
         # arrange layout
         self.hlayout_row2.addWidget(self.label_cutoff_technosphere)
         self.hlayout_row2.addWidget(self.cutoff_technosphere)
         self.hlayout_row2.addWidget(self.label_cutoff_biosphere)
         self.hlayout_row2.addWidget(self.cutoff_biosphere)
-        self.hlayout_row2.addWidget(self.checkbox_pedigree)
+        # self.hlayout_row2.addWidget(self.checkbox_pedigree)
         self.hlayout_row2.addStretch(1)
 
         # OVERALL LAYOUT OF SETTINGS

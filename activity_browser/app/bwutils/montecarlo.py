@@ -53,8 +53,6 @@ class MonteCarloLCA(object):
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
-
-
     def load_data(self):
         self.lca.load_lci_data()
         self.lca.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
@@ -79,7 +77,6 @@ class MonteCarloLCA(object):
         self.A_matrices = list()
         self.B_matrices = list()
         self.CF_dict = defaultdict(list)
-
 
         for iteration in range(iterations):
             if not hasattr(self.lca, "tech_rng"):
