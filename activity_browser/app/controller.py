@@ -74,6 +74,7 @@ class Controller(object):
         signals.exchange_uncertainty_modified.connect(self.modify_exchange_uncertainty)
         signals.exchange_pedigree_modified.connect(self.modify_exchange_pedigree)
         # Parameters
+        signals.parameter_modified.connect(self.modify_parameter)
         signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
         signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
         # Calculation Setups
@@ -544,6 +545,16 @@ class Controller(object):
         signals.database_changed.emit(exc['output'][0])
 
 # PARAMETERS
+    @staticmethod
+    @Slot(object, str, object, name="modifyParameter")
+    def modify_parameter(param: ParameterBase, field: str, value: object) -> None:
+        if hasattr(param, field):
+            setattr(param, field, value)
+        else:
+            param.data[field] = value
+        param.save()
+        signals.parameters_changed.emit()
+
     @staticmethod
     @Slot(object, object, name="modifyParameterUncertainty")
     def modify_parameter_uncertainty(param: ParameterBase, uncertain: dict) -> None:

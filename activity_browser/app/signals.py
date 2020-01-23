@@ -63,6 +63,8 @@ class Signals(QObject):
     parameter_renamed = Signal(str, str, str)  # old, group, new
     # Pass the key of the activity holding the exchange
     exchange_formula_changed = Signal(tuple)
+    # Parameter, field, value for field
+    parameter_modified = Signal(object, str, object)
     # Parameter object and uncertainty dictionary
     parameter_uncertainty_modified = Signal(object, object)
     parameter_pedigree_modified = Signal(object, object)
