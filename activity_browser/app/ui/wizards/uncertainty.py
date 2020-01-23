@@ -247,7 +247,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
             self.loc_label.setText("Loc (ln(mean)):")
             self.loc_label.setToolTip("Natural logarithm of mean")
             # Convert 'mean' to lognormal mean
-            if self.previous and self.previous != LognormalUncertainty.id:
+            if self.previous is not None and self.previous != LognormalUncertainty.id:
                 self.wizard().extract_lognormal_loc()
                 self.balance_mean_with_loc()
         else:
