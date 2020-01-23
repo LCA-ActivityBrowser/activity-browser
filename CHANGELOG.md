@@ -4,6 +4,21 @@
 
 ### Added
 
+- ([#352](https://github.com/LCA-ActivityBrowser/activity-browser/pull/352))
+    Added uncertainty wizard, which guides users in adding or changing the
+    uncertainty of a process exchange or parameter. This addition includes
+    some changes in how uncertainty is shown, by adding additional columns
+    and hiding all uncertainty columns in exchange and parameter tables
+    by default.
+- ([cf04f2e](https://github.com/LCA-ActivityBrowser/activity-browser/commit/cf04f2eff61b3bffb92c2334d2fe0b742cd3c84d))
+    A link to a scientific publication on the Activity Browser is now included
+    in the readme.
+- ([#341](https://github.com/LCA-ActivityBrowser/activity-browser/pull/341))
+    Added the brightway2 `bw2test` decorator as a pytest fixture, allowing
+    tests which use that fixture to be performed in a new and completely
+    separate environment which is torn down after the test completes. Also
+    includes tests for the new presamples Qt objects and some of the
+    on-demand Qt widgets.
 - ([#330](https://github.com/LCA-ActivityBrowser/activity-browser/pull/330))
     Added scenario analysis! It is now possible to create scenarios for
     parameters and store the calculated new exchange amounts for each
@@ -17,7 +32,17 @@
 
 ### Changed
 
-
+- ([9352758](https://github.com/LCA-ActivityBrowser/activity-browser/commit/935275809945ee4f3a6c783e0f0062c9e5ec4922))
+    Always show the MonteCarlo tab in LCA results, show a warning when
+    running MonteCarlo on databases with incorrect uncertainty data. 
+- ([#348](https://github.com/LCA-ActivityBrowser/activity-browser/pull/348))
+    Moved metadata-changing signal connections out of the `MetaDataStore` class
+    and into the `Controller` class.
+- ([#345](https://github.com/LCA-ActivityBrowser/activity-browser/pull/345),
+    [#349](https://github.com/LCA-ActivityBrowser/activity-browser/pull/349))
+    Improvements to the (code) documentation and layout of the LCA results tab and
+    added tooltips for many of the related buttons. With thanks to
+    [@e4BdSBmUzHowFico5Ktn](https://github.com/e4BdSBmUzHowFico5Ktn).
 - ([#322](https://github.com/LCA-ActivityBrowser/activity-browser/pull/322))
     Updating the biosphere through the menu-option will now warn the user
     that the action is not reversible.
@@ -31,9 +56,12 @@
 
 ### Fixed
 
-- ([51e073e](https://github.com/LCA-ActivityBrowser/activity-browser/commit/51e073ec799a1b2c0c17a6776563c50b2802f420))
-    Temporary patch for the aggregation issue, dataframe is now correctly
-    created when a single functional unit is passed into the calculation setup.
+- ([#344](https://github.com/LCA-ActivityBrowser/activity-browser/pull/344),
+    [#347](https://github.com/LCA-ActivityBrowser/activity-browser/pull/347),
+    [#351](https://github.com/LCA-ActivityBrowser/activity-browser/pull/351))
+    Numerous fixes related to the functioning of the dataset/database import wizard.
+    Includes: a fix for [#333](https://github.com/LCA-ActivityBrowser/activity-browser/issues/333)
+    and fixes aggregation of LCA results [#331](https://github.com/LCA-ActivityBrowser/activity-browser/issues/331).
 - ([#340](https://github.com/LCA-ActivityBrowser/activity-browser/pull/340))
     It is now again possible to open multiple activities at once when selecting
     them from the database table.
@@ -44,10 +72,6 @@
 - ([b08b9a8](https://github.com/LCA-ActivityBrowser/activity-browser/commit/b08b9a8351a6d2d4af54eab1e98f9b29e1a2ceca))
     Fixed typo, clarified division button, use default value of 1.0 for
     new parameters to avoid sudden division by 0 errors.
-- ([#335](https://github.com/LCA-ActivityBrowser/activity-browser/pull/335))
-    Change to PySide2 has caused the signal/slot mechanics to be a bit more
-    rigid in what it accepts and ignores. Changed the MetaDataStore class to
-    inherit from QObject to ensure signals are properly handled.
 - ([#327](https://github.com/LCA-ActivityBrowser/activity-browser/pull/327))
     Indexes in ParameterWizard now correctly set. Uncertainty type is
     grabbed from the exchanges instead of processes, as it should be.
