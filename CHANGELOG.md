@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.5.0] - 2020-01-23
+
 ### Added
 
 - ([#352](https://github.com/LCA-ActivityBrowser/activity-browser/pull/352))
@@ -229,8 +231,8 @@
 - Major overhaul of the GUI. See [#218](https://github.com/LCA-ActivityBrowser/activity-browser/pull/218) for details.
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
-
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.4.0...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.0...HEAD
+[2.5.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.4...2.4.0
 [2.3.4]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.3...2.3.4
 [2.3.3]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.2...2.3.3
