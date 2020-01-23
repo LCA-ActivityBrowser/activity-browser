@@ -80,22 +80,30 @@ class UncertaintyWizard(QtWidgets.QWizard):
     def extract_uncertainty(self) -> None:
         """Used to extract possibly existing uncertainty information from the
         given exchange/parameter
+
+        Exchange objects have uncertainty shortcuts built in, other
+        objects which sometimes have uncertainty do not.
         """
-        if self.obj is None:
-            return
-        # If we start from an exchange, we can use a shortcut.
         if isinstance(self.obj, ExchangeProxyBase):
             for k, v in self.obj.uncertainty.items():
                 self.setField(k, v)
-        # Otherwise, try and get something from the parameter.
         elif isinstance(self.obj, ParameterBase):
             for key in (k for k in self.KEYS if k in self.obj.data):
                 self.setField(key, self.obj.data[key])
 
         # If no loc/mean value is set yet, convert the amount.
-        loc = self.field("loc")
-        if (loc is None or loc == "nan") and hasattr(self.obj, "amount"):
-            self.setField("loc", str(np.log(self.obj.amount)))
+        if not self.field("loc") or self.field("loc") == "nan":
+            val = getattr(self.obj, "amount", 1.0)
+            if self.field("uncertainty type") == LognormalUncertainty.id:
+                val = np.log(val)
+            self.setField("loc", str(val))
+        # If no sigma is set, default to 0
+        if not self.field("scale") or self.field("scale") == "nan":
+            self.setField("scale", "0")
+        # Let the other fields default to 'nan' if no values are set.
+        for f in ("shape", "maximum", "minimum"):
+            if not self.field(f):
+                self.setField(f, "nan")
 
     def extract_lognormal_loc(self) -> None:
         """ Special handling for looking at the uncertainty['loc'] field
@@ -350,7 +358,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
             (field.hasAcceptableInput() and field.text())
             for field in self.active_fields
         )
-        if self.complete:
+        if self.complete or self.dist.id in {0, 1}:
             data = self.dist.random_variables(
                 self.dist.from_dicts(self.wizard().uncertainty_info), 1000
             )
