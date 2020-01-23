@@ -68,6 +68,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """ Update the uncertainty information of the relevant object, optionally
         including a pedigree update.
         """
+        self.amount_mean_test()
         if isinstance(self.obj, ExchangeProxyBase):
             signals.exchange_uncertainty_modified.emit(self.obj, self.uncertainty_info)
             if self.using_pedigree:
@@ -126,6 +127,28 @@ class UncertaintyWizard(QtWidgets.QWizard):
         if loc is None:
             loc = np.log(mean)
         self.setField("loc", str(loc))
+
+    def amount_mean_test(self) -> None:
+        """Asks if the 'amount' of the object should be updated to account for
+         the user altering the loc/mean value.
+         """
+        if self.obj is None:
+            return
+        amount = getattr(self.obj, "amount")
+        mean = float(self.field("loc"))
+        if self.type.is_lognormal_uncertainty:
+            mean = np.exp(mean)
+        if not np.isclose(amount, mean):
+            choice = QtWidgets.QMessageBox.question(
+                self, "Amount differs from mean",
+                "Do you want to update the 'amount' field to match mean?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.Yes
+            )
+            if choice == QtWidgets.QMessageBox.Yes:
+                if isinstance(self.obj, ExchangeProxyBase):
+                    signals.exchange_modified.emit(self.obj, "amount", mean)
+                elif isinstance(self.obj, ParameterBase):
+                    signals.parameter_modified.emit(self.obj, "amount", mean)
 
 
 class UncertaintyTypePage(QtWidgets.QWizardPage):
