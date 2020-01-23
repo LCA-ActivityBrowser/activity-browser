@@ -40,7 +40,7 @@ Skip this step if you already have a working installation of anaconda or minicon
 
 ### Configure conda channels
 
-The activity-browser has many dependencies and you need to add four [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal and type the following (order is important):
+The activity-browser has many dependencies and you need to add five [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal and type the following (order is important):
 
 ```bash
 conda config --append channels conda-forge
@@ -162,7 +162,7 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - Chris Mutel (cmutel@gmail.com)
 
 ## Copyright
-Copyright (c) 2017-2019, Bernhard Steubing and Daniel de Koning (Leiden University), Adrian Haas (ETH Zurich)
+Copyright (c) 2017-2020, Bernhard Steubing and Daniel de Koning (Leiden University), Adrian Haas (ETH Zurich)
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut
 Copyright (c) 2015, Bernhard Steubing and ETH Zurich
 
