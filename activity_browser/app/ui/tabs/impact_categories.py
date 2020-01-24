@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
-from ..style import header
+from ..style import header, horizontal_line
 from ..tables import CFTable, MethodsTable
 from ..panels import ABTab
 from ...signals import signals
@@ -14,8 +14,15 @@ class CFsTab(QtWidgets.QWidget):
         self.method = method
         # Not visible when instantiated
         self.cf_table = CFTable()
+        self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
+        self.hide_uncertainty.setChecked(True)
+        self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
+        toolbar = QtWidgets.QToolBar(self)
+        toolbar.addWidget(self.hide_uncertainty)
         container = QtWidgets.QVBoxLayout()
         container.addWidget(header("Method: " + " - ".join(method)))
+        container.addWidget(horizontal_line())
+        container.addWidget(toolbar)
         container.addWidget(self.cf_table)
         container.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(container)

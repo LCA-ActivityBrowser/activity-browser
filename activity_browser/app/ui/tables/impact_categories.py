@@ -87,7 +87,7 @@ class CFTable(ABDataFrameView):
         method_data = method.load()
         self.dataframe = DataFrame([
             self.build_row(obj) for obj in method_data
-        ], columns=self.HEADERS)
+        ], columns=self.HEADERS + self.UNCERTAINTY)
 
     def build_row(self, method_cf) -> dict:
         key, amount = method_cf[:2]
@@ -112,5 +112,5 @@ class CFTable(ABDataFrameView):
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:
-        for i in (c for c in self.dataframe.columns if c in self.UNCERTAINTY):
-            self.setColumnHidden(self.dataframe.columns.get_loc(i), hide)
+        for c in self.UNCERTAINTY:
+            self.setColumnHidden(self.dataframe.columns.get_loc(c), hide)
