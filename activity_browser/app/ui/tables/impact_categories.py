@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numbers
+from typing import Optional
 
 import brightway2 as bw
 from pandas import DataFrame
@@ -75,14 +76,16 @@ class MethodsTable(ABDataFrameView):
 
 class CFTable(ABDataFrameView):
     COLUMNS = ["name", "categories", "amount", "unit", "uncertain"]
-    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertain"] + ["key"]
+    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertain"] + ["cf"]
     UNCERTAINTY = [
         "uncertainty type", "loc", "scale", "shape", "minimum", "maximum"
     ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.key_column = None
+        self.cf_column = None
+        self.method: Optional[bw.Method] = None
+        self.wizard: Optional[UncertaintyWizard] = None
         self.setVisible(False)
         self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
         self.setItemDelegateForColumn(7, FloatDelegate(self))
@@ -93,12 +96,11 @@ class CFTable(ABDataFrameView):
 
     @dataframe_sync
     def sync(self, method: tuple) -> None:
-        method = bw.Method(method)
-        method_data = method.load()
+        self.method = bw.Method(method)
         self.dataframe = DataFrame([
-            self.build_row(obj) for obj in method_data
+            self.build_row(obj) for obj in self.method.load()
         ], columns=self.HEADERS + self.UNCERTAINTY)
-        self.key_column = self.dataframe.columns.get_loc("key")
+        self.cf_column = self.dataframe.columns.get_loc("cf")
 
     def build_row(self, method_cf) -> dict:
         key, amount = method_cf[:2]
@@ -111,7 +113,7 @@ class CFTable(ABDataFrameView):
         if uncertain:
             row.update({k: amount.get(k, "nan") for k in self.UNCERTAINTY})
             amount = amount["amount"]
-        row.update({"Amount": amount, "Uncertain": uncertain, "key": key})
+        row.update({"Amount": amount, "Uncertain": uncertain, "cf": method_cf})
         return row
 
     def _resize(self) -> None:
@@ -135,6 +137,38 @@ class CFTable(ABDataFrameView):
     def modify_uncertainty(self) -> None:
         """Need to know both keys to select the correct exchange to update"""
         index = self.get_source_index(next(p for p in self.selectedIndexes()))
-        method_cf = self.model.index(index.row(), self.key_column).data()
-        wizard = UncertaintyWizard(method_cf, self)
-        wizard.show()
+        method_cf = self.dataframe.iat[index.row(), self.cf_column]
+        self.wizard = UncertaintyWizard(method_cf, self)
+        self.wizard.complete.connect(self.modify_cf)
+        self.wizard.show()
+
+    @Slot(tuple, object, name="modifyCf")
+    def modify_cf(self, cf: tuple, uncertainty: dict) -> None:
+        """
+        acidification potential
+        """
+        key, maybe_uc = cf
+        if isinstance(maybe_uc, dict):
+            maybe_uc.update(uncertainty)
+            new_cf = (key, maybe_uc)
+        else:
+            uncertainty["amount"] = maybe_uc
+            new_cf = (key, uncertainty)
+        self.modify_method_with_cf(new_cf)
+
+    @Slot(tuple, name="modifyMethodWithCf")
+    def modify_method_with_cf(self, cf: tuple) -> None:
+        """ Take the given CF tuple, add it to the method object stored in
+        `self.method` and call .write() & .process() to finalize.
+
+        NOTE: if the flow key matches one of the CFs in method, that CF
+        will be edited, if not, a new CF will be added to the method.
+        """
+        cfs = self.method.load()
+        idx = next((i for i, c in enumerate(cfs) if c[0] == cf[0]), None)
+        if idx is None:
+            cfs.append(cf)
+        else:
+            cfs[idx] = cf
+        self.method.write(cfs)
+        self.sync(self.method.name)
