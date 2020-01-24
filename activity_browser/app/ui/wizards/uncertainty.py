@@ -28,6 +28,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
     TYPE = 0
     PEDIGREE = 1
 
+    complete = Signal(tuple, object)  # feed the CF uncertainty back to the origin
+
     def __init__(self, unc_object: Union[ExchangeProxyBase, ParameterBase], parent=None):
         super().__init__(parent)
 
@@ -77,6 +79,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
             signals.parameter_uncertainty_modified.emit(self.obj, self.uncertainty_info)
             if self.using_pedigree:
                 signals.parameter_pedigree_modified.emit(self.obj, self.pedigree.matrix.factors)
+        elif isinstance(self.obj, tuple):
+            self.complete.emit(self.obj, self.uncertainty_info)
 
     def extract_uncertainty(self) -> None:
         """Used to extract possibly existing uncertainty information from the
@@ -175,7 +179,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
                     signals.parameter_modified.emit(self.obj, "amount", mean)
                 elif isinstance(self.obj, tuple):
                     uncertain = self.obj[-1] if isinstance(self.obj[-1], dict) else {}
-                    altered = {k: v for k, v in uncertain}
+                    altered = {k: v for k, v in uncertain.items()}
                     altered["amount"] = mean
                     self.obj = (self.obj[0], altered)
 
