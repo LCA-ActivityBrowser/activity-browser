@@ -85,12 +85,22 @@ class UncertaintyWizard(QtWidgets.QWizard):
         Exchange objects have uncertainty shortcuts built in, other
         objects which sometimes have uncertainty do not.
         """
-        if isinstance(self.obj, ExchangeProxyBase):
+        if isinstance(self.obj, ExchangeProxyBase):  # Exchange
             for k, v in self.obj.uncertainty.items():
                 self.setField(k, v)
-        elif isinstance(self.obj, ParameterBase):
+        elif isinstance(self.obj, ParameterBase):  # Parameter
             for key in (k for k in self.KEYS if k in self.obj.data):
                 self.setField(key, self.obj.data[key])
+        elif isinstance(self.obj, tuple):  # Characterization factor
+            _, maybe_uc = self.obj
+            if isinstance(maybe_uc, dict):
+                for k, v in maybe_uc.items():
+                    if k in self.KEYS:
+                        self.setField(k, str(v))
+                if not self.field("loc"):  # grab amount if loc value not set
+                    self.setField("loc", str(maybe_uc.get("amount")))
+            else:
+                self.setField("loc", str(maybe_uc))
 
         # If no loc/mean value is set yet, convert the amount.
         if not self.field("loc") or self.field("loc") == "nan":
@@ -124,6 +134,14 @@ class UncertaintyWizard(QtWidgets.QWizard):
             loc = self.obj.data.get("loc", None)
             if loc and self.obj.data.get("uncertainty type", 0) != LognormalUncertainty.id:
                 loc = np.log(loc)
+        elif isinstance(self.obj, tuple):
+            if isinstance(self.obj[-1], dict):
+                loc = self.obj[-1].get("loc", None)
+                mean = self.obj[-1].get("amount", 1.0)
+                if loc and self.obj[-1].get("uncertainty type", 0) != LognormalUncertainty.id:
+                    loc = np.log(loc)
+            else:
+                mean = self.obj[-1]
         if loc is None:
             loc = np.log(mean)
         self.setField("loc", str(loc))
@@ -134,7 +152,13 @@ class UncertaintyWizard(QtWidgets.QWizard):
          """
         if self.obj is None:
             return
-        amount = getattr(self.obj, "amount")
+        if isinstance(self.obj, tuple):
+            if isinstance(self.obj[-1], dict):
+                amount = self.obj[-1].get("amount")
+            else:
+                amount = self.obj[-1]
+        else:
+            amount = getattr(self.obj, "amount")
         mean = float(self.field("loc"))
         if self.type.is_lognormal_uncertainty:
             mean = np.exp(mean)
@@ -149,6 +173,11 @@ class UncertaintyWizard(QtWidgets.QWizard):
                     signals.exchange_modified.emit(self.obj, "amount", mean)
                 elif isinstance(self.obj, ParameterBase):
                     signals.parameter_modified.emit(self.obj, "amount", mean)
+                elif isinstance(self.obj, tuple):
+                    uncertain = self.obj[-1] if isinstance(self.obj[-1], dict) else {}
+                    altered = {k: v for k, v in uncertain}
+                    altered["amount"] = mean
+                    self.obj = (self.obj[0], altered)
 
 
 class UncertaintyTypePage(QtWidgets.QWizardPage):
