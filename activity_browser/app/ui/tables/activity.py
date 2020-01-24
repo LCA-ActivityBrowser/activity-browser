@@ -2,18 +2,20 @@
 import itertools
 
 from asteval import Interpreter
-import brightway2 as bw
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
+from bw2data.proxies import ExchangeProxyBase
 import pandas as pd
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from .delegates import (FloatDelegate, FormulaDelegate, StringDelegate,
-                        ViewOnlyDelegate)
+                        UncertaintyDelegate, ViewOnlyDelegate)
 from .views import ABDataFrameEdit, dataframe_sync
 from ..icons import qicons
+from ..wizards import UncertaintyWizard
 from ...signals import signals
+from ...bwutils import PedigreeMatrix
 from ...bwutils.commontasks import AB_names_to_bw_keys
 
 
@@ -21,6 +23,11 @@ class BaseExchangeTable(ABDataFrameEdit):
     COLUMNS = []
     # Signal used to correctly control `DetailsGroupBox`
     updated = Signal()
+    # Fields accepted by brightway to be stored in exchange objects.
+    VALID_FIELDS = {
+        "amount", "formula", "uncertainty type", "loc", "scale", "shape",
+        "minimum", "maximum"
+    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -37,6 +44,9 @@ class BaseExchangeTable(ABDataFrameEdit):
         self.remove_formula_action = QtWidgets.QAction(
             qicons.delete, "Clear formula(s)", None
         )
+        self.modify_uncertainty_action = QtWidgets.QAction(
+            qicons.edit, "Modify uncertainty", None
+        )
 
         self.downstream = False
         self.key = None if not hasattr(parent, "key") else parent.key
@@ -47,6 +57,7 @@ class BaseExchangeTable(ABDataFrameEdit):
     def _connect_signals(self):
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
         self.remove_formula_action.triggered.connect(self.remove_formula)
+        self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
 
     @dataframe_sync
     def sync(self, exchanges=None):
@@ -56,12 +67,16 @@ class BaseExchangeTable(ABDataFrameEdit):
             self.exchanges = exchanges
         self.dataframe = self.build_df()
 
+    @property
+    def df_columns(self) -> list:
+        return self.COLUMNS + ["exchange"]
+
     def build_df(self) -> pd.DataFrame:
         """ Use the Exchanges Iterable to construct a dataframe.
 
         Make sure to store the Exchange object itself in the dataframe as well.
         """
-        columns = self.COLUMNS + ["exchange"]
+        columns = self.df_columns
         df = pd.DataFrame([
             self.create_row(exchange=exc)[0] for exc in self.exchanges
         ], columns=columns)
@@ -101,7 +116,7 @@ class BaseExchangeTable(ABDataFrameEdit):
     def delete_exchanges(self) -> None:
         """ Remove all of the selected exchanges from the activity.
         """
-        indexes = [self.get_source_index(p) for p in self.selectedIndexes()]
+        indexes = (self.get_source_index(p) for p in self.selectedIndexes())
         exchanges = [
             self.model.index(index.row(), self.exchange_column).data()
             for index in indexes
@@ -115,7 +130,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         attempt to overwrite the `amount` with that value after removing the
         `formula` field.
         """
-        indexes = [self.get_source_index(p) for p in self.selectedIndexes()]
+        indexes = (self.get_source_index(p) for p in self.selectedIndexes())
         exchanges = [
             self.model.index(index.row(), self.exchange_column).data()
             for index in indexes
@@ -127,6 +142,14 @@ class BaseExchangeTable(ABDataFrameEdit):
         param = ActivityParameter.get_or_none(database=self.key[0], code=self.key[1])
         if param:
             signals.exchange_formula_changed.emit(self.key)
+
+    @Slot(name="modifyExchangeUncertainty")
+    def modify_uncertainty(self) -> None:
+        """Need to know both keys to select the correct exchange to update"""
+        index = self.get_source_index(next(p for p in self.selectedIndexes()))
+        exchange = self.model.index(index.row(), self.exchange_column).data()
+        wizard = UncertaintyWizard(exchange, self)
+        wizard.show()
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -146,15 +169,11 @@ class BaseExchangeTable(ABDataFrameEdit):
         # A single cell was edited.
         if topLeft == bottomRight and topLeft.isValid():
             index = self.get_source_index(topLeft)
-            field = AB_names_to_bw_keys.get(
-                self.model.headerData(index.column(), QtCore.Qt.Horizontal)
-            )
+            header = self.model.headerData(index.column(), QtCore.Qt.Horizontal)
+            field = AB_names_to_bw_keys.get(header, header)
             exchange = self.model.index(index.row(), self.exchange_column).data()
-            if field in {"amount", "formula"}:
-                if field == "amount":
-                    value = float(topLeft.data())
-                else:
-                    value = str(topLeft.data()) if topLeft.data() is not None else ""
+            if field in self.VALID_FIELDS:
+                value = topLeft.data() if topLeft.data() is not None else ""
                 signals.exchange_modified.emit(exchange, field, value)
             else:
                 value = str(topLeft.data())
@@ -254,7 +273,7 @@ class ProductExchangeTable(BaseExchangeTable):
     def _resize(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
-        self.setColumnHidden(4, True)
+        self.setColumnHidden(self.exchange_column, True)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -276,6 +295,9 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         "Amount", "Unit", "Product", "Activity", "Location", "Database",
         "Uncertainty", "Formula"
     ]
+    UNCERTAINTY = [
+        "loc", "scale", "shape", "minimum", "maximum"
+    ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -285,13 +307,26 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(6, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(7, FormulaDelegate(self))
+        self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(7, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.setItemDelegateForColumn(11, FloatDelegate(self))
+        self.setItemDelegateForColumn(12, FloatDelegate(self))
+        self.setItemDelegateForColumn(13, FormulaDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
         self.drag_model = True
 
-    def create_row(self, exchange) -> (dict, object):
+    @property
+    def df_columns(self) -> list:
+        columns = super().df_columns
+        start = columns[:columns.index("Formula")]
+        end = columns[columns.index("Formula"):]
+        return start + ["pedigree"] + self.UNCERTAINTY + end
+
+    def create_row(self, exchange: ExchangeProxyBase) -> (dict, object):
         row, adj_act = super().create_row(exchange)
         row.update({
             "Product": adj_act.get("reference product") or adj_act.get("name"),
@@ -301,18 +336,37 @@ class TechnosphereExchangeTable(BaseExchangeTable):
             "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
+        try:
+            matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
+            row.update({"pedigree": matrix.factors_as_tuple()})
+        except AssertionError:
+            row.update({"pedigree": None})
+        row.update({
+            k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
+        })
         return row, adj_act
 
     def _resize(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
-        self.setColumnHidden(8, True)
+        self.setColumnHidden(self.exchange_column, True)
+        self.show_uncertainty()
+
+    def show_uncertainty(self, show: bool = False) -> None:
+        """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
+        """
+        cols = self.df_columns
+        self.setColumnHidden(cols.index("Uncertainty"), not show)
+        self.setColumnHidden(cols.index("pedigree"), not show)
+        for c in self.UNCERTAINTY:
+            self.setColumnHidden(cols.index(c), not show)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.right, "Open activities", self.open_activities)
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
+        menu.addAction(self.modify_uncertainty_action)
         menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
@@ -330,6 +384,9 @@ class BiosphereExchangeTable(BaseExchangeTable):
         "Amount", "Unit", "Flow Name", "Compartments", "Database",
         "Uncertainty", "Formula"
     ]
+    UNCERTAINTY = [
+        "loc", "scale", "shape", "minimum", "maximum"
+    ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -338,10 +395,23 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(6, FormulaDelegate(self))
+        self.setItemDelegateForColumn(5, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(6, ViewOnlyDelegate(self))
+        self.setItemDelegateForColumn(7, FloatDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.setItemDelegateForColumn(11, FloatDelegate(self))
+        self.setItemDelegateForColumn(12, FormulaDelegate(self))
         self.table_name = "biosphere"
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+
+    @property
+    def df_columns(self) -> list:
+        columns = super().df_columns
+        start = columns[:columns.index("Formula")]
+        end = columns[columns.index("Formula"):]
+        return start + ["pedigree"] + self.UNCERTAINTY + end
 
     def create_row(self, exchange) -> (dict, object):
         row, adj_act = super().create_row(exchange)
@@ -352,10 +422,35 @@ class BiosphereExchangeTable(BaseExchangeTable):
             "Uncertainty": exchange.get("uncertainty type", 0),
             "Formula": exchange.get("formula"),
         })
+        try:
+            matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
+            row.update({"pedigree": matrix.factors_as_tuple()})
+        except AssertionError:
+            row.update({"pedigree": None})
+        row.update({
+            k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
+        })
         return row, adj_act
 
     def _resize(self) -> None:
-        self.setColumnHidden(7, True)
+        self.setColumnHidden(self.exchange_column, True)
+        self.show_uncertainty()
+
+    def show_uncertainty(self, show: bool = False) -> None:
+        """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
+        """
+        cols = self.df_columns
+        self.setColumnHidden(cols.index("Uncertainty"), not show)
+        self.setColumnHidden(cols.index("pedigree"), not show)
+        for c in self.UNCERTAINTY:
+            self.setColumnHidden(cols.index(c), not show)
+
+    def contextMenuEvent(self, a0) -> None:
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.delete_exchange_action)
+        menu.addAction(self.remove_formula_action)
+        menu.addAction(self.modify_uncertainty_action)
+        menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
         """ Only accept exchanges from a technosphere database table
@@ -399,7 +494,7 @@ class DownstreamExchangeTable(BaseExchangeTable):
     def _resize(self) -> None:
         """ Next to `exchange`, also hide the `formula` column.
         """
-        self.setColumnHidden(6, True)
+        self.setColumnHidden(self.exchange_column, True)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()

@@ -6,6 +6,7 @@ re-typing the same code in different parts of the Activity Browser.
 import brightway2 as bw
 from .metadata import AB_metadata
 from .multilca import MLCA, Contributions
+from .pedigree import PedigreeMatrix
 from .presamples import PresamplesContributions, PresamplesMLCA
 from .montecarlo import MonteCarloLCA
 from .sensitivity_analysis import GlobalSensitivityAnalysis

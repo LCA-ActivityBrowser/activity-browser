@@ -53,6 +53,9 @@ class Signals(QObject):
     exchanges_add = Signal(list, tuple)
     exchange_amount_modified = Signal(object, float)
     exchange_modified = Signal(object, str, object)
+    # Exchange object and uncertainty dictionary
+    exchange_uncertainty_modified = Signal(object, object)
+    exchange_pedigree_modified = Signal(object, object)
 
     # Parameters
     add_activity_parameter = Signal(tuple)
@@ -60,6 +63,11 @@ class Signals(QObject):
     parameter_renamed = Signal(str, str, str)  # old, group, new
     # Pass the key of the activity holding the exchange
     exchange_formula_changed = Signal(tuple)
+    # Parameter, field, value for field
+    parameter_modified = Signal(object, str, object)
+    # Parameter object and uncertainty dictionary
+    parameter_uncertainty_modified = Signal(object, object)
+    parameter_pedigree_modified = Signal(object, object)
 
     # Presamples
     presample_package_created = Signal(str)

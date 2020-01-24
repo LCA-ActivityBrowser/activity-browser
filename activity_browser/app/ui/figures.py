@@ -271,3 +271,13 @@ class MonteCarloPlot(Plot):
         # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
 
         self.canvas.draw()
+
+
+class SimpleDistributionPlot(Plot):
+    def plot(self, data: np.ndarray, label: str = "Mean"):
+        self.reset_plot()
+        sns.distplot(data, axlabel=label, ax=self.ax)
+        self.ax.set_ylabel("Probability density")
+        _, height = self.canvas.get_width_height()
+        self.setMinimumHeight(height / 2)
+        self.canvas.draw()

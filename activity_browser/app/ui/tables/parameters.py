@@ -17,6 +17,7 @@ from activity_browser.app.signals import signals
 
 from ..icons import qicons
 from ..widgets import simple_warning_box
+from ..wizards import UncertaintyWizard
 from .delegates import (DatabaseDelegate, FloatDelegate, FormulaDelegate,
                         ListDelegate, StringDelegate, UncertaintyDelegate,
                         ViewOnlyDelegate)
@@ -43,6 +44,10 @@ class BaseParameterTable(ABDataFrameEdit):
         self.rename_action.triggered.connect(
             lambda: self.handle_parameter_rename(self.currentIndex())
         )
+        self.modify_uncertainty_action = QAction(
+            qicons.edit, "Modify uncertainty", None
+        )
+        self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ Handle updating the parameters whenever the user changes a value.
@@ -66,6 +71,7 @@ class BaseParameterTable(ABDataFrameEdit):
         menu = QMenu(self)
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
+        menu.addAction(self.modify_uncertainty_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
             param = self.get_parameter(proxy)
@@ -128,7 +134,11 @@ class BaseParameterTable(ABDataFrameEdit):
         with bw.parameters.db.atomic() as transaction:
             try:
                 field = self.model.headerData(proxy.column(), Qt.Horizontal)
-                setattr(param, field, proxy.data())
+                if field not in self.COLUMNS:
+                    # Must store value inside 'data' field.
+                    param.data[field] = proxy.data()
+                else:
+                    setattr(param, field, proxy.data())
                 param.save()
                 # Saving the parameter expires the related group, so recalculate.
                 bw.parameters.recalculate()
@@ -167,6 +177,13 @@ class BaseParameterTable(ABDataFrameEdit):
         with bw.parameters.db.atomic():
             param.delete_instance()
         signals.parameters_changed.emit()
+
+    @Slot(name="modifyParameterUncertainty")
+    def modify_uncertainty(self) -> None:
+        proxy = next(p for p in self.selectedIndexes())
+        param = self.get_parameter(proxy)
+        wizard = UncertaintyWizard(param, self)
+        wizard.show()
 
     def uncertainty_columns(self, show: bool):
         """ Given a boolean, iterates over the uncertainty columns and either
@@ -491,6 +508,7 @@ class ActivityParameterTable(BaseParameterTable):
         )
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
+        menu.addAction(self.modify_uncertainty_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
             param = self.get_parameter(proxy)

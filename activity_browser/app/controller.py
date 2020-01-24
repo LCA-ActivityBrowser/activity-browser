@@ -7,7 +7,9 @@ import brightway2 as bw
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from bw2data.backends.peewee import sqlite3_lci_db
+from bw2data.parameters import ParameterBase
 from bw2data.project import ProjectDataset, SubstitutableDatabase
+from bw2data.proxies import ExchangeProxyBase
 
 from .bwutils import commontasks as bc, AB_metadata
 from .settings import ab_settings, project_settings
@@ -69,6 +71,12 @@ class Controller(object):
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         signals.exchange_modified.connect(self.modify_exchange)
+        signals.exchange_uncertainty_modified.connect(self.modify_exchange_uncertainty)
+        signals.exchange_pedigree_modified.connect(self.modify_exchange_pedigree)
+        # Parameters
+        signals.parameter_modified.connect(self.modify_parameter)
+        signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
+        signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
@@ -516,6 +524,55 @@ class Controller(object):
             # If a formula was set, removed or changed, recalculate exchanges
             signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange['output'][0])
+
+    @staticmethod
+    @Slot(object, object, name="modifyExchangeUncertainty")
+    def modify_exchange_uncertainty(exc: ExchangeProxyBase, unc_dict: dict) -> None:
+        unc_fields = {"loc", "scale", "shape", "minimum", "maximum"}
+        for k, v in unc_dict.items():
+            if k in unc_fields and isinstance(v, str):
+                # Convert empty values into nan, accepted by stats_arrays
+                v = float("nan") if not v else float(v)
+            exc[k] = v
+        exc.save()
+        signals.database_changed.emit(exc['output'][0])
+
+    @staticmethod
+    @Slot(object, object, name="modifyExchangePedigree")
+    def modify_exchange_pedigree(exc: ExchangeProxyBase, pedigree: dict) -> None:
+        exc["pedigree"] = pedigree
+        exc.save()
+        signals.database_changed.emit(exc['output'][0])
+
+# PARAMETERS
+    @staticmethod
+    @Slot(object, str, object, name="modifyParameter")
+    def modify_parameter(param: ParameterBase, field: str, value: object) -> None:
+        if hasattr(param, field):
+            setattr(param, field, value)
+        else:
+            param.data[field] = value
+        param.save()
+        signals.parameters_changed.emit()
+
+    @staticmethod
+    @Slot(object, object, name="modifyParameterUncertainty")
+    def modify_parameter_uncertainty(param: ParameterBase, uncertain: dict) -> None:
+        unc_fields = {"loc", "scale", "shape", "minimum", "maximum"}
+        for k, v in uncertain.items():
+            if k in unc_fields and isinstance(v, str):
+                # Convert empty values into nan, accepted by stats_arrays
+                v = float("nan") if not v else float(v)
+            param.data[k] = v
+        param.save()
+        signals.parameters_changed.emit()
+
+    @staticmethod
+    @Slot(object, object, name="modifyParameterPedigree")
+    def modify_parameter_pedigree(param: ParameterBase, pedigree: dict) -> None:
+        param.data["pedigree"] = pedigree
+        param.save()
+        signals.parameters_changed.emit()
 
     @staticmethod
     @Slot(name="triggerMetadataReset")
