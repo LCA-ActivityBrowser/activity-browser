@@ -7,7 +7,10 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Slot
 
 from ...signals import signals
+from ..icons import qicons
+from ..wizards import UncertaintyWizard
 from .views import ABDataFrameView, dataframe_sync
+from .delegates import FloatDelegate, UncertaintyDelegate
 
 
 class MethodsTable(ABDataFrameView):
@@ -79,7 +82,14 @@ class CFTable(ABDataFrameView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.key_column = None
         self.setVisible(False)
+        self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(7, FloatDelegate(self))
+        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.setItemDelegateForColumn(11, FloatDelegate(self))
 
     @dataframe_sync
     def sync(self, method: tuple) -> None:
@@ -88,6 +98,7 @@ class CFTable(ABDataFrameView):
         self.dataframe = DataFrame([
             self.build_row(obj) for obj in method_data
         ], columns=self.HEADERS + self.UNCERTAINTY)
+        self.key_column = self.dataframe.columns.get_loc("key")
 
     def build_row(self, method_cf) -> dict:
         key, amount = method_cf[:2]
@@ -114,3 +125,16 @@ class CFTable(ABDataFrameView):
     def hide_uncertain(self, hide: bool = True) -> None:
         for c in self.UNCERTAINTY:
             self.setColumnHidden(self.dataframe.columns.get_loc(c), hide)
+
+    def contextMenuEvent(self, event) -> None:
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(qicons.edit, "Modify uncertainty", self.modify_uncertainty)
+        menu.exec_(event.globalPos())
+
+    @Slot(name="modifyCFUncertainty")
+    def modify_uncertainty(self) -> None:
+        """Need to know both keys to select the correct exchange to update"""
+        index = self.get_source_index(next(p for p in self.selectedIndexes()))
+        method_cf = self.model.index(index.row(), self.key_column).data()
+        wizard = UncertaintyWizard(method_cf, self)
+        wizard.show()
