@@ -938,17 +938,26 @@ class MonteCarloTab(NewAnalysisTab):
 
         # H-LAYOUT start simulation
         self.button_run = QPushButton('Run Simulation')
-        self.label_runs = QLabel('Iterations:')
+        self.label_iterations = QLabel('Iterations:')
         self.iterations = QLineEdit('10')
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
+        self.label_seed = QLabel('Random seed:')
+        self.label_seed.setToolTip('Seed value (integer) for the random number generator. '
+                                   'Use this for reproducible samples.')
+        self.seed = QLineEdit('')
+        self.seed.setFixedWidth(30)
+
+
 
         self.hlayout_run = QHBoxLayout()
         self.hlayout_run.addWidget(self.scenario_label)
         self.hlayout_run.addWidget(self.scenario_box)
         self.hlayout_run.addWidget(self.button_run)
-        self.hlayout_run.addWidget(self.label_runs)
+        self.hlayout_run.addWidget(self.label_iterations)
         self.hlayout_run.addWidget(self.iterations)
+        self.hlayout_run.addWidget(self.label_seed)
+        self.hlayout_run.addWidget(self.seed)
         self.hlayout_run.addStretch(1)
         self.layout_mc.addLayout(self.hlayout_run)
 
@@ -1006,12 +1015,22 @@ class MonteCarloTab(NewAnalysisTab):
 
     def calculate_MC_LCA(self):
         iterations = int(self.iterations.text())
+        if self.seed.text():
+            print('SEED: ', self.seed.text())
+            try:
+                seed = int(self.seed.text())
+            except ValueError:
+                traceback.print_exc()
+                QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
+                self.seed.setText('')
+        else:
+            seed = None
         self.method_selection_widget.hide()
         self.plot.hide()
         self.export_widget.hide()
 
         try:
-            self.parent.mc.calculate(iterations=iterations)
+            self.parent.mc.calculate(iterations=iterations, seed=seed)
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
