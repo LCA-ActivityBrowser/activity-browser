@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import Union
-
-from bw2data.parameters import ParameterBase
-from bw2data.proxies import ExchangeProxyBase
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 import numpy as np
@@ -10,7 +6,7 @@ from stats_arrays import LognormalUncertainty, uncertainty_choices as uc
 
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
-from ...bwutils import PedigreeMatrix
+from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...signals import signals
 
 
@@ -30,10 +26,10 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     complete = Signal(tuple, object)  # feed the CF uncertainty back to the origin
 
-    def __init__(self, unc_object: Union[ExchangeProxyBase, ParameterBase], parent=None):
+    def __init__(self, unc_object: object, parent=None):
         super().__init__(parent)
 
-        self.obj = unc_object
+        self.obj = get_uncertainty_interface(unc_object)
         self.using_pedigree = False
 
         self.pedigree = PedigreeMatrixPage(self)
@@ -71,16 +67,16 @@ class UncertaintyWizard(QtWidgets.QWizard):
         including a pedigree update.
         """
         self.amount_mean_test()
-        if isinstance(self.obj, ExchangeProxyBase):
-            signals.exchange_uncertainty_modified.emit(self.obj, self.uncertainty_info)
+        if self.obj.data_type == "exchange":
+            signals.exchange_uncertainty_modified.emit(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:
-                signals.exchange_pedigree_modified.emit(self.obj, self.pedigree.matrix.factors)
-        elif isinstance(self.obj, ParameterBase):
-            signals.parameter_uncertainty_modified.emit(self.obj, self.uncertainty_info)
+                signals.exchange_pedigree_modified.emit(self.obj.data, self.pedigree.matrix.factors)
+        elif self.obj.data_type == "parameter":
+            signals.parameter_uncertainty_modified.emit(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:
-                signals.parameter_pedigree_modified.emit(self.obj, self.pedigree.matrix.factors)
-        elif isinstance(self.obj, tuple):
-            self.complete.emit(self.obj, self.uncertainty_info)
+                signals.parameter_pedigree_modified.emit(self.obj.data, self.pedigree.matrix.factors)
+        elif self.obj.data_type == "cf":
+            self.complete.emit(self.obj.data, self.uncertainty_info)
 
     def extract_uncertainty(self) -> None:
         """Used to extract possibly existing uncertainty information from the
@@ -89,22 +85,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
         Exchange objects have uncertainty shortcuts built in, other
         objects which sometimes have uncertainty do not.
         """
-        if isinstance(self.obj, ExchangeProxyBase):  # Exchange
-            for k, v in self.obj.uncertainty.items():
-                self.setField(k, v)
-        elif isinstance(self.obj, ParameterBase):  # Parameter
-            for key in (k for k in self.KEYS if k in self.obj.data):
-                self.setField(key, self.obj.data[key])
-        elif isinstance(self.obj, tuple):  # Characterization factor
-            _, maybe_uc = self.obj
-            if isinstance(maybe_uc, dict):
-                for k, v in maybe_uc.items():
-                    if k in self.KEYS:
-                        self.setField(k, str(v))
-                if not self.field("loc"):  # grab amount if loc value not set
-                    self.setField("loc", str(maybe_uc.get("amount")))
-            else:
-                self.setField("loc", str(maybe_uc))
+        for k, v in self.obj.uncertainty.items():
+            self.setField(k, v)
 
         # If no loc/mean value is set yet, convert the amount.
         if not self.field("loc") or self.field("loc") == "nan":
@@ -126,26 +108,10 @@ class UncertaintyWizard(QtWidgets.QWizard):
         This should only be used when the 'original' set uncertainty is
         lognormal.
         """
-        if self.obj is None:
-            return
         mean = getattr(self.obj, "amount", 1.0)
-        loc = None
-        if isinstance(self.obj, ExchangeProxyBase):
-            loc = self.obj.uncertainty.get("loc", None)
-            if loc and self.obj.uncertainty_type != LognormalUncertainty:
-                loc = np.log(loc)
-        elif isinstance(self.obj, ParameterBase):
-            loc = self.obj.data.get("loc", None)
-            if loc and self.obj.data.get("uncertainty type", 0) != LognormalUncertainty.id:
-                loc = np.log(loc)
-        elif isinstance(self.obj, tuple):
-            if isinstance(self.obj[-1], dict):
-                loc = self.obj[-1].get("loc", None)
-                mean = self.obj[-1].get("amount", 1.0)
-                if loc and self.obj[-1].get("uncertainty type", 0) != LognormalUncertainty.id:
-                    loc = np.log(loc)
-            else:
-                mean = self.obj[-1]
+        loc = self.obj.uncertainty.get("loc", None)
+        if loc and self.obj.uncertainty_type != LognormalUncertainty:
+            loc = np.log(loc)
         if loc is None:
             loc = np.log(mean)
         self.setField("loc", str(loc))
@@ -154,34 +120,26 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """Asks if the 'amount' of the object should be updated to account for
          the user altering the loc/mean value.
          """
-        if self.obj is None:
-            return
-        if isinstance(self.obj, tuple):
-            if isinstance(self.obj[-1], dict):
-                amount = self.obj[-1].get("amount")
-            else:
-                amount = self.obj[-1]
-        else:
-            amount = getattr(self.obj, "amount")
         mean = float(self.field("loc"))
         if self.type.is_lognormal_uncertainty:
             mean = np.exp(mean)
-        if not np.isclose(amount, mean):
+        if not np.isclose(self.obj.amount, mean):
             choice = QtWidgets.QMessageBox.question(
                 self, "Amount differs from mean",
                 "Do you want to update the 'amount' field to match mean?",
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.Yes
             )
             if choice == QtWidgets.QMessageBox.Yes:
-                if isinstance(self.obj, ExchangeProxyBase):
-                    signals.exchange_modified.emit(self.obj, "amount", mean)
-                elif isinstance(self.obj, ParameterBase):
-                    signals.parameter_modified.emit(self.obj, "amount", mean)
-                elif isinstance(self.obj, tuple):
-                    uncertain = self.obj[-1] if isinstance(self.obj[-1], dict) else {}
-                    altered = {k: v for k, v in uncertain.items()}
+                if self.obj.data_type == "exchange":
+                    signals.exchange_modified.emit(self.obj.data, "amount", mean)
+                elif self.obj.data_type == "parameter":
+                    signals.parameter_modified.emit(self.obj.data, "amount", mean)
+                elif self.obj.data_type == "cf":
+                    altered = {k: v for k, v in self.obj.uncertainty.items()}
                     altered["amount"] = mean
-                    self.obj = (self.obj[0], altered)
+                    data = [*self.obj.data]
+                    data[1] = altered
+                    self.obj = get_uncertainty_interface(tuple(data))
 
 
 class UncertaintyTypePage(QtWidgets.QWizardPage):
@@ -545,7 +503,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.balance_mean_with_loc()
         obj = getattr(self.wizard(), "obj")
         try:
-            matrix = PedigreeMatrix.from_bw_object(obj)
+            matrix = PedigreeMatrix.from_dict(obj.uncertainty)
             self.pedigree = matrix.factors
         except AssertionError as e:
             print("Could not extract pedigree data: {}".format(str(e)))
