@@ -63,9 +63,9 @@ class PedigreeMatrix(object):
     @classmethod
     def from_bw_object(cls, obj) -> 'PedigreeMatrix':
         if isinstance(obj, ExchangeProxyBase):
-            return cls.from_dict(obj.get("pedigree"))
+            return cls.from_dict(obj.get("pedigree", {}))
         elif isinstance(obj, ParameterBase) and "pedigree" in obj.data:
-            return cls.from_dict(obj.data.get("pedigree"))
+            return cls.from_dict(obj.data.get("pedigree", {}))
         else:
             raise AssertionError("Could not find pedigree in object")
 
