@@ -5,10 +5,11 @@ from typing import Optional
 import brightway2 as bw
 from pandas import DataFrame
 from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Slot
+from PySide2.QtCore import QModelIndex, Signal, Slot
 
 from ...signals import signals
 from ..icons import qicons
+from ..widgets import TupleNameDialog
 from ..wizards import UncertaintyWizard
 from .views import ABDataFrameView, dataframe_sync
 from .delegates import FloatDelegate, UncertaintyDelegate
@@ -16,10 +17,12 @@ from .delegates import FloatDelegate, UncertaintyDelegate
 
 class MethodsTable(ABDataFrameView):
     HEADERS = ["Name", "Unit", "# CFs", "method"]
+    new_method = Signal(tuple)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.drag_model = True
+        self.method_col = 0
         self.setDragEnabled(True)
         self.setDragDropMode(ABDataFrameView.DragOnly)
         self.sync()
@@ -28,6 +31,10 @@ class MethodsTable(ABDataFrameView):
     def _connect_signals(self):
         self.doubleClicked.connect(self.method_selected)
         signals.project_selected.connect(self.sync)
+
+    def get_method(self, proxy: QModelIndex) -> tuple:
+        index = self.get_source_index(proxy)
+        return self.dataframe.iat[index.row(), self.method_col]
 
     @Slot(QModelIndex, name="methodSelection")
     def method_selected(self, proxy):
@@ -57,6 +64,7 @@ class MethodsTable(ABDataFrameView):
         self.dataframe = DataFrame([
             self.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
+        self.method_col = self.dataframe.columns.get_loc("method")
 
     def build_row(self, method_obj) -> dict:
         method = bw.methods[method_obj[1]]
@@ -72,6 +80,28 @@ class MethodsTable(ABDataFrameView):
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         ))
+
+    def contextMenuEvent(self, event) -> None:
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
+        menu.exec_(event.globalPos())
+
+    @Slot(name="copyMethod")
+    def copy_method(self) -> None:
+        """Call copy on the (first) selected method and present rename dialog."""
+        method = bw.Method(self.get_method(next(p for p in self.selectedIndexes())))
+        dialog = TupleNameDialog.get_combined_name(
+            self, "Impact category name", "Combined name:", method.name, "Copy"
+        )
+        if dialog.exec_() == TupleNameDialog.Accepted:
+            new_name = dialog.result_tuple
+            if new_name in bw.methods:
+                warn = "Impact Category with name '{}' already exists!".format(new_name)
+                QtWidgets.QMessageBox.warning(self, "Copy failed", warn)
+                return
+            method.copy(new_name)
+            print("Copied method {} into {}".format(str(method.name), str(new_name)))
+            self.new_method.emit(new_name)
 
 
 class CFTable(ABDataFrameView):
