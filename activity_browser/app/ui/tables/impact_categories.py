@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numbers
-from typing import Optional
+from typing import Iterable, Optional
 
 import brightway2 as bw
 from pandas import DataFrame
@@ -38,20 +38,11 @@ class MethodsTable(ABDataFrameView):
 
     @Slot(QModelIndex, name="methodSelection")
     def method_selected(self, proxy):
-        index = self.get_source_index(proxy)
-        method = self.dataframe.iloc[index.row(), ]["method"]
-        signals.method_selected.emit(method)
+        signals.method_selected.emit(self.get_method(proxy))
 
-    def selectedItems(self) -> list:
-        """ Use to retrieve the method objects for the selected rows.
-
-        TODO: Shadows the `selectedItems` method in QTableWidget as it is used
-         by `CSMethodsTable`. Possibly remove or improve in the future.
-        """
-        indexes = (self.get_source_index(p) for p in self.selectedIndexes())
-        return [
-            self.dataframe.iloc[index.row(), ] for index in indexes
-        ]
+    def selected_methods(self) -> Iterable:
+        """Returns a generator which yields the 'method' for each row."""
+        return (self.get_method(p) for p in self.selectedIndexes())
 
     @dataframe_sync
     @Slot(name="syncTable")
@@ -76,7 +67,7 @@ class MethodsTable(ABDataFrameView):
         }
 
     def _resize(self) -> None:
-        self.setColumnHidden(self.dataframe.columns.get_loc("method"), True)
+        self.setColumnHidden(self.method_col, True)
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         ))
