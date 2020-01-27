@@ -165,17 +165,16 @@ class CFTable(ABDataFrameView):
 
     @Slot(tuple, object, name="modifyCf")
     def modify_cf(self, cf: tuple, uncertainty: dict) -> None:
+        """Update the CF with new uncertainty information, possibly converting
+        the second item in the tuple to a dictionary without losing information.
         """
-        acidification potential
-        """
-        key, maybe_uc = cf
-        if isinstance(maybe_uc, dict):
-            maybe_uc.update(uncertainty)
-            new_cf = (key, maybe_uc)
+        data = [*cf]
+        if isinstance(data[1], dict):
+            data[1].update(uncertainty)
         else:
-            uncertainty["amount"] = maybe_uc
-            new_cf = (key, uncertainty)
-        self.modify_method_with_cf(new_cf)
+            uncertainty["amount"] = data[1]
+            data[1] = uncertainty
+        self.modify_method_with_cf(tuple(data))
 
     @Slot(tuple, name="modifyMethodWithCf")
     def modify_method_with_cf(self, cf: tuple) -> None:
