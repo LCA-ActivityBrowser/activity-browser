@@ -36,7 +36,7 @@ class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(MethodsTab, self).__init__(parent)
 
-        self.table = MethodsTable()
+        self.table = MethodsTable(self)
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Filter impact categories")
         reset_search_button = QtWidgets.QPushButton("Reset")
@@ -61,6 +61,14 @@ class MethodsTab(QtWidgets.QWidget):
         reset_search_button.clicked.connect(self.search_box.clear)
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         signals.project_selected.connect(self.search_box.clear)
+        self.table.new_method.connect(self.method_copied)
+
+    @QtCore.Slot(tuple, name="searchCopiedMethod")
+    def method_copied(self, method: tuple) -> None:
+        """If a method is successfully copied, sync and filter for new name."""
+        query = ", ".join(method)
+        self.search_box.setText(query)
+        self.table.sync(query)
 
 
 class CharacterizationFactorsTab(ABTab):
