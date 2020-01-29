@@ -2,7 +2,8 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 import numpy as np
-from stats_arrays import LognormalUncertainty, uncertainty_choices as uc
+from stats_arrays import uncertainty_choices as uc
+from stats_arrays.distributions import *
 
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
@@ -121,7 +122,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
          the user altering the loc/mean value.
          """
         mean = float(self.field("loc"))
-        if self.type.is_lognormal_uncertainty:
+        if self.field("uncertainty type") == LognormalUncertainty.id:
             mean = np.exp(mean)
         if not np.isclose(self.obj.amount, mean):
             msg = ("Do you want to update the 'amount' field to match mean?"
@@ -256,7 +257,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
     def special_lognormal_handling(self):
         """Special kansas city shuffling for this distribution."""
-        if self.is_lognormal_uncertainty:
+        if self.dist.id == LognormalUncertainty.id:
             self.mean.setHidden(False)
             self.mean_label.setHidden(False)
             self.loc_label.setText("Loc (ln(mean)):")
@@ -306,10 +307,6 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.generate_plot()
 
     @property
-    def is_lognormal_uncertainty(self) -> bool:
-        return self.dist.id == LognormalUncertainty.id
-
-    @property
     def active_fields(self) -> tuple:
         """Returns anywhere from 0 to 3 fields"""
         if self.dist.id in {0, 1}:
@@ -341,7 +338,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
         Another special edge-case for the lognormal distribution.
         """
-        if self.is_lognormal_uncertainty and self.mean.text().startswith("-"):
+        if self.dist.id == LognormalUncertainty.id and float(self.mean.text()) < 0:
             self.setField("negative", True)
         else:
             self.setField("negative", False)
