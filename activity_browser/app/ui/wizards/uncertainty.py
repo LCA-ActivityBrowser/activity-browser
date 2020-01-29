@@ -124,6 +124,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
         mean = float(self.field("loc"))
         if self.field("uncertainty type") == LognormalUncertainty.id:
             mean = np.exp(mean)
+        if self.field("uncertainty type") in self.type.mean_is_calculated:
+            mean = self.type.calculate_mean
         if not np.isclose(self.obj.amount, mean):
             msg = ("Do you want to update the 'amount' field to match mean?"
                    "\nAmount: {}\tMean: {}".format(self.obj.amount, mean))
@@ -154,6 +156,10 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.complete = False
         self.goto_pedigree = False
         self.previous = None
+        self.mean_is_calculated = {
+            TriangularUncertainty.id, UniformUncertainty.id, DiscreteUniform.id,
+            BetaUncertainty.id,
+        }
 
         # Selection of uncertainty distribution.
         box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
@@ -189,6 +195,9 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.mean.textEdited.connect(self.check_negative)
         self.mean.textEdited.connect(self.generate_plot)
         self.mean_label = QtWidgets.QLabel("Mean:")
+        self.blocked_label = QtWidgets.QLabel("Mean:")
+        self.blocked_mean = QtWidgets.QLineEdit("nan")
+        self.blocked_mean.setDisabled(True)
         self.scale = QtWidgets.QLineEdit()
         self.scale.setValidator(self.validator)
         self.scale.textEdited.connect(self.generate_plot)
@@ -209,18 +218,20 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.negative.setChecked(False)
         self.negative.setHidden(True)
         box_layout = QtWidgets.QGridLayout()
-        box_layout.addWidget(self.loc_label, 0, 0)
-        box_layout.addWidget(self.loc, 0, 1)
-        box_layout.addWidget(self.mean_label, 0, 3)
-        box_layout.addWidget(self.mean, 0, 4)
-        box_layout.addWidget(self.scale_label, 2, 0)
-        box_layout.addWidget(self.scale, 2, 1)
-        box_layout.addWidget(self.shape_label, 4, 0)
-        box_layout.addWidget(self.shape, 4, 1)
-        box_layout.addWidget(self.min_label, 6, 0)
-        box_layout.addWidget(self.minimum, 6, 1)
-        box_layout.addWidget(self.max_label, 8, 0)
-        box_layout.addWidget(self.maximum, 8, 1)
+        box_layout.addWidget(self.blocked_label, 0, 0)
+        box_layout.addWidget(self.blocked_mean, 0, 1)
+        box_layout.addWidget(self.loc_label, 2, 0)
+        box_layout.addWidget(self.loc, 2, 1)
+        box_layout.addWidget(self.mean_label, 2, 3)
+        box_layout.addWidget(self.mean, 2, 4)
+        box_layout.addWidget(self.scale_label, 4, 0)
+        box_layout.addWidget(self.scale, 4, 1)
+        box_layout.addWidget(self.shape_label, 6, 0)
+        box_layout.addWidget(self.shape, 6, 1)
+        box_layout.addWidget(self.min_label, 8, 0)
+        box_layout.addWidget(self.minimum, 8, 1)
+        box_layout.addWidget(self.max_label, 10, 0)
+        box_layout.addWidget(self.maximum, 10, 1)
         self.field_box.setLayout(box_layout)
 
         self.registerField("loc", self.loc, "text")
@@ -260,8 +271,6 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         if self.dist.id == LognormalUncertainty.id:
             self.mean.setHidden(False)
             self.mean_label.setHidden(False)
-            self.loc_label.setText("Loc (ln(mean)):")
-            self.loc_label.setToolTip("Natural logarithm of mean")
             # Convert 'mean' to lognormal mean
             if self.previous is not None and self.previous != LognormalUncertainty.id:
                 self.wizard().extract_lognormal_loc()
@@ -269,15 +278,53 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         else:
             self.mean.setHidden(True)
             self.mean_label.setHidden(True)
-            self.loc_label.setText("Mean:")
-            self.loc_label.setToolTip("")
             # Override the lognormal mean and copy the amount in its place
             if self.previous and self.previous == LognormalUncertainty.id:
-                obj = getattr(self.wizard(), "obj")
-                if obj:
-                    self.loc.setText(str(getattr(obj, "amount", 1)))
+                self.loc.setText(str(getattr(self.wizard().obj, "amount", 1)))
+        # Hide or show additional untouchable 'mean' field.
+        if self.dist.id in self.mean_is_calculated:
+            self.blocked_label.setHidden(False)
+            self.blocked_mean.setHidden(False)
+        else:
+            self.blocked_label.setHidden(True)
+            self.blocked_mean.setHidden(True)
+        self.loc_label.setText(self.distribution_loc_label)
         self.previous = self.dist.id
         self.field_box.updateGeometry()
+
+    @property
+    def distribution_loc_label(self) -> str:
+        """Many distributions have a special name for the value that is entered
+        into the 'loc' field.
+        """
+        if self.dist.id == LognormalUncertainty.id:
+            return "Loc (ln(mean)):"
+        elif self.dist.id == TriangularUncertainty.id:
+            return "Mode:"
+        elif self.dist.id == BetaUncertainty.id:
+            return "Loc / alpha:"
+        elif self.dist.id in {GammaUncertainty.id, WeibullUncertainty.id}:
+            return "Loc / offset:"
+        else:
+            return "Mean:"
+
+    @property
+    def calculate_mean(self) -> float:
+        """Some distributions do not specifically use a mean to generate
+        their random values, in those cases present a calculated mean.
+
+        If any of the data is missing or the calculation fails, float('nan')
+        is returned.
+        """
+        array = self.dist.from_dicts(self.wizard().uncertainty_info)
+        try:
+            calc = self.dist.statistics(array).get("mean")
+        # Catch exception for DiscreteUniform (https://bitbucket.org/cmutel/stats_arrays/pull-requests/5/)
+        except TypeError:
+            array = self.dist.fix_nan_minimum(array)
+            calc = (array['maximum'] + array['minimum']) / 2
+        calc = calc.mean() if isinstance(calc, np.ndarray) else calc
+        return float(calc)
 
     @Slot(name="changeDistribution")
     def distribution_selection(self):
@@ -370,6 +417,8 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
             (field.hasAcceptableInput() and field.text())
             for field in self.active_fields
         )
+        if self.complete and self.dist.id in self.mean_is_calculated:
+            self.blocked_mean.setText(str(self.calculate_mean))
         if self.complete or self.dist.id in {0, 1}:
             data = self.dist.random_variables(
                 self.dist.from_dicts(self.wizard().uncertainty_info), 1000
