@@ -255,7 +255,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
             self.max_label.setHidden(hide)
             self.maximum.setHidden(hide)
 
-    def special_lognormal_handling(self):
+    def special_distribution_handling(self):
         """Special kansas city shuffling for this distribution."""
         if self.dist.id == LognormalUncertainty.id:
             self.mean.setHidden(False)
@@ -303,7 +303,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         elif self.dist.id in {8, 9, 10, 11, 12}:
             self.hide_param("min", "max")
             self.hide_param("loc", "scale", "shape", hide=False)
-        self.special_lognormal_handling()
+        self.special_distribution_handling()
         self.generate_plot()
 
     @property
