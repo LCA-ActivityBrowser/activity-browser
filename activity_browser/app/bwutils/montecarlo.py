@@ -18,7 +18,7 @@ class CSMonteCarloLCA(object):
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
 
-        self.seed = seed or get_seed()
+        # self.seed = seed or get_seed()
 
         # functional units
         self.func_units = cs['inv']
@@ -49,7 +49,7 @@ class CSMonteCarloLCA(object):
         self.results = list()
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
-        self.load_data()
+
 
     def load_data(self):
         self.lca.load_lci_data()
@@ -62,8 +62,10 @@ class CSMonteCarloLCA(object):
                 self.lca.load_lcia_data()
                 self.cf_rngs[method] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
 
-    def calculate(self, iterations=10):
+    def calculate(self, iterations=10, seed=None):
         start = time()
+        self.seed = seed or get_seed()
+        self.load_data()
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
         for iteration in range(iterations):

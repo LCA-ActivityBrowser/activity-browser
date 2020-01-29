@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import math
+
 from PySide2 import QtCore, QtGui, QtWidgets
 
 
@@ -7,6 +9,11 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
+
+    def displayText(self, value, locale):
+        if math.isnan(value):
+            return ""
+        return str(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QLineEdit(parent)
@@ -21,7 +28,7 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
         """ Populate the editor with data if editing an existing field.
         """
         data = index.data(QtCore.Qt.DisplayRole)
-        value = float(data) if data else 0
+        value = float(data) if data and not math.isnan(data) else 0
         editor.setText(str(value))
 
     def setModelData(self, editor: QtWidgets.QLineEdit, model: QtCore.QAbstractItemModel,

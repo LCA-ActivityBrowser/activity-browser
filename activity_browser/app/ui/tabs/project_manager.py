@@ -98,48 +98,10 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.copy_project_button.clicked.connect(signals.copy_project.emit)
 
 
-class HeaderTableTemplate(QtWidgets.QWidget):
-    searchable = False
-
+class DatabaseWidget(QtWidgets.QWidget):
     def __init__(self, parent):
-        super(HeaderTableTemplate, self).__init__(parent)
-        self.table = self.TABLE()
-
-        # Header widget
-        self.header_widget = QtWidgets.QWidget()
-        self.header_layout = QtWidgets.QHBoxLayout()
-        self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.header_layout.addWidget(header(self.HEADER))
-        self.header_widget.setLayout(self.header_layout)
-
-        if hasattr(self.table, "database_name"):
-            self.label_database = QtWidgets.QLabel("[]")
-            self.header_layout.addWidget(self.label_database)
-            signals.database_selected.connect(self.database_changed)
-
-        # Overall Layout
-        self.v_layout = QtWidgets.QVBoxLayout()
-        self.v_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.v_layout.addWidget(self.header_widget)
-        self.v_layout.addWidget(self.table)
-        self.setLayout(self.v_layout)
-
-        self.table.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
-
-    def database_changed(self):
-        if hasattr(self, "label_database"):
-            self.label_database.setText("[{}]".format(self.table.database_name))
-
-
-class DatabaseWidget(HeaderTableTemplate):
-    TABLE = DatabasesTable
-    HEADER = 'Databases:'
-
-    def __init__(self, parent):
-        super(DatabaseWidget, self).__init__(parent)
+        super().__init__(parent)
+        self.table = DatabasesTable()
 
         # Labels
         self.label_no_database_selected = QtWidgets.QLabel(
@@ -158,22 +120,32 @@ class DatabaseWidget(HeaderTableTemplate):
         self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
         self.import_database_button = QtWidgets.QPushButton(qicons.import_db, "Import")
 
-        # Header widget
-        self.header_layout.addWidget(self.add_default_data_button)
-        self.header_layout.addWidget(self.new_database_button)
-        self.header_layout.addWidget(self.import_database_button)
-        self.header_layout.addWidget(self.label_no_database_selected)
+        self._construct_layout()
+        self._connect_signals()
 
-        # Overall Layout
-        # self.v_layout.addWidget(self.label_no_database_selected)
-        self.v_layout.insertWidget(1, self.label_change_readonly)
-
-        self.connect_signals()
-
-    def connect_signals(self):
+    def _connect_signals(self):
         self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
         self.import_database_button.clicked.connect(signals.import_database.emit)
         self.new_database_button.clicked.connect(signals.add_database.emit)
+
+    def _construct_layout(self):
+        header_widget = QtWidgets.QWidget()
+        header_layout = QtWidgets.QHBoxLayout()
+        header_layout.setAlignment(QtCore.Qt.AlignLeft)
+        header_layout.addWidget(header("Databases:"))
+        header_layout.addWidget(self.add_default_data_button)
+        header_layout.addWidget(self.new_database_button)
+        header_layout.addWidget(self.import_database_button)
+        header_layout.addWidget(self.label_no_database_selected)
+        header_widget.setLayout(header_layout)
+
+        # Overall Layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        layout.addWidget(header_widget)
+        layout.addWidget(self.label_change_readonly)
+        layout.addWidget(self.table)
+        self.setLayout(layout)
 
     def update_widget(self):
         no_databases = self.table.rowCount() == 0

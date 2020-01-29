@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""Classes related to the cutoff options menu in contributions tabs.
+
+These classes contain all menu items required to modify the cutoffs of the MLCA results. The
+CutoffMenu class is responsible for assembling the menu. Each different menu item is contained in
+its separate class.
+"""
+
 from collections import namedtuple
 from typing import Union
 
@@ -6,19 +13,21 @@ import numpy as np
 from PySide2.QtCore import QLocale, Qt, Signal, Slot
 from PySide2.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QRadioButton, QSlider, QLabel,
-    QLineEdit, QPushButton, QButtonGroup, QToolTip
+    QLineEdit, QPushButton, QButtonGroup
 )
 
 from PySide2.QtGui import QIntValidator, QDoubleValidator
 
 from ..style import vertical_line
 
-
+# These tuples are used in referring to the two Types and three Labels used
 Types = namedtuple("types", ("relative", "topx"))
 Labels = namedtuple("labels", ("unit", "min", "max"))
 
 
 class CutoffMenu(QWidget):
+    """This class assembles the cutoff menu from the other classes in this module."""
+
     slider_change = Signal()
 
     def __init__(self, parent=None, cutoff_value=0.01, limit_type="percent"):
@@ -35,18 +44,25 @@ class CutoffMenu(QWidget):
         self.validators.topx.setLocale(locale)
         self.buttons = Types(QRadioButton("Relative"), QRadioButton("Top #"))
         self.buttons.relative.setChecked(True)
-        self.buttons.relative.setToolTip("This cut-off type shows the selected top percentage of contributions (for example the top 10% contributors)")
-        self.buttons.topx.setToolTip("This cut-off type shows the selected top number of contributions (for example the top 5 contributors)")
+        self.buttons.relative.setToolTip(
+            "This cut-off type shows the selected top percentage of contributions (for example the \
+top 10% contributors)")
+        self.buttons.topx.setToolTip(
+            "This cut-off type shows the selected top number of contributions (for example the top \
+5 contributors)")
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.buttons.relative, 0)
         self.button_group.addButton(self.buttons.topx, 1)
         self.sliders = Types(LogarithmicSlider(self), QSlider(Qt.Horizontal, self))
-        self.sliders.relative.setToolTip("This slider sets the selected percentage of contributions to be shown")
-        self.sliders.topx.setToolTip("This slider sets the selected number of contributions to be shown")
+        self.sliders.relative.setToolTip("This slider sets the selected percentage of contributions\
+ to be shown")
+        self.sliders.topx.setToolTip("This slider sets the selected number of contributions to be \
+shown")
         self.units = Types("% of total", "top #")
         self.labels = Labels(QLabel(), QLabel(), QLabel())
         self.cutoff_slider_line = QLineEdit()
-        self.cutoff_slider_line.setToolTip("This box can set a precise cut-off value for the contributions to be shown")
+        self.cutoff_slider_line.setToolTip("This box can set a precise cut-off value for the \
+contributions to be shown")
         self.cutoff_slider_line.setLocale(locale)
         self.cutoff_slider_lft_btn = QPushButton("<")
         self.cutoff_slider_lft_btn.setToolTip("This button moves the cut-off value one increment")
@@ -57,6 +73,7 @@ class CutoffMenu(QWidget):
         self.connect_signals()
 
     def connect_signals(self):
+        """Connect the signals of the menu."""
         # Cut-off types
         self.buttons.relative.toggled.connect(self.cutoff_type_check)
         self.cutoff_slider_lft_btn.clicked.connect(self.cutoff_increment_left_check)
@@ -75,11 +92,12 @@ class CutoffMenu(QWidget):
 
     @property
     def is_relative(self) -> bool:
+        """Check if relative button is checked."""
         return self.buttons.relative.isChecked()
 
     @Slot(name="incrementLeftCheck")
     def cutoff_increment_left_check(self):
-        """ Move the slider 1 increment when left button is clicked. """
+        """Move the slider 1 increment to left when left button is clicked."""
         if self.is_relative:
             num = int(self.sliders.relative.value())
             self.sliders.relative.setValue(num + 1)
@@ -89,7 +107,7 @@ class CutoffMenu(QWidget):
 
     @Slot(name="incrementRightCheck")
     def cutoff_increment_right_check(self):
-        """ Move the slider 1 increment when right button is clicked. """
+        """Move the slider 1 increment to right when right button is clicked."""
         if self.is_relative:
             num = int(self.sliders.relative.value())
             self.sliders.relative.setValue(num - 1)
@@ -99,8 +117,9 @@ class CutoffMenu(QWidget):
 
     @Slot(bool, name="isRelativeToggled")
     def cutoff_type_check(self, toggled: bool) -> None:
-        """ Slot connected to the relative radiobutton, the state of that
-        button determines:
+        """Dependent on cutoff-type, set the right labels.
+
+        Slot connected to the relative radiobutton, the state of that button determines:
         - which sliders are visible
         - the unit shown
         - minimum and maximum
@@ -130,7 +149,7 @@ class CutoffMenu(QWidget):
 
     @Slot(str, name="sliderRelativeCheck")
     def cutoff_slider_relative_check(self, editor: str):
-        """ With relative selected, change the values for plots and tables to reflect the slider/line-edit. """
+        """If 'relative' selected, change the plots and tables to reflect the slider/line-edit."""
         if not self.is_relative:
             return
         cutoff = 0.01
@@ -164,7 +183,7 @@ class CutoffMenu(QWidget):
 
     @Slot(str, name="sliderTopXCheck")
     def cutoff_slider_topx_check(self, editor: str):
-        """ With top # selected, change the values for plots and tables to reflect the slider/line-edit. """
+        """If 'top #' selected, change the plots and tables to reflect the slider/line-edit."""
         if self.is_relative:
             return
         cutoff = 2
@@ -197,9 +216,9 @@ class CutoffMenu(QWidget):
         self.slider_change.emit()
 
     def make_layout(self):
-        """ Construct the layout for the cutoff menu widget.
+        """Assemble the layout of the cutoff menu.
 
-        The initial layout is set to 'relative'.
+        Construct the layout for the cutoff menu widget. The initial layout is set to 'relative'.
         """
         layout = QHBoxLayout()
 
@@ -257,17 +276,13 @@ class CutoffMenu(QWidget):
         self.setLayout(layout)
 
 
-# Logarithmic math refresher:
-# BOP Base, Outcome Power;
-# log(B)(O) = P --> log(2)(64) = 6  ||  log(10)(1000) = 3
-#       B^P = O -->        2^6 = 64 ||           10^3 = 1000
-
 class LogarithmicSlider(QSlider):
-    """ Makes a QSlider object that behaves logarithmically.
+    """Makes a QSlider object that behaves logarithmically.
 
-    This class uses the property `log_value` getter and setter to modify
+    Inherits from QSlider. This class uses the property `log_value` getter and setter to modify
     the QSlider through the `value` and `setValue` methods.
     """
+
     def __init__(self, parent=None):
         super().__init__(Qt.Horizontal, parent)
         self.setMinimum(1)
@@ -275,9 +290,17 @@ class LogarithmicSlider(QSlider):
 
     @property
     def log_value(self) -> Union[int, float]:
-        """ Read (slider) value and modify it from
-        1-100 to 0.001-100 logarithmically with relevant rounding.
+        """Read (slider) and modify from 1-100 to 0.001-100 logarithmically with relevant rounding.
+
+        This function converts the 1-100 values and modifies these to 0.001-100 on a logarithmic
+        scale. Rounding is done based on magnitude.
         """
+
+        # Logarithmic math refresher:
+        # BOP = Base, Outcome Power;
+        # log(B)(O) = P --> log(2)(64) = 6  ||  log(10)(1000) = 3
+        #       B^P = O -->        2^6 = 64 ||           10^3 = 1000
+
         value = float(self.value())
         log_val = np.log10(value)
         power = log_val * 2.5 - 3
@@ -295,9 +318,7 @@ class LogarithmicSlider(QSlider):
 
     @log_value.setter
     def log_value(self, value: float) -> None:
-        """ Modify value from 0.001-100 to 1-100 logarithmically and set
-        slider to value.
-        """
+        """Modify value from 0.001-100 to 1-100 logarithmically and set slider to value."""
         value = int(float(value) * np.power(10, 3))
         log_val = np.log10(value).round(3)
         set_val = log_val * 20
