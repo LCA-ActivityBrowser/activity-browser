@@ -417,14 +417,19 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
             (field.hasAcceptableInput() and field.text())
             for field in self.active_fields
         )
-        if self.complete and self.dist.id in self.mean_is_calculated:
-            self.blocked_mean.setText(str(self.calculate_mean))
-        if self.complete or self.dist.id in {0, 1}:
-            data = self.dist.random_variables(
-                self.dist.from_dicts(self.wizard().uncertainty_info), 1000
-            )
+        no_dist = self.dist.id in {UndefinedUncertainty.id, NoUncertainty.id}
+        if self.complete or no_dist:
+            array = self.dist.from_dicts(self.wizard().uncertainty_info)
+            if self.dist.id in self.mean_is_calculated:
+                mean = self.calculate_mean
+                self.blocked_mean.setText(str(mean))
+            elif no_dist:
+                mean = self.wizard().obj.amount
+            else:
+                mean = self.dist.statistics(array).get("mean")
+            data = self.dist.random_variables(array, 1000)
             if not np.any(np.isnan(data)):
-                self.plot.plot(data)
+                self.plot.plot(data, mean)
         self.completeChanged.emit()
 
 
