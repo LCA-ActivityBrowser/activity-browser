@@ -124,9 +124,10 @@ class UncertaintyWizard(QtWidgets.QWizard):
         if self.type.is_lognormal_uncertainty:
             mean = np.exp(mean)
         if not np.isclose(self.obj.amount, mean):
+            msg = ("Do you want to update the 'amount' field to match mean?"
+                   "\nAmount: {}\tMean: {}".format(self.obj.amount, mean))
             choice = QtWidgets.QMessageBox.question(
-                self, "Amount differs from mean",
-                "Do you want to update the 'amount' field to match mean?",
+                self, "Amount differs from mean", msg,
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.Yes
             )
             if choice == QtWidgets.QMessageBox.Yes:
