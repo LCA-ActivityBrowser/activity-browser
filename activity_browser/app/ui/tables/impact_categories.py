@@ -101,6 +101,7 @@ class CFTable(ABDataFrameView):
     UNCERTAINTY = [
         "uncertainty type", "loc", "scale", "shape", "minimum", "maximum"
     ]
+    modified = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -191,4 +192,4 @@ class CFTable(ABDataFrameView):
         else:
             cfs[idx] = cf
         self.method.write(cfs)
-        self.sync(self.method.name)
+        self.modified.emit()

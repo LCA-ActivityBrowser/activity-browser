@@ -16,7 +16,6 @@ class CFsTab(QtWidgets.QWidget):
         self.cf_table = CFTable()
         self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
         self.hide_uncertainty.setChecked(True)
-        self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
         toolbar = QtWidgets.QToolBar(self)
         toolbar.addWidget(self.hide_uncertainty)
         container = QtWidgets.QVBoxLayout()
@@ -30,6 +29,15 @@ class CFsTab(QtWidgets.QWidget):
         self.cf_table.sync(method)
         self.cf_table.show()
         self.panel.select_tab(self)
+
+        self.connect_signals()
+
+    def connect_signals(self) -> None:
+        self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
+        self.cf_table.modified.connect(lambda: self.cf_table.sync(self.method))
+        self.cf_table.modified.connect(
+            lambda: self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
+        )
 
 
 class MethodsTab(QtWidgets.QWidget):
