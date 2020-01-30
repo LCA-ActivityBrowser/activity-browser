@@ -207,7 +207,7 @@ class CSMethodsTable(ABDataFrameView):
 
     def dropEvent(self, event):
         event.accept()
-        new_methods = [row["method"] for row in event.source().selectedItems()]
+        new_methods = event.source().selected_methods()
         old_methods = set(m for m in self.dataframe["method"])
         data = [self.build_row(m) for m in new_methods if m not in old_methods]
         if data:
