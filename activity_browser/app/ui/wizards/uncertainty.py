@@ -597,10 +597,12 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
 
     @Slot(name="meanToLoc")
     def balance_loc_with_mean(self):
-        val_str = self.mean.text()
-        if val_str.startswith("-"):
-            val_str = val_str.lstrip("-")
-        loc_val = str(np.log(float(val_str)))
+        if not self.mean.hasAcceptableInput():
+            self.loc.setText("nan")
+            return
+        val = float(self.mean.text() if self.mean.text() else "nan")
+        val = -1 * val if val < 0 else val
+        loc_val = str(np.log(val)) if val != 0 else "nan"
         self.loc.setText(loc_val)
         self.setField("loc", loc_val)
 
@@ -610,7 +612,10 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
 
         Another special edge-case for the lognormal distribution.
         """
-        if self.mean.text().startswith("-"):
+        if not self.mean.hasAcceptableInput():
+            return
+        val = float(self.mean.text() if self.mean.text() else "nan")
+        if val < 0:
             self.setField("negative", True)
         else:
             self.setField("negative", False)
@@ -627,9 +632,9 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
 
         Also tests if all of the visible QLineEdit fields have valid values.
         """
-        data = LognormalUncertainty.random_variables(
-            LognormalUncertainty.from_dicts(self.wizard().uncertainty_info), 1000
-        )
+        array = LognormalUncertainty.from_dicts(self.wizard().uncertainty_info)
+        median = LognormalUncertainty.statistics(array).get("median")
+        data = LognormalUncertainty.random_variables(array, 1000)
         if not np.any(np.isnan(data)):
-            self.plot.plot(data)
+            self.plot.plot(data, median)
         self.enable_pedigree.emit(True)
