@@ -27,7 +27,7 @@ from ..figures import (
 from ..style import horizontal_line, vertical_line, header
 from ..tables import ContributionTable, InventoryTable, LCAResultsTable
 from ..widgets import CutoffMenu, SwitchComboBox
-from ..web.graphnav import SankeyNavigatorWidget
+from ..web import SankeyNavigatorWidget
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
