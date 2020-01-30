@@ -198,6 +198,7 @@ class NewAnalysisTab(QWidget):
         self.export_table: Optional[ExportTable] = None
 
         self.scenario_box = QComboBox()
+        self.pt_layout = QVBoxLayout()
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
@@ -205,9 +206,8 @@ class NewAnalysisTab(QWidget):
         """Assemble main space where plots, tables and relevant options are shown."""
         space = QScrollArea()
         widget = QWidget()
-        layout = QVBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        widget.setLayout(layout)
+        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        widget.setLayout(self.pt_layout)
         space.setWidget(widget)
         space.setWidgetResizable(True)
 
@@ -233,12 +233,12 @@ class NewAnalysisTab(QWidget):
 
         # Assemble Table and Plot area
         if self.table and self.plot:
-            layout.addLayout(row)
+            self.pt_layout.addLayout(row)
         if self.plot:
-            layout.addWidget(self.plot, 1)
+            self.pt_layout.addWidget(self.plot, 1)
         if self.table:
-            layout.addWidget(self.table)
-        layout.addStretch()
+            self.pt_layout.addWidget(self.table)
+        self.pt_layout.addStretch()
         return space
 
     @QtCore.Slot(name="checkboxChanges")
@@ -561,7 +561,12 @@ class LCAScoresTab(NewAnalysisTab):
             bc.format_activity_label(next(iter(fu.keys())), style='pnld')
             for fu in self.parent.mlca.func_units
         ]
+        idx = self.layout.indexOf(self.plot)
+        self.plot.deleteLater()
+        self.plot = LCAResultsBarChart(self.parent)
+        self.layout.insertWidget(idx, self.plot)
         self.plot.plot(df, method=method, labels=labels)
+        self.updateGeometry()
         self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
 
 
@@ -585,10 +590,14 @@ class LCIAResultsTab(NewAnalysisTab):
 
     def update_plot(self):
         """Update the plot."""
-        if not isinstance(self.plot, LCAResultsPlot):
-            self.plot = LCAResultsPlot(self.parent)
+        idx = self.pt_layout.indexOf(self.plot)
+        self.plot.deleteLater()
+        self.plot = LCAResultsPlot(self.parent)
+        self.pt_layout.insertWidget(idx, self.plot)
         self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
         self.plot.plot(self.df)
+        if self.pt_layout.parentWidget():
+            self.pt_layout.parentWidget().updateGeometry()
 
     def update_table(self):
         """Update the table."""
@@ -763,7 +772,13 @@ class ContributionTab(NewAnalysisTab):
 
     def update_plot(self):
         """Update the plot."""
+        idx = self.pt_layout.indexOf(self.plot)
+        self.plot.deleteLater()
+        self.plot = ContributionPlot()
+        self.pt_layout.insertWidget(idx, self.plot)
         self.plot.plot(self.df, unit=self.unit)
+        if self.pt_layout.parentWidget():
+            self.pt_layout.parentWidget().updateGeometry()
 
 
 class ElementaryFlowContributionTab(ContributionTab):
@@ -881,10 +896,14 @@ class CorrelationsTab(NewAnalysisTab):
 
     def update_plot(self):
         """Update the plot."""
-        if self.plot is None:
-            self.plot = CorrelationPlot(self.parent)
+        idx = self.pt_layout.indexOf(self.plot)
+        self.plot.deleteLater()
+        self.plot = CorrelationPlot(self.parent)
+        self.pt_layout.insertWidget(idx, self.plot)
         df = self.parent.mlca.get_normalized_scores_df()
         self.plot.plot(df)
+        if self.pt_layout.parentWidget():
+            self.pt_layout.parentWidget().updateGeometry()
 
 
 class SankeyTab(QWidget):
@@ -1122,8 +1141,14 @@ class MonteCarloTab(NewAnalysisTab):
         self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
+        idx = self.layout.indexOf(self.plot)
+        self.plot.deleteLater()
+        self.plot = MonteCarloPlot(self.parent)
+        self.layout.insertWidget(idx, self.plot)
         self.plot.plot(self.df, method=method)
         self.plot.show()
+        if self.layout.parentWidget():
+            self.layout.parentWidget().updateGeometry()
 
     def update_table(self):
         self.table.sync(self.df)
