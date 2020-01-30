@@ -374,10 +374,12 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
     @Slot(name="meanToLoc")
     def balance_loc_with_mean(self):
-        val_str = self.mean.text()
-        if val_str.startswith("-"):
-            val_str = val_str.lstrip("-")
-        self.loc.setText(str(np.log(float(val_str))))
+        if not self.mean.hasAcceptableInput():
+            self.loc.setText("nan")
+            return
+        val = float(self.mean.text() if self.mean.text() else "nan")
+        val = -1 * val if val < 0 else val
+        self.loc.setText(str(np.log(val) if val != 0 else float("nan")))
 
     @Slot(name="testValueNegative")
     def check_negative(self) -> None:
@@ -385,7 +387,10 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
         Another special edge-case for the lognormal distribution.
         """
-        if self.dist.id == LognormalUncertainty.id and float(self.mean.text()) < 0:
+        if not self.mean.hasAcceptableInput():
+            return
+        val = float(self.mean.text() if self.mean.text() else "nan")
+        if self.dist.id == LognormalUncertainty.id and val < 0:
             self.setField("negative", True)
         else:
             self.setField("negative", False)
