@@ -347,10 +347,12 @@ class Graph:
     @staticmethod
     def inner_exchanges(nodes: list) -> list:
         """Returns all exchanges (Exchange objects) between a list of nodes."""
-        node_keys = [node.key for node in nodes]
-        # the if part is the slow part, but MUCH faster if not the object, but just the key is compared
-        return [ex for node in nodes for ex in node.technosphere() if
-                ex["input"] in node_keys and ex["output"] in node_keys]
+        node_keys = set(node.key for node in nodes)
+        exchanges = itertools.chain(node.technosphere() for node in nodes)
+        return [
+            ex for ex in exchanges if
+            all(k in node_keys for k in (ex["input"], ex["output"]))
+        ]
 
     def remove_outside_exchanges(self):
         """
