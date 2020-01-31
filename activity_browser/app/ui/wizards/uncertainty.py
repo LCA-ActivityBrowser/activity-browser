@@ -46,17 +46,28 @@ class UncertaintyWizard(QtWidgets.QWizard):
         self.pedigree.enable_pedigree.connect(self.used_pedigree)
         self.extract_uncertainty()
 
+    @staticmethod
+    def standard_dist_fields(dist_id: int) -> list:
+        if dist_id in {2, 3}:
+            return ["loc", "scale"]
+        elif dist_id in {4, 7}:
+            return ["minimum", "maximum"]
+        elif dist_id in {5, 6}:
+            return ["loc", "minimum", "maximum"]
+        elif dist_id in {8, 9, 10, 11, 12}:
+            return ["loc", "scale", "shape"]
+        else:
+            return []
+
     @property
-    def uncertainty_info(self):
-        return {
-            "uncertainty type": self.field("uncertainty type"),
-            "loc": float(self.field("loc")) if self.field("loc") else float("nan"),
-            "scale": float(self.field("scale")) if self.field("scale") else float("nan"),
-            "shape": float(self.field("shape")) if self.field("shape") else float("nan"),
-            "minimum": float(self.field("minimum")) if self.field("minimum") else float("nan"),
-            "maximum": float(self.field("maximum")) if self.field("maximum") else float("nan"),
-            "negative": bool(self.field("negative")),
-        }
+    def uncertainty_info(self) -> dict:
+        dist_id = self.field("uncertainty type")
+        data = dict.fromkeys(self.KEYS, np.NaN)
+        data["uncertainty type"] = dist_id
+        data["negative"] = bool(self.field("negative"))
+        for field in self.standard_dist_fields(dist_id):
+            data[field] = float(self.field(field))
+        return data
 
     @Slot(bool, name="togglePedigree")
     def used_pedigree(self, toggle: bool) -> None:
