@@ -430,9 +430,9 @@ class Graph:
         def format_as_weighted_edges(exchanges, activity_objects=False):
             """Returns the exchanges as a list of weighted edges (from, to, weight) for networkx."""
             if activity_objects:
-                return [(ex.input, ex.output, ex.amount) for ex in exchanges]
+                return ((ex.input, ex.output, ex.amount) for ex in exchanges)
             else:  # keys
-                return [(ex["input"], ex["output"], ex["amount"]) for ex in exchanges]
+                return ((ex["input"], ex["output"], ex["amount"]) for ex in exchanges)
 
         # construct networkx graph
         G = nx.MultiGraph()
@@ -443,16 +443,16 @@ class Graph:
         # identify orphaned nodes
         # checks each node in current dataset whether it is connected to central node
         # adds node_id of orphaned nodes to list
-        orphaned_node_ids = []
-        for node in G.nodes:
-            if not nx.has_path(G, node, self.central_activity.key):# and node != self.central_activity.key:
-                orphaned_node_ids.append(node)
+        orphaned_node_ids = (
+            node for node in G.nodes
+            if not nx.has_path(G, node, self.central_activity.key)
+        )
 
-        print("\nRemoving ORPHANED nodes:", len(orphaned_node_ids))
-        for key in orphaned_node_ids:
+        for count, key in enumerate(orphaned_node_ids, 1):
             act = bw.get_activity(key)
             print(act["name"], act["location"])
             self.nodes.remove(act)
+        print("\nRemoved ORPHANED nodes:", count)
 
         # update edges again to remove those that link to nodes that have been deleted
         self.remove_outside_exchanges()
