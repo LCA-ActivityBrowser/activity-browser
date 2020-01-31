@@ -299,7 +299,7 @@ class Graph:
         self.flip_negative_edges = False  # show true flow direction of edges (e.g. for ecoinvent treatment activities, or substitutions)
 
     def update(self, delete_unstacked=True):
-        self.json_data = self.get_JSON_data()
+        self.json_data = self.get_json_data()
         self.stack.append((deepcopy(self.nodes), deepcopy(self.edges)))
         # print("Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
         if delete_unstacked:
@@ -457,7 +457,7 @@ class Graph:
         # update edges again to remove those that link to nodes that have been deleted
         self.remove_outside_exchanges()
 
-    def get_JSON_data(self):
+    def get_json_data(self):
         """
         Make the JSON graph data from a list of nodes and edges.
 
@@ -471,56 +471,57 @@ class Graph:
             print("Graph has no nodes (activities).")
             return
 
-        nodes = [
-                    {
-                        # "key": node.key,
-                        "db": act.key[0],
-                        "id": act.key[1],
-                        "product": act.get("reference product") or act.get("name"),
-                        "name": act.get("name"),
-                        "location": act.get("location"),
-                        "class": identify_activity_type(act),
-                    }
-                    for act in self.nodes
-                ]
-
-        edges = []
-        for exc in self.edges:
-            if self.flip_negative_edges and exc.get("amount") < 0:
-                # this changes the direction of edges to represent the correct physical flow direction
-                # however, this is still experimental, as the product/flow displayed
-                from_act = exc.output
-                to_act = exc.input
-                product = to_act.get("reference product") or to_act.get("name")
-                amount = abs(exc.get("amount"))
-            else:
-                from_act = exc.input
-                to_act = exc.output
-                product = from_act.get("reference product") or from_act.get("name")
-                amount = exc.get("amount")
-
-            edges.append(
-                    {
-                        "source_id": from_act.key[1],
-                        "target_id": to_act.key[1],
-                        "amount": amount,
-                        "unit": exc.get("unit"),
-                        "product": product,
-                        "tooltip": '<b>{:.3g} {} of {}<b>'.format(
-                            amount,
-                            exc.get('unit', ''),
-                            product)
-                    }
-                )
-
-        json_data = {
-            "nodes": nodes,
-            "edges": edges,
+        data = {
+            "nodes": list(Graph.build_json_node(act) for act in self.nodes),
+            "edges": list(
+                Graph.build_json_edge(exc, self.flip_negative_edges)
+                for exc in self.edges
+            ),
             "title": self.central_activity.get("reference product"),
         }
         # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
-        # print(json_data)
-        return json.dumps(json_data)
+        # print(data)
+        return json.dumps(data)
+
+    @staticmethod
+    def build_json_node(act) -> dict:
+        """Take an activity and return a valid JSON document."""
+        return {
+            "db": act.key[0],
+            "id": act.key[1],
+            "product": act.get("reference product") or act.get("name"),
+            "name": act.get("name"),
+            "location": act.get("location"),
+            "class": identify_activity_type(act),
+        }
+
+    @staticmethod
+    def build_json_edge(exc, flip_negative: bool) -> dict:
+        """Take an exchange object and return a valid JSON document.
+
+        ``flip_negative`` will change the direction of the edge to represent
+        the correct physical flow direction. However, this is experimental,
+        and may not be reflected in the actual display of the product/flow.
+        """
+        product = exc.input
+        reference = product.get("reference product") or product.get("name")
+        amount = exc.get("amount")
+        from_act, to_act = exc.input, exc.output
+        if flip_negative and amount < 0:
+            from_act, to_act = to_act, from_act
+            amount = abs(amount)
+        return {
+            "source_id": from_act.key[1],
+            "target_id": to_act.key[1],
+            "amount": amount,
+            "unit": exc.get("unit"),
+            "product": reference,
+            "tooltip": "<b>{:.3g} {} of {}<b>".format(
+                amount,
+                exc.get("unit", ""),
+                reference
+            )
+        }
 
     def save_json_to_file(self, filename="data.json"):
         """ Writes the current model´s JSON representation to the specifies file. """
