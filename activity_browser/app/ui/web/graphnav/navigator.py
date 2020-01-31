@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import os
-import json
 from copy import deepcopy
-import networkx as nx
+import itertools
+import json
+import os
 
 import brightway2 as bw
+import networkx as nx
 from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PySide2.QtCore import Signal, Slot, Qt
 
@@ -326,19 +327,25 @@ class Graph:
         else:
             return False
 
-    def upstream_and_downstream_nodes(self, key):
+    @staticmethod
+    def upstream_and_downstream_nodes(key: tuple) -> (list, list):
         """Returns the upstream and downstream activity objects for a key. """
         activity = bw.get_activity(key)
         upstream_nodes = [ex.input for ex in activity.technosphere()]
         downstream_nodes = [ex.output for ex in activity.upstream()]
         return upstream_nodes, downstream_nodes
 
-    def upstream_and_downstream_exchanges(self, key):
-        """Returns the upstream and downstream Exchange objects for a key. (act.upstream refers to downstream exchanges; brightway is confused here)"""
+    @staticmethod
+    def upstream_and_downstream_exchanges(key: tuple) -> (list, list):
+        """Returns the upstream and downstream Exchange objects for a key.
+
+        act.upstream refers to downstream exchanges; brightway is confused here)
+        """
         activity = bw.get_activity(key)
         return [ex for ex in activity.technosphere()], [ex for ex in activity.upstream()]
 
-    def inner_exchanges(self, nodes):
+    @staticmethod
+    def inner_exchanges(nodes: list) -> list:
         """Returns all exchanges (Exchange objects) between a list of nodes."""
         node_keys = [node.key for node in nodes]
         # the if part is the slow part, but MUCH faster if not the object, but just the key is compared
