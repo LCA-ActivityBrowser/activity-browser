@@ -359,7 +359,7 @@ class Graph:
         Ensures that all exchanges are exclusively between nodes of the graph
         (i.e. removes exchanges to previously existing nodes).
         """
-        self.edges = [e for e in self.edges if e.input in self.nodes and e.output in self.nodes]
+        self.edges = [e for e in self.edges if all(k in self.nodes for k in (e.input, e.output))]
 
     def new_graph(self, key):
         """Creates a new JSON graph showing the up- and downstream activities for the activity key passed.
@@ -414,15 +414,14 @@ class Graph:
         Different behaviour for "direct nodes only" or "all nodes (inner exchanges)" modes.
         Can lead to orphaned nodes, which can be removed or kept.
         """
-        act = bw.get_activity(key)
-        if act == self.central_activity:
+        if key == self.central_activity.key:
             print("Cannot remove central activity.")
             return
+        act = bw.get_activity(key)
+        self.nodes.remove(act)
         if self.direct_only:
-            self.nodes.remove(act)
             self.remove_outside_exchanges()
         else:
-            self.nodes.remove(act)
             self.edges = self.inner_exchanges(self.nodes)
 
         if self.remove_orphaned:  # remove orphaned nodes
@@ -457,6 +456,7 @@ class Graph:
             if not nx.has_path(G, node, self.central_activity.key)
         )
 
+        count = 1
         for count, key in enumerate(orphaned_node_ids, 1):
             act = bw.get_activity(key)
             print(act["name"], act["location"])
@@ -481,11 +481,11 @@ class Graph:
             return
 
         data = {
-            "nodes": list(Graph.build_json_node(act) for act in self.nodes),
-            "edges": list(
+            "nodes": [Graph.build_json_node(act) for act in self.nodes],
+            "edges": [
                 Graph.build_json_edge(exc, self.flip_negative_edges)
                 for exc in self.edges
-            ),
+            ],
             "title": self.central_activity.get("reference product"),
         }
         # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
