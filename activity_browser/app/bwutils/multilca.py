@@ -491,6 +491,9 @@ class Contributions(object):
             df.columns = pd.MultiIndex.from_tuples(df.columns)
         special_keys = [('Total', ''), ('Rest', '')]
 
+        # replace all 0 values with NaN and drop all rows with only NaNs
+        df = df.replace(0, np.nan).dropna(how='all')
+
         if not mask:
             joined = self.join_df_with_metadata(
                 df, x_fields=x_fields, y_fields=y_fields,
