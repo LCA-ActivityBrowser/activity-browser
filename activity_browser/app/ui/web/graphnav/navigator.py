@@ -3,6 +3,7 @@ from copy import deepcopy
 import itertools
 import json
 import os
+from typing import Optional
 
 import brightway2 as bw
 import networkx as nx
@@ -280,7 +281,7 @@ class Bridge(QtCore.QObject):
         graphsignals.update_graph.emit(click_dict)
 
 
-class Graph:
+class Graph(object):
     """Python side representation of the graph.
     Functionality for graph navigation (e.g. adding and removing nodes).
     A JSON representation of the graph (edges and nodes) enables its use in javascript/html/css.
@@ -299,14 +300,14 @@ class Graph:
         self.remove_orphaned = True  # remove nodes that are isolated from the central_activity after a deletion
         self.flip_negative_edges = False  # show true flow direction of edges (e.g. for ecoinvent treatment activities, or substitutions)
 
-    def update(self, delete_unstacked=True):
+    def update(self, delete_unstacked: bool = True) -> None:
         self.json_data = self.get_json_data()
         self.stack.append((deepcopy(self.nodes), deepcopy(self.edges)))
         # print("Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
         if delete_unstacked:
             self.forward_stack = []
 
-    def forward(self):
+    def forward(self) -> bool:
         """Go forward, if previously gone back."""
         if self.forward_stack:
             self.nodes, self.edges = self.forward_stack.pop()
@@ -315,7 +316,7 @@ class Graph:
         else:
             return False
 
-    def back(self):
+    def back(self) -> bool:
         """Go back to previous graph, if any."""
         if len(self.stack) > 1:
             self.forward_stack.append(self.stack.pop())  # as the last element is always the current graph
@@ -354,14 +355,14 @@ class Graph:
             all(k in node_keys for k in (ex["input"], ex["output"]))
         ]
 
-    def remove_outside_exchanges(self):
+    def remove_outside_exchanges(self) -> None:
         """
         Ensures that all exchanges are exclusively between nodes of the graph
         (i.e. removes exchanges to previously existing nodes).
         """
         self.edges = [e for e in self.edges if all(k in self.nodes for k in (e.input, e.output))]
 
-    def new_graph(self, key):
+    def new_graph(self, key: tuple) -> None:
         """Creates a new JSON graph showing the up- and downstream activities for the activity key passed.
         Args:
             key (tuple): activity key
@@ -371,21 +372,21 @@ class Graph:
         self.central_activity = bw.get_activity(key)
 
         # add nodes
-        up_nodes, down_nodes = self.upstream_and_downstream_nodes(key)
+        up_nodes, down_nodes = Graph.upstream_and_downstream_nodes(key)
         self.nodes = [self.central_activity] + up_nodes + down_nodes
 
         # add edges
         # self.edges = self.inner_exchanges(self.nodes)
-        up_exs, down_exs = self.upstream_and_downstream_exchanges(key)
+        up_exs, down_exs = Graph.upstream_and_downstream_exchanges(key)
         self.edges = up_exs + down_exs
         self.update()
 
-    def expand_graph(self, key, up=False, down=False):
+    def expand_graph(self, key: tuple, up=False, down=False) -> None:
         """
         Adds up-, downstream, or both nodes to graph.
         Different behaviour for "direct nodes only" or "all nodes (inner exchanges)" modes.
         """
-        up_nodes, down_nodes = self.upstream_and_downstream_nodes(key)
+        up_nodes, down_nodes = Graph.upstream_and_downstream_nodes(key)
 
         # Add Nodes
         if up and not down:
@@ -397,7 +398,7 @@ class Graph:
 
         # Add Edges / Exchanges
         if self.direct_only:
-            up_exs, down_exs = self.upstream_and_downstream_exchanges(key)
+            up_exs, down_exs = Graph.upstream_and_downstream_exchanges(key)
             if up and not down:
                 self.edges += up_exs
             elif down and not up:
@@ -405,10 +406,10 @@ class Graph:
             elif up and down:
                 self.edges += up_exs + down_exs
         else:  # all
-            self.edges = self.inner_exchanges(self.nodes)
+            self.edges = Graph.inner_exchanges(self.nodes)
         self.update()
 
-    def reduce_graph(self, key):
+    def reduce_graph(self, key: tuple) -> None:
         """
         Deletes nodes from graph.
         Different behaviour for "direct nodes only" or "all nodes (inner exchanges)" modes.
@@ -422,14 +423,14 @@ class Graph:
         if self.direct_only:
             self.remove_outside_exchanges()
         else:
-            self.edges = self.inner_exchanges(self.nodes)
+            self.edges = Graph.inner_exchanges(self.nodes)
 
         if self.remove_orphaned:  # remove orphaned nodes
             self.remove_orphaned_nodes()
 
         self.update()
 
-    def remove_orphaned_nodes(self):
+    def remove_orphaned_nodes(self) -> None:
         """
         Remove orphaned nodes from graph using the networkx.
         Orphaned nodes are defined as having no path to the central_activity.
@@ -466,7 +467,7 @@ class Graph:
         # update edges again to remove those that link to nodes that have been deleted
         self.remove_outside_exchanges()
 
-    def get_json_data(self):
+    def get_json_data(self) -> Optional[str]:
         """
         Make the JSON graph data from a list of nodes and edges.
 
@@ -532,7 +533,7 @@ class Graph:
             )
         }
 
-    def save_json_to_file(self, filename="data.json"):
+    def save_json_to_file(self, filename: str = "data.json") -> None:
         """ Writes the current model´s JSON representation to the specifies file. """
         if self.json_data:
             filepath = os.path.join(os.path.dirname(__file__), filename)
