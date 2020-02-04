@@ -10,7 +10,6 @@ import networkx as nx
 from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PySide2.QtCore import Signal, Slot, Qt
 
-from .signals import graphsignals
 from ...icons import qicons
 from ....signals import signals
 from ....bwutils.commontasks import identify_activity_type
@@ -25,6 +24,10 @@ from ....bwutils.commontasks import identify_activity_type
 
 # ISSUES:
 # - tooltips show values, but these are not scaled to a product system, i.e. the do not make sense as a system
+
+NAVIGATOR_HTML = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)), "navigator.html"
+)
 
 
 class GraphNavigatorWidget(QtWidgets.QWidget):
@@ -64,9 +67,8 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.view.loadFinished.connect(self.loadFinishedHandler)
         self.view.setContextMenuPolicy(Qt.PreventContextMenu)
         self.view.page().setWebChannel(self.channel)
-        html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            'navigator.html')
-        self.url = QtCore.QUrl.fromLocalFile(html)
+
+        self.url = QtCore.QUrl.fromLocalFile(NAVIGATOR_HTML)
 
         # graph
         self.draw_graph()
@@ -95,7 +97,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
     def connect_signals(self):
         # signals.database_selected.connect(self.set_database)
-        graphsignals.update_graph.connect(self.update_graph)
+        self.bridge.update_graph.connect(self.update_graph)
         # checkboxes
         self.checkbox_direct_only.stateChanged.connect(self.update_graph_settings)
         self.checkbox_remove_orphaned_nodes.stateChanged.connect(self.update_graph_settings)
@@ -214,7 +216,8 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         signals.new_statusbar_message.emit("Reloading graph")
         self.graph.update(delete_unstacked=False)
 
-    def update_graph(self, click_dict):
+    @Slot(object, name="update_graph")
+    def update_graph(self, click_dict: dict) -> None:
         """
         Update graph based on user command (click+keyboard) and settings.
         Settings:
@@ -266,9 +269,10 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
 class Bridge(QtCore.QObject):
     graph_ready = Signal(str)
+    update_graph = Signal(object)
 
-    @Slot(str)
-    def node_clicked(self, click_text):
+    @Slot(str, name="node_clicked")
+    def node_clicked(self, click_text: str):
         """ Is called when a node is clicked in Javascript.
         Args:
             click_text: string of a serialized json dictionary describing
@@ -278,7 +282,7 @@ class Bridge(QtCore.QObject):
         click_dict = json.loads(click_text)
         click_dict["key"] = (click_dict["database"], click_dict["id"])  # since JSON does not know tuples
         print("Click information: ", click_dict)
-        graphsignals.update_graph.emit(click_dict)
+        self.update_graph.emit(click_dict)
 
 
 class Graph(object):
