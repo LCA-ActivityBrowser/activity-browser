@@ -688,11 +688,7 @@ function update_graph(json_data) {
         console.log(click_dict)
 
         // pass click_dict (as json text) to python via bridge
-        new QWebChannel(qt.webChannelTransport, function (channel) {
-            window.bridge = channel.objects.bridge;
-            window.bridge.node_clicked(JSON.stringify(click_dict));
-            window.bridge.graph_ready.connect(update_graph);
-        });
+        window.bridge.node_clicked(JSON.stringify(click_dict));
     };
 };
 
@@ -709,6 +705,7 @@ function roundNumber(number) {
 //    return Math.round(number * 100)/100
 }
 
+// Connect bridge to 'update_graph' function through QWebChannel.
 new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
     window.bridge.graph_ready.connect(update_graph);
