@@ -439,6 +439,8 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
             if self.dist.id in self.mean_is_calculated:
                 mean = self.calculate_mean
                 self.blocked_mean.setText(str(mean))
+            if self.dist.id == LognormalUncertainty.id:
+                mean = self.dist.statistics(array).get("median")
             elif no_dist:
                 mean = self.wizard().obj.amount
             else:
