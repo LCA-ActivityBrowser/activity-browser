@@ -8,6 +8,7 @@ import brightway2 as bw
 from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PySide2.QtCore import Signal, Slot, Qt
 
+from .base import BaseGraph, BaseNavigatorWidget
 from .signals import graphsignals
 from ...icons import qicons
 from ....bwutils.commontasks import identify_activity_type
@@ -293,44 +294,12 @@ class Bridge(QtCore.QObject):
         # graphsignals.update_graph.emit(click_dict)
 
 
-class Graph:
+class Graph(BaseGraph):
     """
     Python side representation of the graph.
     Functionality for graph navigation (e.g. adding and removing nodes).
     A JSON representation of the graph (edges and nodes) enables its use in javascript/html/css.
     """
-
-    def __init__(self):
-        self.json_data = None
-        self.stack = []  # stores previous graphs, if any, and enables back/forward buttons
-        self.forward_stack = []  # stores graphs that can be returned to after having used the "back" button
-
-    def update(self, delete_unstacked=True):
-        self.stack.append((deepcopy(self.json_data)))
-        # print("Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
-        if delete_unstacked:
-            self.forward_stack = []
-
-    def forward(self):
-        """Go forward, if previously gone back."""
-        if self.forward_stack:
-            self.json_data = self.forward_stack.pop()
-            self.update(delete_unstacked=False)
-            return True
-        else:
-            return False
-
-    def back(self):
-        """Go back to previous graph, if any."""
-        if len(self.stack) > 1:
-            self.forward_stack.append(self.stack.pop())  # as the last element is always the current graph
-            # print("Forward stack:", self.forward_stack)
-            self.json_data = self.stack.pop()
-            # print("Un-Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
-            self.update(delete_unstacked=False)
-            return True
-        else:
-            return False
 
     def new_graph(self, data):
         self.json_data = self.get_JSON_from_graph_traversal_data(data)
@@ -435,10 +404,3 @@ class Graph:
         # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
         # print(json_data)
         return json.dumps(json_data)
-
-    def save_json_to_file(self, filename="sankey_data.json"):
-        """ Writes the current model´s JSON representation to the specifies file. """
-        if self.json_data:
-            filepath = os.path.join(os.path.dirname(__file__), filename)
-            with open(filepath, 'w') as outfile:
-                json.dump(self.json_data, outfile)
