@@ -10,6 +10,7 @@ import networkx as nx
 from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PySide2.QtCore import Signal, Slot, Qt
 
+from .base import BaseGraph, BaseNavigatorWidget
 from ...icons import qicons
 from ....signals import signals
 from ....bwutils.commontasks import identify_activity_type
@@ -285,19 +286,17 @@ class Bridge(QtCore.QObject):
         self.update_graph.emit(click_dict)
 
 
-class Graph(object):
+class Graph(BaseGraph):
     """Python side representation of the graph.
     Functionality for graph navigation (e.g. adding and removing nodes).
     A JSON representation of the graph (edges and nodes) enables its use in javascript/html/css.
     """
 
     def __init__(self):
+        super().__init__()
         self.central_activity = None
         self.nodes = None
         self.edges = None
-        self.json_data = None
-        self.stack = []  # stores previous graphs, if any, and enables back/forward buttons
-        self.forward_stack = []  # stores graphs that can be returned to after having used the "back" button
 
         # some settings
         self.direct_only = True  # for a graph expansion: add only direct up-/downstream nodes instead of all connections between the activities in the graph
@@ -305,32 +304,18 @@ class Graph(object):
         self.flip_negative_edges = False  # show true flow direction of edges (e.g. for ecoinvent treatment activities, or substitutions)
 
     def update(self, delete_unstacked: bool = True) -> None:
+        super().update(delete_unstacked)
         self.json_data = self.get_json_data()
+
+    def store_previous(self) -> None:
         self.stack.append((deepcopy(self.nodes), deepcopy(self.edges)))
-        # print("Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
-        if delete_unstacked:
-            self.forward_stack = []
 
-    def forward(self) -> bool:
-        """Go forward, if previously gone back."""
-        if self.forward_stack:
-            self.nodes, self.edges = self.forward_stack.pop()
-            self.update(delete_unstacked=False)
-            return True
-        else:
-            return False
+    def store_future(self) -> None:
+        self.forward_stack.append(self.stack.pop())
+        self.nodes, self.edges = self.stack.pop()
 
-    def back(self) -> bool:
-        """Go back to previous graph, if any."""
-        if len(self.stack) > 1:
-            self.forward_stack.append(self.stack.pop())  # as the last element is always the current graph
-            # print("Forward stack:", self.forward_stack)
-            self.nodes, self.edges = self.stack.pop()
-            # print("Un-Stacked (Nodes/Edges):", len(self.nodes), len(self.edges))
-            self.update(delete_unstacked=False)
-            return True
-        else:
-            return False
+    def retrieve_future(self) -> None:
+        self.nodes, self.edges = self.forward_stack.pop()
 
     @staticmethod
     def upstream_and_downstream_nodes(key: tuple) -> (list, list):
@@ -536,10 +521,3 @@ class Graph(object):
                 reference
             )
         }
-
-    def save_json_to_file(self, filename: str = "data.json") -> None:
-        """ Writes the current model´s JSON representation to the specifies file. """
-        if self.json_data:
-            filepath = os.path.join(os.path.dirname(__file__), filename)
-            with open(filepath, 'w') as outfile:
-                json.dump(self.json_data, outfile)
