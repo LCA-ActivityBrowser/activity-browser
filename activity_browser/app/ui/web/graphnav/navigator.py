@@ -7,11 +7,10 @@ from typing import Optional
 
 import brightway2 as bw
 import networkx as nx
-from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from PySide2.QtCore import Signal, Slot, Qt
+from PySide2 import QtWidgets
+from PySide2.QtCore import Slot
 
 from .base import BaseGraph, BaseNavigatorWidget
-from ...icons import qicons
 from ....signals import signals
 from ....bwutils.commontasks import identify_activity_type
 
@@ -60,15 +59,20 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
 
         self.graph = Graph()
 
-        # graph
-        self.draw_graph()
-
         # default settings
-        self.navigation_mode = False
-        self.help = False
+        self.navigation_label = itertools.cycle(["Current mode: Expansion", "Current mode: Navigation"])
         self.selected_db = None
 
-        # layout
+        self.button_navigation_mode = QtWidgets.QPushButton(next(self.navigation_label))
+        self.checkbox_direct_only = QtWidgets.QCheckBox("Add only direct up-/downstream exchanges")
+        self.checkbox_remove_orphaned_nodes = QtWidgets.QCheckBox("Remove orphaned nodes")
+        self.checkbox_flip_negative_edges = QtWidgets.QCheckBox("Flip negative flows")
+        self.layout = QtWidgets.QVBoxLayout()
+
+        # Prepare graph
+        self.draw_graph()
+
+        # Construct layout and set signals.
         self.construct_layout()
         self.update_graph_settings()
         self.connect_signals()
@@ -85,6 +89,8 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         self.send_json()
 
     def connect_signals(self):
+        super().connect_signals()
+        self.button_navigation_mode.clicked.connect(self.toggle_navigation_mode)
         # signals.database_selected.connect(self.set_database)
         self.bridge.update_graph.connect(self.update_graph)
         # checkboxes
@@ -95,95 +101,70 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
 
     def construct_layout(self) -> None:
         """Layout of Graph Navigator"""
-        # Help label
-        self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
         self.label_help.setVisible(False)
 
-        # button toggle_help
-        self.button_toggle_help = QtWidgets.QPushButton("Help")
-        self.button_toggle_help.clicked.connect(self.toggle_help)
-
-        # button back
-        self.button_back = QtWidgets.QPushButton(qicons.backward, "")
-        self.button_back.clicked.connect(self.go_back)
-
-        # button forward
-        self.button_forward = QtWidgets.QPushButton(qicons.forward, "")
-        self.button_forward.clicked.connect(self.go_forward)
-
-        # button navigation/expansion mode
-        self.navigation_label = {True: "Current mode: Navigation", False: "Current mode: Expansion"}
-        self.button_navigation_mode = QtWidgets.QPushButton(self.navigation_label[self.navigation_mode])
-        self.button_navigation_mode.clicked.connect(self.toggle_navigation_mode)
-
-        # button refresh
-        self.button_refresh = QtWidgets.QPushButton('Refresh HTML')
-        self.button_refresh.clicked.connect(self.draw_graph)
-
-        # button random
-        self.button_random_activity = QtWidgets.QPushButton('Random Activity')
-        self.button_random_activity.clicked.connect(self.random_graph)
-
         # checkbox all_exchanges_in_graph
-        self.checkbox_direct_only = QtWidgets.QCheckBox("Add only direct up-/downstream exchanges")
         self.checkbox_direct_only.setChecked(True)
         self.checkbox_direct_only.setToolTip(
             "When adding activities, show product flows between ALL activities or just selected up-/downstream flows")
 
         # checkbox remove orphaned nodes
-        self.checkbox_remove_orphaned_nodes = QtWidgets.QCheckBox("Remove orphaned nodes")
         self.checkbox_remove_orphaned_nodes.setChecked(True)
         self.checkbox_remove_orphaned_nodes.setToolTip(
             "When removing activities, automatically remove those that have no further connection to the original product")
 
         # checkbox flip negative edges
-        self.checkbox_flip_negative_edges = QtWidgets.QCheckBox("Flip negative flows")
         self.checkbox_flip_negative_edges.setChecked(False)
         self.checkbox_flip_negative_edges.setToolTip(
             "Flip negative product flows (e.g. from ecoinvent treatment activities or from substitution)")
         # Controls Layout
-        self.hl_controls = QtWidgets.QHBoxLayout()
-        self.hl_controls.addWidget(self.button_back)
-        self.hl_controls.addWidget(self.button_forward)
-        self.hl_controls.addWidget(self.button_navigation_mode)
-        self.hl_controls.addWidget(self.button_refresh)
-        self.hl_controls.addWidget(self.button_random_activity)
-        self.hl_controls.addWidget(self.button_toggle_help)
-        self.hl_controls.addStretch(1)
+        hl_controls = QtWidgets.QHBoxLayout()
+        hl_controls.addWidget(self.button_back)
+        hl_controls.addWidget(self.button_forward)
+        hl_controls.addWidget(self.button_navigation_mode)
+        hl_controls.addWidget(self.button_refresh)
+        hl_controls.addWidget(self.button_random_activity)
+        hl_controls.addWidget(self.button_toggle_help)
+        hl_controls.addStretch(1)
 
         # Checkboxes Layout
-        self.hl_checkboxes = QtWidgets.QHBoxLayout()
-        self.hl_checkboxes.addWidget(self.checkbox_direct_only)
-        self.hl_checkboxes.addWidget(self.checkbox_remove_orphaned_nodes)
-        self.hl_checkboxes.addWidget(self.checkbox_flip_negative_edges)
-        self.hl_checkboxes.addStretch(1)
+        hl_checkboxes = QtWidgets.QHBoxLayout()
+        hl_checkboxes.addWidget(self.checkbox_direct_only)
+        hl_checkboxes.addWidget(self.checkbox_remove_orphaned_nodes)
+        hl_checkboxes.addWidget(self.checkbox_flip_negative_edges)
+        hl_checkboxes.addStretch(1)
 
         # Layout
-        self.vlay = QtWidgets.QVBoxLayout()
-        self.vlay.addLayout(self.hl_controls)
-        self.vlay.addLayout(self.hl_checkboxes)
-        self.vlay.addWidget(self.label_help)
-        self.vlay.addWidget(self.view)
-        self.setLayout(self.vlay)
+        self.layout.addLayout(hl_controls)
+        self.layout.addLayout(hl_checkboxes)
+        self.layout.addWidget(self.label_help)
+        self.layout.addWidget(self.view)
+        self.setLayout(self.layout)
 
     def update_graph_settings(self):
         self.graph.direct_only = self.checkbox_direct_only.isChecked()
         self.graph.remove_orphaned = self.checkbox_remove_orphaned_nodes.isChecked()
         self.graph.flip_negative_edges = self.checkbox_flip_negative_edges.isChecked()
 
-    def toggle_navigation_mode(self):
-        self.navigation_mode = not self.navigation_mode
-        self.button_navigation_mode.setText(self.navigation_label[self.navigation_mode])
-        print("Switched to:", self.navigation_label[self.navigation_mode])
-        self.checkbox_remove_orphaned_nodes.setVisible(not self.navigation_mode)
-        self.checkbox_direct_only.setVisible(not self.navigation_mode)
+    @property
+    def is_expansion_mode(self) -> bool:
+        return "Expansion" in self.button_navigation_mode.text()
 
-    def new_graph(self, key):
+    @Slot(name="toggleNavigationMode")
+    def toggle_navigation_mode(self):
+        mode = next(self.navigation_label)
+        self.button_navigation_mode.setText(mode)
+        print("Switched to:", mode)
+        self.checkbox_remove_orphaned_nodes.setVisible(self.is_expansion_mode)
+        self.checkbox_direct_only.setVisible(self.is_expansion_mode)
+
+    def new_graph(self, key: tuple) -> None:
         print("New Graph for key: ", key)
         self.graph.new_graph(key)
         self.send_json()
 
-    def reload_graph(self):
+    @Slot(name="reload_graph")
+    def reload_graph(self) -> None:
         signals.new_statusbar_message.emit("Reloading graph")
         self.graph.update(delete_unstacked=False)
 
@@ -203,7 +184,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         keyboard = click_dict["keyboard"]
 
         # interpret user command:
-        if self.navigation_mode:  # do not expand
+        if not self.is_expansion_mode:  # do not expand
             self.new_graph(key)
         else:
             if keyboard["alt"]:  # delete node
@@ -223,6 +204,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         """Saves the currently selected database for graphing a random activity"""
         self.selected_db = name
 
+    @Slot(name="random_graph")
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
