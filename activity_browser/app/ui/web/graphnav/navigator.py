@@ -26,12 +26,8 @@ from ....bwutils.commontasks import identify_activity_type
 # ISSUES:
 # - tooltips show values, but these are not scaled to a product system, i.e. the do not make sense as a system
 
-NAVIGATOR_HTML = os.path.join(
-    os.path.abspath(os.path.dirname(__file__)), "navigator.html"
-)
 
-
-class GraphNavigatorWidget(QtWidgets.QWidget):
+class GraphNavigatorWidget(BaseNavigatorWidget):
     HELP_TEXT = """
     How to use the Graph Navigator:
     
@@ -55,21 +51,14 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
     NAVIGATION MODE:
     Click on activities to jump to specific activities (instead of expanding the graph).
     """
+    HTML_FILE = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), "navigator.html"
+    )
+
     def __init__(self, parent=None, key=None):
         super().__init__(parent)
 
         self.graph = Graph()
-
-        # qt js interaction
-        self.bridge = Bridge()
-        self.channel = QtWebChannel.QWebChannel()
-        self.channel.registerObject('bridge', self.bridge)
-        self.view = QtWebEngineWidgets.QWebEngineView()
-        self.view.loadFinished.connect(self.loadFinishedHandler)
-        self.view.setContextMenuPolicy(Qt.PreventContextMenu)
-        self.view.page().setWebChannel(self.channel)
-
-        self.url = QtCore.QUrl.fromLocalFile(NAVIGATOR_HTML)
 
         # graph
         self.draw_graph()
@@ -80,17 +69,16 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.selected_db = None
 
         # layout
-        self.make_layout()
+        self.construct_layout()
         self.update_graph_settings()
-
         self.connect_signals()
 
         if key:
             self.selected_db = key[0]
             self.new_graph(key)
 
-    @Slot()
-    def loadFinishedHandler(self):
+    @Slot(name="loadFinishedHandler")
+    def load_finished_handler(self) -> None:
         """Executed when webpage has been loaded for the first time or refreshed.
         This is needed to resend the json data the first time after the page has completely loaded."""
         # print(time.time(), ": load finished")
@@ -105,7 +93,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.checkbox_flip_negative_edges.stateChanged.connect(self.update_graph_settings)
         self.checkbox_flip_negative_edges.stateChanged.connect(self.reload_graph)
 
-    def make_layout(self):
+    def construct_layout(self) -> None:
         """Layout of Graph Navigator"""
         # Help label
         self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
@@ -134,7 +122,7 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
 
         # button random
         self.button_random_activity = QtWidgets.QPushButton('Random Activity')
-        self.button_random_activity.clicked.connect(self.update_graph_random)
+        self.button_random_activity.clicked.connect(self.random_graph)
 
         # checkbox all_exchanges_in_graph
         self.checkbox_direct_only = QtWidgets.QCheckBox("Add only direct up-/downstream exchanges")
@@ -190,24 +178,6 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
         self.checkbox_remove_orphaned_nodes.setVisible(not self.navigation_mode)
         self.checkbox_direct_only.setVisible(not self.navigation_mode)
 
-    def toggle_help(self):
-        self.help = not self.help
-        self.label_help.setVisible(self.help)
-
-    def go_back(self):
-        if self.graph.back():
-            signals.new_statusbar_message.emit("Going back.")
-            self.send_json()
-        else:
-            signals.new_statusbar_message.emit("No data to go back to.")
-
-    def go_forward(self):
-        if self.graph.forward():
-            signals.new_statusbar_message.emit("Going forward.")
-            self.send_json()
-        else:
-            signals.new_statusbar_message.emit("No data to go forward to.")
-
     def new_graph(self, key):
         print("New Graph for key: ", key)
         self.graph.new_graph(key)
@@ -249,41 +219,16 @@ class GraphNavigatorWidget(QtWidgets.QWidget):
                     self.graph.expand_graph(key, up=True)
             self.send_json()
 
-    def send_json(self):
-        # print("Sending JSON data")
-        self.bridge.graph_ready.emit(self.graph.json_data)
-
     def set_database(self, name):
         """Saves the currently selected database for graphing a random activity"""
         self.selected_db = name
 
-    def update_graph_random(self):
+    def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
             self.new_graph(bw.Database(self.selected_db).random().key)
         else:
             QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
-
-    def draw_graph(self):
-        self.view.load(self.url)
-
-
-class Bridge(QtCore.QObject):
-    graph_ready = Signal(str)
-    update_graph = Signal(object)
-
-    @Slot(str, name="node_clicked")
-    def node_clicked(self, click_text: str):
-        """ Is called when a node is clicked in Javascript.
-        Args:
-            click_text: string of a serialized json dictionary describing
-            - the node that was clicked on
-            - mouse button and additional keys pressed
-        """
-        click_dict = json.loads(click_text)
-        click_dict["key"] = (click_dict["database"], click_dict["id"])  # since JSON does not know tuples
-        print("Click information: ", click_dict)
-        self.update_graph.emit(click_dict)
 
 
 class Graph(BaseGraph):
