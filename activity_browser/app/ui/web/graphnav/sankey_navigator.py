@@ -300,107 +300,99 @@ class Graph(BaseGraph):
     Functionality for graph navigation (e.g. adding and removing nodes).
     A JSON representation of the graph (edges and nodes) enables its use in javascript/html/css.
     """
-
     def new_graph(self, data):
-        self.json_data = self.get_JSON_from_graph_traversal_data(data)
+        self.json_data = Graph.get_json_data(data)
         self.update()
 
-    def get_JSON_from_graph_traversal_data(self, data):
+    @staticmethod
+    def get_json_data(data) -> str:
         """Transform bw.Graphtraversal() output to JSON data."""
-
-        def get_activity_by_index(ind):
-            if ind != -1:
-                return bw.get_activity(reverse_activity_dict[ind])
-            else:
-                return False
-
-        def get_max_impact(nodes):
-            return max([abs(n["cum"]) for n in nodes.values()])
-
-
-        gnodes = data["nodes"]
-        gedges = data["edges"]
         lca = data["lca"]
-        lca_score = lca.score #abs(lca.score)
-        max_impact = get_max_impact(gnodes)
-        # print("Max impact:", max_impact)
-        LCIA_unit = bw.Method(lca.method).metadata["unit"]
+        lca_score = lca.score
+        lcia_unit = bw.Method(lca.method).metadata["unit"]
         demand = list(lca.demand.items())[0]
         reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
 
-        nodes, edges = [], []
+        build_json_node = Graph.compose_node_builder(lca_score, lcia_unit, demand[0])
+        build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
 
-        for node_index, values in gnodes.items():
-            act = get_activity_by_index(node_index)
-            if not act:
-                continue
-
-            nodes.append(
-                {
-                    # "key": act.key,
-                    "db": act.key[0],
-                    "id": act.key[1],
-                    "product": act.get("reference product") or act.get("name"),
-                    "name": act.get("name"),
-                    "location": act.get("location"),
-                    "amount": values.get("amount"),
-                    "LCIA_unit": LCIA_unit,
-                    "ind": values.get("ind"),
-                    "ind_norm": values.get("ind") / lca_score,
-                    "cum": values.get("cum"),
-                    "cum_norm": values.get("cum") / lca_score,
-                    "class": "demand" if act == demand[0] else identify_activity_type(act),
-                }
-            )
-
-        for gedge in gedges:
-            if gedge["from"] == -1 or gedge["to"] == -1:
-                continue
-
-            product = get_activity_by_index(gedge["from"]).get("reference product") or get_activity_by_index(gedge["from"]).get("name")
-            from_key = reverse_activity_dict[gedge["from"]]
-            to_key = reverse_activity_dict[gedge["to"]]
-
-            edges.append(
-                {
-                    "source_id": from_key[1],
-                    "target_id": to_key[1],
-                    "amount": gedge["amount"],
-                    "product": product,
-                    "impact": gedge["impact"],
-                    "ind_norm": gedge["impact"] / lca_score,
-                    "unit": bw.Method(lca.method).metadata["unit"],
-                    "tooltip": '<b>{}</b> ({:.2g} {})'
-                               '<br>{:.3g} {} ({:.2g}%) '.format(
-                        product, gedge["amount"], bw.get_activity(from_key).get("unit"),
-                        gedge["impact"], LCIA_unit, gedge["impact"] / lca.score * 100,
-                    )
-                }
-            )
-
-        def get_title():
-            act, amount = demand[0], demand[1]
-            m = bw.Method(lca.method)
-
-            # 'LCIA method: {} [{}] <br>' \
-            return 'Functional unit: {:.2g} {} {} | {} | {} <br>' \
-                   'Total impact: {:.2g} {}'.format(
-                amount,
-                act.get("unit"),
-                act.get("reference product") or act.get("name"),
-                act.get("name"),
-                act.get("location"),
-                # m.name,
-                # m.metadata.get("unit"),
-                lca.score, m.metadata.get("unit"),
-            )
+        valid_nodes = (
+            (bw.get_activity(reverse_activity_dict[idx]), v)
+            for idx, v in data["nodes"].items() if idx != -1
+        )
+        valid_edges = (
+            edge for edge in data["edges"]
+            if all(i != -1 for i in (edge["from"], edge["to"]))
+        )
 
         json_data = {
-            "nodes": nodes,
-            "edges": edges,
-            "title": get_title(),
-            "max_impact": max_impact,
+            "nodes": [build_json_node(act, v) for act, v in valid_nodes],
+            "edges": [build_json_edge(edge) for edge in valid_edges],
+            "title": Graph.build_title(demand, lca_score, lcia_unit),
+            "max_impact": max(abs(n["cum"]) for n in data["nodes"].values()),
         }
         # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
         # print(json_data)
         return json.dumps(json_data)
+
+    @staticmethod
+    def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
+        act, amount = demand[0], demand[1]
+        format_str = ("Functional unit: {:.2g} {} {} | {} | {} <br>"
+                      "Total impact: {:.2g} {}")
+        return format_str.format(
+            amount,
+            act.get("unit"),
+            act.get("reference product") or act.get("name"),
+            act.get("name"),
+            act.get("location"),
+            lca_score, lcia_unit,
+        )
+
+    @staticmethod
+    def compose_node_builder(lca_score: float, lcia_unit: str, demand: tuple):
+        """Build and return a function which processes activities and values
+        into valid JSON documents.
+
+        Inspired by https://stackoverflow.com/a/7045809
+        """
+        def build_json_node(act, values: dict) -> dict:
+            return {
+                "db": act.key[0],
+                "id": act.key[1],
+                "product": act.get("reference product") or act.get("name"),
+                "name": act.get("name"),
+                "location": act.get("location"),
+                "amount": values.get("amount"),
+                "LCIA_unit": lcia_unit,
+                "ind": values.get("ind"),
+                "ind_norm": values.get("ind") / lca_score,
+                "cum": values.get("cum"),
+                "cum_norm": values.get("cum") / lca_score,
+                "class": "demand" if act == demand else identify_activity_type(act),
+            }
+        return build_json_node
+
+    @staticmethod
+    def compose_edge_builder(reverse_dict: dict, lca_score: float, lcia_unit: str):
+        """Build a function which turns graph edges into valid JSON documents.
+        """
+        def build_json_edge(edge: dict) -> dict:
+            p = bw.get_activity(reverse_dict[edge["from"]])
+            from_key = reverse_dict[edge["from"]]
+            to_key = reverse_dict[edge["to"]]
+            return {
+                "source_id": from_key[1],
+                "target_id": to_key[1],
+                "amount": edge["amount"],
+                "product": p.get("reference product") or p.get("name"),
+                "impact": edge["impact"],
+                "ind_norm": edge["impact"] / lca_score,
+                "unit": lcia_unit,
+                "tooltip": '<b>{}</b> ({:.2g} {})'
+                           '<br>{:.3g} {} ({:.2g}%) '.format(
+                    lcia_unit, edge["amount"], p.get("unit"),
+                    edge["impact"], lcia_unit, edge["impact"] / lca_score * 100,
+                )
+            }
+        return build_json_edge
