@@ -41,11 +41,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.cs = cs_name
         self.selected_db = None
         self.has_sankey = False
-        self.func_units = [
-            {bw.get_activity(k): v for k, v in fu.items()}
-            for fu in bw.calculation_setups[cs_name]['inv']
-        ]
-        self.methods = bw.calculation_setups[cs_name]['ia']
+        self.func_units = []
+        self.methods = []
         self.graph = Graph()
 
         # Additional Qt objects
@@ -153,6 +150,11 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.method_cb.blockSignals(True)
 
         self.cs = cs_name or self.cs
+        self.func_units = [
+            {bw.get_activity(k): v for k, v in fu.items()}
+            for fu in bw.calculation_setups[self.cs]['inv']
+        ]
+        self.methods = bw.calculation_setups[self.cs]['ia']
         self.func_unit_cb.clear()
         self.func_unit_cb.addItems([repr(list(fu.keys())[0]) for fu in self.func_units])
         self.method_cb.clear()
