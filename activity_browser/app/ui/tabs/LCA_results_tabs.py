@@ -562,6 +562,7 @@ class LCAScoresTab(NewAnalysisTab):
             for fu in self.parent.mlca.func_units
         ]
         idx = self.layout.indexOf(self.plot)
+        self.plot.figure.clf()
         self.plot.deleteLater()
         self.plot = LCAResultsBarChart(self.parent)
         self.layout.insertWidget(idx, self.plot)
@@ -591,6 +592,7 @@ class LCIAResultsTab(NewAnalysisTab):
     def update_plot(self):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
+        self.plot.figure.clf()
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
@@ -773,6 +775,7 @@ class ContributionTab(NewAnalysisTab):
     def update_plot(self):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
+        self.plot.figure.clf()
         self.plot.deleteLater()
         self.plot = ContributionPlot()
         self.pt_layout.insertWidget(idx, self.plot)
@@ -897,6 +900,7 @@ class CorrelationsTab(NewAnalysisTab):
     def update_plot(self):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
+        self.plot.figure.clf()
         self.plot.deleteLater()
         self.plot = CorrelationPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
@@ -1142,6 +1146,7 @@ class MonteCarloTab(NewAnalysisTab):
 
     def update_plot(self, method):
         idx = self.layout.indexOf(self.plot)
+        self.plot.figure.clf()
         self.plot.deleteLater()
         self.plot = MonteCarloPlot(self.parent)
         self.layout.insertWidget(idx, self.plot)
