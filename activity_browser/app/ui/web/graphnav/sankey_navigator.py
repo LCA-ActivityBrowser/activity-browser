@@ -5,6 +5,7 @@ import time
 
 import brightway2 as bw
 from PySide2 import QtWidgets
+from PySide2.QtCore import Slot
 
 from .base import BaseGraph, BaseNavigatorWidget
 from ....bwutils.commontasks import identify_activity_type
@@ -57,6 +58,11 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.draw_graph()
         self.construct_layout()
         self.connect_signals()
+
+    @Slot(name="loadFinishedHandler")
+    def load_finished_handler(self) -> None:
+        if self.has_sankey:
+            self.send_json()
 
     def connect_signals(self):
         super().connect_signals()
@@ -183,13 +189,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         print("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
 
         self.graph.new_graph(data)
+        self.has_sankey = bool(self.graph.json_data)
         # print("emitting graph ready signal")
         self.send_json()
-
-    def send_json(self):
-        # print("Sending JSON data")
-        self.bridge.graph_ready.emit(self.graph.json_data)
-        self.has_sankey = True
 
     def set_database(self, name):
         """Saves the currently selected database for graphing a random activity"""
