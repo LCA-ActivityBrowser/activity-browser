@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import json
-from copy import deepcopy
 import time
 
 import brightway2 as bw
-from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
-from PySide2.QtCore import Signal, Slot, Qt
+from PySide2 import QtWidgets
 
 from .base import BaseGraph, BaseNavigatorWidget
-from ...icons import qicons
 from ....bwutils.commontasks import identify_activity_type
 from ....signals import signals
 
@@ -44,7 +41,20 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.cs = cs_name
         self.selected_db = None
         self.has_sankey = False
+        self.func_units = [
+            {bw.get_activity(k): v for k, v in fu.items()}
+            for fu in bw.calculation_setups[cs_name]['inv']
+        ]
+        self.methods = bw.calculation_setups[cs_name]['ia']
         self.graph = Graph()
+
+        # Additional Qt objects
+        self.func_unit_cb = QtWidgets.QComboBox()
+        self.method_cb = QtWidgets.QComboBox()
+        self.cutoff_sb = QtWidgets.QDoubleSpinBox()
+        self.max_calc_sb = QtWidgets.QDoubleSpinBox()
+        self.button_calculate = QtWidgets.QPushButton('Calculate')
+        self.layout = QtWidgets.QVBoxLayout()
 
         # graph
         self.draw_graph()
@@ -52,6 +62,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.connect_signals()
 
     def connect_signals(self):
+        super().connect_signals()
+        self.button_calculate.clicked.connect(self.new_sankey)
         signals.database_selected.connect(self.set_database)
         # checkboxes
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
@@ -61,95 +73,65 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
     def construct_layout(self) -> None:
         """Layout of Sankey Navigator"""
-        # Layout Functional Units and LCIA Methods
-        self.grid_lay = QtWidgets.QGridLayout()
-        self.grid_lay.addWidget(QtWidgets.QLabel('Functional unit: '), 0, 0)
-        self.grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
+        super().construct_layout()
+        self.label_help.setVisible(False)
 
-        self.func_unit_cb = QtWidgets.QComboBox()
-        self.method_cb = QtWidgets.QComboBox()
+        # Layout Functional Units and LCIA Methods
+        grid_lay = QtWidgets.QGridLayout()
+        grid_lay.addWidget(QtWidgets.QLabel('Functional unit: '), 0, 0)
+        grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
+
         self.update_calculation_setup()
 
-        self.grid_lay.addWidget(self.func_unit_cb, 0, 1)
-        self.grid_lay.addWidget(self.method_cb, 1, 1)
+        grid_lay.addWidget(self.func_unit_cb, 0, 1)
+        grid_lay.addWidget(self.method_cb, 1, 1)
         # self.reload_pb = QtWidgets.QPushButton('Reload')
         # self.reload_pb.clicked.connect(self.new_sankey)
-        # self.grid_lay.addWidget(self.reload_pb, 2, 0)
+        # grid_lay.addWidget(self.reload_pb, 2, 0)
         # self.close_pb = QtWidgets.QPushButton('Close')
         # self.close_pb.clicked.connect(self.switch_to_main)
 
-        # self.grid_lay.addWidget(self.close_pb, 0, 5)
+        # grid_lay.addWidget(self.close_pb, 0, 5)
         # self.color_attr_cb = QtWidgets.QComboBox()
         # self.color_attr_cb.addItems(['flow', 'location', 'name'])
-        # self.grid_lay.addWidget(QtWidgets.QLabel('color by: '), 0, 2)
-        # self.grid_lay.addWidget(self.color_attr_cb, 0, 3)
+        # grid_lay.addWidget(QtWidgets.QLabel('color by: '), 0, 2)
+        # grid_lay.addWidget(self.color_attr_cb, 0, 3)
 
         # cut-off
-        self.grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 1, 2)
-        self.cutoff_sb = QtWidgets.QDoubleSpinBox()
+        grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 1, 2)
         self.cutoff_sb.setRange(0.0, 1.0)
         self.cutoff_sb.setSingleStep(0.001)
         self.cutoff_sb.setDecimals(4)
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
-        self.grid_lay.addWidget(self.cutoff_sb, 1, 3)
+        grid_lay.addWidget(self.cutoff_sb, 1, 3)
 
         # max-iterations of graph traversal
-        self.grid_lay.addWidget(QtWidgets.QLabel('Calculation depth: '), 1, 4)
-        self.max_calc_sb = QtWidgets.QDoubleSpinBox()
+        grid_lay.addWidget(QtWidgets.QLabel('Calculation depth: '), 1, 4)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
         self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
-        self.grid_lay.addWidget(self.max_calc_sb, 1, 5)
+        grid_lay.addWidget(self.max_calc_sb, 1, 5)
 
-        self.grid_lay.setColumnStretch(6, 1)
-        self.hlay = QtWidgets.QHBoxLayout()
-        self.hlay.addLayout(self.grid_lay)
-
-        # Help label
-        self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
-        self.label_help.setVisible(False)
-
-        # button toggle_help
-        self.help = False
-        self.button_toggle_help = QtWidgets.QPushButton("Help")
-        self.button_toggle_help.clicked.connect(self.toggle_help)
-
-        # button calculate
-        self.button_calculate = QtWidgets.QPushButton('Calculate')
-        self.button_calculate.clicked.connect(self.new_sankey)
-
-        # button back
-        self.button_back = QtWidgets.QPushButton(qicons.backward, "")
-        self.button_back.clicked.connect(self.go_back)
-
-        # button forward
-        self.button_forward = QtWidgets.QPushButton(qicons.forward, "")
-        self.button_forward.clicked.connect(self.go_forward)
-
-        # button refresh
-        self.button_refresh = QtWidgets.QPushButton('Refresh HTML')
-        self.button_refresh.clicked.connect(self.draw_graph)
-
-        # button random
-        self.button_random_activity = QtWidgets.QPushButton('Random Activity')
-        self.button_random_activity.clicked.connect(self.random_graph)
+        grid_lay.setColumnStretch(6, 1)
+        hlay = QtWidgets.QHBoxLayout()
+        hlay.addLayout(grid_lay)
 
         # checkbox cumulative impact
         # self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
         # self.checkbox_cumulative_impact.setChecked(True)
 
         # Controls Layout
-        self.hl_controls = QtWidgets.QHBoxLayout()
-        self.hl_controls.addWidget(self.button_back)
-        self.hl_controls.addWidget(self.button_forward)
-        self.hl_controls.addWidget(self.button_calculate)
-        self.hl_controls.addWidget(self.button_refresh)
-        self.hl_controls.addWidget(self.button_random_activity)
-        self.hl_controls.addWidget(self.button_toggle_help)
-        self.hl_controls.addStretch(1)
+        hl_controls = QtWidgets.QHBoxLayout()
+        hl_controls.addWidget(self.button_back)
+        hl_controls.addWidget(self.button_forward)
+        hl_controls.addWidget(self.button_calculate)
+        hl_controls.addWidget(self.button_refresh)
+        hl_controls.addWidget(self.button_random_activity)
+        hl_controls.addWidget(self.button_toggle_help)
+        hl_controls.addStretch(1)
 
         # Checkboxes Layout
         # self.hl_checkboxes = QtWidgets.QHBoxLayout()
@@ -157,13 +139,12 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         # self.hl_checkboxes.addStretch(1)
 
         # Layout
-        self.vlay = QtWidgets.QVBoxLayout()
-        self.vlay.addLayout(self.hl_controls)
-        self.vlay.addLayout(self.hlay)
+        self.layout.addLayout(hl_controls)
+        self.layout.addLayout(hlay)
         # self.vlay.addLayout(self.hl_checkboxes)
-        self.vlay.addWidget(self.label_help)
-        self.vlay.addWidget(self.view)
-        self.setLayout(self.vlay)
+        self.layout.addWidget(self.label_help)
+        self.layout.addWidget(self.view)
+        self.setLayout(self.layout)
 
     def update_calculation_setup(self, cs_name=None) -> None:
         """Update Calculation Setup, functional units and methods, and dropdown menus."""
@@ -171,21 +152,11 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.func_unit_cb.blockSignals(True)
         self.method_cb.blockSignals(True)
 
-        if not cs_name:
-            cs_name = self.cs
-
-        self.cs = cs_name
-
+        self.cs = cs_name or self.cs
         self.func_unit_cb.clear()
-        self.func_units = bw.calculation_setups[cs_name]['inv']
-        self.func_units = [{bw.get_activity(k): v for k, v in fu.items()}
-                           for fu in self.func_units]
-        self.func_unit_cb.addItems(
-            [list(fu.keys())[0].__repr__() for fu in self.func_units])
-
+        self.func_unit_cb.addItems([repr(list(fu.keys())[0]) for fu in self.func_units])
         self.method_cb.clear()
-        self.methods = bw.calculation_setups[cs_name]['ia']
-        self.method_cb.addItems([m.__repr__() for m in self.methods])
+        self.method_cb.addItems([repr(m) for m in self.methods])
 
         # unblock signals
         self.func_unit_cb.blockSignals(False)
