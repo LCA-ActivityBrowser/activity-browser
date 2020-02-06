@@ -9,7 +9,6 @@ from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PySide2.QtCore import Signal, Slot, Qt
 
 from .base import BaseGraph, BaseNavigatorWidget
-from .signals import graphsignals
 from ...icons import qicons
 from ....bwutils.commontasks import identify_activity_type
 from ....signals import signals
@@ -27,7 +26,7 @@ from ....signals import signals
 # - zoom behaviour
 
 
-class SankeyNavigatorWidget(QtWidgets.QWidget):
+class SankeyNavigatorWidget(BaseNavigatorWidget):
     HELP_TEXT = """
     LCA Sankey:
     
@@ -35,6 +34,10 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
     Green flows: Avoided impacts
     
     """
+    HTML_FILE = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), 'sankey_navigator.html'
+    )
+
     def __init__(self, cs_name, parent=None):
         super().__init__(parent)
 
@@ -43,34 +46,10 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.has_sankey = False
         self.graph = Graph()
 
-        # qt js interaction
-        self.bridge = Bridge()
-        self.channel = QtWebChannel.QWebChannel()
-        self.channel.registerObject('bridge', self.bridge)
-        self.view = QtWebEngineWidgets.QWebEngineView()
-        self.view.loadFinished.connect(self.loadFinishedHandler)
-        self.view.setContextMenuPolicy(Qt.PreventContextMenu)
-        self.view.page().setWebChannel(self.channel)
-        html = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            'sankey_navigator.html')
-        self.url = QtCore.QUrl.fromLocalFile(html)
-
-
         # graph
         self.draw_graph()
-
-        # layout
-        self.make_layout()
-
+        self.construct_layout()
         self.connect_signals()
-
-    @Slot()
-    def loadFinishedHandler(self):
-        """Executed when webpage has been loaded for the first time or refreshed.
-        Can be used to trigger a calculation after the webpage has been completely loaded."""
-        pass
-        # print(time.time(), ": load finished")
-        # self.new_sankey()
 
     def connect_signals(self):
         signals.database_selected.connect(self.set_database)
@@ -80,7 +59,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         # self.cutoff_sb.valueChanged.connect(self.new_sankey)
         # self.max_calc_sb.valueChanged.connect(self.new_sankey)
 
-    def make_layout(self):
+    def construct_layout(self) -> None:
         """Layout of Sankey Navigator"""
         # Layout Functional Units and LCIA Methods
         self.grid_lay = QtWidgets.QGridLayout()
@@ -89,7 +68,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
 
         self.func_unit_cb = QtWidgets.QComboBox()
         self.method_cb = QtWidgets.QComboBox()
-        self.update_calculation_setup(cs_name=self.cs)
+        self.update_calculation_setup()
 
         self.grid_lay.addWidget(self.func_unit_cb, 0, 1)
         self.grid_lay.addWidget(self.method_cb, 1, 1)
@@ -156,7 +135,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
 
         # button random
         self.button_random_activity = QtWidgets.QPushButton('Random Activity')
-        self.button_random_activity.clicked.connect(self.random_sankey)
+        self.button_random_activity.clicked.connect(self.random_graph)
 
         # checkbox cumulative impact
         # self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
@@ -173,21 +152,20 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.hl_controls.addStretch(1)
 
         # Checkboxes Layout
-        self.hl_checkboxes = QtWidgets.QHBoxLayout()
+        # self.hl_checkboxes = QtWidgets.QHBoxLayout()
         # self.hl_checkboxes.addWidget(self.checkbox_cumulative_impact)
-        self.hl_checkboxes.addStretch(1)
+        # self.hl_checkboxes.addStretch(1)
 
         # Layout
         self.vlay = QtWidgets.QVBoxLayout()
         self.vlay.addLayout(self.hl_controls)
         self.vlay.addLayout(self.hlay)
-        self.vlay.addLayout(self.hl_checkboxes)
+        # self.vlay.addLayout(self.hl_checkboxes)
         self.vlay.addWidget(self.label_help)
         self.vlay.addWidget(self.view)
         self.setLayout(self.vlay)
 
-
-    def update_calculation_setup(self, cs_name=None):
+    def update_calculation_setup(self, cs_name=None) -> None:
         """Update Calculation Setup, functional units and methods, and dropdown menus."""
         # block signals
         self.func_unit_cb.blockSignals(True)
@@ -213,25 +191,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         self.func_unit_cb.blockSignals(False)
         self.method_cb.blockSignals(False)
 
-    def toggle_help(self):
-        self.help = not self.help
-        self.label_help.setVisible(self.help)
-
-    def go_back(self):
-        if self.graph.back():
-            signals.new_statusbar_message.emit("Going back.")
-            self.send_json()
-        else:
-            signals.new_statusbar_message.emit("Cannot go back.")
-
-    def go_forward(self):
-        if self.graph.forward():
-            signals.new_statusbar_message.emit("Going forward.")
-            self.send_json()
-        else:
-            signals.new_statusbar_message.emit("Cannot go forward.")
-
-    def new_sankey(self):
+    def new_sankey(self) -> None:
         print("New Sankey for CS: ", self.cs)
         demand = self.func_units[self.func_unit_cb.currentIndex()]
         method = self.methods[self.method_cb.currentIndex()]
@@ -239,9 +199,9 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         max_calc = self.max_calc_sb.value()
         self.update_sankey(demand, method, cut_off=cutoff, max_calc=max_calc)
 
-    def update_sankey(self, demand, method, cut_off=0.05, max_calc=100):
+    def update_sankey(self, demand, method, cut_off=0.05, max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
-        print("Demand / Method:", demand, method)
+        print("Demand / Method: {} {}".format(demand, method))
         start = time.time()
         try:
             data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
@@ -262,7 +222,7 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
         """Saves the currently selected database for graphing a random activity"""
         self.selected_db = name
 
-    def random_sankey(self):
+    def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
             method = bw.methods.random()
@@ -271,27 +231,6 @@ class SankeyNavigatorWidget(QtWidgets.QWidget):
             self.update_sankey(demand, method)
         else:
             QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
-
-    def draw_graph(self):
-        print("Drawing graph, i.e. loading the view.")
-        self.view.load(self.url)
-
-
-class Bridge(QtCore.QObject):
-    graph_ready = Signal(str)
-
-    @Slot(str)
-    def node_clicked(self, click_text):
-        """ Is called when a node is clicked in Javascript.
-        Args:
-            click_text: string of a serialized json dictionary describing
-            - the node that was clicked on
-            - mouse button and additional keys pressed
-        """
-        click_dict = json.loads(click_text)
-        click_dict["key"] = (click_dict["database"], click_dict["id"])  # since JSON does not know tuples
-        print("Click information: ", click_dict)
-        # graphsignals.update_graph.emit(click_dict)
 
 
 class Graph(BaseGraph):

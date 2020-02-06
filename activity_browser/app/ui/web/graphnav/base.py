@@ -23,14 +23,12 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
 
         # Graph object subclassed from BaseGraph.
         self.graph: Type[BaseGraph]
-        # Qt widget specific objects and settings
-        self.show_help = False
 
         # Setup JS / Qt interactions
         self.bridge = Bridge(self)
-        self.channel = QtWebChannel.QWebChannel(self)
+        self.channel = QtWebChannel.QWebChannel()
         self.channel.registerObject('bridge', self.bridge)
-        self.view = QtWebEngineWidgets.QWebEngineView(self)
+        self.view = QtWebEngineWidgets.QWebEngineView()
         self.view.loadFinished.connect(self.load_finished_handler)
         self.view.setContextMenuPolicy(Qt.PreventContextMenu)
         self.view.page().setWebChannel(self.channel)
@@ -44,7 +42,12 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
         self.button_refresh = QtWidgets.QPushButton("Refresh HTML")
         self.button_random_activity = QtWidgets.QPushButton("Random Activity")
 
-    def load_finished_handler(self) -> None:
+    def load_finished_handler(self, *args, **kwargs) -> None:
+        """Executed when webpage has been loaded for the first time or refreshed.
+
+        Can be used to trigger a calculation after the webpage has been
+        completely loaded.
+        """
         pass
 
     @abstractmethod
