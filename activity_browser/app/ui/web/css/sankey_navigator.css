@@ -1,0 +1,48 @@
+@import "graph_base.css";
+
+.node {
+    fill: black;  /* text color of nodes*/
+    /* no effect:
+    white-space: nowrap;
+    */
+}
+
+.node.demand {
+  /*stroke: #333;  */
+  font-weight: bold
+}
+
+.node.demand rect {
+  stroke: darkblue;
+  fill: #fff;
+  stroke-width: 4px;
+}
+
+.node.market rect {
+  stroke: #ed9736;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.node.treatment rect {
+  stroke: #f4425c;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.edgePath.impact path.path {
+  stroke: red;
+  opacity: 0.7;
+}
+
+.edgePath.benefit path.path {
+  stroke: green;
+  opacity: 0.7;
+}
+
+/* Arrowhead */
+.edgePath path {
+  stroke: none;
+  /*fill: black;*/
+  opacity: 0.3;
+}

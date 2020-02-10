@@ -1,0 +1,28 @@
+@import "graph_base.css";
+
+.node {
+    fill: black;  /* text color of nodes*/
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.node.treatment rect {
+  stroke: #ff634c;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.node.market rect {
+  stroke: #ff7b00;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.edgePath {
+  fill: grey; /* Arrow head */
+}
+
+.edgePath path.path {
+  stroke: lightblue; /* Edge */
+  stroke-width: 3px;
+}
