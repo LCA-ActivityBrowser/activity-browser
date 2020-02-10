@@ -177,10 +177,10 @@ d3.demo.canvas = function() {
             .attr("height", height)
             .attr("transform", "translate(0,0)");
 
-        panCanvas.append("rect")
-            .attr("class", "background")
-            .attr("width", width)
-            .attr("height", height);
+//        panCanvas.append("rect")
+//            .attr("class", "background")
+//            .attr("width", width)
+//            .attr("height", height);
 
         var zoom = d3.zoom()
             .scaleExtent([0.25, 5]);
