@@ -923,6 +923,8 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.layout.addLayout(get_header_layout('Monte Carlo Simulation'))
         self.scenario_label = QLabel("Scenario:")
+        self.include_parameters = QCheckBox(self)
+        self.include_parameters.setChecked(False)
 
         self.add_MC_ui_elements()
 
@@ -938,7 +940,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.connect_signals()
 
     def connect_signals(self):
-        self.button_run.clicked.connect(self.calculate_MC_LCA)
+        self.button_run.clicked.connect(self.calculate_mc_lca)
         # signals.monte_carlo_ready.connect(self.update_mc)
         # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
         self.combobox_methods.currentIndexChanged.connect(
@@ -981,6 +983,8 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_run.addWidget(self.iterations)
         self.hlayout_run.addWidget(self.label_seed)
         self.hlayout_run.addWidget(self.seed)
+        self.hlayout_run.addWidget(QLabel("Explore parameter uncertainty:"))
+        self.hlayout_run.addWidget(self.include_parameters)
         self.hlayout_run.addStretch(1)
         self.layout_mc.addLayout(self.hlayout_run)
 
@@ -1036,8 +1040,14 @@ class MonteCarloTab(NewAnalysisTab):
         export_widget.hide()
         return export_widget
 
-    def calculate_MC_LCA(self):
+    @QtCore.Slot(name="calculateMcLca")
+    def calculate_mc_lca(self):
+        self.method_selection_widget.hide()
+        self.plot.hide()
+        self.export_widget.hide()
+
         iterations = int(self.iterations.text())
+        seed = None
         if self.seed.text():
             print('SEED: ', self.seed.text())
             try:
@@ -1046,14 +1056,11 @@ class MonteCarloTab(NewAnalysisTab):
                 traceback.print_exc()
                 QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
                 self.seed.setText('')
-        else:
-            seed = None
-        self.method_selection_widget.hide()
-        self.plot.hide()
-        self.export_widget.hide()
+                return
+        include_params = self.include_parameters.isChecked()
 
         try:
-            self.parent.mc.calculate(iterations=iterations, seed=seed)
+            self.parent.mc.calculate(iterations=iterations, seed=seed, parameters=include_params)
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
