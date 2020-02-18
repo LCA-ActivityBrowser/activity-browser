@@ -126,7 +126,7 @@ class CSMonteCarloLCA(object):
             # self.results[(method, func_unit)] = lca_scores
 
     @property
-    def func_units_dict(self):
+    def func_units_dict(self) -> dict:
         """Return a dictionary of functional units (key, demand)."""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
@@ -135,7 +135,8 @@ class CSMonteCarloLCA(object):
         - if a method is provided, results will be given for all functional units and runs
         - if a functional unit is provided, results will be given for all methods and runs
         - if a functional unit and method is provided, results will be given for all runs of that combination
-        - if nothing is given, all results are returned"""
+        - if nothing is given, all results are returned
+        """
         if act_key:
             act_index = self.activity_index.get(act_key)
             print('Activity key provided:', act_key, act_index)
@@ -154,12 +155,12 @@ class CSMonteCarloLCA(object):
             return np.squeeze(self.results[:, act_index, method_index])
 
     def get_results_dataframe(self, act_key=None, method=None, labelled=True):
-        """
-Return a Pandas DataFrame with results for all runs either for
-- all functional units and a selected method or
-- all methods and a selected functional unit.
+        """Return a Pandas DataFrame with results for all runs either for
+        - all functional units and a selected method or
+        - all methods and a selected functional unit.
 
-If labelled=True, then the activity keys are converted to a human readable format.
+        If labelled=True, then the activity keys are converted to a human
+        readable format.
         """
         if act_key and method or not act_key and not method:
             raise ValueError('Must provide activity key or method, but not both.')
@@ -178,13 +179,16 @@ If labelled=True, then the activity keys are converted to a human readable forma
 
         return df
 
-    def get_labels(self, key_list, fields=['name', 'reference product', 'location', 'database'],
-                   separator=' | ', max_length=False):
-        keys = [k for k in key_list]  # need to do this as the keys come from a pd.Multiindex
-        translated_keys = []
-        for k in keys:
-            act = bw.get_activity(k).as_dict()
-            translated_keys.append(separator.join([act.get(field, '') for field in fields]))
+    @staticmethod
+    def get_labels(key_list, fields: list = None, separator=' | ',
+                   max_length: int = None) -> list:
+        fields = fields or ['name', 'reference product', 'location', 'database']
+        # need to do this as the keys come from a pd.Multiindex
+        acts = (bw.get_activity(key).as_dict() for key in (k for k in key_list))
+        translated_keys = [
+            separator.join([act.get(field, '') for field in fields])
+            for act in acts
+        ]
         # if max_length:
         #     translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys
