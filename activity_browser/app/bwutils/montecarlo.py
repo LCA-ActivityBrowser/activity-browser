@@ -1,24 +1,31 @@
 # -*- coding: utf-8 -*-
+from time import time
+
 import brightway2 as bw
-from stats_arrays.random import MCRandomNumberGenerator
 from bw2calc.utils import get_seed
 import numpy as np
 import pandas as pd
-from time import time
+from stats_arrays import MCRandomNumberGenerator
+
+from .manager import MonteCarloParameterManager
 
 
 class CSMonteCarloLCA(object):
     """A Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
-    def __init__(self, cs_name, seed=None):
-        try:
-            cs = bw.calculation_setups[cs_name]
-            self.cs_name = cs_name
-        except KeyError:
+    def __init__(self, cs_name):
+        if cs_name not in bw.calculation_setups:
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
 
-        # self.seed = seed or get_seed()
+        self.cs_name = cs_name
+        cs = bw.calculation_setups[cs_name]
+        self.seed = None
+        self.cf_rngs = {}
+        self.CF_rng_vectors = {}
+        self.include_parameters = False
+        self.param_rng = None
+        self.param_cols = ["input", "output", "type"]
 
         # functional units
         self.func_units = cs['inv']
@@ -50,38 +57,53 @@ class CSMonteCarloLCA(object):
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
-
     def load_data(self):
         self.lca.load_lci_data()
         self.lca.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
         self.lca.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed)
         if self.lca.lcia:
-            self.cf_rngs = dict()  # we need as many cf_rng as impact categories, because they are of different size
-            for method in self.methods:
-                self.lca.switch_method(method)
+            self.cf_rngs = {}  # we need as many cf_rng as impact categories, because they are of different size
+            for m in self.methods:
+                self.lca.switch_method(m)
                 self.lca.load_lcia_data()
-                self.cf_rngs[method] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
+                self.cf_rngs[m] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
+        # Construct the MC parameter manager
+        if self.include_parameters:
+            self.param_rng = MonteCarloParameterManager(seed=self.seed)
 
-    def calculate(self, iterations=10, seed=None):
+    def calculate(self, iterations=10, seed: int = None, parameters: bool = False):
         start = time()
         self.seed = seed or get_seed()
+        self.include_parameters = parameters
         self.load_data()
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
         for iteration in range(iterations):
             if not hasattr(self.lca, "tech_rng"):
                 self.load_data()
-            self.lca.rebuild_technosphere_matrix(self.lca.tech_rng.next())
-            self.lca.rebuild_biosphere_matrix(self.lca.bio_rng.next())
+
+            tech_vector = self.lca.tech_rng.next()
+            bio_vector = self.lca.bio_rng.next()
+            if self.include_parameters:
+                param_exchanges = self.param_rng.next()
+                # combination of 'input', 'output', 'type' columns is unique
+                # For each recalculated exchange, match it to either matrix and
+                # override the value within that matrix.
+                for p in param_exchanges:
+                    tech_vector[self.lca.tech_params[self.param_cols] == p[self.param_cols]] = p["amount"]
+                    bio_vector[self.lca.bio_params[self.param_cols] == p[self.param_cols]] = p["amount"]
+
+            self.lca.rebuild_technosphere_matrix(tech_vector)
+            self.lca.rebuild_biosphere_matrix(bio_vector)
 
             if not hasattr(self.lca, "demand_array"):
                 self.lca.build_demand_array()
             self.lca.lci_calculation()
 
             # pre-calculating CF vectors enables the use of the SAME CF vector for each FU in a given run
-            self.CF_rngs = dict()
-            for method in self.methods:
-                self.CF_rngs[method] = self.cf_rngs[method].next()
+            cf_vectors = {}
+            for m in self.methods:
+                cf_vectors[m] = self.cf_rngs[m].next()
 
             # lca_scores = np.zeros((len(self.func_units), len(self.methods)))
 
@@ -90,9 +112,9 @@ class CSMonteCarloLCA(object):
                 self.lca.redo_lci(func_unit)  # lca calculation
 
                 # iterate over methods
-                for col, method in self.rev_method_index.items():
-                    self.lca.switch_method(method)
-                    self.lca.rebuild_characterization_matrix(self.CF_rngs[method])
+                for col, m in self.rev_method_index.items():
+                    self.lca.switch_method(m)
+                    self.lca.rebuild_characterization_matrix(cf_vectors[m])
                     self.lca.lcia_calculation()
                     # lca_scores[row, col] = self.lca.score
                     self.results[iteration, row, col] = self.lca.score
