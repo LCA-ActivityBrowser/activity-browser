@@ -23,7 +23,7 @@ requirements:
     - python
     - setuptools
   run:
-    - python<3.8  # https://github.com/conda-forge/pyside2-feedstock/issues/56
+    - python<3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
     - arrow
     - brightway2 >=2.1.2
     - bw2io >=0.7.dev1
@@ -33,7 +33,7 @@ requirements:
     - matplotlib-base >=2.2.2
     - networkx
     - pandas >=0.24.1
-    - pyside2==5.13.1
+    - pyside2 >=5.13.1
     - seaborn
     - presamples
 
