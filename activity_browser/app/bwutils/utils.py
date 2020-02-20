@@ -3,6 +3,7 @@ from collections import UserList
 from itertools import chain
 from typing import Iterable, List, NamedTuple, Optional
 
+from bw2data import config
 from bw2data.backends.peewee import ActivityDataset, ExchangeDataset
 from bw2data.parameters import (
     ProjectParameter, DatabaseParameter, ActivityParameter,
@@ -32,6 +33,10 @@ class Parameter(NamedTuple):
 class Key(NamedTuple):
     database: str
     code: str
+
+    @property
+    def database_type(self) -> str:
+        return "biosphere" if self.database == config.biosphere else "technosphere"
 
 
 class Index(NamedTuple):

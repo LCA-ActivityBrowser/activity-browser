@@ -8,7 +8,7 @@ from asteval import Interpreter
 from bw2data.backends.peewee import ExchangeDataset
 from bw2data.parameters import (
     ProjectParameter, DatabaseParameter, ActivityParameter,
-    get_new_symbols
+    ParameterizedExchange, get_new_symbols
 )
 from bw2parameters import ParameterSet
 from bw2parameters.errors import MissingName
@@ -16,7 +16,6 @@ import numpy as np
 from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
 from .utils import Index, Parameters, Indices, StaticParameters
-
 
 
 class ParameterManager(object):
@@ -159,6 +158,13 @@ class ParameterManager(object):
         """
         self.parameters.update(values)
         return self.calculate()
+
+    @staticmethod
+    def has_parameterized_exchanges() -> bool:
+        """ Test if ParameterizedExchanges exist, no point to using this manager
+        otherwise.
+        """
+        return ParameterizedExchange.select().exists()
 
 
 class MonteCarloParameterManager(ParameterManager, Iterator):
