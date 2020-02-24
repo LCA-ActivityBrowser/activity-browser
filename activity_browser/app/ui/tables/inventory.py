@@ -11,14 +11,15 @@ from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd
 
-from activity_browser.app.settings import project_settings
-
 from .delegates import CheckboxDelegate
 from .views import ABDataFrameView, dataframe_sync
 from ..icons import qicons
 from ...signals import signals
+from ...settings import project_settings
 from ...bwutils import AB_metadata
-from ...bwutils.commontasks import bw_keys_to_AB_names, is_technosphere_db
+from ...bwutils.commontasks import (
+    bw_keys_to_AB_names, count_database_records, is_technosphere_db
+)
 
 
 class DatabasesTable(ABDataFrameView):
@@ -119,7 +120,7 @@ class DatabasesTable(ABDataFrameView):
                 "Name": name,
                 "Depends": ", ".join(bw.databases[name].get("depends", [])),
                 "Modified": dt,
-                "Records": len(bw.Database(name)),
+                "Records": count_database_records(name),
                 "Read-only": database_read_only,
             })
 

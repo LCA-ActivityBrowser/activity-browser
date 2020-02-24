@@ -282,7 +282,7 @@ class Controller(object):
             None,
             "Delete database?",
             ("Are you sure you want to delete database '{}'? It has {} activity datasets").format(
-                name, len(bw.Database(name)))
+                name, bc.count_database_records(name))
         )
         if ok == QtWidgets.QMessageBox.Yes:
             project_settings.remove_db(name)
@@ -436,7 +436,7 @@ class Controller(object):
         new_act_key = (target_db, new_code)
         activity.copy(code=new_code, database=target_db)
         # only process database immediately if small
-        if len(bw.Database(target_db)) < 50:
+        if bc.count_database_records(target_db) < 50:
             bw.databases.clean()
 
         signals.metadata_changed.emit(new_act_key)

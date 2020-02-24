@@ -5,6 +5,9 @@ from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 import numpy as np
 
+from .commontasks import count_database_records
+
+
 # todo: extend store over several projects
 
 
@@ -157,7 +160,7 @@ class MetaDataStore(object):
 
         """
         if db_name not in self.databases:
-            if len(bw.Database(db_name)) == 0:
+            if count_database_records(db_name) == 0:
                 return pd.DataFrame()
             self.add_metadata([db_name])
         return self.dataframe.loc[self.dataframe['database'] == db_name]
