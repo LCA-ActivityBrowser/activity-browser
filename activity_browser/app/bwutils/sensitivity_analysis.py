@@ -58,7 +58,7 @@ def filter_biosphere_exchanges(lca, cutoff=0.005):
     # print('LCA score:', lca.score)
     inv = lca.characterized_inventory
     # print('Characterized inventory:', inv.shape, inv.nnz)
-    finv = inv.multiply(inv > lca.score / (1 / cutoff))
+    finv = inv.multiply(abs(inv) > abs(lca.score/(1/cutoff)))
     # print('Filtered characterized inventory:', finv.shape, finv.nnz)
     biosphere_exchange_indices = list(zip(*finv.nonzero()))
     # print(biosphere_indices[:2])
