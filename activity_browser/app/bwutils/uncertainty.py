@@ -12,7 +12,7 @@ class BaseUncertaintyInterface(abc.ABC):
     __slots__ = ["_data"]
     KEYS = {
         "uncertainty type", "loc", "scale", "shape", "minimum", "maximum",
-        "negative"
+        "negative", "pedigree"
     }
     data_type = ""
 
@@ -21,22 +21,22 @@ class BaseUncertaintyInterface(abc.ABC):
 
     @property
     def data(self):
-        return self._data
+        return self._data  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def amount(self) -> float:
-        pass
+        pass  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def uncertainty_type(self) -> UncertaintyBase:
-        pass
+        pass  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def uncertainty(self) -> dict:
-        pass
+        pass  # pragma: no cover
 
 
 class ExchangeUncertaintyInterface(BaseUncertaintyInterface):
