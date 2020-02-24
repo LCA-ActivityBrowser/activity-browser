@@ -29,7 +29,7 @@ def get_lca(fu, method):
     return lca
 
 
-def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1e3):
+def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1e4):
     """Use brightway's GraphTraversal to identify the relevant
     technosphere exchanges in a non-stochastic LCA."""
     start = time()
