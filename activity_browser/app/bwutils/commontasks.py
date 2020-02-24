@@ -124,6 +124,18 @@ def import_database_from_package(filepath: str, alternate_name: str = None) -> (
     return db.name, True
 
 
+def count_database_records(name: str) -> int:
+    """To account for possible brightway database types that do not implement
+    the __len__ method.
+    """
+    db = bw.Database(name)
+    try:
+        return len(db)
+    except TypeError as e:
+        print("{}. Counting manually".format(e))
+        return sum(1 for _ in db)
+
+
 # Activity
 AB_names_to_bw_keys = {
     "Amount": "amount",
