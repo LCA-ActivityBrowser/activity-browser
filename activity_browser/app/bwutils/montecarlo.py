@@ -73,16 +73,28 @@ class CSMonteCarloLCA(object):
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
-    def load_data(self):
+    def load_data(self) -> None:
+        """Constructs the random number generators for all of the matrices that
+        can be altered by uncertainty.
+
+        If any of these uncertain calculations are not included, the initial
+        amounts of the 'params' matrices are used in place of generating
+        a vector
+        """
         self.lca.load_lci_data()
-        self.lca.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
-        self.lca.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed)
+
+        tech_rng = MCRandomNumberGenerator if self.include_technosphere else MCCertainNumberGenerator
+        bio_rng = MCRandomNumberGenerator if self.include_biosphere else MCCertainNumberGenerator
+        cf_rng = MCRandomNumberGenerator if self.include_cfs else MCCertainNumberGenerator
+
+        self.lca.tech_rng = tech_rng(self.lca.tech_params, seed=self.seed)
+        self.lca.bio_rng = bio_rng(self.lca.bio_params, seed=self.seed)
         if self.lca.lcia:
             self.cf_rngs = {}  # we need as many cf_rng as impact categories, because they are of different size
             for m in self.methods:
                 self.lca.switch_method(m)
                 self.lca.load_lcia_data()
-                self.cf_rngs[m] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
+                self.cf_rngs[m] = cf_rng(self.lca.cf_params, seed=self.seed)
         # Construct the MC parameter manager
         if self.include_parameters:
             self.param_rng = MonteCarloParameterManager(seed=self.seed)
