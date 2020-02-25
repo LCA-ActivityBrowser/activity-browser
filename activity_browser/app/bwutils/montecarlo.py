@@ -10,6 +10,24 @@ from stats_arrays import MCRandomNumberGenerator
 from .manager import MonteCarloParameterManager
 
 
+class MCCertainNumberGenerator(MCRandomNumberGenerator):
+    """Simple drop-in replacement of the `MCRandomNumberGenerator` to
+    avoid a lot of if/else tests.
+
+    Inspired by https://stackoverflow.com/a/54269982
+    """
+    def __init__(self, params, maximum_iterations=50, seed=None, **kwargs):
+        super().__init__(params, maximum_iterations, seed, **kwargs)
+        self.values = self.params["amount"]
+
+    def generate(self, samples=1):
+        if samples == 1:
+            data = self.values.copy()
+        else:
+            data = np.broadcast_to(self.values, (samples, self.length)).T
+        return data
+
+
 class CSMonteCarloLCA(object):
     """A Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
     def __init__(self, cs_name):
