@@ -6,6 +6,7 @@ import pandas as pd
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
+from ...bwutils.utils import Parameters
 from ...bwutils import presamples as ps_utils
 from ...signals import signals
 from .views import ABDataFrameSimpleCopy, dataframe_sync
@@ -70,7 +71,7 @@ class ScenarioTable(ABDataFrameSimpleCopy):
         """ Construct the dataframe from the existing parameters, if ``df``
         is given, perform a merge to possibly include additional columns.
         """
-        data = ps_utils.process_brightway_parameters()
+        data = [p[:3] for p in Parameters.from_bw_parameters()]
         self.dataframe = pd.DataFrame(data, columns=self.HEADERS)
         if df is not None:
             required = set(self.MATCH_COLS)

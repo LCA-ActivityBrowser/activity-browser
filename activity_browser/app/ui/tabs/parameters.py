@@ -342,10 +342,9 @@ class PresamplesTab(BaseRightTab):
                     QMessageBox.Ok, QMessageBox.Ok
                 )
 
-
     @Slot(name="createPresamplesPackage")
     def calculate_scenarios(self):
-        if not ps_utils.PresamplesParameterManager.can_build_presamples():
+        if not ps_utils.PresamplesParameterManager.has_parameterized_exchanges():
             QMessageBox.warning(
                 self, "No parameterized exchanges",
                 "Please set formulas on exchanges to make use of scenario analysis.",
@@ -372,7 +371,7 @@ class PresamplesTab(BaseRightTab):
     def build_presamples_packages(self, name: str):
         """ Calculate and store presamples arrays from parameter scenarios.
         """
-        ppm = ps_utils.PresamplesParameterManager.construct()
+        ppm = ps_utils.PresamplesParameterManager()
         names, data = zip(*self.tbl.iterate_scenarios())
         ps_id, path = ppm.presamples_from_scenarios(name, zip(names, data))
         description = "{}".format(tuple(names))
