@@ -70,8 +70,6 @@ class ParameterUncertaintyInterface(BaseUncertaintyInterface):
 
     @property
     def uncertainty_type(self) -> UncertaintyBase:
-        if "uncertainty type" not in self._data.data:
-            return UndefinedUncertainty
         return uc[self._data.data.get("uncertainty type", 0)]
 
     @property
