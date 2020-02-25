@@ -573,7 +573,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.balance_mean_with_loc()
         obj = getattr(self.wizard(), "obj")
         try:
-            matrix = PedigreeMatrix.from_dict(obj.uncertainty)
+            matrix = PedigreeMatrix.from_dict(obj.uncertainty.get("pedigree", {}))
             self.pedigree = matrix.factors
         except AssertionError as e:
             print("Could not extract pedigree data: {}".format(str(e)))
