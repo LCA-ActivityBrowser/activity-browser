@@ -41,7 +41,10 @@ class CSMonteCarloLCA(object):
         self.seed = None
         self.cf_rngs = {}
         self.CF_rng_vectors = {}
-        self.include_parameters = False
+        self.include_technosphere = True
+        self.include_biosphere = True
+        self.include_cfs = True
+        self.include_parameters = True
         self.param_rng = None
         self.param_cols = ["input", "output", "type"]
 
@@ -66,12 +69,7 @@ class CSMonteCarloLCA(object):
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_key_dict.keys())
 
-        # todo: get rid of the below
-        self.method_dict_list = []
-        for i, m in enumerate(self.methods):
-            self.method_dict_list.append({m: i})
-
-        self.results = list()
+        self.results = []
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
@@ -89,10 +87,17 @@ class CSMonteCarloLCA(object):
         if self.include_parameters:
             self.param_rng = MonteCarloParameterManager(seed=self.seed)
 
-    def calculate(self, iterations=10, seed: int = None, parameters: bool = False):
+    def calculate(self, iterations=10, seed: int = None, **kwargs):
+        """Main calculate method for the MC LCA class, allows fine-grained control
+        over which uncertainties are included when running MC sampling.
+        """
         start = time()
         self.seed = seed or get_seed()
-        self.include_parameters = parameters
+        self.include_technosphere = kwargs.get("technosphere", True)
+        self.include_biosphere = kwargs.get("biosphere", True)
+        self.include_cfs = kwargs.get("cf", True)
+        self.include_parameters = kwargs.get("parameters", True)
+
         self.load_data()
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
@@ -140,8 +145,6 @@ class CSMonteCarloLCA(object):
         print('CSMonteCarloLCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
             iterations, len(self.func_units), len(self.methods), time() - start
         ))
-            # self.results.append(lca_scores)
-            # self.results[(method, func_unit)] = lca_scores
 
     @property
     def func_units_dict(self) -> dict:
