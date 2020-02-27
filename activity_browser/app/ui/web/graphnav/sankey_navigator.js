@@ -478,22 +478,20 @@ d3.demo.minimap = function() {
 };
 
 /** GRAPH **/
-cartgrapher = function() {
-    // Construct graph object and render the emtpy container
-    var graph_test = d3.select()
-        .append("svg");
-    let graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
-    let max_impact = 0;
+const cartographer = function() {
+    // call to render to ensure sizing is correct.
+    let max_impact;
     canvas.render();
 
     // Allow update of graph by parsing a JSON document.
-    graph.update_graph = function (json_data) {
+    cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
         let data = JSON.parse(json_data);
         max_impact = data["max_impact"];
 	    console.log("Max impact:", max_impact)
         heading.innerHTML = data.title;
-        graph.setGraph({});  // Reset graph to empty
+        // Reset graph to empty
+        graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
 
         // nodes --> graph
         data.nodes.forEach(buildGraphNode);
@@ -601,7 +599,7 @@ cartgrapher = function() {
         div	.html(node.tooltip)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY - 28) + "px");
-    }
+    };
 
     const handleMouseOverEdge = function (e) {
         console.log ("mouseover Edge!");
@@ -612,9 +610,7 @@ cartgrapher = function() {
         div	.html(edge.tooltip)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY - 28) + "px");
-    }
-
-    return graph;
+    };
 };
 
 
@@ -631,7 +627,8 @@ d3.select("#resetButtonqPWKOg").on("click", function() {
 var max_string_length = 20;
 var max_edge_width = 40;
 var render = dagreD3.render();
-var graph = cartgrapher();
+var graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+cartographer();
 
 /* END OF ADAPTED DEMO SCRIPT*/
 
@@ -682,6 +679,6 @@ function roundNumber(number) {
 // Connect bridge to 'update_graph' function through QWebChannel.
 new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
-    window.bridge.graph_ready.connect(graph.update_graph);
+    window.bridge.graph_ready.connect(cartographer.update_graph);
 });
 

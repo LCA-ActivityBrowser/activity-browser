@@ -475,17 +475,17 @@ d3.demo.minimap = function() {
 };
 
 /** GRAPH **/
-cartgrapher = function() {
-    // Construct graph object and render the emtpy container
-    let graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+const cartographer = function() {
+    // call to render to ensure sizing is correct.
     canvas.render();
 
     // Allow update of graph by parsing a JSON document.
-    graph.update_graph = function (json_data) {
+    cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
         let data = JSON.parse(json_data);
         heading.innerHTML = data.title;
-        graph.setGraph({});  // Reset graph to empty
+        // Cleanup old graph
+        graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
 
         // nodes --> graph
         data.nodes.forEach(buildGraphNode);
@@ -572,8 +572,6 @@ cartgrapher = function() {
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY - 28) + "px");
     };
-
-    return graph;
 };
 
 /** RUN SCRIPT **/
@@ -586,8 +584,10 @@ d3.select("#resetButtonqPWKOg").on("click", function() {
     canvas.reset();
 });
 
+// Construct 'render' object and initialize cartographer.
 var render = dagreD3.render();
-var graph = cartgrapher();
+var graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+cartographer();
 
 /* END OF ADAPTED DEMO SCRIPT*/
 
@@ -635,5 +635,5 @@ function formatEdgeText(product) {
 // Connect bridge to 'update_graph' function through QWebChannel.
 new QWebChannel(qt.webChannelTransport, function(channel) {
     window.bridge = channel.objects.bridge;
-    window.bridge.graph_ready.connect(graph.update_graph);
+    window.bridge.graph_ready.connect(cartographer.update_graph);
 });
