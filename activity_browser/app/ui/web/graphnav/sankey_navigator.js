@@ -477,6 +477,147 @@ d3.demo.minimap = function() {
     return minimap;
 };
 
+/** GRAPH **/
+cartgrapher = function() {
+    // Construct graph object and render the emtpy container
+    var graph_test = d3.select()
+        .append("svg");
+    let graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+    let max_impact = 0;
+    canvas.render();
+
+    // Allow update of graph by parsing a JSON document.
+    graph.update_graph = function (json_data) {
+        console.log("Updating Graph");
+        let data = JSON.parse(json_data);
+        max_impact = data["max_impact"];
+	    console.log("Max impact:", max_impact)
+        heading.innerHTML = data.title;
+        graph.setGraph({});  // Reset graph to empty
+
+        // nodes --> graph
+        data.nodes.forEach(buildGraphNode);
+        console.log("Nodes successfully loaded...");
+
+        // edges --> graph
+        data.edges.forEach(buildGraphEdge);
+        console.log("Edges successfully loaded...")
+
+        //re-renders canvas with updated dimensions of the screen
+        canvas.render();
+        //draws graph into canvas
+        canvas.addItem();
+
+        // Adds click listener, calling handleMouseClick func
+        var nodes = panCanvas.selectAll("g .node")
+            .on("click", handleMouseClick)
+            .on("mouseover", handleMouseOverNode)
+            .on("mouseout", function(d) {
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+          });
+        // change node fill based on impact
+        var node_rects = panCanvas.selectAll("g .node rect")
+            .on("click", handleMouseClick)
+            .style("fill", function(d) {
+                console.log(color(graph.node(d).ind_norm));
+                return color(graph.node(d).ind_norm);
+            });
+        // listener for mouse-hovers
+        var edges = panCanvas.selectAll("g .edgePath")
+            .on("mouseover", handleMouseOverEdge)
+            .attr("stroke-width", function(d) { return graph.edge(d).weight; })
+            .on("mouseout", function(d) {
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+        // re-scale arrowheads to fit into edge (they become really big otherwise)
+        markers = d3.selectAll("marker")
+            .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
+    };
+
+    const buildGraphNode = function (n) {
+        graph.setNode(n['id'], {
+            label: wrapText(n['name'], max_string_length)
+                          + '\n' + n['location']
+                          + '\n(' + Math.round(n['ind_norm'] * 100) + '%)',
+            product: n['product'],
+            location: n['location'],
+            id: n['id'],
+            database: n['db'],
+            class: n['class'],
+            ind_norm: n['ind_norm'],
+            tooltip: '<b>' + n['name'] + '</b>'
+                      + '<br>Individual impact: &nbsp&nbsp&nbsp' + roundNumber(n['ind']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)'
+                      + '<br>Cumulative impact: ' + roundNumber(n['cum']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cum_norm'] * 100) + '%)',
+          });
+    };
+
+    const buildGraphEdge = function (e) {
+        let impact_or_benefit = "impact";
+        if (e['impact'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");};
+        graph.setEdge(e['source_id'], e['target_id'],
+            {
+                label: wrapText(e['product']
+                + '\n(' + roundNumber(e['ind_norm']*100) + '%)', max_string_length),
+                amount: e['amount'],
+                unit: e['unit'],
+                product: e['product'],
+                weight: Math.abs(e["impact"] / max_impact ) * max_edge_width,
+                tooltip: e['tooltip'],
+                class: impact_or_benefit,
+                curve: d3.curveBasis,
+            }
+        );
+    };
+
+    // Function called on click
+    const handleMouseClick = function (node) {
+        // make dictionary containing the node key and how the user clicked on it
+        // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
+        let click_dict = {
+            "database": graph.node(node).database,
+            "id": graph.node(node).id,
+            "mouse": event.button,
+            "keyboard": {
+                "shift": event.shiftKey,
+                "alt": event.altKey,
+            }
+        }
+        console.log(click_dict)
+
+        // pass click_dict (as json text) to python via bridge
+        window.bridge.node_clicked(JSON.stringify(click_dict))
+    };
+
+    const handleMouseOverNode = function (n) {
+        console.log ("mouseover Node!");
+        node = graph.node(n);
+        div.transition()
+            .duration(200)
+            .style("opacity", .9);
+        div	.html(node.tooltip)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+    }
+
+    const handleMouseOverEdge = function (e) {
+        console.log ("mouseover Edge!");
+        edge = graph.edge(e);
+        div.transition()
+            .duration(200)
+            .style("opacity", .9);
+        div	.html(edge.tooltip)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+    }
+
+    return graph;
+};
+
+
 /** RUN SCRIPT **/
 
 //instantiation of canvas container+reset button
@@ -487,9 +628,12 @@ d3.select("#resetButtonqPWKOg").on("click", function() {
     canvas.reset();
 });
 
+var max_string_length = 20;
+var max_edge_width = 40;
+var render = dagreD3.render();
+var graph = cartgrapher();
+
 /* END OF ADAPTED DEMO SCRIPT*/
-
-
 
 /**
  * Build svg container and listen for zoom and drag calls
@@ -522,176 +666,6 @@ var color = d3.scaleLinear()
 //    .domain([-1, 0, 1])
 //    .range(["green", "white", "red"]);
 
-var max_string_length = 20
-var max_edge_width = 40
-
-var render = dagreD3.render();
-var graph = {}
-
-function update_graph(json_data) {
-    console.log("Updating Graph")
-	data = JSON.parse(json_data)
-	max_impact = data["max_impact"]
-	console.log("Max impact:", max_impact)
-	var graph_test = d3.select()
-	    .append("svg");
-
-	heading.innerHTML = data.title;
-
-	// reset graph
-	graph = new dagre.graphlib.Graph({ multigraph: true });
-	graph.setGraph({});
-
-    // nodes --> graph
-    data.nodes.forEach(function(n) {
-        graph.setNode(n['id'], {
-        //	      label: formatNodeText(n), //chunkString(n['name'], max_string_length) + '\n' + n['location'],
-          label: wrapText(n['name'], max_string_length)
-                        + '\n' + n['location']
-                        + '\n(' + Math.round(n['ind_norm'] * 100) + '%)',
-//                        + '\n' + roundNumber(n['ind']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)',
-//                        + '\nInd: ' + Math.round(n['ind'] * 100)/100 + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)'
-//                        + '\nCum: ' + Math.round(n['cum'] * 100)/100 + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cum_norm'] * 100) + '%)',
-          product: n['product'],
-          location: n['location'],
-          id: n['id'],
-          database: n['db'],
-          class: n['class'],
-          ind_norm: n['ind_norm'],
-          tooltip: '<b>' + n['name'] + '</b>'
-                    + '<br>Individual impact: &nbsp&nbsp&nbsp' + roundNumber(n['ind']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)'
-                    + '<br>Cumulative impact: ' + roundNumber(n['cum']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cum_norm'] * 100) + '%)',
-//          style: "fill: #f66; fill-opacity: 0.5",
-        });
-    });
-    console.log("Nodes successfully loaded...");
-
-    // edges --> graph
-    data.edges.forEach(function(e) {
-        var impact_or_benefit = "impact"
-        if (e['impact'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");}
-
-        graph.setEdge(e['source_id'], e['target_id'],
-                {
-                    label: wrapText(e['product']
-                    + '\n(' + roundNumber(e['ind_norm']*100) + '%)', max_string_length),
-//                    + '\n' + roundNumber(e['impact']) + ' ' + e['unit'] + ' (' + roundNumber(e['ind_norm'])*100 + '%)', max_string_length),
-//                    labelStyle: "font-size: 2em; font-style: italic; text-decoration: underline;",
-//                    labelStyle: "font-weight: bold;",
-                    amount: e['amount'],
-                    unit: e['unit'],
-                    product: e['product'],
-                    weight: Math.abs(e["impact"] / max_impact ) * max_edge_width,
-                    tooltip: e['tooltip'],
-//                    arrowhead: "vee",
-                    class: impact_or_benefit,
-                    curve: d3.curveBasis,
-//                    style: "stroke: #f66; stroke-width: 3px; stroke-dasharray: 5, 5;",
-                }
-            );
-    });
-    console.log("Edges successfully loaded...")
-
-
-    //re-renders canvas with updated dimensions of the screen
-    canvas.render();
-    //draws graph into canvas
-	canvas.addItem();
-
-	  // Adds click listener, calling handleMouseClick func
-      var nodes = panCanvas.selectAll("g .node")
-	      .on("click", handleMouseClick)
-	      .on("mouseover", handleMouseOverNode)
-	      .on("mouseout", function(d) {
-//            d3.select(this).style("fill", "grey")
-            div.transition()
-                .duration(500)
-                .style("opacity", 0);
-
-        })
-	      // this would change the node text color
-//	      .style("fill", function(d) {
-//	        console.log(color(graph.node(d).ind_norm))
-//	        return color(graph.node(d).ind_norm);
-//	      })
-
-      // change node fill based on impact
-	  var node_rects = panCanvas.selectAll("g .node rect")
-	      .on("click", handleMouseClick)
-	      .style("fill", function(d) {
-    	      console.log(color(graph.node(d).ind_norm))
-	      return color(graph.node(d).ind_norm);
-	      })
-
-      // listener for mouse-hovers
-      var edges = panCanvas.selectAll("g .edgePath")
-        .on("mouseover", handleMouseOverEdge)
-        // set the stroke-width of edges according to data of the edge (e.g. flow value or impact)
-//          .attr("stroke-width", function(d) { return Math.random()*10; })
-        .attr("stroke-width", function(d) { return graph.edge(d).weight; })
-//        .attr("viewBox", "0 0 50 50")
-        .on("mouseout", function(d) {
-//            d3.select(this).style("fill", "grey")
-            div.transition()
-                .duration(500)
-                .style("opacity", 0);
-
-        });
-
-    // re-scale arrowheads to fit into edge (they become really big otherwise)
-    markers = d3.selectAll("marker")
-    		    .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
-
-
-    function handleMouseOverNode(n){
-        console.log ("mouseover Node!")
-//        d3.select(this).style("fill", "magenta")
-        node = graph.node(n)
-
-        div.transition()
-            .duration(200)
-            .style("opacity", .9);
-        div	.html(node.tooltip)
-//            .style("fill", )
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
-    }
-
-    function handleMouseOverEdge(e){
-        console.log ("mouseover Edge!")
-//        d3.select(this).style("fill", "magenta")
-        edge = graph.edge(e)
-
-        div.transition()
-            .duration(200)
-            .style("opacity", .9);
-        div	.html(edge.tooltip)
-//            .style("fill", )
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
-    }
-
-	// Function called on click
-	function handleMouseClick(node){
-        // make dictionary containing the node key and how the user clicked on it
-        // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
-        console.log("click on:", node)
-        click_dict = {
-            "database": graph.node(node).database,
-             "id": graph.node(node).id
-        }
-        click_dict["mouse"] = event.button;
-        click_dict["keyboard"] = {
-            "shift": event.shiftKey,
-            "alt": event.altKey,
-        }
-        console.log(click_dict)
-
-        // pass click_dict (as json text) to python via bridge
-        window.bridge.node_clicked(JSON.stringify(click_dict));
-    };
-};
-
 // break strings into multiple lines after certain length if necessary
 function wrapText(str, length) {
     //console.log(str.replace(/.{10}\S*\s+/g, "$&@").split(/\s+@/).join("\n"))
@@ -708,6 +682,6 @@ function roundNumber(number) {
 // Connect bridge to 'update_graph' function through QWebChannel.
 new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
-    window.bridge.graph_ready.connect(update_graph);
+    window.bridge.graph_ready.connect(graph.update_graph);
 });
 
