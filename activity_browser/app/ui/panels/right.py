@@ -4,8 +4,7 @@ from PySide2.QtWidgets import QVBoxLayout
 
 from activity_browser import PACKAGE_DIRECTORY
 from .panel import ABTab
-from ..web.webutils import RestrictedWebViewWidget
-from ..web.graphnav import GraphNavigatorWidget
+from ..web import GraphNavigatorWidget, RestrictedWebViewWidget
 from ..tabs import (
     LCASetupTab,
     LCAResultsTab,

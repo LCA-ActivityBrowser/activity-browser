@@ -1,9 +1,4 @@
-
-
 console.log ("Starting Graph Navigator.");
-
-//var heading = document.getElementById("heading");
-// document.getElementById("data").innerHTML = "no data yet";
 
 // SETUP GRAPH
 // https://github.com/dagrejs/graphlib/wiki/API-Reference
@@ -479,6 +474,106 @@ d3.demo.minimap = function() {
     return minimap;
 };
 
+/** GRAPH **/
+const cartographer = function() {
+    // call to render to ensure sizing is correct.
+    canvas.render();
+
+    // Allow update of graph by parsing a JSON document.
+    cartographer.update_graph = function (json_data) {
+        console.log("Updating Graph");
+        let data = JSON.parse(json_data);
+        heading.innerHTML = data.title;
+        // Cleanup old graph
+        graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+
+        // nodes --> graph
+        data.nodes.forEach(buildGraphNode);
+        console.log("Nodes successfully loaded...");
+
+        // edges --> graph
+        data.edges.forEach(buildGraphEdge);
+        console.log("Edges successfully loaded...")
+
+        //re-renders canvas with updated dimensions of the screen
+        canvas.render();
+        //draws graph into canvas
+        canvas.addItem();
+
+        // Adds click listener, calling handleMouseClick func
+        var nodes = panCanvas.selectAll("g .node")
+            .on("click", handleMouseClick)
+            console.log ("click!");
+        // listener for mouse-hovers
+        var edges = panCanvas.selectAll("g .edgePath")
+            .on("mouseover", handleMouseHover)
+            .on("mouseout", function(d) {
+                div.transition()
+                .duration(500)
+                .style("opacity", 0);
+            });
+    };
+
+    const buildGraphNode = function (n) {
+        graph.setNode(n['id'], {
+            label: formatNodeText(n['name'], n['location']),
+            labelType: "html",
+            product: n['product'],
+            location: n['location'],
+            id: n['id'],
+            database: n['db'],
+            class: n['class'],
+          });
+    };
+
+    const buildGraphEdge = function (e) {
+        graph.setEdge(
+            e['source_id'],
+            e['target_id'],
+            {
+                label: formatEdgeText(e['product'], max_string_length),
+                labelType: "html",
+                amount: e['amount'],
+                unit: e['unit'],
+                product: e['product'],
+                tooltip: e['tooltip'],
+                arrowhead: "vee",
+                curve: d3.curveBasis,
+            }
+        );
+    };
+
+    // Function called on click
+    const handleMouseClick = function (node) {
+        // make dictionary containing the node key and how the user clicked on it
+        // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
+        let click_dict = {
+            "database": graph.node(node).database,
+            "id": graph.node(node).id,
+            "mouse": event.button,
+            "keyboard": {
+                "shift": event.shiftKey,
+                "alt": event.altKey,
+            }
+        }
+        console.log(click_dict)
+
+        // pass click_dict (as json text) to python via bridge
+        window.bridge.node_clicked(JSON.stringify(click_dict))
+    };
+
+    const handleMouseHover = function (e) {
+        console.log ("mouseover!");
+        edge = graph.edge(e)
+        div.transition()
+            .duration(200)
+            .style("opacity", .9);
+        div	.html(edge.tooltip)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+    };
+};
+
 /** RUN SCRIPT **/
 
 //instantiation of canvas container+reset button
@@ -488,6 +583,11 @@ d3.select("#canvasqPWKOg").call(canvas);
 d3.select("#resetButtonqPWKOg").on("click", function() {
     canvas.reset();
 });
+
+// Construct 'render' object and initialize cartographer.
+var render = dagreD3.render();
+var graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+cartographer();
 
 /* END OF ADAPTED DEMO SCRIPT*/
 
@@ -514,124 +614,6 @@ var div = d3.select("#canvasqPWKOg").append("div")
     .style("opacity", 0);
 
 
-// Access graph size:
-//panCanvas.graph().width
-
-
-
-var render = dagreD3.render();
-//var graph = {}
-
-function update_graph(json_data) {
-    console.log("Updating Graph")
-	data = JSON.parse(json_data)
-	var graph_test = d3.select()
-	    .append("svg");
-
-	heading.innerHTML = data.title;
-
-	// reset graph
-	graph = new dagre.graphlib.Graph({ multigraph: true });
-	graph.setGraph({});
-
-    // nodes --> graph
-    data.nodes.forEach(function(n) {
-        graph.setNode(n['id'], {
-        //	      label: formatNodeText(n), //chunkString(n['name'], max_string_length) + '\n' + n['location'],
-//          label: "<b>" + wrapText(n['name'], max_string_length) + '\n' + n['location'] + "<b>",
-//          label: wrapText(n['name'] + '\n' + n['location'], max_string_length) ,
-          label: formatNodeText(n['name'], n['location']),
-          labelType: "html",
-          product: n['product'],
-          location: n['location'],
-          id: n['id'],
-          database: n['db'],
-          class: n['class'],
-        });
-    });
-    console.log("Nodes successfully loaded...");
-
-    // edges --> graph
-    data.edges.forEach(function(e) {
-        graph.setEdge(
-                e['source_id'],
-                e['target_id'],
-                {
-                    label: formatEdgeText(e['product'], max_string_length),
-                    labelType: "html",
-                    amount: e['amount'],
-                    unit: e['unit'],
-                    product: e['product'],
-                    tooltip: e['tooltip'],
-                    arrowhead: "vee",
-                    curve: d3.curveBasis,
-                }
-            );
-    });
-    console.log("Edges successfully loaded...")
-
-
-    //re-renders canvas with updated dimensions of the screen
-    canvas.render();
-    //draws graph into canvas
-	canvas.addItem();
-
-	  // Adds click listener, calling handleMouseClick func
-	  var nodes = panCanvas.selectAll("g .node")
-	      .on("click", handleMouseClick)
-	      console.log ("click!");
-      // listener for mouse-hovers
-      var edges = panCanvas.selectAll("g .edgePath")
-        .on("mouseover", handleMouseHover)
-        // set the stroke-width of edges according to data of the edge (e.g. flow value or impact)
-//          .attr("stroke-width", function(d) { return Math.random()*10; })
-//        .attr("stroke-width", function(d) { return graph.edge(d).weight; })
-        .on("mouseout", function(d) {
-//            d3.select(this).style("fill", "grey")
-            div.transition()
-                .duration(500)
-                .style("opacity", 0);
-
-        });
-
-    function handleMouseHover(e){
-        console.log ("mouseover!");
-//        d3.select(this).style("fill", "magenta")
-        edge = graph.edge(e)
-
-        div.transition()
-            .duration(200)
-            .style("opacity", .9);
-        div	.html(edge.tooltip)
-//            .style("fill", )
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
-    }
-
-	// Function called on click
-	function handleMouseClick(node){
-        // make dictionary containing the node key and how the user clicked on it
-        // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
-        click_dict = {
-            "database": graph.node(node).database,
-             "id": graph.node(node).id
-        }
-        click_dict["mouse"] = event.button;
-        click_dict["keyboard"] = {
-            "shift": event.shiftKey,
-            "alt": event.altKey,
-        }
-        console.log(click_dict)
-
-        // pass click_dict (as json text) to python via bridge
-        new QWebChannel(qt.webChannelTransport, function (channel) {
-            window.bridge = channel.objects.bridge;
-            window.bridge.node_clicked(JSON.stringify(click_dict));
-            window.bridge.graph_ready.connect(update_graph);
-        });
-    };
-};
-
 // break strings into multiple lines after certain length if necessary
 function wrapText(str, length) {
     //console.log(str.replace(/.{10}\S*\s+/g, "$&@").split(/\s+@/).join("\n"))
@@ -650,8 +632,8 @@ function formatEdgeText(product) {
     return html
 }
 
-new QWebChannel(qt.webChannelTransport, function (channel) {
+// Connect bridge to 'update_graph' function through QWebChannel.
+new QWebChannel(qt.webChannelTransport, function(channel) {
     window.bridge = channel.objects.bridge;
-    window.bridge.graph_ready.connect(update_graph);
+    window.bridge.graph_ready.connect(cartographer.update_graph);
 });
-
