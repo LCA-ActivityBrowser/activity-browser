@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from time import time
+from typing import Optional, Union
 
 import brightway2 as bw
 from bw2calc.utils import get_seed
@@ -23,9 +24,16 @@ class CSMonteCarloLCA(object):
         self.seed = None
         self.cf_rngs = {}
         self.CF_rng_vectors = {}
-        self.include_parameters = False
+        self.include_technosphere = True
+        self.include_biosphere = True
+        self.include_cfs = True
+        self.include_parameters = True
         self.param_rng = None
         self.param_cols = ["input", "output", "type"]
+
+        self.tech_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        self.cf_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
 
         # functional units
         self.func_units = cs['inv']
@@ -48,42 +56,53 @@ class CSMonteCarloLCA(object):
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_key_dict.keys())
 
-        # todo: get rid of the below
-        self.method_dict_list = []
-        for i, m in enumerate(self.methods):
-            self.method_dict_list.append({m: i})
-
-        self.results = list()
+        self.results = []
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
-    def load_data(self):
+    def load_data(self) -> None:
+        """Constructs the random number generators for all of the matrices that
+        can be altered by uncertainty.
+
+        If any of these uncertain calculations are not included, the initial
+        amounts of the 'params' matrices are used in place of generating
+        a vector
+        """
         self.lca.load_lci_data()
-        self.lca.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
-        self.lca.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed)
+
+        self.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed) \
+            if self.include_technosphere else self.lca.tech_params["amount"].copy()
+        self.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed) \
+            if self.include_biosphere else self.lca.bio_params["amount"].copy()
+
         if self.lca.lcia:
             self.cf_rngs = {}  # we need as many cf_rng as impact categories, because they are of different size
             for m in self.methods:
                 self.lca.switch_method(m)
                 self.lca.load_lcia_data()
-                self.cf_rngs[m] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
+                self.cf_rngs[m] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed) \
+                    if self.include_cfs else self.lca.cf_params["amount"].copy()
         # Construct the MC parameter manager
         if self.include_parameters:
             self.param_rng = MonteCarloParameterManager(seed=self.seed)
 
-    def calculate(self, iterations=10, seed: int = None, parameters: bool = False):
+    def calculate(self, iterations=10, seed: int = None, **kwargs):
+        """Main calculate method for the MC LCA class, allows fine-grained control
+        over which uncertainties are included when running MC sampling.
+        """
         start = time()
         self.seed = seed or get_seed()
-        self.include_parameters = parameters
+        self.include_technosphere = kwargs.get("technosphere", True)
+        self.include_biosphere = kwargs.get("biosphere", True)
+        self.include_cfs = kwargs.get("cf", True)
+        self.include_parameters = kwargs.get("parameters", True)
+
         self.load_data()
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
         for iteration in range(iterations):
-            if not hasattr(self.lca, "tech_rng"):
-                self.load_data()
-
-            tech_vector = self.lca.tech_rng.next()
-            bio_vector = self.lca.bio_rng.next()
+            tech_vector = self.tech_rng.next() if self.include_technosphere else self.tech_rng
+            bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
             if self.include_parameters:
                 param_exchanges = self.param_rng.next()
                 # combination of 'input', 'output', 'type' columns is unique
@@ -103,7 +122,7 @@ class CSMonteCarloLCA(object):
             # pre-calculating CF vectors enables the use of the SAME CF vector for each FU in a given run
             cf_vectors = {}
             for m in self.methods:
-                cf_vectors[m] = self.cf_rngs[m].next()
+                cf_vectors[m] = self.cf_rngs[m].next() if self.include_cfs else self.cf_rngs[m]
 
             # lca_scores = np.zeros((len(self.func_units), len(self.methods)))
 
@@ -122,8 +141,6 @@ class CSMonteCarloLCA(object):
         print('CSMonteCarloLCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
             iterations, len(self.func_units), len(self.methods), time() - start
         ))
-            # self.results.append(lca_scores)
-            # self.results[(method, func_unit)] = lca_scores
 
     @property
     def func_units_dict(self) -> dict:

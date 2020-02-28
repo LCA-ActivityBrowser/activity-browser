@@ -10,7 +10,8 @@ from typing import List, Optional, Union
 from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
-    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView, QButtonGroup, QMessageBox
+    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
+    QButtonGroup, QMessageBox, QGroupBox, QGridLayout
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
@@ -919,12 +920,25 @@ class SankeyTab(QWidget):
 class MonteCarloTab(NewAnalysisTab):
     def __init__(self, parent=None):
         super(MonteCarloTab, self).__init__(parent)
-        self.parent = parent
+        self.parent: LCAResultsSubTab = parent
 
         self.layout.addLayout(get_header_layout('Monte Carlo Simulation'))
         self.scenario_label = QLabel("Scenario:")
-        self.include_parameters = QCheckBox(self)
-        self.include_parameters.setChecked(False)
+        self.include_box = QGroupBox("Include uncertainty for:", self)
+        grid = QGridLayout()
+        self.include_tech = QCheckBox("Technosphere", self)
+        self.include_tech.setChecked(True)
+        self.include_bio = QCheckBox("Biosphere", self)
+        self.include_bio.setChecked(True)
+        self.include_cf = QCheckBox("Characterization Factors", self)
+        self.include_cf.setChecked(True)
+        self.include_parameters = QCheckBox("Parameters", self)
+        self.include_parameters.setChecked(True)
+        grid.addWidget(self.include_tech, 0, 0)
+        grid.addWidget(self.include_bio, 0, 1)
+        grid.addWidget(self.include_cf, 1, 0)
+        grid.addWidget(self.include_parameters, 1, 1)
+        self.include_box.setLayout(grid)
 
         self.add_MC_ui_elements()
 
@@ -959,7 +973,7 @@ class MonteCarloTab(NewAnalysisTab):
             )
 
     def add_MC_ui_elements(self):
-        self.layout_mc = QVBoxLayout()
+        layout_mc = QVBoxLayout()
 
         # H-LAYOUT start simulation
         self.button_run = QPushButton('Run Simulation')
@@ -983,10 +997,9 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_run.addWidget(self.iterations)
         self.hlayout_run.addWidget(self.label_seed)
         self.hlayout_run.addWidget(self.seed)
-        self.hlayout_run.addWidget(QLabel("Explore parameter uncertainty:"))
-        self.hlayout_run.addWidget(self.include_parameters)
+        self.hlayout_run.addWidget(self.include_box)
         self.hlayout_run.addStretch(1)
-        self.layout_mc.addLayout(self.hlayout_run)
+        layout_mc.addLayout(self.hlayout_run)
 
         # self.label_running = QLabel('Running a Monte Carlo simulation. Please allow some time for this. '
         #                             'Please do not run another simulation at the same time.')
@@ -1025,10 +1038,10 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_methods.addStretch()
         self.method_selection_widget.setLayout(self.hlayout_methods)
 
-        self.layout_mc.addWidget(self.method_selection_widget)
+        layout_mc.addWidget(self.method_selection_widget)
         self.method_selection_widget.hide()
 
-        self.layout.addLayout(self.layout_mc)
+        self.layout.addLayout(layout_mc)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
         """Construct the export layout but set it into a widget because we
@@ -1057,10 +1070,15 @@ class MonteCarloTab(NewAnalysisTab):
                 QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
                 self.seed.setText('')
                 return
-        include_params = self.include_parameters.isChecked()
+        includes = {
+            "technosphere": self.include_tech.isChecked(),
+            "biosphere": self.include_bio.isChecked(),
+            "cf": self.include_cf.isChecked(),
+            "parameters": self.include_parameters.isChecked(),
+        }
 
         try:
-            self.parent.mc.calculate(iterations=iterations, seed=seed, parameters=include_params)
+            self.parent.mc.calculate(iterations=iterations, seed=seed, **includes)
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
