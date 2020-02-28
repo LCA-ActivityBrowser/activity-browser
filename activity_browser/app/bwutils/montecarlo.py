@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from time import time
+from typing import Optional, Union
 
 import brightway2 as bw
 from bw2calc.utils import get_seed
@@ -8,24 +9,6 @@ import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
 
 from .manager import MonteCarloParameterManager
-
-
-class MCCertainNumberGenerator(MCRandomNumberGenerator):
-    """Simple drop-in replacement of the `MCRandomNumberGenerator` to
-    avoid a lot of if/else tests.
-
-    Inspired by https://stackoverflow.com/a/54269982
-    """
-    def __init__(self, params, maximum_iterations=50, seed=None, **kwargs):
-        super().__init__(params, maximum_iterations, seed, **kwargs)
-        self.values = self.params["amount"]
-
-    def generate(self, samples=1):
-        if samples == 1:
-            data = self.values.copy()
-        else:
-            data = np.broadcast_to(self.values, (samples, self.length)).T
-        return data
 
 
 class CSMonteCarloLCA(object):
@@ -47,6 +30,10 @@ class CSMonteCarloLCA(object):
         self.include_parameters = True
         self.param_rng = None
         self.param_cols = ["input", "output", "type"]
+
+        self.tech_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        self.cf_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
 
         # functional units
         self.func_units = cs['inv']
@@ -83,18 +70,18 @@ class CSMonteCarloLCA(object):
         """
         self.lca.load_lci_data()
 
-        tech_rng = MCRandomNumberGenerator if self.include_technosphere else MCCertainNumberGenerator
-        bio_rng = MCRandomNumberGenerator if self.include_biosphere else MCCertainNumberGenerator
-        cf_rng = MCRandomNumberGenerator if self.include_cfs else MCCertainNumberGenerator
+        self.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed) \
+            if self.include_technosphere else self.lca.tech_params["amount"].copy()
+        self.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed) \
+            if self.include_biosphere else self.lca.bio_params["amount"].copy()
 
-        self.lca.tech_rng = tech_rng(self.lca.tech_params, seed=self.seed)
-        self.lca.bio_rng = bio_rng(self.lca.bio_params, seed=self.seed)
         if self.lca.lcia:
             self.cf_rngs = {}  # we need as many cf_rng as impact categories, because they are of different size
             for m in self.methods:
                 self.lca.switch_method(m)
                 self.lca.load_lcia_data()
-                self.cf_rngs[m] = cf_rng(self.lca.cf_params, seed=self.seed)
+                self.cf_rngs[m] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed) \
+                    if self.include_cfs else self.lca.cf_params["amount"].copy()
         # Construct the MC parameter manager
         if self.include_parameters:
             self.param_rng = MonteCarloParameterManager(seed=self.seed)
@@ -114,11 +101,8 @@ class CSMonteCarloLCA(object):
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
         for iteration in range(iterations):
-            if not hasattr(self.lca, "tech_rng"):
-                self.load_data()
-
-            tech_vector = self.lca.tech_rng.next()
-            bio_vector = self.lca.bio_rng.next()
+            tech_vector = self.tech_rng.next() if self.include_technosphere else self.tech_rng
+            bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
             if self.include_parameters:
                 param_exchanges = self.param_rng.next()
                 # combination of 'input', 'output', 'type' columns is unique
@@ -138,7 +122,7 @@ class CSMonteCarloLCA(object):
             # pre-calculating CF vectors enables the use of the SAME CF vector for each FU in a given run
             cf_vectors = {}
             for m in self.methods:
-                cf_vectors[m] = self.cf_rngs[m].next()
+                cf_vectors[m] = self.cf_rngs[m].next() if self.include_cfs else self.cf_rngs[m]
 
             # lca_scores = np.zeros((len(self.func_units), len(self.methods)))
 
