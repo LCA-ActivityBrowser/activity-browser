@@ -96,11 +96,9 @@ class MethodsTable(ABDataFrameView):
 
 
 class CFTable(ABDataFrameView):
-    COLUMNS = ["name", "categories", "amount", "unit", "uncertain"]
-    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertain"] + ["cf"]
-    UNCERTAINTY = [
-        "uncertainty type", "loc", "scale", "shape", "minimum", "maximum"
-    ]
+    COLUMNS = ["name", "categories", "amount", "unit"]
+    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertainty"] + ["cf"]
+    UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
     modified = Signal()
 
     def __init__(self, parent=None):
@@ -109,12 +107,12 @@ class CFTable(ABDataFrameView):
         self.method: Optional[bw.Method] = None
         self.wizard: Optional[UncertaintyWizard] = None
         self.setVisible(False)
-        self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(6, FloatDelegate(self))
         self.setItemDelegateForColumn(7, FloatDelegate(self))
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
-        self.setItemDelegateForColumn(11, FloatDelegate(self))
 
     @dataframe_sync
     def sync(self, method: tuple) -> None:
@@ -134,8 +132,11 @@ class CFTable(ABDataFrameView):
         uncertain = not isinstance(amount, numbers.Number)
         if uncertain:
             row.update({k: amount.get(k, "nan") for k in self.UNCERTAINTY})
+            uncertain = amount.get("uncertainty type")
             amount = amount["amount"]
-        row.update({"Amount": amount, "Uncertain": uncertain, "cf": method_cf})
+        else:
+            uncertain = 0
+        row.update({"Amount": amount, "Uncertainty": uncertain, "cf": method_cf})
         return row
 
     def _resize(self) -> None:
