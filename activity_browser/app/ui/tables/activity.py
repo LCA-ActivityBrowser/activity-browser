@@ -9,8 +9,7 @@ import pandas as pd
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
-from .delegates import (FloatDelegate, FormulaDelegate, StringDelegate,
-                        UncertaintyDelegate, ViewOnlyDelegate)
+from .delegates import *
 from .views import ABDataFrameEdit, dataframe_sync
 from ..icons import qicons
 from ..wizards import UncertaintyWizard
@@ -307,13 +306,13 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(6, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(6, ViewOnlyUncertaintyDelegate(self))
         self.setItemDelegateForColumn(7, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(8, FloatDelegate(self))
-        self.setItemDelegateForColumn(9, FloatDelegate(self))
-        self.setItemDelegateForColumn(10, FloatDelegate(self))
-        self.setItemDelegateForColumn(11, FloatDelegate(self))
-        self.setItemDelegateForColumn(12, FloatDelegate(self))
+        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(9, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(10, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(11, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(12, ViewOnlyFloatDelegate(self))
         self.setItemDelegateForColumn(13, FormulaDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
@@ -395,13 +394,13 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, UncertaintyDelegate(self))
+        self.setItemDelegateForColumn(5, ViewOnlyUncertaintyDelegate(self))
         self.setItemDelegateForColumn(6, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(7, FloatDelegate(self))
-        self.setItemDelegateForColumn(8, FloatDelegate(self))
-        self.setItemDelegateForColumn(9, FloatDelegate(self))
-        self.setItemDelegateForColumn(10, FloatDelegate(self))
-        self.setItemDelegateForColumn(11, FloatDelegate(self))
+        self.setItemDelegateForColumn(7, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(9, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(10, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(11, ViewOnlyFloatDelegate(self))
         self.setItemDelegateForColumn(12, FormulaDelegate(self))
         self.table_name = "biosphere"
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
