@@ -15,6 +15,7 @@ from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.settings import project_settings
 from activity_browser.app.signals import signals
 
+from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 from ..icons import qicons
 from ..widgets import simple_warning_box
 from ..wizards import UncertaintyWizard
@@ -46,6 +47,10 @@ class BaseParameterTable(ABDataFrameEdit):
             qicons.edit, "Modify uncertainty", None
         )
         self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
+        self.remove_uncertainty_action = QAction(
+            qicons.delete, "Remove uncertainty", None
+        )
+        self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ Handle updating the parameters whenever the user changes a value.
@@ -68,8 +73,10 @@ class BaseParameterTable(ABDataFrameEdit):
         """
         menu = QMenu(self)
         menu.addAction(self.rename_action)
-        menu.addAction(self.delete_action)
         menu.addAction(self.modify_uncertainty_action)
+        menu.addSeparator()
+        menu.addAction(self.delete_action)
+        menu.addAction(self.remove_uncertainty_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
             param = self.get_parameter(proxy)
@@ -182,6 +189,12 @@ class BaseParameterTable(ABDataFrameEdit):
         param = self.get_parameter(proxy)
         wizard = UncertaintyWizard(param, self)
         wizard.show()
+
+    @Slot(name="unsetParameterUncertainty")
+    def remove_uncertainty(self) -> None:
+        proxy = next(p for p in self.selectedIndexes())
+        param = self.get_parameter(proxy)
+        signals.parameter_uncertainty_modified.emit(param, EMPTY_UNCERTAINTY)
 
     def uncertainty_columns(self, show: bool):
         """ Given a boolean, iterates over the uncertainty columns and either
