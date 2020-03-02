@@ -98,7 +98,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
         objects which sometimes have uncertainty do not.
         """
         for k, v in self.obj.uncertainty.items():
-            self.setField(k, v)
+            if k in self.KEYS:
+                self.setField(k, v)
 
         # If no loc/mean value is set yet, convert the amount.
         if not self.field("loc") or self.field("loc") == "nan":
