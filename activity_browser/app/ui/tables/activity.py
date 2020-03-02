@@ -16,6 +16,7 @@ from ..wizards import UncertaintyWizard
 from ...signals import signals
 from ...bwutils import PedigreeMatrix
 from ...bwutils.commontasks import AB_names_to_bw_keys
+from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 
 
 class BaseExchangeTable(ABDataFrameEdit):
@@ -46,6 +47,9 @@ class BaseExchangeTable(ABDataFrameEdit):
         self.modify_uncertainty_action = QtWidgets.QAction(
             qicons.edit, "Modify uncertainty", None
         )
+        self.remove_uncertainty_action = QtWidgets.QAction(
+            qicons.delete, "Remove uncertainty/-ies", None
+        )
 
         self.downstream = False
         self.key = None if not hasattr(parent, "key") else parent.key
@@ -57,6 +61,7 @@ class BaseExchangeTable(ABDataFrameEdit):
         self.delete_exchange_action.triggered.connect(self.delete_exchanges)
         self.remove_formula_action.triggered.connect(self.remove_formula)
         self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
+        self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
 
     @dataframe_sync
     def sync(self, exchanges=None):
@@ -149,6 +154,16 @@ class BaseExchangeTable(ABDataFrameEdit):
         exchange = self.model.index(index.row(), self.exchange_column).data()
         wizard = UncertaintyWizard(exchange, self)
         wizard.show()
+
+    @Slot(name="unsetExchangeUncertainty")
+    def remove_uncertainty(self) -> None:
+        indexes = (self.get_source_index(p) for p in self.selectedIndexes())
+        exchanges = [
+            self.model.index(index.row(), self.exchange_column).data()
+            for index in indexes
+        ]
+        for exchange in exchanges:
+            signals.exchange_uncertainty_modified.emit(exchange, EMPTY_UNCERTAINTY)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
@@ -363,9 +378,11 @@ class TechnosphereExchangeTable(BaseExchangeTable):
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.right, "Open activities", self.open_activities)
+        menu.addAction(self.modify_uncertainty_action)
+        menu.addSeparator()
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
-        menu.addAction(self.modify_uncertainty_action)
+        menu.addAction(self.remove_uncertainty_action)
         menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
@@ -446,9 +463,11 @@ class BiosphereExchangeTable(BaseExchangeTable):
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
+        menu.addAction(self.modify_uncertainty_action)
+        menu.addSeparator()
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
-        menu.addAction(self.modify_uncertainty_action)
+        menu.addAction(self.remove_uncertainty_action)
         menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
