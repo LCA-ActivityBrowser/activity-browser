@@ -133,12 +133,14 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """Asks if the 'amount' of the object should be updated to account for
          the user altering the loc/mean value.
          """
+        uc_type = self.field("uncertainty type")
+        no_change = {UndefinedUncertainty.id, NoUncertainty.id}
         mean = float(self.field("loc"))
-        if self.field("uncertainty type") == LognormalUncertainty.id:
+        if uc_type == LognormalUncertainty.id:
             mean = np.exp(mean)
-        if self.field("uncertainty type") in self.type.mean_is_calculated:
+        elif uc_type in self.type.mean_is_calculated:
             mean = self.type.calculate_mean
-        if not np.isclose(self.obj.amount, mean):
+        if not np.isclose(self.obj.amount, mean) and uc_type not in no_change:
             msg = ("Do you want to update the 'amount' field to match mean?"
                    "\nAmount: {}\tMean: {}".format(self.obj.amount, mean))
             choice = QtWidgets.QMessageBox.question(
