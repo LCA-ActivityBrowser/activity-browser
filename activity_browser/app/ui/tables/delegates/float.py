@@ -13,7 +13,7 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
     def displayText(self, value, locale):
         if math.isnan(value):
             return ""
-        return str(value)
+        return "{:.5g}".format(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QLineEdit(parent)
