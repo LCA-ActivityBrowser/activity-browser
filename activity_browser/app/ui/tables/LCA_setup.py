@@ -184,11 +184,11 @@ class CSMethodsTable(ABDataFrameView):
             ], columns=self.HEADERS)
 
     def delete_rows(self):
-        indices = [self.get_source_index(p) for p in self.selectedIndexes()]
+        indices = (self.get_source_index(p) for p in self.selectedIndexes())
         rows = [i.row() for i in indices]
         self.dataframe.drop(rows, axis=0, inplace=True)
-        self.sync()
-        signals.calculation_setup_changed.emit()
+        signals.calculation_setup_changed.emit()  # Trigger update of CS in brightway
+        self.sync(self.current_cs)  # Sync CS from brightway back into table.
 
     def to_python(self):
         return self.dataframe["method"].to_list()
