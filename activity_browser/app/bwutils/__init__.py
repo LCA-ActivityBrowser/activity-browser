@@ -8,6 +8,10 @@ from .metadata import AB_metadata
 from .multilca import MLCA, Contributions
 from .pedigree import PedigreeMatrix
 from .presamples import PresamplesContributions, PresamplesMLCA
+from .uncertainty import (
+    CFUncertaintyInterface, ExchangeUncertaintyInterface,
+    ParameterUncertaintyInterface, get_uncertainty_interface
+)
 from .montecarlo import MonteCarloLCA
 from .sensitivity_analysis import GlobalSensitivityAnalysis
 

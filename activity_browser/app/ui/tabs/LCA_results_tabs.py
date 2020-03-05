@@ -10,7 +10,8 @@ from typing import List, Optional, Union
 from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
-    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView, QButtonGroup, QMessageBox
+    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
+    QButtonGroup, QMessageBox, QGroupBox, QGridLayout
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
@@ -27,7 +28,7 @@ from ..figures import (
 from ..style import horizontal_line, vertical_line, header
 from ..tables import ContributionTable, InventoryTable, LCAResultsTable
 from ..widgets import CutoffMenu, SwitchComboBox
-from ..web.graphnav import SankeyNavigatorWidget
+from ..web import SankeyNavigatorWidget
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -199,6 +200,7 @@ class NewAnalysisTab(QWidget):
         self.export_table: Optional[ExportTable] = None
 
         self.scenario_box = QComboBox()
+        self.pt_layout = QVBoxLayout()
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
@@ -206,9 +208,8 @@ class NewAnalysisTab(QWidget):
         """Assemble main space where plots, tables and relevant options are shown."""
         space = QScrollArea()
         widget = QWidget()
-        layout = QVBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        widget.setLayout(layout)
+        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        widget.setLayout(self.pt_layout)
         space.setWidget(widget)
         space.setWidgetResizable(True)
 
@@ -234,12 +235,12 @@ class NewAnalysisTab(QWidget):
 
         # Assemble Table and Plot area
         if self.table and self.plot:
-            layout.addLayout(row)
+            self.pt_layout.addLayout(row)
         if self.plot:
-            layout.addWidget(self.plot, 1)
+            self.pt_layout.addWidget(self.plot, 1)
         if self.table:
-            layout.addWidget(self.table)
-        layout.addStretch()
+            self.pt_layout.addWidget(self.table)
+        self.pt_layout.addStretch()
         return space
 
     @QtCore.Slot(name="checkboxChanges")
@@ -562,7 +563,13 @@ class LCAScoresTab(NewAnalysisTab):
             bc.format_activity_label(next(iter(fu.keys())), style='pnld')
             for fu in self.parent.mlca.func_units
         ]
+        idx = self.layout.indexOf(self.plot)
+        self.plot.figure.clf()
+        self.plot.deleteLater()
+        self.plot = LCAResultsBarChart(self.parent)
+        self.layout.insertWidget(idx, self.plot)
         self.plot.plot(df, method=method, labels=labels)
+        self.updateGeometry()
         self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
 
 
@@ -586,10 +593,15 @@ class LCIAResultsTab(NewAnalysisTab):
 
     def update_plot(self):
         """Update the plot."""
-        if not isinstance(self.plot, LCAResultsPlot):
-            self.plot = LCAResultsPlot(self.parent)
+        idx = self.pt_layout.indexOf(self.plot)
+        self.plot.figure.clf()
+        self.plot.deleteLater()
+        self.plot = LCAResultsPlot(self.parent)
+        self.pt_layout.insertWidget(idx, self.plot)
         self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
         self.plot.plot(self.df)
+        if self.pt_layout.parentWidget():
+            self.pt_layout.parentWidget().updateGeometry()
 
     def update_table(self):
         """Update the table."""
@@ -764,7 +776,14 @@ class ContributionTab(NewAnalysisTab):
 
     def update_plot(self):
         """Update the plot."""
+        idx = self.pt_layout.indexOf(self.plot)
+        self.plot.figure.clf()
+        self.plot.deleteLater()
+        self.plot = ContributionPlot()
+        self.pt_layout.insertWidget(idx, self.plot)
         self.plot.plot(self.df, unit=self.unit)
+        if self.pt_layout.parentWidget():
+            self.pt_layout.parentWidget().updateGeometry()
 
 
 class ElementaryFlowContributionTab(ContributionTab):
@@ -882,10 +901,15 @@ class CorrelationsTab(NewAnalysisTab):
 
     def update_plot(self):
         """Update the plot."""
-        if self.plot is None:
-            self.plot = CorrelationPlot(self.parent)
+        idx = self.pt_layout.indexOf(self.plot)
+        self.plot.figure.clf()
+        self.plot.deleteLater()
+        self.plot = CorrelationPlot(self.parent)
+        self.pt_layout.insertWidget(idx, self.plot)
         df = self.parent.mlca.get_normalized_scores_df()
         self.plot.plot(df)
+        if self.pt_layout.parentWidget():
+            self.pt_layout.parentWidget().updateGeometry()
 
 
 class SankeyTab(QWidget):
@@ -897,10 +921,25 @@ class SankeyTab(QWidget):
 class MonteCarloTab(NewAnalysisTab):
     def __init__(self, parent=None):
         super(MonteCarloTab, self).__init__(parent)
-        self.parent = parent
+        self.parent: LCAResultsSubTab = parent
 
         self.layout.addLayout(get_header_layout('Monte Carlo Simulation'))
         self.scenario_label = QLabel("Scenario:")
+        self.include_box = QGroupBox("Include uncertainty for:", self)
+        grid = QGridLayout()
+        self.include_tech = QCheckBox("Technosphere", self)
+        self.include_tech.setChecked(True)
+        self.include_bio = QCheckBox("Biosphere", self)
+        self.include_bio.setChecked(True)
+        self.include_cf = QCheckBox("Characterization Factors", self)
+        self.include_cf.setChecked(True)
+        self.include_parameters = QCheckBox("Parameters", self)
+        self.include_parameters.setChecked(True)
+        grid.addWidget(self.include_tech, 0, 0)
+        grid.addWidget(self.include_bio, 0, 1)
+        grid.addWidget(self.include_cf, 1, 0)
+        grid.addWidget(self.include_parameters, 1, 1)
+        self.include_box.setLayout(grid)
 
         self.add_MC_ui_elements()
 
@@ -916,7 +955,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.connect_signals()
 
     def connect_signals(self):
-        self.button_run.clicked.connect(self.calculate_MC_LCA)
+        self.button_run.clicked.connect(self.calculate_mc_lca)
         # signals.monte_carlo_ready.connect(self.update_mc)
         # self.combobox_fu.currentIndexChanged.connect(self.update_plot)
         self.combobox_methods.currentIndexChanged.connect(
@@ -935,23 +974,33 @@ class MonteCarloTab(NewAnalysisTab):
             )
 
     def add_MC_ui_elements(self):
-        self.layout_mc = QVBoxLayout()
+        layout_mc = QVBoxLayout()
 
         # H-LAYOUT start simulation
         self.button_run = QPushButton('Run Simulation')
-        self.label_runs = QLabel('Iterations:')
+        self.label_iterations = QLabel('Iterations:')
         self.iterations = QLineEdit('20')
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
+        self.label_seed = QLabel('Random seed:')
+        self.label_seed.setToolTip('Seed value (integer) for the random number generator. '
+                                   'Use this for reproducible samples.')
+        self.seed = QLineEdit('')
+        self.seed.setFixedWidth(30)
+
+
 
         self.hlayout_run = QHBoxLayout()
         self.hlayout_run.addWidget(self.scenario_label)
         self.hlayout_run.addWidget(self.scenario_box)
         self.hlayout_run.addWidget(self.button_run)
-        self.hlayout_run.addWidget(self.label_runs)
+        self.hlayout_run.addWidget(self.label_iterations)
         self.hlayout_run.addWidget(self.iterations)
+        self.hlayout_run.addWidget(self.label_seed)
+        self.hlayout_run.addWidget(self.seed)
+        self.hlayout_run.addWidget(self.include_box)
         self.hlayout_run.addStretch(1)
-        self.layout_mc.addLayout(self.hlayout_run)
+        layout_mc.addLayout(self.hlayout_run)
 
         # self.label_running = QLabel('Running a Monte Carlo simulation. Please allow some time for this. '
         #                             'Please do not run another simulation at the same time.')
@@ -990,10 +1039,10 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_methods.addStretch()
         self.method_selection_widget.setLayout(self.hlayout_methods)
 
-        self.layout_mc.addWidget(self.method_selection_widget)
+        layout_mc.addWidget(self.method_selection_widget)
         self.method_selection_widget.hide()
 
-        self.layout.addLayout(self.layout_mc)
+        self.layout.addLayout(layout_mc)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
         """Construct the export layout but set it into a widget because we
@@ -1005,14 +1054,32 @@ class MonteCarloTab(NewAnalysisTab):
         export_widget.hide()
         return export_widget
 
-    def calculate_MC_LCA(self):
-        iterations = int(self.iterations.text())
+    @QtCore.Slot(name="calculateMcLca")
+    def calculate_mc_lca(self):
         self.method_selection_widget.hide()
         self.plot.hide()
         self.export_widget.hide()
 
+        iterations = int(self.iterations.text())
+        seed = None
+        if self.seed.text():
+            print('SEED: ', self.seed.text())
+            try:
+                seed = int(self.seed.text())
+            except ValueError:
+                traceback.print_exc()
+                QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
+                self.seed.setText('')
+                return
+        includes = {
+            "technosphere": self.include_tech.isChecked(),
+            "biosphere": self.include_bio.isChecked(),
+            "cf": self.include_cf.isChecked(),
+            "parameters": self.include_parameters.isChecked(),
+        }
+
         try:
-            self.parent.mc.calculate(iterations=iterations)
+            self.parent.mc.calculate(iterations=iterations, seed=seed, **includes)
             signals.monte_carlo_finished.emit()
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
@@ -1105,8 +1172,15 @@ class MonteCarloTab(NewAnalysisTab):
         self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
+        idx = self.layout.indexOf(self.plot)
+        self.plot.figure.clf()
+        self.plot.deleteLater()
+        self.plot = MonteCarloPlot(self.parent)
+        self.layout.insertWidget(idx, self.plot)
         self.plot.plot(self.df, method=method)
         self.plot.show()
+        if self.layout.parentWidget():
+            self.layout.parentWidget().updateGeometry()
 
     def update_table(self):
         self.table.sync(self.df)
@@ -1144,7 +1218,7 @@ class GSATab(NewAnalysisTab):
 
     def add_GSA_ui_elements(self):
         # H-LAYOUT SETTINGS ROW 1
-        
+
         # run button
         self.button_run = QPushButton('Run')
         self.button_run.setEnabled(False)
@@ -1168,10 +1242,10 @@ class GSATab(NewAnalysisTab):
         # self.hlayout_row1.addWidget(self.fu_selection_widget)
         # self.hlayout_row1.addWidget(self.method_selection_widget)
         self.hlayout_row1.addStretch(1)
-        
+
         # H-LAYOUT SETTINGS ROW 2
         self.hlayout_row2 = QHBoxLayout()
-        
+
         # cutoff technosphere
         self.label_cutoff_technosphere = QLabel('Cut-off technosphere:')
         self.cutoff_technosphere = QLineEdit('0.01')

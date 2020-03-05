@@ -67,7 +67,7 @@ channels:
 After configuring your conda channels, the activity browser can be installed with this command:
 
 ```bash
-conda create --yes --name ab --channel conda-forge activity-browser
+conda create -y -n ab -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser>2.4"
 ```
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
@@ -102,14 +102,14 @@ The most recent version of the master branch is automatically uploaded and gener
 Install the development version like this:
 
 ```bash
-conda create --yes --name ab_dev --channel conda-forge --channel pascallesage activity-browser-dev
+conda create -y -n ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser-dev>2019.10.30"
 ```
 
 Or update like this if you already have a dev environment:
 
 ```bash
 conda activate ab_dev
-conda update --channel conda-forge --channel pascallesage activity-browser-dev
+conda update --channel conda-forge activity-browser-dev
 ```
 
 ---
@@ -132,7 +132,7 @@ You basically have 3 options:
 
 1. Create a new environment entirely (recommended)
     ```bash
-    conda create -n new_ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage activity-browser-dev
+    conda create -n new_ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser-dev>2019.10.30"
     ```
 2. Remove PyQt5 and install PySide2 (within your existing environment)
     ```bash

@@ -1,26 +1,40 @@
 # -*- coding: utf-8 -*-
+from time import time
+from typing import Optional, Union
+
 import brightway2 as bw
-from stats_arrays.random import MCRandomNumberGenerator
 from bw2calc.utils import get_seed
 import numpy as np
 import pandas as pd
-from time import time
+from stats_arrays import MCRandomNumberGenerator
 from collections import defaultdict
+
+from .manager import MonteCarloParameterManager
 
 
 class MonteCarloLCA(object):
-    """Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
-
-    def __init__(self, cs_name, seed=None):
-        try:
-            self.cs = bw.calculation_setups[cs_name]
-            self.cs_name = cs_name
-        except KeyError:
+    """A Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
+    def __init__(self, cs_name):
+        if cs_name not in bw.calculation_setups:
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
 
-        self.seed = seed or get_seed()
+        self.cs_name = cs_name
+        self.cs = bw.calculation_setups[cs_name]
+        self.seed = None
+        self.cf_rngs = {}
+        self.CF_rng_vectors = {}
+        self.include_technosphere = True
+        self.include_biosphere = True
+        self.include_cfs = True
+        self.include_parameters = True
+        self.param_rng = None
+        self.param_cols = ["input", "output", "type"]
+
+        self.tech_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        self.cf_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
 
         # functional units
         self.func_units = self.cs['inv']
@@ -30,12 +44,14 @@ class MonteCarloLCA(object):
         self.activity_keys = [list(fu.keys())[0] for fu in self.func_units]
         self.activity_index = {key: index for index, key in enumerate(self.activity_keys)}
         self.rev_activity_index = {index: key for index, key in enumerate(self.activity_keys)}
+        # previously: self.rev_activity_index = {v: k for k, v in self.activity_keys}
         # self.fu_index = {k: i for i, k in enumerate(self.activity_keys)}
 
         # methods
         self.methods = self.cs['ia']
         self.method_index = {m: i for i, m in enumerate(self.methods)}
         self.rev_method_index = {i: m for i, m in enumerate(self.methods)}
+        # previously: self.rev_method_index = {v: k for k, v in self.method_index.items()}
         # self.rev_method_index = {v: k for k, v in self.method_index.items()}
 
         # todo: get rid of the below
@@ -45,30 +61,54 @@ class MonteCarloLCA(object):
         self.func_key_list = list(self.func_key_dict.keys())
 
         # todo: get rid of the below
-        self.method_dict_list = []
-        for i, m in enumerate(self.methods):
-            self.method_dict_list.append({m: i})
+        # self.method_dict_list = []
+        # for i, m in enumerate(self.methods):
+        #     self.method_dict_list.append({m: i})
 
-        # self.results = list()
+        self.results = list()
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
 
-    def load_data(self):
+    def load_data(self) -> None:
+        """Constructs the random number generators for all of the matrices that
+        can be altered by uncertainty.
+
+        If any of these uncertain calculations are not included, the initial
+        amounts of the 'params' matrices are used in place of generating
+        a vector
+        """
         self.lca.load_lci_data()
-        self.lca.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
-        self.lca.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed)
+
+        self.tech_rng = MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed) \
+            if self.include_technosphere else self.lca.tech_params["amount"].copy()
+        self.bio_rng = MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed) \
+            if self.include_biosphere else self.lca.bio_params["amount"].copy()
+
         if self.lca.lcia:
-            self.cf_rngs = dict()  # we need as many cf_rng as impact categories, because they are of different size
-            for method in self.methods:
-                self.lca.switch_method(method)
+            self.cf_rngs = {}  # we need as many cf_rng as impact categories, because they are of different size
+            for m in self.methods:
+                self.lca.switch_method(m)
                 self.lca.load_lcia_data()
-                self.cf_rngs[method] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
+                self.cf_rngs[m] = MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed) \
+                    if self.include_cfs else self.lca.cf_params["amount"].copy()
+        # Construct the MC parameter manager
+        if self.include_parameters:
+            self.param_rng = MonteCarloParameterManager(seed=self.seed)
 
         self.lca.activity_dict_rev, self.lca.product_dict_rev, self.lca.biosphere_dict_rev = self.lca.reverse_dict()
 
-    def calculate(self, iterations=10):
+    def calculate(self, iterations=10, seed: int = None, **kwargs):
+        """Main calculate method for the MC LCA class, allows fine-grained control
+        over which uncertainties are included when running MC sampling.
+        """
         start = time()
         self.iterations = iterations
+        self.seed = seed or get_seed()
+        self.include_technosphere = kwargs.get("technosphere", True)
+        self.include_biosphere = kwargs.get("biosphere", True)
+        self.include_cfs = kwargs.get("cf", True)
+        self.include_parameters = kwargs.get("parameters", True)
+
         self.load_data()
 
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
@@ -79,10 +119,19 @@ class MonteCarloLCA(object):
         self.CF_dict = defaultdict(list)
 
         for iteration in range(iterations):
-            if not hasattr(self.lca, "tech_rng"):
-                self.load_data()
-            self.lca.rebuild_technosphere_matrix(self.lca.tech_rng.next())
-            self.lca.rebuild_biosphere_matrix(self.lca.bio_rng.next())
+            tech_vector = self.tech_rng.next() if self.include_technosphere else self.tech_rng
+            bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
+            if self.include_parameters:
+                param_exchanges = self.param_rng.next()
+                # combination of 'input', 'output', 'type' columns is unique
+                # For each recalculated exchange, match it to either matrix and
+                # override the value within that matrix.
+                for p in param_exchanges:
+                    tech_vector[self.lca.tech_params[self.param_cols] == p[self.param_cols]] = p["amount"]
+                    bio_vector[self.lca.bio_params[self.param_cols] == p[self.param_cols]] = p["amount"]
+
+            self.lca.rebuild_technosphere_matrix(tech_vector)
+            self.lca.rebuild_biosphere_matrix(bio_vector)
 
             # store matrices for GSA
             self.A_matrices.append(self.lca.technosphere_matrix)
@@ -92,21 +141,23 @@ class MonteCarloLCA(object):
                 self.lca.build_demand_array()
             self.lca.lci_calculation()
 
-            # pre-calculating CF vectors enables the use of the SAME CFs for each FU in a given run
-            self.CF_rngs = dict()
-            for method in self.methods:
-                self.CF_rngs[method] = self.cf_rngs[method].next()
+            # pre-calculating CF vectors enables the use of the SAME CF vector for each FU in a given run
+            cf_vectors = {}
+            for m in self.methods:
+                cf_vectors[m] = self.cf_rngs[m].next() if self.include_cfs else self.cf_rngs[m]
                 # store CFs for GSA (in a list defaultdict)
                 self.CF_dict[method].append(self.CF_rngs[method])
+
+            # lca_scores = np.zeros((len(self.func_units), len(self.methods)))
 
             # iterate over FUs
             for row, func_unit in self.rev_fu_index.items():
                 self.lca.redo_lci(func_unit)  # lca calculation
 
                 # iterate over methods
-                for col, method in self.rev_method_index.items():
-                    self.lca.switch_method(method)
-                    self.lca.rebuild_characterization_matrix(self.CF_rngs[method])
+                for col, m in self.rev_method_index.items():
+                    self.lca.switch_method(m)
+                    self.lca.rebuild_characterization_matrix(cf_vectors[m])
                     self.lca.lcia_calculation()
                     self.results[iteration, row, col] = self.lca.score
 
@@ -118,7 +169,7 @@ class MonteCarloLCA(object):
         ))
 
     @property
-    def func_units_dict(self):
+    def func_units_dict(self) -> dict:
         """Return a dictionary of functional units (key, demand)."""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
@@ -127,7 +178,8 @@ class MonteCarloLCA(object):
         - if a method is provided, results will be given for all functional units and runs
         - if a functional unit is provided, results will be given for all methods and runs
         - if a functional unit and method is provided, results will be given for all runs of that combination
-        - if nothing is given, all results are returned"""
+        - if nothing is given, all results are returned
+        """
 
         if not self.results.any():
             raise ValueError('You need to perform a Monte Carlo Simulation first.')
@@ -151,12 +203,12 @@ class MonteCarloLCA(object):
             return np.squeeze(self.results[:, act_index, method_index])
 
     def get_results_dataframe(self, act_key=None, method=None, labelled=True):
-        """
-Return a Pandas DataFrame with results for all runs either for
-- all functional units and a selected method or
-- all methods and a selected functional unit.
+        """Return a Pandas DataFrame with results for all runs either for
+        - all functional units and a selected method or
+        - all methods and a selected functional unit.
 
-If labelled=True, then the activity keys are converted to a human readable format.
+        If labelled=True, then the activity keys are converted to a human
+        readable format.
         """
 
         if not self.results.any():
@@ -180,13 +232,16 @@ If labelled=True, then the activity keys are converted to a human readable forma
 
         return df
 
-    def get_labels(self, key_list, fields=['name', 'reference product', 'location', 'database'],
-                   separator=' | ', max_length=False):
-        keys = [k for k in key_list]  # need to do this as the keys come from a pd.Multiindex
-        translated_keys = []
-        for k in keys:
-            act = bw.get_activity(k).as_dict()
-            translated_keys.append(separator.join([act.get(field, '') for field in fields]))
+    @staticmethod
+    def get_labels(key_list, fields: list = None, separator=' | ',
+                   max_length: int = None) -> list:
+        fields = fields or ['name', 'reference product', 'location', 'database']
+        # need to do this as the keys come from a pd.Multiindex
+        acts = (bw.get_activity(key).as_dict() for key in (k for k in key_list))
+        translated_keys = [
+            separator.join([act.get(field, '') for field in fields])
+            for act in acts
+        ]
         # if max_length:
         #     translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys

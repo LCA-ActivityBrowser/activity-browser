@@ -274,10 +274,17 @@ class MonteCarloPlot(Plot):
 
 
 class SimpleDistributionPlot(Plot):
-    def plot(self, data: np.ndarray, label: str = "Mean"):
+    def plot(self, data: np.ndarray, mean: float, label: str = "Value"):
         self.reset_plot()
-        sns.distplot(data, axlabel=label, ax=self.ax)
+        try:
+            sns.distplot(data, axlabel=label, ax=self.ax)
+        except RuntimeError as e:
+            print("Runtime error: {}\nPlotting without KDE.".format(e))
+            sns.distplot(data, axlabel=label, kde=False, ax=self.ax)
         self.ax.set_ylabel("Probability density")
+        # Add vertical line at given mean of x-axis
+        self.ax.axvline(mean, label="Mean / amount", c="r", ymax=0.98)
+        self.ax.legend(loc="upper right")
         _, height = self.canvas.get_width_height()
         self.setMinimumHeight(height / 2)
         self.canvas.draw()

@@ -14,8 +14,15 @@ def ab_application():
     """
     app = Application()
     yield app
+    # Explicitly close the connection to all the databases for the pytest_project
+    if bw.projects.current == "pytest_project":
+        for _, db in bw.config.sqlite3_databases:
+            if not db._database.is_closed():
+                db._database.close()
     if 'pytest_project' in bw.projects:
         bw.projects.delete_project('pytest_project', delete_dir=True)
+    # finally, perform a cleanup of any remnants, mostly for local testing
+    bw.projects.purge_deleted_directories()
 
 
 @pytest.fixture()

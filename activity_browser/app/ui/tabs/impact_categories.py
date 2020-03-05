@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
-from ..style import header
+from ..style import header, horizontal_line
 from ..tables import CFTable, MethodsTable
 from ..panels import ABTab
 from ...signals import signals
@@ -14,8 +14,14 @@ class CFsTab(QtWidgets.QWidget):
         self.method = method
         # Not visible when instantiated
         self.cf_table = CFTable()
+        self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
+        self.hide_uncertainty.setChecked(True)
+        toolbar = QtWidgets.QToolBar(self)
+        toolbar.addWidget(self.hide_uncertainty)
         container = QtWidgets.QVBoxLayout()
         container.addWidget(header("Method: " + " - ".join(method)))
+        container.addWidget(horizontal_line())
+        container.addWidget(toolbar)
         container.addWidget(self.cf_table)
         container.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(container)
@@ -24,12 +30,21 @@ class CFsTab(QtWidgets.QWidget):
         self.cf_table.show()
         self.panel.select_tab(self)
 
+        self.connect_signals()
+
+    def connect_signals(self) -> None:
+        self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
+        self.cf_table.modified.connect(lambda: self.cf_table.sync(self.method))
+        self.cf_table.modified.connect(
+            lambda: self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
+        )
+
 
 class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(MethodsTab, self).__init__(parent)
 
-        self.table = MethodsTable()
+        self.table = MethodsTable(self)
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Filter impact categories")
         reset_search_button = QtWidgets.QPushButton("Reset")
@@ -54,6 +69,14 @@ class MethodsTab(QtWidgets.QWidget):
         reset_search_button.clicked.connect(self.search_box.clear)
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         signals.project_selected.connect(self.search_box.clear)
+        self.table.new_method.connect(self.method_copied)
+
+    @QtCore.Slot(tuple, name="searchCopiedMethod")
+    def method_copied(self, method: tuple) -> None:
+        """If a method is successfully copied, sync and filter for new name."""
+        query = ", ".join(method)
+        self.search_box.setText(query)
+        self.table.sync(query)
 
 
 class CharacterizationFactorsTab(ABTab):
