@@ -19,6 +19,9 @@ class ViewOnlyDelegate(QStyledItemDelegate):
             return "{:.5g}".format(value)
         except ValueError:
             return str(value)
+        except TypeError:
+            # Unexpected object types (eg. parameters)
+            return repr(value)
 
     def createEditor(self, parent, option, index):
         return None
