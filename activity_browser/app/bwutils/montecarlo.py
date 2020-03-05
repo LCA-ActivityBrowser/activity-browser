@@ -146,9 +146,7 @@ class MonteCarloLCA(object):
             for m in self.methods:
                 cf_vectors[m] = self.cf_rngs[m].next() if self.include_cfs else self.cf_rngs[m]
                 # store CFs for GSA (in a list defaultdict)
-                self.CF_dict[method].append(self.CF_rngs[method])
-
-            # lca_scores = np.zeros((len(self.func_units), len(self.methods)))
+                self.CF_dict[m].append(cf_vectors[m])
 
             # iterate over FUs
             for row, func_unit in self.rev_fu_index.items():
