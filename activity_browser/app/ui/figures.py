@@ -171,8 +171,11 @@ class ContributionPlot(Plot):
         self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
 
         # avoid figures getting too large horizontally
-        dfp.index = [wrap_text(str(i), max_length=40) for i in dfp.index]
-        dfp.columns = [wrap_text(i, max_length=40) for i in dfp.columns]
+        dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
+        dfp.columns = pd.Index([wrap_text(i, max_length=40) for i in dfp.columns])
+        # Strip invalid characters from the ends of row/column headers
+        dfp.index = dfp.index.str.strip("_ \n\t")
+        dfp.columns = dfp.columns.str.strip("_ \n\t")
 
         dfp.T.plot.barh(
             stacked=True,
