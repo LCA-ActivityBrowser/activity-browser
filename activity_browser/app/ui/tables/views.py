@@ -9,6 +9,7 @@ from PySide2.QtCore import (QAbstractTableModel, QModelIndex, QSize,
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from ...settings import ab_settings
+from .delegates import ViewOnlyDelegate
 from .models import (DragPandasModel, EditableDragPandasModel,
                      EditablePandasModel, PandasModel,
                      SimpleCopyDragPandasModel, SimpleCopyPandasModel)
@@ -52,6 +53,9 @@ class ABDataFrameView(QTableView):
         self.setSortingEnabled(True)
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         self.verticalHeader().setVisible(True)
+        # Use a custom ViewOnly delegate by default.
+        # Can be overridden table-wide or per column in child classes.
+        self.setItemDelegate(ViewOnlyDelegate(self))
 
         self.table_name = 'LCA results'
         self.dataframe = None
