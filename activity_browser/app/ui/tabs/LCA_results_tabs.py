@@ -977,7 +977,7 @@ class MonteCarloTab(NewAnalysisTab):
         layout_mc = QVBoxLayout()
 
         # H-LAYOUT start simulation
-        self.button_run = QPushButton('Run Simulation')
+        self.button_run = QPushButton('Run')
         self.label_iterations = QLabel('Iterations:')
         self.iterations = QLineEdit('20')
         self.iterations.setFixedWidth(40)
@@ -1258,6 +1258,10 @@ class GSATab(NewAnalysisTab):
         self.cutoff_biosphere.setFixedWidth(40)
         self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
 
+        # export GSA input/output data automatically with run
+        self.checkbox_export_data_automatically = QCheckBox('Save input/output data to Excel after run')
+        self.checkbox_export_data_automatically.setChecked(False)
+
         # # exclude Pedigree
         # self.checkbox_pedigree = QCheckBox('Include Pedigree uncertainties')
         # self.checkbox_pedigree.setChecked(True)
@@ -1267,6 +1271,7 @@ class GSATab(NewAnalysisTab):
         self.hlayout_row2.addWidget(self.cutoff_technosphere)
         self.hlayout_row2.addWidget(self.label_cutoff_biosphere)
         self.hlayout_row2.addWidget(self.cutoff_biosphere)
+        self.hlayout_row2.addWidget(self.checkbox_export_data_automatically)
         # self.hlayout_row2.addWidget(self.checkbox_pedigree)
         self.hlayout_row2.addStretch(1)
 
@@ -1315,6 +1320,9 @@ class GSATab(NewAnalysisTab):
                 message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
             elif message == "`dataset` input should have multiple elements.":
                 message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
+            elif message == "No objects to concatenate":
+                message_addition = "\nThe reason for this is likely that there are no uncertain exchanges. Please check " \
+                                   "the checkboxes in the Monte Carlo tab."
             QMessageBox.warning(self, 'Could not perform GSA', str(message) + message_addition)
 
         self.update_gsa()
@@ -1324,6 +1332,13 @@ class GSATab(NewAnalysisTab):
         self.update_table()
         self.table.show()
         self.export_widget.show()
+
+        self.table.table_name = 'gsa_output_' + self.GSA.get_save_name()
+
+        if self.checkbox_export_data_automatically.isChecked():
+            print("EXPORTING DATA")
+            self.GSA.export_GSA_input()
+            self.GSA.export_GSA_output()
 
     def update_plot(self, method):
         pass
@@ -1340,6 +1355,19 @@ class GSATab(NewAnalysisTab):
         # Hide widget until MC is calculated
         export_widget.hide()
         return export_widget
+
+    # def set_filename(self, optional_fields: dict = None):
+    #     """Given a dictionary of fields, put together a usable filename for the plot and table."""
+    #     save_name = 'gsa_output_' + self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity['name'] + \
+    #                 '_' + str(self.method) + '.xlsx'
+    #     save_name = save_name.replace(',', '').replace("'", '').replace("/", '')
+    #     self.table.table_name = save_name
+    #     optional = optional_fields or {}
+    #     fields = (
+    #         self.parent.cs_name, self.contribution_fn, optional.get("method"),
+    #         optional.get("functional_unit"), self.unit
+    #     )
+    #     filename = '_'.join((str(x) for x in fields if x is not None))
 
 
 class MonteCarloWorkerThread(QtCore.QThread):

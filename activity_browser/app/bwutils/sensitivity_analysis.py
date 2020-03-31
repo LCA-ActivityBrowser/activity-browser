@@ -12,8 +12,10 @@ import pandas as pd
 from time import time
 import traceback
 from SALib.analyze import delta
+import os
 
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
+from ..settings import ab_settings
 
 
 def get_lca(fu, method):
@@ -291,25 +293,33 @@ class GlobalSensitivityAnalysis(object):
         # =============================================================================
         #   Filter exchanges and get metadata DataFrames
         # =============================================================================
+        dfs = []
         # technosphere
-        self.t_indices = filter_technosphere_exchanges(self.fu, self.method,
-                                                       cutoff=cutoff_technosphere,
-                                                       max_calc=1e4)
-        self.t_exchanges, self.t_indices = get_exchanges(self.lca, self.t_indices)
-        self.dft = get_exchanges_dataframe(self.t_exchanges, self.t_indices)
+        if self.mc.include_technosphere:
+            self.t_indices = filter_technosphere_exchanges(self.fu, self.method,
+                                                           cutoff=cutoff_technosphere,
+                                                           max_calc=1e4)
+            self.t_exchanges, self.t_indices = get_exchanges(self.lca, self.t_indices)
+            self.dft = get_exchanges_dataframe(self.t_exchanges, self.t_indices)
+            if not self.dft.empty:
+                dfs.append(self.dft)
 
         # biosphere
-        self.b_indices = filter_biosphere_exchanges(self.lca, cutoff=cutoff_biosphere)
-        self.b_exchanges, self.b_indices = get_exchanges(self.lca, self.b_indices, biosphere=True)
-        self.dfb = get_exchanges_dataframe(self.b_exchanges, self.b_indices, biosphere=True)
+        if self.mc.include_biosphere:
+            self.b_indices = filter_biosphere_exchanges(self.lca, cutoff=cutoff_biosphere)
+            self.b_exchanges, self.b_indices = get_exchanges(self.lca, self.b_indices, biosphere=True)
+            self.dfb = get_exchanges_dataframe(self.b_exchanges, self.b_indices, biosphere=True)
+            if not self.dfb.empty:
+                dfs.append(self.dfb)
 
         # characterization factors
-        self.dfcf = get_CF_dataframe(self.lca, only_uncertain_CFs=True)  # None if no stochastic CFs
+        if self.mc.include_cfs:
+            self.dfcf = get_CF_dataframe(self.lca, only_uncertain_CFs=True)  # None if no stochastic CFs
+            if not self.dfcf.empty:
+                dfs.append(self.dfcf)
 
         # Join dataframes to get metadata
-        dfs = [self.dft, self.dfb, self.dfcf]
-        dfs_valid = [df for df in dfs if not df.empty]  # A, B, or CF values may not be present
-        self.metadata = pd.concat(dfs_valid, axis=0, ignore_index=True, sort=False)
+        self.metadata = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
         self.metadata.set_index('GSA name', inplace=True)
 
         # =============================================================================
@@ -318,13 +328,13 @@ class GlobalSensitivityAnalysis(object):
 
         # Get X (Technosphere, Biosphere and CF values)
         X_list = list()
-        if self.t_indices:
+        if self.mc.include_technosphere and self.t_indices:
             self.Xa = get_X(self.mc.A_matrices, self.t_indices)
             X_list.append(self.Xa)
-        if self.b_indices:
+        if self.mc.include_biosphere and self.b_indices:
             self.Xb = get_X(self.mc.B_matrices, self.b_indices)
             X_list.append(self.Xb)
-        if not self.dfcf.empty:
+        if self.mc.include_cfs and not self.dfcf.empty:
             self.Xc = get_X_CF(self.mc, self.dfcf, self.method)
             X_list.append(self.Xc)
 
@@ -355,12 +365,21 @@ class GlobalSensitivityAnalysis(object):
 
         print('GSA took {} seconds'.format(np.round(time() - start, 2)))
 
-    def export(self):
-        save_name = 'gsa_output_' + self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity[
-            'name'] + '_' + str(self.method) + '.xlsx'
+    def get_save_name(self):
+        save_name = self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity['name'] + \
+                    '_' + str(self.method) + '.xlsx'
         save_name = save_name.replace(',', '').replace("'", '').replace("/", '')
-        self.df_final.to_excel(save_name)
+        return save_name
 
+    def export_GSA_output(self):
+        save_name = 'gsa_output_' + self.get_save_name()
+        self.df_final.to_excel(os.path.join(ab_settings.data_dir, save_name))
+
+    def export_GSA_input(self):
+        """Export the input data to the GSA with a human readible index"""
+        X_with_index = pd.DataFrame(self.X.T, index=self.metadata.index)
+        save_name = 'gsa_input_' + self.get_save_name()
+        X_with_index.to_excel(os.path.join(ab_settings.data_dir, save_name))
 
 if __name__ == "__main__":
     mc = perform_MonteCarlo_LCA(project='ei34', cs_name='kraft paper', iterations=20)
