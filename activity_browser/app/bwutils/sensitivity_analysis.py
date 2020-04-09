@@ -343,6 +343,8 @@ class GlobalSensitivityAnalysis(object):
 
         # Get Y (LCA scores)
         self.Y = self.mc.get_results_dataframe(act_key=self.activity.key)[self.method].to_numpy()
+        self.Y = np.log(self.Y)  # this makes it more robust for very uneven distributions of LCA results
+        # (e.g. toxicity related impacts); for not so large differences in LCIA results it should not matter
 
         # define problem
         self.names = self.metadata.index  # ['GSA name']
