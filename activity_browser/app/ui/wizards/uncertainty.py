@@ -8,6 +8,7 @@ from stats_arrays.distributions import *
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
+from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 from ...signals import signals
 
 
@@ -17,11 +18,6 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     Note that this can also be used for setting uncertainties on parameters
     """
-    KEYS = {
-        "uncertainty type", "loc", "scale", "shape", "minimum", "maximum",
-        "negative"
-    }
-
     TYPE = 0
     PEDIGREE = 1
 
@@ -61,11 +57,10 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     @property
     def uncertainty_info(self) -> dict:
-        dist_id = self.field("uncertainty type")
-        data = dict.fromkeys(self.KEYS, np.NaN)
-        data["uncertainty type"] = dist_id
+        data = {k: v for k, v in EMPTY_UNCERTAINTY.items()}
+        data["uncertainty type"] = self.field("uncertainty type")
         data["negative"] = bool(self.field("negative"))
-        for field in self.standard_dist_fields(dist_id):
+        for field in self.standard_dist_fields(data["uncertainty type"]):
             data[field] = float(self.field(field))
         return data
 
@@ -98,7 +93,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
         objects which sometimes have uncertainty do not.
         """
         for k, v in self.obj.uncertainty.items():
-            if k in self.KEYS:
+            if k in EMPTY_UNCERTAINTY:
                 self.setField(k, v)
 
         # If no loc/mean value is set yet, convert the amount.
