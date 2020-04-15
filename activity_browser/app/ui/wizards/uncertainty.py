@@ -117,10 +117,10 @@ class UncertaintyWizard(QtWidgets.QWizard):
         lognormal.
         """
         mean = getattr(self.obj, "amount", 1.0)
-        loc = self.obj.uncertainty.get("loc", None)
-        if loc and self.obj.uncertainty_type != LognormalUncertainty:
+        loc = self.obj.uncertainty.get("loc", np.NaN)
+        if not np.isnan(loc) and self.obj.uncertainty_type != LognormalUncertainty:
             loc = np.log(loc)
-        if loc is None:
+        if np.isnan(loc):
             loc = np.log(mean)
         self.setField("loc", str(loc))
 
