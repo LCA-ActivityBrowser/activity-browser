@@ -102,11 +102,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
             if self.field("uncertainty type") == LognormalUncertainty.id:
                 val = np.log(val)
             self.setField("loc", str(val))
-        # If no sigma is set, default to 0
-        if not self.field("scale") or self.field("scale") == "nan":
-            self.setField("scale", "0")
         # Let the other fields default to 'nan' if no values are set.
-        for f in ("shape", "maximum", "minimum"):
+        for f in ("scale", "shape", "maximum", "minimum"):
             if not self.field(f):
                 self.setField(f, "nan")
 
