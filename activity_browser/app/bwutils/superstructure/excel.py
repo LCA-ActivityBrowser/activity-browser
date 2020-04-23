@@ -2,6 +2,7 @@
 from ast import literal_eval
 from pathlib import Path
 from typing import Union
+import sys
 
 import pandas as pd
 import xlrd
@@ -27,6 +28,11 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
             value = sheet.cell_value(i, 0)
             if isinstance(value, str) and value.startswith("from activity name"):
                 return i
+    except IndexError as e:
+        tb = sys.exc_info()[2]
+        raise IndexError(
+            "Given sheet index not found, file likely does not have {} sheets".format(import_sheet + 1)
+        ).with_traceback(tb)
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
     raise ValueError("Could not find required headers in given document.")
@@ -59,7 +65,7 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
     )
     diff = SUPERSTRUCTURE.difference(data.columns)
     if not diff.empty:
-        raise ValueError("Missing required column(s) for superstructure: {}".format(diff))
+        raise ValueError("Missing required column(s) for superstructure: {}".format(diff.to_list()))
 
     # Convert specific columns that may have tuples as strings
     data["from categories"] = data["from categories"].apply(lambda x: convert_tuple_str(x))
