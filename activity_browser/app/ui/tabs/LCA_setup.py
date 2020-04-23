@@ -5,10 +5,14 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from brightway2 import calculation_setups
 
+from ...bwutils.superstructure import import_from_excel, scenario_names_from_df
 from ...signals import signals
 from ..icons import qicons
 from ..style import horizontal_line, header
-from ..tables import CSActivityTable, CSList, CSMethodsTable, PresamplesList
+from ..tables import (
+    CSActivityTable, CSList, CSMethodsTable, PresamplesList, ScenarioImportTable
+)
+from ..widgets import ExcelReadDialog
 
 """
 Lifecycle of a calculation setup
@@ -80,6 +84,11 @@ class LCASetupTab(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.cs_panel = QtWidgets.QWidget(self)
+        cs_panel_layout = QtWidgets.QVBoxLayout()
+        self.scenario_panel = ScenarioImportPanel(self)
+        self.scenario_panel.hide()
+
         self.activities_table = CSActivityTable(self)
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList(self)
@@ -118,11 +127,16 @@ class LCASetupTab(QtWidgets.QWidget):
         container.addLayout(name_row)
         container.addLayout(calc_row)
         container.addWidget(horizontal_line())
-        container.addWidget(header('Functional units:'))
-        container.addWidget(self.activities_table)
-        container.addWidget(horizontal_line())
-        container.addWidget(header('Impact categories:'))
-        container.addWidget(self.methods_table)
+
+        cs_panel_layout.addWidget(header('Functional units:'))
+        cs_panel_layout.addWidget(self.activities_table)
+        cs_panel_layout.addWidget(horizontal_line())
+        cs_panel_layout.addWidget(header('Impact categories:'))
+        cs_panel_layout.addWidget(self.methods_table)
+
+        self.cs_panel.setLayout(cs_panel_layout)
+        container.addWidget(self.cs_panel)
+        container.addWidget(self.scenario_panel)
 
         self.setLayout(container)
 
@@ -207,12 +221,106 @@ class LCASetupTab(QtWidgets.QWidget):
             self.calculate_button.show()
             for obj in self.presamples:
                 obj.hide()
+            self.scenario_panel.hide()
+            self.cs_panel.updateGeometry()
         elif index == 1:
             # Presamples / Scenarios LCA.
             self.calculate_button.hide()
             for obj in self.presamples:
                 obj.show()
+            self.scenario_panel.show()
+            self.cs_panel.updateGeometry()
 
     def enable_calculations(self):
         valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
+
+
+class ScenarioImportPanel(QtWidgets.QWidget):
+    """Special kind of QWidget that contains one or more tables side by side."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.tables = []
+        layout = QtWidgets.QVBoxLayout()
+        row = QtWidgets.QHBoxLayout()
+        self.scenario_tables = QtWidgets.QHBoxLayout()
+        self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
+        self.table_btn.clicked.connect(self.add_table)
+
+        row.addWidget(header("Scenarios"))
+        row.addWidget(self.table_btn)
+        row.addStretch(1)
+        layout.addLayout(row)
+        layout.addLayout(self.scenario_tables)
+        layout.addStretch(1)
+        self.setLayout(layout)
+
+    @Slot(name="addTable")
+    def add_table(self) -> None:
+        new_idx = len(self.tables)
+        widget = ScenarioImportWidget(new_idx, self)
+        self.tables.append(widget)
+        self.scenario_tables.addWidget(widget)
+        self.updateGeometry()
+
+    @Slot(int, name="removeTable")
+    def remove_table(self, idx: int) -> None:
+        w = self.tables.pop(idx)
+        self.scenario_tables.removeWidget(w)
+        w.deleteLater()
+        self.updateGeometry()
+        # Do not forget to update indexes!
+        for i, w in enumerate(self.tables):
+            w.index = i
+
+
+class ScenarioImportWidget(QtWidgets.QWidget):
+    def __init__(self, index: int, parent=None):
+        super().__init__(parent)
+
+        self.index = index
+        self.scenario_name = QtWidgets.QLabel("<filename>", self)
+        self.load_btn = QtWidgets.QPushButton(qicons.import_db, "Load")
+        self.remove_btn = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.table = ScenarioImportTable(self)
+        self.scenario_df = None
+
+        layout = QtWidgets.QVBoxLayout()
+
+        row = QtWidgets.QHBoxLayout()
+        row.addWidget(self.scenario_name)
+        row.addWidget(self.load_btn)
+        row.addStretch(1)
+        row.addWidget(self.remove_btn)
+
+        layout.addLayout(row)
+        layout.addWidget(self.table)
+        self.setLayout(layout)
+        self._connect_signals()
+
+    def _connect_signals(self):
+        self.load_btn.clicked.connect(self.load_action)
+        parent = self.parent()
+        if parent and isinstance(parent, ScenarioImportPanel):
+            self.remove_btn.clicked.connect(
+                lambda: parent.remove_table(self.index)
+            )
+
+    @Slot(name="loadScenarioFile")
+    def load_action(self) -> None:
+        dialog = ExcelReadDialog(self)
+        if dialog.exec_() == ExcelReadDialog.Accepted:
+            path = dialog.path
+            idx = dialog.sheet_index.value()
+            try:
+                self.scenario_df = import_from_excel(path, idx)
+                cols = scenario_names_from_df(self.scenario_df)
+                self.table.sync(cols)
+                self.scenario_name.setText(path.name)
+            except (IndexError, ValueError) as e:
+                print(e)
+                QtWidgets.QMessageBox.warning(
+                    self, "Something went wrong", str(e),
+                    QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+                )
