@@ -214,3 +214,14 @@ class CSMethodsTable(ABDataFrameView):
             self.dataframe = self.dataframe.append(data, ignore_index=True)
             self.sync()
             signals.calculation_setup_changed.emit()
+
+
+class ScenarioImportTable(ABDataFrameView):
+    """Self-contained widget that shows the scenario headers for a given
+    scenario template dataframe.
+    """
+    HEADERS = ["Scenario name"]
+
+    @dataframe_sync
+    def sync(self, names: list):
+        self.dataframe = pd.DataFrame(names, columns=self.HEADERS)
