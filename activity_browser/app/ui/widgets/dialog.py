@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from pathlib import Path
+
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QRegExp, Slot
 
@@ -110,3 +112,61 @@ class TupleNameDialog(QtWidgets.QDialog):
         obj.input_box.updateGeometry()
         obj.changed()
         return obj
+
+
+class ExcelReadDialog(QtWidgets.QDialog):
+    SUFFIXES = {".xls", ".xlsx"}
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Select excel file to read")
+
+        self.path = None
+        self.path_line = QtWidgets.QLineEdit()
+        self.path_line.setReadOnly(True)
+        self.path_line.textChanged.connect(self.changed)
+        self.path_btn = QtWidgets.QPushButton("Browse")
+        self.path_btn.clicked.connect(self.browse)
+        self.sheet_index = QtWidgets.QSpinBox()
+        self.complete = False
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        grid = QtWidgets.QGridLayout()
+        grid.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
+        grid.addWidget(self.path_line, 0, 1, 1, 2)
+        grid.addWidget(self.path_btn, 0, 3, 1, 1)
+        grid.addWidget(QtWidgets.QLabel("Excel sheet index"), 1, 0, 1, 1)
+        grid.addWidget(self.sheet_index, 1, 1, 2, 1)
+
+        input_box = QtWidgets.QGroupBox(self)
+        input_box.setStyleSheet(style_group_box.border_title)
+        input_box.setLayout(grid)
+        layout.addWidget(input_box)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @Slot(name="browseFile")
+    def browse(self) -> None:
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            parent=self, caption="Select scenario template file",
+            filter="Excel (*.xlsx);; All Files (*.*)"
+        )
+        if path:
+            self.path_line.setText(path)
+
+    @Slot(name="pathChanged")
+    def changed(self):
+        """Determine if selected path is valid."""
+        self.path = Path(self.path_line.text())
+        self.complete = all([
+            self.path.exists(), self.path.is_file(),
+            self.path.suffix in self.SUFFIXES
+        ])
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
