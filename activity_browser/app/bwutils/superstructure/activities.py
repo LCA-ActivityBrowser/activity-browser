@@ -32,6 +32,12 @@ def process_ad_namedtuple(row) -> tuple:
     return match, key
 
 
+def process_ad_flow(row) -> tuple:
+    match = (row.name, row.data.get("categories", None))
+    key = (row.database, row.code)
+    return match, key
+
+
 def constuct_ad_data(row) -> tuple:
     """Take a namedtuple from the method below and convert it into two tuples.
 
@@ -52,6 +58,8 @@ def all_flows_found(df: pd.DataFrame, part: str = "from") -> bool:
     select = FROM_BIOS if part == "from" else TO_BIOS
     sub = df.loc[:, select]
     sub = sub[sub.iloc[:, 2] == bw.config.biosphere]  # Use only biosphere exchanges
+    if sub.empty:
+        return True
 
     names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
     query = (ActivityDataset
@@ -72,6 +80,8 @@ def all_activities_found(df: pd.DataFrame, part: str = "from") -> bool:
     select = FROM_ACT if part == "from" else TO_ACT
     sub = df.loc[:, select]
     sub = sub[sub.iloc[:, 3] != bw.config.biosphere]  # Exclude biosphere exchanges
+    if sub.empty:
+        return True
 
     names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
     query = (ActivityDataset
@@ -86,9 +96,15 @@ def all_activities_found(df: pd.DataFrame, part: str = "from") -> bool:
     return combinations.isin(matches).all()
 
 
-def get_relevant_activities(df: pd.DataFrame) -> dict:
+def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
     """Build a dictionary of (name, product, location) -> (database, key) pairs."""
-    names, products, locations, dbs = df.iloc[:, 0:4].apply(set, axis=0)
+    select = FROM_ACT if part == "from" else TO_ACT
+    sub = df.loc[:, select]
+    sub = sub[sub.iloc[:, 2] != bw.config.biosphere]  # Exclude biosphere exchanges
+    if sub.empty:
+        return {}
+
+    names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
     query = (ActivityDataset
              .select()
              .where((ActivityDataset.name.in_(names)) &
@@ -98,6 +114,24 @@ def get_relevant_activities(df: pd.DataFrame) -> dict:
              .namedtuples())
     activities = dict(process_ad_namedtuple(x) for x in query.iterator())
     return activities
+
+
+def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
+    """Determines if all activities from the given 'from' or 'to' chunk"""
+    select = FROM_BIOS if part == "from" else TO_BIOS
+    sub = df.loc[:, select]
+    sub = sub[sub.iloc[:, 2] == bw.config.biosphere]  # Use only biosphere exchanges
+    if sub.empty:
+        return {}
+
+    names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
+    query = (ActivityDataset
+             .select(ActivityDataset.name, ActivityDataset.data, ActivityDataset.database)
+             .where((ActivityDataset.name.in_(names)) &
+                    (ActivityDataset.database.in_(dbs)))
+             .namedtuples())
+    flows = dict(process_ad_flow(x) for x in query.iterator())
+    return flows
 
 
 def convert_fields_to_key(df: pd.DataFrame) -> pd.Series:
@@ -121,6 +155,27 @@ def convert_key_to_fields(df: pd.DataFrame) -> pd.DataFrame:
     key_data = dict(constuct_ad_data(x) for x in query.iterator())
     subdf = pd.DataFrame([key_data[x] for x in df.iloc[:, 5]], columns=df.columns[0:5])
     return subdf
+
+
+def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
+    def build_match(row):
+        if row.iat[4] == bw.config.biosphere:
+            return row.iat[0], row.iat[3]
+        return row.iat[0], row.iat[1], row.iat[2],
+    results = pd.Series([
+        matchbook.get(x, np.NaN) for x in df.apply(build_match, axis=1)
+    ])
+    return results
+
+
+def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
+    matches = get_relevant_flows(df, "from")
+    matches.update(get_relevant_activities(df, "from"))
+    df["from key"] = match_fields_for_key(df.loc[:, FROM_ALL], matches)
+    matches = get_relevant_flows(df, "to")
+    matches.update(get_relevant_activities(df, "to"))
+    df["to key"] = match_fields_for_key(df.loc[:, TO_ALL], matches)
+    return df
 
 
 def fill_out_df_with_keys(df: pd.DataFrame) -> pd.DataFrame:

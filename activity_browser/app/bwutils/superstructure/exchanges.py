@@ -39,7 +39,8 @@ def select_exchanges_by_database_codes(db_name: str, codes: set) -> BaseQuery:
 
 def construct_exchanges_search(df: pd.DataFrame) -> (pd.Series, set):
     keys = df.loc[:, EXCHANGE_KEYS]
-    assert keys.notna().all().all(), "All keys should be known before running this method."
+    if keys.isna().all().all():
+        return pd.Series([]), set()
 
     # Separate into component sets.
     in_dbs = set(x[0] for x in keys["from key"])
@@ -64,6 +65,8 @@ def construct_exchanges_search(df: pd.DataFrame) -> (pd.Series, set):
 def all_exchanges_found(df: pd.DataFrame) -> bool:
     """Given a dataframe, determines if all exchanges exist in the database already."""
     exchanges, found_exc = construct_exchanges_search(df)
+    if exchanges.empty:
+        return False
     return exchanges.isin(found_exc).all()
 
 
