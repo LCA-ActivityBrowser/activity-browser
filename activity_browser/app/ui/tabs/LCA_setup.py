@@ -2,10 +2,13 @@
 from collections import namedtuple
 
 from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
 
-from ...bwutils.superstructure import import_from_excel, scenario_names_from_df
+from ...bwutils.superstructure import (
+    all_flows_found, all_activities_found, import_from_excel, fill_df_keys_with_fields,
+    scenario_names_from_df, all_exchanges_found, filter_existing_exchanges,
+)
 from ...signals import signals
 from ..icons import qicons
 from ..style import horizontal_line, header
@@ -246,15 +249,24 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         row = QtWidgets.QHBoxLayout()
         self.scenario_tables = QtWidgets.QHBoxLayout()
         self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
-        self.table_btn.clicked.connect(self.add_table)
+        self.valid_btn = QtWidgets.QPushButton(qicons.calculate, "Validate")
+        self.valid_btn.setEnabled(False)
 
         row.addWidget(header("Scenarios"))
         row.addWidget(self.table_btn)
+        row.addWidget(self.valid_btn)
         row.addStretch(1)
         layout.addLayout(row)
         layout.addLayout(self.scenario_tables)
         layout.addStretch(1)
         self.setLayout(layout)
+        self._connect_signals()
+
+    def _connect_signals(self) -> None:
+        self.table_btn.clicked.connect(self.add_table)
+        self.table_btn.clicked.connect(self.activate_validation)
+        self.valid_btn.clicked.connect(self.validate_data)
+        signals.project_selected.connect(self.clear_tables)
 
     @Slot(name="addTable")
     def add_table(self) -> None:
@@ -273,6 +285,77 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         # Do not forget to update indexes!
         for i, w in enumerate(self.tables):
             w.index = i
+
+    @Slot(name="clearTables")
+    def clear_tables(self) -> None:
+        """Clear all scenario tables in certain cases (eg. project change)."""
+        for w in self.tables:
+            self.scenario_tables.removeWidget(w)
+            w.deleteLater()
+        self.tables = []
+        self.updateGeometry()
+        self.valid_btn.setEnabled(False)
+
+    @Slot(name="activateValidation")
+    def activate_validation(self) -> None:
+        """Whenever a table action is taken, determine if the 'validate'
+        button should be active or not.
+        """
+        load_valid = all(w.table.rowCount() > 0 for w in self.tables)
+        self.valid_btn.setEnabled(load_valid)
+
+    @Slot(name="validateData")
+    def validate_data(self) -> None:
+        """Ensure all the scenario superstructure exchanges exist in the
+        current project databases.
+
+        This should check multiple states:
+        - All processes/flows from the files exist in the project.
+        - All processes/flows have keys, these will be added if missing.
+        - All exchanges from the files exist in the project.
+        """
+        title = "Information is missing"
+        flows_valid = all(all_flows_found(w.scenario_df) for w in self.tables)
+        if not flows_valid:
+            QtWidgets.QMessageBox. warning(
+                self, title, "Biosphere flows from the file(s) are missing",
+                QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+            )
+            return
+        proc_valid = all(all_activities_found(w.scenario_df) for w in self.tables)
+        if not proc_valid:
+            QtWidgets.QMessageBox. warning(
+                self, title, "Process flows from the file(s) are missing",
+                QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+            )
+            return
+        exc_valid = all(all_exchanges_found(w.scenario_df) for w in self.tables)
+        if not exc_valid:
+            # Initial failure, is this caused by keys missing?
+            for w in self.tables:
+                w.scenario_df = fill_df_keys_with_fields(w.scenario_df)
+            exc_valid = all(all_exchanges_found(w.scenario_df) for w in self.tables)
+        if not exc_valid:
+            missing = (filter_existing_exchanges(w.scenario_df) for w in self.tables)
+            iterable = iter(missing)
+            first = next(iterable)
+            for s in iterable:
+                first = first.append(s)
+            msgbox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, title,
+                "Exchanges from the file(s) are missing",
+                QtWidgets.QMessageBox.Ok, self
+            )
+            msgbox.setWindowModality(Qt.ApplicationModal)
+            msgbox.setDetailedText("Missing exchanges: {}".format(first.unique()))
+            msgbox.setDefaultButton(QtWidgets.QMessageBox.Ok)
+            msgbox.exec_()
+            return
+        # Nothing popped? Hooray!
+        QtWidgets.QMessageBox.information(
+            self, "Success", "Given scenario files are valid!",
+            QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+        )
 
 
 class ScenarioImportWidget(QtWidgets.QWidget):
@@ -303,6 +386,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.load_btn.clicked.connect(self.load_action)
         parent = self.parent()
         if parent and isinstance(parent, ScenarioImportPanel):
+            self.load_btn.clicked.connect(parent.activate_validation)
             self.remove_btn.clicked.connect(
                 lambda: parent.remove_table(self.index)
             )
