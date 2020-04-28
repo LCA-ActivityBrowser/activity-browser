@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from ast import literal_eval
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 import sys
 
 import pandas as pd
@@ -15,6 +15,14 @@ def convert_tuple_str(x):
         return literal_eval(x)
     except (ValueError, SyntaxError) as e:
         return x
+
+
+def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
+    try:
+        wb = xlrd.open_workbook(document_path, on_demand=True)
+        return wb.sheet_names()
+    except UnicodeDecodeError as e:
+        print("Given document uses an unknown encoding: {}".format(e))
 
 
 def get_header_index(document_path: Union[str, Path], import_sheet: int):
@@ -35,7 +43,7 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
         ).with_traceback(tb)
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
-    raise ValueError("Could not find required headers in given document.")
+    raise ValueError("Could not find required headers in given document sheet.")
 
 
 def valid_cols(name: str) -> bool:

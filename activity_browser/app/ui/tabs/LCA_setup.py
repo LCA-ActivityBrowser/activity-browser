@@ -414,7 +414,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         dialog = ExcelReadDialog(self)
         if dialog.exec_() == ExcelReadDialog.Accepted:
             path = dialog.path
-            idx = dialog.sheet_index.value()
+            idx = dialog.import_sheet.currentIndex()
             try:
                 self.scenario_df = import_from_excel(path, idx)
                 cols = scenario_names_from_df(self.scenario_df)

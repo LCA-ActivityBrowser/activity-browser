@@ -4,6 +4,7 @@ from pathlib import Path
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QRegExp, Slot
 
+from ...bwutils.superstructure import get_sheet_names
 from ..style import style_group_box
 
 
@@ -127,7 +128,9 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.path_line.textChanged.connect(self.changed)
         self.path_btn = QtWidgets.QPushButton("Browse")
         self.path_btn.clicked.connect(self.browse)
-        self.sheet_index = QtWidgets.QSpinBox()
+        self.import_sheet = QtWidgets.QComboBox()
+        self.import_sheet.addItems(["-----"])
+        self.import_sheet.setEnabled(False)
         self.complete = False
 
         self.buttons = QtWidgets.QDialogButtonBox(
@@ -142,8 +145,8 @@ class ExcelReadDialog(QtWidgets.QDialog):
         grid.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
         grid.addWidget(self.path_line, 0, 1, 1, 2)
         grid.addWidget(self.path_btn, 0, 3, 1, 1)
-        grid.addWidget(QtWidgets.QLabel("Excel sheet index"), 1, 0, 1, 1)
-        grid.addWidget(self.sheet_index, 1, 1, 2, 1)
+        grid.addWidget(QtWidgets.QLabel("Excel sheet name"), 1, 0, 1, 1)
+        grid.addWidget(self.import_sheet, 1, 1, 2, 1)
 
         input_box = QtWidgets.QGroupBox(self)
         input_box.setStyleSheet(style_group_box.border_title)
@@ -161,12 +164,22 @@ class ExcelReadDialog(QtWidgets.QDialog):
         if path:
             self.path_line.setText(path)
 
+    def update_combobox(self, file_path) -> None:
+        self.import_sheet.blockSignals(True)
+        self.import_sheet.clear()
+        names = get_sheet_names(file_path)
+        self.import_sheet.addItems(names)
+        self.import_sheet.setEnabled(self.import_sheet.count() > 0)
+        self.import_sheet.blockSignals(False)
+
     @Slot(name="pathChanged")
-    def changed(self):
+    def changed(self) -> None:
         """Determine if selected path is valid."""
         self.path = Path(self.path_line.text())
         self.complete = all([
             self.path.exists(), self.path.is_file(),
             self.path.suffix in self.SUFFIXES
         ])
+        if self.complete:
+            self.update_combobox(self.path)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
