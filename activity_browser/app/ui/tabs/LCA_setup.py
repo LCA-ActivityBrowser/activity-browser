@@ -241,6 +241,8 @@ class LCASetupTab(QtWidgets.QWidget):
 
 
 class ScenarioImportPanel(QtWidgets.QWidget):
+    MAX_TABLES = 1
+
     """Special kind of QWidget that contains one or more tables side by side."""
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -266,6 +268,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.activate_validation)
+        self.table_btn.clicked.connect(self.can_add_table)
         self.valid_btn.clicked.connect(self.validate_data)
         signals.project_selected.connect(self.clear_tables)
 
@@ -296,6 +299,13 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.tables = []
         self.updateGeometry()
         self.valid_btn.setEnabled(False)
+
+    @Slot(name="canAddTable")
+    def can_add_table(self) -> None:
+        """Use this to set a hardcoded limit on the amount of scenario tables
+        a user can add.
+        """
+        self.table_btn.setEnabled(len(self.tables) < self.MAX_TABLES)
 
     @Slot(name="activateValidation")
     def activate_validation(self) -> None:
@@ -397,6 +407,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             self.remove_btn.clicked.connect(
                 lambda: parent.remove_table(self.index)
             )
+            self.remove_btn.clicked.connect(parent.can_add_table)
 
     @Slot(name="loadScenarioFile")
     def load_action(self) -> None:
