@@ -100,7 +100,7 @@ def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
     """Build a dictionary of (name, product, location) -> (database, key) pairs."""
     select = FROM_ACT if part == "from" else TO_ACT
     sub = df.loc[:, select]
-    sub = sub[sub.iloc[:, 2] != bw.config.biosphere]  # Exclude biosphere exchanges
+    sub = sub[sub.iloc[:, 3] != bw.config.biosphere]  # Exclude biosphere exchanges
     if sub.empty:
         return {}
 
