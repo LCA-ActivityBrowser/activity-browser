@@ -3,7 +3,7 @@ from collections import namedtuple
 import itertools
 
 from PySide2 import QtWidgets
-from PySide2.QtCore import Slot, Qt
+from PySide2.QtCore import Signal, Slot, Qt
 from brightway2 import calculation_setups
 
 from ...bwutils.superstructure import (
@@ -85,6 +85,10 @@ PresamplesTuple = namedtuple("presamples", ["label", "list", "button"])
 
 
 class LCASetupTab(QtWidgets.QWidget):
+    DEFAULT = 0
+    SCENARIOS = 1
+    PRESAMPLES = 2
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -101,7 +105,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
         self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
         self.calculation_type = QtWidgets.QComboBox()
-        self.calculation_type.addItems(["Standard LCA", "Scenario-based LCA"])
+        self.calculation_type.addItems(["Standard LCA", "Scenario-based LCA", "Presamples LCA"])
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.presamples = PresamplesTuple(
             QtWidgets.QLabel("Prepared scenarios:"),
@@ -110,6 +114,9 @@ class LCASetupTab(QtWidgets.QWidget):
         )
         for obj in self.presamples:
             obj.hide()
+        self.scenario_calc_btn = QtWidgets.QPushButton(qicons.calculate, "Calculate")
+        self.scenario_calc_btn.setEnabled(False)
+        self.scenario_calc_btn.hide()
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -122,6 +129,7 @@ class LCASetupTab(QtWidgets.QWidget):
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
         calc_row.addWidget(self.presamples.button)
+        calc_row.addWidget(self.scenario_calc_btn)
         calc_row.addWidget(self.calculation_type)
         calc_row.addWidget(self.presamples.label)
         calc_row.addWidget(self.presamples.list)
@@ -162,6 +170,7 @@ class LCASetupTab(QtWidgets.QWidget):
         ))
         signals.calculation_setup_changed.connect(self.save_cs_changes)
         self.calculation_type.currentIndexChanged.connect(self.select_calculation_type)
+        self.scenario_panel.update_validation.connect(self.valid_scenarios)
 
         # Slots
         signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
@@ -182,9 +191,11 @@ class LCASetupTab(QtWidgets.QWidget):
                 'ia': self.methods_table.to_python()
             }
 
+    @Slot(name="calculationDefault")
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)
 
+    @Slot(name="calculationPresamples")
     def presamples_calculation(self):
         signals.lca_presamples_calculation.emit(
             self.list_widget.name, self.presamples.list.selection
@@ -196,6 +207,7 @@ class LCASetupTab(QtWidgets.QWidget):
         if not len(calculation_setups):
             self.show_details(False)
             self.calculate_button.setEnabled(False)
+            self.scenario_calc_btn.setEnabled(False)
         else:
             signals.calculation_setup_selected.emit(
                 sorted(calculation_setups)[0]
@@ -220,28 +232,42 @@ class LCASetupTab(QtWidgets.QWidget):
 
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
-        if index == 0:
+        if index == self.DEFAULT:
             # Standard LCA.
             self.calculate_button.show()
             for obj in self.presamples:
                 obj.hide()
+            self.scenario_calc_btn.hide()
             self.scenario_panel.hide()
-            self.cs_panel.updateGeometry()
-        elif index == 1:
+        elif index == self.SCENARIOS:
+            self.calculate_button.hide()
+            for obj in self.presamples:
+                obj.hide()
+            self.scenario_calc_btn.show()
+            self.scenario_panel.show()
+        elif index == self.PRESAMPLES:
             # Presamples / Scenarios LCA.
             self.calculate_button.hide()
             for obj in self.presamples:
                 obj.show()
-            self.scenario_panel.show()
-            self.cs_panel.updateGeometry()
+            self.scenario_calc_btn.hide()
+            self.scenario_panel.hide()
+        self.cs_panel.updateGeometry()
 
     def enable_calculations(self):
         valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
 
+    @Slot(bool, name="validScenarios")
+    def valid_scenarios(self, data_valid: bool) -> None:
+        """Check to see if the given scenarios are valid for calculations."""
+        valid_scen = all([self.calculate_button.isEnabled(), data_valid])
+        self.scenario_calc_btn.setEnabled(valid_scen)
+
 
 class ScenarioImportPanel(QtWidgets.QWidget):
     MAX_TABLES = 1
+    update_validation = Signal(bool)
 
     """Special kind of QWidget that contains one or more tables side by side."""
     def __init__(self, parent=None):
@@ -271,6 +297,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.table_btn.clicked.connect(self.can_add_table)
         self.valid_btn.clicked.connect(self.validate_data)
         signals.project_selected.connect(self.clear_tables)
+        signals.project_selected.connect(self.can_add_table)
 
     @Slot(name="addTable")
     def add_table(self) -> None:
@@ -279,6 +306,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.tables.append(widget)
         self.scenario_tables.addWidget(widget)
         self.updateGeometry()
+        self.update_validation.emit(False)
 
     @Slot(int, name="removeTable")
     def remove_table(self, idx: int) -> None:
@@ -289,6 +317,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         # Do not forget to update indexes!
         for i, w in enumerate(self.tables):
             w.index = i
+        self.update_validation.emit(False)
 
     @Slot(name="clearTables")
     def clear_tables(self) -> None:
@@ -299,6 +328,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.tables = []
         self.updateGeometry()
         self.valid_btn.setEnabled(False)
+        self.update_validation.emit(False)
 
     @Slot(name="canAddTable")
     def can_add_table(self) -> None:
@@ -373,6 +403,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
             self, "Success", "Given scenario files are valid!",
             QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
         )
+        self.update_validation.emit(True)
 
 
 class ScenarioImportWidget(QtWidgets.QWidget):
