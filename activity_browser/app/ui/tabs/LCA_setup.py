@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple
+import itertools
 
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
@@ -315,14 +316,20 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         - All exchanges from the files exist in the project.
         """
         title = "Information is missing"
-        flows_valid = all(all_flows_found(w.scenario_df) for w in self.tables)
+        flows_valid = all(itertools.chain(
+            (all_flows_found(w.scenario_df, "from") for w in self.tables),
+            (all_flows_found(w.scenario_df, "to") for w in self.tables)
+        ))
         if not flows_valid:
             QtWidgets.QMessageBox. warning(
                 self, title, "Biosphere flows from the file(s) are missing",
                 QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
             )
             return
-        proc_valid = all(all_activities_found(w.scenario_df) for w in self.tables)
+        proc_valid = all(itertools.chain(
+            (all_activities_found(w.scenario_df, "from") for w in self.tables),
+            (all_activities_found(w.scenario_df, "to") for w in self.tables)
+        ))
         if not proc_valid:
             QtWidgets.QMessageBox. warning(
                 self, title, "Process flows from the file(s) are missing",
