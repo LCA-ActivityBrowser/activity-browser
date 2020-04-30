@@ -9,6 +9,7 @@ from .montecarlo import CSMonteCarloLCA
 from .multilca import MLCA, Contributions
 from .pedigree import PedigreeMatrix
 from .presamples import PresamplesContributions, PresamplesMLCA
+from .superstructure import SuperstructureContributions, SuperstructureMLCA
 from .uncertainty import (
     CFUncertaintyInterface, ExchangeUncertaintyInterface,
     ParameterUncertaintyInterface, get_uncertainty_interface
