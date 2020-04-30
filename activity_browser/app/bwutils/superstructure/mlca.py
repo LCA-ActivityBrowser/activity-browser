@@ -112,12 +112,11 @@ class SuperstructureMLCA(MLCA):
                     delattr(self.lca, "solver")
 
             sample = samples[:, self.current]
-            if metadata['type'] == "technosphere":
-                MB.fix_supply_use(indices, sample)
             if "col dict" in metadata:
-                rows = indices[metadata['row to label']]
-                cols = indices[metadata['col to label']]
-                matrix[rows, cols] = sample
+                matrix[
+                    indices[metadata['row to label']],
+                    indices[metadata['col to label']],
+                ] = sample
             else:
                 matrix[
                     indices[metadata["row to label"]],
