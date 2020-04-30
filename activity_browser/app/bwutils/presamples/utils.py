@@ -4,6 +4,7 @@ from typing import Iterable, List, Optional
 
 import brightway2 as bw
 import pandas as pd
+from presamples import PresampleResource
 
 
 def load_scenarios_from_file(path: str) -> pd.DataFrame:
@@ -66,5 +67,16 @@ def remove_package(path: Path) -> bool:
         for p in path.iterdir():
             p.unlink()
         path.rmdir()
+        return True
+    return False
+
+
+def clear_resource_by_name(name_id: str) -> bool:
+    """Attempts to clear a PresamplesResource object from the database."""
+    obj = PresampleResource.get_or_none(name=name_id)
+    if obj:
+        db_tuple = next(db for db in bw.config.sqlite3_databases if db[0] == "campaigns.db")
+        with db_tuple[1].atomic():
+            PresampleResource.delete().where(PresampleResource.id == obj.id).execute()
         return True
     return False

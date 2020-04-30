@@ -12,6 +12,7 @@ from bw2data.project import ProjectDataset, SubstitutableDatabase
 from bw2data.proxies import ExchangeProxyBase
 
 from .bwutils import commontasks as bc, AB_metadata
+from .bwutils.presamples import clear_resource_by_name, get_package_path, remove_package
 from .settings import ab_settings, project_settings
 from .signals import signals
 from .ui.widgets import CopyDatabaseDialog
@@ -88,6 +89,9 @@ class Controller(object):
         signals.project_selected.connect(self.reset_metadata)
         signals.metadata_changed.connect(self.update_metadata)
         signals.edit_activity.connect(self.print_convenience_information)
+
+        # Presamples
+        signals.presample_package_delete.connect(self.remove_presamples_package)
 
 # SETTINGS
     def load_settings(self):
@@ -588,3 +592,17 @@ class Controller(object):
     @Slot(str, name="printDatabaseInformation")
     def print_convenience_information(db_name: str) -> None:
         AB_metadata.print_convenience_information(db_name)
+
+    @staticmethod
+    @Slot(str, name="removePresamplesPackage")
+    def remove_presamples_package(name_id: str) -> None:
+        path = get_package_path(name_id)
+        resource = clear_resource_by_name(name_id)
+        if path is None and not resource:
+            raise ValueError(
+                "Given presample package '{}' could not be found.".format(name_id)
+            )
+        print("Removed PresampleResource object?", resource)
+        files = remove_package(path)
+        print("Removed Presample files?", files)
+        signals.presample_package_removed.emit()
