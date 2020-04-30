@@ -30,6 +30,26 @@ def build_presamples_array_from_df(df: pd.DataFrame) -> (np.ndarray, np.ndarray)
     return result, values.to_numpy()
 
 
+def build_arrays_from_df(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+    """Construct a presamples package from a superstructure DataFrame.
+
+    Shortcut over the previous method, avoiding database calls improves
+    speed at the cost of not throwing 'NotFound' exceptions.
+    """
+    keys = df.loc[:, EXCHANGE_KEYS]
+    scenario_columns = df.columns.difference(SUPERSTRUCTURE, sort=False)
+    values = df.loc[:, scenario_columns]
+    assert keys.notna().all().all(), "Need all the keys for this."
+    indices = [
+        Index.build_from_tuple(x) for x in keys.itertuples(index=False)
+    ]
+
+    result = np.zeros(len(indices), dtype=object)
+    for i, idx in enumerate(indices):
+        result[i] = (idx.input, idx.output, idx.input.database_type)
+    return result, values.to_numpy()
+
+
 def scenario_names_to_string(df: pd.DataFrame) -> str:
     """Returns the scenario names from the superstructure as a string"""
     return str(tuple(scenario_names_from_df(df)))
