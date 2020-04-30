@@ -29,7 +29,7 @@ class PresamplesMLCA(MLCA):
         self._current_index = 0
 
         # Construct an index dictionary similar to fu_index and method_index
-        self.presamples_index = {k: i for i, k in enumerate(self.get_scenario_names())}
+        self.presamples_index = {k: i for i, k in enumerate(self.scenario_names)}
 
         # Rebuild numpy arrays with presample dimension included.
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods), self.total))
@@ -108,7 +108,7 @@ class PresamplesMLCA(MLCA):
         """
         data = self.lca_scores[:, index, :]
         return pd.DataFrame(
-            data, index=self.func_key_list, columns=self.get_scenario_names()
+            data, index=self.func_key_list, columns=self.scenario_names
         )
 
     def _get_steps_to_index(self, index: int) -> list:
@@ -127,6 +127,10 @@ class PresamplesMLCA(MLCA):
             return [*range(self.current, self.total), *range(index)]
         else:
             return list(range(self.current, index))
+
+    @property
+    def scenario_names(self) -> List[str]:
+        return self.get_scenario_names()
 
     def get_scenario_names(self) -> List[str]:
         description = self.resource.description if self.resource else None

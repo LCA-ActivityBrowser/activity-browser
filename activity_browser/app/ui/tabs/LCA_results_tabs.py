@@ -264,7 +264,7 @@ class NewAnalysisTab(QWidget):
 
     def get_scenario_labels(self) -> List[str]:
         """Get scenario labels if presamples is used."""
-        return self.parent.mlca.get_scenario_names() if self.using_presamples else []
+        return self.parent.mlca.scenario_names if self.using_presamples else []
 
     def configure_scenario(self):
         """Determine if scenario Qt widgets are visible or not and retrieve
