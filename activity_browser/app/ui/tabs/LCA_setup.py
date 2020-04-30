@@ -82,7 +82,7 @@ State data
 The currently selected calculation setup is retrieved by getting the currently selected value in ``CSList``.
 
 """
-PresamplesTuple = namedtuple("presamples", ["label", "list", "button"])
+PresamplesTuple = namedtuple("presamples", ["label", "list", "button", "remove"])
 
 
 class LCASetupTab(QtWidgets.QWidget):
@@ -112,6 +112,7 @@ class LCASetupTab(QtWidgets.QWidget):
             QtWidgets.QLabel("Prepared scenarios:"),
             PresamplesList(self),
             QtWidgets.QPushButton(qicons.calculate, "Calculate"),
+            QtWidgets.QPushButton(qicons.delete, "Remove"),
         )
         for obj in self.presamples:
             obj.hide()
@@ -134,6 +135,7 @@ class LCASetupTab(QtWidgets.QWidget):
         calc_row.addWidget(self.calculation_type)
         calc_row.addWidget(self.presamples.label)
         calc_row.addWidget(self.presamples.list)
+        calc_row.addWidget(self.presamples.remove)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
@@ -159,6 +161,7 @@ class LCASetupTab(QtWidgets.QWidget):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
         self.presamples.button.clicked.connect(self.presamples_calculation)
+        self.presamples.remove.clicked.connect(self.remove_presamples_package)
         self.scenario_calc_btn.clicked.connect(self.scenario_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
@@ -202,6 +205,19 @@ class LCASetupTab(QtWidgets.QWidget):
         signals.lca_presamples_calculation.emit(
             self.list_widget.name, self.presamples.list.selection
         )
+
+    @Slot(name="removePresamplesPackage")
+    def remove_presamples_package(self):
+        """Removes the current presamples package selected from the list."""
+        name_id = self.presamples.list.selection
+        do_remove = QtWidgets.QMessageBox.question(
+            self, "Removing presample package",
+            "Are you sure you want to remove presample package '{}'?".format(name_id),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No
+        )
+        if do_remove == QtWidgets.QMessageBox.Yes:
+            signals.presample_package_delete.emit(name_id)
 
     @Slot(name="calculationScenario")
     def scenario_calculation(self) -> None:

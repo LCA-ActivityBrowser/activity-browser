@@ -71,6 +71,7 @@ class Signals(QObject):
 
     # Presamples
     presample_package_created = Signal(str)
+    presample_package_delete = Signal(str)
     presample_package_removed = Signal()
 
     # Calculation Setups
