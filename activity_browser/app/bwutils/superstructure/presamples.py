@@ -4,6 +4,8 @@ from ast import literal_eval
 from bw2data.backends.peewee import ExchangeDataset
 import numpy as np
 import pandas as pd
+import presamples as ps
+from presamples.packaging import format_matrix_data, to_2d, to_array
 
 from ..utils import Index
 from .dataframe import scenario_names_from_df
@@ -60,3 +62,22 @@ def scenario_names_from_string(description: str) -> pd.Series:
     names from the description field of PresampleResource
     """
     return pd.Series(data=[str(x) for x in literal_eval(description)])
+
+
+def process_arrays_to_package(indices: np.ndarray, values: np.ndarray) -> list:
+    """ Follow along `presamples` path of splitting the inventories and
+    formatting the exchange indexes into numpy arrays.
+
+    Instead of writing the entire thing to a file, return the list of formatted
+    data.
+    """
+    package = []
+    arrays = ps.split_inventory_presamples(values, indices)
+    for obj in arrays:
+        samples, indices, kind, *other = obj
+        samples = to_2d(to_array(samples))
+        # Convert the key indexes to the actual db ids
+        indices, metadata = format_matrix_data(indices, kind, *other)
+        metadata["type"] = kind
+        package.append((samples, indices, metadata))
+    return package
