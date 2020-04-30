@@ -5,6 +5,7 @@ import itertools
 from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, Slot, Qt
 from brightway2 import calculation_setups
+import pandas as pd
 
 from ...bwutils.superstructure import (
     all_flows_found, all_activities_found, import_from_excel, fill_df_keys_with_fields,
@@ -158,6 +159,7 @@ class LCASetupTab(QtWidgets.QWidget):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
         self.presamples.button.clicked.connect(self.presamples_calculation)
+        self.scenario_calc_btn.clicked.connect(self.scenario_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.delete_cs_button.clicked.connect(
@@ -200,6 +202,13 @@ class LCASetupTab(QtWidgets.QWidget):
         signals.lca_presamples_calculation.emit(
             self.list_widget.name, self.presamples.list.selection
         )
+
+    @Slot(name="calculationScenario")
+    def scenario_calculation(self) -> None:
+        """Construct index / value array and begin LCA calculation."""
+        print("constructing array!")
+        data = self.scenario_panel.combined_dataframe()
+        signals.lca_scenario_calculation.emit(self.list_widget.name, data)
 
     @Slot(name="toggleDefaultCalculation")
     def set_default_calculation_setup(self):
@@ -298,6 +307,16 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.valid_btn.clicked.connect(self.validate_data)
         signals.project_selected.connect(self.clear_tables)
         signals.project_selected.connect(self.can_add_table)
+
+    def combined_dataframe(self, kind: str = "product") -> pd.DataFrame:
+        """Return a dataframe that combines the scenarios of multiple tables.
+
+        TODO: finish implementing pandas methods for combining all
+         dataframes into a single whole in different ways.
+         Currently only 1 table can be loaded.
+        """
+        table = next(iter(self.tables))
+        return table.scenario_df
 
     @Slot(name="addTable")
     def add_table(self) -> None:

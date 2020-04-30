@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from typing import Union
+
 from bw2calc.errors import BW2CalcError
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout
+import pandas as pd
 
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
@@ -26,6 +29,7 @@ class LCAResultsTab(ABTab):
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
         signals.lca_presamples_calculation.connect(self.generate_setup)
+        signals.lca_scenario_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
@@ -39,7 +43,8 @@ class LCAResultsTab(ABTab):
 
     @Slot(str, name="generateSimpleLCA")
     @Slot(str, str, name="generatePresamplesLCA")
-    def generate_setup(self, name: str, presamples: str = None):
+    @Slot(str, object, name="generateSuperstructureLCA")
+    def generate_setup(self, name: str, presamples: Union[str, pd.DataFrame] = None):
         """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
         self.remove_setup(name)
 
