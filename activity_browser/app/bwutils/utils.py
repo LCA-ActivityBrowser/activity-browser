@@ -50,6 +50,13 @@ class Index(NamedTuple):
             output=Key(exc.output_database, exc.output_code)
         )
 
+    @classmethod
+    def build_from_tuple(cls, data: tuple) -> 'Index':
+        return cls(
+            input=Key(data[0][0], data[0][1]),
+            output=Key(data[1][0], data[1][1])
+        )
+
     @property
     def input_document_id(self) -> int:
         return ActivityDataset.get(

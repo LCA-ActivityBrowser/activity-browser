@@ -86,6 +86,7 @@ class Signals(QObject):
     # LCA Results
     lca_calculation = Signal(str)
     lca_presamples_calculation = Signal(str, str)
+    lca_scenario_calculation = Signal(str, object)
     lca_results_tabs_changed = Signal()
 
     method_selected = Signal(tuple)
