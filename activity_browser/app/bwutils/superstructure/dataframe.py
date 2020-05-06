@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from typing import Iterable
+from typing import Iterable, List
 
+import numpy as np
 import pandas as pd
 
+from .activities import data_from_index
 from .utils import SUPERSTRUCTURE
 
 
@@ -65,6 +67,30 @@ def build_superstructure(data: list) -> pd.DataFrame:
         for row in data
     ]
     df = pd.DataFrame(struct_data, columns=df_index)
+    return df
+
+
+def superstructure_from_arrays(samples: np.ndarray, indices: np.ndarray, names: List[str] = None) -> pd.DataFrame:
+    """Process indices into the superstructure itself, the samples represent
+    the scenarios.
+    """
+    assert samples.ndim == 2, "Samples array should be 2-dimensional"
+    assert indices.ndim == 1, "Indices array should be 1-dimensional"
+    assert samples.shape[0] == indices.shape[0], "Length mismatch between arrays"
+    if names is not None:
+        assert len(names) == samples.shape[1], "Number of names should match number of samples columns"
+        names = pd.Index(names)
+    else:
+        names = pd.Index(["scenario{}".format(i+1) for i in range(samples.shape[1])])
+
+    # Construct superstructure from indices
+    superstructure = pd.DataFrame(
+        [data_from_index(idx) for idx in indices], columns=SUPERSTRUCTURE
+    )
+    # Construct scenarios from samples
+    scenarios = pd.DataFrame(samples, columns=names)
+
+    df = pd.concat([superstructure, scenarios], axis=1)
     return df
 
 
