@@ -9,7 +9,7 @@ from presamples.packaging import format_matrix_data, to_2d, to_array
 
 from ..utils import Index
 from .dataframe import scenario_names_from_df
-from .utils import SUPERSTRUCTURE, EXCHANGE_KEYS
+from .utils import SUPERSTRUCTURE, EXCHANGE_KEYS, INDEX_KEYS
 
 
 def build_presamples_array_from_df(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
@@ -43,7 +43,7 @@ def build_arrays_from_df(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
     values = df.loc[:, scenario_columns]
     assert keys.notna().all().all(), "Need all the keys for this."
     indices = [
-        Index.build_from_tuple(x) for x in keys.itertuples(index=False)
+        Index.build_from_dict(x) for x in df.loc[:, INDEX_KEYS].to_dict("records")
     ]
 
     result = np.zeros(len(indices), dtype=object)
