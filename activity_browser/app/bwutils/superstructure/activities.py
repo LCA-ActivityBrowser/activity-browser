@@ -53,14 +53,28 @@ def constuct_ad_data(row) -> tuple:
     return key, data
 
 
-def data_from_index(index: tuple) -> tuple:
+def data_from_index(index: tuple) -> dict:
     """Take the given 'Index' tuple and build a complete SUPERSTRUCTURE row
     from it.
     """
     from_key, to_key = index[0], index[1]
     from_key, from_data = constuct_ad_data(ActivityDataset.get(database=from_key[0], code=from_key[1]))
     to_key, to_data = constuct_ad_data(ActivityDataset.get(database=to_key[0], code=to_key[1]))
-    return tuple([*from_data, from_key, *to_data, to_key])
+    return {
+        "from activity name": from_data[0],
+        "from reference product": from_data[1],
+        "from location": from_data[2],
+        "from categories": from_data[3],
+        "from database": from_data[4],
+        "from key": from_key,
+        "to activity name": to_data[0],
+        "to reference product": to_data[1],
+        "to location": to_data[1],
+        "to categories": to_data[2],
+        "to database": to_data[3],
+        "to key": to_key,
+        "flow type": getattr(index, "flow_type", None),
+    }
 
 
 def all_flows_found(df: pd.DataFrame, part: str = "from") -> bool:

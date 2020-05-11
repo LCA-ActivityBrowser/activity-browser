@@ -72,6 +72,12 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
         usecols=valid_cols, comment="*", na_values="", keep_default_na=False
     )
     diff = SUPERSTRUCTURE.difference(data.columns)
+    # 'flow type' is not yet a required column
+    if "flow type" in diff:
+        print("Missing the 'flow type' column, ignoring for now.")
+        diff = diff.drop(["flow type"])
+        cols = data.columns.append(pd.Index(["flow type"]))
+        data = data.reindex(cols, axis="columns")
     if not diff.empty:
         raise ValueError("Missing required column(s) for superstructure: {}".format(diff.to_list()))
 
