@@ -42,7 +42,7 @@ class Key(NamedTuple):
 class Index(NamedTuple):
     input: Key
     output: Key
-    flow_type: Optional[int] = None
+    flow_type: Optional[str] = None
 
     @classmethod
     def build_from_exchange(cls, exc: ExchangeDataset) -> 'Index':
