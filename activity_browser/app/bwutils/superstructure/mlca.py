@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional
 
-from bw2calc.indexing import index_with_arrays
 from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
 import numpy as np
 import pandas as pd
 
 from ..multilca import MLCA, Contributions
+from ..utils import Index
+from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_names_from_df
-from .presamples import build_arrays_from_df, process_arrays_to_package
+from .exchanges import guesstimate_flow_type
+from .presamples import build_arrays_from_df
+from .utils import EXCHANGE_KEYS
 
 
 class SuperstructureMLCA(MLCA):
     """Very similar implementation as the PresamplesMLCA class, a possible
     replacement for using presamples by avoiding saving anything to files.
     """
+    matrices = {
+        "biosphere": "biosphere_matrix",
+        "technosphere": "technosphere_matrix",
+        "production": "technosphere_matrix",
+    }
+
     def __init__(self, cs_name: str, df: pd.DataFrame):
         assert not df.empty, "Cannot run analysis without data."
         self.scenario_names = scenario_names_from_df(df)
@@ -23,17 +32,29 @@ class SuperstructureMLCA(MLCA):
 
         super().__init__(cs_name)
 
-        # Convert the dataframe into numpy arrays ready for presample conversion
-        # This can take a while with big dataframes.
-        indices, values = build_arrays_from_df(df)
-        self.matrix_data = process_arrays_to_package(indices, values)
-        self.index_arrays()  # Actually fill out the correct rows/cols
+        # Ensure all keys are present in the dataframe.
+        df = fill_df_keys_with_fields(df)
+        assert df.loc[:, EXCHANGE_KEYS].notna().all().all(), "Not all processes were found in the project"
+        # If entire 'flow type' column is empty, guess the types.
+        if df["flow type"].isna().all():
+            df = guesstimate_flow_type(df)
+        # Convert the dataframe into numpy arrays
+        self.indices, self.values = build_arrays_from_df(df)
+        # Note: Using the mapping scheme from brightway and presamples,
+        # the 'input' keys are matched to the product_dict or
+        # biosphere_dict ('rows') while the 'output' keys are matched
+        # to the activity_dict ('cols').
+        self.matrix_indices = np.zeros(len(self.indices), dtype=[
+            ('row', np.uint32), ('col', np.uint32), ('type', np.uint8),
+        ])
+        self.indices_to_matrix()
+
 
         # Construct an index dictionary similar to fu_index and method_index
         self._current_index = 0
-        self.presamples_index = {k: i for i, k in enumerate(self.scenario_names)}
+        self.scenario_index = {k: i for i, k in enumerate(self.scenario_names)}
 
-        # Rebuild numpy arrays with presample dimension included.
+        # Rebuild numpy arrays with scenario dimension included.
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods), self.total))
         self.elementary_flow_contributions = np.zeros((
             len(self.func_units), len(self.methods), self.total,
@@ -66,64 +87,43 @@ class SuperstructureMLCA(MLCA):
         for _ in steps:
             self.next_scenario()
 
-    def index_arrays(self):
-        """Add row and column values to the indices.
-
-        Copied from the PackagesDataLoader class.
-        """
-        for samples, indices, metadata in self.matrix_data:
-            # Allow for iterative indexing, starting with inventory
-            if metadata.get("indexed"):
-                # Already indexed
-                continue
-            elif not hasattr(self.lca, metadata["row dict"]):
-                # This dictionary not yet built
-                continue
-            elif "col dict" in metadata and not hasattr(self.lca, metadata["col dict"]):
-                # This dictionary not yet built
-                continue
-
-            index_with_arrays(
-                indices[metadata["row from label"]],
-                indices[metadata["row to label"]],
-                getattr(self.lca, metadata["row dict"])
+    def indices_to_matrix(self) -> None:
+        def convert(idx: Index) -> tuple:
+            in_dict = self.lca.biosphere_dict if idx.flow_type == "biosphere" else self.lca.product_dict
+            return (
+                in_dict.get(idx.input, idx.input),
+                self.lca.activity_dict.get(idx.output, idx.output),
+                idx.exchange_type,
             )
-            if "col dict" in metadata:
-                index_with_arrays(
-                    indices[metadata["col from label"]],
-                    indices[metadata["col to label"]],
-                    getattr(self.lca, metadata["col dict"])
-                )
-            metadata["indexed"] = True
+        for i, index in enumerate(self.indices):
+            self.matrix_indices[i] = convert(index)
 
     def update_matrices(self) -> None:
-        """A rough copy of the `PackagesDataLoader.update_matrices` method."""
-        for samples, indices, metadata in self.matrix_data:
+        """A Simplified version of the `PackagesDataLoader.update_matrices` method.
+
+        In this case, we expect to only replace technosphere and biosphere
+        values, leaving out characterization factor values.
+        """
+        kinds = set([idx[2] for idx in self.indices])
+        types = np.array([idx[2] for idx in self.indices])
+        for kind in kinds:
+            idx = self.matrix_indices[types == kind]
+            sample = self.values[types == kind, self.current]
             try:
-                matrix = getattr(self.lca, metadata["matrix"])
+                matrix = getattr(self.lca, self.matrices[kind])
             except AttributeError:
                 # This LCA doesn't have this matrix
                 continue
 
-            if metadata["matrix"] == "technosphere_matrix":
+            if self.matrices[kind] == "technosphere_matrix":
                 # Remove existing matrix factorization
                 # because changing technosphere
                 if hasattr(self.lca, "solver"):
                     delattr(self.lca, "solver")
 
-            sample = samples[:, self.current]
-            if metadata['type'] == 'technosphere':
-                MB.fix_supply_use(indices, sample)
-            if "col dict" in metadata:
-                matrix[
-                    indices[metadata['row to label']],
-                    indices[metadata['col to label']],
-                ] = sample
-            else:
-                matrix[
-                    indices[metadata["row to label"]],
-                    indices[metadata["row to label"]],
-                ] = sample
+            if kind == "technosphere":
+                MB.fix_supply_use(idx, sample)
+            matrix[idx["row"], idx["col"], ] = sample
 
     def _perform_calculations(self):
         """ Near copy of `MLCA` class, but includes a loop for all presample
@@ -239,6 +239,6 @@ class SuperstructureContributions(Contributions):
     def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
         # If both functional_unit and method are given, return presamples index.
         if all(kwargs.values()):
-            return self.mlca.presamples_index, self.act_fields
+            return self.mlca.scenario_index, self.act_fields
         else:
             return super()._contribution_index_cols(**kwargs)
