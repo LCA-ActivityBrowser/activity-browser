@@ -187,12 +187,11 @@ def convert_key_to_fields(df: pd.DataFrame) -> pd.DataFrame:
 def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
     def build_match(row):
         if row.iat[4] == bw.config.biosphere:
-            return row.iat[0], row.iat[3]
-        return row.iat[0], row.iat[1], row.iat[2],
-    results = pd.Series([
-        matchbook.get(x, np.NaN) for x in df.apply(build_match, axis=1)
-    ])
-    return results
+            match = (row.iat[0], row.iat[3])
+        else:
+            match = (row.iat[0], row.iat[1], row.iat[2])
+        return matchbook.get(match, np.NaN)
+    return df.apply(build_match, axis=1)
 
 
 def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
