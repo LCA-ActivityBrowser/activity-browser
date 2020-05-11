@@ -42,8 +42,9 @@ def build_arrays_from_df(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
     scenario_columns = df.columns.difference(SUPERSTRUCTURE, sort=False)
     values = df.loc[:, scenario_columns]
     assert keys.notna().all().all(), "Need all the keys for this."
+    data = df.loc[:, INDEX_KEYS].rename(columns={"from key": "input", "to key": "output"})
     indices = [
-        Index.build_from_dict(x) for x in df.loc[:, INDEX_KEYS].to_dict("records")
+        Index.build_from_dict(x) for x in data.to_dict("records")
     ]
 
     result = np.zeros(len(indices), dtype=object)
