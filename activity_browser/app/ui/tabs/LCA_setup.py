@@ -323,6 +323,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.valid_btn.clicked.connect(self.validate_data)
         signals.project_selected.connect(self.clear_tables)
         signals.project_selected.connect(self.can_add_table)
+        signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
     def combined_dataframe(self, kind: str = "product") -> pd.DataFrame:
         """Return a dataframe that combines the scenarios of multiple tables.
@@ -440,6 +441,11 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         )
         self.update_validation.emit(True)
 
+    @Slot(int, object, name="handleSuperstructureSignal")
+    def handle_superstructure_signal(self, table_idx: int, df: pd.DataFrame) -> None:
+        table = self.tables[table_idx]
+        table.sync_superstructure(df)
+
 
 class ScenarioImportWidget(QtWidgets.QWidget):
     def __init__(self, index: int, parent=None):
@@ -482,13 +488,18 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             path = dialog.path
             idx = dialog.import_sheet.currentIndex()
             try:
-                self.scenario_df = import_from_excel(path, idx)
-                cols = scenario_names_from_df(self.scenario_df)
-                self.table.sync(cols)
-                self.scenario_name.setText(path.name)
+                # Try and read as a superstructure file
+                df = import_from_excel(path, idx)
+                self.sync_superstructure(df)
             except (IndexError, ValueError) as e:
-                print(e)
-                QtWidgets.QMessageBox.warning(
-                    self, "Something went wrong", str(e),
-                    QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
-                )
+                # Try and read as parameter scenario file.
+                print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
+                df = pd.read_excel(path, sheet_name=idx)
+                signals.parameter_scenario_sync.emit(self.index, df)
+            finally:
+                self.scenario_name.setText(path.name)
+
+    def sync_superstructure(self, df: pd.DataFrame) -> None:
+        self.scenario_df = df
+        cols = scenario_names_from_df(self.scenario_df)
+        self.table.sync(cols)

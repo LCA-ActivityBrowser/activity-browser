@@ -3,6 +3,7 @@ from pathlib import Path
 
 import brightway2 as bw
 from bw2data.filesystem import safe_filename
+import pandas as pd
 from PySide2.QtCore import Slot, QSize
 from PySide2.QtWidgets import (
     QCheckBox, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QToolBar,
@@ -11,7 +12,6 @@ from PySide2.QtWidgets import (
 from xlsxwriter.exceptions import FileCreateError
 
 from ...bwutils import presamples as ps_utils
-from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
 from ..style import header, horizontal_line
@@ -293,6 +293,7 @@ class PresamplesTab(BaseRightTab):
         signals.project_selected.connect(self.build_tables)
         signals.parameters_changed.connect(self.tbl.rebuild_table)
         signals.parameter_renamed.connect(self.tbl.update_param_name)
+        signals.parameter_scenario_sync.connect(self.process_scenarios)
 
     def _construct_layout(self):
         layout = QVBoxLayout()
@@ -314,6 +315,15 @@ class PresamplesTab(BaseRightTab):
     def build_tables(self) -> None:
         self.tbl.sync()
         self.tbl.group_column(False)
+
+    @Slot(int, object, name="processParameterScenarios")
+    def process_scenarios(self, table_idx: int, df: pd.DataFrame):
+        """Use this method to discretely process a parameter scenario file
+        for the LCA setup.
+        """
+        self.tbl.sync(df=df)
+        scenarios = self.build_flow_scenarios()
+        signals.parameter_superstructure_built.emit(table_idx, scenarios)
 
     @Slot(name="loadSenarioTable")
     def select_read_file(self):
@@ -357,7 +367,8 @@ class PresamplesTab(BaseRightTab):
         if choice_dlg.exec_() != ChoiceSelectionDialog.Accepted:
             return
         if choice_dlg.choice == flow_scenarios:
-            self.build_flow_scenarios()
+            df = self.build_flow_scenarios()
+            self.store_flows_to_file(df)
         elif choice_dlg.choice == presamples:
             dialog = ForceInputDialog.get_text(
                 self, "Add label", "Add a label to the calculated scenarios"
@@ -376,7 +387,7 @@ class PresamplesTab(BaseRightTab):
                 else:
                     self.build_presamples_packages(safe_filename(result, False))
 
-    def build_flow_scenarios(self) -> None:
+    def build_flow_scenarios(self) -> pd.DataFrame:
         """Calculate exchange changes for each parameter scenario and construct
         a flow scenarios template file.
         """
@@ -386,6 +397,9 @@ class PresamplesTab(BaseRightTab):
         names, data = zip(*self.tbl.iterate_scenarios())
         samples, indices = ppm.arrays_from_scenarios(zip(names, data))
         df = superstructure_from_arrays(samples, indices, names)
+        return df
+
+    def store_flows_to_file(self, df: pd.DataFrame) -> None:
         filename, _ = QFileDialog.getSaveFileName(
             self, caption="Save calculated flow scenarios to Excel",
             filter=self.tbl.EXCEL_FILTER
