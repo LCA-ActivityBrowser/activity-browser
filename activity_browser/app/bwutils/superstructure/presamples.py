@@ -36,20 +36,14 @@ def build_arrays_from_df(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
     """Construct a presamples package from a superstructure DataFrame.
 
     Shortcut over the previous method, avoiding database calls improves
-    speed at the cost of not throwing 'NotFound' exceptions.
+    speed at the risk of allowing possibly invalid data.
     """
-    keys = df.loc[:, EXCHANGE_KEYS]
-    scenario_columns = df.columns.difference(SUPERSTRUCTURE, sort=False)
-    values = df.loc[:, scenario_columns]
-    assert keys.notna().all().all(), "Need all the keys for this."
+    assert df.loc[:, EXCHANGE_KEYS].notna().all().all(), "Need all the keys for this."
     data = df.loc[:, INDEX_KEYS].rename(columns={"from key": "input", "to key": "output"})
-    indices = [
-        Index.build_from_dict(x) for x in data.to_dict("records")
-    ]
-
-    result = np.zeros(len(indices), dtype=object)
-    for i, idx in enumerate(indices):
-        result[i] = (idx.input, idx.output, idx.input.database_type)
+    result = np.zeros(data.shape[0], dtype=object)
+    for i, data in enumerate(data.to_dict("records")):
+        result[i] = Index.build_from_dict(data)
+    values = df.loc[:, df.columns.difference(SUPERSTRUCTURE, sort=False)]
     return result, values.to_numpy()
 
 
