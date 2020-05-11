@@ -130,7 +130,9 @@ def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
 
     names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
     query = (ActivityDataset
-             .select()
+             .select(ActivityDataset.name, ActivityDataset.product,
+                     ActivityDataset.location, ActivityDataset.database,
+                     ActivityDataset.code)
              .where((ActivityDataset.name.in_(names)) &
                     (ActivityDataset.product.in_(products)) &
                     (ActivityDataset.location.in_(locations)) &
@@ -150,7 +152,8 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
 
     names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
     query = (ActivityDataset
-             .select(ActivityDataset.name, ActivityDataset.data, ActivityDataset.database)
+             .select(ActivityDataset.name, ActivityDataset.data,
+                     ActivityDataset.database, ActivityDataset.code)
              .where((ActivityDataset.name.in_(names)) &
                     (ActivityDataset.database.in_(dbs)))
              .namedtuples())
