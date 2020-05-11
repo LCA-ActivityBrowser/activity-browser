@@ -76,6 +76,24 @@ def filter_existing_exchanges(df: pd.DataFrame) -> pd.Series:
     return exchanges[~exchanges.isin(found_exc)]
 
 
+def guesstimate_flow_type(df: pd.DataFrame) -> pd.DataFrame:
+    """Yes, this method guesses the flow type based on the key-pair given."""
+    def guess(row: pd.Series) -> str:
+        if row.iat[0][0] == bw.config.biosphere:
+            return "biosphere"
+        elif row.iat[0] == row.iat[1]:
+            return "production"
+        else:
+            return "technosphere"
+
+    keys = df.loc[:, EXCHANGE_KEYS]
+    if keys.isna().any().all():
+        print("Failed to insert flow types into the dataframe, keys missing.")
+        return df
+    df["flow type"] = keys.apply(guess, axis=1)
+    return df
+
+
 def nullify_exchanges(data: List[dict]) -> (List[dict], List[float]):
     """Take a list of exchange dictionaries, extract all the amounts
     and set the 'amount' in the dictionaries to 0."""
