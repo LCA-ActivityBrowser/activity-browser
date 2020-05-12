@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, List
 
+import brightway2 as bw
 import numpy as np
 import pandas as pd
 
 from .activities import data_from_index
-from .utils import SUPERSTRUCTURE
+from .utils import SUPERSTRUCTURE, EXCHANGE_KEYS
 
 
 def parse_exchange_data(data: Iterable) -> dict:
@@ -127,3 +128,21 @@ def scenario_names_from_df(df: pd.DataFrame) -> list:
     return [
         str(x).replace("\n", " ").replace("\r", "") for x in cols
     ]
+
+
+def guesstimate_flow_type(df: pd.DataFrame) -> pd.DataFrame:
+    """Yes, this method guesses the flow type based on the key-pair given."""
+    def guess(row: pd.Series) -> str:
+        if row.iat[0][0] == bw.config.biosphere:
+            return "biosphere"
+        elif row.iat[0] == row.iat[1]:
+            return "production"
+        else:
+            return "technosphere"
+
+    keys = df.loc[:, EXCHANGE_KEYS]
+    if keys.isna().any().all():
+        print("Failed to insert flow types into the dataframe, keys missing.")
+        return df
+    df["flow type"] = keys.apply(guess, axis=1)
+    return df
