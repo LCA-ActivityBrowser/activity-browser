@@ -5,8 +5,9 @@ import brightway2 as bw
 import numpy as np
 import pandas as pd
 
+from ..utils import Index
 from .activities import data_from_index
-from .utils import SUPERSTRUCTURE, EXCHANGE_KEYS
+from .utils import SUPERSTRUCTURE, EXCHANGE_KEYS, INDEX_KEYS
 
 
 def parse_exchange_data(data: Iterable) -> dict:
@@ -93,6 +94,21 @@ def superstructure_from_arrays(samples: np.ndarray, indices: np.ndarray, names: 
 
     df = pd.concat([superstructure, scenarios], axis=1)
     return df
+
+
+def arrays_from_superstructure(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+    """Construct a presamples package from a superstructure DataFrame.
+
+    Shortcut over the previous method, avoiding database calls improves
+    speed at the risk of allowing possibly invalid data.
+    """
+    assert df.loc[:, EXCHANGE_KEYS].notna().all().all(), "Need all the keys for this."
+    data = df.loc[:, INDEX_KEYS].rename(columns={"from key": "input", "to key": "output"})
+    result = np.zeros(data.shape[0], dtype=object)
+    for i, data in enumerate(data.to_dict("records")):
+        result[i] = Index.build_from_dict(data)
+    values = df.loc[:, df.columns.difference(SUPERSTRUCTURE, sort=False)]
+    return result, values.to_numpy()
 
 
 def match_exchanges(origin: dict, delta: Iterable, db_name: str) -> dict:

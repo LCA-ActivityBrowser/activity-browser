@@ -8,9 +8,9 @@ import pandas as pd
 from ..multilca import MLCA, Contributions
 from ..utils import Index
 from .activities import fill_df_keys_with_fields
-from .dataframe import scenario_names_from_df
-from .exchanges import guesstimate_flow_type
-from .presamples import build_arrays_from_df
+from .dataframe import (
+    scenario_names_from_df, arrays_from_superstructure, guesstimate_flow_type
+)
 from .utils import EXCHANGE_KEYS
 
 
@@ -39,7 +39,7 @@ class SuperstructureMLCA(MLCA):
         if df["flow type"].isna().all():
             df = guesstimate_flow_type(df)
         # Convert the dataframe into numpy arrays
-        self.indices, self.values = build_arrays_from_df(df)
+        self.indices, self.values = arrays_from_superstructure(df)
         # Note: Using the mapping scheme from brightway and presamples,
         # the 'input' keys are matched to the product_dict or
         # biosphere_dict ('rows') while the 'output' keys are matched

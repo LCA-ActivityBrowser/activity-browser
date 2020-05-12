@@ -4,6 +4,5 @@ from .dataframe import (
     build_superstructure, scenario_names_from_df, superstructure_from_arrays
 )
 from .excel import import_from_excel, get_sheet_names
-from .exchanges import all_exchanges_found, filter_existing_exchanges
 from .mlca import SuperstructureMLCA, SuperstructureContributions
 from .utils import SUPERSTRUCTURE
