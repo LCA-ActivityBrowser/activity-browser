@@ -69,11 +69,11 @@ def data_from_index(index: tuple) -> dict:
         "from key": from_key,
         "to activity name": to_data[0],
         "to reference product": to_data[1],
-        "to location": to_data[1],
-        "to categories": to_data[2],
-        "to database": to_data[3],
+        "to location": to_data[2],
+        "to categories": to_data[3],
+        "to database": to_data[4],
         "to key": to_key,
-        "flow type": getattr(index, "flow_type", None),
+        "flow type": getattr(index, "flow_type", np.NaN),
     }
 
 
