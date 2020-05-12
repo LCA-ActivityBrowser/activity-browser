@@ -20,7 +20,9 @@ def convert_tuple_str(x):
 def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
     try:
         wb = xlrd.open_workbook(document_path, on_demand=True)
-        return wb.sheet_names()
+        names = wb.sheet_names()
+        wb.release_resources()
+        return names
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
 
@@ -35,12 +37,11 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
         for i in range(10):
             value = sheet.cell_value(i, 0)
             if isinstance(value, str) and value.startswith("from activity name"):
+                wb.release_resources()
                 return i
     except IndexError as e:
         tb = sys.exc_info()[2]
-        raise IndexError(
-            "Given sheet index not found, file likely does not have {} sheets".format(import_sheet + 1)
-        ).with_traceback(tb)
+        raise IndexError("Expected headers not found in file").with_traceback(tb)
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
     raise ValueError("Could not find required headers in given document sheet.")

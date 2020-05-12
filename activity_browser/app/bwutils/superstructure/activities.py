@@ -4,7 +4,7 @@ from bw2data.backends.peewee import ActivityDataset
 import numpy as np
 import pandas as pd
 
-from .utils import FROM_ALL, TO_ALL, EXCHANGE_KEYS
+from .utils import FROM_ALL, TO_ALL
 
 
 FROM_ACT = pd.Index([
@@ -69,11 +69,11 @@ def data_from_index(index: tuple) -> dict:
         "from key": from_key,
         "to activity name": to_data[0],
         "to reference product": to_data[1],
-        "to location": to_data[1],
-        "to categories": to_data[2],
-        "to database": to_data[3],
+        "to location": to_data[2],
+        "to categories": to_data[3],
+        "to database": to_data[4],
         "to key": to_key,
-        "flow type": getattr(index, "flow_type", None),
+        "flow type": getattr(index, "flow_type", np.NaN),
     }
 
 
@@ -130,7 +130,9 @@ def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
 
     names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
     query = (ActivityDataset
-             .select()
+             .select(ActivityDataset.name, ActivityDataset.product,
+                     ActivityDataset.location, ActivityDataset.database,
+                     ActivityDataset.code)
              .where((ActivityDataset.name.in_(names)) &
                     (ActivityDataset.product.in_(products)) &
                     (ActivityDataset.location.in_(locations)) &
@@ -150,7 +152,8 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
 
     names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
     query = (ActivityDataset
-             .select(ActivityDataset.name, ActivityDataset.data, ActivityDataset.database)
+             .select(ActivityDataset.name, ActivityDataset.data,
+                     ActivityDataset.database, ActivityDataset.code)
              .where((ActivityDataset.name.in_(names)) &
                     (ActivityDataset.database.in_(dbs)))
              .namedtuples())
@@ -158,38 +161,14 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
     return flows
 
 
-def convert_fields_to_key(df: pd.DataFrame) -> pd.Series:
-    """Converts the process fields to its actual key by matching the database."""
-    assert all_activities_found(df), "Some processes could not be found in the database"
-    matches = get_relevant_activities(df)
-    combinations = df.iloc[:, 0:3].apply(tuple, axis=1)
-    keys = pd.Series([matches[x] for x in combinations], dtype="object")
-    return keys
-
-
-def convert_key_to_fields(df: pd.DataFrame) -> pd.DataFrame:
-    """Converts the process fields to its actual key by matching the database."""
-    keys = set(df.iloc[:, 5])
-    dbs, codes = zip(*keys)
-    query = (ActivityDataset
-             .select()
-             .where((ActivityDataset.database.in_(set(dbs))) &
-                    (ActivityDataset.code.in_(set(codes))))
-             .namedtuples())
-    key_data = dict(constuct_ad_data(x) for x in query.iterator())
-    subdf = pd.DataFrame([key_data[x] for x in df.iloc[:, 5]], columns=df.columns[0:5])
-    return subdf
-
-
 def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
     def build_match(row):
         if row.iat[4] == bw.config.biosphere:
-            return row.iat[0], row.iat[3]
-        return row.iat[0], row.iat[1], row.iat[2],
-    results = pd.Series([
-        matchbook.get(x, np.NaN) for x in df.apply(build_match, axis=1)
-    ])
-    return results
+            match = (row.iat[0], row.iat[3])
+        else:
+            match = (row.iat[0], row.iat[1], row.iat[2])
+        return matchbook.get(match, np.NaN)
+    return df.apply(build_match, axis=1)
 
 
 def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
@@ -200,19 +179,3 @@ def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
     matches.update(get_relevant_activities(df, "to"))
     df["to key"] = match_fields_for_key(df.loc[:, TO_ALL], matches)
     return df
-
-
-def fill_out_df_with_keys(df: pd.DataFrame) -> pd.DataFrame:
-    """Will attempt to fill out the name, product, category, location and
-    database fields using the 'from' and 'to' keys.
-
-    Will raise an Exception if any key is missing in the DataFrame.
-    """
-    assert df.loc[:, EXCHANGE_KEYS].notna().all().all(), "All keys should be known before running this method."
-    from_df = convert_key_to_fields(df.loc[:, FROM_ALL])
-    df[from_df.columns] = from_df
-    to_df = convert_key_to_fields(df.loc[:, TO_ALL])
-    df[to_df.columns] = to_df
-    return df
-
-
