@@ -161,6 +161,11 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - Adrian Haas (haasad@ethz.ch)
 - Chris Mutel (cmutel@gmail.com)
 
+## Contributing projects
+The development of the Activity Browser was co-financed by the following projects:
+- Life Cycle Management of wood in Switzerland (Swiss National Science Foundation, NRP 66 Resource Wood project number 136623)
+- MIN-TEA (Materials Innovative Technologies Assessment; EIT Raw Materials project number 18231)
+
 ## Copyright
 Copyright (c) 2017-2020, Bernhard Steubing and Daniel de Koning (Leiden University), Adrian Haas (ETH Zurich)
 Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut
@@ -183,11 +188,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ## Additional Resources
 
 __Activity Browser__:
-- https://bitbucket.org/bsteubing/activity-browser  (first version, including modular LCA)
-- http://activity-browser.readthedocs.io/en/latest/index.html  (documentation modular LCA)
-- https://link.springer.com/article/10.1007/s11367-015-1015-3  (paper modular LCA / streamlining scenario analysis)
+- paper on the Activity Browser: https://doi.org/10.1016/j.simpa.2019.100012
+- paper on modular LCA using the Activity Browser: https://link.springer.com/article/10.1007/s11367-015-1015-3
+- documentation modular LCA: http://activity-browser.readthedocs.io/en/latest/index.html
+- version of the AB that includes modular LCA: https://bitbucket.org/bsteubing/activity-browser
 
 __Brightway2__:
-- https://bitbucket.org/cmutel/brightway2
 - https://brightwaylca.org/
-- https://github.com/PoutineAndRosti/Brightway-Seminar-2017  (good starting point for learning bw)
