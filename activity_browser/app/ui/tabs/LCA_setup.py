@@ -9,7 +9,7 @@ import pandas as pd
 from ...bwutils.superstructure import import_from_excel, scenario_names_from_df
 from ...signals import signals
 from ..icons import qicons
-from ..style import horizontal_line, header
+from ..style import horizontal_line, header, style_group_box
 from ..tables import (
     CSActivityTable, CSList, CSMethodsTable, PresamplesList, ScenarioImportTable
 )
@@ -279,7 +279,7 @@ class LCASetupTab(QtWidgets.QWidget):
 
 
 class ScenarioImportPanel(QtWidgets.QWidget):
-    MAX_TABLES = 1
+    MAX_TABLES = 2
 
     """Special kind of QWidget that contains one or more tables side by side."""
     def __init__(self, parent=None):
@@ -291,8 +291,27 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.scenario_tables = QtWidgets.QHBoxLayout()
         self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
 
+        self.combine_label = QtWidgets.QLabel("Combine tables by:")
+        self.group_box = QtWidgets.QGroupBox()
+        self.group_box.setStyleSheet(style_group_box.border_title)
+        input_field_layout = QtWidgets.QHBoxLayout()
+        self.group_box.setLayout(input_field_layout)
+        self.combine_group = QtWidgets.QButtonGroup()
+        self.combine_group.setExclusive(True)
+        self.product_choice = QtWidgets.QCheckBox("Product")
+        self.product_choice.setChecked(True)
+        self.addition_choice = QtWidgets.QCheckBox("Addition")
+        self.addition_choice.setEnabled(False)  # TODO: Add addition logic
+        self.combine_group.addButton(self.product_choice)
+        self.combine_group.addButton(self.addition_choice)
+        input_field_layout.addWidget(self.combine_label)
+        input_field_layout.addWidget(self.product_choice)
+        input_field_layout.addWidget(self.addition_choice)
+        self.group_box.setHidden(True)
+
         row.addWidget(header("Scenarios"))
         row.addWidget(self.table_btn)
+        row.addWidget(self.group_box)
         row.addStretch(1)
         layout.addLayout(row)
         layout.addLayout(self.scenario_tables)
@@ -307,6 +326,11 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         signals.project_selected.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
+    def scenario_names(self, idx: int) -> list:
+        if idx > len(self.tables):
+            return []
+        return scenario_names_from_df(self.tables[idx])
+
     def combined_dataframe(self, kind: str = "product") -> pd.DataFrame:
         """Return a dataframe that combines the scenarios of multiple tables.
 
@@ -315,9 +339,18 @@ class ScenarioImportPanel(QtWidgets.QWidget):
          Currently only 1 table can be loaded.
         """
         if not self.tables:
+            # Return an empty dataframe, will almost immediately cause a
+            # validation exception.
             return pd.DataFrame()
-        table = next(iter(self.tables))
-        return table.scenario_df
+        if len(self.tables) == 1:
+            # Return the dataframe from the only table there is.
+            table = next(iter(self.tables))
+            return table.scenario_df
+        # Now, check which combination to do.
+        if self.product_choice.isChecked():
+            pass
+        else:
+            pass
 
     @Slot(name="addTable")
     def add_table(self) -> None:
@@ -345,6 +378,10 @@ class ScenarioImportPanel(QtWidgets.QWidget):
             w.deleteLater()
         self.tables = []
         self.updateGeometry()
+
+    def updateGeometry(self):
+        self.group_box.setHidden(len(self.tables) <= 1)
+        super().updateGeometry()
 
     @Slot(name="canAddTable")
     def can_add_table(self) -> None:
