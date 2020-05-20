@@ -131,12 +131,15 @@ class LCAResultsSubTab(QTabWidget):
             except IndexError as e:
                 # Occurs when a presamples package is used that refers to old
                 # or non-existing array indices.
-                msg = "Given scenario package refers to non-existent exchanges."\
-                      " It is suggested to remove or edit this package."
-                raise BW2CalcError(msg) from e
+                msg = ("Given scenario package refers to non-existent exchanges."
+                       " It is suggested to remove or edit this package.")
+                raise BW2CalcError(msg, str(e)).with_traceback(e.__traceback__)
         else:
-            self.mlca = SuperstructureMLCA(self.cs_name, self.presamples)
-            self.contributions = SuperstructureContributions(self.mlca)
+            try:
+                self.mlca = SuperstructureMLCA(self.cs_name, self.presamples)
+                self.contributions = SuperstructureContributions(self.mlca)
+            except AssertionError as e:
+                raise BW2CalcError("Scenario LCA failed.", str(e)).with_traceback(e.__traceback__)
         self.mlca.calculate()
         self.mc = CSMonteCarloLCA(self.cs_name)
 
