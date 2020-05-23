@@ -112,7 +112,7 @@ class LCASetupTab(QtWidgets.QWidget):
         )
         for obj in self.presamples:
             obj.hide()
-        self.scenario_calc_btn = QtWidgets.QPushButton(qicons.calculate, "Validate && Calculate")
+        self.scenario_calc_btn = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.scenario_calc_btn.hide()
 
         name_row = QtWidgets.QHBoxLayout()

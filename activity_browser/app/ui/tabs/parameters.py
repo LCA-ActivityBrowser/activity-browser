@@ -270,13 +270,13 @@ class PresamplesTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.load_btn = QPushButton(qicons.add, "Load scenario table")
+        self.load_btn = QPushButton(qicons.add, "Import table from excel")
         self.save_btn = QPushButton(
             self.style().standardIcon(QStyle.SP_DialogSaveButton),
-            "Save scenario table"
+            "Export table to excel"
         )
         self.calculate_btn = QPushButton(
-            qicons.calculate, "Process scenario table for LCA calculations"
+            qicons.calculate, "Process table and export"
         )
         self.hide_group = QCheckBox("Show group column")
 
@@ -302,8 +302,8 @@ class PresamplesTab(BaseRightTab):
         layout.addLayout(row)
         layout.addWidget(horizontal_line())
         row = QHBoxLayout()
-        row.addWidget(self.load_btn)
         row.addWidget(self.save_btn)
+        row.addWidget(self.load_btn)
         row.addWidget(self.calculate_btn)
         row.addWidget(self.hide_group)
         row.addStretch(1)

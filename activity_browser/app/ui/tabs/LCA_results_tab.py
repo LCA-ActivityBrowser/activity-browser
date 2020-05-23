@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from typing import Union
+import traceback
 
 from bw2calc.errors import BW2CalcError
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout
 import pandas as pd
 
@@ -55,6 +56,13 @@ class LCAResultsTab(ABTab):
             self.select_tab(self.tabs[name])
             signals.show_tab.emit("LCA results")
         except BW2CalcError as e:
-            QMessageBox.warning(
-                self, "Could not run calculation", str(e), QMessageBox.Ok, QMessageBox.Ok
+            initial, *other = e.args
+            print(traceback.format_exc())
+            msg = QMessageBox(
+                QMessageBox.Warning, "Calculation problem", str(initial),
+                QMessageBox.Ok, self
             )
+            msg.setWindowModality(Qt.ApplicationModal)
+            if other:
+                msg.setDetailedText("\n".join(other))
+            msg.exec_()
