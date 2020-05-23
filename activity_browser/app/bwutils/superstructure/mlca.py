@@ -7,11 +7,7 @@ import pandas as pd
 
 from ..multilca import MLCA, Contributions
 from ..utils import Index
-from .activities import fill_df_keys_with_fields
-from .dataframe import (
-    scenario_names_from_df, arrays_from_superstructure, guesstimate_flow_type
-)
-from .utils import EXCHANGE_KEYS
+from .dataframe import scenario_names_from_df, arrays_from_indexed_superstructure
 
 
 class SuperstructureMLCA(MLCA):
@@ -32,14 +28,7 @@ class SuperstructureMLCA(MLCA):
 
         super().__init__(cs_name)
 
-        # Ensure all keys are present in the dataframe.
-        df = fill_df_keys_with_fields(df)
-        assert df.loc[:, EXCHANGE_KEYS].notna().all().all(), "Not all processes were found in the project"
-        # If entire 'flow type' column is empty, guess the types.
-        if df["flow type"].isna().all():
-            df = guesstimate_flow_type(df)
-        # Convert the dataframe into numpy arrays
-        self.indices, self.values = arrays_from_superstructure(df)
+        self.indices, self.values = arrays_from_indexed_superstructure(df)
         # Note: Using the mapping scheme from brightway and presamples,
         # the 'input' keys are matched to the product_dict or
         # biosphere_dict ('rows') while the 'output' keys are matched
@@ -48,7 +37,6 @@ class SuperstructureMLCA(MLCA):
             ('row', np.uint32), ('col', np.uint32), ('type', np.uint8),
         ])
         self.indices_to_matrix()
-
 
         # Construct an index dictionary similar to fu_index and method_index
         self._current_index = 0

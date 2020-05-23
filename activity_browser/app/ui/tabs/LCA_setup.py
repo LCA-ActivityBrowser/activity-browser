@@ -6,7 +6,9 @@ from PySide2.QtCore import Slot
 from brightway2 import calculation_setups
 import pandas as pd
 
-from ...bwutils.superstructure import import_from_excel, scenario_names_from_df
+from ...bwutils.superstructure import (
+    SuperstructureManager, import_from_excel, scenario_names_from_df
+)
 from ...signals import signals
 from ..icons import qicons
 from ..style import horizontal_line, header, style_group_box
@@ -342,15 +344,10 @@ class ScenarioImportPanel(QtWidgets.QWidget):
             # Return an empty dataframe, will almost immediately cause a
             # validation exception.
             return pd.DataFrame()
-        if len(self.tables) == 1:
-            # Return the dataframe from the only table there is.
-            table = next(iter(self.tables))
-            return table.scenario_df
-        # Now, check which combination to do.
-        if self.product_choice.isChecked():
-            pass
-        else:
-            pass
+        data = [t.scenario_df for t in self.tables]
+        manager = SuperstructureManager(*data)
+        kind = "product" if self.product_choice.isChecked() else "addition"
+        return manager.combined_data(kind)
 
     @Slot(name="addTable")
     def add_table(self) -> None:
