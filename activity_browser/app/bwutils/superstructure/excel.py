@@ -2,10 +2,9 @@
 from ast import literal_eval
 from pathlib import Path
 from typing import List, Union
-import sys
 
+import openpyxl
 import pandas as pd
-import xlrd
 
 from .utils import SUPERSTRUCTURE
 
@@ -19,10 +18,8 @@ def convert_tuple_str(x):
 
 def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
     try:
-        wb = xlrd.open_workbook(document_path, on_demand=True)
-        names = wb.sheet_names()
-        wb.release_resources()
-        return names
+        wb = openpyxl.load_workbook(filename=document_path, read_only=True)
+        return wb.sheetnames
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
 
@@ -32,16 +29,14 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
     exception if not found in the first 10 rows.
     """
     try:
-        wb = xlrd.open_workbook(document_path, on_demand=True)
-        sheet = wb.sheet_by_index(import_sheet)
+        wb = openpyxl.load_workbook(filename=document_path, read_only=True)
+        sheet = wb.worksheets[import_sheet]
         for i in range(10):
-            value = sheet.cell_value(i, 0)
+            value = sheet.cell(i + 1, 1).value
             if isinstance(value, str) and value.startswith("from activity name"):
-                wb.release_resources()
                 return i
     except IndexError as e:
-        tb = sys.exc_info()[2]
-        raise IndexError("Expected headers not found in file").with_traceback(tb)
+        raise IndexError("Expected headers not found in file").with_traceback(e.__traceback__)
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
     raise ValueError("Could not find required headers in given document sheet.")
