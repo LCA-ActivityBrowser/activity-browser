@@ -5,7 +5,8 @@ from typing import List
 import pandas as pd
 
 from .activities import fill_df_keys_with_fields
-from .utils import SUPERSTRUCTURE, EXCHANGE_KEYS
+from .dataframe import scenario_columns
+from .utils import EXCHANGE_KEYS
 
 
 class SuperstructureManager(object):
@@ -31,7 +32,7 @@ class SuperstructureManager(object):
         """
         if not self.is_multiple:
             df = next(iter(self.frames))
-            cols = df.columns.difference(SUPERSTRUCTURE, sort=False)
+            cols = scenario_columns(df)
             return pd.DataFrame(
                 data=df.loc[:, cols], index=df.index, columns=cols
             )
@@ -50,7 +51,7 @@ class SuperstructureManager(object):
         return df
 
     def _combine_columns(self) -> pd.MultiIndex:
-        cols = [df.columns.difference(SUPERSTRUCTURE, sort=False).to_list() for df in self.frames]
+        cols = [scenario_columns(df).to_list() for df in self.frames]
         return pd.MultiIndex.from_tuples(list(itertools.product(*cols)))
 
     def _combine_indexes(self) -> pd.MultiIndex:
