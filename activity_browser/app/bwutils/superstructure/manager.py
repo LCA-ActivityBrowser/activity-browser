@@ -93,7 +93,7 @@ class SuperstructureManager(object):
         df = pd.DataFrame([], index=index, columns=cols)
         for f in data:
             data = f.loc[:, cols]
-            df = df.add(data, axis=0, fill_value=0)
+            df.loc[data.index, :] = data
         return df
 
     @staticmethod
