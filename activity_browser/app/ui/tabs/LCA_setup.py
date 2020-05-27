@@ -303,7 +303,6 @@ class ScenarioImportPanel(QtWidgets.QWidget):
         self.product_choice = QtWidgets.QCheckBox("Product")
         self.product_choice.setChecked(True)
         self.addition_choice = QtWidgets.QCheckBox("Addition")
-        self.addition_choice.setEnabled(False)  # TODO: Add addition logic
         self.combine_group.addButton(self.product_choice)
         self.combine_group.addButton(self.addition_choice)
         input_field_layout.addWidget(self.combine_label)
@@ -346,7 +345,12 @@ class ScenarioImportPanel(QtWidgets.QWidget):
             return pd.DataFrame()
         data = [t.scenario_df for t in self.tables]
         manager = SuperstructureManager(*data)
-        kind = "product" if self.product_choice.isChecked() else "addition"
+        if self.product_choice.isChecked():
+            kind = "product"
+        elif self.addition_choice.isChecked():
+            kind = "addition"
+        else:
+            kind = "none"
         return manager.combined_data(kind)
 
     @Slot(name="addTable")
