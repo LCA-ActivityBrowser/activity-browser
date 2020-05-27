@@ -40,7 +40,7 @@ class SuperstructureManager(object):
         if kind == "product":
             combo_cols = self._combine_columns()
             df = SuperstructureManager.product_combine_frames(
-                self.frames, combo_cols, combo_idx
+                self.frames, combo_idx, combo_cols
             )
             # Flatten the columns again for later processing.
             df.columns = df.columns.to_flat_index()
@@ -62,7 +62,7 @@ class SuperstructureManager(object):
         return idx
 
     @staticmethod
-    def product_combine_frames(data: List[pd.DataFrame], cols: pd.MultiIndex, index: pd.MultiIndex) -> pd.DataFrame:
+    def product_combine_frames(data: List[pd.DataFrame], index: pd.MultiIndex, cols: pd.MultiIndex) -> pd.DataFrame:
         """Iterate through the dataframes, filling data into the combined
         dataframe with duplicate indexes being resolved using a 'last one wins'
         logic.
