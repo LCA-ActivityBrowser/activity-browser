@@ -97,6 +97,9 @@ class SuperstructureMLCA(MLCA):
         for kind in kinds:
             idx = self.matrix_indices[types == kind]
             sample = self.values[types == kind, self.current]
+            # Filter sample and idx for NaN values in samples.
+            idx = idx[~np.isnan(sample)]
+            sample = sample[~np.isnan(sample)]
             try:
                 matrix = getattr(self.lca, self.matrices[kind])
             except AttributeError:

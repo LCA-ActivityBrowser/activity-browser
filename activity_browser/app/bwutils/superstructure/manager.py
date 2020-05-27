@@ -5,7 +5,8 @@ from typing import List
 import pandas as pd
 
 from .activities import fill_df_keys_with_fields
-from .utils import SUPERSTRUCTURE, EXCHANGE_KEYS
+from .dataframe import scenario_columns
+from .utils import EXCHANGE_KEYS
 
 
 class SuperstructureManager(object):
@@ -31,7 +32,7 @@ class SuperstructureManager(object):
         """
         if not self.is_multiple:
             df = next(iter(self.frames))
-            cols = df.columns.difference(SUPERSTRUCTURE, sort=False)
+            cols = scenario_columns(df)
             return pd.DataFrame(
                 data=df.loc[:, cols], index=df.index, columns=cols
             )
@@ -40,18 +41,31 @@ class SuperstructureManager(object):
         if kind == "product":
             combo_cols = self._combine_columns()
             df = SuperstructureManager.product_combine_frames(
-                self.frames, combo_cols, combo_idx
+                self.frames, combo_idx, combo_cols
             )
             # Flatten the columns again for later processing.
             df.columns = df.columns.to_flat_index()
+        elif kind == "addition":
+            # Find the intersection subset of scenarios.
+            cols = self._combine_columns_intersect()
+            df = SuperstructureManager.addition_combine_frames(
+                self.frames, combo_idx, cols
+            )
         else:
             df = pd.DataFrame([], index=combo_idx)
 
         return df
 
     def _combine_columns(self) -> pd.MultiIndex:
-        cols = [df.columns.difference(SUPERSTRUCTURE, sort=False).to_list() for df in self.frames]
+        cols = [scenario_columns(df).to_list() for df in self.frames]
         return pd.MultiIndex.from_tuples(list(itertools.product(*cols)))
+
+    def _combine_columns_intersect(self) -> pd.Index:
+        iterable = iter(self.frames)
+        cols = scenario_columns(next(iterable))
+        for df in iterable:
+            cols = cols.intersection(scenario_columns(df))
+        return cols
 
     def _combine_indexes(self) -> pd.MultiIndex:
         """Returns a union of all of the given dataframe indexes."""
@@ -62,7 +76,7 @@ class SuperstructureManager(object):
         return idx
 
     @staticmethod
-    def product_combine_frames(data: List[pd.DataFrame], cols: pd.MultiIndex, index: pd.MultiIndex) -> pd.DataFrame:
+    def product_combine_frames(data: List[pd.DataFrame], index: pd.MultiIndex, cols: pd.MultiIndex) -> pd.DataFrame:
         """Iterate through the dataframes, filling data into the combined
         dataframe with duplicate indexes being resolved using a 'last one wins'
         logic.
@@ -71,6 +85,14 @@ class SuperstructureManager(object):
         for idx, f in enumerate(data):
             data = f.loc[:, cols.get_level_values(idx)]
             data.columns = cols
+            df.loc[data.index, :] = data
+        return df
+
+    @staticmethod
+    def addition_combine_frames(data: List[pd.DataFrame], index: pd.MultiIndex, cols: pd.Index) -> pd.DataFrame:
+        df = pd.DataFrame([], index=index, columns=cols)
+        for f in data:
+            data = f.loc[:, cols]
             df.loc[data.index, :] = data
         return df
 
