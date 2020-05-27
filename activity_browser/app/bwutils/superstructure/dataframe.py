@@ -45,7 +45,7 @@ def arrays_from_superstructure(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
     result = np.zeros(data.shape[0], dtype=object)
     for i, data in enumerate(data.to_dict("records")):
         result[i] = Index.build_from_dict(data)
-    values = df.loc[:, df.columns.difference(SUPERSTRUCTURE, sort=False)]
+    values = df.loc[:, scenario_columns(df)]
     return result, values.to_numpy()
 
 
@@ -65,13 +65,17 @@ def arrays_from_indexed_superstructure(df: pd.DataFrame) -> (np.ndarray, np.ndar
     return result, df.to_numpy(dtype=float)
 
 
+def scenario_columns(df: pd.DataFrame) -> pd.Index:
+    # 'sort=False' ensures that order of scenario names is not altered.
+    return df.columns.difference(SUPERSTRUCTURE, sort=False)
+
+
 def scenario_names_from_df(df: pd.DataFrame) -> list:
     """Returns the list of scenario names from a given superstructure.
 
     Strip out any possible carriage returns (excel junk)
     """
-    # 'sort=False' ensures that order of scenario names is not altered.
-    cols = df.columns.difference(SUPERSTRUCTURE, sort=False)
+    cols = scenario_columns(df)
     return [
         str(x).replace("\n", " ").replace("\r", "") for x in cols
     ]
