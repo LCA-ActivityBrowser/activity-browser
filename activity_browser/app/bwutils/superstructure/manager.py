@@ -45,6 +45,12 @@ class SuperstructureManager(object):
             )
             # Flatten the columns again for later processing.
             df.columns = df.columns.to_flat_index()
+        elif kind == "addition":
+            # Find the intersection subset of scenarios.
+            cols = self._combine_columns_intersect()
+            df = SuperstructureManager.addition_combine_frames(
+                self.frames, combo_idx, cols
+            )
         else:
             df = pd.DataFrame([], index=combo_idx)
 
@@ -53,6 +59,13 @@ class SuperstructureManager(object):
     def _combine_columns(self) -> pd.MultiIndex:
         cols = [scenario_columns(df).to_list() for df in self.frames]
         return pd.MultiIndex.from_tuples(list(itertools.product(*cols)))
+
+    def _combine_columns_intersect(self) -> pd.Index:
+        iterable = iter(self.frames)
+        cols = scenario_columns(next(iterable))
+        for df in iterable:
+            cols = cols.intersection(scenario_columns(df))
+        return cols
 
     def _combine_indexes(self) -> pd.MultiIndex:
         """Returns a union of all of the given dataframe indexes."""
@@ -73,6 +86,14 @@ class SuperstructureManager(object):
             data = f.loc[:, cols.get_level_values(idx)]
             data.columns = cols
             df.loc[data.index, :] = data
+        return df
+
+    @staticmethod
+    def addition_combine_frames(data: List[pd.DataFrame], index: pd.MultiIndex, cols: pd.Index) -> pd.DataFrame:
+        df = pd.DataFrame([], index=index, columns=cols)
+        for f in data:
+            data = f.loc[:, cols]
+            df = df.add(data, axis=0, fill_value=0)
         return df
 
     @staticmethod
