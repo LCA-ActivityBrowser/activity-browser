@@ -28,7 +28,7 @@ class BaseRightTab(QWidget):
         """
         raise NotImplementedError
 
-    @Slot()
+    @Slot(name="showExplanationBox")
     def explanation(self):
         """ Builds and shows a message box containing whatever text is set
         on self.explain_text
