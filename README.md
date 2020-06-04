@@ -30,6 +30,19 @@ https://doi.org/10.1016/j.simpa.2019.100012
 - [License](#authors)
 - [Additional Resources](#additional-resources)
 
+## Highlights
+
+- **Fast LCA calculations** for multiple functional units and impact categories using [Brightway2](https://brightwaylca.org) under the hood
+- The AB can be used as a **productivity tool for brightway**: you can model in brightway (python) and see the results in the AB or the other way around - whatever is most convenient for you
+- **Advanced analysis of LCA results:** 
+    - Contribution analyses (including aggregation by product name, region or other attributes)
+    - Sankey Diagrams
+    - Monte Carlo Analysis (building upon the fast brightway engine)
+    - Global Sensitivity Analysis
+- **Other advanced features**
+    - vizualize the uncertainties of your input data (including Pedigree Matrix)
+    - explore your supply chains using the graph explorer
+
 ## Installation
 
 ### Miniconda
@@ -74,25 +87,6 @@ This will install the activity-browser and all of its dependencies in a new cond
 
 It is recommended that you have a separate conda environment for the activity browser like explained above, but you can also install the activity browser in your root, brightway2 or other existing conda environment if you prefer. Having separate environments for different projects generally reduces unwanted side-effects and incompatibilities between packages. You can still access the same brightway-projects even if you work with different conda environments.
 
-## Getting started
-
-### Running the activity browser
-
-First activate the environment where the activity browser is installed:
-
-```bash
-conda activate ab
-```
-
-Then simply run `activity-browser` and the application will open.
-
-### Importing an LCI database
-
-- In the `inventory`-tab there is a button called _"Add default data (biosphere flows and impact categories)"_. Click this button to add the default data. This is equivalent to `brightway2.bw2setup()` in python.
-- After adding the default data, you can import a database with the _"Import Database"_-Button. Follow the instructions of the database import wizard. There are currently three types of imports possible:
-    - Directly from the ecoinvent homepage (ecoinvent login credentials required)
-    - From a 7zip archive
-    - From a directory with ecospold2 files (same as in brightway2)
 
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
@@ -146,6 +140,26 @@ You basically have 3 options:
     conda install pyside2
     ```
 ---
+
+## Getting started
+
+### Running the activity browser
+
+First activate the environment where the activity browser is installed:
+
+```bash
+conda activate ab
+```
+
+Then simply run `activity-browser` and the application will open.
+
+### Importing an LCI database
+
+- In the `inventory`-tab there is a button called _"Add default data (biosphere flows and impact categories)"_. Click this button to add the default data. This is equivalent to `brightway2.bw2setup()` in python.
+- After adding the default data, you can import a database with the _"Import Database"_-Button. Follow the instructions of the database import wizard. There are currently three types of imports possible:
+    - Directly from the ecoinvent homepage (ecoinvent login credentials required)
+    - From a 7zip archive
+    - From a directory with ecospold2 files (same as in brightway2)
 
 ## Contributing
 
