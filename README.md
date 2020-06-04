@@ -13,17 +13,18 @@ Please have a look at our scientific paper on the Activity Browser and cite it i
 https://doi.org/10.1016/j.simpa.2019.100012 
 
 ## Contents
+- [Highlights](#highlights)
 - [Installation](#installation)
     - [Miniconda](#miniconda)
     - [Configure conda channels](#configure-conda-channels)
     - [Install the activity browser](#install-the-activity-browser)
-- [Getting started](#getting-started)
-    - [Running the activity browser](#running-the-activity-browser)
-    - [Importing an LCI database](#importing-an-lci-database)
-- [Development Version](#development-version)
+    - [Development Version](#development-version)
     - [Important Notice: the AB switched from PyQt5 to PySide2](#important-notice-the-ab-switched-from-pyqt5-to-pyside2)
         - [Why?](#why)
         - [What do I need to do if I have the AB-dev already installed?](#what-do-i-need-to-do-if-i-have-the-ab-dev-already-installed)
+- [Getting started](#getting-started)
+    - [Running the activity browser](#running-the-activity-browser)
+    - [Importing an LCI database](#importing-an-lci-database)
 - [Contributing](#contributing)
 - [Authors](#authors)
 - [Copyright](#copyright)
