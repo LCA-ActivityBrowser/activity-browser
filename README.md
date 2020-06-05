@@ -8,12 +8,28 @@
 The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle
 assessment framework, making use of `Qt` through `Qt for Python` under the [LGPLv3 license](https://www.gnu.org/licenses/lgpl-3.0.html).
 
+## Highlights
+
+- **Fast LCA calculations** for multiple functional units and impact categories using [Brightway2](https://brightwaylca.org) under the hood
+- The AB can be used as a **productivity tool for brightway**: you can model in brightway (python) and see the results in the AB or the other way around - whatever is most convenient for you
+- **Advanced LCA modeling:**
+    - parametrization
+    - advanced foreground and background scenario modeling (e.g. possibility to work with scenarios from Integrated Assessment Models)
+    - generate and load [presamples](https://github.com/PascalLesage/presamples) data
+    - define and directly visualize the uncertainties of your input data (including Pedigree Matrix)
+- **Advanced analysis of LCA results:** 
+    - Contribution analyses (including aggregation by product name, region or other attributes)
+    - Sankey Diagrams
+    - Monte Carlo Analysis (building upon the fast brightway engine)
+    - Global Sensitivity Analysis
+- **Other features**
+    - interactively explore supply chains using the graph explorer
+
 ## Scientific paper
 Please have a look at our scientific paper on the Activity Browser and cite it in your work if it has been useful to you:
 https://doi.org/10.1016/j.simpa.2019.100012 
 
 ## Contents
-- [Highlights](#highlights)
 - [Installation](#installation)
     - [Miniconda](#miniconda)
     - [Configure conda channels](#configure-conda-channels)
@@ -30,19 +46,6 @@ https://doi.org/10.1016/j.simpa.2019.100012
 - [Copyright](#copyright)
 - [License](#authors)
 - [Additional Resources](#additional-resources)
-
-## Highlights
-
-- **Fast LCA calculations** for multiple functional units and impact categories using [Brightway2](https://brightwaylca.org) under the hood
-- The AB can be used as a **productivity tool for brightway**: you can model in brightway (python) and see the results in the AB or the other way around - whatever is most convenient for you
-- **Advanced analysis of LCA results:** 
-    - Contribution analyses (including aggregation by product name, region or other attributes)
-    - Sankey Diagrams
-    - Monte Carlo Analysis (building upon the fast brightway engine)
-    - Global Sensitivity Analysis
-- **Other advanced features**
-    - vizualize the uncertainties of your input data (including Pedigree Matrix)
-    - explore your supply chains using the graph explorer
 
 ## Installation
 
