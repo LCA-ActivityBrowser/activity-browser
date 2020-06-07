@@ -123,12 +123,17 @@ class MonteCarloLCA(object):
             bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
             if self.include_parameters:
                 param_exchanges = self.param_rng.next()
+                print('Parameterized exchanges:', param_exchanges)
                 # combination of 'input', 'output', 'type' columns is unique
                 # For each recalculated exchange, match it to either matrix and
                 # override the value within that matrix.
                 for p in param_exchanges:
                     tech_vector[self.lca.tech_params[self.param_cols] == p[self.param_cols]] = p["amount"]
+                    mask = self.lca.tech_params[self.param_cols] == p[self.param_cols]
+                    print('Matched results of parametrization to', sum(mask), 'entries in the technosphere matrix')
                     bio_vector[self.lca.bio_params[self.param_cols] == p[self.param_cols]] = p["amount"]
+                    mask = self.lca.bio_params[self.param_cols] == p[self.param_cols]
+                    print('Matched results of parametrization to', sum(mask), 'entries in the biosphere matrix')
 
             self.lca.rebuild_technosphere_matrix(tech_vector)
             self.lca.rebuild_biosphere_matrix(bio_vector)
@@ -158,6 +163,7 @@ class MonteCarloLCA(object):
                     self.lca.rebuild_characterization_matrix(cf_vectors[m])
                     self.lca.lcia_calculation()
                     self.results[iteration, row, col] = self.lca.score
+                    print(self.lca.score)
 
         print('Monte Carlo LCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
             iterations,
