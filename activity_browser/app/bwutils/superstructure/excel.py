@@ -3,6 +3,7 @@ from ast import literal_eval
 from pathlib import Path
 from typing import List, Union
 
+import numpy as np
 import openpyxl
 import pandas as pd
 
@@ -78,8 +79,9 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
         raise ValueError("Missing required column(s) for superstructure: {}".format(diff.to_list()))
 
     # Convert specific columns that may have tuples as strings
-    data["from categories"] = data["from categories"].apply(convert_tuple_str)
-    data["from key"] = data["from key"].apply(convert_tuple_str)
-    data["to categories"] = data["to categories"].apply(convert_tuple_str)
-    data["to key"] = data["to key"].apply(convert_tuple_str)
+    data.loc[:, "from categories"] = data["from categories"].apply(convert_tuple_str)
+    data.loc[:, "to categories"] = data["to categories"].apply(convert_tuple_str)
+    # TODO: find better way of handling keys from excel, purge them for now to
+    #  avoid 'incorrect' keys causing issues.
+    data.loc[:, ["from key", "to key"]] = np.NaN
     return data
