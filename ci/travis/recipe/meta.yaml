@@ -36,6 +36,7 @@ requirements:
     - salib
     - seaborn
     - presamples
+    - openpyxl
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

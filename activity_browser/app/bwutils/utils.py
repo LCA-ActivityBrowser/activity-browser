@@ -42,12 +42,37 @@ class Key(NamedTuple):
 class Index(NamedTuple):
     input: Key
     output: Key
+    flow_type: Optional[str] = None
 
     @classmethod
     def build_from_exchange(cls, exc: ExchangeDataset) -> 'Index':
         return cls(
             input=Key(exc.input_database, exc.input_code),
-            output=Key(exc.output_database, exc.output_code)
+            output=Key(exc.output_database, exc.output_code),
+            flow_type=exc.type,
+        )
+
+    @classmethod
+    def build_from_tuple(cls, data: tuple) -> 'Index':
+        obj = cls(
+            input=Key(data[0][0], data[0][1]),
+            output=Key(data[1][0], data[1][1]),
+        )
+        exc_type = ExchangeDataset.get(
+            ExchangeDataset.input_code == obj.input.code,
+            ExchangeDataset.input_database == obj.input.database,
+            ExchangeDataset.output_code == obj.output.code,
+            ExchangeDataset.output_database == obj.output.database).type
+        return obj._replace(flow_type=exc_type)
+
+    @classmethod
+    def build_from_dict(cls, data: dict) -> 'Index':
+        in_key = data.get("input", ("", ""))
+        out_key = data.get("output", ("", ""))
+        return cls(
+            input=Key(in_key[0], in_key[1]),
+            output=Key(out_key[0], out_key[1]),
+            flow_type=data.get("flow type", None),
         )
 
     @property
@@ -66,6 +91,8 @@ class Index(NamedTuple):
 
     @property
     def exchange_type(self) -> int:
+        if self.flow_type:
+            return TYPE_DICTIONARY.get(self.flow_type, -1)
         exc_type = ExchangeDataset.get(
             ExchangeDataset.input_code == self.input.code,
             ExchangeDataset.input_database == self.input.database,

@@ -8,6 +8,7 @@ from stats_arrays.distributions import *
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
+from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 from ...signals import signals
 
 
@@ -17,11 +18,6 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     Note that this can also be used for setting uncertainties on parameters
     """
-    KEYS = {
-        "uncertainty type", "loc", "scale", "shape", "minimum", "maximum",
-        "negative"
-    }
-
     TYPE = 0
     PEDIGREE = 1
 
@@ -61,11 +57,10 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     @property
     def uncertainty_info(self) -> dict:
-        dist_id = self.field("uncertainty type")
-        data = dict.fromkeys(self.KEYS, np.NaN)
-        data["uncertainty type"] = dist_id
+        data = {k: v for k, v in EMPTY_UNCERTAINTY.items()}
+        data["uncertainty type"] = self.field("uncertainty type")
         data["negative"] = bool(self.field("negative"))
-        for field in self.standard_dist_fields(dist_id):
+        for field in self.standard_dist_fields(data["uncertainty type"]):
             data[field] = float(self.field(field))
         return data
 
@@ -98,7 +93,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
         objects which sometimes have uncertainty do not.
         """
         for k, v in self.obj.uncertainty.items():
-            self.setField(k, v)
+            if k in EMPTY_UNCERTAINTY:
+                self.setField(k, v)
 
         # If no loc/mean value is set yet, convert the amount.
         if not self.field("loc") or self.field("loc") == "nan":
@@ -106,11 +102,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
             if self.field("uncertainty type") == LognormalUncertainty.id:
                 val = np.log(val)
             self.setField("loc", str(val))
-        # If no sigma is set, default to 0
-        if not self.field("scale") or self.field("scale") == "nan":
-            self.setField("scale", "0")
         # Let the other fields default to 'nan' if no values are set.
-        for f in ("shape", "maximum", "minimum"):
+        for f in ("scale", "shape", "maximum", "minimum"):
             if not self.field(f):
                 self.setField(f, "nan")
 
@@ -121,10 +114,10 @@ class UncertaintyWizard(QtWidgets.QWizard):
         lognormal.
         """
         mean = getattr(self.obj, "amount", 1.0)
-        loc = self.obj.uncertainty.get("loc", None)
-        if loc and self.obj.uncertainty_type != LognormalUncertainty:
+        loc = self.obj.uncertainty.get("loc", np.NaN)
+        if not np.isnan(loc) and self.obj.uncertainty_type != LognormalUncertainty:
             loc = np.log(loc)
-        if loc is None:
+        if np.isnan(loc):
             loc = np.log(mean)
         self.setField("loc", str(loc))
 
@@ -132,12 +125,14 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """Asks if the 'amount' of the object should be updated to account for
          the user altering the loc/mean value.
          """
+        uc_type = self.field("uncertainty type")
+        no_change = {UndefinedUncertainty.id, NoUncertainty.id}
         mean = float(self.field("loc"))
-        if self.field("uncertainty type") == LognormalUncertainty.id:
+        if uc_type == LognormalUncertainty.id:
             mean = np.exp(mean)
-        if self.field("uncertainty type") in self.type.mean_is_calculated:
+        elif uc_type in self.type.mean_is_calculated:
             mean = self.type.calculate_mean
-        if not np.isclose(self.obj.amount, mean):
+        if not np.isclose(self.obj.amount, mean) and uc_type not in no_change:
             msg = ("Do you want to update the 'amount' field to match mean?"
                    "\nAmount: {}\tMean: {}".format(self.obj.amount, mean))
             choice = QtWidgets.QMessageBox.question(

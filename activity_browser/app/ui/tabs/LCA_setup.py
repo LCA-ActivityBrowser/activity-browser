@@ -4,11 +4,18 @@ from collections import namedtuple
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from brightway2 import calculation_setups
+import pandas as pd
 
+from ...bwutils.superstructure import (
+    SuperstructureManager, import_from_excel, scenario_names_from_df
+)
 from ...signals import signals
 from ..icons import qicons
-from ..style import horizontal_line, header
-from ..tables import CSActivityTable, CSList, CSMethodsTable, PresamplesList
+from ..style import horizontal_line, header, style_group_box
+from ..tables import (
+    CSActivityTable, CSList, CSMethodsTable, PresamplesList, ScenarioImportTable
+)
+from ..widgets import ExcelReadDialog
 
 """
 Lifecycle of a calculation setup
@@ -73,12 +80,21 @@ State data
 The currently selected calculation setup is retrieved by getting the currently selected value in ``CSList``.
 
 """
-PresamplesTuple = namedtuple("presamples", ["label", "list", "button"])
+PresamplesTuple = namedtuple("presamples", ["label", "list", "button", "remove"])
 
 
 class LCASetupTab(QtWidgets.QWidget):
+    DEFAULT = 0
+    SCENARIOS = 1
+    PRESAMPLES = 2
+
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.cs_panel = QtWidgets.QWidget(self)
+        cs_panel_layout = QtWidgets.QVBoxLayout()
+        self.scenario_panel = ScenarioImportPanel(self)
+        self.scenario_panel.hide()
 
         self.activities_table = CSActivityTable(self)
         self.methods_table = CSMethodsTable(self)
@@ -88,15 +104,18 @@ class LCASetupTab(QtWidgets.QWidget):
         self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
         self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
         self.calculation_type = QtWidgets.QComboBox()
-        self.calculation_type.addItems(["Standard LCA", "Scenario-based LCA"])
+        self.calculation_type.addItems(["Standard LCA", "Scenario-based LCA", "Presamples LCA"])
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.presamples = PresamplesTuple(
             QtWidgets.QLabel("Prepared scenarios:"),
             PresamplesList(self),
             QtWidgets.QPushButton(qicons.calculate, "Calculate"),
+            QtWidgets.QPushButton(qicons.delete, "Remove"),
         )
         for obj in self.presamples:
             obj.hide()
+        self.scenario_calc_btn = QtWidgets.QPushButton(qicons.calculate, "Calculate")
+        self.scenario_calc_btn.hide()
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setups:'))
@@ -109,20 +128,27 @@ class LCASetupTab(QtWidgets.QWidget):
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
         calc_row.addWidget(self.presamples.button)
+        calc_row.addWidget(self.scenario_calc_btn)
         calc_row.addWidget(self.calculation_type)
         calc_row.addWidget(self.presamples.label)
         calc_row.addWidget(self.presamples.list)
+        calc_row.addWidget(self.presamples.remove)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
         container.addLayout(name_row)
         container.addLayout(calc_row)
         container.addWidget(horizontal_line())
-        container.addWidget(header('Functional units:'))
-        container.addWidget(self.activities_table)
-        container.addWidget(horizontal_line())
-        container.addWidget(header('Impact categories:'))
-        container.addWidget(self.methods_table)
+
+        cs_panel_layout.addWidget(header('Functional units:'))
+        cs_panel_layout.addWidget(self.activities_table)
+        cs_panel_layout.addWidget(horizontal_line())
+        cs_panel_layout.addWidget(header('Impact categories:'))
+        cs_panel_layout.addWidget(self.methods_table)
+
+        self.cs_panel.setLayout(cs_panel_layout)
+        container.addWidget(self.cs_panel)
+        container.addWidget(self.scenario_panel)
 
         self.setLayout(container)
 
@@ -132,6 +158,8 @@ class LCASetupTab(QtWidgets.QWidget):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
         self.presamples.button.clicked.connect(self.presamples_calculation)
+        self.presamples.remove.clicked.connect(self.remove_presamples_package)
+        self.scenario_calc_btn.clicked.connect(self.scenario_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.delete_cs_button.clicked.connect(
@@ -164,13 +192,34 @@ class LCASetupTab(QtWidgets.QWidget):
                 'ia': self.methods_table.to_python()
             }
 
+    @Slot(name="calculationDefault")
     def start_calculation(self):
         signals.lca_calculation.emit(self.list_widget.name)
 
+    @Slot(name="calculationPresamples")
     def presamples_calculation(self):
         signals.lca_presamples_calculation.emit(
             self.list_widget.name, self.presamples.list.selection
         )
+
+    @Slot(name="removePresamplesPackage")
+    def remove_presamples_package(self):
+        """Removes the current presamples package selected from the list."""
+        name_id = self.presamples.list.selection
+        do_remove = QtWidgets.QMessageBox.question(
+            self, "Removing presample package",
+            "Are you sure you want to remove presample package '{}'?".format(name_id),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No
+        )
+        if do_remove == QtWidgets.QMessageBox.Yes:
+            signals.presample_package_delete.emit(name_id)
+
+    @Slot(name="calculationScenario")
+    def scenario_calculation(self) -> None:
+        """Construct index / value array and begin LCA calculation."""
+        data = self.scenario_panel.combined_dataframe()
+        signals.lca_scenario_calculation.emit(self.list_widget.name, data)
 
     @Slot(name="toggleDefaultCalculation")
     def set_default_calculation_setup(self):
@@ -178,6 +227,7 @@ class LCASetupTab(QtWidgets.QWidget):
         if not len(calculation_setups):
             self.show_details(False)
             self.calculate_button.setEnabled(False)
+            self.scenario_calc_btn.setEnabled(False)
         else:
             signals.calculation_setup_selected.emit(
                 sorted(calculation_setups)[0]
@@ -202,17 +252,203 @@ class LCASetupTab(QtWidgets.QWidget):
 
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
-        if index == 0:
+        if index == self.DEFAULT:
             # Standard LCA.
             self.calculate_button.show()
             for obj in self.presamples:
                 obj.hide()
-        elif index == 1:
+            self.scenario_calc_btn.hide()
+            self.scenario_panel.hide()
+        elif index == self.SCENARIOS:
+            self.calculate_button.hide()
+            for obj in self.presamples:
+                obj.hide()
+            self.scenario_calc_btn.show()
+            self.scenario_panel.show()
+        elif index == self.PRESAMPLES:
             # Presamples / Scenarios LCA.
             self.calculate_button.hide()
             for obj in self.presamples:
                 obj.show()
+            self.scenario_calc_btn.hide()
+            self.scenario_panel.hide()
+        self.cs_panel.updateGeometry()
 
     def enable_calculations(self):
         valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
+        self.scenario_calc_btn.setEnabled(valid_cs)
+
+
+class ScenarioImportPanel(QtWidgets.QWidget):
+    MAX_TABLES = 2
+
+    """Special kind of QWidget that contains one or more tables side by side."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.tables = []
+        layout = QtWidgets.QVBoxLayout()
+        row = QtWidgets.QHBoxLayout()
+        self.scenario_tables = QtWidgets.QHBoxLayout()
+        self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
+
+        self.combine_label = QtWidgets.QLabel("Combine tables by:")
+        self.group_box = QtWidgets.QGroupBox()
+        self.group_box.setStyleSheet(style_group_box.border_title)
+        input_field_layout = QtWidgets.QHBoxLayout()
+        self.group_box.setLayout(input_field_layout)
+        self.combine_group = QtWidgets.QButtonGroup()
+        self.combine_group.setExclusive(True)
+        self.product_choice = QtWidgets.QCheckBox("Product")
+        self.product_choice.setChecked(True)
+        self.addition_choice = QtWidgets.QCheckBox("Addition")
+        self.combine_group.addButton(self.product_choice)
+        self.combine_group.addButton(self.addition_choice)
+        input_field_layout.addWidget(self.combine_label)
+        input_field_layout.addWidget(self.product_choice)
+        input_field_layout.addWidget(self.addition_choice)
+        self.group_box.setHidden(True)
+
+        row.addWidget(header("Scenarios"))
+        row.addWidget(self.table_btn)
+        row.addWidget(self.group_box)
+        row.addStretch(1)
+        layout.addLayout(row)
+        layout.addLayout(self.scenario_tables)
+        layout.addStretch(1)
+        self.setLayout(layout)
+        self._connect_signals()
+
+    def _connect_signals(self) -> None:
+        self.table_btn.clicked.connect(self.add_table)
+        self.table_btn.clicked.connect(self.can_add_table)
+        signals.project_selected.connect(self.clear_tables)
+        signals.project_selected.connect(self.can_add_table)
+        signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
+
+    def scenario_names(self, idx: int) -> list:
+        if idx > len(self.tables):
+            return []
+        return scenario_names_from_df(self.tables[idx])
+
+    def combined_dataframe(self, kind: str = "product") -> pd.DataFrame:
+        """Return a dataframe that combines the scenarios of multiple tables.
+
+        TODO: finish implementing pandas methods for combining all
+         dataframes into a single whole in different ways.
+         Currently only 1 table can be loaded.
+        """
+        if not self.tables:
+            # Return an empty dataframe, will almost immediately cause a
+            # validation exception.
+            return pd.DataFrame()
+        data = [t.scenario_df for t in self.tables]
+        manager = SuperstructureManager(*data)
+        if self.product_choice.isChecked():
+            kind = "product"
+        elif self.addition_choice.isChecked():
+            kind = "addition"
+        else:
+            kind = "none"
+        return manager.combined_data(kind)
+
+    @Slot(name="addTable")
+    def add_table(self) -> None:
+        new_idx = len(self.tables)
+        widget = ScenarioImportWidget(new_idx, self)
+        self.tables.append(widget)
+        self.scenario_tables.addWidget(widget)
+        self.updateGeometry()
+
+    @Slot(int, name="removeTable")
+    def remove_table(self, idx: int) -> None:
+        w = self.tables.pop(idx)
+        self.scenario_tables.removeWidget(w)
+        w.deleteLater()
+        self.updateGeometry()
+        # Do not forget to update indexes!
+        for i, w in enumerate(self.tables):
+            w.index = i
+
+    @Slot(name="clearTables")
+    def clear_tables(self) -> None:
+        """Clear all scenario tables in certain cases (eg. project change)."""
+        for w in self.tables:
+            self.scenario_tables.removeWidget(w)
+            w.deleteLater()
+        self.tables = []
+        self.updateGeometry()
+
+    def updateGeometry(self):
+        self.group_box.setHidden(len(self.tables) <= 1)
+        super().updateGeometry()
+
+    @Slot(name="canAddTable")
+    def can_add_table(self) -> None:
+        """Use this to set a hardcoded limit on the amount of scenario tables
+        a user can add.
+        """
+        self.table_btn.setEnabled(len(self.tables) < self.MAX_TABLES)
+
+    @Slot(int, object, name="handleSuperstructureSignal")
+    def handle_superstructure_signal(self, table_idx: int, df: pd.DataFrame) -> None:
+        table = self.tables[table_idx]
+        table.sync_superstructure(df)
+
+
+class ScenarioImportWidget(QtWidgets.QWidget):
+    def __init__(self, index: int, parent=None):
+        super().__init__(parent)
+
+        self.index = index
+        self.scenario_name = QtWidgets.QLabel("<filename>", self)
+        self.load_btn = QtWidgets.QPushButton(qicons.import_db, "Load")
+        self.remove_btn = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.table = ScenarioImportTable(self)
+        self.scenario_df = pd.DataFrame()
+
+        layout = QtWidgets.QVBoxLayout()
+
+        row = QtWidgets.QHBoxLayout()
+        row.addWidget(self.scenario_name)
+        row.addWidget(self.load_btn)
+        row.addStretch(1)
+        row.addWidget(self.remove_btn)
+
+        layout.addLayout(row)
+        layout.addWidget(self.table)
+        self.setLayout(layout)
+        self._connect_signals()
+
+    def _connect_signals(self):
+        self.load_btn.clicked.connect(self.load_action)
+        parent = self.parent()
+        if parent and isinstance(parent, ScenarioImportPanel):
+            self.remove_btn.clicked.connect(
+                lambda: parent.remove_table(self.index)
+            )
+            self.remove_btn.clicked.connect(parent.can_add_table)
+
+    @Slot(name="loadScenarioFile")
+    def load_action(self) -> None:
+        dialog = ExcelReadDialog(self)
+        if dialog.exec_() == ExcelReadDialog.Accepted:
+            path = dialog.path
+            idx = dialog.import_sheet.currentIndex()
+            try:
+                # Try and read as a superstructure file
+                df = import_from_excel(path, idx)
+                self.sync_superstructure(df)
+            except (IndexError, ValueError) as e:
+                # Try and read as parameter scenario file.
+                print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
+                df = pd.read_excel(path, sheet_name=idx)
+                signals.parameter_scenario_sync.emit(self.index, df)
+            finally:
+                self.scenario_name.setText(path.name)
+
+    def sync_superstructure(self, df: pd.DataFrame) -> None:
+        self.scenario_df = df
+        cols = scenario_names_from_df(self.scenario_df)
+        self.table.sync(cols)

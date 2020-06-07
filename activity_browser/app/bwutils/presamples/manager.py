@@ -25,14 +25,17 @@ class PresamplesParameterManager(ParameterManager):
             result[i] = (idx.input, idx.output, idx.input.database_type)
         return result
 
+    def arrays_from_scenarios(self, scenarios) -> (np.ndarray, np.ndarray):
+        sample_data = [self.recalculate(list(values)) for _, values in scenarios]
+        samples = np.concatenate(sample_data, axis=1)
+        indices = self.reformat_indices()
+        return samples, indices
+
     def presamples_from_scenarios(self, name: str, scenarios: Iterable[Tuple[str, Iterable]]) -> (str, str):
         """ When given a iterable of multiple parameter scenarios, construct
         a presamples package with all of the recalculated exchange amounts.
         """
-        sample_data = [self.recalculate(list(values)) for _, values in scenarios]
-        samples = np.concatenate(sample_data, axis=1)
-        indices = self.reformat_indices()
-
+        samples, indices = self.arrays_from_scenarios(scenarios)
         arrays = ps.split_inventory_presamples(samples, indices)
         ps_id, ps_path = ps.create_presamples_package(
             matrix_data=arrays, name=name, seed="sequential"

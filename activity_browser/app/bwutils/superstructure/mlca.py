@@ -1,37 +1,48 @@
 # -*- coding: utf-8 -*-
-from ast import literal_eval
-from typing import Iterable, List, Optional
+from typing import Iterable, Optional
 
-import brightway2 as bw
+from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
 import numpy as np
 import pandas as pd
-import presamples as ps
 
 from ..multilca import MLCA, Contributions
-from .utils import get_package_path
+from ..utils import Index
+from .dataframe import scenario_names_from_df, arrays_from_indexed_superstructure
 
 
-class PresamplesMLCA(MLCA):
-    """ Subclass of the `MLCA` class which adds another dimension in the form
-     of scenarios / presamples arrays.
-
-    The initial calculation will take use the first presamples array.
-    After this, each call to `calculate_scenario` will update the inventory
-     matrices and recalculate the results.
+class SuperstructureMLCA(MLCA):
+    """Very similar implementation as the PresamplesMLCA class, a possible
+    replacement for using presamples by avoiding saving anything to files.
     """
-    def __init__(self, cs_name: str, ps_name: str):
-        self.package = ps.PresamplesPackage(get_package_path(ps_name))
-        self.resource = ps.PresampleResource.get_or_none(name=self.package.name)
-        if not self.package:
-            raise ValueError("Presamples package with name or id '{}' not found.".format(ps_name))
+    matrices = {
+        "biosphere": "biosphere_matrix",
+        "technosphere": "technosphere_matrix",
+        "production": "technosphere_matrix",
+    }
+
+    def __init__(self, cs_name: str, df: pd.DataFrame):
+        assert not df.empty, "Cannot run analysis without data."
+        self.scenario_names = scenario_names_from_df(df)
+        self.total = len(self.scenario_names)
+        assert self.total > 0, "Cannot run analysis without scenarios"
+
         super().__init__(cs_name)
-        self.total = self.package.ncols
-        self._current_index = 0
+
+        self.indices, self.values = arrays_from_indexed_superstructure(df)
+        # Note: Using the mapping scheme from brightway and presamples,
+        # the 'input' keys are matched to the product_dict or
+        # biosphere_dict ('rows') while the 'output' keys are matched
+        # to the activity_dict ('cols').
+        self.matrix_indices = np.zeros(len(self.indices), dtype=[
+            ('row', np.uint32), ('col', np.uint32), ('type', np.uint8),
+        ])
+        self.indices_to_matrix()
 
         # Construct an index dictionary similar to fu_index and method_index
-        self.presamples_index = {k: i for i, k in enumerate(self.scenario_names)}
+        self._current_index = 0
+        self.scenario_index = {k: i for i, k in enumerate(self.scenario_names)}
 
-        # Rebuild numpy arrays with presample dimension included.
+        # Rebuild numpy arrays with scenario dimension included.
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods), self.total))
         self.elementary_flow_contributions = np.zeros((
             len(self.func_units), len(self.methods), self.total,
@@ -53,7 +64,7 @@ class PresamplesMLCA(MLCA):
         self._current_index = current if current < self.total else 0
 
     def next_scenario(self):
-        self.lca.presamples.update_matrices(self.lca)
+        self.update_matrices()
         self.current += 1
 
     def set_scenario(self, index: int) -> None:
@@ -64,17 +75,53 @@ class PresamplesMLCA(MLCA):
         for _ in steps:
             self.next_scenario()
 
-    def _construct_lca(self) -> bw.LCA:
-        return bw.LCA(
-            demand=self.func_units_dict, method=self.methods[0],
-            presamples=[self.package.path]
-        )
+    def indices_to_matrix(self) -> None:
+        def convert(idx: Index) -> tuple:
+            in_dict = self.lca.biosphere_dict if idx.flow_type == "biosphere" else self.lca.product_dict
+            return (
+                in_dict.get(idx.input, idx.input),
+                self.lca.activity_dict.get(idx.output, idx.output),
+                idx.exchange_type,
+            )
+        for i, index in enumerate(self.indices):
+            self.matrix_indices[i] = convert(index)
+
+    def update_matrices(self) -> None:
+        """A Simplified version of the `PackagesDataLoader.update_matrices` method.
+
+        In this case, we expect to only replace technosphere and biosphere
+        values, leaving out characterization factor values.
+        """
+        kinds = set([idx[2] for idx in self.indices])
+        types = np.array([idx[2] for idx in self.indices])
+        for kind in kinds:
+            idx = self.matrix_indices[types == kind]
+            sample = self.values[types == kind, self.current]
+            # Filter sample and idx for NaN values in samples.
+            idx = idx[~np.isnan(sample)]
+            sample = sample[~np.isnan(sample)]
+            try:
+                matrix = getattr(self.lca, self.matrices[kind])
+            except AttributeError:
+                # This LCA doesn't have this matrix
+                continue
+
+            if self.matrices[kind] == "technosphere_matrix":
+                # Remove existing matrix factorization
+                # because changing technosphere
+                if hasattr(self.lca, "solver"):
+                    delattr(self.lca, "solver")
+
+            if kind == "technosphere":
+                MB.fix_supply_use(idx, sample)
+            matrix[idx["row"], idx["col"], ] = sample
 
     def _perform_calculations(self):
         """ Near copy of `MLCA` class, but includes a loop for all presample
         arrays.
         """
         for ps_col in range(self.total):
+            self.next_scenario()
             for row, func_unit in enumerate(self.func_units):
                 self.lca.redo_lci(func_unit)
                 self.scaling_factors.update({
@@ -100,7 +147,6 @@ class PresamplesMLCA(MLCA):
                     self.elementary_flow_contributions[row, col, ps_col] = np.array(
                         self.lca.characterized_inventory.sum(axis=1)).ravel()
                     self.process_contributions[row, col, ps_col] = self.lca.characterized_inventory.sum(axis=0)
-            self.next_scenario()
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         """ Overrides the parent and returns a dataframe with the scenarios
@@ -128,32 +174,13 @@ class PresamplesMLCA(MLCA):
         else:
             return list(range(self.current, index))
 
-    @property
-    def scenario_names(self) -> List[str]:
-        return self.get_scenario_names()
 
-    def get_scenario_names(self) -> List[str]:
-        description = self.resource.description if self.resource else None
-        if description is None:
-            return ["Scenario{}".format(i) for i in range(self.total)]
-        # Attempt to convert the string description
-        try:
-            literal = literal_eval(description)
-            if isinstance(literal, (tuple, list, dict)):
-                return list(literal)
-            else:
-                raise ValueError("Can't process description: '{}'".format(literal))
-        except ValueError as e:
-            print(e)
-            return ["Scenario{}".format(i) for i in range(self.total)]
-
-
-class PresamplesContributions(Contributions):
-    mlca: PresamplesMLCA
+class SuperstructureContributions(Contributions):
+    mlca: SuperstructureMLCA
 
     def __init__(self, mlca):
-        if not isinstance(mlca, PresamplesMLCA):
-            raise TypeError("Must pass a PresamplesMLCA object. Passed: {}".format(type(mlca)))
+        if not isinstance(mlca, SuperstructureMLCA):
+            raise TypeError("Must pass a SuperstructureMLCA object. Passed: {}".format(type(mlca)))
         super().__init__(mlca)
 
     def _build_inventory(self, inventory: dict, indices: dict, columns: list,
@@ -203,6 +230,6 @@ class PresamplesContributions(Contributions):
     def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
         # If both functional_unit and method are given, return presamples index.
         if all(kwargs.values()):
-            return self.mlca.presamples_index, self.act_fields
+            return self.mlca.scenario_index, self.act_fields
         else:
             return super()._contribution_index_cols(**kwargs)

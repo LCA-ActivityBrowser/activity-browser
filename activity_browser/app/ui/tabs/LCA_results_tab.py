@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+from typing import Union
+import traceback
+
 from bw2calc.errors import BW2CalcError
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout
+import pandas as pd
 
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
@@ -26,6 +30,7 @@ class LCAResultsTab(ABTab):
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
         signals.lca_presamples_calculation.connect(self.generate_setup)
+        signals.lca_scenario_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
@@ -39,7 +44,8 @@ class LCAResultsTab(ABTab):
 
     @Slot(str, name="generateSimpleLCA")
     @Slot(str, str, name="generatePresamplesLCA")
-    def generate_setup(self, name: str, presamples: str = None):
+    @Slot(str, object, name="generateSuperstructureLCA")
+    def generate_setup(self, name: str, presamples: Union[str, pd.DataFrame] = None):
         """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
         self.remove_setup(name)
 
@@ -50,6 +56,13 @@ class LCAResultsTab(ABTab):
             self.select_tab(self.tabs[name])
             signals.show_tab.emit("LCA results")
         except BW2CalcError as e:
-            QMessageBox.warning(
-                self, "Could not run calculation", str(e), QMessageBox.Ok, QMessageBox.Ok
+            initial, *other = e.args
+            print(traceback.format_exc())
+            msg = QMessageBox(
+                QMessageBox.Warning, "Calculation problem", str(initial),
+                QMessageBox.Ok, self
             )
+            msg.setWindowModality(Qt.ApplicationModal)
+            if other:
+                msg.setDetailedText("\n".join(other))
+            msg.exec_()

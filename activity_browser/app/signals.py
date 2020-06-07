@@ -68,9 +68,12 @@ class Signals(QObject):
     # Parameter object and uncertainty dictionary
     parameter_uncertainty_modified = Signal(object, object)
     parameter_pedigree_modified = Signal(object, object)
+    parameter_scenario_sync = Signal(int, object)
+    parameter_superstructure_built = Signal(int, object)
 
     # Presamples
     presample_package_created = Signal(str)
+    presample_package_delete = Signal(str)
     presample_package_removed = Signal()
 
     # Calculation Setups
@@ -85,6 +88,7 @@ class Signals(QObject):
     # LCA Results
     lca_calculation = Signal(str)
     lca_presamples_calculation = Signal(str, str)
+    lca_scenario_calculation = Signal(str, object)
     lca_results_tabs_changed = Signal()
 
     method_selected = Signal(tuple)

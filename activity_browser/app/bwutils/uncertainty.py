@@ -3,9 +3,21 @@ import abc
 
 from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase
+import numpy as np
 from stats_arrays import (
     UncertaintyBase, UndefinedUncertainty, uncertainty_choices as uc
 )
+
+
+EMPTY_UNCERTAINTY = {
+    "uncertainty type": UndefinedUncertainty.id,
+    "loc": np.NaN,
+    "scale": np.NaN,
+    "shape": np.NaN,
+    "minimum": np.NaN,
+    "maximum": np.NaN,
+    "negative": False,
+}
 
 
 class BaseUncertaintyInterface(abc.ABC):

@@ -15,12 +15,11 @@ from activity_browser.app.bwutils import commontasks as bc
 from activity_browser.app.settings import project_settings
 from activity_browser.app.signals import signals
 
+from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 from ..icons import qicons
 from ..widgets import simple_warning_box
 from ..wizards import UncertaintyWizard
-from .delegates import (DatabaseDelegate, FloatDelegate, FormulaDelegate,
-                        ListDelegate, StringDelegate, UncertaintyDelegate,
-                        ViewOnlyDelegate)
+from .delegates import *
 from .models import ParameterTreeModel
 from .views import (ABDataFrameEdit, ABDictTreeView, dataframe_sync,
                     tree_model_decorate)
@@ -48,6 +47,10 @@ class BaseParameterTable(ABDataFrameEdit):
             qicons.edit, "Modify uncertainty", None
         )
         self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
+        self.remove_uncertainty_action = QAction(
+            qicons.delete, "Remove uncertainty", None
+        )
+        self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
 
     def dataChanged(self, topLeft, bottomRight, roles=None) -> None:
         """ Handle updating the parameters whenever the user changes a value.
@@ -70,8 +73,10 @@ class BaseParameterTable(ABDataFrameEdit):
         """
         menu = QMenu(self)
         menu.addAction(self.rename_action)
-        menu.addAction(self.delete_action)
         menu.addAction(self.modify_uncertainty_action)
+        menu.addSeparator()
+        menu.addAction(self.delete_action)
+        menu.addAction(self.remove_uncertainty_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
             param = self.get_parameter(proxy)
@@ -185,6 +190,12 @@ class BaseParameterTable(ABDataFrameEdit):
         wizard = UncertaintyWizard(param, self)
         wizard.show()
 
+    @Slot(name="unsetParameterUncertainty")
+    def remove_uncertainty(self) -> None:
+        proxy = next(p for p in self.selectedIndexes())
+        param = self.get_parameter(proxy)
+        signals.parameter_uncertainty_modified.emit(param, EMPTY_UNCERTAINTY)
+
     def uncertainty_columns(self, show: bool):
         """ Given a boolean, iterates over the uncertainty columns and either
         shows or hides them.
@@ -219,12 +230,12 @@ class ProjectParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
-        self.setItemDelegateForColumn(3, UncertaintyDelegate(self))
-        self.setItemDelegateForColumn(4, FloatDelegate(self))
-        self.setItemDelegateForColumn(5, FloatDelegate(self))
-        self.setItemDelegateForColumn(6, FloatDelegate(self))
-        self.setItemDelegateForColumn(7, FloatDelegate(self))
-        self.setItemDelegateForColumn(8, FloatDelegate(self))
+        self.setItemDelegateForColumn(3, ViewOnlyUncertaintyDelegate(self))
+        self.setItemDelegateForColumn(4, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(5, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(6, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(7, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
 
     @classmethod
     def build_df(cls):
@@ -285,12 +296,12 @@ class DataBaseParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, DatabaseDelegate(self))
-        self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
-        self.setItemDelegateForColumn(5, FloatDelegate(self))
-        self.setItemDelegateForColumn(6, FloatDelegate(self))
-        self.setItemDelegateForColumn(7, FloatDelegate(self))
-        self.setItemDelegateForColumn(8, FloatDelegate(self))
-        self.setItemDelegateForColumn(9, FloatDelegate(self))
+        self.setItemDelegateForColumn(4, ViewOnlyUncertaintyDelegate(self))
+        self.setItemDelegateForColumn(5, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(6, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(7, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(9, ViewOnlyFloatDelegate(self))
 
     @classmethod
     def build_df(cls) -> pd.DataFrame:
@@ -380,12 +391,12 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(6, StringDelegate(self))
         self.setItemDelegateForColumn(7, ListDelegate(self))
         self.setItemDelegateForColumn(8, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(9, UncertaintyDelegate(self))
-        self.setItemDelegateForColumn(10, FloatDelegate(self))
-        self.setItemDelegateForColumn(11, FloatDelegate(self))
-        self.setItemDelegateForColumn(12, FloatDelegate(self))
-        self.setItemDelegateForColumn(13, FloatDelegate(self))
-        self.setItemDelegateForColumn(14, FloatDelegate(self))
+        self.setItemDelegateForColumn(9, ViewOnlyUncertaintyDelegate(self))
+        self.setItemDelegateForColumn(10, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(11, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(12, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(13, ViewOnlyFloatDelegate(self))
+        self.setItemDelegateForColumn(14, ViewOnlyFloatDelegate(self))
 
         # Set dropEnabled
         self.setDragDropMode(ABDataFrameEdit.DropOnly)

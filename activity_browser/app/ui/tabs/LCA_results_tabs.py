@@ -18,8 +18,10 @@ from stats_arrays.errors import InvalidParamsError
 import traceback
 
 from ...bwutils import (
-    MLCA, Contributions, PresamplesContributions, PresamplesMLCA, MonteCarloLCA, GlobalSensitivityAnalysis,
-     commontasks as bc
+    Contributions, MonteCarloLCA, MLCA, PresamplesMLCA,
+    SuperstructureContributions, SuperstructureMLCA,
+    GlobalSensitivityAnalysis,
+    commontasks as bc
 )
 from ...signals import signals
 from ..figures import (
@@ -81,11 +83,11 @@ class LCAResultsSubTab(QTabWidget):
 
     update_scenario_box_index = QtCore.Signal(int)
 
-    def __init__(self, name: str, ps_name: str = None, parent=None):
+    def __init__(self, name: str, presamples=None, parent=None):
         super().__init__(parent)
         self.cs_name = name
-        self.ps_name = ps_name
-        self.mlca: Optional[Union[MLCA, PresamplesMLCA]] = None
+        self.presamples = presamples
+        self.mlca: Optional[Union[MLCA, PresamplesMLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
         self.mc: Optional[MonteCarloLCA] = None
         self.method_dict = dict()
@@ -121,19 +123,25 @@ class LCAResultsSubTab(QTabWidget):
 
     def do_calculations(self):
         """Perform the MLCA calculation."""
-        if self.ps_name is None:
+        if self.presamples is None:
             self.mlca = MLCA(self.cs_name)
             self.contributions = Contributions(self.mlca)
-        else:
+        elif isinstance(self.presamples, str):
             try:
-                self.mlca = PresamplesMLCA(self.cs_name, self.ps_name)
+                self.mlca = PresamplesMLCA(self.cs_name, self.presamples)
                 self.contributions = PresamplesContributions(self.mlca)
             except IndexError as e:
                 # Occurs when a presamples package is used that refers to old
                 # or non-existing array indices.
-                msg = "Given scenario package refers to non-existent exchanges."\
-                      " It is suggested to remove or edit this package."
-                raise BW2CalcError(msg) from e
+                msg = ("Given scenario package refers to non-existent exchanges."
+                       " It is suggested to remove or edit this package.")
+                raise BW2CalcError(msg, str(e)).with_traceback(e.__traceback__)
+        else:
+            try:
+                self.mlca = SuperstructureMLCA(self.cs_name, self.presamples)
+                self.contributions = SuperstructureContributions(self.mlca)
+            except AssertionError as e:
+                raise BW2CalcError("Scenario LCA failed.", str(e)).with_traceback(e.__traceback__)
         self.mlca.calculate()
         self.mc = MonteCarloLCA(self.cs_name)
 
@@ -148,7 +156,10 @@ class LCAResultsSubTab(QTabWidget):
     @property
     def using_presamples(self) -> bool:
         """Used to determine if a Scenario Analysis is performed."""
-        return all([self.ps_name, isinstance(self.mlca, PresamplesMLCA)])
+        return all([
+            self.presamples is not None,
+            isinstance(self.mlca, (PresamplesMLCA, SuperstructureMLCA))
+        ])
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""
@@ -265,7 +276,7 @@ class NewAnalysisTab(QWidget):
 
     def get_scenario_labels(self) -> List[str]:
         """Get scenario labels if presamples is used."""
-        return self.parent.mlca.get_scenario_names() if self.using_presamples else []
+        return self.parent.mlca.scenario_names if self.using_presamples else []
 
     def configure_scenario(self):
         """Determine if scenario Qt widgets are visible or not and retrieve

@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+## [2.5.1] - 2020-04-30
+
+### Added
+
+- ([#356](https://github.com/LCA-ActivityBrowser/activity-browser/pull/356))
+    Added Characterization Factor uncertainty handling. This allows users
+    to edit the uncertainty of flows in Impact Category methods.
+- ([#392](https://github.com/LCA-ActivityBrowser/activity-browser/pull/392))
+    Allow removal of presamples packages through the Activity Browser. 
+
+### Changed
+
+- ([#376](https://github.com/LCA-ActivityBrowser/activity-browser/pull/376))
+    The Monte Carlo calculation now allows fine-grained control over which
+    uncertainties are sampled during the run.
+- ([#383](https://github.com/LCA-ActivityBrowser/activity-browser/pull/383))
+    Floats are now shortened to 5 significant decimals. More than one method
+    can be removed at a time from the calculation setup methods table. 
+
+### Fixed
+
+- ([#357](https://github.com/LCA-ActivityBrowser/activity-browser/pull/357),
+    [#366](https://github.com/LCA-ActivityBrowser/activity-browser/pull/366),
+    [#379](https://github.com/LCA-ActivityBrowser/activity-browser/pull/379))
+    A number of fixes related to the uncertainty wizard and editing
+    uncertainty.
+- ([#364](https://github.com/LCA-ActivityBrowser/activity-browser/pull/364))
+    Fixes an issue with contribution analysis that could cause the
+    calculation to slow down dramatically.
+- ([#363](https://github.com/LCA-ActivityBrowser/activity-browser/pull/363))
+    Attempt fix to MacOS platform that causes figures to be drawn incorrectly.
+- ([#368](https://github.com/LCA-ActivityBrowser/activity-browser/pull/368))
+    Near-complete refactoring of the code related showing the Sankey diagram.
+    This should fix an issue where the graph was not being drawn correctly on
+    initially opening the graph.
+- ([#386](https://github.com/LCA-ActivityBrowser/activity-browser/pull/386))
+    The AB now correctly generates contribution plots for processes from the
+    FORWAST database.
+
 ## [2.5.0] - 2020-01-23
 
 ### Added
@@ -231,7 +270,8 @@
 - Major overhaul of the GUI. See [#218](https://github.com/LCA-ActivityBrowser/activity-browser/pull/218) for details.
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.0...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.1...HEAD
+[2.5.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.0...2.5.1
 [2.5.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.4...2.4.0
 [2.3.4]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.3...2.3.4
