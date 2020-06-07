@@ -127,7 +127,7 @@ class MonteCarloLCA(object):
                 # combination of 'input', 'output', 'type' columns is unique
                 # For each recalculated exchange, match it to either matrix and
                 # override the value within that matrix.
-                for p in param_exchanges:
+                for p in param_exchanges:  # todo: does this have to be a for loop? seems inefficient...
                     tech_vector[self.lca.tech_params[self.param_cols] == p[self.param_cols]] = p["amount"]
                     mask = self.lca.tech_params[self.param_cols] == p[self.param_cols]
                     print('Matched results of parametrization to', sum(mask), 'entries in the technosphere matrix')
@@ -141,6 +141,8 @@ class MonteCarloLCA(object):
             # store matrices for GSA
             self.A_matrices.append(self.lca.technosphere_matrix)
             self.B_matrices.append(self.lca.biosphere_matrix)
+            self.parameter_exchanges = param_exchanges
+            self.parameters = None  # todo: this should contain something like ('Parameter name', 'Scope [global/activity]', 'Associated activity [or None]', 'Value')
 
             if not hasattr(self.lca, "demand_array"):
                 self.lca.build_demand_array()
