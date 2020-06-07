@@ -117,6 +117,7 @@ class MonteCarloLCA(object):
         self.A_matrices = list()
         self.B_matrices = list()
         self.CF_dict = defaultdict(list)
+        self.parameters = list()
 
         for iteration in range(iterations):
             tech_vector = self.tech_rng.next() if self.include_technosphere else self.tech_rng
@@ -142,7 +143,7 @@ class MonteCarloLCA(object):
             self.A_matrices.append(self.lca.technosphere_matrix)
             self.B_matrices.append(self.lca.biosphere_matrix)
             self.parameter_exchanges = param_exchanges
-            self.parameters = None  # todo: this should contain something like ('Parameter name', 'Scope [global/activity]', 'Associated activity [or None]', 'Value')
+            self.parameters.append(None)  # todo: this should contain something like ('Parameter name', 'Scope [global/activity]', 'Associated activity [or None]', 'Value')
 
             if not hasattr(self.lca, "demand_array"):
                 self.lca.build_demand_array()
