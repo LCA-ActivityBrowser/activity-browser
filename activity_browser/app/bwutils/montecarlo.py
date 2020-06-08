@@ -128,13 +128,14 @@ class MonteCarloLCA(object):
                 # combination of 'input', 'output', 'type' columns is unique
                 # For each recalculated exchange, match it to either matrix and
                 # override the value within that matrix.
-                for p in param_exchanges:  # todo: does this have to be a for loop? seems inefficient...
-                    tech_vector[self.lca.tech_params[self.param_cols] == p[self.param_cols]] = p["amount"]
-                    mask = self.lca.tech_params[self.param_cols] == p[self.param_cols]
-                    print('Matched results of parametrization to', sum(mask), 'entries in the technosphere matrix')
-                    bio_vector[self.lca.bio_params[self.param_cols] == p[self.param_cols]] = p["amount"]
-                    mask = self.lca.bio_params[self.param_cols] == p[self.param_cols]
-                    print('Matched results of parametrization to', sum(mask), 'entries in the biosphere matrix')
+                subset = param_exchanges[np.isin(param_exchanges["type"], [0, 1])]
+                mask = np.isin(self.lca.tech_params[self.param_cols], subset[self.param_cols])
+                tech_vector[mask] = subset["amount"]
+                print('Matched results of parametrization to', sum(mask), 'entries in the technosphere matrix')
+                subset = param_exchanges[param_exchanges["type"] == 2]
+                mask = np.isin(self.lca.bio_params[self.param_cols], subset[self.param_cols])
+                bio_vector[mask] = subset["amount"]
+                print('Matched results of parametrization to', sum(mask), 'entries in the biosphere matrix')
 
             self.lca.rebuild_technosphere_matrix(tech_vector)
             self.lca.rebuild_biosphere_matrix(bio_vector)
