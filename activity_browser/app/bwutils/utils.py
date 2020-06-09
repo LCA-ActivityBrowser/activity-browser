@@ -3,6 +3,7 @@ from collections import UserList
 from itertools import chain
 from typing import Iterable, List, NamedTuple, Optional
 
+import brightway2 as bw
 from bw2data import config
 from bw2data.backends.peewee import ActivityDataset, ExchangeDataset
 from bw2data.parameters import (
@@ -28,6 +29,22 @@ class Parameter(NamedTuple):
     group: str
     amount: float = 1.0
     param_type: Optional[str] = None
+
+    def as_gsa_tuple(self) -> tuple:
+        """Return the parameter data formatted as follows:
+        - Parameter name
+        - Scope [global/activity]
+        - Associated activity [or None]
+        - Value
+        """
+        if self.group == "project" or self.group in bw.databases:
+            scope = "global"
+            associated = None
+        else:
+            scope = "activity"
+            p = ActivityParameter.get(name=self.name, group=self.group)
+            associated = (p.database, p.code)
+        return self.name, scope, associated, self.amount
 
 
 class Key(NamedTuple):
@@ -142,6 +159,10 @@ class Parameters(UserList):
         for i, (p, v) in enumerate(zip(self.data, values)):
             if not np.isnan(v):
                 self.data[i] = p._replace(amount=v)
+
+    def to_gsa(self) -> List[tuple]:
+        """Formats all of the parameters in the list for handling in a GSA."""
+        return [p.as_gsa_tuple() for p in self.data]
 
 
 class Indices(UserList):
