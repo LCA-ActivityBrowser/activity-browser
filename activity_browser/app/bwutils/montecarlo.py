@@ -60,10 +60,12 @@ class MonteCarloLCA(object):
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_key_dict.keys())
 
-        # todo: get rid of the below
-        # self.method_dict_list = []
-        # for i, m in enumerate(self.methods):
-        #     self.method_dict_list.append({m: i})
+        # GSA calculation variables
+        self.A_matrices = list()
+        self.B_matrices = list()
+        self.CF_dict = defaultdict(list)
+        self.parameter_exchanges = list()
+        self.parameters = list()
 
         self.results = list()
 
@@ -113,10 +115,11 @@ class MonteCarloLCA(object):
 
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
-        # GSA input
+        # Reset GSA variables to empty.
         self.A_matrices = list()
         self.B_matrices = list()
         self.CF_dict = defaultdict(list)
+        self.parameter_exchanges = list()
         self.parameters = list()
 
         for iteration in range(iterations):
@@ -124,18 +127,18 @@ class MonteCarloLCA(object):
             bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
             if self.include_parameters:
                 param_exchanges = self.param_rng.next()
-                print('Parameterized exchanges:', param_exchanges)
-                # combination of 'input', 'output', 'type' columns is unique
-                # For each recalculated exchange, match it to either matrix and
-                # override the value within that matrix.
+                # Select the A/B matrix subsets, generate a mask and apply
+                # the updated exchange values to the respective vectors.
                 subset = param_exchanges[np.isin(param_exchanges["type"], [0, 1])]
                 mask = np.isin(self.lca.tech_params[self.param_cols], subset[self.param_cols])
                 tech_vector[mask] = subset["amount"]
-                print('Matched results of parametrization to', sum(mask), 'entries in the technosphere matrix')
                 subset = param_exchanges[param_exchanges["type"] == 2]
                 mask = np.isin(self.lca.bio_params[self.param_cols], subset[self.param_cols])
                 bio_vector[mask] = subset["amount"]
-                print('Matched results of parametrization to', sum(mask), 'entries in the biosphere matrix')
+
+                # Store parameter data if they are being considered.
+                self.parameter_exchanges.append(param_exchanges)
+                self.parameters.append(self.param_rng.parameters.to_gsa())
 
             self.lca.rebuild_technosphere_matrix(tech_vector)
             self.lca.rebuild_biosphere_matrix(bio_vector)
@@ -143,8 +146,6 @@ class MonteCarloLCA(object):
             # store matrices for GSA
             self.A_matrices.append(self.lca.technosphere_matrix)
             self.B_matrices.append(self.lca.biosphere_matrix)
-            self.parameter_exchanges = param_exchanges
-            self.parameters.append(None)  # todo: this should contain something like ('Parameter name', 'Scope [global/activity]', 'Associated activity [or None]', 'Value')
 
             if not hasattr(self.lca, "demand_array"):
                 self.lca.build_demand_array()
@@ -167,7 +168,6 @@ class MonteCarloLCA(object):
                     self.lca.rebuild_characterization_matrix(cf_vectors[m])
                     self.lca.lcia_calculation()
                     self.results[iteration, row, col] = self.lca.score
-                    print(self.lca.score)
 
         print('Monte Carlo LCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
             iterations,
