@@ -36,7 +36,10 @@ class ABTab(QtWidgets.QTabWidget):
             if self.indexOf(tab) != -1:
                 print("-hiding tab:", tab_name)
                 tab.setVisible(False)
-                self.setCurrentIndex(current_index)
+                # Only explicitly alter the tab index if we're hiding the
+                # current tab itself.
+                if self.currentIndex() == self.indexOf(tab):
+                    self.setCurrentIndex(current_index)
                 self.removeTab(self.indexOf(tab))
 
     def show_tab(self, tab_name):
