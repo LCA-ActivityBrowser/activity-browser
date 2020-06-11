@@ -1205,7 +1205,7 @@ class GSATab(NewAnalysisTab):
         self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
 
         self.layout.addLayout(get_header_layout('Global Sensitivity Analysis'))
-        # self.scenario_label = QLabel("Scenario:")
+        self.scenario_box = None
 
         self.add_GSA_ui_elements()
 
