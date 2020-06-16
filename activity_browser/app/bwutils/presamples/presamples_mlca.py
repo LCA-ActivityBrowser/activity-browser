@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import presamples as ps
 
+from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
 from .utils import get_package_path
 
@@ -146,6 +147,30 @@ class PresamplesMLCA(MLCA):
         except ValueError as e:
             print(e)
             return ["Scenario{}".format(i) for i in range(self.total)]
+
+    def lca_scores_to_dataframe(self) -> pd.DataFrame:
+        """Returns a dataframe of LCA scores using FU labels as index and
+        the product of methods and scenarios as columns.
+        """
+        labels = [
+            format_activity_label(k, style='pnld')
+            for k in self.fu_activity_keys
+        ]
+        methods = [", ".join(m) for m in self.methods]
+        df = pd.DataFrame(
+            data=[],
+            index=pd.Index(labels),
+            columns=pd.MultiIndex.from_product(
+                [methods, self.scenario_names],
+                names=["method", "scenario"]
+            ),
+        )
+        # Now insert the LCA scores in the correct locations.
+        for x, m in enumerate(methods):
+            for y, s in enumerate(self.scenario_names):
+                idx = pd.MultiIndex.from_tuples([(m, s)])
+                df.loc[:, idx] = self.lca_scores[:, x, y]
+        return df
 
 
 class PresamplesContributions(Contributions):
