@@ -11,7 +11,7 @@ from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
-    QButtonGroup, QMessageBox, QGroupBox, QGridLayout
+    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
@@ -190,6 +190,22 @@ class LCAResultsSubTab(QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 print('Generating Sankey Tab')
                 self.tabs.sankey.new_sankey()
+
+    @QtCore.Slot(name="lciaScenarioExport")
+    def generate_lcia_scenario_export(self):
+        """Create a dataframe from the LCIA scores of all functional units,
+        impact methods and scenarios, then call the 'export to excel'
+        """
+        df = self.mlca.lca_scores_to_dataframe()
+        filepath, _ = QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Choose location to save lca results",
+            filter="Excel (*.xlsx);; All Files (*.*)",
+        )
+        if filepath:
+            if not filepath.endswith(".xlsx"):
+                filepath += ".xlsx"
+            df.to_excel(filepath)
 
 
 class NewAnalysisTab(QWidget):
