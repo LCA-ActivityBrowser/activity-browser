@@ -30,7 +30,7 @@ class MonteCarloLCA(object):
         self.include_cfs = True
         self.include_parameters = True
         self.param_rng = None
-        self.param_cols = ["input", "output", "type"]
+        self.param_cols = ["row", "col", "type"]
 
         self.tech_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
         self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
@@ -70,6 +70,26 @@ class MonteCarloLCA(object):
         self.results = list()
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+
+    def unify_param_exchanges(self, data: np.ndarray) -> np.ndarray:
+        """Convert an array of parameterized exchanges from input/output keys
+        into row/col values using dicts generated in bw.LCA object.
+        """
+        def key_to_rowcol(x) -> tuple:
+            if x["type"] in [0, 1]:
+                row = self.lca.activity_dict[x["input"]]
+                col = self.lca.product_dict[x["output"]]
+            else:
+                row = self.lca.biosphere_dict[x["input"]]
+                col = self.lca.activity_dict[x["output"]]
+            return row, col, x["type"], x["amount"]
+
+        unified = np.zeros(data.shape[0], dtype=[
+            ('row', '<u4'), ('col', '<u4'), ('type', 'u1'), ('amount', '<f4')
+        ])
+        for i, d in enumerate(data):
+            unified[i] = key_to_rowcol(d)
+        return unified
 
     def load_data(self) -> None:
         """Constructs the random number generators for all of the matrices that
@@ -126,15 +146,29 @@ class MonteCarloLCA(object):
             tech_vector = self.tech_rng.next() if self.include_technosphere else self.tech_rng
             bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
             if self.include_parameters:
-                param_exchanges = self.param_rng.next()
-                # Select the A/B matrix subsets, generate a mask and apply
+                # Convert the input/output keys into row/col keys, and then match them against
+                # the tech_ and bio_params
+                data = self.param_rng.next()
+                param_exchanges = self.unify_param_exchanges(data)
+
+                # Select the A/B matrix subsets, generate an index and apply
                 # the updated exchange values to the respective vectors.
+                # Make sure to order the subset so that amounts are inserted
+                # at the correct locations.
                 subset = param_exchanges[np.isin(param_exchanges["type"], [0, 1])]
-                mask = np.isin(self.lca.tech_params[self.param_cols], subset[self.param_cols])
-                tech_vector[mask] = subset["amount"]
+                idx = np.argwhere(
+                    np.isin(self.lca.tech_params[self.param_cols], subset[self.param_cols])
+                ).flatten()
+                uniq = np.unique(self.lca.tech_params[idx][["row", "col"]])
+                sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
+                tech_vector[idx] = subset[sort_idx]["amount"]
                 subset = param_exchanges[param_exchanges["type"] == 2]
-                mask = np.isin(self.lca.bio_params[self.param_cols], subset[self.param_cols])
-                bio_vector[mask] = subset["amount"]
+                idx = np.argwhere(
+                    np.isin(self.lca.bio_params[self.param_cols], subset[self.param_cols])
+                ).flatten()
+                uniq = np.unique(self.lca.bio_params[idx][["row", "col"]])
+                sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
+                bio_vector[idx] = subset[sort_idx]["amount"]
 
                 # Store parameter data if they are being considered.
                 self.parameter_exchanges.append(param_exchanges)

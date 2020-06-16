@@ -169,7 +169,7 @@ class Indices(UserList):
     data: List[Index]
 
     array_dtype = [
-        ('input', '<u4'), ('output', '<u4'), ('type', 'u1'), ('amount', '<f4')
+        ('input', 'O'), ('output', 'O'), ('type', 'u1'), ('amount', '<f4')
     ]
 
     def mock_params(self, values) -> np.ndarray:
@@ -180,7 +180,7 @@ class Indices(UserList):
         assert len(self.data) == len(values)
         data = np.zeros(len(self.data), dtype=self.array_dtype)
         for i, d in enumerate(self.data):
-            data[i] = (*d.ids_exc_type, values[i])
+            data[i] = (d.input, d.output, d.exchange_type, values[i])
         return data
 
 
