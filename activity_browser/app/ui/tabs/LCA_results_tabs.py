@@ -574,6 +574,25 @@ class LCAScoresTab(NewAnalysisTab):
     def connect_signals(self):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+        """Add 3d excel export if presamples- or scenario-type LCA is performed."""
+        layout = super().build_export(has_table, has_plot)
+        if self.using_presamples:
+            # Remove the last QSpacerItem from the layout,
+            stretch = layout.takeAt(layout.count() - 1)
+            # Then add the additional label and export btn, plus new stretch.
+            exp_layout = QHBoxLayout()
+            exp_layout.addWidget(QLabel("Export all data"))
+            btn = QPushButton("Excel")
+            btn.setToolTip("Include all functional units, methods and scenarios")
+            if self.parent:
+                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
+            exp_layout.addWidget(btn)
+            layout.addWidget(vertical_line())
+            layout.addLayout(exp_layout)
+            layout.addSpacerItem(stretch)
+        return layout
+
     def update_tab(self):
         """Update the tab."""
         self.update_combobox(self.combobox, [str(m) for m in self.parent.mlca.methods])
@@ -615,6 +634,25 @@ class LCIAResultsTab(NewAnalysisTab):
 
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
+
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+        """Add 3d excel export if presamples- or scenario-type LCA is performed."""
+        layout = super().build_export(has_table, has_plot)
+        if self.using_presamples:
+            # Remove the last QSpacerItem from the layout,
+            stretch = layout.takeAt(layout.count() - 1)
+            # Then add the additional label and export btn, plus new stretch.
+            exp_layout = QHBoxLayout()
+            exp_layout.addWidget(QLabel("Export all data"))
+            btn = QPushButton("Excel")
+            btn.setToolTip("Include all functional units, methods and scenarios")
+            if self.parent:
+                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
+            exp_layout.addWidget(btn)
+            layout.addWidget(vertical_line())
+            layout.addLayout(exp_layout)
+            layout.addSpacerItem(stretch)
+        return layout
 
     def update_plot(self):
         """Update the plot."""
