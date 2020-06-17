@@ -234,6 +234,16 @@ class MLCA(object):
         labels = [str(x + 1) for x in range(len(self.func_units))]
         return pd.DataFrame(data=self.lca_scores_normalized.T, columns=labels)
 
+    def lca_scores_to_dataframe(self) -> pd.DataFrame:
+        """Returns a dataframe of LCA scores using FU labels as index and
+        methods as columns.
+        """
+        return pd.DataFrame(
+            data=self.lca_scores,
+            index=pd.Index(self.fu_activity_keys),
+            columns=pd.Index(self.methods),
+        )
+
     def get_all_metadata(self) -> None:
         """Populate AB_metadata with relevant database values.
 

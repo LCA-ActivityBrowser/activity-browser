@@ -11,7 +11,7 @@ from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
-    QButtonGroup, QMessageBox, QGroupBox, QGridLayout
+    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
@@ -190,6 +190,22 @@ class LCAResultsSubTab(QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 print('Generating Sankey Tab')
                 self.tabs.sankey.new_sankey()
+
+    @QtCore.Slot(name="lciaScenarioExport")
+    def generate_lcia_scenario_export(self):
+        """Create a dataframe from the LCIA scores of all functional units,
+        impact methods and scenarios, then call the 'export to excel'
+        """
+        df = self.mlca.lca_scores_to_dataframe()
+        filepath, _ = QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Choose location to save lca results",
+            filter="Excel (*.xlsx);; All Files (*.*)",
+        )
+        if filepath:
+            if not filepath.endswith(".xlsx"):
+                filepath += ".xlsx"
+            df.to_excel(filepath)
 
 
 class NewAnalysisTab(QWidget):
@@ -560,6 +576,25 @@ class LCAScoresTab(NewAnalysisTab):
     def connect_signals(self):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+        """Add 3d excel export if presamples- or scenario-type LCA is performed."""
+        layout = super().build_export(has_table, has_plot)
+        if self.using_presamples:
+            # Remove the last QSpacerItem from the layout,
+            stretch = layout.takeAt(layout.count() - 1)
+            # Then add the additional label and export btn, plus new stretch.
+            exp_layout = QHBoxLayout()
+            exp_layout.addWidget(QLabel("Export all data"))
+            btn = QPushButton("Excel")
+            btn.setToolTip("Include all functional units, methods and scenarios")
+            if self.parent:
+                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
+            exp_layout.addWidget(btn)
+            layout.addWidget(vertical_line())
+            layout.addLayout(exp_layout)
+            layout.addSpacerItem(stretch)
+        return layout
+
     def update_tab(self):
         """Update the tab."""
         self.update_combobox(self.combobox, [str(m) for m in self.parent.mlca.methods])
@@ -601,6 +636,25 @@ class LCIAResultsTab(NewAnalysisTab):
 
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
+
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+        """Add 3d excel export if presamples- or scenario-type LCA is performed."""
+        layout = super().build_export(has_table, has_plot)
+        if self.using_presamples:
+            # Remove the last QSpacerItem from the layout,
+            stretch = layout.takeAt(layout.count() - 1)
+            # Then add the additional label and export btn, plus new stretch.
+            exp_layout = QHBoxLayout()
+            exp_layout.addWidget(QLabel("Export all data"))
+            btn = QPushButton("Excel")
+            btn.setToolTip("Include all functional units, methods and scenarios")
+            if self.parent:
+                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
+            exp_layout.addWidget(btn)
+            layout.addWidget(vertical_line())
+            layout.addLayout(exp_layout)
+            layout.addSpacerItem(stretch)
+        return layout
 
     def update_plot(self):
         """Update the plot."""
