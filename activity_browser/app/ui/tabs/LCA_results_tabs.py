@@ -306,6 +306,8 @@ class NewAnalysisTab(QWidget):
             self.update_plot()
         if self.table:
             self.update_table()
+        if self.plot and self.table:
+            self.space_check()
 
     def update_table(self, *args, **kwargs):
         """Update the table."""
