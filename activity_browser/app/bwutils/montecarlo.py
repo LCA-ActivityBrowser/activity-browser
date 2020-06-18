@@ -74,21 +74,27 @@ class MonteCarloLCA(object):
     def unify_param_exchanges(self, data: np.ndarray) -> np.ndarray:
         """Convert an array of parameterized exchanges from input/output keys
         into row/col values using dicts generated in bw.LCA object.
+
+        If any given exchange does not exist in the current LCA matrix,
+        it will be dropped from the returned array.
         """
-        def key_to_rowcol(x) -> tuple:
+        def key_to_rowcol(x) -> Optional[tuple]:
             if x["type"] in [0, 1]:
-                row = self.lca.activity_dict[x["input"]]
-                col = self.lca.product_dict[x["output"]]
+                row = self.lca.activity_dict.get(x["input"], None)
+                col = self.lca.product_dict.get(x["output"], None)
             else:
-                row = self.lca.biosphere_dict[x["input"]]
-                col = self.lca.activity_dict[x["output"]]
+                row = self.lca.biosphere_dict.get(x["input"], None)
+                col = self.lca.activity_dict.get(x["output"], None)
+            # if either the row or the column is None, return np.NaN.
+            if row is None or col is None:
+                return None
             return row, col, x["type"], x["amount"]
 
-        unified = np.zeros(data.shape[0], dtype=[
+        # Convert the data and store in a new array, dropping Nones.
+        converted = (key_to_rowcol(d) for d in data)
+        unified = np.array([x for x in converted if x is not None], dtype=[
             ('row', '<u4'), ('col', '<u4'), ('type', 'u1'), ('amount', '<f4')
         ])
-        for i, d in enumerate(data):
-            unified[i] = key_to_rowcol(d)
         return unified
 
     def load_data(self) -> None:
@@ -151,17 +157,21 @@ class MonteCarloLCA(object):
                 data = self.param_rng.next()
                 param_exchanges = self.unify_param_exchanges(data)
 
-                # Select the A/B matrix subsets, generate an index and apply
-                # the updated exchange values to the respective vectors.
-                # Make sure to order the subset so that amounts are inserted
-                # at the correct locations.
+                # Select technosphere subset from param_exchanges.
                 subset = param_exchanges[np.isin(param_exchanges["type"], [0, 1])]
+                # Create index of where to insert new values from tech_params array.
                 idx = np.argwhere(
                     np.isin(self.lca.tech_params[self.param_cols], subset[self.param_cols])
                 ).flatten()
+                # Construct unique array of row+col combinations
                 uniq = np.unique(self.lca.tech_params[idx][["row", "col"]])
+                # Use the unique array to sort the subset (ensures values
+                # are inserted at the correct index)
                 sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
+                # Finally, insert the sorted subset amounts into the tech_vector
+                # at the correct indexes.
                 tech_vector[idx] = subset[sort_idx]["amount"]
+                # Repeat the above, but for the biosphere array.
                 subset = param_exchanges[param_exchanges["type"] == 2]
                 idx = np.argwhere(
                     np.isin(self.lca.bio_params[self.param_cols], subset[self.param_cols])
