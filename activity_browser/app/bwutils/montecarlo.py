@@ -66,6 +66,7 @@ class MonteCarloLCA(object):
         self.CF_dict = defaultdict(list)
         self.parameter_exchanges = list()
         self.parameters = list()
+        self.parameter_data = defaultdict(dict)
 
         self.results = list()
 
@@ -148,6 +149,13 @@ class MonteCarloLCA(object):
         self.parameter_exchanges = list()
         self.parameters = list()
 
+        # Prepare GSA parameter schema:
+        if self.include_parameters:
+            self.parameter_data = self.param_rng.extract_active_parameters(self.lca)
+            # Add a values field to handle all the sampled parameter values.
+            for k in self.parameter_data:
+                self.parameter_data[k]["values"] = []
+
         for iteration in range(iterations):
             tech_vector = self.tech_rng.next() if self.include_technosphere else self.tech_rng
             bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
@@ -183,6 +191,8 @@ class MonteCarloLCA(object):
                 # Store parameter data if they are being considered.
                 self.parameter_exchanges.append(param_exchanges)
                 self.parameters.append(self.param_rng.parameters.to_gsa())
+                # Extract sampled values for parameters, store.
+                self.param_rng.retrieve_sampled_values(self.parameter_data)
 
             self.lca.rebuild_technosphere_matrix(tech_vector)
             self.lca.rebuild_biosphere_matrix(bio_vector)
