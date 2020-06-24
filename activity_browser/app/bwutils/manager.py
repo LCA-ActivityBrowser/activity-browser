@@ -291,3 +291,16 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
         self.parameters.update(values)
         data = self.calculate()
         return self.indices.mock_params(data)
+
+    def retrieve_sampled_values(self, data: dict):
+        """Enters the sampled values into the 'exchanges' list in the 'data'
+        dictionary.
+        """
+        for name, vals in data.items():
+            param = next((p for p in self.parameters
+                         if p.name == vals.get("name")
+                         and p.group == vals.get("group")),
+                         None)
+            if param is None:
+                continue
+            data[name]["values"].append(param.amount)
