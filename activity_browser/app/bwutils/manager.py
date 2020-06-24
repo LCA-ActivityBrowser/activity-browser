@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
+from collections import defaultdict
 from collections.abc import Iterator
 import itertools
 from typing import Iterable, List, Optional, Tuple
 
 from asteval import Interpreter
+from bw2calc import LCA
 from bw2data.backends.peewee import ExchangeDataset
 from bw2data.parameters import (
     ProjectParameter, DatabaseParameter, ActivityParameter,
@@ -165,6 +167,69 @@ class ParameterManager(object):
         otherwise.
         """
         return ParameterizedExchange.select().exists()
+
+    def parameter_exchange_dependencies(self) -> dict:
+        """
+
+        Schema: {param1: List[tuple], param2: List[tuple]}
+        """
+        parameters = defaultdict(list)
+        for act in self.initial.act_by_group_db:
+            exchanges = self.initial.exc_by_group(act.group)
+            for exc, formula in exchanges.items():
+                params = get_new_symbols([formula])
+                # Convert exchange from int to Index
+                exc = Index.build_from_exchange(ExchangeDataset.get_by_id(exc))
+                for param in params:
+                    parameters[param].append(exc)
+        return parameters
+
+    def extract_active_parameters(self, lca: LCA) -> dict:
+        """Given an LCA object, extract the used exchanges and build a
+        dictionary of parameters with the exchanges that use these parameters.
+
+        Schema: {param1: {"name":  str, "act": Optional[tuple],
+                          "group": str, "exchanges": List[tuple]}}
+        """
+        params = self.parameter_exchange_dependencies()
+        used_exchanges = set(lca.biosphere_dict.keys())
+        used_exchanges = used_exchanges.union(lca.activity_dict.keys())
+
+        # Make a pass through the 'params' dictionary and remove exchanges
+        # that don't exist in the 'used_exchanges' set.
+        for p in params:
+            keep = [
+                i for i, exc in enumerate(params[p])
+                if (exc.input in used_exchanges and exc.output in used_exchanges)
+            ]
+            params[p] = [params[p][i] for i in keep]
+        # Now only keep parameters with exchanges.
+        keep = [p for p, excs in params.items() if len(excs) > 0]
+        schema = {
+            p: {"name": p, "act": None, "group": None, "exchanges": params[p]}
+            for p in keep
+        }
+        # Now start filling in the parameters that remain with information.
+        for group in self.initial.groups:
+            for name, data in self.initial.act_by_group(group).items():
+                key = (data.get("database"), data.get("code"))
+                if name in schema:
+                    # Make sure that the activity parameter matches the
+                    # output of the exchange.
+                    exc = next(e.output for e in schema[name]["exchanges"])
+                    if key == exc:
+                        schema[name]["name"] = name
+                        schema[name]["group"] = group
+                        schema[name]["act"] = key
+        # Lastly, determine for the remaining parameters if they are database
+        # or project parameters.
+        for db in self.initial.databases:
+            for name, data in self.initial.by_database(db).items():
+                if name in schema and schema[name]["group"] is None:
+                    schema[name]["group"] = db
+        for name in (n for n in schema if schema[n]["group"] is None):
+            schema[name]["group"] = "project"
+        return schema
 
 
 class MonteCarloParameterManager(ParameterManager, Iterator):
