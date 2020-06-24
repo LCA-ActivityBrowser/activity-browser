@@ -154,6 +154,11 @@ class MLCA(object):
         self.func_unit_translation_dict = {
             str(bw.get_activity(list(func_unit.keys())[0])): func_unit for func_unit in self.func_units
         }
+        if len(self.func_unit_translation_dict) != len(self.func_units):
+            self.func_unit_translation_dict = {}
+            for fu in self.func_units:
+                act = bw.get_activity(next(iter(fu)))
+                self.func_unit_translation_dict["{} {}".format(act, act[0])] = fu
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_key_dict.keys())
 
