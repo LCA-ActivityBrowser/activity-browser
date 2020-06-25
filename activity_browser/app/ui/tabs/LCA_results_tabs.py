@@ -1250,6 +1250,8 @@ class MonteCarloTab(NewAnalysisTab):
         self.layout.insertWidget(idx, self.plot)
         self.plot.plot(self.df, method=method)
         self.plot.plot_name = name
+        self.export_plot.png.clicked.connect(self.plot.to_png)
+        self.export_plot.svg.clicked.connect(self.plot.to_svg)
         self.plot.show()
         if self.layout.parentWidget():
             self.layout.parentWidget().updateGeometry()
