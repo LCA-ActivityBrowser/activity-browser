@@ -320,6 +320,8 @@ class NewAnalysisTab(QWidget):
         """Update the plot and table if they are present."""
         if self.plot:
             self.update_plot()
+            self.export_plot.png.clicked.connect(self.plot.to_png)
+            self.export_plot.svg.clicked.connect(self.plot.to_svg)
         if self.table:
             self.update_table()
         if self.plot and self.table:
@@ -843,10 +845,13 @@ class ContributionTab(NewAnalysisTab):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
         self.plot.figure.clf()
+        # name is already altered by set_filename before update_plot occurs.
+        name = self.plot.plot_name
         self.plot.deleteLater()
         self.plot = ContributionPlot()
         self.pt_layout.insertWidget(idx, self.plot)
         self.plot.plot(self.df, unit=self.unit)
+        self.plot.plot_name = name
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
@@ -1239,9 +1244,14 @@ class MonteCarloTab(NewAnalysisTab):
         idx = self.layout.indexOf(self.plot)
         self.plot.figure.clf()
         self.plot.deleteLater()
+        # name is already altered by update_mc before update_plot
+        name = self.plot.plot_name
         self.plot = MonteCarloPlot(self.parent)
         self.layout.insertWidget(idx, self.plot)
         self.plot.plot(self.df, method=method)
+        self.plot.plot_name = name
+        self.export_plot.png.clicked.connect(self.plot.to_png)
+        self.export_plot.svg.clicked.connect(self.plot.to_svg)
         self.plot.show()
         if self.layout.parentWidget():
             self.layout.parentWidget().updateGeometry()
