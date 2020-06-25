@@ -320,6 +320,8 @@ class NewAnalysisTab(QWidget):
         """Update the plot and table if they are present."""
         if self.plot:
             self.update_plot()
+            self.export_plot.png.clicked.connect(self.plot.to_png)
+            self.export_plot.svg.clicked.connect(self.plot.to_svg)
         if self.table:
             self.update_table()
         if self.plot and self.table:
