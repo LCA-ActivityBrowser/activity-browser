@@ -17,8 +17,6 @@ class LCAResultsTab(ABTab):
     def __init__(self, parent):
         super(LCAResultsTab, self).__init__(parent)
 
-        self.lca_kinds = {}
-
         self.setMovable(True)
         # self.setTabShape(1)  # Triangular-shaped Tabs
         self.setTabsClosable(True)
@@ -38,10 +36,6 @@ class LCAResultsTab(ABTab):
         signals.project_selected.connect(self.close_all)
         signals.parameters_changed.connect(self.close_all)
 
-    def close_all(self):
-        super().close_all()
-        self.lca_kinds = {}
-
     @Slot(str, name="removeSetup")
     def remove_setup(self, name: str):
         """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """
@@ -49,50 +43,18 @@ class LCAResultsTab(ABTab):
             index = self.indexOf(self.tabs[name])
             self.close_tab(index)
 
-    def adjust_setup_tab(self, name: str, kind: str) -> str:
-        """Adjust name of pre-existing tabs if the same CS is run with
-        a different LCA type.
-
-        Will return a possibly adjusted name.
-        """
-        if name not in self.lca_kinds:
-            self.lca_kinds[name] = {kind}
-            return name
-        elif name in self.tabs and kind in self.lca_kinds[name]:
-            # The definition of insanity.
-            self.remove_setup(name)
-            return name
-
-        # We've found the CS name to exist as a tab already.
-        new_name = "{} - {}".format(name, kind)
-        if new_name in self.tabs:
-            # Remove and recreate the specific LCA tab.
-            self.remove_setup(new_name)
-        elif name in self.tabs and kind not in self.lca_kinds[name]:
-            # A new kind of LCA is run on the same CS.
-            idx = self.indexOf(self.tabs[name])
-            other_kind = next(iter(self.lca_kinds[name]))
-            other_name = "{} - {}".format(name, other_kind)
-            self.setTabText(idx, other_name)
-            self.tabs[other_name] = self.tabs[name]
-            del self.tabs[name]
-            self.lca_kinds[name].add(kind)
-        else:
-            # A third (or more) kind of LCA is run on the same CS.
-            self.lca_kinds[name].add(kind)
-        return new_name
-
     @Slot(str, name="generateSimpleLCA")
     @Slot(str, str, name="generatePresamplesLCA")
     @Slot(str, object, name="generateSuperstructureLCA")
     def generate_setup(self, cs_name: str, presamples: Union[str, pd.DataFrame] = None):
         """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
-        kind = "Standard"
         if isinstance(presamples, str):
-            kind = "Presamples"
+            name = "{}[Presamples]".format(cs_name)
         elif isinstance(presamples, pd.DataFrame):
-            kind = "Scenarios"
-        name = self.adjust_setup_tab(cs_name, kind)
+            name = "{}[Scenarios]".format(cs_name)
+        else:
+            name = cs_name
+        self.remove_setup(name)
 
         try:
             new_tab = LCAResultsSubTab(cs_name, presamples, self)
