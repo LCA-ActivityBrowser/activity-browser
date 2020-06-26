@@ -36,7 +36,8 @@ class LCAResultsTab(ABTab):
         signals.project_selected.connect(self.close_all)
         signals.parameters_changed.connect(self.close_all)
 
-    def remove_setup(self, name):
+    @Slot(str, name="removeSetup")
+    def remove_setup(self, name: str):
         """ When calculation setup is deleted in LCA Setup, remove the tab from LCA Results. """
         if name in self.tabs:
             index = self.indexOf(self.tabs[name])
@@ -45,12 +46,18 @@ class LCAResultsTab(ABTab):
     @Slot(str, name="generateSimpleLCA")
     @Slot(str, str, name="generatePresamplesLCA")
     @Slot(str, object, name="generateSuperstructureLCA")
-    def generate_setup(self, name: str, presamples: Union[str, pd.DataFrame] = None):
+    def generate_setup(self, cs_name: str, presamples: Union[str, pd.DataFrame] = None):
         """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
+        if isinstance(presamples, str):
+            name = "{}[Presamples]".format(cs_name)
+        elif isinstance(presamples, pd.DataFrame):
+            name = "{}[Scenarios]".format(cs_name)
+        else:
+            name = cs_name
         self.remove_setup(name)
 
         try:
-            new_tab = LCAResultsSubTab(name, presamples, self)
+            new_tab = LCAResultsSubTab(cs_name, presamples, self)
             self.tabs[name] = new_tab
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])
