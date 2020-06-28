@@ -518,7 +518,10 @@ class Contributions(object):
             df.columns = self.get_labels(df.columns, fields=y_fields)
             keys = [k for k in df.index if k in mask]
             combined_keys = special_keys + keys
-            df = df.loc[combined_keys]
+            # Reindex the combined_keys to ensure they always exist in the dataframe,
+            # this avoids keys with 0 values not existing due to the 'dropna' action above.
+            df = df.reindex(combined_keys, axis="index", fill_value=0.0)
+            df = df.loc[combined_keys, :]
             df.index = self.get_labels(df.index, mask=mask)
             joined = df
 
