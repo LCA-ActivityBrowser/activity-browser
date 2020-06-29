@@ -201,6 +201,18 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
     return df
 
 
+def get_parameters_DF(mc):
+    """Function to make parameters dataframe"""
+    if bool(mc.parameter_data):  # returns False if dict is empty
+        dfp = pd.DataFrame(mc.parameter_data).T
+        dfp['GSA name'] = "P: " + dfp['name']
+        print('PARAMETERS:', len(dfp))
+        return dfp
+    else:
+        print('PARAMETERS: None included.')
+        return pd.DataFrame()  # return emtpy df
+
+
 def get_exchange_values(matrix, indices):
     """Get technosphere exchanges values from a list of exchanges
     (row and column information)"""
@@ -228,6 +240,12 @@ def get_X_CF(mc, dfcf, method):
 
     # if params_indices:
     return CF_data[:, params_indices]
+
+
+def get_X_P(dfp):
+    """Get the parameter values for each model run"""
+    lists = [d for d in dfp['values']]
+    return list(zip(*lists))
 
 
 def get_problem(X, names):
@@ -318,6 +336,12 @@ class GlobalSensitivityAnalysis(object):
             if not self.dfcf.empty:
                 dfs.append(self.dfcf)
 
+        # parameters
+        # todo: if parameters, include df, but remove exchanges from T and B (skipped for now)
+        self.dfp = get_parameters_DF(self.mc)  # Empty df if no parameters
+        if not self.dfp.empty:
+            dfs.append(self.dfp)
+
         # Join dataframes to get metadata
         self.metadata = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
         self.metadata.set_index('GSA name', inplace=True)
@@ -337,6 +361,9 @@ class GlobalSensitivityAnalysis(object):
         if self.mc.include_cfs and not self.dfcf.empty:
             self.Xc = get_X_CF(self.mc, self.dfcf, self.method)
             X_list.append(self.Xc)
+        if self.mc.include_parameters and not self.dfp.empty:
+            self.Xp = get_X_P(self.dfp)
+            X_list.append(self.Xp)
 
         self.X = np.concatenate(X_list, axis=1)
         # print('X', self.X.shape)

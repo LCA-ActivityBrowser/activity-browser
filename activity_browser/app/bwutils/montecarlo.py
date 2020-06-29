@@ -188,7 +188,7 @@ class MonteCarloLCA(object):
                 sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
                 bio_vector[idx] = subset[sort_idx]["amount"]
 
-                # Store parameter data if they are being considered.
+                # Store parameter data for GSA
                 self.parameter_exchanges.append(param_exchanges)
                 self.parameters.append(self.param_rng.parameters.to_gsa())
                 # Extract sampled values for parameters, store.
