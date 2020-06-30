@@ -466,8 +466,8 @@ class Contributions(object):
         if special_keys:
             # replace index keys with labels
             try:  # first put Total and Rest to the first two positions in the dataframe
-                index_for_Rest_Total = special_keys + keys
-                joined = joined.loc[index_for_Rest_Total]
+                complete_index = special_keys + keys
+                joined = joined.reindex(complete_index, axis="index", fill_value=0.)
             except:
                 print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
         joined.index = cls.get_labels(joined.index, fields=x_fields)
@@ -521,7 +521,6 @@ class Contributions(object):
             # Reindex the combined_keys to ensure they always exist in the dataframe,
             # this avoids keys with 0 values not existing due to the 'dropna' action above.
             df = df.reindex(combined_keys, axis="index", fill_value=0.0)
-            df = df.loc[combined_keys, :]
             df.index = self.get_labels(df.index, mask=mask)
             joined = df
 
