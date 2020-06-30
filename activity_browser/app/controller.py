@@ -4,6 +4,7 @@ import uuid
 from typing import Iterable
 
 import brightway2 as bw
+from bw2data.parameters import ActivityParameter
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from bw2data.backends.peewee import sqlite3_lci_db
@@ -365,6 +366,14 @@ class Controller(object):
                 Upstream exchanges must be modified or deleted.""".format(act, nu, text)
             )
         else:
+            # Check if the activity is parameterized:
+            query = ActivityParameter.select().where(
+                ActivityParameter.database == act[0],
+                ActivityParameter.code == act[1]
+            )
+            if query.exists():
+                # Remove all activity parameters
+                Controller.delete_activity_parameter(act.key)
             act.delete()
             signals.metadata_changed.emit(act.key)
             signals.database_changed.emit(act['database'])
@@ -557,6 +566,20 @@ class Controller(object):
         else:
             param.data[field] = value
         param.save()
+        signals.parameters_changed.emit()
+
+    @staticmethod
+    def delete_activity_parameter(key: tuple) -> None:
+        """Remove all activity parameters and underlying exchange parameters
+        for the given key.
+        """
+        query = ActivityParameter.select(ActivityParameter.group).where(
+            ActivityParameter.database == key[0],
+            ActivityParameter.code == key[1],
+        )
+        for p in query.iterator():
+            bw.parameters.remove_from_group(p.group, key)
+        bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
     @staticmethod
