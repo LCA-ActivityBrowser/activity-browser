@@ -337,8 +337,8 @@ class Contributions(object):
             2-dimensional array of same shape, with scores normalized.
 
         """
-        scores = contribution_array.sum(axis=1)
-        return (contribution_array / scores[:, np.newaxis])
+        scores = contribution_array.sum(axis=1, keepdims=True)
+        return contribution_array / scores
 
     def _build_dict(self, C, FU_M_index, rev_dict, limit, limit_type):
         """Sort the given contribution array on method or functional unit column.
