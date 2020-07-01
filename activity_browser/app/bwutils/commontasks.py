@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import hashlib
-
+import os
 import textwrap
 import arrow
 import brightway2 as bw
 from bw2data import databases
 from bw2data.proxies import ActivityProxyBase
 from bw2data.utils import natural_sort
+from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
@@ -56,6 +57,29 @@ def format_activity_label(key, style='pnl', max_length=40):
             return wrap_text(str(key))
     return wrap_text(label, max_length=max_length)
 
+# Switch brightway directory
+def switch_brightway2_dir(dirpath):
+    if dirpath == bw.projects._base_data_dir:
+        print('dirpath already loaded')
+        return False
+    try:
+        assert os.path.isdir(dirpath)
+        bw.projects._base_data_dir = dirpath
+        bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
+        # create folder if it does not yet exist
+        if not os.path.isdir(bw.projects._base_logs_dir):
+            os.mkdir(bw.projects._base_logs_dir)
+        # load new brightway directory
+        bw.projects.db = SubstitutableDatabase(
+            os.path.join(bw.projects._base_data_dir, "projects.db"),
+            [ProjectDataset]
+        )
+        print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        return True
+
+    except AssertionError:
+        print('Could not access BW_DIR as specified in settings.py')
+        return False
 
 # Database
 def get_database_metadata(name):

@@ -118,26 +118,9 @@ class Controller(object):
         self.db_wizard = DatabaseImportWizard()
 
     def switch_brightway2_dir_path(self, dirpath):
-        if dirpath == bw.projects._base_data_dir:
-            return  # dirpath is already loaded
-        try:
-            assert os.path.isdir(dirpath)
-            bw.projects._base_data_dir = dirpath
-            bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
-            # create folder if it does not yet exist
-            if not os.path.isdir(bw.projects._base_logs_dir):
-                os.mkdir(bw.projects._base_logs_dir)
-            # load new brightway directory
-            bw.projects.db = SubstitutableDatabase(
-                os.path.join(bw.projects._base_data_dir, "projects.db"),
-                [ProjectDataset]
-            )
-            print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        if bc.switch_brightway2_dir(dirpath):
             self.change_project(ab_settings.startup_project, reload=True)
             signals.databases_changed.emit()
-
-        except AssertionError:
-            print('Could not access BW_DIR as specified in settings.py')
 
 # PROJECT
     def change_project_dialog(self):

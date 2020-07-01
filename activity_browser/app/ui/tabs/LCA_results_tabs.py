@@ -5,6 +5,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
 from collections import namedtuple
+import traceback
 from typing import List, Optional, Union
 
 from bw2calc.errors import BW2CalcError
@@ -15,11 +16,11 @@ from PySide2.QtWidgets import (
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
-import traceback
 
 from ...bwutils import (
-    Contributions, CSMonteCarloLCA, MLCA, PresamplesContributions,
-    PresamplesMLCA, SuperstructureContributions, SuperstructureMLCA,
+    Contributions, MonteCarloLCA, MLCA, PresamplesMLCA,
+    PresamplesContributions, SuperstructureContributions,
+    SuperstructureMLCA, GlobalSensitivityAnalysis,
     commontasks as bc
 )
 from ...signals import signals
@@ -58,7 +59,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "mc", "sankey")
+    "tabs", ("inventory", "results", "ef", "process", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
@@ -88,7 +89,7 @@ class LCAResultsSubTab(QTabWidget):
         self.presamples = presamples
         self.mlca: Optional[Union[MLCA, PresamplesMLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
-        self.mc: Optional[CSMonteCarloLCA] = None
+        self.mc: Optional[MonteCarloLCA] = None
         self.method_dict = dict()
         self.single_func_unit = False
         self.single_method = False
@@ -103,17 +104,18 @@ class LCAResultsSubTab(QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
-            # mc=None if self.mc is None else MonteCarloTab(self),
-            mc=MonteCarloTab(self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
+            mc=MonteCarloTab(self),  # mc=None if self.mc is None else MonteCarloTab(self),
+            gsa=GSATab(self),
         )
         self.tab_names = Tabs(
             inventory="Inventory",
             results="LCA Results",
             ef="EF Contributions",
             process="Process Contributions",
-            mc="Monte Carlo",
             sankey="Sankey",
+            mc="Monte Carlo",
+            gsa="Sensitivity Analysis",
         )
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
@@ -141,7 +143,7 @@ class LCAResultsSubTab(QTabWidget):
             except AssertionError as e:
                 raise BW2CalcError("Scenario LCA failed.", str(e)).with_traceback(e.__traceback__)
         self.mlca.calculate()
-        self.mc = CSMonteCarloLCA(self.cs_name)
+        self.mc = MonteCarloLCA(self.cs_name)
 
         # self.mct = CSMonteCarloLCAThread()
         # self.mct.start()
@@ -1047,9 +1049,9 @@ class MonteCarloTab(NewAnalysisTab):
         layout_mc = QVBoxLayout()
 
         # H-LAYOUT start simulation
-        self.button_run = QPushButton('Run Simulation')
+        self.button_run = QPushButton('Run')
         self.label_iterations = QLabel('Iterations:')
-        self.iterations = QLineEdit('10')
+        self.iterations = QLineEdit('20')
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
         self.label_seed = QLabel('Random seed:')
@@ -1150,6 +1152,7 @@ class MonteCarloTab(NewAnalysisTab):
 
         try:
             self.parent.mc.calculate(iterations=iterations, seed=seed, **includes)
+            signals.monte_carlo_finished.emit()
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
@@ -1260,12 +1263,198 @@ class MonteCarloTab(NewAnalysisTab):
         self.table.sync(self.df)
 
 
+class GSATab(NewAnalysisTab):
+    def __init__(self, parent=None):
+        super(GSATab, self).__init__(parent)
+        self.parent = parent
+
+        self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
+
+        self.layout.addLayout(get_header_layout('Global Sensitivity Analysis'))
+        self.scenario_box = None
+
+        self.add_GSA_ui_elements()
+
+        self.table = LCAResultsTable()
+        self.table.table_name = 'GSA_' + self.parent.cs_name
+        self.layout.addWidget(self.table)
+        self.table.hide()
+        # self.plot = MonteCarloPlot(self.parent)
+        # self.plot.hide()
+        # self.plot.plot_name = 'GSA_' + self.parent.cs_name
+        # self.layout.addWidget(self.plot)
+
+        self.export_widget = self.build_export(has_plot=False, has_table=True)
+        self.layout.addWidget(self.export_widget)
+        self.layout.setAlignment(QtCore.Qt.AlignTop)
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.button_run.clicked.connect(self.calculate_gsa)
+        signals.monte_carlo_finished.connect(self.monte_carlo_finished)
+
+    def add_GSA_ui_elements(self):
+        # H-LAYOUT SETTINGS ROW 1
+
+        # run button
+        self.button_run = QPushButton('Run')
+        self.button_run.setEnabled(False)
+
+        # functional unit selection
+        self.label_fu = QLabel('Functional unit:')
+        self.combobox_fu = QComboBox()
+
+        # method selection
+        self.label_methods = QLabel('LCIA method:')
+        self.combobox_methods = QComboBox()
+
+        # arrange layout
+        self.hlayout_row1 = QHBoxLayout()
+        self.hlayout_row1.addWidget(self.button_run)
+        self.hlayout_row1.addWidget(self.label_fu)
+        self.hlayout_row1.addWidget(self.combobox_fu)
+        self.hlayout_row1.addWidget(self.label_methods)
+        self.hlayout_row1.addWidget(self.combobox_methods)
+
+        # self.hlayout_row1.addWidget(self.fu_selection_widget)
+        # self.hlayout_row1.addWidget(self.method_selection_widget)
+        self.hlayout_row1.addStretch(1)
+
+        # H-LAYOUT SETTINGS ROW 2
+        self.hlayout_row2 = QHBoxLayout()
+
+        # cutoff technosphere
+        self.label_cutoff_technosphere = QLabel('Cut-off technosphere:')
+        self.cutoff_technosphere = QLineEdit('0.01')
+        self.cutoff_technosphere.setFixedWidth(40)
+        self.cutoff_technosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
+
+        # cutoff biosphere
+        self.label_cutoff_biosphere = QLabel('Cut-off biosphere:')
+        self.cutoff_biosphere = QLineEdit('0.01')
+        self.cutoff_biosphere.setFixedWidth(40)
+        self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
+
+        # export GSA input/output data automatically with run
+        self.checkbox_export_data_automatically = QCheckBox('Save input/output data to Excel after run')
+        self.checkbox_export_data_automatically.setChecked(False)
+
+        # # exclude Pedigree
+        # self.checkbox_pedigree = QCheckBox('Include Pedigree uncertainties')
+        # self.checkbox_pedigree.setChecked(True)
+
+        # arrange layout
+        self.hlayout_row2.addWidget(self.label_cutoff_technosphere)
+        self.hlayout_row2.addWidget(self.cutoff_technosphere)
+        self.hlayout_row2.addWidget(self.label_cutoff_biosphere)
+        self.hlayout_row2.addWidget(self.cutoff_biosphere)
+        self.hlayout_row2.addWidget(self.checkbox_export_data_automatically)
+        # self.hlayout_row2.addWidget(self.checkbox_pedigree)
+        self.hlayout_row2.addStretch(1)
+
+        # OVERALL LAYOUT OF SETTINGS
+        self.layout_settings = QVBoxLayout()
+        self.layout_settings.addLayout(self.hlayout_row1)
+        self.layout_settings.addLayout(self.hlayout_row2)
+        self.widget_settings = QWidget()
+        self.widget_settings.setLayout(self.layout_settings)
+
+        # add to GSA layout
+        self.label_monte_carlo_first = QLabel('You need to run a Monte Carlo Simulation first.')
+        self.layout.addWidget(self.label_monte_carlo_first)
+        self.layout.addWidget(self.widget_settings)
+
+        # at start
+        # todo: this is just for development, should be reversed later:
+        self.widget_settings.hide()
+        # self.label_monte_carlo_first.hide()
+
+    def update_tab(self):
+        self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
+        self.update_combobox(self.combobox_fu, list(self.parent.mlca.func_unit_translation_dict.keys()))
+
+    def monte_carlo_finished(self):
+        self.button_run.setEnabled(True)
+        self.widget_settings.show()
+        self.label_monte_carlo_first.hide()
+
+    def calculate_gsa(self):
+        act_number = self.combobox_fu.currentIndex()
+        method_number = self.combobox_methods.currentIndex()
+        cutoff_technosphere = float(self.cutoff_technosphere.text())
+        cutoff_biosphere = float(self.cutoff_biosphere.text())
+        # print('Calculating GSA for: ', act_number, method_number, cutoff_technosphere, cutoff_biosphere)
+
+        try:
+            self.GSA.perform_GSA(act_number=act_number, method_number=method_number,
+                                 cutoff_technosphere=cutoff_technosphere, cutoff_biosphere=cutoff_biosphere)
+            # self.update_mc()
+        except Exception as e:  # Catch any error...
+            traceback.print_exc()
+            message = str(e)
+            message_addition = ''
+            if message == 'singular matrix':
+                message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
+            elif message == "`dataset` input should have multiple elements.":
+                message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
+            elif message == "No objects to concatenate":
+                message_addition = "\nThe reason for this is likely that there are no uncertain exchanges. Please check " \
+                                   "the checkboxes in the Monte Carlo tab."
+            QMessageBox.warning(self, 'Could not perform GSA', str(message) + message_addition)
+
+        self.update_gsa()
+
+    def update_gsa(self, cs_name=None):
+        self.df = getattr(self.GSA, "df_final", None)
+        if self.df is None:
+            return
+        self.update_table()
+        self.table.show()
+        self.export_widget.show()
+
+        self.table.table_name = 'gsa_output_' + self.GSA.get_save_name()
+
+        if self.checkbox_export_data_automatically.isChecked():
+            print("EXPORTING DATA")
+            self.GSA.export_GSA_input()
+            self.GSA.export_GSA_output()
+
+    def update_plot(self, method):
+        pass
+
+    def update_table(self):
+        self.table.sync(self.df)
+
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
+        """Construct the export layout but set it into a widget because we
+         want to hide it."""
+        export_layout = super().build_export(has_table, has_plot)
+        export_widget = QWidget()
+        export_widget.setLayout(export_layout)
+        # Hide widget until MC is calculated
+        export_widget.hide()
+        return export_widget
+
+    # def set_filename(self, optional_fields: dict = None):
+    #     """Given a dictionary of fields, put together a usable filename for the plot and table."""
+    #     save_name = 'gsa_output_' + self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity['name'] + \
+    #                 '_' + str(self.method) + '.xlsx'
+    #     save_name = save_name.replace(',', '').replace("'", '').replace("/", '')
+    #     self.table.table_name = save_name
+    #     optional = optional_fields or {}
+    #     fields = (
+    #         self.parent.cs_name, self.contribution_fn, optional.get("method"),
+    #         optional.get("functional_unit"), self.unit
+    #     )
+    #     filename = '_'.join((str(x) for x in fields if x is not None))
+
+
 class MonteCarloWorkerThread(QtCore.QThread):
     """A worker for Monte Carlo simulations.
 
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
     So this is for future reference in case this issue is solved... """
-    def set_mc(self, mc, iterations=10):
+    def set_mc(self, mc, iterations=20):
         self.mc = mc
         self.iterations = iterations
 

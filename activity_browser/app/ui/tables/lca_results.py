@@ -7,7 +7,8 @@ from .views import ABDataFrameView, dataframe_sync
 class LCAResultsTable(ABDataFrameView):
     @dataframe_sync
     def sync(self, df):
-        self.dataframe = df
+        # self.dataframe = df
+        self.dataframe = df.replace(np.nan, '', regex=True)
 
 
 class InventoryTable(ABDataFrameView):

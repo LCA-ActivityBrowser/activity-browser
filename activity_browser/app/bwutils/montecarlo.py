@@ -7,11 +7,12 @@ from bw2calc.utils import get_seed
 import numpy as np
 import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
+from collections import defaultdict
 
 from .manager import MonteCarloParameterManager
 
 
-class CSMonteCarloLCA(object):
+class MonteCarloLCA(object):
     """A Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
     def __init__(self, cs_name):
         if cs_name not in bw.calculation_setups:
@@ -20,7 +21,7 @@ class CSMonteCarloLCA(object):
             )
 
         self.cs_name = cs_name
-        cs = bw.calculation_setups[cs_name]
+        self.cs = bw.calculation_setups[cs_name]
         self.seed = None
         self.cf_rngs = {}
         self.CF_rng_vectors = {}
@@ -29,26 +30,29 @@ class CSMonteCarloLCA(object):
         self.include_cfs = True
         self.include_parameters = True
         self.param_rng = None
-        self.param_cols = ["input", "output", "type"]
+        self.param_cols = ["row", "col", "type"]
 
         self.tech_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
         self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
         self.cf_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
 
         # functional units
-        self.func_units = cs['inv']
+        self.func_units = self.cs['inv']
         self.rev_fu_index = {i: fu for i, fu in enumerate(self.func_units)}
 
         # activities
         self.activity_keys = [list(fu.keys())[0] for fu in self.func_units]
         self.activity_index = {key: index for index, key in enumerate(self.activity_keys)}
-        self.rev_activity_index = {v: k for k, v in self.activity_keys}
+        self.rev_activity_index = {index: key for index, key in enumerate(self.activity_keys)}
+        # previously: self.rev_activity_index = {v: k for k, v in self.activity_keys}
         # self.fu_index = {k: i for i, k in enumerate(self.activity_keys)}
 
         # methods
-        self.methods = cs['ia']
+        self.methods = self.cs['ia']
         self.method_index = {m: i for i, m in enumerate(self.methods)}
-        self.rev_method_index = {v: k for k, v in self.method_index.items()}
+        self.rev_method_index = {i: m for i, m in enumerate(self.methods)}
+        # previously: self.rev_method_index = {v: k for k, v in self.method_index.items()}
+        # self.rev_method_index = {v: k for k, v in self.method_index.items()}
 
         # todo: get rid of the below
         self.func_unit_translation_dict = {str(bw.get_activity(list(func_unit.keys())[0])): func_unit
@@ -61,9 +65,43 @@ class CSMonteCarloLCA(object):
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_key_dict.keys())
 
-        self.results = []
+        # GSA calculation variables
+        self.A_matrices = list()
+        self.B_matrices = list()
+        self.CF_dict = defaultdict(list)
+        self.parameter_exchanges = list()
+        self.parameters = list()
+        self.parameter_data = defaultdict(dict)
+
+        self.results = list()
 
         self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+
+    def unify_param_exchanges(self, data: np.ndarray) -> np.ndarray:
+        """Convert an array of parameterized exchanges from input/output keys
+        into row/col values using dicts generated in bw.LCA object.
+
+        If any given exchange does not exist in the current LCA matrix,
+        it will be dropped from the returned array.
+        """
+        def key_to_rowcol(x) -> Optional[tuple]:
+            if x["type"] in [0, 1]:
+                row = self.lca.activity_dict.get(x["input"], None)
+                col = self.lca.product_dict.get(x["output"], None)
+            else:
+                row = self.lca.biosphere_dict.get(x["input"], None)
+                col = self.lca.activity_dict.get(x["output"], None)
+            # if either the row or the column is None, return np.NaN.
+            if row is None or col is None:
+                return None
+            return row, col, x["type"], x["amount"]
+
+        # Convert the data and store in a new array, dropping Nones.
+        converted = (key_to_rowcol(d) for d in data)
+        unified = np.array([x for x in converted if x is not None], dtype=[
+            ('row', '<u4'), ('col', '<u4'), ('type', 'u1'), ('amount', '<f4')
+        ])
+        return unified
 
     def load_data(self) -> None:
         """Constructs the random number generators for all of the matrices that
@@ -91,11 +129,14 @@ class CSMonteCarloLCA(object):
         if self.include_parameters:
             self.param_rng = MonteCarloParameterManager(seed=self.seed)
 
+        self.lca.activity_dict_rev, self.lca.product_dict_rev, self.lca.biosphere_dict_rev = self.lca.reverse_dict()
+
     def calculate(self, iterations=10, seed: int = None, **kwargs):
         """Main calculate method for the MC LCA class, allows fine-grained control
         over which uncertainties are included when running MC sampling.
         """
         start = time()
+        self.iterations = iterations
         self.seed = seed or get_seed()
         self.include_technosphere = kwargs.get("technosphere", True)
         self.include_biosphere = kwargs.get("biosphere", True)
@@ -103,22 +144,67 @@ class CSMonteCarloLCA(object):
         self.include_parameters = kwargs.get("parameters", True)
 
         self.load_data()
+
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
+
+        # Reset GSA variables to empty.
+        self.A_matrices = list()
+        self.B_matrices = list()
+        self.CF_dict = defaultdict(list)
+        self.parameter_exchanges = list()
+        self.parameters = list()
+
+        # Prepare GSA parameter schema:
+        if self.include_parameters:
+            self.parameter_data = self.param_rng.extract_active_parameters(self.lca)
+            # Add a values field to handle all the sampled parameter values.
+            for k in self.parameter_data:
+                self.parameter_data[k]["values"] = []
 
         for iteration in range(iterations):
             tech_vector = self.tech_rng.next() if self.include_technosphere else self.tech_rng
             bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
             if self.include_parameters:
-                param_exchanges = self.param_rng.next()
-                # combination of 'input', 'output', 'type' columns is unique
-                # For each recalculated exchange, match it to either matrix and
-                # override the value within that matrix.
-                for p in param_exchanges:
-                    tech_vector[self.lca.tech_params[self.param_cols] == p[self.param_cols]] = p["amount"]
-                    bio_vector[self.lca.bio_params[self.param_cols] == p[self.param_cols]] = p["amount"]
+                # Convert the input/output keys into row/col keys, and then match them against
+                # the tech_ and bio_params
+                data = self.param_rng.next()
+                param_exchanges = self.unify_param_exchanges(data)
+
+                # Select technosphere subset from param_exchanges.
+                subset = param_exchanges[np.isin(param_exchanges["type"], [0, 1])]
+                # Create index of where to insert new values from tech_params array.
+                idx = np.argwhere(
+                    np.isin(self.lca.tech_params[self.param_cols], subset[self.param_cols])
+                ).flatten()
+                # Construct unique array of row+col combinations
+                uniq = np.unique(self.lca.tech_params[idx][["row", "col"]])
+                # Use the unique array to sort the subset (ensures values
+                # are inserted at the correct index)
+                sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
+                # Finally, insert the sorted subset amounts into the tech_vector
+                # at the correct indexes.
+                tech_vector[idx] = subset[sort_idx]["amount"]
+                # Repeat the above, but for the biosphere array.
+                subset = param_exchanges[param_exchanges["type"] == 2]
+                idx = np.argwhere(
+                    np.isin(self.lca.bio_params[self.param_cols], subset[self.param_cols])
+                ).flatten()
+                uniq = np.unique(self.lca.bio_params[idx][["row", "col"]])
+                sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
+                bio_vector[idx] = subset[sort_idx]["amount"]
+
+                # Store parameter data for GSA
+                self.parameter_exchanges.append(param_exchanges)
+                self.parameters.append(self.param_rng.parameters.to_gsa())
+                # Extract sampled values for parameters, store.
+                self.param_rng.retrieve_sampled_values(self.parameter_data)
 
             self.lca.rebuild_technosphere_matrix(tech_vector)
             self.lca.rebuild_biosphere_matrix(bio_vector)
+
+            # store matrices for GSA
+            self.A_matrices.append(self.lca.technosphere_matrix)
+            self.B_matrices.append(self.lca.biosphere_matrix)
 
             if not hasattr(self.lca, "demand_array"):
                 self.lca.build_demand_array()
@@ -128,8 +214,8 @@ class CSMonteCarloLCA(object):
             cf_vectors = {}
             for m in self.methods:
                 cf_vectors[m] = self.cf_rngs[m].next() if self.include_cfs else self.cf_rngs[m]
-
-            # lca_scores = np.zeros((len(self.func_units), len(self.methods)))
+                # store CFs for GSA (in a list defaultdict)
+                self.CF_dict[m].append(cf_vectors[m])
 
             # iterate over FUs
             for row, func_unit in self.rev_fu_index.items():
@@ -140,11 +226,13 @@ class CSMonteCarloLCA(object):
                     self.lca.switch_method(m)
                     self.lca.rebuild_characterization_matrix(cf_vectors[m])
                     self.lca.lcia_calculation()
-                    # lca_scores[row, col] = self.lca.score
                     self.results[iteration, row, col] = self.lca.score
 
-        print('CSMonteCarloLCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
-            iterations, len(self.func_units), len(self.methods), time() - start
+        print('Monte Carlo LCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
+            iterations,
+            len(self.func_units),
+            len(self.methods),
+            np.round(time() - start, 2)
         ))
 
     @property
@@ -159,6 +247,11 @@ class CSMonteCarloLCA(object):
         - if a functional unit and method is provided, results will be given for all runs of that combination
         - if nothing is given, all results are returned
         """
+
+        if not self.results.any():
+            raise ValueError('You need to perform a Monte Carlo Simulation first.')
+            return None
+
         if act_key:
             act_index = self.activity_index.get(act_key)
             print('Activity key provided:', act_key, act_index)
@@ -184,6 +277,11 @@ class CSMonteCarloLCA(object):
         If labelled=True, then the activity keys are converted to a human
         readable format.
         """
+
+        if not self.results.any():
+            raise ValueError('You need to perform a Monte Carlo Simulation first.')
+            return None
+
         if act_key and method or not act_key and not method:
             raise ValueError('Must provide activity key or method, but not both.')
         data = self.get_results_by(act_key=act_key, method=method)
@@ -216,23 +314,29 @@ class CSMonteCarloLCA(object):
         return translated_keys
 
 
-if __name__ == "__main__":
-    print(bw.projects)
-    bw.projects.set_current('default')
-    print(bw.databases)
+def perform_MonteCarlo_LCA(project='default', cs_name=None, iterations=10):
+    """Performs Monte Carlo LCA based on a calculation setup and returns the
+    Monte Carlo LCA object."""
+    print('-- Monte Carlo LCA --\n Project:', project, 'CS:', cs_name)
+    bw.projects.set_current(project)
 
-    cs = bw.calculation_setups['A']
-    mc = CSMonteCarloLCA('A')
-    mc.calculate(iterations=5)
+    # perform Monte Carlo simulation
+    mc = MonteCarloLCA(cs_name)
+    mc.calculate(iterations=iterations)
+    return mc
+
+
+if __name__ == "__main__":
+    mc = perform_MonteCarlo_LCA(project='ei34', cs_name='kraft paper', iterations=15)
 
     # test the get_results_by() method
-    print('Testing the get_results_by() method')
+    print('\nTesting the get_results_by() method')
     act_key = mc.activity_keys[0]
     method = mc.methods[0]
     print(mc.get_results_by(act_key=act_key, method=method))
-    print(mc.get_results_by(act_key=act_key, method=None))
-    print(mc.get_results_by(act_key=None, method=method))
-    print(mc.get_results_by(act_key=None, method=None))
+    #    print(mc.get_results_by(act_key=act_key, method=None))
+    #    print(mc.get_results_by(act_key=None, method=method))
+    #    print(mc.get_results_by(act_key=None, method=None))
 
     # testing the dataframe output
     print(mc.get_results_dataframe(method=mc.methods[0]))
