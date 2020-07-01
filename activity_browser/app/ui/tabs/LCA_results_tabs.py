@@ -5,6 +5,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
 from collections import namedtuple
+import traceback
 from typing import List, Optional, Union
 
 from bw2calc.errors import BW2CalcError
@@ -15,12 +16,11 @@ from PySide2.QtWidgets import (
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
-import traceback
 
 from ...bwutils import (
     Contributions, MonteCarloLCA, MLCA, PresamplesMLCA,
-    SuperstructureContributions, SuperstructureMLCA,
-    GlobalSensitivityAnalysis,
+    PresamplesContributions, SuperstructureContributions,
+    SuperstructureMLCA, GlobalSensitivityAnalysis,
     commontasks as bc
 )
 from ...signals import signals
