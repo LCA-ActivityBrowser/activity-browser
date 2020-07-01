@@ -1339,7 +1339,9 @@ class GSATab(NewAnalysisTab):
         self.update_gsa()
 
     def update_gsa(self, cs_name=None):
-        self.df = self.GSA.df_final
+        self.df = getattr(self.GSA, "df_final", None)
+        if self.df is None:
+            return
         self.update_table()
         self.table.show()
         self.export_widget.show()
