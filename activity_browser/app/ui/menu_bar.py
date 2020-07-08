@@ -38,7 +38,7 @@ class MenuBar(object):
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
         self.update_biosphere_action.triggered.connect(self.update_biosphere)
-        self.import_db_action.triggered.connect(signals.import_database.emit)
+        self.import_db_action.triggered.connect(lambda: signals.import_database.emit(self))
 
     # FILE
     def setup_file_menu(self):

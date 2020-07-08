@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
-import os
 import uuid
-from typing import Iterable
+from typing import Iterable, Optional
 
 import brightway2 as bw
 from bw2data.parameters import ActivityParameter
 from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from PySide2.QtCore import QObject, Slot
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.parameters import ParameterBase
-from bw2data.project import ProjectDataset, SubstitutableDatabase
 from bw2data.proxies import ExchangeProxyBase
 
 from .bwutils import commontasks as bc, AB_metadata
@@ -37,7 +35,7 @@ class Controller(object):
      (https://stackoverflow.com/questions/26698628/mvc-design-with-qt-designer-and-pyqt-pyside)
     """
     def __init__(self):
-        self.db_wizard = None
+        self.db_wizard: Optional[QtWidgets.QWizard] = None
         self.copy_progress = None
         self.connect_signals()
         signals.project_selected.emit()
@@ -110,12 +108,13 @@ class Controller(object):
         self.db_wizard.deleteLater()
         self.db_wizard = None
 
-    def import_database_wizard(self):
+    @Slot(QObject, name="openImportWizard")
+    def import_database_wizard(self, parent):
         """ Create a database import wizard, if it already exists, set the
         previous one to delete and recreate it.
         """
         self.clear_database_wizard()
-        self.db_wizard = DatabaseImportWizard()
+        self.db_wizard = DatabaseImportWizard(parent)
 
     def switch_brightway2_dir_path(self, dirpath):
         if bc.switch_brightway2_dir(dirpath):
