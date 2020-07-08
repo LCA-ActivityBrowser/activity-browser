@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime as dt
 import hashlib
 import os
 import textwrap
@@ -129,8 +130,19 @@ def store_database_as_package(db_name: str, directory: str = None) -> bool:
     """
     if db_name not in bw.databases:
         return False
+    metadata = bw.databases[db_name]
+    db = bw.Database(db_name)
     output_dir = directory or "export"
-    bw.BW2Package.export_obj(bw.Database(db_name), db_name, output_dir)
+    # First, ensure the metadata on the database is up-to-date.
+    modified = dt.strptime(metadata["modified"], "%Y-%m-%dT%H:%M:%S.%f")
+    if "processed" in metadata:
+        processed = dt.strptime(metadata["processed"], "%Y-%m-%dT%H:%M:%S.%f")
+        if processed < modified:
+            db.process()
+    else:
+        db.process()
+    # Now that processing is done, perform the export.
+    bw.BW2Package.export_obj(db, db_name, output_dir)
     return True
 
 
