@@ -349,14 +349,19 @@ class ConfirmationPage(QtWidgets.QWizardPage):
 
 
 class ImportPage(QtWidgets.QWizardPage):
+    NO_DOWNLOAD = {"directory", "archive", "local"}
+    NO_UNPACK = {"directory", "local"}
+    NO_EXTRACT = {"forwast", "local"}
+    NO_STRATEGY = {"forwast", "local"}
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFinalPage(True)
         self.wizard = parent
         self.complete = False
-        extraction_label = QtWidgets.QLabel('Extracting XML data from ecospold files:')
+        self.extraction_label = QtWidgets.QLabel('Extracting XML data from ecospold files:')
         self.extraction_progressbar = QtWidgets.QProgressBar()
-        strategy_label = QtWidgets.QLabel('Applying brightway2 strategies:')
+        self.strategy_label = QtWidgets.QLabel('Applying brightway2 strategies:')
         self.strategy_progressbar = QtWidgets.QProgressBar()
         db_label = QtWidgets.QLabel('Writing datasets to SQLite database:')
         self.db_progressbar = QtWidgets.QProgressBar()
@@ -375,9 +380,9 @@ class ImportPage(QtWidgets.QWizardPage):
         layout.addWidget(self.unarchive_label)
         layout.addWidget(self.unarchive_progressbar)
 
-        layout.addWidget(extraction_label)
+        layout.addWidget(self.extraction_label)
         layout.addWidget(self.extraction_progressbar)
-        layout.addWidget(strategy_label)
+        layout.addWidget(self.strategy_label)
         layout.addWidget(self.strategy_progressbar)
         layout.addWidget(db_label)
         layout.addWidget(self.db_progressbar)
@@ -412,13 +417,19 @@ class ImportPage(QtWidgets.QWizardPage):
         return self.complete
 
     def init_progressbars(self):
-        show_download = self.wizard.import_type not in {'directory', 'archive'}
+        show_download = self.wizard.import_type not in self.NO_DOWNLOAD
         self.download_label.setVisible(show_download)
         self.download_progressbar.setVisible(show_download)
-        show_unarchive = self.wizard.import_type != 'directory'
+        show_unarchive = self.wizard.import_type not in self.NO_UNPACK
         self.unarchive_label.setVisible(show_unarchive)
         self.unarchive_progressbar.setVisible(show_unarchive)
-        if self.wizard.import_type in {'homepage', 'forwast'}:
+        show_extract = self.wizard.import_type not in self.NO_EXTRACT
+        self.extraction_label.setVisible(show_extract)
+        self.extraction_progressbar.setVisible(show_extract)
+        show_strategies = self.wizard.import_type not in self.NO_STRATEGY
+        self.strategy_label.setVisible(show_strategies)
+        self.strategy_progressbar.setVisible(show_strategies)
+        if show_download:
             self.download_progressbar.setRange(0, 0)
         elif self.wizard.import_type == 'archive':
             self.unarchive_progressbar.setRange(0, 0)
