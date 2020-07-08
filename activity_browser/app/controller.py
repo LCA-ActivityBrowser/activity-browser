@@ -329,9 +329,11 @@ class Controller(object):
                 type="process",
             )
             new_act.save()
-            production_exchange = new_act.new_exchange(amount=1, type="production")
-            production_exchange.input = new_act
+            production_exchange = new_act.new_exchange(
+                input=new_act, amount=1, type="production"
+            )
             production_exchange.save()
+            bw.databases.set_modified(database_name)
             signals.open_activity_tab.emit(new_act.key)
             signals.metadata_changed.emit(new_act.key)
             signals.database_changed.emit(database_name)
@@ -358,8 +360,9 @@ class Controller(object):
                 # Remove all activity parameters
                 Controller.delete_activity_parameter(act.key)
             act.delete()
+            bw.databases.set_modified(act["database"])
             signals.metadata_changed.emit(act.key)
-            signals.database_changed.emit(act['database'])
+            signals.database_changed.emit(act["database"])
             signals.databases_changed.emit()
             signals.calculation_setup_changed.emit()
 
@@ -395,6 +398,7 @@ class Controller(object):
             if product.get('input') == key:
                 product['input'] = new_act.key
         new_act.save()
+        bw.databases.set_modified(act['database'])
         signals.metadata_changed.emit(new_act.key)
         signals.database_changed.emit(act['database'])
         signals.databases_changed.emit()
@@ -435,6 +439,7 @@ class Controller(object):
         if bc.count_database_records(target_db) < 50:
             bw.databases.clean()
 
+        bw.databases.set_modified(target_db)
         signals.metadata_changed.emit(new_act_key)
         signals.database_changed.emit(target_db)
         signals.open_activity_tab.emit(new_act_key)
@@ -444,6 +449,7 @@ class Controller(object):
         activity = bw.get_activity(key)
         activity[field] = value
         activity.save()
+        bw.databases.set_modified(key[0])
         signals.metadata_changed.emit(key)
         signals.database_changed.emit(key[0])
 
@@ -477,6 +483,7 @@ class Controller(object):
             else:
                 exc['type'] = 'unknown'
             exc.save()
+        bw.databases.set_modified(to_key[0])
         signals.metadata_changed.emit(to_key)
         signals.database_changed.emit(to_key[0])
 
@@ -484,17 +491,18 @@ class Controller(object):
     def delete_exchanges(self, exchanges):
         db_changed = set()
         for exc in exchanges:
-            db_changed.add(exc['output'][0])
-            exc._document.delete_instance()
+            db_changed.add(exc["output"][0])
+            exc.delete()
         for db in db_changed:
+            bw.databases.set_modified(db)
             # signals.metadata_changed.emit(to_key)
             signals.database_changed.emit(db)
 
     def modify_exchange_amount(self, exchange, value):
-        exchange['amount'] = value
+        exchange["amount"] = value
         exchange.save()
-
-        signals.database_changed.emit(exchange['output'][0])
+        bw.databases.set_modified(exchange["output"][0])
+        signals.database_changed.emit(exchange["output"][0])
 
     @staticmethod
     @Slot(object, str, object)
@@ -516,10 +524,11 @@ class Controller(object):
         else:
             exchange[field] = value
         exchange.save()
+        bw.databases.set_modified(exchange["output"][0])
         if field == "formula":
             # If a formula was set, removed or changed, recalculate exchanges
             signals.exchange_formula_changed.emit(exchange["output"])
-        signals.database_changed.emit(exchange['output'][0])
+        signals.database_changed.emit(exchange["output"][0])
 
     @staticmethod
     @Slot(object, object, name="modifyExchangeUncertainty")
@@ -531,14 +540,16 @@ class Controller(object):
                 v = float("nan") if not v else float(v)
             exc[k] = v
         exc.save()
-        signals.database_changed.emit(exc['output'][0])
+        bw.databases.set_modified(exc["output"][0])
+        signals.database_changed.emit(exc["output"][0])
 
     @staticmethod
     @Slot(object, object, name="modifyExchangePedigree")
     def modify_exchange_pedigree(exc: ExchangeProxyBase, pedigree: dict) -> None:
         exc["pedigree"] = pedigree
         exc.save()
-        signals.database_changed.emit(exc['output'][0])
+        bw.databases.set_modified(exc["output"][0])
+        signals.database_changed.emit(exc["output"][0])
 
 # PARAMETERS
     @staticmethod
