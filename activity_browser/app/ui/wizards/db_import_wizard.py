@@ -19,6 +19,7 @@ from PySide2.QtCore import Signal, Slot
 
 from ...bwutils.strategies import relink_exchanges_bw2package
 from ...signals import signals
+from ..widgets import DatabaseRelinkDialog
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -405,6 +406,7 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.finished.connect(self.update_finished)
         import_signals.download_complete.connect(self.update_download)
         import_signals.unarchive_finished.connect(self.update_unarchive)
+        import_signals.missing_dbs.connect(self.fix_db_import)
 
         # Threads
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
@@ -495,6 +497,31 @@ class ImportPage(QtWidgets.QWizardPage):
         self.download_progressbar.setValue(1)
         self.unarchive_progressbar.setMaximum(0)
         self.unarchive_progressbar.setValue(0)
+
+    @Slot(object, name="fixDbImport")
+    def fix_db_import(self, missing: set) -> None:
+        """Halt and delete the importing thread, ask the user for input
+        and restart the worker thread with the new information.
+        """
+        self.main_worker_thread.exit(1)
+
+        # Iterate through the missing databases, asking user input.
+        self.relink_data = {}
+        for db in missing:
+            linker = DatabaseRelinkDialog.start_relink(
+                self, db, bw.databases.list
+            )
+            if linker.exec_() == DatabaseRelinkDialog.Accepted:
+                self.relink_data[db] = linker.new_db
+        # If the user at any point did not accept their choice, fail.
+        if len(self.relink_data) != len(missing):
+            import_signals.import_failure.emit(
+                ("Missing databases",
+                 "Package data links to database names that do not exist: {}".format(missing))
+            )
+            return
+        # Restart the page
+        self.initializePage()
 
 
 class MainWorkerThread(QtCore.QThread):
@@ -618,10 +645,9 @@ class MainWorkerThread(QtCore.QThread):
             else:
                 self.delete_canceled_db()
         except InvalidPackage as e:
+            # Try and fix the issue through relinking.
             self.delete_canceled_db()
-            import_signals.import_failure.emit(
-                ("Missing databases", str(e))
-            )
+            import_signals.missing_dbs.emit(e.args[1])
         except ImportCanceledError:
             self.delete_canceled_db()
         except InvalidExchange:
