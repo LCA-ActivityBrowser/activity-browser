@@ -361,6 +361,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.setFinalPage(True)
         self.wizard = parent
         self.complete = False
+        self.relink_data = {}
         self.extraction_label = QtWidgets.QLabel('Extracting XML data from ecospold files:')
         self.extraction_progressbar = QtWidgets.QProgressBar()
         self.strategy_label = QtWidgets.QLabel('Applying brightway2 strategies:')
@@ -451,7 +452,8 @@ class ImportPage(QtWidgets.QWizardPage):
         elif self.wizard.import_type == "local":
             self.main_worker_thread.update(db_name=self.field("db_name"),
                                            archive_path=self.field("archive_path"),
-                                           use_local=True)
+                                           use_local=True,
+                                           relink=self.relink_data)
         else:
             self.main_worker_thread.update(db_name=self.field('db_name'))
         self.main_worker_thread.start()
@@ -505,13 +507,16 @@ class MainWorkerThread(QtCore.QThread):
         self.datasets_path = None
         self.use_forwast = None
         self.use_local = None
+        self.relink = {}
 
-    def update(self, db_name, archive_path=None, datasets_path=None, use_forwast=False, use_local=False):
+    def update(self, db_name: str, archive_path=None, datasets_path=None,
+               use_forwast=False, use_local=False, relink=None) -> None:
         self.db_name = db_name
         self.archive_path = archive_path
         self.datasets_path = datasets_path
         self.use_forwast = use_forwast
         self.use_local = use_local
+        self.relink = relink or {}
 
     def run(self):
         if self.use_forwast:
@@ -603,7 +608,7 @@ class MainWorkerThread(QtCore.QThread):
     def run_local_import(self):
         try:
             import_signals.db_progress.emit(0, 0)
-            result = ABPackage.import_file(self.archive_path)
+            result = ABPackage.import_file(self.archive_path, relink=self.relink)
             if not import_signals.cancel_sentinel:
                 db = next(iter(result))
                 if db.name != self.db_name:
@@ -907,6 +912,8 @@ class ImportSignals(QtCore.QObject):
     cancel_sentinel = False
     login_success = Signal(bool)
     connection_problem = Signal(tuple)
+    # Allow transmission of missing databases
+    missing_dbs = Signal(object)
 
 
 import_signals = ImportSignals()
