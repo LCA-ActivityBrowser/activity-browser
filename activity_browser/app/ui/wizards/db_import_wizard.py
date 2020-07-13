@@ -105,8 +105,10 @@ class DatabaseImportWizard(QtWidgets.QWizard):
             process.communicate()
 
     def cleanup(self):
-        self.reject()
+        if self.import_page.main_worker_thread.isRunning():
+            self.import_page.main_worker_thread.exit(1)
         self.import_page.complete = False
+        self.reject()
 
     def show_info(self, info):
         title, message = info
@@ -411,7 +413,7 @@ class ImportPage(QtWidgets.QWizardPage):
         # Threads
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
 
-    def reset_progressbars(self):
+    def reset_progressbars(self) -> None:
         for pb in [self.extraction_progressbar, self.strategy_progressbar,
                    self.db_progressbar, self.finalizing_progressbar,
                    self.download_progressbar, self.unarchive_progressbar]:
@@ -421,7 +423,7 @@ class ImportPage(QtWidgets.QWizardPage):
     def isComplete(self):
         return self.complete
 
-    def init_progressbars(self):
+    def init_progressbars(self) -> None:
         show_download = self.wizard.import_type not in self.NO_DOWNLOAD
         self.download_label.setVisible(show_download)
         self.download_progressbar.setVisible(show_download)
@@ -461,26 +463,31 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.start()
 
     @Slot(int, int)
-    def update_extraction_progress(self, i, tot):
+    def update_extraction_progress(self, i, tot) -> None:
         self.extraction_progressbar.setMaximum(tot)
         self.extraction_progressbar.setValue(i)
 
     @Slot(int, int)
-    def update_strategy_progress(self, i, tot):
+    def update_strategy_progress(self, i, tot) -> None:
         self.strategy_progressbar.setMaximum(tot)
         self.strategy_progressbar.setValue(i)
 
     @Slot(int, int)
-    def update_db_progress(self, i, tot):
+    def update_db_progress(self, i, tot) -> None:
         self.db_progressbar.setMaximum(tot)
         self.db_progressbar.setValue(i)
         if i == tot and tot != 0:
             import_signals.finalizing.emit()
 
-    def update_finalizing(self):
+    @Slot()
+    def update_finalizing(self) -> None:
         self.finalizing_progressbar.setRange(0, 0)
 
-    def update_finished(self):
+    @Slot()
+    def update_finished(self) -> None:
+        """Databse import was successful, quit the thread and the wizard."""
+        if self.main_worker_thread.isRunning():
+            self.main_worker_thread.quit()
         self.finalizing_progressbar.setMaximum(1)
         self.finalizing_progressbar.setValue(1)
         self.finished_label.setText('<b>Finished!</b>')
@@ -488,11 +495,13 @@ class ImportPage(QtWidgets.QWizardPage):
         self.completeChanged.emit()
         signals.databases_changed.emit()
 
-    def update_unarchive(self):
+    @Slot()
+    def update_unarchive(self) -> None:
         self.unarchive_progressbar.setMaximum(1)
         self.unarchive_progressbar.setValue(1)
 
-    def update_download(self):
+    @Slot()
+    def update_download(self) -> None:
         self.download_progressbar.setMaximum(1)
         self.download_progressbar.setValue(1)
         self.unarchive_progressbar.setMaximum(0)
