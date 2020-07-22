@@ -104,7 +104,10 @@ class SuperstructureManager(object):
         if not isinstance(df.index, pd.MultiIndex):
             df.index = SuperstructureManager.index_from_keys(df)
         duplicates = df.index.duplicated(keep="last")
-        return df.loc[~duplicates, :] if duplicates.any() else df
+        if duplicates.any():
+            print("Found and dropped {} duplicate exchanges.".format(duplicates.sum()))
+            return df.loc[~duplicates, :]
+        return df
 
     @staticmethod
     def index_from_keys(df: pd.DataFrame) -> pd.MultiIndex:
