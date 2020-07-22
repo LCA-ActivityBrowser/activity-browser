@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import List
 
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QRegExp, Slot
@@ -232,3 +233,44 @@ class ExcelReadDialog(QtWidgets.QDialog):
         if self.complete:
             self.update_combobox(self.path)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
+
+
+class DatabaseRelinkDialog(QtWidgets.QDialog):
+    LABEL_TEXT = (
+        "A database could not be found in project, attempt to relink the"
+        " exchanges to a different database?"
+        "\n\nReplace database '{}' with:"
+    )
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Database relinking")
+        self.label = QtWidgets.QLabel("")
+        self.choice = QtWidgets.QComboBox()
+        self.choice.addItems(["-----"])
+        self.choice.setDisabled(True)
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.label)
+        layout.addWidget(self.choice)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def new_db(self) -> str:
+        return self.choice.currentText()
+
+    @classmethod
+    def start_relink(cls, parent: QtWidgets.QWidget, db: str, options: List[str]) -> 'DatabaseRelinkDialog':
+        obj = cls(parent)
+        obj.label.setText(cls.LABEL_TEXT.format(db))
+        obj.choice.clear()
+        obj.choice.addItems(options)
+        obj.choice.setEnabled(True)
+        return obj

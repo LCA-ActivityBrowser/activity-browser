@@ -3,6 +3,7 @@ import os
 import io
 import subprocess
 import tempfile
+import warnings
 import zipfile
 
 import eidl
@@ -16,7 +17,9 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
+from ...bwutils.strategies import relink_exchanges_bw2package
 from ...signals import signals
+from ..widgets import DatabaseRelinkDialog
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -102,8 +105,10 @@ class DatabaseImportWizard(QtWidgets.QWizard):
             process.communicate()
 
     def cleanup(self):
-        self.reject()
+        if self.import_page.main_worker_thread.isRunning():
+            self.import_page.main_worker_thread.exit(1)
         self.import_page.complete = False
+        self.reject()
 
     def show_info(self, info):
         title, message = info
@@ -349,14 +354,20 @@ class ConfirmationPage(QtWidgets.QWizardPage):
 
 
 class ImportPage(QtWidgets.QWizardPage):
+    NO_DOWNLOAD = {"directory", "archive", "local"}
+    NO_UNPACK = {"directory", "local"}
+    NO_EXTRACT = {"forwast", "local"}
+    NO_STRATEGY = {"forwast", "local"}
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFinalPage(True)
         self.wizard = parent
         self.complete = False
-        extraction_label = QtWidgets.QLabel('Extracting XML data from ecospold files:')
+        self.relink_data = {}
+        self.extraction_label = QtWidgets.QLabel('Extracting XML data from ecospold files:')
         self.extraction_progressbar = QtWidgets.QProgressBar()
-        strategy_label = QtWidgets.QLabel('Applying brightway2 strategies:')
+        self.strategy_label = QtWidgets.QLabel('Applying brightway2 strategies:')
         self.strategy_progressbar = QtWidgets.QProgressBar()
         db_label = QtWidgets.QLabel('Writing datasets to SQLite database:')
         self.db_progressbar = QtWidgets.QProgressBar()
@@ -375,9 +386,9 @@ class ImportPage(QtWidgets.QWizardPage):
         layout.addWidget(self.unarchive_label)
         layout.addWidget(self.unarchive_progressbar)
 
-        layout.addWidget(extraction_label)
+        layout.addWidget(self.extraction_label)
         layout.addWidget(self.extraction_progressbar)
-        layout.addWidget(strategy_label)
+        layout.addWidget(self.strategy_label)
         layout.addWidget(self.strategy_progressbar)
         layout.addWidget(db_label)
         layout.addWidget(self.db_progressbar)
@@ -397,11 +408,12 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.finished.connect(self.update_finished)
         import_signals.download_complete.connect(self.update_download)
         import_signals.unarchive_finished.connect(self.update_unarchive)
+        import_signals.missing_dbs.connect(self.fix_db_import)
 
         # Threads
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
 
-    def reset_progressbars(self):
+    def reset_progressbars(self) -> None:
         for pb in [self.extraction_progressbar, self.strategy_progressbar,
                    self.db_progressbar, self.finalizing_progressbar,
                    self.download_progressbar, self.unarchive_progressbar]:
@@ -411,14 +423,20 @@ class ImportPage(QtWidgets.QWizardPage):
     def isComplete(self):
         return self.complete
 
-    def init_progressbars(self):
-        show_download = self.wizard.import_type not in {'directory', 'archive'}
+    def init_progressbars(self) -> None:
+        show_download = self.wizard.import_type not in self.NO_DOWNLOAD
         self.download_label.setVisible(show_download)
         self.download_progressbar.setVisible(show_download)
-        show_unarchive = self.wizard.import_type != 'directory'
+        show_unarchive = self.wizard.import_type not in self.NO_UNPACK
         self.unarchive_label.setVisible(show_unarchive)
         self.unarchive_progressbar.setVisible(show_unarchive)
-        if self.wizard.import_type in {'homepage', 'forwast'}:
+        show_extract = self.wizard.import_type not in self.NO_EXTRACT
+        self.extraction_label.setVisible(show_extract)
+        self.extraction_progressbar.setVisible(show_extract)
+        show_strategies = self.wizard.import_type not in self.NO_STRATEGY
+        self.strategy_label.setVisible(show_strategies)
+        self.strategy_progressbar.setVisible(show_strategies)
+        if show_download:
             self.download_progressbar.setRange(0, 0)
         elif self.wizard.import_type == 'archive':
             self.unarchive_progressbar.setRange(0, 0)
@@ -438,32 +456,38 @@ class ImportPage(QtWidgets.QWizardPage):
         elif self.wizard.import_type == "local":
             self.main_worker_thread.update(db_name=self.field("db_name"),
                                            archive_path=self.field("archive_path"),
-                                           use_local=True)
+                                           use_local=True,
+                                           relink=self.relink_data)
         else:
             self.main_worker_thread.update(db_name=self.field('db_name'))
         self.main_worker_thread.start()
 
     @Slot(int, int)
-    def update_extraction_progress(self, i, tot):
+    def update_extraction_progress(self, i, tot) -> None:
         self.extraction_progressbar.setMaximum(tot)
         self.extraction_progressbar.setValue(i)
 
     @Slot(int, int)
-    def update_strategy_progress(self, i, tot):
+    def update_strategy_progress(self, i, tot) -> None:
         self.strategy_progressbar.setMaximum(tot)
         self.strategy_progressbar.setValue(i)
 
     @Slot(int, int)
-    def update_db_progress(self, i, tot):
+    def update_db_progress(self, i, tot) -> None:
         self.db_progressbar.setMaximum(tot)
         self.db_progressbar.setValue(i)
         if i == tot and tot != 0:
             import_signals.finalizing.emit()
 
-    def update_finalizing(self):
+    @Slot()
+    def update_finalizing(self) -> None:
         self.finalizing_progressbar.setRange(0, 0)
 
-    def update_finished(self):
+    @Slot()
+    def update_finished(self) -> None:
+        """Databse import was successful, quit the thread and the wizard."""
+        if self.main_worker_thread.isRunning():
+            self.main_worker_thread.quit()
         self.finalizing_progressbar.setMaximum(1)
         self.finalizing_progressbar.setValue(1)
         self.finished_label.setText('<b>Finished!</b>')
@@ -471,15 +495,42 @@ class ImportPage(QtWidgets.QWizardPage):
         self.completeChanged.emit()
         signals.databases_changed.emit()
 
-    def update_unarchive(self):
+    @Slot()
+    def update_unarchive(self) -> None:
         self.unarchive_progressbar.setMaximum(1)
         self.unarchive_progressbar.setValue(1)
 
-    def update_download(self):
+    @Slot()
+    def update_download(self) -> None:
         self.download_progressbar.setMaximum(1)
         self.download_progressbar.setValue(1)
         self.unarchive_progressbar.setMaximum(0)
         self.unarchive_progressbar.setValue(0)
+
+    @Slot(object, name="fixDbImport")
+    def fix_db_import(self, missing: set) -> None:
+        """Halt and delete the importing thread, ask the user for input
+        and restart the worker thread with the new information.
+        """
+        self.main_worker_thread.exit(1)
+
+        # Iterate through the missing databases, asking user input.
+        self.relink_data = {}
+        for db in missing:
+            linker = DatabaseRelinkDialog.start_relink(
+                self, db, bw.databases.list
+            )
+            if linker.exec_() == DatabaseRelinkDialog.Accepted:
+                self.relink_data[db] = linker.new_db
+        # If the user at any point did not accept their choice, fail.
+        if len(self.relink_data) != len(missing):
+            import_signals.import_failure.emit(
+                ("Missing databases",
+                 "Package data links to database names that do not exist: {}".format(missing))
+            )
+            return
+        # Restart the page
+        self.initializePage()
 
 
 class MainWorkerThread(QtCore.QThread):
@@ -492,13 +543,16 @@ class MainWorkerThread(QtCore.QThread):
         self.datasets_path = None
         self.use_forwast = None
         self.use_local = None
+        self.relink = {}
 
-    def update(self, db_name, archive_path=None, datasets_path=None, use_forwast=False, use_local=False):
+    def update(self, db_name: str, archive_path=None, datasets_path=None,
+               use_forwast=False, use_local=False, relink=None) -> None:
         self.db_name = db_name
         self.archive_path = archive_path
         self.datasets_path = datasets_path
         self.use_forwast = use_forwast
         self.use_local = use_local
+        self.relink = relink or {}
 
     def run(self):
         if self.use_forwast:
@@ -590,7 +644,7 @@ class MainWorkerThread(QtCore.QThread):
     def run_local_import(self):
         try:
             import_signals.db_progress.emit(0, 0)
-            result = ABPackage.import_file(self.archive_path)
+            result = ABPackage.import_file(self.archive_path, relink=self.relink)
             if not import_signals.cancel_sentinel:
                 db = next(iter(result))
                 if db.name != self.db_name:
@@ -600,10 +654,9 @@ class MainWorkerThread(QtCore.QThread):
             else:
                 self.delete_canceled_db()
         except InvalidPackage as e:
+            # Try and fix the issue through relinking.
             self.delete_canceled_db()
-            import_signals.import_failure.emit(
-                ("Missing databases", str(e))
-            )
+            import_signals.missing_dbs.emit(e.args[1])
         except ImportCanceledError:
             self.delete_canceled_db()
         except InvalidExchange:
@@ -894,6 +947,8 @@ class ImportSignals(QtCore.QObject):
     cancel_sentinel = False
     login_success = Signal(bool)
     connection_problem = Signal(tuple)
+    # Allow transmission of missing databases
+    missing_dbs = Signal(object)
 
 
 import_signals = ImportSignals()
@@ -962,23 +1017,61 @@ class ABPackage(bw.BW2Package):
     much faster.
     """
     @classmethod
-    def evaluate_metadata(cls, metadata: dict):
+    def evaluate_metadata(cls, metadata: dict, ignore_dbs: set):
         """ Take the given metadata dictionary and test it against realities
         of the current brightway project.
         """
         if "depends" in metadata:
             missing = set(metadata["depends"]).difference(bw.databases)
+            # Remove any databases present in ignore_dbs (these will be relinked)
+            missing = missing.difference(ignore_dbs)
             if missing:
-                raise InvalidPackage("Package data links to database names that do not exist: {}".format(missing))
+                raise InvalidPackage(
+                    "Package data links to database names that do not exist: {}".format(missing),
+                    missing
+                )
 
     @classmethod
-    def load_file(cls, filepath, whitelist=True):
+    def load_file(cls, filepath, whitelist=True, relink: dict = None):
+        """Similar to how the base class loads the data, but also perform
+        a number of evaluations on the metadata.
+
+        Also, if given a 'relink' dictionary, perform relinking of exchanges.
+        """
         data = super().load_file(filepath, whitelist)
+        relinking = set(relink.keys()) if relink else set([])
         if isinstance(data, dict):
             if "metadata" in data:
-                cls.evaluate_metadata(data["metadata"])
+                cls.evaluate_metadata(data["metadata"], relinking)
+            if relink:
+                data["data"] = relink_exchanges_bw2package(data["data"], relink)
         else:
             for obj in data:
                 if "metadata" in obj:
-                    cls.evaluate_metadata(obj["metadata"])
+                    cls.evaluate_metadata(obj["metadata"], relinking)
+                if relink:
+                    obj["data"] = relink_exchanges_bw2package(obj["data"], relink)
         return data
+
+    @classmethod
+    def import_file(cls, filepath, whitelist=True, relink: dict = None):
+        """Import bw2package file, and create the loaded objects, including registering, writing, and processing the created objects.
+
+        Args:
+            * *filepath* (str): Path of file to import
+            * *whitelist* (bool): Apply whitelist to allowed types. Default is ``True``.
+        Kwargs:
+            * *relink* (dict): A dictionary of keys with which to relink exchanges
+              within the imported package file.
+
+        Returns:
+            Created object or list of created objects.
+
+        """
+        loaded = cls.load_file(filepath, whitelist, relink)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if isinstance(loaded, dict):
+                return cls._create_obj(loaded)
+            else:
+                return [cls._create_obj(o) for o in loaded]
