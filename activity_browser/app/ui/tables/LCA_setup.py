@@ -2,6 +2,7 @@
 import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
+from PySide2.QtCore import Slot
 from PySide2 import QtWidgets
 
 from activity_browser.app.bwutils.commontasks import AB_names_to_bw_keys
@@ -99,6 +100,14 @@ class CSActivityTable(ABDataFrameEdit):
         index = self.get_source_index(proxy)
         return self.dataframe.iat[index.row(), self.dataframe.columns.get_loc("key")]
 
+    @Slot(name="openActivities")
+    def open_activities(self) -> None:
+        for proxy in self.selectedIndexes():
+            act = self.get_key(proxy)
+            signals.open_activity_tab.emit(act)
+            signals.add_activity_to_history.emit(act)
+
+    @Slot(name="deleteRows")
     def delete_rows(self):
         keys = set(self.get_key(p) for p in self.selectedIndexes())
         # If the fu contains no keys to be removed, add it to the new list
@@ -116,6 +125,7 @@ class CSActivityTable(ABDataFrameEdit):
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
+        menu.addAction(qicons.right, "Open activity", self.open_activities)
         menu.addAction(qicons.delete, "Remove row", self.delete_rows)
         menu.exec_(a0.globalPos())
 
@@ -183,6 +193,7 @@ class CSMethodsTable(ABDataFrameView):
                 for method in bw.calculation_setups[self.current_cs]["ia"]
             ], columns=self.HEADERS)
 
+    @Slot(name="deleteRows")
     def delete_rows(self):
         indices = (self.get_source_index(p) for p in self.selectedIndexes())
         rows = [i.row() for i in indices]
