@@ -56,7 +56,7 @@ class DatabasesTable(ABDataFrameView):
         )
         menu.addAction(
             qicons.duplicate_database, "Copy database",
-            lambda: signals.copy_database.emit(self.selected_db_name)
+            lambda: signals.copy_database.emit(self.selected_db_name, self)
         )
         menu.addAction(
             qicons.add, "Add new activity",
