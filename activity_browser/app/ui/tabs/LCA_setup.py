@@ -7,7 +7,8 @@ from brightway2 import calculation_setups
 import pandas as pd
 
 from ...bwutils.superstructure import (
-    SuperstructureManager, import_from_excel, scenario_names_from_df
+    SuperstructureManager, import_from_excel, scenario_names_from_df,
+    SUPERSTRUCTURE,
 )
 from ...signals import signals
 from ..icons import qicons
@@ -281,7 +282,7 @@ class LCASetupTab(QtWidgets.QWidget):
 
 
 class ScenarioImportPanel(QtWidgets.QWidget):
-    MAX_TABLES = 2
+    MAX_TABLES = 5
 
     """Special kind of QWidget that contains one or more tables side by side."""
     def __init__(self, parent=None):
@@ -332,18 +333,14 @@ class ScenarioImportPanel(QtWidgets.QWidget):
             return []
         return scenario_names_from_df(self.tables[idx])
 
-    def combined_dataframe(self, kind: str = "product") -> pd.DataFrame:
+    def combined_dataframe(self) -> pd.DataFrame:
         """Return a dataframe that combines the scenarios of multiple tables.
-
-        TODO: finish implementing pandas methods for combining all
-         dataframes into a single whole in different ways.
-         Currently only 1 table can be loaded.
         """
         if not self.tables:
             # Return an empty dataframe, will almost immediately cause a
             # validation exception.
             return pd.DataFrame()
-        data = [t.scenario_df for t in self.tables]
+        data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         manager = SuperstructureManager(*data)
         if self.product_choice.isChecked():
             kind = "product"
@@ -382,6 +379,11 @@ class ScenarioImportPanel(QtWidgets.QWidget):
 
     def updateGeometry(self):
         self.group_box.setHidden(len(self.tables) <= 1)
+        # Make sure that scenario tables are equally balanced within the box.
+        if self.tables:
+            table_width = self.width() / len(self.tables)
+            for table in self.tables:
+                table.setMaximumWidth(table_width)
         super().updateGeometry()
 
     @Slot(name="canAddTable")
@@ -404,9 +406,11 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.index = index
         self.scenario_name = QtWidgets.QLabel("<filename>", self)
         self.load_btn = QtWidgets.QPushButton(qicons.import_db, "Load")
+        self.load_btn.setToolTip("Load (new) data for this scenario table")
         self.remove_btn = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.remove_btn.setToolTip("Remove this scenario table")
         self.table = ScenarioImportTable(self)
-        self.scenario_df = pd.DataFrame()
+        self.scenario_df = pd.DataFrame(columns=SUPERSTRUCTURE)
 
         layout = QtWidgets.QVBoxLayout()
 
@@ -447,8 +451,15 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 signals.parameter_scenario_sync.emit(self.index, df)
             finally:
                 self.scenario_name.setText(path.name)
+                self.scenario_name.setToolTip(path.name)
 
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         self.scenario_df = df
         cols = scenario_names_from_df(self.scenario_df)
         self.table.sync(cols)
+
+    @property
+    def dataframe(self) -> pd.DataFrame:
+        if self.scenario_df.empty:
+            print("No data in scenario table {}, skipping".format(self.index + 1))
+        return self.scenario_df

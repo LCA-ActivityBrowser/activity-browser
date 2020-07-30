@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Slot
 
 from ...signals import signals
 
@@ -14,7 +13,7 @@ class CopyDatabaseDialog(QtWidgets.QProgressDialog):
         self.show()
 
         self.thread = CopyDatabaseThread(self)
-        self.thread.finished.connect(self.complete)
+        self.thread.finished.connect(self.finished)
 
     def begin_copy(self, copy_from: str, copy_to: str) -> None:
         if not all([copy_from, copy_to]):
@@ -30,8 +29,8 @@ class CopyDatabaseDialog(QtWidgets.QProgressDialog):
         self.thread.configure(copy_from, copy_to)
         self.thread.start()
 
-    @Slot(name="threadComplete")
-    def complete(self) -> None:
+    def finished(self, result: int = None) -> None:
+        self.thread.exit(result or 0)
         self.setMaximum(1)
         self.setValue(1)
         signals.databases_changed.emit()
@@ -42,8 +41,6 @@ class CopyDatabaseThread(QtCore.QThread):
         super().__init__(parent=parent)
         self.copy_from = None
         self.copy_to = None
-        # https://doc.qt.io/qt-5/qthread.html#managing-threads
-        self.finished.connect(self.deleteLater)
 
     def configure(self, copy_from: str, copy_to: str):
         self.copy_from = copy_from

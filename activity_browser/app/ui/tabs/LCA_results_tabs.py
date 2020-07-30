@@ -141,7 +141,15 @@ class LCAResultsSubTab(QTabWidget):
                 self.mlca = SuperstructureMLCA(self.cs_name, self.presamples)
                 self.contributions = SuperstructureContributions(self.mlca)
             except AssertionError as e:
+                # This occurs if the superstructure itself detects something is wrong.
                 raise BW2CalcError("Scenario LCA failed.", str(e)).with_traceback(e.__traceback__)
+            except ValueError as e:
+                # This occurs if the LCA matrix does not contain any of the
+                # exchanges mentioned in the superstructure data.
+                raise BW2CalcError(
+                    "Scenario LCA failed.",
+                    "Constructed LCA matrix does not contain any exchanges from the superstructure"
+                ).with_traceback(e.__traceback__)
         self.mlca.calculate()
         self.mc = MonteCarloLCA(self.cs_name)
 

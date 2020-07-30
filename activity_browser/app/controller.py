@@ -249,20 +249,21 @@ class Controller(object):
                                                   "Not possible",
                                                   "A database with this name already exists.")
 
-    def copy_database(self, name):
+    @Slot(str, QObject, name="copyDatabaseAction")
+    def copy_database(self, name, parent):
         new_name, ok = QtWidgets.QInputDialog.getText(
-            None,
+            parent,
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if ok and new_name:
             try:
                 # Attaching the created wizard to the class avoids the copying
                 # thread being prematurely destroyed.
-                self.copy_progress = CopyDatabaseDialog()
+                self.copy_progress = CopyDatabaseDialog(parent)
                 self.copy_progress.begin_copy(name, new_name)
                 project_settings.add_db(new_name)
             except ValueError as e:
-                QtWidgets.QMessageBox.information(None, "Not possible", str(e))
+                QtWidgets.QMessageBox.information(parent, "Not possible", str(e))
 
     def delete_database(self, name):
         ok = QtWidgets.QMessageBox.question(
