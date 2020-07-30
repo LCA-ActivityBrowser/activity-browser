@@ -344,7 +344,7 @@ class ScenarioImportPanel(QtWidgets.QWidget):
             # Return an empty dataframe, will almost immediately cause a
             # validation exception.
             return pd.DataFrame()
-        data = [t.scenario_df for t in self.tables]
+        data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         manager = SuperstructureManager(*data)
         if self.product_choice.isChecked():
             kind = "product"
@@ -453,3 +453,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.scenario_df = df
         cols = scenario_names_from_df(self.scenario_df)
         self.table.sync(cols)
+
+    @property
+    def dataframe(self) -> pd.DataFrame:
+        if self.scenario_df.empty:
+            print("No data in scenario table {}, skipping".format(self.index + 1))
+        return self.scenario_df
