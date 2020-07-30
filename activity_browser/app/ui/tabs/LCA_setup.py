@@ -7,7 +7,8 @@ from brightway2 import calculation_setups
 import pandas as pd
 
 from ...bwutils.superstructure import (
-    SuperstructureManager, import_from_excel, scenario_names_from_df
+    SuperstructureManager, import_from_excel, scenario_names_from_df,
+    SUPERSTRUCTURE,
 )
 from ...signals import signals
 from ..icons import qicons
@@ -406,7 +407,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.load_btn = QtWidgets.QPushButton(qicons.import_db, "Load")
         self.remove_btn = QtWidgets.QPushButton(qicons.delete, "Delete")
         self.table = ScenarioImportTable(self)
-        self.scenario_df = pd.DataFrame()
+        self.scenario_df = pd.DataFrame(columns=SUPERSTRUCTURE)
 
         layout = QtWidgets.QVBoxLayout()
 
