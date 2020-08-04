@@ -47,9 +47,12 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
     def focusOutEvent(self, event):
         after = self.toPlainText()
         if self._before != after:
-            self._before = after
             signals.activity_modified.emit(self._key, self._field, after)
-        super(SignalledPlainTextEdit, self).focusOutEvent(event)
+        super().focusOutEvent(event)
+
+    def refresh_text(self, text: str) -> None:
+        self._before = text
+        self.setPlainText(text)
 
     # def adjust_size(self):
     #     """ A way to reduce the height of the TextEdit. Could be implemented better.

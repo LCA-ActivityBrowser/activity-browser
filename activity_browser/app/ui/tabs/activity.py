@@ -86,7 +86,7 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Activity Description
         self.activity_description = SignalledPlainTextEdit(
-            key=getattr(self.activity, "key", None),
+            key=key,
             field="comment",
             parent=self,
         )
@@ -96,12 +96,16 @@ class ActivityTab(QtWidgets.QWidget):
         self.checkbox_activity_description.clicked.connect(self.toggle_activity_description_visibility)
         # self.checkbox_description.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.checkbox_activity_description.setChecked(not self.read_only)
+        self.checkbox_activity_description.setToolTip(
+            "Show or hide the description of the activity"
+        )
         self.toggle_activity_description_visibility()
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
         # Reveal/hide uncertainty columns
-        self.show_uncertainty = QtWidgets.QCheckBox("Show Uncertainty", self)
+        self.show_uncertainty = QtWidgets.QCheckBox("Show Uncertainty")
+        self.show_uncertainty.setToolTip("Show or hide the uncertainty columns")
         self.show_uncertainty.setChecked(False)
         self.show_uncertainty.toggled.connect(self.show_exchange_uncertainty)
 
@@ -162,7 +166,12 @@ class ActivityTab(QtWidgets.QWidget):
     def open_graph(self):
         signals.open_activity_graph_tab.emit(self.key)
 
-    def populate(self):
+    @Slot(name="populatePage")
+    def populate(self) -> None:
+        """Populate the various tables and boxes within the Activity Detail tab"""
+        self.activity = bw.get_activity(self.key)  # Refresh activity.
+        self.populate_description_box()
+
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
         self.production.sync(self.activity.production())
@@ -174,21 +183,18 @@ class ActivityTab(QtWidgets.QWidget):
         for _, table in self.exchange_tables:
             table.updated.emit()
 
-        self.populate_description_box()
         self.show_exchange_uncertainty(self.show_uncertainty.isChecked())
 
     def populate_description_box(self):
-        # activity description
-        self.activity_description.setPlainText(self.activity.get('comment', ''))
+        """Populate the activity description."""
+        self.activity_description.refresh_text(self.activity.get('comment', ''))
         self.activity_description.setReadOnly(self.read_only)
-        self.activity_description._key = self.activity.key
 
         # the <font> html-tag has no effect besides making the tooltip rich text
         # this is required for line breaks of long comments
-        self.checkbox_activity_description.setToolTip(
-            '<font>{}</font>'.format(self.activity_description.toPlainText())
-        )
-        self.activity_description._before = self.activity.get('comment', '')
+        # self.checkbox_activity_description.setToolTip(
+        #     '<font>{}</font>'.format(self.activity_description.toPlainText())
+        # )
         # self.activity_description.adjust_size()
 
     def toggle_activity_description_visibility(self):
