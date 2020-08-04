@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtGui, QtWidgets
+from PySide2 import QtWidgets
+from PySide2.QtCore import Slot
+from PySide2.QtGui import QFontMetrics, QTextFormat
 
 from ...signals import signals
 
@@ -14,12 +16,14 @@ class SignalledLineEdit(QtWidgets.QLineEdit):
         self._key = key
         self._field = field
 
-    def _text_changed(self, text):
+    @Slot(str, name="customTextChanged")
+    def _text_changed(self, text: str) -> None:
         """Reset 'before' value when changing via Python"""
         if not self.hasFocus():
             self._before = text
 
-    def _editing_finished(self):
+    @Slot(name="customEditFinish")
+    def _editing_finished(self) -> None:
         after = self.text()
         if self._before != after:
             self._before = after
@@ -28,18 +32,19 @@ class SignalledLineEdit(QtWidgets.QLineEdit):
 
 class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
     """Adapted from https://john.nachtimwald.com/2009/08/19/better-qplaintextedit-with-line-numbers/"""
-    def __init__(self, key, field, contents='', parent=None):
-        super(SignalledPlainTextEdit, self).__init__(contents, parent)
+    def __init__(self, key: tuple, field: str, contents: str = "", parent=None):
+        super().__init__(contents, parent)
         self.highlight()
         self.cursorPositionChanged.connect(self.highlight)
         self._before = contents
         self._key = key
         self._field = field
 
+    @Slot(name="highlight")
     def highlight(self):
         selection = QtWidgets.QTextEdit.ExtraSelection()
         selection.format.setBackground(self.palette().alternateBase())
-        selection.format.setProperty(QtGui.QTextFormat.FullWidthSelection, True)
+        selection.format.setProperty(QTextFormat.FullWidthSelection, True)
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
         self.setExtraSelections([selection])
@@ -59,7 +64,7 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
     #     Based on: https://stackoverflow.com/questions/9506586/qtextedit-resize-to-fit
     #     """
     #     font = self.document().defaultFont()  # or another font if you change it
-    #     fontMetrics = QtGui.QFontMetrics(font)  # a QFontMetrics based on our font
+    #     fontMetrics = QFontMetrics(font)  # a QFontMetrics based on our font
     #     textSize = fontMetrics.size(0, self._before)
     #     # textWidth = textSize.width() + 30  # constant may need to be tweaked
     #     textHeight = textSize.height() + 30  # constant may need to be tweaked
@@ -70,12 +75,14 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
 
 
 class SignalledComboEdit(QtWidgets.QComboBox):
-    # based on SignalledPlainTextEdit.
-    # Could be moved to new file. Or better: this file renamed to be more inclusive
-    # needed to effectively implement the location dropdown list
+    """Based on SignalledPlainTextEdit.
+
+    Could be moved to new file. Or better: this file renamed to be more inclusive
+    needed to effectively implement the location dropdown list
+    """
 
     def __init__(self, key, field, contents='', parent=None):
-        super().__init__()
+        super().__init__(parent)
         self._before = contents
         self._key = key
         self._field = field

@@ -445,7 +445,9 @@ class Controller(object):
         signals.open_activity_tab.emit(new_act_key)
         signals.databases_changed.emit()
 
-    def modify_activity(self, key, field, value):
+    @staticmethod
+    @Slot(tuple, str, object, name="modifyActivity")
+    def modify_activity(key: tuple, field: str, value: object) -> None:
         activity = bw.get_activity(key)
         activity[field] = value
         activity.save()

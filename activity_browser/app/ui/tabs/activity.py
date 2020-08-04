@@ -70,7 +70,7 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, key, parent=None, read_only=True):
+    def __init__(self, key: tuple, parent=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
@@ -161,8 +161,8 @@ class ActivityTab(QtWidgets.QWidget):
         signals.parameters_changed.connect(self.populate)
         # signals.activity_modified.connect(self.update_activity_values)
 
-    @Slot()
-    def open_graph(self):
+    @Slot(name="openGraph")
+    def open_graph(self) -> None:
         signals.open_activity_graph_tab.emit(self.key)
 
     @Slot(name="populatePage")
@@ -196,16 +196,18 @@ class ActivityTab(QtWidgets.QWidget):
         # )
         # self.activity_description.adjust_size()
 
-    def toggle_activity_description_visibility(self):
+    @Slot(name="toggleDescription")
+    def toggle_activity_description_visibility(self) -> None:
         """Show only if checkbox is checked."""
         self.activity_description.setVisible(self.checkbox_activity_description.isChecked())
 
-    @QtCore.Slot(bool, name="toggleUncertaintyColumns")
+    @Slot(bool, name="toggleUncertaintyColumns")
     def show_exchange_uncertainty(self, toggled: bool) -> None:
         self.technosphere.show_uncertainty(toggled)
         self.biosphere.show_uncertainty(toggled)
 
-    def act_read_only_changed(self, read_only):
+    @Slot(bool, name="toggleReadOnly")
+    def act_read_only_changed(self, read_only: bool) -> None:
         """ When read_only=False specific data fields in the tables below become user-editable
                 When read_only=True these same fields become read-only"""
         self.read_only = not read_only
@@ -221,12 +223,13 @@ class ActivityTab(QtWidgets.QWidget):
         self.update_tooltips()
         self.update_style()
 
-    def exchange_tables_read_only_changed(self):
-        """the user should not be able to edit the exchange tables when read_only
-                EditTriggers turned off to prevent DoubleClick-selection editing
-                DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add"""
+    def exchange_tables_read_only_changed(self) -> None:
+        """The user should not be able to edit the exchange tables when read_only
 
-        for label, table in self.exchange_tables:
+        EditTriggers turned off to prevent DoubleClick-selection editing.
+        DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add.
+        """
+        for _, table in self.exchange_tables:
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
                 table.setAcceptDrops(False)
@@ -243,7 +246,8 @@ class ActivityTab(QtWidgets.QWidget):
                 if not table.downstream:  # downstream consumers table never accepts drops
                     table.setAcceptDrops(True)
 
-    def db_read_only_changed(self, db_name, db_read_only):
+    @Slot(str, bool, name="dbReadOnlyToggle")
+    def db_read_only_changed(self, db_name: str, db_read_only: bool) -> None:
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
         if db_name == self.db_name:
             self.db_read_only = db_read_only
@@ -261,7 +265,7 @@ class ActivityTab(QtWidgets.QWidget):
             # update values in database list to ensure activity cannot be duplicated to read-only db
             self.activity_data_grid.populate_database_combo()
 
-    def update_tooltips(self):
+    def update_tooltips(self) -> None:
         if self.db_read_only:
             self.checkbox_edit_act.setToolTip("The database this activity belongs to is read-only."
                                          " Enable database editing with checkbox in databases list")
@@ -271,7 +275,7 @@ class ActivityTab(QtWidgets.QWidget):
             else:
                 self.checkbox_edit_act.setToolTip("Click to prevent further edits. Edits are saved automatically")
 
-    def update_style(self):
+    def update_style(self) -> None:
         if self.read_only:
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
