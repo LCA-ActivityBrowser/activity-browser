@@ -46,7 +46,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.parent = parent
 
         self.name_box = SignalledLineEdit(
-            key=getattr(parent.activity, "key", None),
+            key=parent.key,
             field="name",
             parent=self,
         )
@@ -54,7 +54,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         # location combobox
         self.location_combo = SignalledComboEdit(
-            key=getattr(parent.activity, "key", None),
+            key=parent.key,
             field="location",
             parent=self,
             contents=parent.activity.get('location', '')

@@ -75,14 +75,13 @@ class ActivityTab(QtWidgets.QWidget):
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
-        self.db_name = self.key[0]
+        self.db_name = key[0]
         self.activity = bw.get_activity(key)
 
         # Edit Activity checkbox
-        self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity', parent=self)
+        self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
         self.checkbox_edit_act.setChecked(not self.read_only)
-        self.db_name = self.key[0]
-        self.checkbox_edit_act.clicked.connect(self.act_read_only_changed)
+        self.checkbox_edit_act.toggled.connect(self.act_read_only_changed)
 
         # Activity Description
         self.activity_description = SignalledPlainTextEdit(
@@ -246,7 +245,7 @@ class ActivityTab(QtWidgets.QWidget):
 
     def db_read_only_changed(self, db_name, db_read_only):
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
-        if db_name == self.key[0]:
+        if db_name == self.db_name:
             self.db_read_only = db_read_only
 
             # if activity was editable, but now the database is read-only, read_only state must be changed to false.
