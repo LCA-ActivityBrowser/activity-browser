@@ -97,3 +97,23 @@ def test_succceed_open_activity(ab_app):
     # Current index of QTabWidget is changed by opening the tab
     index = activities_tab.currentIndex()
     assert act.get("name") == activities_tab.tabText(index)
+
+
+def test_close_open_activity_tab(ab_app):
+    """Closing the activity tab will also hide the Activity Details tab."""
+    act_key = ("testdb", "act1")
+    act = bw.get_activity(act_key)
+    act_name = act.get("name")
+    activities_tab = ab_app.main_window.right_panel.tabs["Activity Details"]
+
+    # The tab should still be open from the previous test
+    assert act_key in activities_tab.tabs
+    index = activities_tab.currentIndex()
+    assert act_name == activities_tab.tabText(index)
+
+    # Now close the tab.
+    activities_tab.close_tab_by_tab_name(act_key)
+    # Check that the tab no longer exists, and that the activity details tab
+    # is hidden.
+    assert act_key not in activities_tab.tabs
+    assert activities_tab.isHidden()
