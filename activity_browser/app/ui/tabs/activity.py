@@ -28,7 +28,7 @@ class ActivitiesTab(ABTab):
         signals.delete_activity.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
 
-    @Slot(tuple)
+    @Slot(tuple, name="openActivityTab")
     def open_activity_tab(self, key: tuple) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
@@ -45,6 +45,7 @@ class ActivitiesTab(ABTab):
         self.select_tab(self.tabs[key])
         signals.show_tab.emit("Activity Details")
 
+    @Slot(tuple, str, object, name="updateActivityName")
     def update_activity_name(self, key, field, value):
         if key in self.tabs and field == 'name':
             try:
@@ -168,7 +169,9 @@ class ActivityTab(QtWidgets.QWidget):
     @Slot(name="populatePage")
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
-        self.activity = bw.get_activity(self.key)  # Refresh activity.
+        if self.db_name in bw.databases:
+            # Avoid a weird signal interaction in the tests
+            self.activity = bw.get_activity(self.key)  # Refresh activity.
         self.populate_description_box()
 
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
