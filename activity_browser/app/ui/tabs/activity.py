@@ -28,7 +28,7 @@ class ActivitiesTab(ABTab):
         signals.delete_activity.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
 
-    @Slot(tuple)
+    @Slot(tuple, name="openActivityTab")
     def open_activity_tab(self, key: tuple) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
@@ -45,6 +45,7 @@ class ActivitiesTab(ABTab):
         self.select_tab(self.tabs[key])
         signals.show_tab.emit("Activity Details")
 
+    @Slot(tuple, str, object, name="updateActivityName")
     def update_activity_name(self, key, field, value):
         if key in self.tabs and field == 'name':
             try:
@@ -70,23 +71,22 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, key, parent=None, read_only=True):
+    def __init__(self, key: tuple, parent=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
-        self.db_name = self.key[0]
+        self.db_name = key[0]
         self.activity = bw.get_activity(key)
 
         # Edit Activity checkbox
-        self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity', parent=self)
+        self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
         self.checkbox_edit_act.setChecked(not self.read_only)
-        self.db_name = self.key[0]
-        self.checkbox_edit_act.clicked.connect(self.act_read_only_changed)
+        self.checkbox_edit_act.toggled.connect(self.act_read_only_changed)
 
         # Activity Description
         self.activity_description = SignalledPlainTextEdit(
-            key=getattr(self.activity, "key", None),
+            key=key,
             field="comment",
             parent=self,
         )
@@ -96,12 +96,16 @@ class ActivityTab(QtWidgets.QWidget):
         self.checkbox_activity_description.clicked.connect(self.toggle_activity_description_visibility)
         # self.checkbox_description.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.checkbox_activity_description.setChecked(not self.read_only)
+        self.checkbox_activity_description.setToolTip(
+            "Show or hide the description of the activity"
+        )
         self.toggle_activity_description_visibility()
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
         # Reveal/hide uncertainty columns
-        self.show_uncertainty = QtWidgets.QCheckBox("Show Uncertainty", self)
+        self.show_uncertainty = QtWidgets.QCheckBox("Show Uncertainty")
+        self.show_uncertainty.setToolTip("Show or hide the uncertainty columns")
         self.show_uncertainty.setChecked(False)
         self.show_uncertainty.toggled.connect(self.show_exchange_uncertainty)
 
@@ -158,11 +162,18 @@ class ActivityTab(QtWidgets.QWidget):
         signals.parameters_changed.connect(self.populate)
         # signals.activity_modified.connect(self.update_activity_values)
 
-    @Slot()
-    def open_graph(self):
+    @Slot(name="openGraph")
+    def open_graph(self) -> None:
         signals.open_activity_graph_tab.emit(self.key)
 
-    def populate(self):
+    @Slot(name="populatePage")
+    def populate(self) -> None:
+        """Populate the various tables and boxes within the Activity Detail tab"""
+        if self.db_name in bw.databases:
+            # Avoid a weird signal interaction in the tests
+            self.activity = bw.get_activity(self.key)  # Refresh activity.
+        self.populate_description_box()
+
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
         self.production.sync(self.activity.production())
@@ -174,33 +185,32 @@ class ActivityTab(QtWidgets.QWidget):
         for _, table in self.exchange_tables:
             table.updated.emit()
 
-        self.populate_description_box()
         self.show_exchange_uncertainty(self.show_uncertainty.isChecked())
 
     def populate_description_box(self):
-        # activity description
-        self.activity_description.setPlainText(self.activity.get('comment', ''))
+        """Populate the activity description."""
+        self.activity_description.refresh_text(self.activity.get('comment', ''))
         self.activity_description.setReadOnly(self.read_only)
-        self.activity_description._key = self.activity.key
 
         # the <font> html-tag has no effect besides making the tooltip rich text
         # this is required for line breaks of long comments
-        self.checkbox_activity_description.setToolTip(
-            '<font>{}</font>'.format(self.activity_description.toPlainText())
-        )
-        self.activity_description._before = self.activity.get('comment', '')
+        # self.checkbox_activity_description.setToolTip(
+        #     '<font>{}</font>'.format(self.activity_description.toPlainText())
+        # )
         # self.activity_description.adjust_size()
 
-    def toggle_activity_description_visibility(self):
+    @Slot(name="toggleDescription")
+    def toggle_activity_description_visibility(self) -> None:
         """Show only if checkbox is checked."""
         self.activity_description.setVisible(self.checkbox_activity_description.isChecked())
 
-    @QtCore.Slot(bool, name="toggleUncertaintyColumns")
+    @Slot(bool, name="toggleUncertaintyColumns")
     def show_exchange_uncertainty(self, toggled: bool) -> None:
         self.technosphere.show_uncertainty(toggled)
         self.biosphere.show_uncertainty(toggled)
 
-    def act_read_only_changed(self, read_only):
+    @Slot(bool, name="toggleReadOnly")
+    def act_read_only_changed(self, read_only: bool) -> None:
         """ When read_only=False specific data fields in the tables below become user-editable
                 When read_only=True these same fields become read-only"""
         self.read_only = not read_only
@@ -216,12 +226,13 @@ class ActivityTab(QtWidgets.QWidget):
         self.update_tooltips()
         self.update_style()
 
-    def exchange_tables_read_only_changed(self):
-        """the user should not be able to edit the exchange tables when read_only
-                EditTriggers turned off to prevent DoubleClick-selection editing
-                DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add"""
+    def exchange_tables_read_only_changed(self) -> None:
+        """The user should not be able to edit the exchange tables when read_only
 
-        for label, table in self.exchange_tables:
+        EditTriggers turned off to prevent DoubleClick-selection editing.
+        DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add.
+        """
+        for _, table in self.exchange_tables:
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
                 table.setAcceptDrops(False)
@@ -238,9 +249,10 @@ class ActivityTab(QtWidgets.QWidget):
                 if not table.downstream:  # downstream consumers table never accepts drops
                     table.setAcceptDrops(True)
 
-    def db_read_only_changed(self, db_name, db_read_only):
+    @Slot(str, bool, name="dbReadOnlyToggle")
+    def db_read_only_changed(self, db_name: str, db_read_only: bool) -> None:
         """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
-        if db_name == self.key[0]:
+        if db_name == self.db_name:
             self.db_read_only = db_read_only
 
             # if activity was editable, but now the database is read-only, read_only state must be changed to false.
@@ -256,7 +268,7 @@ class ActivityTab(QtWidgets.QWidget):
             # update values in database list to ensure activity cannot be duplicated to read-only db
             self.activity_data_grid.populate_database_combo()
 
-    def update_tooltips(self):
+    def update_tooltips(self) -> None:
         if self.db_read_only:
             self.checkbox_edit_act.setToolTip("The database this activity belongs to is read-only."
                                          " Enable database editing with checkbox in databases list")
@@ -266,7 +278,7 @@ class ActivityTab(QtWidgets.QWidget):
             else:
                 self.checkbox_edit_act.setToolTip("Click to prevent further edits. Edits are saved automatically")
 
-    def update_style(self):
+    def update_style(self) -> None:
         if self.read_only:
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
