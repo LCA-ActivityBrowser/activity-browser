@@ -33,7 +33,7 @@ if [ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
     ls $CONDA_BLD_PATH/noarch/
 
     echo "UPLOADING BUILD: $USER"
-    anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l main $CONDA_BLD_PATH/noarch/$PKG_NAME-$VERSION-py_0.tar.bz2 $UPLOAD_ARGS
+    anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l main $CONDA_BLD_PATH/noarch/$PKG_NAME-$VERSION-pypy_0.tar.bz2 $UPLOAD_ARGS
     echo "BUILD UPLOADED: $USER"
 else
     echo "No uploads from MacOS or Linux python 3.6"
