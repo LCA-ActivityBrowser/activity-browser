@@ -3,15 +3,17 @@
 # https://github.com/AnacondaRecipes/conda-feedstock/blob/master/.appveyor.yml
 build: "off"
 
+image: "Visual Studio 2019"
+
 environment:
   # PYTHONIOENCODING: "UTF-8"
   PYTHONUNBUFFERED: 1
 
   matrix:
-    - CONDA_PY: "36"
-      CONDA_INSTALL_LOCN: "C:\\Miniconda36-x64"
     - CONDA_PY: "37"
       CONDA_INSTALL_LOCN: "C:\\Miniconda37-x64"
+    - CONDA_PY: "38"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda38-x64"
 
 install:
   - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
