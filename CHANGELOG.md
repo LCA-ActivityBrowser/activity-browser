@@ -2,6 +2,65 @@
 
 ## [Unreleased]
 
+## [2.6.0] - 2020-08-31
+
+### Added
+
+- ([#425](https://github.com/LCA-ActivityBrowser/activity-browser/pull/425))
+    __Added Global Sensitivity Analysis to the Activity Browser!__
+    This feature allows the user to run a filtered GSA on the results of an
+    earlier Monte Carlo sampling. This lets them have a closer look at which
+    process and biosphere flows most affect the score of a particular
+    functional unit and impact category combination.
+- ([#393](https://github.com/LCA-ActivityBrowser/activity-browser/pull/393))
+    Added special tooling that allows the Activity Browser to construct its
+    own presamples-like arrays. These 'flow scenario' or 'superstructure' arrays
+    allow users to construct their scenarios outside of python,
+    allowing for quick testing and iteration of ideas.
+- ([#394](https://github.com/LCA-ActivityBrowser/activity-browser/pull/394))
+    Added logic to the parameter scenarios calculation button to allow
+    exporting the resulting array into a flow scenario file. 
+- ([#416](https://github.com/LCA-ActivityBrowser/activity-browser/pull/416))
+    Added a special export button to the LCA results overview tab that allows
+    users to export results for all different scenarios at once. (Only visible
+    if the user is doing `Presamples` or `Scenario` LCAs)
+- ([#428](https://github.com/LCA-ActivityBrowser/activity-browser/pull/428))
+    Added tools to allow for 'on-the-fly' relinking of process flows as
+    they are being imported with the 'local brightway file' import. This
+    should make it even easier to share database files as the individual
+    names of dependent databases are now no longer required to be completely
+    the same. 
+
+### Changed
+
+- ([#412](https://github.com/LCA-ActivityBrowser/activity-browser/pull/412))
+    It is now possible to have different kinds of the LCA calculation tabs of
+    the same calculation setup open.
+- ([#431](https://github.com/LCA-ActivityBrowser/activity-browser/pull/431))
+    Users can now open the Activity Detail tab from the Calculation setup tab.
+
+### Fixed
+
+- ([#411](https://github.com/LCA-ActivityBrowser/activity-browser/pull/411))
+    Make sure to only revert to the begin screen if the tab we're actually
+    looking at is being hidden/deleted.
+- ([#415](https://github.com/LCA-ActivityBrowser/activity-browser/pull/415))
+    Plots/tables now stay hidden when the checkbox is unchecked and a tab is
+    updated.
+- ([#420](https://github.com/LCA-ActivityBrowser/activity-browser/pull/420))
+    Fixed an error that would cause the AB to choke if the same functional units
+    from different databases (ie, copies) are run through an LCA calculation
+    together.
+- ([#423](https://github.com/LCA-ActivityBrowser/activity-browser/pull/423))
+    Fixed the plot export button no longer doing anything. Export signalling
+    is now rebuilt every time the plot is deleted and rebuilt.
+- ([#426](https://github.com/LCA-ActivityBrowser/activity-browser/pull/426))
+    Deleting an activity that has parameters attached to it will now correctly
+    delete these parameters.
+- ([#435](https://github.com/LCA-ActivityBrowser/activity-browser/pull/435))
+    The activity `description` text is now correctly being updated when the user
+    clicks outside the text box.
+
 ## [2.5.1] - 2020-04-30
 
 ### Added
@@ -270,7 +329,8 @@
 - Major overhaul of the GUI. See [#218](https://github.com/LCA-ActivityBrowser/activity-browser/pull/218) for details.
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.1...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.0...HEAD
+[2.6.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.1...2.6.0
 [2.5.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.0...2.5.1
 [2.5.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.3.4...2.4.0
