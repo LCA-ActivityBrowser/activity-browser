@@ -29,6 +29,9 @@ assessment framework, making use of `Qt` through `Qt for Python` under the [LGPL
 Please have a look at our scientific paper on the Activity Browser and cite it in your work if it has been useful to you:
 https://doi.org/10.1016/j.simpa.2019.100012 
 
+## Youtube tutorials
+Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/) to learn how to install and use the Activity Browser.
+
 ## Contents
 - [Installation](#installation)
     - [Miniconda](#miniconda)
@@ -184,10 +187,10 @@ The development of the Activity Browser was co-financed by the following project
 - Life Cycle Management of wood in Switzerland (Swiss National Science Foundation, NRP 66 Resource Wood project number 136623)
 - MIN-TEA (Materials Innovative Technologies Assessment; EIT Raw Materials project number 18231)
 
-## Copyright
-Copyright (c) 2017-2020, Bernhard Steubing and Daniel de Koning (Leiden University), Adrian Haas (ETH Zurich)
-Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut
-Copyright (c) 2015, Bernhard Steubing and ETH Zurich
+## Copyright (c)
+- 2017-2020: Bernhard Steubing and Daniel de Koning (Leiden University), Adrian Haas (ETH Zurich)
+- 2016: Chris Mutel and Paul Scherrer Institut
+- 2015: Bernhard Steubing and ETH Zurich
 
 ## License
 This program is free software: you can redistribute it and/or modify
