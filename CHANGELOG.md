@@ -185,7 +185,7 @@
     Exposed the brightway2 parameterization functionality through the Activity
     Browser. This includes a custom formula creation delegate used by the
     existing exchange tables and the parameter tables in the new 'Parameters'
-    tab. Please see the [brightway2 documentation](https://2.docs.brightwaylca.org/intro.html#parameterized-datasets)
+    tab. Please see the [brightway2 documentation](https://2.docs.brightway.dev/intro.html#parameterized-datasets)
     for a rundown of how to use parameters.
 - ([#308](https://github.com/LCA-ActivityBrowser/activity-browser/pull/308))
     Added a small biosphere3 updater for users with long-running projects.

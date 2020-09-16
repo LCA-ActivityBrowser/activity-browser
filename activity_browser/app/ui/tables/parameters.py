@@ -115,7 +115,7 @@ class BaseParameterTable(ABDataFrameEdit):
         columns from the parameter data
 
         See:
-        https://docs.brightwaylca.org/intro.html#storing-uncertain-values
+        https://2.docs.brightway.dev/intro.html#storing-uncertain-values
         https://stats-arrays.readthedocs.io/en/latest/#mapping-parameter-array-columns-to-uncertainty-distributions
         """
         row = {key: data.get(key) for key in cls.UNCERTAINTY}

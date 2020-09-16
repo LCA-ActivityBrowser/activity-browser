@@ -94,10 +94,10 @@ class ParameterDefinitionTab(BaseRightTab):
         self._connect_signals()
 
         self.explain_text = """
-<p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
+<p>Please see the <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>
 for the full explanation.</p>
 <p>Note that parameters can store 
-<a href="https://docs.brightwaylca.org/intro.html#storing-uncertain-values">uncertain values</a>, but these are
+<a href="https://2.docs.brightway.dev/intro.html#storing-uncertain-values">uncertain values</a>, but these are
 completely optional.</p>
 
 <h3>In general:</h3>
@@ -233,7 +233,7 @@ class ParameterExchangesTab(BaseRightTab):
         self._connect_signals()
 
         self.explain_text = """
-<p>Please see the <a href="https://docs.brightwaylca.org/intro.html#parameterized-datasets">Brightway2 documentation</a>
+<p>Please see the <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>
 for the full explanation.</p>
 
 <p>Shown here is an overview of all the parameters set on the current project.</p>

@@ -60,13 +60,13 @@ class ActivityTab(QtWidgets.QWidget):
     The interface is a GUI representation of the standard activity data format as determined by Brightway
     This is necessitated as AB does not save its own data structures to disk
     Data format documentation is under the heading "The schema for an LCI dataset in voluptuous is:" at this link:
-    https://docs.brightwaylca.org/intro.html#database-is-a-subclass-of-datastore
+    https://2.docs.brightway.dev/intro.html#database-is-a-subclass-of-datastore
     Note that all activity data are optional.
     When activities contain exchanges, some fields are required (input, type, amount)
     Each exchange has a type: production, substitution, technosphere, or biosphere
     AB does not yet support 'substitution'. Other exchange types are shown in separate columns on this interface
     Required and other common exchange data fields are hardcoded as column headers in these tables
-    More detail available at: https://docs.brightwaylca.org/intro.html#exchange-data-format
+    More detail available at: https://2.docs.brightway.dev/intro.html#exchange-data-format
     The technosphere products (first table) of the visible activity are consumed by other activities downstream
     The final table of this tab lists these 'Downstream Consumers'
     """

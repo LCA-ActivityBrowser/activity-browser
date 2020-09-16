@@ -5,12 +5,12 @@
 
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
-The activity browser is a graphical user interface for the [Brightway2](https://brightwaylca.org) advanced life cycle
+The activity browser is a graphical user interface for the [Brightway2](https://brightway.dev) advanced life cycle
 assessment framework, making use of `Qt` through `Qt for Python` under the [LGPLv3 license](https://www.gnu.org/licenses/lgpl-3.0.html).
 
 ## Highlights
 
-- **Fast LCA calculations** for multiple functional units and impact categories using [Brightway2](https://brightwaylca.org) under the hood
+- **Fast LCA calculations** for multiple functional units and impact categories using [Brightway2](https://brightway.dev) under the hood
 - The AB can be used as a **productivity tool for brightway**: you can model in brightway (python) and see the results in the AB or the other way around - whatever is most convenient for you
 - **Advanced LCA modeling:**
     - parametrization
@@ -215,4 +215,4 @@ __Activity Browser__:
 - version of the AB that includes modular LCA: https://bitbucket.org/bsteubing/activity-browser
 
 __Brightway2__:
-- https://brightwaylca.org/
+- https://brightway.dev/
