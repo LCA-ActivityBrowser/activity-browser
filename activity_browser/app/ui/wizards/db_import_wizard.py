@@ -28,31 +28,39 @@ from ..widgets import DatabaseRelinkDialog
 
 class DatabaseImportWizard(QtWidgets.QWizard):
     IMPORT_TYPE = 1
-    EI_LOGIN = 2
-    EI_VERSION = 3
-    ARCHIVE = 4
-    DIR = 5
-    LOCAL = 6
-    EXCEL = 7
-    DB_NAME = 8
-    CONFIRM = 9
-    IMPORT = 10
+    REMOTE_TYPE = 2
+    LOCAL_TYPE = 3
+    EI_LOGIN = 4
+    EI_VERSION = 5
+    ARCHIVE = 6
+    DIR = 7
+    LOCAL = 8
+    EXCEL = 9
+    DB_NAME = 10
+    CONFIRM = 11
+    IMPORT = 12
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.downloader = ABEcoinventDownloader()
-        self.setWindowTitle('Database Import Wizard')
+        self.setWindowTitle("Database Import Wizard")
+
+        # Construct and bind pages.
         self.import_type_page = ImportTypePage(self)
+        self.remote_page = RemoteImportPage(self)
+        self.local_page = LocalImportPage(self)
+        self.ecoinvent_login_page = EcoinventLoginPage(self)
+        self.ecoinvent_version_page = EcoinventVersionPage(self)
+        self.archive_page = Choose7zArchivePage(self)
         self.choose_dir_page = ChooseDirPage(self)
+        self.local_import_page = LocalDatabaseImportPage(self)
+        self.excel_import_page = ExcelDatabaseImport(self)
         self.db_name_page = DBNamePage(self)
         self.confirmation_page = ConfirmationPage(self)
         self.import_page = ImportPage(self)
-        self.archive_page = Choose7zArchivePage(self)
-        self.ecoinvent_login_page = EcoinventLoginPage(self)
-        self.ecoinvent_version_page = EcoinventVersionPage(self)
-        self.local_import_page = LocalDatabaseImportPage(self)
-        self.excel_import_page = ExcelDatabaseImport(self)
         self.setPage(self.IMPORT_TYPE, self.import_type_page)
+        self.setPage(self.REMOTE_TYPE, self.remote_page)
+        self.setPage(self.LOCAL_TYPE, self.local_page)
         self.setPage(self.EI_LOGIN, self.ecoinvent_login_page)
         self.setPage(self.EI_VERSION, self.ecoinvent_version_page)
         self.setPage(self.ARCHIVE, self.archive_page)
@@ -120,40 +128,30 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
+    OPTIONS = (
+        ("Import remote data (download)", DatabaseImportWizard.REMOTE_TYPE),
+        ("Import local data", DatabaseImportWizard.LOCAL_TYPE),
+    )
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.wizard = parent
-        self.options = [
-            ("Ecoinvent: download (login required)", "homepage"),
-            ("Ecoinvent: local 7z-archive or previously downloaded database", "archive", DatabaseImportWizard.ARCHIVE),
-            ("Ecoinvent: local directory with ecospold2 files", "directory", DatabaseImportWizard.DIR),
-            ("Forwast: download", "forwast", DatabaseImportWizard.DB_NAME),
-            ("Local Excel file", "local", DatabaseImportWizard.EXCEL),
-            ("Local brightway database file", "local", DatabaseImportWizard.LOCAL),
-        ]
-        self.radio_buttons = [QtWidgets.QRadioButton(o[0]) for o in self.options]
-        self.option_box = QtWidgets.QGroupBox('Choose type of database import')
+        self.radio_buttons = [QtWidgets.QRadioButton(o[0]) for o in self.OPTIONS]
+        self.radio_buttons[0].setChecked(True)
+
+        layout = QtWidgets.QVBoxLayout()
+        box = QtWidgets.QGroupBox("Type of data import:")
         box_layout = QtWidgets.QVBoxLayout()
         for i, button in enumerate(self.radio_buttons):
             box_layout.addWidget(button)
-            if i == 0:
-                button.setChecked(True)
-        self.option_box.setLayout(box_layout)
-
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addWidget(self.option_box)
-        self.setLayout(self.layout)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
+        self.setLayout(layout)
 
     def nextId(self):
         option_id = [b.isChecked() for b in self.radio_buttons].index(True)
-        self.wizard.import_type = self.options[option_id][1]
-        if option_id == 0:
-            if hasattr(self.wizard.ecoinvent_login_page, 'valid_pw'):
-                return DatabaseImportWizard.EI_VERSION
-            else:
-                return DatabaseImportWizard.EI_LOGIN
-        else:
-            return self.options[option_id][2]
+        return self.OPTIONS[option_id][1]
 
 
 class RemoteImportPage(QtWidgets.QWizardPage):
