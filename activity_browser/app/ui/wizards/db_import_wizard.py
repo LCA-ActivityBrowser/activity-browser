@@ -235,7 +235,8 @@ class ChooseDirPage(QtWidgets.QWizardPage):
         layout.addWidget(box)
         self.setLayout(layout)
 
-    def get_directory(self):
+    @Slot(name="getDirectory")
+    def get_directory(self) -> None:
         path = QtWidgets.QFileDialog.getExistingDirectory(
             self, 'Select directory with ecospold2 files')
         self.path_edit.setText(path)
@@ -291,10 +292,12 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.stored_combobox.clear()
         self.stored_combobox.addItems(sorted(self.stored_dbs.keys()))
 
-    def update_stored(self, index):
+    @Slot(int, name="updateSelectedIndex")
+    def update_stored(self, index: int) -> None:
         self.path_edit.setText(self.stored_dbs[self.stored_combobox.currentText()])
 
-    def get_archive(self):
+    @Slot(name="getArchiveFile")
+    def get_archive(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Select 7z archive')
         if path:
