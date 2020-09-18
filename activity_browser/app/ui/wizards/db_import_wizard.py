@@ -223,13 +223,16 @@ class ChooseDirPage(QtWidgets.QWizardPage):
         self.browse_button.clicked.connect(self.get_directory)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(QtWidgets.QLabel(
-            'Choose location of existing ecospold2 directory:'))
-        layout.addWidget(self.path_edit)
+        box = QtWidgets.QGroupBox("Choose location of existing ecospold2 directory:")
+        box_layout = QtWidgets.QVBoxLayout()
+        box_layout.addWidget(self.path_edit)
         browse_lay = QtWidgets.QHBoxLayout()
         browse_lay.addWidget(self.browse_button)
         browse_lay.addStretch(1)
-        layout.addLayout(browse_lay)
+        box_layout.addLayout(browse_lay)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
         self.setLayout(layout)
 
     def get_directory(self):
@@ -264,19 +267,23 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.registerField('archive_path*', self.path_edit)
         self.browse_button = QtWidgets.QPushButton('Browse')
         self.browse_button.clicked.connect(self.get_archive)
+        self.stored_dbs = {}
         self.stored_combobox = QtWidgets.QComboBox()
         self.stored_combobox.activated.connect(self.update_stored)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(QtWidgets.QLabel(
-            'Choose location of 7z archive:'))
-        layout.addWidget(self.path_edit)
+        box = QtWidgets.QGroupBox("Choose location of 7z archive:")
+        box_layout = QtWidgets.QVBoxLayout()
+        box_layout.addWidget(self.path_edit)
         browse_lay = QtWidgets.QHBoxLayout()
         browse_lay.addWidget(self.browse_button)
         browse_lay.addStretch(1)
-        layout.addLayout(browse_lay)
-        layout.addWidget(QtWidgets.QLabel('Previous downloads:'))
-        layout.addWidget(self.stored_combobox)
+        box_layout.addLayout(browse_lay)
+        box_layout.addWidget(QtWidgets.QLabel("Previous downloads:"))
+        box_layout.addWidget(self.stored_combobox)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
         self.setLayout(layout)
 
     def initializePage(self):
@@ -320,9 +327,12 @@ class DBNamePage(QtWidgets.QWizardPage):
         self.registerField('db_name*', self.name_edit)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(QtWidgets.QLabel(
-            'Name of the new database:'))
-        layout.addWidget(self.name_edit)
+        box = QtWidgets.QGroupBox("Name of the new database:")
+        box_layout = QtWidgets.QVBoxLayout()
+        box_layout.addWidget(self.name_edit)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
         self.setLayout(layout)
 
     def initializePage(self):
@@ -362,10 +372,16 @@ class ConfirmationPage(QtWidgets.QWizardPage):
         self.current_project_label = QtWidgets.QLabel('empty')
         self.db_name_label = QtWidgets.QLabel('empty')
         self.path_label = QtWidgets.QLabel('empty')
+
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.current_project_label)
-        layout.addWidget(self.db_name_label)
-        layout.addWidget(self.path_label)
+        box = QtWidgets.QGroupBox("Import Summary:")
+        box_layout = QtWidgets.QVBoxLayout()
+        box_layout.addWidget(self.current_project_label)
+        box_layout.addWidget(self.db_name_label)
+        box_layout.addWidget(self.path_label)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
         self.setLayout(layout)
 
     def initializePage(self):
@@ -908,14 +924,15 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
         self.path_btn.clicked.connect(self.browse)
         self.complete = False
 
-        option_box = QtWidgets.QGroupBox("Import local database file:")
+        box = QtWidgets.QGroupBox("Import local database file:")
         grid_layout = QtWidgets.QGridLayout()
         layout = QtWidgets.QVBoxLayout()
         grid_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
         grid_layout.addWidget(self.path, 0, 1, 1, 2)
         grid_layout.addWidget(self.path_btn, 0, 3, 1, 1)
-        option_box.setLayout(grid_layout)
-        layout.addWidget(option_box)
+        box.setLayout(grid_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
         self.setLayout(layout)
 
         # Register field to ensure user cannot advance without selecting file.
@@ -987,6 +1004,7 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         grid_layout.addWidget(self.link_option, 3, 0, 1, 2)
         grid_layout.addWidget(self.link_choice, 3, 2, 1, 2)
         option_box.setLayout(grid_layout)
+        option_box.setStyleSheet(style_group_box.border_title)
         layout.addWidget(option_box)
         self.setLayout(layout)
 
