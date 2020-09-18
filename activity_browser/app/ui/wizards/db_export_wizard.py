@@ -2,9 +2,19 @@
 import os
 
 import brightway2 as bw
+from bw2io.export import write_lci_excel
 from PySide2 import QtWidgets
 
 from ...bwutils import commontasks as bc
+
+
+EXPORTERS = {
+    # Store data as a BW2Package.
+    "BW2Package": bc.store_database_as_package,
+    # Export the database, all project parameters and all parameters that are
+    # related to that database as an Excel file.
+    "Excel": write_lci_excel,
+}
 
 
 class DatabaseExportWizard(QtWidgets.QWizard):
@@ -27,7 +37,8 @@ class DatabaseExportWizard(QtWidgets.QWizard):
 
     def perform_export(self) -> None:
         db_name = self.field("database_choice")
-        bc.store_database_as_package(db_name)
+        export_as = self.field("export_option")
+        EXPORTERS[export_as](db_name)
 
 
 class ExportDatabasePage(QtWidgets.QWizardPage):
@@ -35,6 +46,8 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         super().__init__(parent=parent)
         self.wizard = parent
         self.database = QtWidgets.QComboBox()
+        self.export_option = QtWidgets.QComboBox()
+        self.export_option.addItems(list(EXPORTERS))
         self.database.currentIndexChanged.connect(self.changed)
         self.output_dir = QtWidgets.QLineEdit()
         self.output_dir.setReadOnly(True)
@@ -44,8 +57,10 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         grid = QtWidgets.QGridLayout()
         grid.addWidget(QtWidgets.QLabel("Database:"), 0, 0, 1, 1)
         grid.addWidget(self.database, 0, 1, 1, 2)
-        grid.addWidget(QtWidgets.QLabel("Exported databases are stored in the directory below:"), 1, 0, 1, 3)
-        grid.addWidget(self.output_dir, 2, 0, 1, 3)
+        grid.addWidget(QtWidgets.QLabel("Exported as:"), 1, 0, 1, 1)
+        grid.addWidget(self.export_option, 1, 1, 1, 2)
+        grid.addWidget(QtWidgets.QLabel("Exported databases are stored in the directory below:"), 2, 0, 1, 3)
+        grid.addWidget(self.output_dir, 3, 0, 1, 3)
         box.setLayout(grid)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(box)
@@ -53,6 +68,7 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
 
         self.setFinalPage(True)
         self.registerField("database_choice", self.database, "currentText")
+        self.registerField("export_option", self.export_option, "currentText")
 
     def initializePage(self):
         self.wizard.setButtonLayout(
