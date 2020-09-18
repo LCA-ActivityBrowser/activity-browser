@@ -758,7 +758,6 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = parent
         self.complete = False
-        self.description_label = QtWidgets.QLabel('Login to the ecoinvent homepage:')
         self.username_edit = QtWidgets.QLineEdit()
         self.username_edit.setPlaceholderText('ecoinvent username')
         self.password_edit = QtWidgets.QLineEdit()
@@ -766,74 +765,73 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.login_button = QtWidgets.QPushButton('login')
         self.login_button.clicked.connect(self.login)
-        self.login_button.setCheckable(True)
         self.password_edit.returnPressed.connect(self.login_button.click)
         self.success_label = QtWidgets.QLabel()
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.description_label)
-        layout.addWidget(self.username_edit)
-        layout.addWidget(self.password_edit)
+
+        self.valid_un = None
+        self.valid_pw = None
+
+        box = QtWidgets.QGroupBox("Login to the ecoinvent homepage:")
+        box_layout = QtWidgets.QVBoxLayout()
+        box_layout.addWidget(self.username_edit)
+        box_layout.addWidget(self.password_edit)
         hlay = QtWidgets.QHBoxLayout()
         hlay.addWidget(self.login_button)
         hlay.addStretch(1)
-        layout.addLayout(hlay)
-        layout.addWidget(self.success_label)
+        box_layout.addLayout(hlay)
+        box_layout.addWidget(self.success_label)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(box)
         self.setLayout(layout)
 
         self.login_thread = LoginThread(self.wizard.downloader)
         import_signals.login_success.connect(self.login_response)
 
     @property
-    def username(self):
-        if hasattr(self, 'valid_un'):
-            return self.valid_un
-        else:
-            return self.username_edit.text()
+    def username(self) -> str:
+        return self.valid_un or self.username_edit.text()
 
     @property
-    def password(self):
-        if hasattr(self, 'valid_pw'):
-            return self.valid_pw
-        else:
-            return self.password_edit.text()
+    def password(self) -> str:
+        return self.valid_pw or self.password_edit.text()
 
     def isComplete(self):
         return self.complete
 
-    def login(self):
-        self.success_label.setText('Trying to login ...')
+    @Slot(name="EidlLogin")
+    def login(self) -> None:
+        self.success_label.setText("Trying to login ...")
         self.login_thread.update(self.username, self.password)
         self.login_thread.start()
 
     @Slot(bool, name="handleLoginResponse")
-    def login_response(self, success: bool):
+    def login_response(self, success: bool) -> None:
         if not success:
-            self.success_label.setText('Login failed!')
+            self.success_label.setText("Login failed!")
             self.complete = False
-            self.completeChanged.emit()
-            self.login_button.setChecked(False)
         else:
             self.username_edit.setEnabled(False)
             self.password_edit.setEnabled(False)
             self.login_button.setEnabled(False)
             self.valid_un = self.username
             self.valid_pw = self.password
-            self.success_label.setText('Login successful!')
+            self.success_label.setText("Login successful!")
+            self.login_thread.exit()
             self.complete = True
-            self.completeChanged.emit()
-            self.login_button.setChecked(False)
-            self.wizard.next()
+        self.completeChanged.emit()
 
     def nextId(self):
         return DatabaseImportWizard.EI_VERSION
 
 
 class LoginThread(QtCore.QThread):
-    def __init__(self, downloader):
-        super().__init__()
+    def __init__(self, downloader, parent=None):
+        super().__init__(parent)
         self.downloader = downloader
 
-    def update(self, username, password):
+    def update(self, username: str, password: str) -> None:
         self.downloader.username = username
         self.downloader.password = password
 
