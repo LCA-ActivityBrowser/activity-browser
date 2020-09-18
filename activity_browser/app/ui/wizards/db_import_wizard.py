@@ -19,6 +19,7 @@ from PySide2.QtCore import Signal, Slot
 from ...bwutils.commontasks import is_technosphere_db
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
+from ..style import style_group_box
 from ..widgets import DatabaseRelinkDialog
 
 # TODO: Rework the entire import wizard, the amount of different classes
@@ -153,6 +154,66 @@ class ImportTypePage(QtWidgets.QWizardPage):
                 return DatabaseImportWizard.EI_LOGIN
         else:
             return self.options[option_id][2]
+
+
+class RemoteImportPage(QtWidgets.QWizardPage):
+    """Contains all the options for remote importing of data."""
+    OPTIONS = (
+        ("ecoinvent (requires login)", "homepage", DatabaseImportWizard.EI_LOGIN),
+        ("Forwast", "forwast", DatabaseImportWizard.DB_NAME),
+    )
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.wizard = parent
+        self.radio_buttons = [QtWidgets.QRadioButton(o[0]) for o in self.OPTIONS]
+        self.radio_buttons[0].setChecked(True)
+
+        layout = QtWidgets.QVBoxLayout()
+        box = QtWidgets.QGroupBox("Data source:")
+        box_layout = QtWidgets.QVBoxLayout()
+        for i, button in enumerate(self.radio_buttons):
+            box_layout.addWidget(button)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
+        self.setLayout(layout)
+
+    def nextId(self):
+        option_id = [b.isChecked() for b in self.radio_buttons].index(True)
+        self.wizard.import_type = self.OPTIONS[option_id][1]
+        return self.OPTIONS[option_id][2]
+
+
+class LocalImportPage(QtWidgets.QWizardPage):
+    """Contains all the options for the local importing of data."""
+    OPTIONS = (
+        ("Local 7z-archive of previously downloaded database", "archive", DatabaseImportWizard.ARCHIVE),
+        ("Local directory with ecospold2 files", "directory", DatabaseImportWizard.DIR),
+        ("Local Excel file", "local", DatabaseImportWizard.EXCEL),
+        ("Local brightway database file", "local", DatabaseImportWizard.LOCAL),
+    )
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.wizard = parent
+        self.radio_buttons = [QtWidgets.QRadioButton(o[0]) for o in self.OPTIONS]
+        self.radio_buttons[0].setChecked(True)
+
+        layout = QtWidgets.QVBoxLayout()
+        box = QtWidgets.QGroupBox("Data source:")
+        box_layout = QtWidgets.QVBoxLayout()
+        for i, button in enumerate(self.radio_buttons):
+            box_layout.addWidget(button)
+        box.setLayout(box_layout)
+        box.setStyleSheet(style_group_box.border_title)
+        layout.addWidget(box)
+        self.setLayout(layout)
+
+    def nextId(self):
+        option_id = [b.isChecked() for b in self.radio_buttons].index(True)
+        self.wizard.import_type = self.OPTIONS[option_id][1]
+        return self.OPTIONS[option_id][2]
 
 
 class ChooseDirPage(QtWidgets.QWizardPage):
