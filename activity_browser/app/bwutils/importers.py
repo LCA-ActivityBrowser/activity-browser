@@ -5,7 +5,7 @@ import warnings
 
 import brightway2 as bw
 from bw2io import ExcelImporter
-from bw2io.errors import StrategyError
+from bw2io.errors import InvalidPackage, StrategyError
 from bw2io.importers.excel import valid_first_cell
 from bw2io.strategies import (
     csv_restore_tuples, csv_restore_booleans, csv_numerize,
@@ -19,6 +19,8 @@ from bw2io.strategies import (
     convert_uncertainty_types_to_integers,
     convert_activity_parameters_to_list
 )
+
+from .strategies import relink_exchanges_bw2package
 
 
 INNER_FIELDS = ("name", "unit", "database", "location")
@@ -104,3 +106,70 @@ class ABExcelImporter(ExcelImporter):
             link_technosphere_by_activity_hash,
             external_db_name=db_name, fields=fields
         ))
+
+
+class ABPackage(bw.BW2Package):
+    """ Inherits from brightway2 `BW2Package` and handles importing BW2Packages.
+
+    This implementation is done to raise exceptions and show errors on imports
+    much faster.
+    """
+    @classmethod
+    def evaluate_metadata(cls, metadata: dict, ignore_dbs: set):
+        """ Take the given metadata dictionary and test it against realities
+        of the current brightway project.
+        """
+        if "depends" in metadata:
+            missing = set(metadata["depends"]).difference(bw.databases)
+            # Remove any databases present in ignore_dbs (these will be relinked)
+            missing = missing.difference(ignore_dbs)
+            if missing:
+                raise InvalidPackage(
+                    "Package data links to database names that do not exist: {}".format(missing),
+                    missing
+                )
+
+    @classmethod
+    def load_file(cls, filepath, whitelist=True, relink: dict = None):
+        """Similar to how the base class loads the data, but also perform
+        a number of evaluations on the metadata.
+
+        Also, if given a 'relink' dictionary, perform relinking of exchanges.
+        """
+        data = super().load_file(filepath, whitelist)
+        relinking = set(relink.keys()) if relink else set([])
+        if isinstance(data, dict):
+            if "metadata" in data:
+                cls.evaluate_metadata(data["metadata"], relinking)
+            if relink:
+                data["data"] = relink_exchanges_bw2package(data["data"], relink)
+        else:
+            for obj in data:
+                if "metadata" in obj:
+                    cls.evaluate_metadata(obj["metadata"], relinking)
+                if relink:
+                    obj["data"] = relink_exchanges_bw2package(obj["data"], relink)
+        return data
+
+    @classmethod
+    def import_file(cls, filepath, whitelist=True, relink: dict = None):
+        """Import bw2package file, and create the loaded objects, including registering, writing, and processing the created objects.
+
+        Args:
+            * *filepath* (str): Path of file to import
+            * *whitelist* (bool): Apply whitelist to allowed types. Default is ``True``.
+        Kwargs:
+            * *relink* (dict): A dictionary of keys with which to relink exchanges
+              within the imported package file.
+
+        Returns:
+            Created object or list of created objects.
+
+        """
+        loaded = cls.load_file(filepath, whitelist, relink)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if isinstance(loaded, dict):
+                return cls._create_obj(loaded)
+            else:
+                return [cls._create_obj(o) for o in loaded]
