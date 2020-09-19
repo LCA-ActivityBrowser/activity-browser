@@ -94,6 +94,7 @@ class LCAResultsBarChart(Plot):
 
         show_legend = df.shape[1] != 1  # Do not show the legend for 1 column
         df.plot.barh(ax=self.ax, legend=show_legend)
+        self.ax.invert_yaxis()
 
         # labels
         self.ax.set_yticks(np.arange(len(labels)))
