@@ -2,10 +2,10 @@
 import os
 
 import brightway2 as bw
-from bw2io.export import write_lci_excel
 from PySide2 import QtWidgets
 
 from ...bwutils import commontasks as bc
+from ...bwutils.exporters import write_lci_excel
 
 
 EXPORTERS = {
