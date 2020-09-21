@@ -5,7 +5,7 @@ from typing import Union
 
 import brightway2 as bw
 from bw2data.utils import safe_filename
-from bw2io.export.excel import CSVFormatter
+from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
 import xlsxwriter
 
 from .pedigree import PedigreeMatrix
@@ -14,19 +14,6 @@ from .pedigree import PedigreeMatrix
 # TODO: reminder to make a pull-request for these things in bw2io repo.
 #  - Add the 'nan_inf_to_errors' option when opening the xlsxwriter.Workbook.
 #  - Add handler for pedigree data to exporter
-
-
-def create_valid_worksheet_name(string):
-    """Exclude invalid characters and names.
-
-    Data from http://www.accountingweb.com/technology/excel/seven-characters-you-cant-use-in-worksheet-names."""
-    excluded = {"\\", "/", "*", "[", "]", ":", "?"}
-
-    if string == "History":
-        return "History-worksheet"
-    for x in excluded:
-        string = string.replace(x, "#")
-    return string[:30]
 
 
 def format_pedigree(data: dict) -> str:
