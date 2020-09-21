@@ -940,7 +940,7 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         self.registerField("overwrite_db", self.overwrite_db)
         self.registerField("purge_params", self.purge_params)
         self.registerField("do_link", self.link_option)
-        self.registerField("link_db", self.link_choice)
+        self.registerField("link_db", self.link_choice, "currentText")
 
     def initializePage(self):
         self.path.clear()
