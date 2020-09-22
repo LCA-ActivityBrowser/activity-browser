@@ -354,7 +354,7 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in bw.databases:
+        if db_name in bw.databases and not self.field("overwrite_db"):
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
                 db_name, bw.projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
@@ -731,6 +731,8 @@ class MainWorkerThread(QtCore.QThread):
         try:
             import_signals.db_progress.emit(0, 0)
             if os.path.splitext(self.archive_path)[1] in {".xlsx", ".xls"}:
+                if self.db_name in bw.databases and self.kwargs["overwrite"]:
+                    del bw.databases[self.db_name]
                 result = ABExcelImporter.simple_automated_import(
                     self.archive_path, **self.kwargs
                 )
