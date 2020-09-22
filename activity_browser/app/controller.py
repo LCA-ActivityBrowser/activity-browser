@@ -314,7 +314,9 @@ class Controller(object):
             print("Renamed calculation setup from {} to {}".format(current, new_name))
 
 # ACTIVITY
-    def new_activity(self, database_name):
+    @staticmethod
+    @Slot(str, name="createNewActivity")
+    def new_activity(database_name: str) -> None:
         # TODO: let user define product
         name, ok = QtWidgets.QInputDialog.getText(
             None,
@@ -322,11 +324,13 @@ class Controller(object):
             "Please specify an activity name:" + " " * 10,
         )
         if ok and name:
+            data = {
+                "name": name, "reference product": name, "unit": "unit",
+                "type": "process"
+            }
             new_act = bw.Database(database_name).new_activity(
                 code=uuid.uuid4().hex,
-                name=name,
-                unit="unit",
-                type="process",
+                **data
             )
             new_act.save()
             production_exchange = new_act.new_exchange(
