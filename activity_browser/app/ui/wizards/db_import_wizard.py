@@ -44,6 +44,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         super().__init__(parent)
         self.downloader = ABEcoinventDownloader()
         self.setWindowTitle("Database Import Wizard")
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
 
         # Construct and bind pages.
         self.import_type_page = ImportTypePage(self)

@@ -65,6 +65,13 @@ def arrays_from_indexed_superstructure(df: pd.DataFrame) -> (np.ndarray, np.ndar
     return result, df.to_numpy(dtype=float)
 
 
+def filter_databases_indexed_superstructure(df: pd.DataFrame, include: set) -> pd.DataFrame:
+    """Filters the given superstructure so that only indexes where the output
+    database is in the `include` set are valid.
+    """
+    return df.loc[[x[1][0] in include for x in df.index.to_flat_index()], :]
+
+
 def scenario_columns(df: pd.DataFrame) -> pd.Index:
     # 'sort=False' ensures that order of scenario names is not altered.
     return df.columns.difference(SUPERSTRUCTURE, sort=False)
