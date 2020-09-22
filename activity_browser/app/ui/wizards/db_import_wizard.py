@@ -761,6 +761,10 @@ class MainWorkerThread(QtCore.QThread):
                 ("Unknown object", str(e))
             )
         except StrategyError as e:
+            from pprint import pprint
+            del e.args[0][10:]
+            print("Could not link exchanges:")
+            pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Could not link exchanges", "One or more exchanges could not be linked.")
