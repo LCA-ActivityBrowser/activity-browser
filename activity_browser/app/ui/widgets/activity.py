@@ -26,10 +26,15 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
         if hasattr(self.widget, "updated"):
             self.widget.updated.connect(self.toggle_empty_table)
 
+    @QtCore.Slot(name="showHideTable")
     def showhide(self):
         self.widget.setVisible(self.isChecked())
 
-    def toggle_empty_table(self):
+    @QtCore.Slot(name="toggleEmptyTable")
+    def toggle_empty_table(self) -> None:
+        # Workaround so that the downstream table is only toggled by users.
+        if self.title() == "Downstream Consumers:":
+            return
         self.setChecked(bool(self.widget.rowCount()))
 
 

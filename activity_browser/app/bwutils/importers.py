@@ -95,7 +95,7 @@ class ABExcelImporter(ExcelImporter):
                 obj.link_to_technosphere(linker)
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
-            raise StrategyError
+            raise StrategyError([exc for exc in obj.unlinked])
         db = obj.write_database(delete_existing=overwrite, activate_parameters=True)
         return [db]
 

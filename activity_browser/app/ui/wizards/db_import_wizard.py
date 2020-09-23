@@ -355,7 +355,7 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in bw.databases:
+        if db_name in bw.databases and not self.field("overwrite_db"):
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
                 db_name, bw.projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
@@ -732,6 +732,8 @@ class MainWorkerThread(QtCore.QThread):
         try:
             import_signals.db_progress.emit(0, 0)
             if os.path.splitext(self.archive_path)[1] in {".xlsx", ".xls"}:
+                if self.db_name in bw.databases and self.kwargs["overwrite"]:
+                    del bw.databases[self.db_name]
                 result = ABExcelImporter.simple_automated_import(
                     self.archive_path, **self.kwargs
                 )
@@ -762,6 +764,10 @@ class MainWorkerThread(QtCore.QThread):
                 ("Unknown object", str(e))
             )
         except StrategyError as e:
+            from pprint import pprint
+            del e.args[0][10:]
+            print("Could not link exchanges:")
+            pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Could not link exchanges", "One or more exchanges could not be linked.")
@@ -1017,7 +1023,7 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         self.registerField("overwrite_db", self.overwrite_db)
         self.registerField("purge_params", self.purge_params)
         self.registerField("do_link", self.link_option)
-        self.registerField("link_db", self.link_choice)
+        self.registerField("link_db", self.link_choice, "currentText")
 
     def initializePage(self):
         self.path.clear()
