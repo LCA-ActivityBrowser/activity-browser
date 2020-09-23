@@ -41,12 +41,18 @@ class DatabasesTable(ABDataFrameView):
             QtWidgets.QSizePolicy.Preferred,
             QtWidgets.QSizePolicy.Maximum
         ))
+        self.relink_action = QtWidgets.QAction(
+            qicons.edit, "Relink database", None
+        )
         self._connect_signals()
 
     def _connect_signals(self):
         signals.project_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
         self.doubleClicked.connect(self.open_database)
+        self.relink_action.triggered.connect(
+            lambda: signals.relink_database.emit(self.selected_db_name, self)
+        )
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu(self)
@@ -54,6 +60,7 @@ class DatabasesTable(ABDataFrameView):
             qicons.delete, "Delete database",
             lambda: signals.delete_database.emit(self.selected_db_name)
         )
+        menu.addAction(self.relink_action)
         menu.addAction(
             qicons.duplicate_database, "Copy database",
             lambda: signals.copy_database.emit(self.selected_db_name, self)
@@ -62,6 +69,11 @@ class DatabasesTable(ABDataFrameView):
             qicons.add, "Add new activity",
             lambda: signals.new_activity.emit(self.selected_db_name)
         )
+        proxy = self.indexAt(a0.pos())
+        if proxy.isValid():
+            index = self.get_source_index(proxy)
+            db_name = self.model.index(index.row(), 0).data()
+            self.relink_action.setEnabled(not project_settings.db_is_readonly(db_name))
         menu.exec_(a0.globalPos())
 
     def mousePressEvent(self, e):
