@@ -241,6 +241,10 @@ class DatabaseRelinkDialog(QtWidgets.QDialog):
         " exchanges to a different database?"
         "\n\nReplace database '{}' with:"
     )
+    RELINK_EXISTING = (
+        "Relink exchanges from database '{}' with another database?"
+        "\n\nLink with:"
+    )
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -270,6 +274,15 @@ class DatabaseRelinkDialog(QtWidgets.QDialog):
     def start_relink(cls, parent: QtWidgets.QWidget, db: str, options: List[str]) -> 'DatabaseRelinkDialog':
         obj = cls(parent)
         obj.label.setText(cls.LABEL_TEXT.format(db))
+        obj.choice.clear()
+        obj.choice.addItems(options)
+        obj.choice.setEnabled(True)
+        return obj
+
+    @classmethod
+    def relink_existing(cls, parent: QtWidgets.QWidget, db: str, options: List[str]) -> 'DatabaseRelinkDialog':
+        obj = cls(parent)
+        obj.label.setText(cls.RELINK_EXISTING.format(db))
         obj.choice.clear()
         obj.choice.addItems(options)
         obj.choice.setEnabled(True)
