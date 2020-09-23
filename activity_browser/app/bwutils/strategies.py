@@ -63,10 +63,10 @@ def relink_exchanges_existing_db(db: bw.Database, other: bw.Database) -> None:
 
     with sqlite3_lci_db.transaction() as transaction:
         try:
-            # Only do relinking on external technosphere exchanges.
+            # Only do relinking on external biosphere/technosphere exchanges.
             for i, exc in enumerate(
-                    exc for act in db for exc in act.technosphere()
-                    if exc.input[0] != db.name
+                    exc for act in db for exc in act.exchanges()
+                    if exc.get("type") in {"biosphere", "technosphere"} and exc.input[0] != db.name
             ):
                 # Use the input activity to generate the hash.
                 key = activity_hash(exc.input, DEFAULT_FIELDS)

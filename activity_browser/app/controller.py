@@ -281,8 +281,9 @@ class Controller(object):
 
     @Slot(str, QObject, name="relinkDatabase")
     def relink_database(self, db_name: str, parent: QObject) -> None:
+        """Relink technosphere exchanges within the given database."""
         dialog = DatabaseRelinkDialog.relink_existing(
-            parent, db_name, bw.databases.list
+            parent, db_name, [db for db in bw.databases if db != db_name]
         )
         if dialog.exec_() == DatabaseRelinkDialog.Accepted:
             db = bw.Database(db_name)
