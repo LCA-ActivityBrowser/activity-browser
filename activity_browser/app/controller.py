@@ -12,9 +12,10 @@ from bw2data.proxies import ExchangeProxyBase
 
 from .bwutils import commontasks as bc, AB_metadata
 from .bwutils.presamples import clear_resource_by_name, get_package_path, remove_package
+from .bwutils.strategies import relink_exchanges_existing_db
 from .settings import ab_settings, project_settings
 from .signals import signals
-from .ui.widgets import CopyDatabaseDialog
+from .ui.widgets import CopyDatabaseDialog, DatabaseRelinkDialog
 from .ui.wizards.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
 
 
@@ -58,6 +59,7 @@ class Controller(object):
         signals.copy_database.connect(self.copy_database)
         signals.install_default_data.connect(self.install_default_data)
         signals.import_database.connect(self.import_database_wizard)
+        signals.relink_database.connect(self.relink_database)
         # Activity
         signals.duplicate_activity.connect(self.duplicate_activity)
         signals.activity_modified.connect(self.modify_activity)
@@ -276,6 +278,18 @@ class Controller(object):
             project_settings.remove_db(name)
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
+
+    @Slot(str, QObject, name="relinkDatabase")
+    def relink_database(self, db_name: str, parent: QObject) -> None:
+        dialog = DatabaseRelinkDialog.relink_existing(
+            parent, db_name, bw.databases.list
+        )
+        if dialog.exec_() == DatabaseRelinkDialog.Accepted:
+            db = bw.Database(db_name)
+            other = bw.Database(dialog.new_db)
+            relink_exchanges_existing_db(db, other)
+            signals.database_changed.emit(db_name)
+            signals.databases_changed.emit()
 
 # CALCULATION SETUP
     def new_calculation_setup(self):
