@@ -3,6 +3,7 @@ import os
 
 import brightway2 as bw
 from PySide2 import QtWidgets
+from PySide2.QtCore import Slot
 
 from ...bwutils import commontasks as bc
 from ...bwutils.exporters import write_lci_excel
@@ -38,7 +39,8 @@ class DatabaseExportWizard(QtWidgets.QWizard):
     def perform_export(self) -> None:
         db_name = self.field("database_choice")
         export_as = self.field("export_option")
-        EXPORTERS[export_as](db_name)
+        out_path = self.field("output_path")
+        EXPORTERS[export_as](db_name, out_path)
 
 
 class ExportDatabasePage(QtWidgets.QWizardPage):
@@ -51,6 +53,8 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         self.database.currentIndexChanged.connect(self.changed)
         self.output_dir = QtWidgets.QLineEdit()
         self.output_dir.setReadOnly(True)
+        self.browse_button = QtWidgets.QPushButton("Browse")
+        self.browse_button.clicked.connect(self.browse)
         self.complete = False
 
         box = QtWidgets.QGroupBox("Database selection:")
@@ -59,8 +63,9 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         grid.addWidget(self.database, 0, 1, 1, 2)
         grid.addWidget(QtWidgets.QLabel("Exported as:"), 1, 0, 1, 1)
         grid.addWidget(self.export_option, 1, 1, 1, 2)
-        grid.addWidget(QtWidgets.QLabel("Exported databases are stored in the directory below:"), 2, 0, 1, 3)
-        grid.addWidget(self.output_dir, 3, 0, 1, 3)
+        grid.addWidget(QtWidgets.QLabel("Exported data is stored in the directory below:"), 2, 0, 1, 3)
+        grid.addWidget(self.output_dir, 3, 0, 1, 2)
+        grid.addWidget(self.browse_button, 3, 2, 1, 1)
         box.setLayout(grid)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(box)
@@ -69,6 +74,7 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         self.setFinalPage(True)
         self.registerField("database_choice", self.database, "currentText")
         self.registerField("export_option", self.export_option, "currentText")
+        self.registerField("output_path*", self.output_dir)
 
     def initializePage(self):
         self.wizard.setButtonLayout(
@@ -77,8 +83,7 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         self.database.clear()
         choices = ["-----"] + bw.databases.list
         self.database.addItems(choices)
-        export_path = os.path.join(bw.projects.dir, "export")
-        self.output_dir.setText(export_path)
+        self.output_dir.setText(bw.projects.output_dir)
 
     def changed(self):
         self.complete = False if self.database.currentText() == "-----" else True
@@ -86,3 +91,12 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
 
     def isComplete(self):
         return self.complete
+
+    @Slot(name="browseFile")
+    def browse(self) -> None:
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self, caption="Save database",
+            filter="Database Files (*.xlsx *.bw2package);; All Files (*.*)"
+        )
+        if path:
+            self.output_dir.setText(path)
