@@ -735,8 +735,9 @@ class MainWorkerThread(QtCore.QThread):
                 if self.db_name in bw.databases and self.kwargs["overwrite"]:
                     del bw.databases[self.db_name]
                 result = ABExcelImporter.simple_automated_import(
-                    self.archive_path, **self.kwargs
+                    self.archive_path, self.db_name, **self.kwargs
                 )
+                signals.parameters_changed.emit()
             else:
                 result = ABPackage.import_file(self.archive_path, relink=self.relink)
             if not import_signals.cancel_sentinel:
