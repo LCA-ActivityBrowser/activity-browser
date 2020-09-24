@@ -16,7 +16,6 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
-from ...bwutils.commontasks import is_technosphere_db
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
@@ -1009,13 +1008,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         self.path.textChanged.connect(self.changed)
         self.path_btn = QtWidgets.QPushButton("Browse")
         self.path_btn.clicked.connect(self.browse)
-        self.link_option = QtWidgets.QCheckBox("Link against existing technosphere.")
-        self.link_option.setToolTip("Attempts to find unlinked exchanges in the selected database.")
-        self.link_option.setChecked(False)
-        self.link_choice = QtWidgets.QComboBox()
-        self.link_choice.addItems([db for db in bw.databases if is_technosphere_db(db)])
-        self.link_choice.setHidden(True)
-        self.link_option.toggled.connect(self.toggle_dropdown)
         self.complete = False
 
         option_box = QtWidgets.QGroupBox("Import excel database file:")
@@ -1024,8 +1016,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         grid_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
         grid_layout.addWidget(self.path, 0, 1, 1, 2)
         grid_layout.addWidget(self.path_btn, 0, 3, 1, 1)
-        grid_layout.addWidget(self.link_option, 3, 0, 1, 2)
-        grid_layout.addWidget(self.link_choice, 3, 2, 1, 2)
         option_box.setLayout(grid_layout)
         option_box.setStyleSheet(style_group_box.border_title)
         layout.addWidget(option_box)
@@ -1033,12 +1023,9 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
 
         # Register field to ensure user cannot advance without selecting file.
         self.registerField("excel_path*", self.path)
-        self.registerField("do_link", self.link_option)
-        self.registerField("link_db", self.link_choice, "currentText")
 
     def initializePage(self):
         self.path.clear()
-        self.link_option.setChecked(False)
 
     def nextId(self):
         self.wizard.setField("archive_path", self.path.text())
@@ -1066,10 +1053,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
                 )
         self.complete = all([exists, valid])
         self.completeChanged.emit()
-
-    @Slot(bool, name="toggleDropdown")
-    def toggle_dropdown(self, toggle: bool) -> None:
-        self.link_choice.setHidden(not toggle)
 
     def isComplete(self):
         return self.complete
