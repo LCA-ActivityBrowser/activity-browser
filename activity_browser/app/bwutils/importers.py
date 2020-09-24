@@ -37,8 +37,7 @@ class ABExcelImporter(ExcelImporter):
         return super(ExcelImporter, self).write_database(**kwargs)
 
     @classmethod
-    def simple_automated_import(cls, filepath, db_name: str,
-                                linker: str = None, **kwargs) -> list:
+    def simple_automated_import(cls, filepath, db_name: str, relink: dict = None) -> list:
         """Handle a lot of the customizable things that can happen
         when doing an import in a script or notebook.
         """
@@ -84,12 +83,13 @@ class ABExcelImporter(ExcelImporter):
         if obj.project_parameters:
             obj.write_project_parameters(delete_existing=False)
         obj.apply_strategies()
-        if any(obj.unlinked) and linker:
-            # First try and match on the database field as well.
-            obj.link_to_technosphere(linker, fields=INNER_FIELDS)
-            # If there are still unlinked, use a rougher link.
-            if any(obj.unlinked):
-                obj.link_to_technosphere(linker)
+        if any(obj.unlinked) and relink:
+            for db in relink:
+                # First try and match on the database field as well.
+                obj.link_to_technosphere(db, fields=INNER_FIELDS)
+                # If there are still unlinked, use a rougher link.
+                if any(obj.unlinked):
+                    obj.link_to_technosphere(db)
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
             raise StrategyError([exc for exc in obj.unlinked])

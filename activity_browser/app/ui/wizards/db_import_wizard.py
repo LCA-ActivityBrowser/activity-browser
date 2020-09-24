@@ -484,6 +484,7 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.download_complete.connect(self.update_download)
         import_signals.unarchive_finished.connect(self.update_unarchive)
         import_signals.missing_dbs.connect(self.fix_db_import)
+        import_signals.links_required.connect(self.fix_excel_import)
 
         # Threads
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
@@ -758,7 +759,7 @@ class MainWorkerThread(QtCore.QThread):
             import_signals.db_progress.emit(0, 0)
             if os.path.splitext(self.archive_path)[1] in {".xlsx", ".xls"}:
                 result = ABExcelImporter.simple_automated_import(
-                    self.archive_path, self.db_name, **self.kwargs
+                    self.archive_path, self.db_name, self.relink
                 )
                 signals.parameters_changed.emit()
             else:
@@ -793,9 +794,7 @@ class MainWorkerThread(QtCore.QThread):
             print("Could not link exchanges:")
             pprint(e.args[0])
             self.delete_canceled_db()
-            import_signals.import_failure.emit(
-                ("Could not link exchanges", "One or more exchanges could not be linked.")
-            )
+            import_signals.links_required.emit(e.args[0])
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
@@ -1150,6 +1149,7 @@ class ImportSignals(QtCore.QObject):
     connection_problem = Signal(tuple)
     # Allow transmission of missing databases
     missing_dbs = Signal(object)
+    links_required = Signal(object)
 
 
 import_signals = ImportSignals()
