@@ -187,7 +187,7 @@ class RemoteImportPage(QtWidgets.QWizardPage):
 class LocalImportPage(QtWidgets.QWizardPage):
     """Contains all the options for the local importing of data."""
     OPTIONS = (
-        ("Local 7z-archive of previously downloaded database", "archive", DatabaseImportWizard.ARCHIVE),
+        ("Local 7z-archive of ecospold2 files", "archive", DatabaseImportWizard.ARCHIVE),
         ("Local directory with ecospold2 files", "directory", DatabaseImportWizard.DIR),
         ("Local Excel file", "local", DatabaseImportWizard.EXCEL),
         ("Local brightway database file", "local", DatabaseImportWizard.LOCAL),
