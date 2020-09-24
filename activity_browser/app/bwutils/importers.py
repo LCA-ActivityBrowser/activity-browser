@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import functools
+from pathlib import Path
 from time import time
 import warnings
 
@@ -114,6 +115,12 @@ class ABPackage(bw.BW2Package):
     This implementation is done to raise exceptions and show errors on imports
     much faster.
     """
+    @classmethod
+    def unrestricted_export(cls, obj, path: Path) -> Path:
+        """Export a BW2Package outside the project folder."""
+        cls._write_file(path, [cls._prepare_obj(obj, False)])
+        return path
+
     @classmethod
     def evaluate_metadata(cls, metadata: dict, ignore_dbs: set):
         """ Take the given metadata dictionary and test it against realities
