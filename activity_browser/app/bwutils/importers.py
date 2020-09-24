@@ -20,7 +20,7 @@ from bw2io.strategies import (
     convert_activity_parameters_to_list
 )
 
-from .strategies import relink_exchanges_bw2package
+from .strategies import relink_exchanges_bw2package, alter_database_name
 
 
 INNER_FIELDS = ("name", "unit", "database", "location")
@@ -78,14 +78,52 @@ class ABExcelImporter(ExcelImporter):
         return super(ExcelImporter, self).write_database(**kwargs)
 
     @classmethod
-    def simple_automated_import(cls, filepath, overwrite: bool = True, purge: bool = False,
+    def simple_automated_import(cls, filepath, db_name: str,
                                 linker: str = None, **kwargs) -> list:
         """Handle a lot of the customizable things that can happen
         when doing an import in a script or notebook.
         """
         obj = cls(filepath)
+        obj.strategies = [
+            functools.partial(
+                alter_database_name,
+                old=obj.db_name,
+                new=db_name
+            ),
+            csv_restore_tuples,
+            csv_restore_booleans,
+            csv_numerize,
+            csv_drop_unknown,
+            csv_add_missing_exchanges_section,
+            normalize_units,
+            normalize_biosphere_categories,
+            normalize_biosphere_names,
+            strip_biosphere_exc_locations,
+            set_code_by_activity_hash,
+            functools.partial(
+                link_iterable_by_fields,
+                other=bw.Database(bw.config.biosphere),
+                kind='biosphere'
+            ),
+            assign_only_product_as_production,
+            functools.partial(
+                link_technosphere_by_activity_hash,
+                fields=INNER_FIELDS
+            ),
+            drop_falsey_uncertainty_fields_but_keep_zeros,
+            convert_uncertainty_types_to_integers,
+            convert_activity_parameters_to_list,
+        ]
+        obj.db_name = db_name
+
+        # Test if the import contains any parameters.
+        has_params = any([
+            obj.project_parameters, obj.database_parameters,
+            any("parameters" in ds for ds in obj.data)
+        ])
+
         if obj.project_parameters:
-            obj.write_project_parameters(delete_existing=purge)
+            obj.write_project_parameters(delete_existing=False)
         obj.apply_strategies()
         if any(obj.unlinked) and linker:
             # First try and match on the database field as well.
@@ -96,7 +134,9 @@ class ABExcelImporter(ExcelImporter):
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
             raise StrategyError([exc for exc in obj.unlinked])
-        db = obj.write_database(delete_existing=overwrite, activate_parameters=True)
+        db = obj.write_database(delete_existing=True, activate_parameters=True)
+        if has_params:
+            bw.parameters.recalculate()
         return [db]
 
     def link_to_technosphere(self, db_name: str, fields: tuple = None) -> None:
