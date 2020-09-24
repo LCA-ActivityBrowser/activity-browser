@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 import functools
-from time import time
 import warnings
 
 import brightway2 as bw
 from bw2io import ExcelImporter
 from bw2io.errors import InvalidPackage, StrategyError
-from bw2io.importers.excel import valid_first_cell
 from bw2io.strategies import (
     csv_restore_tuples, csv_restore_booleans, csv_numerize,
     csv_drop_unknown, csv_add_missing_exchanges_section,
@@ -29,45 +27,6 @@ LINK_FIELDS = ("name", "unit", "location")
 
 class ABExcelImporter(ExcelImporter):
     """Customized Excel importer for the AB."""
-
-    def __init__(self, filepath):
-        self.strategies = [
-            csv_restore_tuples,
-            csv_restore_booleans,
-            csv_numerize,
-            csv_drop_unknown,
-            csv_add_missing_exchanges_section,
-            normalize_units,
-            normalize_biosphere_categories,
-            normalize_biosphere_names,
-            strip_biosphere_exc_locations,
-            set_code_by_activity_hash,
-            functools.partial(
-                link_iterable_by_fields,
-                other=bw.Database(bw.config.biosphere),
-                kind='biosphere'
-            ),
-            assign_only_product_as_production,
-            functools.partial(
-                link_technosphere_by_activity_hash,
-                fields=INNER_FIELDS
-            ),
-            drop_falsey_uncertainty_fields_but_keep_zeros,
-            convert_uncertainty_types_to_integers,
-            convert_activity_parameters_to_list,
-        ]
-        start = time()
-        data = self.extractor.extract(filepath)
-        data = [(x, y) for x, y in data if valid_first_cell(x, y)]
-        print("Extracted {} worksheets in {:.2f} seconds".format(
-              len(data), time() - start))
-        if data and any(line for line in data):
-            self.db_name, self.metadata = self.get_database(data)
-            self.project_parameters = self.get_project_parameters(data)
-            self.database_parameters = self.get_database_parameters(data)
-            self.data = self.process_activities(data)
-        else:
-            warnings.warn("No data in workbook found")
 
     def write_database(self, **kwargs):
         """Go to the parent of the ExcelImporter class, not the ExcelImporter itself.
