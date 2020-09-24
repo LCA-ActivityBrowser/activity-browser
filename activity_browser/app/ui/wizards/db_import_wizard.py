@@ -611,6 +611,33 @@ class ImportPage(QtWidgets.QWizardPage):
         # Restart the page
         self.initializePage()
 
+    @Slot(object, name="fixExcelImport")
+    def fix_excel_import(self, exchanges: list) -> None:
+        """Halt and delete the importing thread, ask the user for input
+        and restart the worker thread with the new information.
+
+        Customized for ABExcelImporter problems
+        """
+        self.main_worker_thread.exit(1)
+
+        # Iterate through the missing databases, asking user input.
+        linker = DatabaseRelinkDialog.link_new(
+            self, self.field("db_name"), bw.databases.list
+        )
+        if linker.exec_() == DatabaseRelinkDialog.Accepted:
+            self.relink_data[linker.new_db] = linker.new_db
+        else:
+            msg = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Unlinked exchanges",
+                "Excel data contains exchanges that could not be linked.",
+                QtWidgets.QMessageBox.Ok, self
+            )
+            msg.setDetailedText("\n\n".join(str(e) for e in exchanges))
+            msg.exec_()
+            return
+        # Restart the page
+        self.initializePage()
+
 
 class MainWorkerThread(QtCore.QThread):
     def __init__(self, downloader, parent=None):
