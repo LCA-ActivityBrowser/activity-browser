@@ -29,7 +29,7 @@ def frmt_str(data: Union[str, dict]) -> str:
     return format_pedigree(data) if isinstance(data, dict) else data
 
 
-def write_lci_excel(database_name: str, objs=None, sections=None) -> Path:
+def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
     """Export database `database_name` to an Excel spreadsheet.
 
     Not all data can be exported. The following constraints apply:
@@ -40,18 +40,21 @@ def write_lci_excel(database_name: str, objs=None, sections=None) -> Path:
     Returns the filepath of the exported file.
 
     """
-    safe_name = safe_filename(database_name, False)
-    filepath = Path(bw.projects.output_dir) / "lci-{}.xlsx".format(safe_name)
+    path = Path(path)
+    if not path.suffix == ".xlsx":
+        out_file = path / "lci-{}.xlsx".format(safe_filename(db_name, False))
+    else:
+        out_file = path
 
-    workbook = xlsxwriter.Workbook(filepath, {'nan_inf_to_errors': True})
+    workbook = xlsxwriter.Workbook(out_file, {'nan_inf_to_errors': True})
     bold = workbook.add_format({'bold': True})
     bold.set_font_size(12)
     highlighted = {'Activity', 'Database', 'Exchanges', 'Parameters', 'Database parameters', 'Project parameters'}
     frmt = lambda x: bold if row[0] in highlighted else None
 
-    sheet = workbook.add_worksheet(create_valid_worksheet_name(database_name))
+    sheet = workbook.add_worksheet(create_valid_worksheet_name(db_name))
 
-    data = CSVFormatter(database_name, objs).get_formatted_data(sections)
+    data = CSVFormatter(db_name, objs).get_formatted_data(sections)
 
     for row_index, row in enumerate(data):
         for col_index, value in enumerate(row):
@@ -64,4 +67,4 @@ def write_lci_excel(database_name: str, objs=None, sections=None) -> Path:
 
     workbook.close()
 
-    return filepath
+    return out_file
