@@ -790,8 +790,7 @@ class MainWorkerThread(QtCore.QThread):
             )
         except StrategyError as e:
             from pprint import pprint
-            del e.args[0][10:]
-            print("Could not link exchanges:")
+            print("Could not link exchanges, here are 10 examples.:")
             pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0])
