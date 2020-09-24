@@ -355,7 +355,7 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in bw.databases and not self.field("overwrite_db"):
+        if db_name in bw.databases:
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
                 db_name, bw.projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
@@ -534,8 +534,6 @@ class ImportPage(QtWidgets.QWizardPage):
                 "archive_path": self.field("archive_path"),
                 "use_local": True,
                 "relink": self.relink_data,
-                "overwrite": self.field("overwrite_db"),
-                "purge": self.field("purge_params"),
                 "linker": self.field("link_db") if self.field("do_link") else None,
             }
             self.main_worker_thread.update(**kwargs)
@@ -732,8 +730,6 @@ class MainWorkerThread(QtCore.QThread):
         try:
             import_signals.db_progress.emit(0, 0)
             if os.path.splitext(self.archive_path)[1] in {".xlsx", ".xls"}:
-                if self.db_name in bw.databases and self.kwargs["overwrite"]:
-                    del bw.databases[self.db_name]
                 result = ABExcelImporter.simple_automated_import(
                     self.archive_path, self.db_name, **self.kwargs
                 )
@@ -989,12 +985,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         self.path.textChanged.connect(self.changed)
         self.path_btn = QtWidgets.QPushButton("Browse")
         self.path_btn.clicked.connect(self.browse)
-        self.overwrite_db = QtWidgets.QCheckBox("Overwrite database.")
-        self.overwrite_db.setToolTip("Will overwrite existing databases with the same name.")
-        self.overwrite_db.setChecked(True)
-        self.purge_params = QtWidgets.QCheckBox("Remove existing parameters from project.")
-        self.purge_params.setToolTip("Will only remove parameters of the type found in the file.")
-        self.purge_params.setChecked(False)
         self.link_option = QtWidgets.QCheckBox("Link against existing technosphere.")
         self.link_option.setToolTip("Attempts to find unlinked exchanges in the selected database.")
         self.link_option.setChecked(False)
@@ -1010,8 +1000,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         grid_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
         grid_layout.addWidget(self.path, 0, 1, 1, 2)
         grid_layout.addWidget(self.path_btn, 0, 3, 1, 1)
-        grid_layout.addWidget(self.overwrite_db, 1, 0, 1, 3)
-        grid_layout.addWidget(self.purge_params, 2, 0, 1, 3)
         grid_layout.addWidget(self.link_option, 3, 0, 1, 2)
         grid_layout.addWidget(self.link_choice, 3, 2, 1, 2)
         option_box.setLayout(grid_layout)
@@ -1021,15 +1009,11 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
 
         # Register field to ensure user cannot advance without selecting file.
         self.registerField("excel_path*", self.path)
-        self.registerField("overwrite_db", self.overwrite_db)
-        self.registerField("purge_params", self.purge_params)
         self.registerField("do_link", self.link_option)
         self.registerField("link_db", self.link_choice, "currentText")
 
     def initializePage(self):
         self.path.clear()
-        self.overwrite_db.setChecked(True)
-        self.purge_params.setChecked(False)
         self.link_option.setChecked(False)
 
     def nextId(self):
