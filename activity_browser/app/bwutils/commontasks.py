@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime as dt
 import hashlib
+from pathlib import Path
 import os
 import textwrap
 import arrow
@@ -9,6 +10,8 @@ from bw2data import databases
 from bw2data.proxies import ActivityProxyBase
 from bw2data.utils import natural_sort
 from bw2data.project import ProjectDataset, SubstitutableDatabase
+
+from .importers import ABPackage
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
@@ -132,7 +135,12 @@ def store_database_as_package(db_name: str, directory: str = None) -> bool:
         return False
     metadata = bw.databases[db_name]
     db = bw.Database(db_name)
-    output_dir = directory or "export"
+    directory = directory or bw.projects.output_dir
+    output_dir = Path(directory)
+    if output_dir.suffix == ".bw2package":
+        out_file = output_dir
+    else:
+        out_file = output_dir / "{}.bw2package".format(db.filename)
     # First, ensure the metadata on the database is up-to-date.
     modified = dt.strptime(metadata["modified"], "%Y-%m-%dT%H:%M:%S.%f")
     if "processed" in metadata:
@@ -142,7 +150,7 @@ def store_database_as_package(db_name: str, directory: str = None) -> bool:
     else:
         db.process()
     # Now that processing is done, perform the export.
-    bw.BW2Package.export_obj(db, db_name, output_dir)
+    ABPackage.unrestricted_export(db, out_file)
     return True
 
 
