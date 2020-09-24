@@ -535,7 +535,6 @@ class ImportPage(QtWidgets.QWizardPage):
                 "archive_path": self.field("archive_path"),
                 "use_local": True,
                 "relink": self.relink_data,
-                "linker": self.field("link_db") if self.field("do_link") else None,
             }
             self.main_worker_thread.update(**kwargs)
         else:
@@ -591,6 +590,8 @@ class ImportPage(QtWidgets.QWizardPage):
     def fix_db_import(self, missing: set) -> None:
         """Halt and delete the importing thread, ask the user for input
         and restart the worker thread with the new information.
+
+        Customized for ABPackage problems
         """
         self.main_worker_thread.exit(1)
 
@@ -651,17 +652,15 @@ class MainWorkerThread(QtCore.QThread):
         self.use_forwast = None
         self.use_local = None
         self.relink = {}
-        self.kwargs = {}
 
     def update(self, db_name: str, archive_path=None, datasets_path=None,
-               use_forwast=False, use_local=False, relink=None, **kwargs) -> None:
+               use_forwast=False, use_local=False, relink=None) -> None:
         self.db_name = db_name
         self.archive_path = archive_path
         self.datasets_path = datasets_path
         self.use_forwast = use_forwast
         self.use_local = use_local
         self.relink = relink or {}
-        self.kwargs = kwargs
 
     def run(self):
         if self.use_forwast:
