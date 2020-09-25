@@ -612,8 +612,8 @@ class ImportPage(QtWidgets.QWizardPage):
         # Restart the page
         self.initializePage()
 
-    @Slot(object, name="fixExcelImport")
-    def fix_excel_import(self, exchanges: list) -> None:
+    @Slot(object, object, name="fixExcelImport")
+    def fix_excel_import(self, exchanges: list, missing: set) -> None:
         """Halt and delete the importing thread, ask the user for input
         and restart the worker thread with the new information.
 
@@ -622,12 +622,14 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.exit(1)
 
         # Iterate through the missing databases, asking user input.
-        linker = DatabaseRelinkDialog.link_new(
-            self, self.field("db_name"), bw.databases.list
-        )
-        if linker.exec_() == DatabaseRelinkDialog.Accepted:
-            self.relink_data[linker.new_db] = linker.new_db
-        else:
+        self.relink_data = {}
+        for db in missing:
+            linker = DatabaseRelinkDialog.link_new(
+                self, db, bw.databases.list
+            )
+            if linker.exec_() == DatabaseRelinkDialog.Accepted:
+                self.relink_data[db] = linker.new_db
+        if len(self.relink_data) != len(missing):
             msg = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Unlinked exchanges",
                 "Excel data contains exchanges that could not be linked.",
@@ -791,7 +793,7 @@ class MainWorkerThread(QtCore.QThread):
             print("Could not link exchanges, here are 10 examples.:")
             pprint(e.args[0])
             self.delete_canceled_db()
-            import_signals.links_required.emit(e.args[0])
+            import_signals.links_required.emit(e.args[0], e.args[1])
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
@@ -1130,7 +1132,7 @@ class ImportSignals(QtCore.QObject):
     connection_problem = Signal(tuple)
     # Allow transmission of missing databases
     missing_dbs = Signal(object)
-    links_required = Signal(object)
+    links_required = Signal(object, object)
 
 
 import_signals = ImportSignals()
