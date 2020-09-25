@@ -86,3 +86,23 @@ def relink_exchanges_existing_db(db: bw.Database, other: bw.Database) -> None:
     #  this updates the 'depends' in metadata
     db.process()
     print("Finished relinking database, {} exchanges altered.".format(altered))
+
+
+def alter_database_name(data: list, old: str, new: str) -> list:
+    """For ABExcelImporter, go through data and replace all instances
+    of the `old` database name with `new`.
+    """
+    if old == new:
+        return data  # Avoid doing any work if the two are equal.
+    for ds in data:
+        # Alter db on activities.
+        ds["database"] = new
+        for exc in ds.get('exchanges', []):
+            # Note: this will only alter database if the field exists in the exchange.
+            if exc.get("database") == old:
+                exc["database"] = new
+        for p, d in ds.get("parameters", {}).items():
+            # Any parameters found here are activity parameters and we can
+            # overwrite the database without issue.
+            d["database"] = new
+    return data

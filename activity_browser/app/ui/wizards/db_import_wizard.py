@@ -16,7 +16,6 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
-from ...bwutils.commontasks import is_technosphere_db
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
@@ -355,7 +354,7 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in bw.databases and not self.field("overwrite_db"):
+        if db_name in bw.databases:
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
                 db_name, bw.projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
@@ -484,6 +483,7 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.download_complete.connect(self.update_download)
         import_signals.unarchive_finished.connect(self.update_unarchive)
         import_signals.missing_dbs.connect(self.fix_db_import)
+        import_signals.links_required.connect(self.fix_excel_import)
 
         # Threads
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
@@ -534,9 +534,6 @@ class ImportPage(QtWidgets.QWizardPage):
                 "archive_path": self.field("archive_path"),
                 "use_local": True,
                 "relink": self.relink_data,
-                "overwrite": self.field("overwrite_db"),
-                "purge": self.field("purge_params"),
-                "linker": self.field("link_db") if self.field("do_link") else None,
             }
             self.main_worker_thread.update(**kwargs)
         else:
@@ -592,6 +589,8 @@ class ImportPage(QtWidgets.QWizardPage):
     def fix_db_import(self, missing: set) -> None:
         """Halt and delete the importing thread, ask the user for input
         and restart the worker thread with the new information.
+
+        Customized for ABPackage problems
         """
         self.main_worker_thread.exit(1)
 
@@ -613,6 +612,33 @@ class ImportPage(QtWidgets.QWizardPage):
         # Restart the page
         self.initializePage()
 
+    @Slot(object, name="fixExcelImport")
+    def fix_excel_import(self, exchanges: list) -> None:
+        """Halt and delete the importing thread, ask the user for input
+        and restart the worker thread with the new information.
+
+        Customized for ABExcelImporter problems
+        """
+        self.main_worker_thread.exit(1)
+
+        # Iterate through the missing databases, asking user input.
+        linker = DatabaseRelinkDialog.link_new(
+            self, self.field("db_name"), bw.databases.list
+        )
+        if linker.exec_() == DatabaseRelinkDialog.Accepted:
+            self.relink_data[linker.new_db] = linker.new_db
+        else:
+            msg = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Unlinked exchanges",
+                "Excel data contains exchanges that could not be linked.",
+                QtWidgets.QMessageBox.Ok, self
+            )
+            msg.setDetailedText("\n\n".join(str(e) for e in exchanges))
+            msg.exec_()
+            return
+        # Restart the page
+        self.initializePage()
+
 
 class MainWorkerThread(QtCore.QThread):
     def __init__(self, downloader, parent=None):
@@ -625,17 +651,15 @@ class MainWorkerThread(QtCore.QThread):
         self.use_forwast = None
         self.use_local = None
         self.relink = {}
-        self.kwargs = {}
 
     def update(self, db_name: str, archive_path=None, datasets_path=None,
-               use_forwast=False, use_local=False, relink=None, **kwargs) -> None:
+               use_forwast=False, use_local=False, relink=None) -> None:
         self.db_name = db_name
         self.archive_path = archive_path
         self.datasets_path = datasets_path
         self.use_forwast = use_forwast
         self.use_local = use_local
         self.relink = relink or {}
-        self.kwargs = kwargs
 
     def run(self):
         if self.use_forwast:
@@ -732,11 +756,10 @@ class MainWorkerThread(QtCore.QThread):
         try:
             import_signals.db_progress.emit(0, 0)
             if os.path.splitext(self.archive_path)[1] in {".xlsx", ".xls"}:
-                if self.db_name in bw.databases and self.kwargs["overwrite"]:
-                    del bw.databases[self.db_name]
                 result = ABExcelImporter.simple_automated_import(
-                    self.archive_path, **self.kwargs
+                    self.archive_path, self.db_name, self.relink
                 )
+                signals.parameters_changed.emit()
             else:
                 result = ABPackage.import_file(self.archive_path, relink=self.relink)
             if not import_signals.cancel_sentinel:
@@ -765,13 +788,10 @@ class MainWorkerThread(QtCore.QThread):
             )
         except StrategyError as e:
             from pprint import pprint
-            del e.args[0][10:]
-            print("Could not link exchanges:")
+            print("Could not link exchanges, here are 10 examples.:")
             pprint(e.args[0])
             self.delete_canceled_db()
-            import_signals.import_failure.emit(
-                ("Could not link exchanges", "One or more exchanges could not be linked.")
-            )
+            import_signals.links_required.emit(e.args[0])
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
@@ -988,19 +1008,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         self.path.textChanged.connect(self.changed)
         self.path_btn = QtWidgets.QPushButton("Browse")
         self.path_btn.clicked.connect(self.browse)
-        self.overwrite_db = QtWidgets.QCheckBox("Overwrite database.")
-        self.overwrite_db.setToolTip("Will overwrite existing databases with the same name.")
-        self.overwrite_db.setChecked(True)
-        self.purge_params = QtWidgets.QCheckBox("Remove existing parameters from project.")
-        self.purge_params.setToolTip("Will only remove parameters of the type found in the file.")
-        self.purge_params.setChecked(False)
-        self.link_option = QtWidgets.QCheckBox("Link against existing technosphere.")
-        self.link_option.setToolTip("Attempts to find unlinked exchanges in the selected database.")
-        self.link_option.setChecked(False)
-        self.link_choice = QtWidgets.QComboBox()
-        self.link_choice.addItems([db for db in bw.databases if is_technosphere_db(db)])
-        self.link_choice.setHidden(True)
-        self.link_option.toggled.connect(self.toggle_dropdown)
         self.complete = False
 
         option_box = QtWidgets.QGroupBox("Import excel database file:")
@@ -1009,10 +1016,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         grid_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
         grid_layout.addWidget(self.path, 0, 1, 1, 2)
         grid_layout.addWidget(self.path_btn, 0, 3, 1, 1)
-        grid_layout.addWidget(self.overwrite_db, 1, 0, 1, 3)
-        grid_layout.addWidget(self.purge_params, 2, 0, 1, 3)
-        grid_layout.addWidget(self.link_option, 3, 0, 1, 2)
-        grid_layout.addWidget(self.link_choice, 3, 2, 1, 2)
         option_box.setLayout(grid_layout)
         option_box.setStyleSheet(style_group_box.border_title)
         layout.addWidget(option_box)
@@ -1020,16 +1023,9 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
 
         # Register field to ensure user cannot advance without selecting file.
         self.registerField("excel_path*", self.path)
-        self.registerField("overwrite_db", self.overwrite_db)
-        self.registerField("purge_params", self.purge_params)
-        self.registerField("do_link", self.link_option)
-        self.registerField("link_db", self.link_choice, "currentText")
 
     def initializePage(self):
         self.path.clear()
-        self.overwrite_db.setChecked(True)
-        self.purge_params.setChecked(False)
-        self.link_option.setChecked(False)
 
     def nextId(self):
         self.wizard.setField("archive_path", self.path.text())
@@ -1057,10 +1053,6 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
                 )
         self.complete = all([exists, valid])
         self.completeChanged.emit()
-
-    @Slot(bool, name="toggleDropdown")
-    def toggle_dropdown(self, toggle: bool) -> None:
-        self.link_choice.setHidden(not toggle)
 
     def isComplete(self):
         return self.complete
@@ -1138,6 +1130,7 @@ class ImportSignals(QtCore.QObject):
     connection_problem = Signal(tuple)
     # Allow transmission of missing databases
     missing_dbs = Signal(object)
+    links_required = Signal(object)
 
 
 import_signals = ImportSignals()
