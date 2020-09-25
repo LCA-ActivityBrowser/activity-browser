@@ -114,14 +114,6 @@ class ABExcelImporter(ExcelImporter):
             bw.parameters.recalculate()
         return [db]
 
-    def link_to_technosphere(self, db_name: str, fields: tuple = None) -> None:
-        """Apply the 'link to technosphere' strategy with some flexibility."""
-        fields = fields or LINK_FIELDS
-        self.apply_strategy(functools.partial(
-            link_technosphere_by_activity_hash,
-            external_db_name=db_name, fields=fields
-        ))
-
 
 class ABPackage(bw.BW2Package):
     """ Inherits from brightway2 `BW2Package` and handles importing BW2Packages.
