@@ -299,5 +299,7 @@ class DatabaseRelinkDialog(QtWidgets.QDialog):
         obj.label.setText(cls.LINK_UNKNOWN.format(db))
         obj.choice.clear()
         obj.choice.addItems(options)
+        if db in options:
+            obj.choice.setCurrentText(db)
         obj.choice.setEnabled(True)
         return obj

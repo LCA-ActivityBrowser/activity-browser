@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+import hashlib
 from typing import Collection
 
 import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset, sqlite3_lci_db
 from bw2data.errors import ValidityError
 from bw2io.errors import StrategyError
-from bw2io.strategies.generic import format_nonunique_key_error
+from bw2io.strategies.generic import format_nonunique_key_error, link_technosphere_by_activity_hash
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
+
+
+INNER_FIELDS = ("name", "unit", "database", "location")
 
 
 def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
@@ -24,6 +28,20 @@ def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
                     raise ValueError("Cannot relink exchange '{}', key '{}' not found.".format(exc, new_key)
                                      ).with_traceback(e.__traceback__)
     return data
+
+
+def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
+    for act in data:
+        for exc in (exc for exc in act.get("exchanges", []) if exc.get("database") == old):
+            exc["database"] = new
+    return link_technosphere_by_activity_hash(data, external_db_name=new, fields=INNER_FIELDS)
+
+
+def link_exchanges_without_db(data: list, db: str) -> list:
+    for act in data:
+        for exc in (exc for exc in act.get("exchanges", []) if "database" not in exc):
+            exc["database"] = db
+    return link_technosphere_by_activity_hash(data, external_db_name=db, fields=INNER_FIELDS)
 
 
 def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
@@ -106,3 +124,37 @@ def alter_database_name(data: list, old: str, new: str) -> list:
             # overwrite the database without issue.
             d["database"] = new
     return data
+
+
+def hash_parameter_group(data: list) -> list:
+    """For ABExcelImporter, go through `data` and change all the activity parameter
+    `group` fields to use a md5 hash instead of the given group name.
+    """
+    for ds in (ds for ds in data if "parameters" in ds):
+        key = (ds.get("database"), ds.get("code"))
+        simple_hash = hashlib.md5(":".join(key).encode()).hexdigest()
+        clean = _clean_activity_name(ds.get("name"))
+        for p, d in ds.get("parameters", {}).items():
+            d["group"] = "{}_{}".format(clean, simple_hash)
+    return data
+
+
+def _clean_activity_name(activity_name: str) -> str:
+    """ Takes a given activity name and remove or replace all characters
+    not allowed to be in there.
+
+    TODO: Figure out how to import from commontasks.
+    """
+    remove = ",.%[]0123456789"
+    replace = " -"
+    # Remove invalid characters
+    for char in remove:
+        if char in activity_name:
+            activity_name = activity_name.replace(char, "")
+    # Replace spacing and dashes with underscores
+    for char in replace:
+        if char in activity_name:
+            activity_name = activity_name.replace(char, "_")
+    # strip underscores from start of string
+    activity_name = activity_name.lstrip("_")
+    return activity_name

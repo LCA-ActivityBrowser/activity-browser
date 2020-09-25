@@ -19,7 +19,10 @@ from bw2io.strategies import (
     convert_activity_parameters_to_list
 )
 
-from .strategies import relink_exchanges_bw2package, alter_database_name
+from .strategies import (
+    relink_exchanges_bw2package, alter_database_name, hash_parameter_group,
+    relink_exchanges_with_db, link_exchanges_without_db,
+)
 
 
 INNER_FIELDS = ("name", "unit", "database", "location")
@@ -71,6 +74,7 @@ class ABExcelImporter(ExcelImporter):
             ),
             drop_falsey_uncertainty_fields_but_keep_zeros,
             convert_uncertainty_types_to_integers,
+            hash_parameter_group,
             convert_activity_parameters_to_list,
         ]
         obj.db_name = db_name
@@ -85,16 +89,20 @@ class ABExcelImporter(ExcelImporter):
             obj.write_project_parameters(delete_existing=False)
         obj.apply_strategies()
         if any(obj.unlinked) and relink:
-            for db in relink:
-                # First try and match on the database field as well.
-                obj.link_to_technosphere(db, fields=INNER_FIELDS)
-                # If there are still unlinked, use a rougher link.
-                if any(obj.unlinked):
-                    obj.link_to_technosphere(db)
+            for db, new_db in relink.items():
+                if db == "missing_db":
+                    obj.apply_strategy(functools.partial(
+                        link_exchanges_without_db, db=new_db
+                    ))
+                else:
+                    obj.apply_strategy(functools.partial(
+                        relink_exchanges_with_db, old=db, new=new_db
+                    ))
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
             excs = [exc for exc in obj.unlinked][:10]
-            raise StrategyError(excs)
+            databases = {exc.get("database", "missing_db") for exc in obj.unlinked}
+            raise StrategyError(excs, databases)
         db = obj.write_database(delete_existing=True, activate_parameters=True)
         if has_params:
             bw.parameters.recalculate()
