@@ -84,9 +84,6 @@ class ABExcelImporter(ExcelImporter):
             obj.project_parameters, obj.database_parameters,
             any("parameters" in ds for ds in obj.data)
         ])
-
-        if obj.project_parameters:
-            obj.write_project_parameters(delete_existing=False)
         obj.apply_strategies()
         if any(obj.unlinked) and relink:
             for db, new_db in relink.items():
@@ -103,6 +100,8 @@ class ABExcelImporter(ExcelImporter):
             excs = [exc for exc in obj.unlinked][:10]
             databases = {exc.get("database", "missing_db") for exc in obj.unlinked}
             raise StrategyError(excs, databases)
+        if obj.project_parameters:
+            obj.write_project_parameters(delete_existing=False)
         db = obj.write_database(delete_existing=True, activate_parameters=True)
         if has_params:
             bw.parameters.recalculate()
