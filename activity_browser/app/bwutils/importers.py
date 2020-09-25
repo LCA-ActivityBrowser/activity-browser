@@ -19,7 +19,9 @@ from bw2io.strategies import (
     convert_activity_parameters_to_list
 )
 
-from .strategies import relink_exchanges_bw2package, alter_database_name
+from .strategies import (
+    relink_exchanges_bw2package, alter_database_name, hash_parameter_group
+)
 
 
 INNER_FIELDS = ("name", "unit", "database", "location")
@@ -71,6 +73,7 @@ class ABExcelImporter(ExcelImporter):
             ),
             drop_falsey_uncertainty_fields_but_keep_zeros,
             convert_uncertainty_types_to_integers,
+            hash_parameter_group,
             convert_activity_parameters_to_list,
         ]
         obj.db_name = db_name
