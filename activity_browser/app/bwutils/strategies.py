@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import hashlib
 from typing import Collection
 
 import brightway2 as bw
@@ -106,3 +107,37 @@ def alter_database_name(data: list, old: str, new: str) -> list:
             # overwrite the database without issue.
             d["database"] = new
     return data
+
+
+def hash_parameter_group(data: list) -> list:
+    """For ABExcelImporter, go through `data` and change all the activity parameter
+    `group` fields to use a md5 hash instead of the given group name.
+    """
+    for ds in (ds for ds in data if "parameters" in ds):
+        key = (ds.get("database"), ds.get("code"))
+        simple_hash = hashlib.md5(":".join(key).encode()).hexdigest()
+        clean = _clean_activity_name(ds.get("name"))
+        for p, d in ds.get("parameters", {}).items():
+            d["group"] = "{}_{}".format(clean, simple_hash)
+    return data
+
+
+def _clean_activity_name(activity_name: str) -> str:
+    """ Takes a given activity name and remove or replace all characters
+    not allowed to be in there.
+
+    TODO: Figure out how to import from commontasks.
+    """
+    remove = ",.%[]0123456789"
+    replace = " -"
+    # Remove invalid characters
+    for char in remove:
+        if char in activity_name:
+            activity_name = activity_name.replace(char, "")
+    # Replace spacing and dashes with underscores
+    for char in replace:
+        if char in activity_name:
+            activity_name = activity_name.replace(char, "_")
+    # strip underscores from start of string
+    activity_name = activity_name.lstrip("_")
+    return activity_name
