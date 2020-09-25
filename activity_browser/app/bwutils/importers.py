@@ -97,7 +97,8 @@ class ABExcelImporter(ExcelImporter):
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
             excs = [exc for exc in obj.unlinked][:10]
-            raise StrategyError(excs)
+            databases = {exc.get("database", "missing_db") for exc in obj.unlinked}
+            raise StrategyError(excs, databases)
         db = obj.write_database(delete_existing=True, activate_parameters=True)
         if has_params:
             bw.parameters.recalculate()
