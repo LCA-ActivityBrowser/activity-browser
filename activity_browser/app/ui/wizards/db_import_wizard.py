@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import io
+from pprint import pprint
 import subprocess
 import tempfile
 import zipfile
@@ -16,6 +17,7 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
+from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
@@ -789,11 +791,18 @@ class MainWorkerThread(QtCore.QThread):
                 ("Unknown object", str(e))
             )
         except StrategyError as e:
-            from pprint import pprint
             print("Could not link exchanges, here are 10 examples.:")
             pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
+        except LinkingFailed as e:
+            msg = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Critical, "Unlinked exchanges",
+                "Some exchanges could not be linked in databases: '[{}]'".format(", ".join(e.args[1])),
+                QtWidgets.QMessageBox.Ok, self
+            )
+            msg.setDetailedText("\n\n".join(str(e) for e in e.args[0]))
+            msg.exec_()
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
@@ -1111,10 +1120,6 @@ class ActivityBrowserBackend(SQLiteBackend):
 
 
 bw.config.backends['activitybrowser'] = ActivityBrowserBackend
-
-
-class ImportCanceledError(Exception):
-    pass
 
 
 class ImportSignals(QtCore.QObject):
