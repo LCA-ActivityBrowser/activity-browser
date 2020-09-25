@@ -664,6 +664,8 @@ class MainWorkerThread(QtCore.QThread):
         self.relink = relink or {}
 
     def run(self):
+        # Set the cancel sentinal to false whenever the thread (re-)starts
+        import_signals.cancel_sentinel = False
         if self.use_forwast:
             self.run_forwast()
         elif self.use_local:
@@ -672,7 +674,6 @@ class MainWorkerThread(QtCore.QThread):
             self.run_ecoinvent()
 
     def run_ecoinvent(self):
-        import_signals.cancel_sentinel = False
         with tempfile.TemporaryDirectory() as tempdir:
             dataset_dir = self.datasets_path or os.path.join(tempdir, "datasets")
             if not os.path.isdir(dataset_dir):
@@ -693,7 +694,6 @@ class MainWorkerThread(QtCore.QThread):
         """
         adapted from pjamesjoyce/lcopt
         """
-        import_signals.cancel_sentinel = False
         response = requests.get(self.forwast_url)
         forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
         import_signals.download_complete.emit()
