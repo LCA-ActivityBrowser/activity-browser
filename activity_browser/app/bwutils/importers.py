@@ -20,7 +20,8 @@ from bw2io.strategies import (
 )
 
 from .strategies import (
-    relink_exchanges_bw2package, alter_database_name, hash_parameter_group
+    relink_exchanges_bw2package, alter_database_name, hash_parameter_group,
+    relink_exchanges_with_db, link_exchanges_without_db,
 )
 
 
@@ -88,12 +89,15 @@ class ABExcelImporter(ExcelImporter):
             obj.write_project_parameters(delete_existing=False)
         obj.apply_strategies()
         if any(obj.unlinked) and relink:
-            for db in relink:
-                # First try and match on the database field as well.
-                obj.link_to_technosphere(db, fields=INNER_FIELDS)
-                # If there are still unlinked, use a rougher link.
-                if any(obj.unlinked):
-                    obj.link_to_technosphere(db)
+            for db, new_db in relink.items():
+                if db == "missing_db":
+                    obj.apply_strategy(functools.partial(
+                        link_exchanges_without_db, db=new_db
+                    ))
+                else:
+                    obj.apply_strategy(functools.partial(
+                        relink_exchanges_with_db, old=db, new=new_db
+                    ))
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
             excs = [exc for exc in obj.unlinked][:10]
