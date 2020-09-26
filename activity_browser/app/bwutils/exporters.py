@@ -3,7 +3,6 @@ import numbers
 from pathlib import Path
 from typing import Union
 
-import brightway2 as bw
 from bw2data.utils import safe_filename
 from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
 import xlsxwriter
@@ -71,7 +70,7 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
 
     sheet = workbook.add_worksheet(create_valid_worksheet_name(db_name))
 
-    data = CSVFormatter(db_name, objs).get_formatted_data(sections)
+    data = ABCSVFormatter(db_name, objs).get_formatted_data(sections)
 
     for row_index, row in enumerate(data):
         for col_index, value in enumerate(row):
