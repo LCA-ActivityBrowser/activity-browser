@@ -16,6 +16,10 @@ EXPORTERS = {
     # related to that database as an Excel file.
     "Excel": write_lci_excel,
 }
+EXTENSIONS = {
+    "BW2Package": ".bw2package",
+    "Excel": ".xlsx",
+}
 
 
 class DatabaseExportWizard(QtWidgets.QWizard):
@@ -40,10 +44,20 @@ class DatabaseExportWizard(QtWidgets.QWizard):
         db_name = self.field("database_choice")
         export_as = self.field("export_option")
         out_path = self.field("output_path")
+        # Ensure that extension matches export_option.
+        path, ext = os.path.splitext(out_path)
+        if ext and not ext == EXTENSIONS[export_as]:
+            ext = EXTENSIONS[export_as]
+            out_path = path + ext
         EXPORTERS[export_as](db_name, out_path)
 
 
 class ExportDatabasePage(QtWidgets.QWizardPage):
+    FILTERS = {
+        "BW2Package": "BW2Package Files (*.bw2package);; All Files (*.*)",
+        "Excel": "Excel Files (*.xlsx);; All Files (*.*)",
+    }
+
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.wizard = parent
@@ -94,9 +108,9 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
 
     @Slot(name="browseFile")
     def browse(self) -> None:
+        file_filter = self.FILTERS[self.field("export_option")]
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self, caption="Save database",
-            filter="Database Files (*.xlsx *.bw2package);; All Files (*.*)"
+            parent=self, caption="Save database", filter=file_filter
         )
         if path:
             self.output_dir.setText(path)
