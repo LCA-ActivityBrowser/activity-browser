@@ -16,6 +16,23 @@ from .pedigree import PedigreeMatrix
 #  - Add handler for pedigree data to exporter
 
 
+class ABCSVFormatter(CSVFormatter):
+    def exchange_as_dict(self, exc):
+        """Same as CSVFormatter, but explicitly pull the database from the
+        input activity.
+
+        This ensures that the database value is always included, even when
+        it is not stored in the exchange _data.
+        """
+        inp = exc.input
+        inp_fields = ("name", "unit", "location", "categories", "database")
+        skip_fields = ("input", "output")
+        data = {k: v for k, v in exc._data.items()
+                if k not in skip_fields}
+        data.update(**{k: inp[k] for k in inp_fields if inp.get(k)})
+        return data
+
+
 def format_pedigree(data: dict) -> str:
     """Converts pedigree dict to tuple."""
     try:
