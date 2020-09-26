@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import io
+from pprint import pprint
 import subprocess
 import tempfile
 import zipfile
@@ -16,6 +17,7 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
+from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
@@ -664,6 +666,8 @@ class MainWorkerThread(QtCore.QThread):
         self.relink = relink or {}
 
     def run(self):
+        # Set the cancel sentinal to false whenever the thread (re-)starts
+        import_signals.cancel_sentinel = False
         if self.use_forwast:
             self.run_forwast()
         elif self.use_local:
@@ -672,7 +676,6 @@ class MainWorkerThread(QtCore.QThread):
             self.run_ecoinvent()
 
     def run_ecoinvent(self):
-        import_signals.cancel_sentinel = False
         with tempfile.TemporaryDirectory() as tempdir:
             dataset_dir = self.datasets_path or os.path.join(tempdir, "datasets")
             if not os.path.isdir(dataset_dir):
@@ -693,7 +696,6 @@ class MainWorkerThread(QtCore.QThread):
         """
         adapted from pjamesjoyce/lcopt
         """
-        import_signals.cancel_sentinel = False
         response = requests.get(self.forwast_url)
         forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
         import_signals.download_complete.emit()
@@ -789,11 +791,18 @@ class MainWorkerThread(QtCore.QThread):
                 ("Unknown object", str(e))
             )
         except StrategyError as e:
-            from pprint import pprint
             print("Could not link exchanges, here are 10 examples.:")
             pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
+        except LinkingFailed as e:
+            msg = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Critical, "Unlinked exchanges",
+                "Some exchanges could not be linked in databases: '[{}]'".format(", ".join(e.args[1])),
+                QtWidgets.QMessageBox.Ok, self
+            )
+            msg.setDetailedText("\n\n".join(str(e) for e in e.args[0]))
+            msg.exec_()
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
@@ -1111,10 +1120,6 @@ class ActivityBrowserBackend(SQLiteBackend):
 
 
 bw.config.backends['activitybrowser'] = ActivityBrowserBackend
-
-
-class ImportCanceledError(Exception):
-    pass
 
 
 class ImportSignals(QtCore.QObject):

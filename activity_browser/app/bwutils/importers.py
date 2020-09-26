@@ -19,6 +19,7 @@ from bw2io.strategies import (
     convert_activity_parameters_to_list
 )
 
+from .errors import LinkingFailed
 from .strategies import (
     relink_exchanges_bw2package, alter_database_name, hash_parameter_group,
     relink_exchanges_with_db, link_exchanges_without_db,
@@ -87,7 +88,7 @@ class ABExcelImporter(ExcelImporter):
         obj.apply_strategies()
         if any(obj.unlinked) and relink:
             for db, new_db in relink.items():
-                if db == "missing_db":
+                if db == "(name missing)":
                     obj.apply_strategy(functools.partial(
                         link_exchanges_without_db, db=new_db
                     ))
@@ -95,10 +96,16 @@ class ABExcelImporter(ExcelImporter):
                     obj.apply_strategy(functools.partial(
                         relink_exchanges_with_db, old=db, new=new_db
                     ))
+                # Relinking failed (some exchanges still unlinked)
+                if any(obj.unlinked):
+                    # Raise a different exception.
+                    excs = [exc for exc in obj.unlinked][:10]
+                    databases = {exc.get("database", "(name missing)") for exc in obj.unlinked}
+                    raise LinkingFailed(excs, databases)
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
             excs = [exc for exc in obj.unlinked][:10]
-            databases = {exc.get("database", "missing_db") for exc in obj.unlinked}
+            databases = {exc.get("database", "(name missing)") for exc in obj.unlinked}
             raise StrategyError(excs, databases)
         if obj.project_parameters:
             obj.write_project_parameters(delete_existing=False)
@@ -106,14 +113,6 @@ class ABExcelImporter(ExcelImporter):
         if has_params:
             bw.parameters.recalculate()
         return [db]
-
-    def link_to_technosphere(self, db_name: str, fields: tuple = None) -> None:
-        """Apply the 'link to technosphere' strategy with some flexibility."""
-        fields = fields or LINK_FIELDS
-        self.apply_strategy(functools.partial(
-            link_technosphere_by_activity_hash,
-            external_db_name=db_name, fields=fields
-        ))
 
 
 class ABPackage(bw.BW2Package):
