@@ -575,7 +575,8 @@ class ActivityParameterTable(BaseParameterTable):
             group = self.get_current_group(proxy)
             bw.parameters.remove_from_group(group, act)
             # Also clear the group if there are no more parameters in it
-            if ActivityParameter.get_or_none(group=group) is None:
+            if not (ActivityParameter.select()
+                    .where(ActivityParameter.group == group).exists()):
                 with bw.parameters.db.atomic():
                     Group.get(name=group).delete_instance()
 
