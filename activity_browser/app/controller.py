@@ -12,9 +12,10 @@ from bw2data.proxies import ExchangeProxyBase
 
 from .bwutils import commontasks as bc, AB_metadata
 from .bwutils.presamples import clear_resource_by_name, get_package_path, remove_package
+from .bwutils.strategies import relink_exchanges_existing_db
 from .settings import ab_settings, project_settings
 from .signals import signals
-from .ui.widgets import CopyDatabaseDialog
+from .ui.widgets import CopyDatabaseDialog, DatabaseRelinkDialog
 from .ui.wizards.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
 
 
@@ -58,6 +59,7 @@ class Controller(object):
         signals.copy_database.connect(self.copy_database)
         signals.install_default_data.connect(self.install_default_data)
         signals.import_database.connect(self.import_database_wizard)
+        signals.relink_database.connect(self.relink_database)
         # Activity
         signals.duplicate_activity.connect(self.duplicate_activity)
         signals.activity_modified.connect(self.modify_activity)
@@ -277,6 +279,19 @@ class Controller(object):
             del bw.databases[name]
             self.change_project(bw.projects.current, reload=True)
 
+    @Slot(str, QObject, name="relinkDatabase")
+    def relink_database(self, db_name: str, parent: QObject) -> None:
+        """Relink technosphere exchanges within the given database."""
+        dialog = DatabaseRelinkDialog.relink_existing(
+            parent, db_name, [db for db in bw.databases if db != db_name]
+        )
+        if dialog.exec_() == DatabaseRelinkDialog.Accepted:
+            db = bw.Database(db_name)
+            other = bw.Database(dialog.new_db)
+            relink_exchanges_existing_db(db, other)
+            signals.database_changed.emit(db_name)
+            signals.databases_changed.emit()
+
 # CALCULATION SETUP
     def new_calculation_setup(self):
         name, ok = QtWidgets.QInputDialog.getText(
@@ -314,7 +329,9 @@ class Controller(object):
             print("Renamed calculation setup from {} to {}".format(current, new_name))
 
 # ACTIVITY
-    def new_activity(self, database_name):
+    @staticmethod
+    @Slot(str, name="createNewActivity")
+    def new_activity(database_name: str) -> None:
         # TODO: let user define product
         name, ok = QtWidgets.QInputDialog.getText(
             None,
@@ -322,11 +339,13 @@ class Controller(object):
             "Please specify an activity name:" + " " * 10,
         )
         if ok and name:
+            data = {
+                "name": name, "reference product": name, "unit": "unit",
+                "type": "process"
+            }
             new_act = bw.Database(database_name).new_activity(
                 code=uuid.uuid4().hex,
-                name=name,
-                unit="unit",
-                type="process",
+                **data
             )
             new_act.save()
             production_exchange = new_act.new_exchange(

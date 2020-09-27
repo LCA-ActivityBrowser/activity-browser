@@ -27,6 +27,7 @@ class Signals(QObject):
     copy_database = Signal(str, QObject)
     install_default_data = Signal()
     import_database = Signal(QObject)
+    relink_database = Signal(str, QObject)
 
     database_selected = Signal(str)
     databases_changed = Signal()

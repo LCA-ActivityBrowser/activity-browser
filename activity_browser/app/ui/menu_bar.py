@@ -10,6 +10,8 @@ from .widgets import BiosphereUpdater
 from .wizards.settings_wizard import SettingsWizard
 from .wizards.db_export_wizard import DatabaseExportWizard
 
+# TODO: Revise this entire class by subclassing QMenuBar
+
 
 class MenuBar(object):
     def __init__(self, window):
@@ -38,7 +40,7 @@ class MenuBar(object):
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
         self.update_biosphere_action.triggered.connect(self.update_biosphere)
-        self.import_db_action.triggered.connect(lambda: signals.import_database.emit(self))
+        self.import_db_action.triggered.connect(lambda: signals.import_database.emit(self.window))
 
     # FILE
     def setup_file_menu(self):

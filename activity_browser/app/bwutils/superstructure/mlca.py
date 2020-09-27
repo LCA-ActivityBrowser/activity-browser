@@ -8,7 +8,10 @@ import pandas as pd
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
 from ..utils import Index
-from .dataframe import scenario_names_from_df, arrays_from_indexed_superstructure
+from .dataframe import (
+    scenario_names_from_df, arrays_from_indexed_superstructure,
+    filter_databases_indexed_superstructure
+)
 
 
 class SuperstructureMLCA(MLCA):
@@ -28,6 +31,10 @@ class SuperstructureMLCA(MLCA):
         assert self.total > 0, "Cannot run analysis without scenarios"
 
         super().__init__(cs_name)
+
+        # Filter dataframe for keys that do not occur in the LCA matrix.
+        df = filter_databases_indexed_superstructure(df, self.all_databases)
+        assert not df.empty, "Filtering unused flows removed all of the scenario data."
 
         self.indices, self.values = arrays_from_indexed_superstructure(df)
         # Note: Using the mapping scheme from brightway and presamples,
