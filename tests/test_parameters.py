@@ -61,7 +61,7 @@ def test_create_project_param(qtbot):
     # New parameter is named 'param_1'
     assert table.model.index(0, 0).data() == "param_1"
     assert ProjectParameter.select().count() == 3
-    assert ProjectParameter.get_or_none(name="param_1") is not None
+    assert ProjectParameter.select().where(ProjectParameter.name == "param_1").exists()
 
 
 def test_edit_project_param(qtbot):
@@ -336,7 +336,7 @@ def test_delete_activity_param(qtbot):
     table.delete_parameter(table.currentIndex())
     assert table.rowCount() == 2
     assert ActivityParameter.select().count() == 2
-    assert Group.get_or_none(name=group)
+    assert Group.select().where(Group.name == group).exists()
 
     # And delete the other two parameters one by one.
     table.delete_parameter(table.proxy_model.index(0, 0))
@@ -344,4 +344,4 @@ def test_delete_activity_param(qtbot):
     assert table.rowCount() == 0
     assert ActivityParameter.select().count() == 0
     # Group is automatically removed with the last parameter gone
-    assert Group.get_or_none(name=group) is None
+    assert not Group.select().where(Group.name == group).exists()

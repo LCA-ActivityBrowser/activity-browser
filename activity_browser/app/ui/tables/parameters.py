@@ -482,8 +482,9 @@ class ActivityParameterTable(BaseParameterTable):
         signals.blockSignals(False)
         signals.parameters_changed.emit()
 
-    @Slot(tuple)
-    def add_parameter(self, key: tuple) -> None:
+    @staticmethod
+    @Slot(tuple, name="addActivityParameter")
+    def add_parameter(key: tuple) -> None:
         """ Given the activity key, generate a new row with data from
         the activity and immediately call `new_activity_parameters`.
         """
@@ -574,7 +575,8 @@ class ActivityParameterTable(BaseParameterTable):
             group = self.get_current_group(proxy)
             bw.parameters.remove_from_group(group, act)
             # Also clear the group if there are no more parameters in it
-            if ActivityParameter.get_or_none(group=group) is None:
+            if not (ActivityParameter.select()
+                    .where(ActivityParameter.group == group).exists()):
                 with bw.parameters.db.atomic():
                     Group.get(name=group).delete_instance()
 
@@ -656,20 +658,22 @@ class ExchangesTable(ABDictTreeView):
     def _select_model(self):
         return ParameterTreeModel(self.data)
 
-    @Slot(tuple)
+    @Slot(tuple, name="parameterizeExchangesForKey")
     def parameterize_exchanges(self, key: tuple) -> None:
         """ Used whenever a formula is set on an exchange in an activity.
 
         If no `ActivityParameter` exists for the key, generate one immediately
         """
-        if ActivityParameter.get_or_none(database=key[0], code=key[1]) is None:
-            signals.add_activity_parameter.emit(key)
+        group = bc.build_activity_group_name(key)
+        if not (ActivityParameter.select()
+                .where(ActivityParameter.group == group).count()):
+            ActivityParameterTable.add_parameter(key)
 
-        param = ActivityParameter.get(database=key[0], code=key[1])
         act = bw.get_activity(key)
-        bw.parameters.remove_exchanges_from_group(param.group, act)
-        bw.parameters.add_exchanges_to_group(param.group, act)
-        ActivityParameter.recalculate_exchanges(param.group)
+        with bw.parameters.db.atomic():
+            bw.parameters.remove_exchanges_from_group(group, act)
+            bw.parameters.add_exchanges_to_group(group, act)
+            ActivityParameter.recalculate_exchanges(group)
         signals.parameters_changed.emit()
 
     @staticmethod
