@@ -5,6 +5,7 @@ from typing import Union
 
 from bw2data.utils import safe_filename
 from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
+from bw2io.export.csv import reformat
 import xlsxwriter
 
 from .pedigree import PedigreeMatrix
@@ -13,9 +14,24 @@ from .pedigree import PedigreeMatrix
 # TODO: reminder to make a pull-request for these things in bw2io repo.
 #  - Add the 'nan_inf_to_errors' option when opening the xlsxwriter.Workbook.
 #  - Add handler for pedigree data to exporter
+#  - Add 'database' field as required CSVFormatter export field.
+#  - Add code to ensure no second 'activity' field is exported, as this
+#  messes with following import.
 
 
 class ABCSVFormatter(CSVFormatter):
+    def get_activity_metadata(self, act):
+        excluded = {"database", "name", "activity"}
+        return {
+            'name': act.get("name"),
+            'metadata': sorted([(k, reformat(v))
+                for k, v in act.items()
+                if k not in excluded
+                and not isinstance(v, (dict, list))
+            ]),
+            'parameters': self.get_activity_parameters(act)
+        }
+
     def exchange_as_dict(self, exc):
         """Same as CSVFormatter, but explicitly pull the database from the
         input activity.
