@@ -242,12 +242,12 @@ class DatabaseRelinkDialog(QtWidgets.QDialog):
         "\n\nReplace database '{}' with:"
     )
     RELINK_EXISTING = (
-        "Relink exchanges from database '{}' with another database?"
-        "\n\nLink with:"
+        "Relink exchanges from database '{}' to:"
+        "\n\nTarget database:"
     )
     LINK_UNKNOWN = (
-        "Link exchanges from database '{}' with another database?"
-        "\n\nLink with:"
+        "Link exchanges from database '{}' to:"
+        "\n\nTarget database:"
     )
 
     def __init__(self, parent=None):

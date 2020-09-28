@@ -765,10 +765,14 @@ class MainWorkerThread(QtCore.QThread):
                 )
                 signals.parameters_changed.emit()
             else:
-                result = ABPackage.import_file(self.archive_path, relink=self.relink)
+                result = ABPackage.import_file(self.archive_path, relink=self.relink, rename=self.db_name)
             if not import_signals.cancel_sentinel:
                 db = next(iter(result))
+                # With the changes to the ABExcelImporter and ABPackage classes
+                # this should not really trigger for data exported from AB.
                 if db.name != self.db_name:
+                    print("WARNING: renaming database '{}' to '{}', parameters lost.".format(
+                        db.name, self.db_name))
                     db.rename(self.db_name)
                 import_signals.db_progress.emit(1, 1)
                 import_signals.finished.emit()

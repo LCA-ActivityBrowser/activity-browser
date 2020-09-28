@@ -88,6 +88,7 @@ class ParameterDefinitionTab(BaseRightTab):
         self.new_database_param = QPushButton(qicons.add, "New")
         self.show_order = QCheckBox("Show order column", self)
         self.show_database_params = QCheckBox("Show database parameters", self)
+        self.show_database_params.setChecked(True)
         self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
 
         self._construct_layout()
@@ -129,7 +130,7 @@ can be used within the formula!</p>
         self.uncertainty_columns.stateChanged.connect(
             self.hide_uncertainty_columns
         )
-        self.show_database_params.stateChanged.connect(
+        self.show_database_params.toggled.connect(
             self.hide_database_parameter
         )
 
@@ -182,7 +183,6 @@ can be used within the formula!</p>
         self.activity_table.sync(ActivityParameterTable.build_df())
         self.hide_uncertainty_columns()
         self.activity_order_column()
-        self.hide_database_parameter()
         # Cannot create database parameters without databases
         if not bw.databases:
             self.new_database_param.setEnabled(False)
@@ -205,12 +205,11 @@ can be used within the formula!</p>
             self.activity_table.setColumnHidden(col, False)
             self.activity_table.resizeColumnToContents(col)
 
-    @Slot()
-    def hide_database_parameter(self) -> None:
-        hide = not self.show_database_params.isChecked()
-        self.database_header.setHidden(hide)
-        self.new_database_param.setHidden(hide)
-        self.database_table.setHidden(hide)
+    @Slot(bool, name="hideDatabaseParameterTable")
+    def hide_database_parameter(self, toggled: bool) -> None:
+        self.database_header.setHidden(not toggled)
+        self.new_database_param.setHidden(not toggled)
+        self.database_table.setHidden(not toggled)
 
 
 class ParameterExchangesTab(BaseRightTab):

@@ -121,10 +121,11 @@ def test_create_database_params(qtbot):
     table = project_db_tab.database_table
 
     # Open the database foldout
-    assert table.isHidden()
+    assert not table.isHidden()
     with qtbot.waitSignal(project_db_tab.show_database_params.stateChanged, timeout=1000):
         qtbot.mouseClick(project_db_tab.show_database_params, QtCore.Qt.LeftButton)
-    assert not table.isHidden()
+    assert table.isHidden()
+    project_db_tab.show_database_params.toggle()
 
     signal_list = [
         signals.parameters_changed, signals.parameters_changed,
