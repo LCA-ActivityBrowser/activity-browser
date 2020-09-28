@@ -61,6 +61,25 @@ def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
     return data
 
 
+def rename_db_bw2package(data: dict, old: str, new: str) -> dict:
+    """Replace the given `old` database name with the `new`."""
+    def swap(x: tuple) -> tuple:
+        return new if x[0] == old else x[0], x[1]
+
+    new_data = {}
+    keys = list(data.keys())
+    for key in keys:
+        value = data.pop(key)
+        new_key = swap(key)
+        if "database" in value and value["database"] == old:
+            value["database"] = new
+        for exc in value.get("exchanges", []):
+            exc["input"] = swap(exc.get("input", ("", "")))
+            exc["output"] = swap(exc.get("output", ("", "")))
+        new_data[new_key] = value
+    return new_data
+
+
 def relink_exchanges_existing_db(db: bw.Database, other: bw.Database) -> None:
     """Relink exchanges after the database has been created/written.
 
