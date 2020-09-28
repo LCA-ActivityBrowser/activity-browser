@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+## [2.6.1] - 2020-09-28
+
+### Added
+
+- ([#445](https://github.com/LCA-ActivityBrowser/activity-browser/pull/445))
+    Added importing of databases (and related parameters) through excel files.
+    Added a way for users to relink databases with other databases after creating them.
+- ([eeb7a16](https://github.com/LCA-ActivityBrowser/activity-browser/commit/eeb7a16b84f05c307c11479d95cf8d29e9b07fb0))
+    Added a link to Youtube tutorials for the Activity Browser! See the README.
+
+### Changed
+
+- ([#445](https://github.com/LCA-ActivityBrowser/activity-browser/pull/445))
+    Alter the import wizard to better separate 'download' options from 'local'
+    import options. Some minor tweaks are included to improve the wizard.
+- ([#453](https://github.com/LCA-ActivityBrowser/activity-browser/pull/453))
+    Allow the renaming of an imported BW2Package database to take place within
+    the import flow. This should drastically improve the speed for larger imports
+    due to no longer requiring a `copy db` & `delete db` call.
+
+### Fixed
+
+- ([#452](https://github.com/LCA-ActivityBrowser/activity-browser/pull/452))
+    Alter the `parameterize_exchanges` call to avoid performing a direct lookup
+    on ActivityParameter objects, this should fix an issue where the parameter
+    setup breaks when a parameter goes missing.
+- ([c84e762](https://github.com/LCA-ActivityBrowser/activity-browser/commit/c84e7626c6fb5398526e405fcee6cbc8922446f9))
+    Correct the axis order in the LCA results barchart.
+
 ## [2.6.0] - 2020-08-31
 
 ### Added
@@ -329,7 +358,8 @@
 - Major overhaul of the GUI. See [#218](https://github.com/LCA-ActivityBrowser/activity-browser/pull/218) for details.
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.0...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.1...HEAD
+[2.6.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.0...2.6.1
 [2.6.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.1...2.6.0
 [2.5.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.0...2.5.1
 [2.5.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.4.0...2.5.0
