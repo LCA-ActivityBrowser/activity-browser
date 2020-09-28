@@ -22,7 +22,7 @@ from bw2io.strategies import (
 from .errors import LinkingFailed
 from .strategies import (
     relink_exchanges_bw2package, alter_database_name, hash_parameter_group,
-    relink_exchanges_with_db, link_exchanges_without_db,
+    relink_exchanges_with_db, link_exchanges_without_db, rename_db_bw2package,
 )
 
 
@@ -143,29 +143,39 @@ class ABPackage(bw.BW2Package):
                 )
 
     @classmethod
-    def load_file(cls, filepath, whitelist=True, relink: dict = None):
+    def load_file(cls, filepath, whitelist=True, **kwargs):
         """Similar to how the base class loads the data, but also perform
         a number of evaluations on the metadata.
 
         Also, if given a 'relink' dictionary, perform relinking of exchanges.
         """
+        relink = kwargs.get("relink", None)
+        db_name = kwargs.get("rename", None)
         data = super().load_file(filepath, whitelist)
         relinking = set(relink.keys()) if relink else set([])
         if isinstance(data, dict):
             if "metadata" in data:
                 cls.evaluate_metadata(data["metadata"], relinking)
+            if db_name and "name" in data and data["name"] != db_name:
+                old_name = data.pop("name")
+                data["name"] = db_name
+                data["data"] = rename_db_bw2package(data["data"], old_name, db_name)
             if relink:
                 data["data"] = relink_exchanges_bw2package(data["data"], relink)
         else:
             for obj in data:
                 if "metadata" in obj:
                     cls.evaluate_metadata(obj["metadata"], relinking)
+                if db_name and "name" in obj and obj["name"] != db_name:
+                    old_name = obj.pop("name")
+                    obj["name"] = db_name
+                    obj["data"] = rename_db_bw2package(obj["data"], old_name, db_name)
                 if relink:
                     obj["data"] = relink_exchanges_bw2package(obj["data"], relink)
         return data
 
     @classmethod
-    def import_file(cls, filepath, whitelist=True, relink: dict = None):
+    def import_file(cls, filepath, whitelist=True, **kwargs):
         """Import bw2package file, and create the loaded objects, including registering, writing, and processing the created objects.
 
         Args:
@@ -179,7 +189,7 @@ class ABPackage(bw.BW2Package):
             Created object or list of created objects.
 
         """
-        loaded = cls.load_file(filepath, whitelist, relink)
+        loaded = cls.load_file(filepath, whitelist, **kwargs)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             if isinstance(loaded, dict):
