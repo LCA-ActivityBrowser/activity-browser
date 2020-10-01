@@ -689,7 +689,10 @@ class ExchangesTable(ABDictTreeView):
         formula interpretation for all exchanges.
         """
         for param in ActivityParameter.select().iterator():
-            act = bw.get_activity((param.database, param.code))
-            bw.parameters.add_exchanges_to_group(param.group, act)
-            ActivityParameter.recalculate_exchanges(param.group)
+            try:
+                act = bw.get_activity((param.database, param.code))
+                bw.parameters.add_exchanges_to_group(param.group, act)
+                ActivityParameter.recalculate_exchanges(param.group)
+            except:
+                continue
         signals.parameters_changed.emit()
