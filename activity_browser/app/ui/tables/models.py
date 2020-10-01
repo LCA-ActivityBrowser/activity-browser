@@ -330,4 +330,8 @@ class ParameterTreeModel(BaseTreeModel):
         for param in data.get("database", []):
             ParameterItem.build_item(param,  self.root)
         for param in data.get("activity", []):
+            try:
+                _ = bw.get_activity((param.database, param.code))
+            except:
+                continue
             ParameterItem.build_item(param,  self.root)
