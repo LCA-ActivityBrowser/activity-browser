@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QRegExp, Slot
@@ -302,4 +302,61 @@ class DatabaseRelinkDialog(QtWidgets.QDialog):
         if db in options:
             obj.choice.setCurrentText(db)
         obj.choice.setEnabled(True)
+        return obj
+
+
+class DatabaseLinkingDialog(QtWidgets.QDialog):
+    """Display all of the possible links in a single dialog for the user.
+
+    Allow users to select alternate database links."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Database linking")
+
+        self.db_label = QtWidgets.QLabel()
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Database links:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid.addWidget(self.db_label, 0, 0, 1, 4)
+        self.grid_box.setLayout(self.grid)
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @classmethod
+    def relink_sqlite(cls, db: str, options: List[Tuple[str, List[str]]],
+                      parent: QtWidgets.QWidget = None) -> 'DatabaseLinkingDialog':
+        obj = cls(parent)
+        obj.db_label.setText("Relinking exchanges from database '{}'.".format(db))
+
+        for i, item in enumerate(options, start=1):
+            label = QtWidgets.QLabel(item[0])
+            combo = QtWidgets.QComboBox()
+            combo.addItems(item[1])
+            combo.setCurrentText(item[0])
+            obj.label_choices.append((label, combo))
+            obj.grid.addWidget(label, i, 0, 1, 2)
+            obj.grid.addWidget(combo, i, 2, 1, 2)
+        obj.grid_box.updateGeometry()
+
         return obj
