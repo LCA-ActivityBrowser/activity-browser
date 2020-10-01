@@ -414,13 +414,14 @@ class ActivityParameterTable(BaseParameterTable):
     def build_df(cls):
         """ Build a dataframe using the ActivityParameters set in brightway
         """
-        data = [
+        generate = (
             cls.parse_parameter(p)
             for p in (ActivityParameter
                       .select(ActivityParameter, Group.order)
                       .join(Group, on=(ActivityParameter.group == Group.name))
                       .namedtuples())
-        ]
+        )
+        data = [x for x in generate if "key" in x]
         df = pd.DataFrame(data, columns=cls.combine_columns())
         # Convert the 'order' column from list into string
         df["order"] = df["order"].apply(", ".join)
@@ -433,7 +434,12 @@ class ActivityParameterTable(BaseParameterTable):
         row = super().parse_parameter(parameter)
         # Combine the 'database' and 'code' fields of the parameter into a 'key'
         row["key"] = (parameter.database, parameter.code)
-        act = bw.get_activity(row["key"])
+        try:
+            act = bw.get_activity(row["key"])
+        except:
+            # Can occur if an activity parameter exists for a removed activity.
+            print("Activity {} no longer exists, ignoring parameter.".format(row["key"]))
+            return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
         row["location"] = act.get("location", "unknown")
