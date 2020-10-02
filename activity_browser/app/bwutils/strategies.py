@@ -80,11 +80,14 @@ def rename_db_bw2package(data: dict, old: str, new: str) -> dict:
     return new_data
 
 
-def relink_exchanges_existing_db(db: bw.Database, other: bw.Database) -> None:
+def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) -> None:
     """Relink exchanges after the database has been created/written.
 
     This means possibly doing a lot of sqlite update calls.
     """
+    if old == other.name:
+        print("No point relinking to same database.")
+        return
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
     assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
 
@@ -96,14 +99,14 @@ def relink_exchanges_existing_db(db: bw.Database, other: bw.Database) -> None:
         if key in candidates:
             duplicates.setdefault(key, []).append(ds)
         else:
-            candidates[key] = (ds['database'], ds['code'])
+            candidates[key] = ds.key
 
     with sqlite3_lci_db.transaction() as transaction:
         try:
             # Only do relinking on external biosphere/technosphere exchanges.
             for i, exc in enumerate(
                     exc for act in db for exc in act.exchanges()
-                    if exc.get("type") in {"biosphere", "technosphere"} and exc.input[0] != db.name
+                    if exc.get("type") in {"biosphere", "technosphere"} and exc.input[0] == old
             ):
                 # Use the input activity to generate the hash.
                 key = activity_hash(exc.input, DEFAULT_FIELDS)
@@ -122,7 +125,11 @@ def relink_exchanges_existing_db(db: bw.Database, other: bw.Database) -> None:
     # Process the database after the transaction is complete.
     #  this updates the 'depends' in metadata
     db.process()
-    print("Finished relinking database, {} exchanges altered.".format(altered))
+    print(
+        "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
+            db.name, altered, old, other.name
+        )
+    )
 
 
 def alter_database_name(data: list, old: str, new: str) -> list:

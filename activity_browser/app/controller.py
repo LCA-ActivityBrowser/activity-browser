@@ -15,7 +15,7 @@ from .bwutils.presamples import clear_resource_by_name, get_package_path, remove
 from .bwutils.strategies import relink_exchanges_existing_db
 from .settings import ab_settings, project_settings
 from .signals import signals
-from .ui.widgets import CopyDatabaseDialog, DatabaseRelinkDialog
+from .ui.widgets import CopyDatabaseDialog, DatabaseLinkingDialog
 from .ui.wizards.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
 
 
@@ -282,13 +282,15 @@ class Controller(object):
     @Slot(str, QObject, name="relinkDatabase")
     def relink_database(self, db_name: str, parent: QObject) -> None:
         """Relink technosphere exchanges within the given database."""
-        dialog = DatabaseRelinkDialog.relink_existing(
-            parent, db_name, [db for db in bw.databases if db != db_name]
-        )
-        if dialog.exec_() == DatabaseRelinkDialog.Accepted:
-            db = bw.Database(db_name)
-            other = bw.Database(dialog.new_db)
-            relink_exchanges_existing_db(db, other)
+        db = bw.Database(db_name)
+        depends = db.find_dependents()
+        options = [(depend, bw.databases.list) for depend in depends]
+        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, parent)
+        if dialog.exec_() == DatabaseLinkingDialog.Accepted:
+            # Now, start relinking.
+            for old, new in dialog.relink.items():
+                other = bw.Database(new)
+                relink_exchanges_existing_db(db, old, other)
             signals.database_changed.emit(db_name)
             signals.databases_changed.emit()
 
