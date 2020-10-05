@@ -381,3 +381,9 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
         label = ("Some database(s) could not be found in the current project,"
                  " attempt to relink the exchanges to a different database?")
         return cls.construct_dialog(label, options, parent)
+
+    @classmethod
+    def relink_excel(cls, options: List[Tuple[str, List[str]]],
+                     parent=None) -> 'DatabaseLinkingDialog':
+        label = "Customize database links for exchanges in the imported database."
+        return cls.construct_dialog(label, options, parent)
