@@ -806,13 +806,14 @@ class MainWorkerThread(QtCore.QThread):
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
         except LinkingFailed as e:
-            msg = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Critical, "Unlinked exchanges",
+            error = (
+                "Unlinked exchanges",
                 "Some exchanges could not be linked in databases: '[{}]'".format(", ".join(e.args[1])),
-                QtWidgets.QMessageBox.Ok, self
+                e.args[0]
             )
-            msg.setDetailedText("\n\n".join(str(e) for e in e.args[0]))
-            msg.exec_()
+            import_signals.import_failure_detailed.emit(
+                QtWidgets.QMessageBox.Critical, error
+            )
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
