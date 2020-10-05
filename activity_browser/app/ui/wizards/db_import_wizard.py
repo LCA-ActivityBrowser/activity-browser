@@ -21,7 +21,7 @@ from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
-from ..widgets import DatabaseRelinkDialog, DatabaseLinkingDialog
+from ..widgets import DatabaseLinkingDialog
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -125,7 +125,8 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.import_page.complete = False
         self.reject()
 
-    def show_info(self, info):
+    @Slot(tuple, name="showMessage")
+    def show_info(self, info: tuple) -> None:
         title, message = info
         QtWidgets.QMessageBox.information(self, title, message)
 
@@ -610,7 +611,7 @@ class ImportPage(QtWidgets.QWizardPage):
 
         options = [(db, bw.databases.list) for db in missing]
         linker = DatabaseLinkingDialog.relink_bw2package(options, self)
-        if linker.exec_() == DatabaseRelinkDialog.Accepted:
+        if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
         else:
             # If the user at any point did not accept their choice, fail.
@@ -634,7 +635,7 @@ class ImportPage(QtWidgets.QWizardPage):
         # Iterate through the missing databases, asking user input.
         options = [(db, bw.databases.list) for db in missing]
         linker = DatabaseLinkingDialog.relink_excel(options, self)
-        if linker.exec_() == DatabaseRelinkDialog.Accepted:
+        if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.relink
         else:
             error = (
