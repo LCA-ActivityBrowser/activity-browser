@@ -85,6 +85,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
         import_signals.connection_problem.connect(self.show_info)
         import_signals.import_failure.connect(self.show_info)
+        import_signals.import_failure_detailed.connect(self.show_detailed)
 
     @property
     def version(self):
@@ -127,6 +128,17 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     def show_info(self, info):
         title, message = info
         QtWidgets.QMessageBox.information(self, title, message)
+
+    @Slot(object, tuple, name="showDetailedMessage")
+    def show_detailed(self, icon: QtWidgets.QMessageBox.Icon, data: tuple) -> None:
+        title, message, *other = data
+        msg = QtWidgets.QMessageBox(
+            icon, title, message, QtWidgets.QMessageBox.Ok, self
+        )
+        if other:
+            other = other[0] if len(other) == 1 else other
+            msg.setDetailedText("\n\n".join(str(e) for e in other))
+        msg.exec_()
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
@@ -1132,6 +1144,7 @@ class ImportSignals(QtCore.QObject):
     download_complete = Signal()
     biosphere_finished = Signal()
     import_failure = Signal(tuple)
+    import_failure_detailed = Signal(object, tuple)
     cancel_sentinel = False
     login_success = Signal(bool)
     connection_problem = Signal(tuple)
