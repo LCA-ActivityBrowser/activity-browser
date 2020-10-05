@@ -786,7 +786,7 @@ class MainWorkerThread(QtCore.QThread):
             else:
                 self.delete_canceled_db()
         except InvalidPackage as e:
-            # Try and fix the issue through relinking.
+            # BW2package import failed, required databases are missing
             self.delete_canceled_db()
             import_signals.missing_dbs.emit(e.args[1])
         except ImportCanceledError:
@@ -797,16 +797,19 @@ class MainWorkerThread(QtCore.QThread):
                 ("Missing exchanges", "The import has failed, likely due missing exchanges.")
             )
         except UnknownObject as e:
+            # BW2Package import failed because the object was not understood
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Unknown object", str(e))
             )
         except StrategyError as e:
+            # Excel import failed because extra databases were found, relink
             print("Could not link exchanges, here are 10 examples.:")
             pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
         except LinkingFailed as e:
+            # Excel import failed after asking user to relink.
             error = (
                 "Unlinked exchanges",
                 "Some exchanges could not be linked in databases: '[{}]'".format(", ".join(e.args[1])),
@@ -815,6 +818,9 @@ class MainWorkerThread(QtCore.QThread):
             import_signals.import_failure_detailed.emit(
                 QtWidgets.QMessageBox.Critical, error
             )
+        except ValueError as e:
+            # Relinking of BW2Package strategy has failed.
+            import_signals.import_failure.emit(("Relinking failed", e.args[0]))
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
