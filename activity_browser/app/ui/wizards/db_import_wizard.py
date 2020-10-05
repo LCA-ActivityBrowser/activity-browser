@@ -632,21 +632,19 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.exit(1)
 
         # Iterate through the missing databases, asking user input.
-        self.relink_data = {}
-        for db in missing:
-            linker = DatabaseRelinkDialog.link_new(
-                self, db, bw.databases.list
-            )
-            if linker.exec_() == DatabaseRelinkDialog.Accepted:
-                self.relink_data[db] = linker.new_db
-        if len(self.relink_data) != len(missing):
-            msg = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Unlinked exchanges",
+        options = [(db, bw.databases.list) for db in missing]
+        linker = DatabaseLinkingDialog.relink_excel(options, self)
+        if linker.exec_() == DatabaseRelinkDialog.Accepted:
+            self.relink_data = linker.relink
+        else:
+            error = (
+                "Unlinked exchanges",
                 "Excel data contains exchanges that could not be linked.",
-                QtWidgets.QMessageBox.Ok, self
+                exchanges
             )
-            msg.setDetailedText("\n\n".join(str(e) for e in exchanges))
-            msg.exec_()
+            import_signals.import_failure_detailed.emit(
+                QtWidgets.QMessageBox.Warning, error
+            )
             return
         # Restart the page
         self.initializePage()
