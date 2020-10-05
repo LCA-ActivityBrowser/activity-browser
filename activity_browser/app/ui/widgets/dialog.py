@@ -317,7 +317,6 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
         self.label_choices = []
         self.grid_box = QtWidgets.QGroupBox("Database links:")
         self.grid = QtWidgets.QGridLayout()
-        self.grid.addWidget(self.db_label, 0, 0, 1, 4)
         self.grid_box.setLayout(self.grid)
 
         self.buttons = QtWidgets.QDialogButtonBox(
@@ -327,6 +326,7 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.db_label)
         layout.addWidget(self.grid_box)
         layout.addWidget(self.buttons)
         self.setLayout(layout)
@@ -343,11 +343,37 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
             if label.text() != combo.currentText()
         }
 
+    @property
+    def links(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+        }
+
+    @classmethod
+    def construct_dialog(cls, label: str, options: List[Tuple[str, List[str]]],
+                         parent: QtWidgets.QWidget = None) -> 'DatabaseLinkingDialog':
+        obj = cls(parent)
+        obj.db_label.setText(label)
+        # Start at 1 because row 0 is taken up by the db_label
+        for i, item in enumerate(options):
+            label = QtWidgets.QLabel(item[0])
+            combo = QtWidgets.QComboBox()
+            combo.addItems(item[1])
+            combo.setCurrentText(item[0])
+            obj.label_choices.append((label, combo))
+            obj.grid.addWidget(label, i, 0, 1, 2)
+            obj.grid.addWidget(combo, i, 2, 1, 2)
+        obj.updateGeometry()
+        return obj
+
     @classmethod
     def relink_sqlite(cls, db: str, options: List[Tuple[str, List[str]]],
-                      parent: QtWidgets.QWidget = None) -> 'DatabaseLinkingDialog':
-        obj = cls(parent)
-        obj.db_label.setText("Relinking exchanges from database '{}'.".format(db))
+                      parent=None) -> 'DatabaseLinkingDialog':
+        label = "Relinking exchanges from database '{}'.".format(db)
+        return cls.construct_dialog(label, options, parent)
 
         for i, item in enumerate(options, start=1):
             label = QtWidgets.QLabel(item[0])
