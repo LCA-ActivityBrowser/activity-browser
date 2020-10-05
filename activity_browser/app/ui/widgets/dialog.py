@@ -375,14 +375,9 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
         label = "Relinking exchanges from database '{}'.".format(db)
         return cls.construct_dialog(label, options, parent)
 
-        for i, item in enumerate(options, start=1):
-            label = QtWidgets.QLabel(item[0])
-            combo = QtWidgets.QComboBox()
-            combo.addItems(item[1])
-            combo.setCurrentText(item[0])
-            obj.label_choices.append((label, combo))
-            obj.grid.addWidget(label, i, 0, 1, 2)
-            obj.grid.addWidget(combo, i, 2, 1, 2)
-        obj.grid_box.updateGeometry()
-
-        return obj
+    @classmethod
+    def relink_bw2package(cls, options: List[Tuple[str, List[str]]],
+                          parent=None) -> 'DatabaseLinkingDialog':
+        label = ("Some database(s) could not be found in the current project,"
+                 " attempt to relink the exchanges to a different database?")
+        return cls.construct_dialog(label, options, parent)
