@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QRegExp, Slot
@@ -235,28 +235,19 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
 
 
-class DatabaseRelinkDialog(QtWidgets.QDialog):
-    LABEL_TEXT = (
-        "A database could not be found in project, attempt to relink the"
-        " exchanges to a different database?"
-        "\n\nReplace database '{}' with:"
-    )
-    RELINK_EXISTING = (
-        "Relink exchanges from database '{}' to:"
-        "\n\nTarget database:"
-    )
-    LINK_UNKNOWN = (
-        "Link exchanges from database '{}' to:"
-        "\n\nTarget database:"
-    )
+class DatabaseLinkingDialog(QtWidgets.QDialog):
+    """Display all of the possible links in a single dialog for the user.
 
+    Allow users to select alternate database links."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Database relinking")
-        self.label = QtWidgets.QLabel("")
-        self.choice = QtWidgets.QComboBox()
-        self.choice.addItems(["-----"])
-        self.choice.setDisabled(True)
+        self.setWindowTitle("Database linking")
+
+        self.db_label = QtWidgets.QLabel()
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Database links:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
 
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -265,41 +256,64 @@ class DatabaseRelinkDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.choice)
+        layout.addWidget(self.db_label)
+        layout.addWidget(self.grid_box)
         layout.addWidget(self.buttons)
         self.setLayout(layout)
 
     @property
-    def new_db(self) -> str:
-        return self.choice.currentText()
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @property
+    def links(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+        }
 
     @classmethod
-    def start_relink(cls, parent: QtWidgets.QWidget, db: str, options: List[str]) -> 'DatabaseRelinkDialog':
+    def construct_dialog(cls, label: str, options: List[Tuple[str, List[str]]],
+                         parent: QtWidgets.QWidget = None) -> 'DatabaseLinkingDialog':
         obj = cls(parent)
-        obj.label.setText(cls.LABEL_TEXT.format(db))
-        obj.choice.clear()
-        obj.choice.addItems(options)
-        obj.choice.setEnabled(True)
+        obj.db_label.setText(label)
+        # Start at 1 because row 0 is taken up by the db_label
+        for i, item in enumerate(options):
+            label = QtWidgets.QLabel(item[0])
+            combo = QtWidgets.QComboBox()
+            combo.addItems(item[1])
+            combo.setCurrentText(item[0])
+            obj.label_choices.append((label, combo))
+            obj.grid.addWidget(label, i, 0, 1, 2)
+            obj.grid.addWidget(combo, i, 2, 1, 2)
+        obj.updateGeometry()
         return obj
 
     @classmethod
-    def relink_existing(cls, parent: QtWidgets.QWidget, db: str, options: List[str]) -> 'DatabaseRelinkDialog':
-        obj = cls(parent)
-        obj.label.setText(cls.RELINK_EXISTING.format(db))
-        obj.choice.clear()
-        obj.choice.addItems(options)
-        obj.choice.setEnabled(True)
-        return obj
+    def relink_sqlite(cls, db: str, options: List[Tuple[str, List[str]]],
+                      parent=None) -> 'DatabaseLinkingDialog':
+        label = "Relinking exchanges from database '{}'.".format(db)
+        return cls.construct_dialog(label, options, parent)
 
     @classmethod
-    def link_new(cls, parent, db: str, options: List[str]) -> 'DatabaseRelinkDialog':
-        obj = cls(parent)
-        obj.setWindowTitle("Database Linking")
-        obj.label.setText(cls.LINK_UNKNOWN.format(db))
-        obj.choice.clear()
-        obj.choice.addItems(options)
-        if db in options:
-            obj.choice.setCurrentText(db)
-        obj.choice.setEnabled(True)
-        return obj
+    def relink_bw2package(cls, options: List[Tuple[str, List[str]]],
+                          parent=None) -> 'DatabaseLinkingDialog':
+        label = ("Some database(s) could not be found in the current project,"
+                 " attempt to relink the exchanges to a different database?")
+        return cls.construct_dialog(label, options, parent)
+
+    @classmethod
+    def relink_excel(cls, options: List[Tuple[str, List[str]]],
+                     parent=None) -> 'DatabaseLinkingDialog':
+        label = "Customize database links for exchanges in the imported database."
+        return cls.construct_dialog(label, options, parent)

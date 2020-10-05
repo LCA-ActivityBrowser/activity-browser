@@ -21,7 +21,7 @@ from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
-from ..widgets import DatabaseRelinkDialog
+from ..widgets import DatabaseLinkingDialog
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -85,6 +85,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
         import_signals.connection_problem.connect(self.show_info)
         import_signals.import_failure.connect(self.show_info)
+        import_signals.import_failure_detailed.connect(self.show_detailed)
 
     @property
     def version(self):
@@ -124,9 +125,21 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.import_page.complete = False
         self.reject()
 
-    def show_info(self, info):
+    @Slot(tuple, name="showMessage")
+    def show_info(self, info: tuple) -> None:
         title, message = info
         QtWidgets.QMessageBox.information(self, title, message)
+
+    @Slot(object, tuple, name="showDetailedMessage")
+    def show_detailed(self, icon: QtWidgets.QMessageBox.Icon, data: tuple) -> None:
+        title, message, *other = data
+        msg = QtWidgets.QMessageBox(
+            icon, title, message, QtWidgets.QMessageBox.Ok, self
+        )
+        if other:
+            other = other[0] if len(other) == 1 else other
+            msg.setDetailedText("\n\n".join(str(e) for e in other))
+        msg.exec_()
 
 
 class ImportTypePage(QtWidgets.QWizardPage):
@@ -596,16 +609,12 @@ class ImportPage(QtWidgets.QWizardPage):
         """
         self.main_worker_thread.exit(1)
 
-        # Iterate through the missing databases, asking user input.
-        self.relink_data = {}
-        for db in missing:
-            linker = DatabaseRelinkDialog.start_relink(
-                self, db, bw.databases.list
-            )
-            if linker.exec_() == DatabaseRelinkDialog.Accepted:
-                self.relink_data[db] = linker.new_db
-        # If the user at any point did not accept their choice, fail.
-        if len(self.relink_data) != len(missing):
+        options = [(db, bw.databases.list) for db in missing]
+        linker = DatabaseLinkingDialog.relink_bw2package(options, self)
+        if linker.exec_() == DatabaseLinkingDialog.Accepted:
+            self.relink_data = linker.links
+        else:
+            # If the user at any point did not accept their choice, fail.
             import_signals.import_failure.emit(
                 ("Missing databases",
                  "Package data links to database names that do not exist: {}".format(missing))
@@ -624,21 +633,19 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.exit(1)
 
         # Iterate through the missing databases, asking user input.
-        self.relink_data = {}
-        for db in missing:
-            linker = DatabaseRelinkDialog.link_new(
-                self, db, bw.databases.list
-            )
-            if linker.exec_() == DatabaseRelinkDialog.Accepted:
-                self.relink_data[db] = linker.new_db
-        if len(self.relink_data) != len(missing):
-            msg = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Unlinked exchanges",
+        options = [(db, bw.databases.list) for db in missing]
+        linker = DatabaseLinkingDialog.relink_excel(options, self)
+        if linker.exec_() == DatabaseLinkingDialog.Accepted:
+            self.relink_data = linker.relink
+        else:
+            error = (
+                "Unlinked exchanges",
                 "Excel data contains exchanges that could not be linked.",
-                QtWidgets.QMessageBox.Ok, self
+                exchanges
             )
-            msg.setDetailedText("\n\n".join(str(e) for e in exchanges))
-            msg.exec_()
+            import_signals.import_failure_detailed.emit(
+                QtWidgets.QMessageBox.Warning, error
+            )
             return
         # Restart the page
         self.initializePage()
@@ -779,7 +786,7 @@ class MainWorkerThread(QtCore.QThread):
             else:
                 self.delete_canceled_db()
         except InvalidPackage as e:
-            # Try and fix the issue through relinking.
+            # BW2package import failed, required databases are missing
             self.delete_canceled_db()
             import_signals.missing_dbs.emit(e.args[1])
         except ImportCanceledError:
@@ -790,23 +797,30 @@ class MainWorkerThread(QtCore.QThread):
                 ("Missing exchanges", "The import has failed, likely due missing exchanges.")
             )
         except UnknownObject as e:
+            # BW2Package import failed because the object was not understood
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Unknown object", str(e))
             )
         except StrategyError as e:
+            # Excel import failed because extra databases were found, relink
             print("Could not link exchanges, here are 10 examples.:")
             pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
         except LinkingFailed as e:
-            msg = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Critical, "Unlinked exchanges",
+            # Excel import failed after asking user to relink.
+            error = (
+                "Unlinked exchanges",
                 "Some exchanges could not be linked in databases: '[{}]'".format(", ".join(e.args[1])),
-                QtWidgets.QMessageBox.Ok, self
+                e.args[0]
             )
-            msg.setDetailedText("\n\n".join(str(e) for e in e.args[0]))
-            msg.exec_()
+            import_signals.import_failure_detailed.emit(
+                QtWidgets.QMessageBox.Critical, error
+            )
+        except ValueError as e:
+            # Relinking of BW2Package strategy has failed.
+            import_signals.import_failure.emit(("Relinking failed", e.args[0]))
 
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
@@ -1136,6 +1150,7 @@ class ImportSignals(QtCore.QObject):
     download_complete = Signal()
     biosphere_finished = Signal()
     import_failure = Signal(tuple)
+    import_failure_detailed = Signal(object, tuple)
     cancel_sentinel = False
     login_success = Signal(bool)
     connection_problem = Signal(tuple)
