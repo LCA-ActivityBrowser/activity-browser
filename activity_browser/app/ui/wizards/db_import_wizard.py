@@ -636,7 +636,7 @@ class ImportPage(QtWidgets.QWizardPage):
         options = [(db, bw.databases.list) for db in missing]
         linker = DatabaseLinkingDialog.relink_excel(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
-            self.relink_data = linker.relink
+            self.relink_data = linker.links
         else:
             error = (
                 "Unlinked exchanges",
