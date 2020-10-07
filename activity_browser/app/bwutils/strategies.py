@@ -10,9 +10,6 @@ from bw2io.strategies.generic import format_nonunique_key_error, link_technosphe
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
 
-INNER_FIELDS = ("name", "unit", "database", "location")
-
-
 def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
     """Use this to relink exchanges during an actual import."""
     for act in data:
@@ -34,14 +31,14 @@ def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if exc.get("database") == old):
             exc["database"] = new
-    return link_technosphere_by_activity_hash(data, external_db_name=new, fields=INNER_FIELDS)
+    return link_technosphere_by_activity_hash(data, external_db_name=new)
 
 
 def link_exchanges_without_db(data: list, db: str) -> list:
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if "database" not in exc):
             exc["database"] = db
-    return link_technosphere_by_activity_hash(data, external_db_name=db, fields=INNER_FIELDS)
+    return link_technosphere_by_activity_hash(data, external_db_name=db)
 
 
 def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
