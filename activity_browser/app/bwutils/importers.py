@@ -23,6 +23,7 @@ from .errors import LinkingFailed
 from .strategies import (
     relink_exchanges_bw2package, alter_database_name, hash_parameter_group,
     relink_exchanges_with_db, link_exchanges_without_db, rename_db_bw2package,
+    csv_rewrite_product_key,
 )
 
 
@@ -58,6 +59,7 @@ class ABExcelImporter(ExcelImporter):
             csv_numerize,
             csv_drop_unknown,
             csv_add_missing_exchanges_section,
+            csv_rewrite_product_key,
             normalize_units,
             normalize_biosphere_categories,
             normalize_biosphere_names,
