@@ -181,3 +181,11 @@ def _clean_activity_name(activity_name: str) -> str:
     # strip underscores from start of string
     activity_name = activity_name.lstrip("_")
     return activity_name
+
+
+def csv_rewrite_product_key(data):
+    """Convert exchange 'product' key to a 'reference product' one."""
+    for ds in data:
+        for exc in (e for e in ds.get("exchanges", []) if "product" in e):
+            exc["reference product"] = exc.pop("product")
+    return data
