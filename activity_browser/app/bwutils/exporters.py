@@ -40,10 +40,12 @@ class ABCSVFormatter(CSVFormatter):
         it is not stored in the exchange _data.
         """
         inp = exc.input
-        inp_fields = ("name", "unit", "location", "categories", "database")
+        inp_fields = ("name", "unit", "location", "categories", "database", "reference product")
         skip_fields = ("input", "output")
         data = {k: v for k, v in exc._data.items()
                 if k not in skip_fields}
+        if "product" in data and "reference product" not in data:
+            data["reference product"] = data.pop("product")
         data.update(**{k: inp[k] for k in inp_fields if inp.get(k)})
         return data
 
