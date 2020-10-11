@@ -27,10 +27,6 @@ from .strategies import (
 )
 
 
-INNER_FIELDS = ("name", "unit", "database", "location")
-LINK_FIELDS = ("name", "unit", "location")
-
-
 class ABExcelImporter(ExcelImporter):
     """Customized Excel importer for the AB."""
 
@@ -71,10 +67,7 @@ class ABExcelImporter(ExcelImporter):
                 kind='biosphere'
             ),
             assign_only_product_as_production,
-            functools.partial(
-                link_technosphere_by_activity_hash,
-                fields=INNER_FIELDS
-            ),
+            link_technosphere_by_activity_hash,
             drop_falsey_uncertainty_fields_but_keep_zeros,
             convert_uncertainty_types_to_integers,
             hash_parameter_group,
