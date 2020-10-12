@@ -31,30 +31,26 @@ def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
 
 
 def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
-    other = bw.Database(new)
-    if len(other) == 0:
-        raise StrategyError("Cannot link to empty database")
-    act = other.random()
-    is_technosphere = act.get("type", "process") == "process"
-    kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
-
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if exc.get("database") == old):
             exc["database"] = new
-    return link_iterable_by_fields(data, other=other, kind=kind)
+    return _relink_exchanges(data, new)
 
 
 def link_exchanges_without_db(data: list, db: str) -> list:
-    other = bw.Database(db)
+    for act in data:
+        for exc in (exc for exc in act.get("exchanges", []) if "database" not in exc):
+            exc["database"] = db
+    return _relink_exchanges(data, db)
+
+
+def _relink_exchanges(data: list, other: str) -> list:
+    other = bw.Database(other)
     if len(other) == 0:
         raise StrategyError("Cannot link to empty database")
     act = other.random()
     is_technosphere = act.get("type", "process") == "process"
     kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
-
-    for act in data:
-        for exc in (exc for exc in act.get("exchanges", []) if "database" not in exc):
-            exc["database"] = db
     return link_iterable_by_fields(data, other=other, kind=kind)
 
 
