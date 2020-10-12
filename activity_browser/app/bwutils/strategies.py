@@ -9,8 +9,6 @@ from bw2io.errors import StrategyError
 from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_by_fields
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
-from .commontasks import is_technosphere_db
-
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
 
@@ -33,20 +31,30 @@ def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
 
 
 def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
+    other = bw.Database(new)
+    if len(other) == 0:
+        raise StrategyError("Cannot link to empty database")
+    act = other.random()
+    is_technosphere = act.get("type", "process") == "process"
+    kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
+
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if exc.get("database") == old):
             exc["database"] = new
-    other = bw.Database(new)
-    kind = TECHNOSPHERE_TYPES if is_technosphere_db(new) else BIOSPHERE_TYPES
     return link_iterable_by_fields(data, other=other, kind=kind)
 
 
 def link_exchanges_without_db(data: list, db: str) -> list:
+    other = bw.Database(db)
+    if len(other) == 0:
+        raise StrategyError("Cannot link to empty database")
+    act = other.random()
+    is_technosphere = act.get("type", "process") == "process"
+    kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
+
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if "database" not in exc):
             exc["database"] = db
-    other = bw.Database(db)
-    kind = TECHNOSPHERE_TYPES if is_technosphere_db(db) else BIOSPHERE_TYPES
     return link_iterable_by_fields(data, other=other, kind=kind)
 
 
