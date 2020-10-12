@@ -23,11 +23,8 @@ from .errors import LinkingFailed
 from .strategies import (
     relink_exchanges_bw2package, alter_database_name, hash_parameter_group,
     relink_exchanges_with_db, link_exchanges_without_db, rename_db_bw2package,
+    csv_rewrite_product_key,
 )
-
-
-INNER_FIELDS = ("name", "unit", "database", "location")
-LINK_FIELDS = ("name", "unit", "location")
 
 
 class ABExcelImporter(ExcelImporter):
@@ -58,6 +55,7 @@ class ABExcelImporter(ExcelImporter):
             csv_numerize,
             csv_drop_unknown,
             csv_add_missing_exchanges_section,
+            csv_rewrite_product_key,
             normalize_units,
             normalize_biosphere_categories,
             normalize_biosphere_names,
@@ -69,10 +67,7 @@ class ABExcelImporter(ExcelImporter):
                 kind='biosphere'
             ),
             assign_only_product_as_production,
-            functools.partial(
-                link_technosphere_by_activity_hash,
-                fields=INNER_FIELDS
-            ),
+            link_technosphere_by_activity_hash,
             drop_falsey_uncertainty_fields_but_keep_zeros,
             convert_uncertainty_types_to_integers,
             hash_parameter_group,

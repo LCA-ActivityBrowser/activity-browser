@@ -6,11 +6,11 @@ import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset, sqlite3_lci_db
 from bw2data.errors import ValidityError
 from bw2io.errors import StrategyError
-from bw2io.strategies.generic import format_nonunique_key_error, link_technosphere_by_activity_hash
+from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_by_fields
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
-
-INNER_FIELDS = ("name", "unit", "database", "location")
+TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
+BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
 
 
 def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
@@ -34,14 +34,24 @@ def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if exc.get("database") == old):
             exc["database"] = new
-    return link_technosphere_by_activity_hash(data, external_db_name=new, fields=INNER_FIELDS)
+    return _relink_exchanges(data, new)
 
 
 def link_exchanges_without_db(data: list, db: str) -> list:
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if "database" not in exc):
             exc["database"] = db
-    return link_technosphere_by_activity_hash(data, external_db_name=db, fields=INNER_FIELDS)
+    return _relink_exchanges(data, db)
+
+
+def _relink_exchanges(data: list, other: str) -> list:
+    other = bw.Database(other)
+    if len(other) == 0:
+        raise StrategyError("Cannot link to empty database")
+    act = other.random()
+    is_technosphere = act.get("type", "process") == "process"
+    kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
+    return link_iterable_by_fields(data, other=other, kind=kind)
 
 
 def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
@@ -184,3 +194,11 @@ def _clean_activity_name(activity_name: str) -> str:
     # strip underscores from start of string
     activity_name = activity_name.lstrip("_")
     return activity_name
+
+
+def csv_rewrite_product_key(data):
+    """Convert exchange 'product' key to a 'reference product' one."""
+    for ds in data:
+        for exc in (e for e in ds.get("exchanges", []) if "product" in e):
+            exc["reference product"] = exc.pop("product")
+    return data
