@@ -557,8 +557,7 @@ class LCAResultsTab(NewAnalysisTab):
     def update_tab(self):
         """Update the tab."""
         self.lca_scores_widget.update_tab()
-        self.lca_overview_widget.update_plot()
-        self.lca_overview_widget.update_table()
+        self.lca_overview_widget.update_tab()
 
 
 class LCAScoresTab(NewAnalysisTab):
