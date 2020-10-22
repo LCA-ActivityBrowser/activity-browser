@@ -144,14 +144,16 @@ class ABDataFrameView(QTableView):
 
         NOTE: by default, the table headers (column names) are also copied.
         """
-        if e.modifiers() and Qt.ControlModifier:
+        if e.modifiers() & Qt.ControlModifier:
+            # Should we include headers?
+            headers = e.modifiers() & Qt.ShiftModifier
             if e.key() == Qt.Key_C:  # copy
                 selection = [self.get_source_index(pindex) for pindex in self.selectedIndexes()]
                 rows = [index.row() for index in selection]
                 columns = [index.column() for index in selection]
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
-                self.model.to_clipboard(rows, columns)
+                self.model.to_clipboard(rows, columns, headers)
 
 
 class ABDataFrameEdit(ABDataFrameView):

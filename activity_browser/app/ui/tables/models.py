@@ -57,10 +57,12 @@ class PandasModel(QAbstractTableModel):
             return self._dataframe.index[section]
         return None
 
-    def to_clipboard(self, rows, columns):
+    def to_clipboard(self, rows, columns, include_header: bool = False):
         """ Copy the given rows and columns of the dataframe to clipboard
         """
-        self._dataframe.iloc[rows, columns].to_clipboard(index=False)
+        self._dataframe.iloc[rows, columns].to_clipboard(
+            index=False, header=include_header
+        )
 
 
 class EditablePandasModel(PandasModel):
