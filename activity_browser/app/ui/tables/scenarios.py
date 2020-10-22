@@ -9,7 +9,7 @@ from PySide2.QtWidgets import QComboBox
 from ...bwutils.utils import Parameters
 from ...bwutils import presamples as ps_utils
 from ...signals import signals
-from .views import ABDataFrameSimpleCopy, dataframe_sync
+from .views import ABDataFrameView, dataframe_sync
 
 
 class PresamplesList(QComboBox):
@@ -51,7 +51,7 @@ class PresamplesList(QComboBox):
         return ps_utils.find_all_package_names()
 
 
-class ScenarioTable(ABDataFrameSimpleCopy):
+class ScenarioTable(ABDataFrameView):
     """ Constructs an infinitely (horizontally) expandable table that is
     used to set specific amount for user-defined parameters.
 
