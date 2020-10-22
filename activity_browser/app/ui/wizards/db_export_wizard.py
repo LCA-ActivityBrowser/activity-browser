@@ -49,6 +49,8 @@ class DatabaseExportWizard(QtWidgets.QWizard):
         if ext and not ext == EXTENSIONS[export_as]:
             ext = EXTENSIONS[export_as]
             out_path = path + ext
+        elif not ext:
+            out_path = path + EXTENSIONS[export_as]
         EXPORTERS[export_as](db_name, out_path)
 
 
