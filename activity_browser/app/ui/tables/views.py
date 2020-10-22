@@ -11,8 +11,7 @@ from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 from ...settings import ab_settings
 from .delegates import ViewOnlyDelegate
 from .models import (DragPandasModel, EditableDragPandasModel,
-                     EditablePandasModel, PandasModel,
-                     SimpleCopyDragPandasModel, SimpleCopyPandasModel)
+                     EditablePandasModel, PandasModel)
 
 
 def dataframe_sync(sync):
@@ -153,15 +152,6 @@ class ABDataFrameView(QTableView):
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
                 self.model.to_clipboard(rows, columns)
-
-
-class ABDataFrameSimpleCopy(ABDataFrameView):
-    """ A view-only class which copies values without including headers
-    """
-    def _select_model(self) -> QAbstractTableModel:
-        if hasattr(self, 'drag_model'):
-            return SimpleCopyDragPandasModel(self.dataframe)
-        return SimpleCopyPandasModel(self.dataframe)
 
 
 class ABDataFrameEdit(ABDataFrameView):
