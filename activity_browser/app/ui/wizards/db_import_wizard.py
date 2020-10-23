@@ -686,21 +686,19 @@ class MainWorkerThread(QtCore.QThread):
         else:
             self.run_ecoinvent()
 
-    def run_ecoinvent(self):
+    def run_ecoinvent(self) -> None:
+        """Run the ecoinvent downloader from start to finish."""
+        self.downloader.outdir = eidl.eidlstorage.eidl_dir
+        if self.downloader.check_stored():
+            import_signals.download_complete.emit()
+        else:
+            self.run_download()
+
         with tempfile.TemporaryDirectory() as tempdir:
-            dataset_dir = self.datasets_path or os.path.join(tempdir, "datasets")
-            if not os.path.isdir(dataset_dir):
-                if self.archive_path is None:
-                    self.downloader.outdir = eidl.eidlstorage.eidl_dir
-                    if self.downloader.check_stored():
-                        import_signals.download_complete.emit()
-                    else:
-                        self.run_download()
-                else:
-                    self.downloader.out_path = self.archive_path
-                if not import_signals.cancel_sentinel:
-                    self.run_extract(tempdir)
             if not import_signals.cancel_sentinel:
+                self.run_extract(tempdir)
+            if not import_signals.cancel_sentinel:
+                dataset_dir = os.path.join(tempdir, "datasets")
                 self.run_import(dataset_dir)
 
     def run_forwast(self):
