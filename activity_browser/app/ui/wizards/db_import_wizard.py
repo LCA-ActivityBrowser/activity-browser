@@ -679,6 +679,10 @@ class MainWorkerThread(QtCore.QThread):
             self.run_forwast()
         elif self.use_local:
             self.run_local_import()
+        elif self.datasets_path:  # ecospold2 files
+            self.run_import(self.datasets_path)
+        elif self.archive_path:  # 7zip file
+            self.run_extract_import()
         else:
             self.run_ecoinvent()
 
