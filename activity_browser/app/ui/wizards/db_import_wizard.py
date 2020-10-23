@@ -733,6 +733,26 @@ class MainWorkerThread(QtCore.QThread):
         self.downloader.extract(target_dir=temp_dir)
         import_signals.unarchive_finished.emit()
 
+    def run_extract_import(self) -> None:
+        """Combine the extract and import steps when beginning from a selected
+        7zip archive.
+
+        By default, look in the 'datasets' folder because this is how ecoinvent
+        7zip archives are structured. If this folder is not found, fall back
+        to using the temporary directory instead.
+        """
+        self.downloader.out_path = self.archive_path
+        with tempfile.TemporaryDirectory() as tempdir:
+            self.run_extract(tempdir)
+            if not import_signals.cancel_sentinel:
+                # Working with ecoinvent 7z file? look for 'datasets' dir
+                eco_dir = os.path.join(tempdir, "datasets")
+                if os.path.exists(eco_dir) and os.path.isdir(eco_dir):
+                    self.run_import(eco_dir)
+                else:
+                    # Use the temp dir itself instead.
+                    self.run_import(tempdir)
+
     def run_import(self, import_dir):
         try:
             importer = SingleOutputEcospold2Importer(
