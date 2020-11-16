@@ -57,7 +57,7 @@ class MLCA(object):
         Brightway LCA instance used to perform LCA, LCI and LCIA
         calculations
     method_matrices: list
-        Contains the characterization matrix for each LCIA method.
+        Contains the characterization matrix for each impact category.
     lca_scores: `numpy.ndarray`
         2-dimensional array of shape (`func_units`, `methods`) holding the
         calculated LCA scores of each combination of reference flow and
@@ -139,7 +139,7 @@ class MLCA(object):
         self.technosphere_flows = dict()
         # Life cycle inventory (biosphere flows) by reference flow
         self.inventory = dict()
-        # Inventory (biosphere flows) for specific reference flow (e.g. 2000x15000) and LCIA method.
+        # Inventory (biosphere flows) for specific reference flow (e.g. 2000x15000) and impact category.
         self.inventories = dict()
         # Inventory multiplied by scaling (relative impact on environment) per impact category.
         self.characterized_inventories = dict()

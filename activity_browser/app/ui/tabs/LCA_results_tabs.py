@@ -489,7 +489,7 @@ class LCAResultsTab(NewAnalysisTab):
     This tab allows the user to get a basic overview of the results of the calculation setup.
 
     Shows:
-        'Overview' and 'by LCIA method' options for different plots/graphs
+        'Overview' and 'by impact category' options for different plots/graphs
         Plots/graphs
         Export buttons
     """
@@ -561,14 +561,14 @@ class LCAResultsTab(NewAnalysisTab):
 
 
 class LCAScoresTab(NewAnalysisTab):
-    """Class for when 'by LCIA method' is chosen in the 'LCA Results' sub-tab."""
+    """Class for when 'by impact category' is chosen in the 'LCA Results' sub-tab."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
 
         self.combobox_menu = QHBoxLayout()
-        self.combobox_label = QLabel("Choose LCIA method:")
+        self.combobox_label = QLabel("Choose impact category:")
         self.combobox = QComboBox()
         self.combobox.scroll = False
         self.combobox_menu.addWidget(self.combobox_label)
@@ -1109,7 +1109,7 @@ class MonteCarloTab(NewAnalysisTab):
 
         # method selection
         self.method_selection_widget = QWidget()
-        self.label_methods = QLabel('Choose LCIA method')
+        self.label_methods = QLabel('Choose impact category')
         self.combobox_methods = QComboBox()
         self.hlayout_methods = QHBoxLayout()
 
