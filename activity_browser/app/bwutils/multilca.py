@@ -13,7 +13,7 @@ from .metadata import AB_metadata
 
 
 class MLCA(object):
-    """Wrapper class for performing LCA calculations with many functional units and impact categories.
+    """Wrapper class for performing LCA calculations with many reference flows and impact categories.
 
     Needs to be passed a brightway ``calculation_setup`` name.
 
@@ -21,7 +21,7 @@ class MLCA(object):
     calculations upon instantiation.
 
     Initialization creates `self.lca_scores`, which is a NumPy array
-    of LCA scores, with rows of functional units and columns of impact categories.
+    of LCA scores, with rows of reference flows and columns of impact categories.
     Ordering is the same as in the `calculation_setup`.
 
     This class is adapted from `bw2calc.multi_lca.MultiLCA` and includes a
@@ -39,12 +39,12 @@ class MLCA(object):
     all_databases
     lca_scores_normalized
     func_units: list
-        List of dictionaries, each containing the functional unit key and
+        List of dictionaries, each containing the reference flow key and
         its required output
     fu_activity_keys: list
-        The functional unit keys
+        The reference flow keys
     fu_index: dict
-        Links the functional units to a specific index
+        Links the reference flows to a specific index
     rev_fu_index: dict
         Same as `fu_index` but using the indexes as keys
     methods: list
@@ -60,7 +60,7 @@ class MLCA(object):
         Contains the characterization matrix for each LCIA method.
     lca_scores: `numpy.ndarray`
         2-dimensional array of shape (`func_units`, `methods`) holding the
-        calculated LCA scores of each combination of functional unit and
+        calculated LCA scores of each combination of reference flow and
         impact assessment method
     rev_activity_dict: dict
         See `bw2calc.lca.LCA.reverse_dict`
@@ -69,16 +69,16 @@ class MLCA(object):
     rev_biosphere_dict: dict
         See `bw2calc.lca.LCA.reverse_dict`
     scaling_factors: dict
-        Contains the life-cycle inventory scaling factors per functional unit
+        Contains the life-cycle inventory scaling factors per reference flow
     technosphere_flows: dict
-        Contains the calculated technosphere flows per functional unit
+        Contains the calculated technosphere flows per reference flow
     inventory: dict
-        Life cycle inventory (biosphere flows) per functional unit
+        Life cycle inventory (biosphere flows) per reference flow
     inventories: dict
-        Biosphere flows per functional unit and LCIA method combination
+        Biosphere flows per reference flow and impact category combination
     characterized_inventories: dict
         Inventory multiplied by scaling (relative impact on environment) per
-        functional unit and LCIA method combination
+        reference flow and impact category combination
     elementary_flow_contributions: `numpy.ndarray`
         3-dimensional array of shape (`func_units`, `methods`, `biosphere`)
         which holds the characterized inventory results summed along the
@@ -88,7 +88,7 @@ class MLCA(object):
         which holds the characterized inventory results summed along the
         biosphere axis
     func_unit_translation_dict: dict
-        Contains the functional unit key and its expected output linked to
+        Contains the reference flow key and its expected output linked to
         the brightway activity label.
     func_key_dict: dict
         An index of the brightway activity labels
@@ -108,7 +108,7 @@ class MLCA(object):
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
-        # Functional units and related indexes
+        # reference flows and related indexes
         self.func_units = cs['inv']
         self.fu_activity_keys = [list(fu.keys())[0] for fu in self.func_units]
         self.fu_index = {k: i for i, k in enumerate(self.fu_activity_keys)}
@@ -135,11 +135,11 @@ class MLCA(object):
         # Scaling
         self.scaling_factors = dict()
 
-        # Technosphere product flows for a given functional unit
+        # Technosphere product flows for a given reference flow
         self.technosphere_flows = dict()
-        # Life cycle inventory (biosphere flows) by functional unit
+        # Life cycle inventory (biosphere flows) by reference flow
         self.inventory = dict()
-        # Inventory (biosphere flows) for specific functional unit (e.g. 2000x15000) and LCIA method.
+        # Inventory (biosphere flows) for specific reference flow (e.g. 2000x15000) and LCIA method.
         self.inventories = dict()
         # Inventory multiplied by scaling (relative impact on environment) per impact category.
         self.characterized_inventories = dict()
@@ -170,7 +170,7 @@ class MLCA(object):
         to either alter the code or redo calculations after matrix substitution.
         """
         for row, func_unit in enumerate(self.func_units):
-            # Do the LCA for the current functional unit
+            # Do the LCA for the current reference flow
             self.lca.redo_lci(func_unit)
 
             # Now update the:
@@ -178,7 +178,7 @@ class MLCA(object):
             # - Technosphere flows
             # - Life cycle inventory
             # - Life-cycle inventory (disaggregated by contributing process)
-            # for current functional unit
+            # for current reference flow
             self.scaling_factors.update({
                 str(func_unit): self.lca.supply_array
             })
@@ -192,7 +192,7 @@ class MLCA(object):
                 str(func_unit): self.lca.inventory
             })
 
-            # Now, for each method, take the current functional unit and do inventory analysis
+            # Now, for each method, take the current reference flow and do inventory analysis
             for col, cf_matrix in enumerate(self.method_matrices):
                 self.lca.characterization_matrix = cf_matrix
                 self.lca.lcia_calculation()
@@ -207,12 +207,12 @@ class MLCA(object):
 
     @property
     def func_units_dict(self) -> dict:
-        """Return a dictionary of functional units (key, demand)."""
+        """Return a dictionary of reference flow (key, demand)."""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
     @property
     def all_databases(self) -> set:
-        """ Get all databases linked to the functional units.
+        """ Get all databases linked to the reference flows.
         """
         databases = set(f[0] for f in self.fu_activity_keys)
         for dep in (bw.databases[db].get('depends', []) for db in databases):
@@ -271,7 +271,7 @@ class Contributions(object):
     Attributes
     ----------
     DEFAULT_ACT_FIELDS : list
-        Default activity/functional unit column names
+        Default activity/reference flow column names
     DEFAULT_EF_FIELDS : list
         Default environmental flow column names
     mlca: `MLCA`
@@ -341,14 +341,14 @@ class Contributions(object):
         return contribution_array / scores
 
     def _build_dict(self, C, FU_M_index, rev_dict, limit, limit_type):
-        """Sort the given contribution array on method or functional unit column.
+        """Sort the given contribution array on method or reference flow column.
 
         Parameters
         ----------
         C : `numpy.ndarray`
             A 2-dimensional contribution array
         FU_M_index : dict
-            Dictionary which maps the functional units or methods to their
+            Dictionary which maps the reference flows or methods to their
             matching columns
         rev_dict : dict
             'reverse' dictionary used to map correct activity/method to
@@ -576,8 +576,8 @@ class Contributions(object):
         """
         if all([functional_unit, method]) or not any([functional_unit, method]):
             raise ValueError(
-                "It must be either by functional unit or by method. Provided:"
-                "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
+                "It must be either by reference flow or by impact category. Provided:"
+                "\n Reference flow: {} \n Impact Category: {}".format(functional_unit, method)
             )
         dataset = {
             'process': self.mlca.process_contributions,
@@ -659,9 +659,9 @@ class Contributions(object):
         Parameters
         ----------
         functional_unit : tuple, optional
-            The functional unit to compare all considered methods against
+            The reference flow to compare all considered impact categories against
         method : tuple, optional
-            The method to compare all considered functional units against
+            The method to compare all considered reference flows against
         aggregator : str or list, optional
             Used to aggregate EF contributions over certain columns
         limit : int
@@ -707,9 +707,9 @@ class Contributions(object):
         Parameters
         ----------
         functional_unit : tuple, optional
-            The functional unit to compare all considered methods against
+            The reference flow to compare all considered methods against
         method : tuple, optional
-            The method to compare all considered functional units against
+            The method to compare all considered reference flows against
         aggregator : str or list, optional
             Used to aggregate PC contributions over certain columns
         limit : int

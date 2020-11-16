@@ -79,9 +79,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         super().construct_layout()
         self.label_help.setVisible(False)
 
-        # Layout Functional Units and LCIA Methods
+        # Layout Reference Flows and Impact Categories
         grid_lay = QtWidgets.QGridLayout()
-        grid_lay.addWidget(QtWidgets.QLabel('Functional unit: '), 0, 0)
+        grid_lay.addWidget(QtWidgets.QLabel('Reference flow: '), 0, 0)
         grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
 
         self.update_calculation_setup()
@@ -150,7 +150,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.setLayout(self.layout)
 
     def update_calculation_setup(self, cs_name=None) -> None:
-        """Update Calculation Setup, functional units and methods, and dropdown menus."""
+        """Update Calculation Setup, reference flows and impact categories, and dropdown menus."""
         # block signals
         self.func_unit_cb.blockSignals(True)
         self.method_cb.blockSignals(True)
@@ -252,7 +252,7 @@ class Graph(BaseGraph):
     @staticmethod
     def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
         act, amount = demand[0], demand[1]
-        format_str = ("Functional unit: {:.2g} {} {} | {} | {} <br>"
+        format_str = ("Reference flow: {:.2g} {} {} | {} | {} <br>"
                       "Total impact: {:.2g} {}")
         return format_str.format(
             amount,

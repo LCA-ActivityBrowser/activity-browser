@@ -245,8 +245,8 @@ class SuperstructureContributions(Contributions):
         """
         if not any([functional_unit, method]):
             raise ValueError(
-                "Either functional unit, method or both should be given. Provided:"
-                "\n Functional unit: {} \n Method: {}".format(functional_unit, method)
+                "Either reference flow, impact category or both should be given. Provided:"
+                "\n Reference flow: {} \n Impact Category: {}".format(functional_unit, method)
             )
         dataset = {
             'process': self.mlca.process_contributions,

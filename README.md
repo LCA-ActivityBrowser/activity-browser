@@ -10,7 +10,7 @@ assessment framework, making use of `Qt` through `Qt for Python` under the [LGPL
 
 ## Highlights
 
-- **Fast LCA calculations** for multiple functional units and impact categories using [Brightway2](https://brightway.dev) under the hood
+- **Fast LCA calculations** for multiple reference flows and impact categories using [Brightway2](https://brightway.dev) under the hood
 - The AB can be used as a **productivity tool for brightway**: you can model in brightway (python) and see the results in the AB or the other way around - whatever is most convenient for you
 - **Advanced LCA modeling:**
     - parametrization

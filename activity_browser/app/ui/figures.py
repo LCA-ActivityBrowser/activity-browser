@@ -116,7 +116,7 @@ class LCAResultsPlot(Plot):
         self.plot_name = 'LCA heatmap'
 
     def plot(self, df: pd.DataFrame):
-        """ Plot a heatmap grid of the different methods and functional units. """
+        """ Plot a heatmap grid of the different impact categories and reference flows. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()
@@ -214,7 +214,7 @@ class CorrelationPlot(Plot):
         sns.set(style="darkgrid")
 
     def plot(self, df: pd.DataFrame):
-        """ Plot a heatmap of correlations between different functional units. """
+        """ Plot a heatmap of correlations between different reference flows. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()

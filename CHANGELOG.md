@@ -40,7 +40,7 @@
     This feature allows the user to run a filtered GSA on the results of an
     earlier Monte Carlo sampling. This lets them have a closer look at which
     process and biosphere flows most affect the score of a particular
-    functional unit and impact category combination.
+    reference flow and impact category combination.
 - ([#393](https://github.com/LCA-ActivityBrowser/activity-browser/pull/393))
     Added special tooling that allows the Activity Browser to construct its
     own presamples-like arrays. These 'flow scenario' or 'superstructure' arrays
@@ -77,7 +77,7 @@
     Plots/tables now stay hidden when the checkbox is unchecked and a tab is
     updated.
 - ([#420](https://github.com/LCA-ActivityBrowser/activity-browser/pull/420))
-    Fixed an error that would cause the AB to choke if the same functional units
+    Fixed an error that would cause the AB to choke if the same reference flows
     from different databases (ie, copies) are run through an LCA calculation
     together.
 - ([#423](https://github.com/LCA-ActivityBrowser/activity-browser/pull/423))

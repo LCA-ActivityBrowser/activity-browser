@@ -44,7 +44,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
     """Get the unit for plot axis naming.
 
     Determine the unit based on whether a plot is shown:
-    - for a number of functional units
+    - for a number of reference flows
     - for a number of impact categories
     and whether the axis are related to:
     - relative or
@@ -52,9 +52,9 @@ def get_unit(method: tuple, relative: bool = False) -> str:
     """
     if relative:
         return "relative share"
-    if method:  # for all functional units
+    if method:  # for all reference flows
         return bc.unit_of_method(method)
-    return "units of each LCIA method"
+    return "units of each impact category"
 
 
 # Special namedtuple for the LCAResults TabWidget.
@@ -203,8 +203,8 @@ class LCAResultsSubTab(QTabWidget):
 
     @QtCore.Slot(name="lciaScenarioExport")
     def generate_lcia_scenario_export(self):
-        """Create a dataframe from the LCIA scores of all functional units,
-        impact methods and scenarios, then call the 'export to excel'
+        """Create a dataframe of the impact category results for all reference flows,
+        impact categories and scenarios, then call the 'export to excel'
         """
         df = self.mlca.lca_scores_to_dataframe()
         filepath, _ = QFileDialog.getSaveFileName(
@@ -508,11 +508,11 @@ class LCAResultsTab(NewAnalysisTab):
         self.button_group = QButtonGroup()
         self.button_overview = QRadioButton("Overview")
         self.button_overview.setToolTip(
-            "Show a matrix of all functional units and all impact categories")
+            "Show a matrix of all reference flows and all impact categories")
         button_layout.addWidget(self.button_overview)
-        self.button_by_method = QRadioButton("by LCIA method")
+        self.button_by_method = QRadioButton("by impact category")
         self.button_by_method.setToolTip(
-            "Show the impacts of each functional unit for the selected impact categories")
+            "Show the impacts of each reference flow for the selected impact categories")
         self.button_by_method.setChecked(True)
         self.scenario_label = QLabel("Scenario:")
         self.button_group.addButton(self.button_overview, 0)
@@ -597,7 +597,7 @@ class LCAScoresTab(NewAnalysisTab):
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
             btn = QPushButton("Excel")
-            btn.setToolTip("Include all functional units, methods and scenarios")
+            btn.setToolTip("Include all reference flows, impact categories and scenarios")
             if self.parent:
                 btn.clicked.connect(self.parent.generate_lcia_scenario_export)
             exp_layout.addWidget(btn)
@@ -658,7 +658,7 @@ class LCIAResultsTab(NewAnalysisTab):
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
             btn = QPushButton("Excel")
-            btn.setToolTip("Include all functional units, methods and scenarios")
+            btn.setToolTip("Include all reference flows, impact categories and scenarios")
             if self.parent:
                 btn.clicked.connect(self.parent.generate_lcia_scenario_export)
             exp_layout.addWidget(btn)
@@ -695,7 +695,7 @@ class ContributionTab(NewAnalysisTab):
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.combobox_menu = Combobox(
             func=QComboBox(self),
-            func_label=QLabel("Functional Unit:"),
+            func_label=QLabel("Reference Flow:"),
             method=QComboBox(self),
             method_label=QLabel("Impact Category:"),
             agg=QComboBox(self),
@@ -871,14 +871,14 @@ class ElementaryFlowContributionTab(ContributionTab):
     This tab allows for analysis of elementary flows.
 
     Example questions that can be answered by this tab:
-        What is the CO2 production caused by functional unit XXX?
+        What is the CO2 production caused by reference flow XXX?
         Which impact is largest on the impact category YYY?
-        What are the 5 largest elementary flows caused by functional unit ZZZ?
+        What are the 5 largest elementary flows caused by reference flow ZZZ?
 
     Shows:
         Cutoff menu for determining cutoff values
-        Compare options button to change between 'Functional Units' and 'Impact Categories'
-        'Impact Category'/'Functional Unit' chooser with aggregation method
+        Compare options button to change between 'Reference Flows' and 'Impact Categories'
+        'Impact Category'/'Reference Flow' chooser with aggregation method
         Plot/Table on/off and Relative/Absolute options for data
         Plot/Table
         Export options
@@ -919,14 +919,14 @@ class ProcessContributionsTab(ContributionTab):
     This tab allows for analysis of process contributions.
 
     Example questions that can be answered by this tab:
-        What is the contribution of electricity production to functional unit XXX?
+        What is the contribution of electricity production to reference flow XXX?
         Which process contributes the most to impact category YYY?
-        What are the top 5 contributing processes to functional unit ZZZ?
+        What are the top 5 contributing processes to reference flow ZZZ?
 
     Shows:
         Cutoff menu for determining cutoff values
-        Compare options button to change between 'Functional Units' and 'Impact Categories'
-        'Impact Category'/'Functional Unit' chooser with aggregation method
+        Compare options button to change between 'Reference Flows' and 'Impact Categories'
+        'Impact Category'/'Reference Flow' chooser with aggregation method
         Plot/Table on/off and Relative/Absolute options for data
         Plot/Table
         Export options
@@ -1087,18 +1087,18 @@ class MonteCarloTab(NewAnalysisTab):
         # self.label_running.hide()
 
         # # buttons for all FUs or for all methods
-        # self.radio_button_all_fu = QRadioButton("For all functional units")
+        # self.radio_button_all_fu = QRadioButton("For all reference flows")
         # self.radio_button_all_methods = QRadioButton("Technosphere flows")
         #
         # self.radio_button_biosphere.setChecked(True)
         # self.radio_button_technosphere.setChecked(False)
         #
-        # self.label_for_all_fu = QLabel('For all functional units')
+        # self.label_for_all_fu = QLabel('For all reference flows')
         # self.combobox_fu = QRadioButton()
         # self.hlayout_fu = QHBoxLayout()
 
         # FU selection
-        # self.label_fu = QLabel('Choose functional unit')
+        # self.label_fu = QLabel('Choose reference flow')
         # self.combobox_fu = QComboBox()
         # self.hlayout_fu = QHBoxLayout()
         #
@@ -1307,12 +1307,12 @@ class GSATab(NewAnalysisTab):
         self.button_run = QPushButton('Run')
         self.button_run.setEnabled(False)
 
-        # functional unit selection
-        self.label_fu = QLabel('Functional unit:')
+        # reference flow selection
+        self.label_fu = QLabel('Reference Flow:')
         self.combobox_fu = QComboBox()
 
         # method selection
-        self.label_methods = QLabel('LCIA method:')
+        self.label_methods = QLabel('Impact Category:')
         self.combobox_methods = QComboBox()
 
         # arrange layout

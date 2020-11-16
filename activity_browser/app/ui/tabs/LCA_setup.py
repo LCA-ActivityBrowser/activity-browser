@@ -141,7 +141,7 @@ class LCASetupTab(QtWidgets.QWidget):
         container.addLayout(calc_row)
         container.addWidget(horizontal_line())
 
-        cs_panel_layout.addWidget(header('Functional units:'))
+        cs_panel_layout.addWidget(header('Reference flows:'))
         cs_panel_layout.addWidget(self.activities_table)
         cs_panel_layout.addWidget(horizontal_line())
         cs_panel_layout.addWidget(header('Impact categories:'))

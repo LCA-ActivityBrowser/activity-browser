@@ -13,7 +13,7 @@ from .manager import MonteCarloParameterManager
 
 
 class MonteCarloLCA(object):
-    """A Monte Carlo LCA for multiple functional units and methods loaded from a calculation setup."""
+    """A Monte Carlo LCA for multiple reference flows and methods loaded from a calculation setup."""
     def __init__(self, cs_name):
         if cs_name not in bw.calculation_setups:
             raise ValueError(
@@ -36,7 +36,7 @@ class MonteCarloLCA(object):
         self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
         self.cf_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
 
-        # functional units
+        # reference flows
         self.func_units = self.cs['inv']
         self.rev_fu_index = {i: fu for i, fu in enumerate(self.func_units)}
 
@@ -228,7 +228,7 @@ class MonteCarloLCA(object):
                     self.lca.lcia_calculation()
                     self.results[iteration, row, col] = self.lca.score
 
-        print('Monte Carlo LCA: finished {} iterations for {} functional units and {} methods in {} seconds.'.format(
+        print('Monte Carlo LCA: finished {} iterations for {} reference flows and {} methods in {} seconds.'.format(
             iterations,
             len(self.func_units),
             len(self.methods),
@@ -237,14 +237,14 @@ class MonteCarloLCA(object):
 
     @property
     def func_units_dict(self) -> dict:
-        """Return a dictionary of functional units (key, demand)."""
+        """Return a dictionary of reference flows (key, demand)."""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
     def get_results_by(self, act_key=None, method=None):
         """Get a slice or all of the results.
-        - if a method is provided, results will be given for all functional units and runs
-        - if a functional unit is provided, results will be given for all methods and runs
-        - if a functional unit and method is provided, results will be given for all runs of that combination
+        - if a method is provided, results will be given for all reference flows and runs
+        - if a reference flow is provided, results will be given for all impact categories and runs
+        - if a reference flow and impact category is provided, results will be given for all runs of that combination
         - if nothing is given, all results are returned
         """
 
@@ -271,8 +271,8 @@ class MonteCarloLCA(object):
 
     def get_results_dataframe(self, act_key=None, method=None, labelled=True):
         """Return a Pandas DataFrame with results for all runs either for
-        - all functional units and a selected method or
-        - all methods and a selected functional unit.
+        - all reference flows and a selected impact categories or
+        - all impact categories and a selected reference flow.
 
         If labelled=True, then the activity keys are converted to a human
         readable format.

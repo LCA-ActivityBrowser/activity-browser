@@ -282,7 +282,7 @@ class GlobalSensitivityAnalysis(object):
 
     def perform_GSA(self, act_number=0, method_number=0,
                     cutoff_technosphere=0.01, cutoff_biosphere=0.01):
-        """Perform GSA for specific functional unit and LCIA method."""
+        """Perform GSA for specific reference flow and impact category."""
         start = time()
 
         # set FU and method

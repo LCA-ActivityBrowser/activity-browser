@@ -14,7 +14,7 @@ class SwitchComboBox(QtWidgets.QComboBox):
         super().__init__(parent)
         self.using_presamples = getattr(parent, "using_presamples")
         self.switches = Switches(
-            "Functional Units", "Impact Categories", "Scenarios"
+            "Reference Flows", "Impact Categories", "Scenarios"
         )
         self.indexes = Switches(0, 1, 2)
 
