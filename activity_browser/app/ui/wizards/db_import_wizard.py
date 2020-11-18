@@ -677,32 +677,32 @@ class MainWorkerThread(QtCore.QThread):
         import_signals.cancel_sentinel = False
         if self.use_forwast:
             self.run_forwast()
-        elif self.use_local:
+        elif self.use_local:  # excel or bw2package
             self.run_local_import()
+        elif self.datasets_path:  # ecospold2 files
+            self.run_import(self.datasets_path)
+        elif self.archive_path:  # 7zip file
+            self.run_extract_import()
         else:
             self.run_ecoinvent()
 
-    def run_ecoinvent(self):
+    def run_ecoinvent(self) -> None:
+        """Run the ecoinvent downloader from start to finish."""
+        self.downloader.outdir = eidl.eidlstorage.eidl_dir
+        if self.downloader.check_stored():
+            import_signals.download_complete.emit()
+        else:
+            self.run_download()
+
         with tempfile.TemporaryDirectory() as tempdir:
-            dataset_dir = self.datasets_path or os.path.join(tempdir, "datasets")
-            if not os.path.isdir(dataset_dir):
-                if self.archive_path is None:
-                    self.downloader.outdir = eidl.eidlstorage.eidl_dir
-                    if self.downloader.check_stored():
-                        import_signals.download_complete.emit()
-                    else:
-                        self.run_download()
-                else:
-                    self.downloader.out_path = self.archive_path
-                if not import_signals.cancel_sentinel:
-                    self.run_extract(tempdir)
             if not import_signals.cancel_sentinel:
+                self.run_extract(tempdir)
+            if not import_signals.cancel_sentinel:
+                dataset_dir = os.path.join(tempdir, "datasets")
                 self.run_import(dataset_dir)
 
-    def run_forwast(self):
-        """
-        adapted from pjamesjoyce/lcopt
-        """
+    def run_forwast(self) -> None:
+        """Adapted from pjamesjoyce/lcopt."""
         response = requests.get(self.forwast_url)
         forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
         import_signals.download_complete.emit()
@@ -725,15 +725,40 @@ class MainWorkerThread(QtCore.QThread):
             else:
                 self.delete_canceled_db()
 
-    def run_download(self):
+    def run_download(self) -> None:
+        """Use the connected ecoinvent downloader."""
         self.downloader.download()
         import_signals.download_complete.emit()
 
-    def run_extract(self, temp_dir):
+    def run_extract(self, temp_dir) -> None:
+        """Use the connected ecoinvent downloader to extract the downloaded
+        7zip file.
+        """
         self.downloader.extract(target_dir=temp_dir)
         import_signals.unarchive_finished.emit()
 
-    def run_import(self, import_dir):
+    def run_extract_import(self) -> None:
+        """Combine the extract and import steps when beginning from a selected
+        7zip archive.
+
+        By default, look in the 'datasets' folder because this is how ecoinvent
+        7zip archives are structured. If this folder is not found, fall back
+        to using the temporary directory instead.
+        """
+        self.downloader.out_path = self.archive_path
+        with tempfile.TemporaryDirectory() as tempdir:
+            self.run_extract(tempdir)
+            if not import_signals.cancel_sentinel:
+                # Working with ecoinvent 7z file? look for 'datasets' dir
+                eco_dir = os.path.join(tempdir, "datasets")
+                if os.path.exists(eco_dir) and os.path.isdir(eco_dir):
+                    self.run_import(eco_dir)
+                else:
+                    # Use the temp dir itself instead.
+                    self.run_import(tempdir)
+
+    def run_import(self, import_dir) -> None:
+        """Use the given dataset path to import the ecospold2 files."""
         try:
             importer = SingleOutputEcospold2Importer(
                 import_dir,

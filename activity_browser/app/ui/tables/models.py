@@ -57,18 +57,11 @@ class PandasModel(QAbstractTableModel):
             return self._dataframe.index[section]
         return None
 
-    def to_clipboard(self, rows, columns):
+    def to_clipboard(self, rows, columns, include_header: bool = False):
         """ Copy the given rows and columns of the dataframe to clipboard
         """
-        self._dataframe.iloc[rows, columns].to_clipboard(index=False)
-
-
-class SimpleCopyPandasModel(PandasModel):
-    """ Override the to_clipboard method to exclude copying table headers
-    """
-    def to_clipboard(self, rows, columns):
         self._dataframe.iloc[rows, columns].to_clipboard(
-            index=False, header=False
+            index=False, header=include_header
         )
 
 
@@ -93,11 +86,6 @@ class EditablePandasModel(PandasModel):
 # Take the classes defined above and add the ItemIsDragEnabled flag
 class DragPandasModel(PandasModel):
     """Same as PandasModel, but enabling dragging."""
-    def flags(self, index):
-        return super().flags(index) | Qt.ItemIsDragEnabled
-
-
-class SimpleCopyDragPandasModel(SimpleCopyPandasModel):
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 

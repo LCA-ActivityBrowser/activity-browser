@@ -11,8 +11,7 @@ from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 from ...settings import ab_settings
 from .delegates import ViewOnlyDelegate
 from .models import (DragPandasModel, EditableDragPandasModel,
-                     EditablePandasModel, PandasModel,
-                     SimpleCopyDragPandasModel, SimpleCopyPandasModel)
+                     EditablePandasModel, PandasModel)
 
 
 def dataframe_sync(sync):
@@ -145,23 +144,16 @@ class ABDataFrameView(QTableView):
 
         NOTE: by default, the table headers (column names) are also copied.
         """
-        if e.modifiers() and Qt.ControlModifier:
+        if e.modifiers() & Qt.ControlModifier:
+            # Should we include headers?
+            headers = e.modifiers() & Qt.ShiftModifier
             if e.key() == Qt.Key_C:  # copy
                 selection = [self.get_source_index(pindex) for pindex in self.selectedIndexes()]
                 rows = [index.row() for index in selection]
                 columns = [index.column() for index in selection]
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
-                self.model.to_clipboard(rows, columns)
-
-
-class ABDataFrameSimpleCopy(ABDataFrameView):
-    """ A view-only class which copies values without including headers
-    """
-    def _select_model(self) -> QAbstractTableModel:
-        if hasattr(self, 'drag_model'):
-            return SimpleCopyDragPandasModel(self.dataframe)
-        return SimpleCopyPandasModel(self.dataframe)
+                self.model.to_clipboard(rows, columns, headers)
 
 
 class ABDataFrameEdit(ABDataFrameView):

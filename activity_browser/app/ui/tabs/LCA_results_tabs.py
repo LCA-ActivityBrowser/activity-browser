@@ -124,8 +124,11 @@ class LCAResultsSubTab(QTabWidget):
     def do_calculations(self):
         """Perform the MLCA calculation."""
         if self.presamples is None:
-            self.mlca = MLCA(self.cs_name)
-            self.contributions = Contributions(self.mlca)
+            try:
+                self.mlca = MLCA(self.cs_name)
+                self.contributions = Contributions(self.mlca)
+            except KeyError as e:
+                raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
         elif isinstance(self.presamples, str):
             try:
                 self.mlca = PresamplesMLCA(self.cs_name, self.presamples)
@@ -136,6 +139,8 @@ class LCAResultsSubTab(QTabWidget):
                 msg = ("Given scenario package refers to non-existent exchanges."
                        " It is suggested to remove or edit this package.")
                 raise BW2CalcError(msg, str(e)).with_traceback(e.__traceback__)
+            except KeyError as e:
+                raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
         else:
             try:
                 self.mlca = SuperstructureMLCA(self.cs_name, self.presamples)
@@ -150,6 +155,8 @@ class LCAResultsSubTab(QTabWidget):
                     "Scenario LCA failed.",
                     "Constructed LCA matrix does not contain any exchanges from the superstructure"
                 ).with_traceback(e.__traceback__)
+            except KeyError as e:
+                raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
         self.mlca.calculate()
         self.mc = MonteCarloLCA(self.cs_name)
 
