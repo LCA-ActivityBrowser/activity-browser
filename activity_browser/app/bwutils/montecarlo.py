@@ -176,11 +176,11 @@ class MonteCarloLCA(object):
                 idx = np.argwhere(
                     np.isin(self.lca.tech_params[self.param_cols], subset[self.param_cols])
                 ).flatten()
-                # Construct unique array of row+col combinations
-                uniq = np.unique(self.lca.tech_params[idx][["row", "col"]])
+                # Construct unique array of row+col+type combinations
+                uniq = np.unique(self.lca.tech_params[idx][self.param_cols])
                 # Use the unique array to sort the subset (ensures values
                 # are inserted at the correct index)
-                sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
+                sort_idx = np.searchsorted(uniq, subset[self.param_cols])
                 # Finally, insert the sorted subset amounts into the tech_vector
                 # at the correct indexes.
                 tech_vector[idx] = subset[sort_idx]["amount"]
@@ -189,8 +189,8 @@ class MonteCarloLCA(object):
                 idx = np.argwhere(
                     np.isin(self.lca.bio_params[self.param_cols], subset[self.param_cols])
                 ).flatten()
-                uniq = np.unique(self.lca.bio_params[idx][["row", "col"]])
-                sort_idx = np.searchsorted(uniq, subset[["row", "col"]])
+                uniq = np.unique(self.lca.bio_params[idx][self.param_cols])
+                sort_idx = np.searchsorted(uniq, subset[self.param_cols])
                 bio_vector[idx] = subset[sort_idx]["amount"]
 
                 # Store parameter data for GSA
