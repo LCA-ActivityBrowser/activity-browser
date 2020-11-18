@@ -78,8 +78,7 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
         raise ValueError("Missing required column(s) for superstructure: {}".format(diff.to_list()))
 
     # Convert specific columns that may have tuples as strings
-    data["from categories"] = data["from categories"].apply(lambda x: convert_tuple_str(x))
-    data["from key"] = data["from key"].apply(lambda x: convert_tuple_str(x))
-    data["to categories"] = data["to categories"].apply(lambda x: convert_tuple_str(x))
-    data["to key"] = data["to key"].apply(lambda x: convert_tuple_str(x))
+    columns = ["from categories", "from key", "to categories", "to key"]
+    data.loc[:, columns] = data[columns].applymap(convert_tuple_str)
+
     return data
