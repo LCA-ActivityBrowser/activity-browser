@@ -362,7 +362,8 @@ class Controller(object):
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
 
-    def delete_activity(self, key):
+    @Slot(tuple, name="deleteActivity")
+    def delete_activity(self, key: tuple) -> None:
         act = bw.get_activity(key)
         nu = len(act.upstream())
         if nu:
@@ -592,12 +593,19 @@ class Controller(object):
         """Remove all activity parameters and underlying exchange parameters
         for the given key.
         """
-        query = ActivityParameter.select(ActivityParameter.group).where(
-            ActivityParameter.database == key[0],
-            ActivityParameter.code == key[1],
-        )
-        for p in query.iterator():
-            bw.parameters.remove_from_group(p.group, key)
+        query = (ActivityParameter
+                 .select(ActivityParameter.group)
+                 .where(ActivityParameter.database == key[0],
+                        ActivityParameter.code == key[1])
+                 .tuples())
+        groups = set(p[0] for p in query.iterator())
+        for group in groups:
+            bw.parameters.remove_from_group(group, key)
+            exists = (ActivityParameter.select()
+                      .where(ActivityParameter.group == group)
+                      .exists())
+            if not exists:
+                Group.delete().where(Group.name == group).execute()
         bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
