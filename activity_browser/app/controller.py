@@ -629,6 +629,26 @@ class Controller(object):
         signals.parameters_changed.emit()
 
     @staticmethod
+    @Slot(str, str, str, name="deleteRemnantParameters")
+    def clear_broken_activity_parameter(database: str, code: str, group: str) -> None:
+        """Take the given information and attempt to remove all of the
+        downstream parameter information.
+        """
+        with bw.parameters.db.atomic():
+            bw.parameters.remove_exchanges_from_group(group, None, False)
+            ActivityParameter.delete().where(
+                ActivityParameter.database == database,
+                ActivityParameter.code == code
+            ).execute()
+            exists = (ActivityParameter.select()
+                      .where(ActivityParameter.group == group)
+                      .exists())
+            if not exists:
+                # Also clear Group if it is not in use anymore
+                Group.delete().where(Group.name == group).execute()
+
+# MetaDataStore
+    @staticmethod
     @Slot(name="triggerMetadataReset")
     def reset_metadata() -> None:
         AB_metadata.reset_metadata()
