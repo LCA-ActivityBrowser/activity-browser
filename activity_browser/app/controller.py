@@ -3,7 +3,7 @@ import uuid
 from typing import Iterable, Optional
 
 import brightway2 as bw
-from bw2data.parameters import ActivityParameter
+from bw2data.parameters import ActivityParameter, Group
 from PySide2 import QtWidgets
 from PySide2.QtCore import QObject, Slot
 from bw2data.backends.peewee import sqlite3_lci_db
@@ -267,7 +267,8 @@ class Controller(object):
             except ValueError as e:
                 QtWidgets.QMessageBox.information(parent, "Not possible", str(e))
 
-    def delete_database(self, name):
+    @Slot(str, name="deleteDatabase")
+    def delete_database(self, name: str) -> None:
         ok = QtWidgets.QMessageBox.question(
             None,
             "Delete database?",
@@ -277,6 +278,7 @@ class Controller(object):
         if ok == QtWidgets.QMessageBox.Yes:
             project_settings.remove_db(name)
             del bw.databases[name]
+            Group.delete().where(Group.name == name).execute()
             self.change_project(bw.projects.current, reload=True)
 
     @Slot(str, QObject, name="relinkDatabase")
