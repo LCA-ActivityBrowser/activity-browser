@@ -71,6 +71,7 @@ class Signals(QObject):
     parameter_pedigree_modified = Signal(object, object)
     parameter_scenario_sync = Signal(int, object)
     parameter_superstructure_built = Signal(int, object)
+    clear_activity_parameter = Signal(str, str, str)
 
     # Presamples
     presample_package_created = Signal(str)

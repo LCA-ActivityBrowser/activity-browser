@@ -79,6 +79,7 @@ class Controller(object):
         signals.parameter_modified.connect(self.modify_parameter)
         signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
         signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
+        signals.clear_activity_parameter.connect(self.clear_broken_activity_parameter)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
@@ -663,6 +664,7 @@ class Controller(object):
     def print_convenience_information(db_name: str) -> None:
         AB_metadata.print_convenience_information(db_name)
 
+# Presamples
     @staticmethod
     @Slot(str, name="removePresamplesPackage")
     def remove_presamples_package(name_id: str) -> None:

@@ -438,7 +438,10 @@ class ActivityParameterTable(BaseParameterTable):
             act = bw.get_activity(row["key"])
         except:
             # Can occur if an activity parameter exists for a removed activity.
-            print("Activity {} no longer exists, ignoring parameter.".format(row["key"]))
+            print("Activity {} no longer exists, removing parameter.".format(row["key"]))
+            signals.clear_activity_parameter.emit(
+                parameter.database, parameter.code, parameter.group
+            )
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
