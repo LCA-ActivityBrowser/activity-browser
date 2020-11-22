@@ -587,6 +587,7 @@ class Controller(object):
         else:
             param.data[field] = value
         param.save()
+        bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
     @staticmethod
