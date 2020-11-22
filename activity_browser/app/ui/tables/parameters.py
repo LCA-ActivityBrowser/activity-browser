@@ -685,18 +685,3 @@ class ExchangesTable(ABDictTreeView):
             bw.parameters.add_exchanges_to_group(group, act)
             ActivityParameter.recalculate_exchanges(group)
         signals.parameters_changed.emit()
-
-    @staticmethod
-    @Slot()
-    def recalculate_exchanges():
-        """ Will iterate through all activity parameters and rerun the
-        formula interpretation for all exchanges.
-        """
-        for param in ActivityParameter.select().iterator():
-            try:
-                act = bw.get_activity((param.database, param.code))
-                bw.parameters.add_exchanges_to_group(param.group, act)
-                ActivityParameter.recalculate_exchanges(param.group)
-            except:
-                continue
-        signals.parameters_changed.emit()
