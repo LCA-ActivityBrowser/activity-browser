@@ -636,12 +636,14 @@ class Controller(object):
         """Take the given information and attempt to remove all of the
         downstream parameter information.
         """
-        with bw.parameters.db.atomic():
+        with bw.parameters.db.atomic() as txn:
             bw.parameters.remove_exchanges_from_group(group, None, False)
             ActivityParameter.delete().where(
                 ActivityParameter.database == database,
                 ActivityParameter.code == code
             ).execute()
+            # Do commit to ensure .exists() call does not include deleted params
+            txn.commit()
             exists = (ActivityParameter.select()
                       .where(ActivityParameter.group == group)
                       .exists())
