@@ -247,7 +247,4 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
         if dialog.result() == QtWidgets.QDialog.Rejected:
             # Cancel was clicked, do not store anything.
             return
-        if model.data(index, QtCore.Qt.DisplayRole) == dialog.formula:
-            # The text in the dialog is the same as what is already there.
-            return
         model.setData(index, dialog.formula, QtCore.Qt.EditRole)

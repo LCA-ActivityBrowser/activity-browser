@@ -438,7 +438,10 @@ class ActivityParameterTable(BaseParameterTable):
             act = bw.get_activity(row["key"])
         except:
             # Can occur if an activity parameter exists for a removed activity.
-            print("Activity {} no longer exists, ignoring parameter.".format(row["key"]))
+            print("Activity {} no longer exists, removing parameter.".format(row["key"]))
+            signals.clear_activity_parameter.emit(
+                parameter.database, parameter.code, parameter.group
+            )
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
@@ -581,10 +584,11 @@ class ActivityParameterTable(BaseParameterTable):
             group = self.get_current_group(proxy)
             bw.parameters.remove_from_group(group, act)
             # Also clear the group if there are no more parameters in it
-            if not (ActivityParameter.select()
-                    .where(ActivityParameter.group == group).exists()):
+            exists = (ActivityParameter.select()
+                      .where(ActivityParameter.group == group).exists())
+            if not exists:
                 with bw.parameters.db.atomic():
-                    Group.get(name=group).delete_instance()
+                    Group.delete().where(Group.name == group).execute()
 
         bw.parameters.recalculate()
         signals.parameters_changed.emit()
@@ -680,19 +684,4 @@ class ExchangesTable(ABDictTreeView):
             bw.parameters.remove_exchanges_from_group(group, act)
             bw.parameters.add_exchanges_to_group(group, act)
             ActivityParameter.recalculate_exchanges(group)
-        signals.parameters_changed.emit()
-
-    @staticmethod
-    @Slot()
-    def recalculate_exchanges():
-        """ Will iterate through all activity parameters and rerun the
-        formula interpretation for all exchanges.
-        """
-        for param in ActivityParameter.select().iterator():
-            try:
-                act = bw.get_activity((param.database, param.code))
-                bw.parameters.add_exchanges_to_group(param.group, act)
-                ActivityParameter.recalculate_exchanges(param.group)
-            except:
-                continue
         signals.parameters_changed.emit()
