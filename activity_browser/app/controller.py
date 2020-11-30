@@ -3,7 +3,7 @@ import uuid
 from typing import Iterable, Optional
 
 import brightway2 as bw
-from bw2data.parameters import ActivityParameter
+from bw2data.parameters import ActivityParameter, Group
 from PySide2 import QtWidgets
 from PySide2.QtCore import QObject, Slot
 from bw2data.backends.peewee import sqlite3_lci_db
@@ -79,6 +79,7 @@ class Controller(object):
         signals.parameter_modified.connect(self.modify_parameter)
         signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
         signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
+        signals.clear_activity_parameter.connect(self.clear_broken_activity_parameter)
         # Calculation Setups
         signals.new_calculation_setup.connect(self.new_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
@@ -267,7 +268,8 @@ class Controller(object):
             except ValueError as e:
                 QtWidgets.QMessageBox.information(parent, "Not possible", str(e))
 
-    def delete_database(self, name):
+    @Slot(str, name="deleteDatabase")
+    def delete_database(self, name: str) -> None:
         ok = QtWidgets.QMessageBox.question(
             None,
             "Delete database?",
@@ -277,6 +279,7 @@ class Controller(object):
         if ok == QtWidgets.QMessageBox.Yes:
             project_settings.remove_db(name)
             del bw.databases[name]
+            Group.delete().where(Group.name == name).execute()
             self.change_project(bw.projects.current, reload=True)
 
     @Slot(str, QObject, name="relinkDatabase")
@@ -360,7 +363,8 @@ class Controller(object):
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
 
-    def delete_activity(self, key):
+    @Slot(tuple, name="deleteActivity")
+    def delete_activity(self, key: tuple) -> None:
         act = bw.get_activity(key)
         nu = len(act.upstream())
         if nu:
@@ -583,6 +587,7 @@ class Controller(object):
         else:
             param.data[field] = value
         param.save()
+        bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
     @staticmethod
@@ -590,12 +595,19 @@ class Controller(object):
         """Remove all activity parameters and underlying exchange parameters
         for the given key.
         """
-        query = ActivityParameter.select(ActivityParameter.group).where(
-            ActivityParameter.database == key[0],
-            ActivityParameter.code == key[1],
-        )
-        for p in query.iterator():
-            bw.parameters.remove_from_group(p.group, key)
+        query = (ActivityParameter
+                 .select(ActivityParameter.group)
+                 .where(ActivityParameter.database == key[0],
+                        ActivityParameter.code == key[1])
+                 .tuples())
+        groups = set(p[0] for p in query.iterator())
+        for group in groups:
+            bw.parameters.remove_from_group(group, key)
+            exists = (ActivityParameter.select()
+                      .where(ActivityParameter.group == group)
+                      .exists())
+            if not exists:
+                Group.delete().where(Group.name == group).execute()
         bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
@@ -619,6 +631,28 @@ class Controller(object):
         signals.parameters_changed.emit()
 
     @staticmethod
+    @Slot(str, str, str, name="deleteRemnantParameters")
+    def clear_broken_activity_parameter(database: str, code: str, group: str) -> None:
+        """Take the given information and attempt to remove all of the
+        downstream parameter information.
+        """
+        with bw.parameters.db.atomic() as txn:
+            bw.parameters.remove_exchanges_from_group(group, None, False)
+            ActivityParameter.delete().where(
+                ActivityParameter.database == database,
+                ActivityParameter.code == code
+            ).execute()
+            # Do commit to ensure .exists() call does not include deleted params
+            txn.commit()
+            exists = (ActivityParameter.select()
+                      .where(ActivityParameter.group == group)
+                      .exists())
+            if not exists:
+                # Also clear Group if it is not in use anymore
+                Group.delete().where(Group.name == group).execute()
+
+# MetaDataStore
+    @staticmethod
     @Slot(name="triggerMetadataReset")
     def reset_metadata() -> None:
         AB_metadata.reset_metadata()
@@ -633,6 +667,7 @@ class Controller(object):
     def print_convenience_information(db_name: str) -> None:
         AB_metadata.print_convenience_information(db_name)
 
+# Presamples
     @staticmethod
     @Slot(str, name="removePresamplesPackage")
     def remove_presamples_package(name_id: str) -> None:
