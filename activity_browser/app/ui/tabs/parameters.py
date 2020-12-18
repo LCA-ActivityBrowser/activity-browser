@@ -37,7 +37,7 @@ class ParametersTab(QTabWidget):
         self.tabs = {
             "Definitions": ParameterDefinitionTab(self),
             "Exchanges": ParameterExchangesTab(self),
-            "Scenarios": PresamplesTab(self),
+            "Scenarios": ParameterScenariosTab(self),
         }
         for name, tab in self.tabs.items():
             self.addTab(tab, name)
@@ -272,7 +272,7 @@ class ParameterExchangesTab(BaseRightTab):
         self.table.sync()
 
 
-class PresamplesTab(BaseRightTab):
+class ParameterScenariosTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 

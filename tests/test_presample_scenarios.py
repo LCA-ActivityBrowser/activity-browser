@@ -13,7 +13,7 @@ import pytest
 
 from activity_browser.app.signals import signals
 from activity_browser.app.ui.tables.scenarios import PresamplesList, ScenarioTable
-from activity_browser.app.ui.tabs.parameters import ParametersTab, PresamplesTab
+from activity_browser.app.ui.tabs.parameters import ParametersTab, ParameterScenariosTab
 
 
 @pytest.fixture
@@ -186,7 +186,7 @@ def test_scenario_tab(qtbot, monkeypatch, project_parameters):
     """ Test the simple functioning of the scenario presamples tab.
     clicky buttons!
     """
-    tab = PresamplesTab()
+    tab = ParameterScenariosTab()
     qtbot.addWidget(tab)
     tab.build_tables()
     store_path = Path(bw.projects.dir) / "testsave.xlsx"
