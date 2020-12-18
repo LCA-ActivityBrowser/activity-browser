@@ -95,26 +95,34 @@ class ParameterDefinitionTab(BaseRightTab):
         self._connect_signals()
 
         self.explain_text = """
-<p>Please see the <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>
-for the full explanation.</p>
-<p>Note that parameters can store 
-<a href="https://2.docs.brightway.dev/intro.html#storing-uncertain-values">uncertain values</a>, but these are
-completely optional.</p>
+<p>This tab is the main tab for creating and modifying parameters.</p>
+<p>The scope of parameters can be either a specific activity, a database, or an entire project 
+(meaning that an activity parameter can only be used within a specific activity, 
+while a project parameter can be used anywhere within a project and across all databases within that project).</p>
 
-<h3>In general:</h3>
+
+
+<p><b>In general</b></p>
 <p>All parameters must have a <em>name</em> and <em>amount</em>. A <em>formula</em> is optional.</p>
 <p>The formula is stored as a string that is interpreted by brightway. Python builtin functions and Numpy functions
 can be used within the formula!</p>
 <p>Parameters can only be deleted if they are not used in formulas of other parameters.</p>
+<p>Note that optionally <a href="https://2.docs.brightway.dev/intro.html#storing-uncertain-values">uncertainties</a>, can be specified for parameters.</p>
 
-<h3>Activity</h3>
+<p><b>Activity parameters</b></p>
 <p>New parameters are added either by drag-and-dropping activities from the database table or by adding
  a formula to an activity exchange within the Activity tab.</p>
 <ul>
 <li>Only activities from editable databases can be parameterized.</li>
 <li>Multiple parameters can be created for a single activity.</li>
 <li>The parameter <em>name</em> must be unique within the group of parameters for an activity.</li>
+<li>Note: activity parameters are also auto-generated when a project or database parameter is used in an activity that has previously not been parameterized.</li>
 </ul>
+
+
+
+<p>For more information on this topic see also the 
+<a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
 """
 
     def _connect_signals(self):
@@ -232,10 +240,9 @@ class ParameterExchangesTab(BaseRightTab):
         self._connect_signals()
 
         self.explain_text = """
-<p>Please see the <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>
-for the full explanation.</p>
-
-<p>Shown here is an overview of all the parameters set on the current project.</p>
+<p>This tab lists all exchanges within the selected project that are calculated via parameters.</p>
+<p>For more information on this topic see also the 
+<a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
 """
 
     def _connect_signals(self):
@@ -247,7 +254,7 @@ for the full explanation.</p>
         """
         layout = QVBoxLayout()
         row = QToolBar()
-        row.addWidget(header("Complete parameters overview "))
+        row.addWidget(header("Overview of parameterized exchanges"))
         row.setIconSize(QSize(24, 24))
         row.addAction(
             qicons.question, "About parameters overview",
@@ -284,6 +291,26 @@ class PresamplesTab(BaseRightTab):
         self._construct_layout()
         self._connect_signals()
 
+        self.explain_text = """
+    <p>This tab has 3 functions:</p>
+    <p>1. <b> Export table to excel </b> : this exports the table as shown below to an Excel file. You can modify it there and use 
+    it in scenario LCAs (see Calculation Setup tab)</p>
+    <p>2. <b>Import table from excel</b>: imports a table like the one shown below from Excel. If parameters are missing in Excel, 
+    the default values will be used. IMPORTANT NOTE: the ONLY function this button serves is to display the Excel file. 
+    If you want to use the Excel file in scenario LCA, please import it in the Calculation Setup tab.</p>
+    <p>3. <b>Process table and export</b>: This converts a "parameter-scenarios" file (alternative values for parameters) to a 
+    "flow-scenarios" file (alternative values for the exchanges as used in LCA calculations).</p>
+
+    <p><b>Suggested workflow to create scenarios for your parameters</b>:</p>
+    <p>Export table to excel. Add scenarios (columns). You may want to delete rows that you intend to change or rows that 
+    are for dependent parameters (those that depend on other parameters) as these values will be overwritten by the formulas. 
+    Finally, import the parameter-scenarios in the Calculation Setup to perform scenario calculations.</p>
+    
+    <p>For more information on this topic see also the 
+    <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
+    """
+
+
     def _connect_signals(self):
         self.load_btn.clicked.connect(self.select_read_file)
         self.save_btn.clicked.connect(self.save_scenarios)
@@ -296,10 +323,16 @@ class PresamplesTab(BaseRightTab):
 
     def _construct_layout(self):
         layout = QVBoxLayout()
-        row = QHBoxLayout()
+
+        row = QToolBar()
         row.addWidget(header("Parameter Scenarios"))
-        layout.addLayout(row)
+        row.addAction(
+            qicons.question, "About parameters scenarios",
+            self.explanation
+        )
+        layout.addWidget(row)
         layout.addWidget(horizontal_line())
+
         row = QHBoxLayout()
         row.addWidget(self.save_btn)
         row.addWidget(self.load_btn)

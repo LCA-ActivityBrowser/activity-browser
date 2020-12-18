@@ -119,7 +119,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.scenario_calc_btn.hide()
 
         name_row = QtWidgets.QHBoxLayout()
-        name_row.addWidget(header('Calculation Setups:'))
+        name_row.addWidget(header('Calculation Setup:'))
         name_row.addWidget(self.list_widget)
         name_row.addWidget(self.new_cs_button)
         name_row.addWidget(self.rename_cs_button)

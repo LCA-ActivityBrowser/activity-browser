@@ -80,7 +80,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         )
         # Layout
         self.h_layout = QtWidgets.QHBoxLayout()
-        self.h_layout.addWidget(header('Projects:'))
+        self.h_layout.addWidget(header('Project:'))
         self.h_layout.addWidget(self.projects_list)
         self.h_layout.addWidget(self.new_project_button)
         self.h_layout.addWidget(self.copy_project_button)
