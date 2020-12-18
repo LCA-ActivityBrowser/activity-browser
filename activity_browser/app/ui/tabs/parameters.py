@@ -276,13 +276,13 @@ class ParameterScenariosTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.load_btn = QPushButton(qicons.add, "Import table from excel")
+        self.load_btn = QPushButton(qicons.add, "Import parameter-scenarios")
         self.save_btn = QPushButton(
             self.style().standardIcon(QStyle.SP_DialogSaveButton),
-            "Export table to excel"
+            "Export parameter-scenarios"
         )
         self.calculate_btn = QPushButton(
-            qicons.calculate, "Process table and export"
+            qicons.calculate, "Export as flow-scenarios"
         )
         self.hide_group = QCheckBox("Show group column")
 
@@ -293,18 +293,18 @@ class ParameterScenariosTab(BaseRightTab):
 
         self.explain_text = """
     <p>This tab has 3 functions:</p>
-    <p>1. <b> Export table to excel </b> : this exports the table as shown below to an Excel file. You can modify it there and use 
+    <p>1. <b> Export parameter-scenarios </b> : this exports the table as shown below to an Excel file. You can modify it there and use 
     it in scenario LCAs (see Calculation Setup tab)</p>
-    <p>2. <b>Import table from excel</b>: imports a table like the one shown below from Excel. If parameters are missing in Excel, 
+    <p>2. <b>Import parameter-scenarios</b>: imports a table like the one shown below from Excel. If parameters are missing in Excel, 
     the default values will be used. IMPORTANT NOTE: the ONLY function this button serves is to display the Excel file. 
     If you want to use the Excel file in scenario LCA, please import it in the Calculation Setup tab.</p>
-    <p>3. <b>Process table and export</b>: This converts a "parameter-scenarios" file (alternative values for parameters) to a 
+    <p>3. <b>Export as flow-scenarios</b>: This converts a "parameter-scenarios" file (alternative values for parameters) to a 
     "flow-scenarios" file (alternative values for the exchanges as used in LCA calculations).</p>
 
-    <p><b>Suggested workflow to create scenarios for your parameters</b>:</p>
-    <p>Export table to excel. Add scenarios (columns). You may want to delete rows that you intend to change or rows that 
-    are for dependent parameters (those that depend on other parameters) as these values will be overwritten by the formulas. 
-    Finally, import the parameter-scenarios in the Calculation Setup to perform scenario calculations.</p>
+    <p><b>Suggested <i>workflow</i> to create scenarios for your parameters</b>:</p>
+    <p>Export parameter-scenarios. This will generate an Excel file for you where you can add scenarios (columns). 
+    You may want to delete rows that you intend to change or rows that are for dependent parameters (those that depend on other parameters) as these values will be overwritten by the formulas. 
+    Finally, import the parameter-scenarios in the <i>Calculation Setup</i> (not here!) to perform scenario calculations (you need to select "Scenario-based LCA").</p>
     
     <p>For more information on this topic see also the 
     <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
