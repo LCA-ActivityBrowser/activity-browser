@@ -31,7 +31,6 @@ requirements:
     - fuzzywuzzy
     - matplotlib-base >=2.2.2
     - networkx
-    - numpy <1.18  #https://github.com/LCA-ActivityBrowser/activity-browser/issues/427
     - pandas >=0.24.1
     - pyside2 >=5.13.1
     - salib
