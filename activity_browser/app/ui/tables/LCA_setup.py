@@ -8,7 +8,7 @@ from PySide2 import QtWidgets
 from activity_browser.app.bwutils.commontasks import AB_names_to_bw_keys
 
 from .delegates import FloatDelegate, ViewOnlyDelegate
-from .impact_categories import MethodsTable
+from .impact_categories import MethodsTable, MethodsTree
 from .views import ABDataFrameEdit, ABDataFrameView, dataframe_sync
 from ..icons import qicons
 from ...signals import signals
@@ -210,7 +210,7 @@ class CSMethodsTable(ABDataFrameView):
         menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), MethodsTable):
+        if isinstance(event.source(), MethodsTable) or isinstance(event.source(), MethodsTree):
             event.accept()
 
     def dragMoveEvent(self, event) -> None:
