@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import namedtuple
-
 from PySide2 import QtCore, QtWidgets
 
 from ..style import header, horizontal_line
