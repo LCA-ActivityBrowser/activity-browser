@@ -15,7 +15,7 @@ from SALib.analyze import delta
 import os
 
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
-from ..settings import ab_settings
+from .settings import ab_settings
 
 
 def get_lca(fu, method):

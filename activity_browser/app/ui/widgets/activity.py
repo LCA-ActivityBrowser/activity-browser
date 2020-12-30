@@ -4,9 +4,8 @@ from PySide2.QtWidgets import QMessageBox
 
 from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import qicons
-from ...settings import project_settings
 from ...signals import signals
-from ...bwutils import AB_metadata
+from ...bwutils import AB_metadata, project_settings
 
 
 class DetailsGroupBox(QtWidgets.QGroupBox):

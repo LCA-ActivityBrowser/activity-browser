@@ -11,8 +11,7 @@ from PySide2.QtCore import Slot, Qt
 from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PySide2.QtWidgets import QAction, QInputDialog, QMenu
 
-from activity_browser.app.bwutils import commontasks as bc
-from activity_browser.app.settings import project_settings
+from activity_browser.app.bwutils import commontasks as bc, project_settings
 from activity_browser.app.signals import signals
 
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY

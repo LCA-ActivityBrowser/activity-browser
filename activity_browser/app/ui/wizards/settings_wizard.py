@@ -4,7 +4,7 @@ from PySide2 import QtWidgets, QtGui
 import os
 
 from activity_browser.app.signals import signals
-from activity_browser.app.settings import ab_settings
+from activity_browser.app.bwutils import ab_settings
 
 
 class SettingsWizard(QtWidgets.QWizard):

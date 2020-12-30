@@ -10,10 +10,9 @@ from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase
 
-from .bwutils import commontasks as bc, AB_metadata
+from .bwutils import commontasks as bc, AB_metadata, ab_settings, project_settings
 from .bwutils.presamples import clear_resource_by_name, get_package_path, remove_package
 from .bwutils.strategies import relink_exchanges_existing_db
-from .settings import ab_settings, project_settings
 from .signals import signals
 from .ui.widgets import CopyDatabaseDialog, DatabaseLinkingDialog
 from .ui.wizards.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog

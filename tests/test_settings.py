@@ -4,8 +4,8 @@ import os
 import brightway2 as bw
 import pytest
 
-from activity_browser.app.settings import (ABSettings, BaseSettings,
-                                           ProjectSettings)
+from activity_browser.app.bwutils.settings import (ABSettings, BaseSettings,
+                                                   ProjectSettings)
 
 
 @pytest.fixture()

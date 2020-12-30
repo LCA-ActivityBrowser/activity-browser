@@ -15,8 +15,7 @@ from .delegates import CheckboxDelegate
 from .views import ABDataFrameView, dataframe_sync
 from ..icons import qicons
 from ...signals import signals
-from ...settings import project_settings
-from ...bwutils import AB_metadata
+from ...bwutils import AB_metadata, project_settings
 from ...bwutils.commontasks import (
     bw_keys_to_AB_names, count_database_records, is_technosphere_db
 )

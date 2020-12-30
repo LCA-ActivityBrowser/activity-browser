@@ -9,8 +9,7 @@ from ..tables import (BiosphereExchangeTable, DownstreamExchangeTable,
 from ..widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
 from ..icons import qicons
-from ...bwutils import commontasks as bc
-from ...settings import project_settings
+from ...bwutils import commontasks as bc, project_settings
 from ...signals import signals
 
 

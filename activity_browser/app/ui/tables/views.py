@@ -8,7 +8,7 @@ from PySide2.QtCore import (QAbstractTableModel, QModelIndex, QSize,
                             QSortFilterProxyModel, Qt, Slot)
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 
-from ...settings import ab_settings
+from ...bwutils import ab_settings
 from .delegates import ViewOnlyDelegate
 from .models import (DragPandasModel, EditableDragPandasModel,
                      EditablePandasModel, PandasModel)
