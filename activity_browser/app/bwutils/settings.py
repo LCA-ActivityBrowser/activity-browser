@@ -86,11 +86,10 @@ class ABSettings(BaseSettings):
         }
 
     @property
-    def custom_bw_dir(self) -> Path:
+    def custom_bw_dir(self) -> str:
         """ Returns the custom brightway directory, or the default
         """
-        directory = self.settings.get("custom_bw_dir", self.get_default_directory())
-        return Path(directory)
+        return self.settings.get("custom_bw_dir", self.get_default_directory())
 
     @custom_bw_dir.setter
     def custom_bw_dir(self, directory: str) -> None:
