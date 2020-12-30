@@ -119,7 +119,8 @@ class Controller(object):
         self.db_wizard = DatabaseImportWizard(parent)
 
     def switch_brightway2_dir_path(self, dirpath):
-        if bc.switch_brightway2_dir(dirpath):
+        switched = ab_settings.switch_brightway2_dir(dirpath)
+        if switched:
             self.change_project(ab_settings.startup_project, reload=True)
             signals.databases_changed.emit()
 
