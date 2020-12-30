@@ -8,6 +8,7 @@ from .metadata import AB_metadata
 from .multilca import MLCA, Contributions
 from .pedigree import PedigreeMatrix
 from .presamples import PresamplesContributions, PresamplesMLCA
+from .settings import ab_settings, project_settings
 from .superstructure import SuperstructureContributions, SuperstructureMLCA
 from .uncertainty import (
     CFUncertaintyInterface, ExchangeUncertaintyInterface,
@@ -15,6 +16,7 @@ from .uncertainty import (
 )
 from .montecarlo import MonteCarloLCA
 from .sensitivity_analysis import GlobalSensitivityAnalysis
+
 
 def cleanup():
     n_dir = bw.projects.purge_deleted_directories()
