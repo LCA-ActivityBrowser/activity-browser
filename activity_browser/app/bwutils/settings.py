@@ -59,7 +59,7 @@ class ABSettings(BaseSettings):
         ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
         user_dir = Path(ab_dir.user_data_dir)
         if not user_dir.is_dir():
-            user_dir.mkdir(exist_ok=True)
+            user_dir.mkdir(parents=True, exist_ok=True)
         self.move_old_settings(user_dir, filename)
 
         super().__init__(ab_dir.user_data_dir, filename)
