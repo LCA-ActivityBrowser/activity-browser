@@ -39,8 +39,9 @@ class Controller(object):
         self.copy_progress = None
         self.connect_signals()
         signals.project_selected.emit()
+        project_settings.reset_for_project_selection()
         self.load_settings()
-        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        print('Brightway2 data directory: {}'.format(ab_settings.custom_bw_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
 
     def connect_signals(self):
@@ -149,6 +150,7 @@ class Controller(object):
 
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
+            project_settings.reset_for_project_selection()
             signals.project_selected.emit()
             print("Loaded project:", name)
 
