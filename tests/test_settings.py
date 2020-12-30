@@ -44,7 +44,7 @@ def test_ab_default_keys(ab_settings):
 
 
 def test_ab_default_settings(ab_settings):
-    assert ABSettings.get_default_directory() == ab_settings.custom_bw_dir
+    assert ABSettings.get_default_directory() == str(ab_settings.custom_bw_dir)
     assert ABSettings.get_default_project_name() == ab_settings.startup_project
 
 
