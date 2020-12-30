@@ -88,13 +88,14 @@ class ABSettings(BaseSettings):
     def custom_bw_dir(self) -> Path:
         """ Returns the custom brightway directory, or the default
         """
-        return self.settings.get("custom_bw_dir", self.get_default_directory())
+        directory = self.settings.get("custom_bw_dir", self.get_default_directory())
+        return Path(directory)
 
     @custom_bw_dir.setter
     def custom_bw_dir(self, directory: str) -> None:
         """ Sets the custom brightway directory to `directory`
         """
-        self.settings.update({"custom_bw_dir": directory})
+        self.settings.update({"custom_bw_dir": str(directory)})
 
     @property
     def startup_project(self) -> str:
@@ -114,11 +115,11 @@ class ABSettings(BaseSettings):
         self.settings.update({"startup_project": project})
 
     @staticmethod
-    def get_default_directory() -> Path:
+    def get_default_directory() -> str:
         """ Returns the default brightway application directory
         """
         data_dir, logs_dir = bw.projects._get_base_directories()
-        return Path(data_dir)
+        return data_dir
 
     @staticmethod
     def get_default_project_name() -> Optional[str]:
