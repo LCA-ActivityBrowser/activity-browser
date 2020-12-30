@@ -2,10 +2,11 @@
 import json
 from pathlib import Path
 import shutil
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Union
 
 import appdirs
 import brightway2 as bw
+from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 from ... import PACKAGE_DIRECTORY
 
@@ -115,11 +116,36 @@ class ABSettings(BaseSettings):
         self.settings.update({"startup_project": project})
 
     @staticmethod
+    def switch_brightway2_dir(dir_path: Union[Path, str]) -> bool:
+        """Change the directory brightway2 uses to load data."""
+        dir_path = Path(dir_path)
+        if str(dir_path) == bw.projects._base_data_dir:
+            print("Directory path is already loaded")
+            return False
+        try:
+            assert dir_path.is_dir(), "Given path does not point to a directory"
+            log_dir = dir_path.joinpath("logs")
+            bw.projects._base_data_dir = str(dir_path)
+            bw.projects._base_logs_dir = str(log_dir)
+            # create folder if it does not yet exist
+            if not log_dir.is_dir():
+                log_dir.mkdir()
+            # load new brightway directory
+            bw.projects.db = SubstitutableDatabase(
+                str(dir_path.joinpath("projects.db")),
+                [ProjectDataset]
+            )
+            print("Loaded brightway2 data directory: {}".format(dir_path))
+            return True
+        except AssertionError:
+            print("Could not access BW_DIR as specified in ABsettings.json")
+            return False
+
+    @staticmethod
     def get_default_directory() -> str:
         """ Returns the default brightway application directory
         """
-        data_dir, logs_dir = bw.projects._get_base_directories()
-        return data_dir
+        return bw.projects._base_data_dir
 
     @staticmethod
     def get_default_project_name() -> Optional[str]:
