@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
-
 import brightway2 as bw
 from PySide2 import QtCore, QtWidgets, QtGui
 
