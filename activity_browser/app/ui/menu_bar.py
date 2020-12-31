@@ -138,13 +138,13 @@ You should have received a copy of the GNU Lesser General Public License along w
 
     def raise_issue_github(self):
         url = QtCore.QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
-        QtGui.QDesktopServices.openUrl(url)
+        QtGui.QDesktopServices.openUrl(url=url)
 
     def open_settings_wizard(self):
-        self.settings_wizard = SettingsWizard()
+        self.settings_wizard = SettingsWizard(self.window)
 
     def transfer_database_wizard(self) -> None:
-        wizard = DatabaseExportWizard()
+        self.export_wizard = DatabaseExportWizard(self.window)
 
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
@@ -160,8 +160,8 @@ You should have received a copy of the GNU Lesser General Public License along w
         ok = QtWidgets.QMessageBox.question(
             self.window, "Update biosphere3?",
             "Updating the biosphere3 database cannot be undone!",
-            buttons=QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
-            defaultButton=QtWidgets.QMessageBox.Abort
+            QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
+            QtWidgets.QMessageBox.Abort
         )
         if ok == QtWidgets.QMessageBox.Ok:
-            self.biosphere_updater = BiosphereUpdater()
+            self.biosphere_updater = BiosphereUpdater(self.window)
