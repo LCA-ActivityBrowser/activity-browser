@@ -11,7 +11,8 @@ def test_open_db_wizard(qtbot, ab_app):
         project_tab.databases_widget.import_database_button,
         QtCore.Qt.LeftButton
     )
+    # TODO: Replace this direct reference to a controller
     qtbot.mouseClick(
-        ab_app.controller.db_wizard.button(QtWidgets.QWizard.CancelButton),
+        ab_app.database_controller.db_wizard.button(QtWidgets.QWizard.CancelButton),
         QtCore.Qt.LeftButton
     )
