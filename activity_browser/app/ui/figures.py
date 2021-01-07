@@ -92,6 +92,8 @@ class LCAResultsBarChart(Plot):
         height_inches, width_inches = self.get_canvas_size_in_inches()
         self.figure.set_size_inches(height_inches, width_inches)
 
+        # https://github.com/LCA-ActivityBrowser/activity-browser/issues/489
+        df.index = pd.Index(labels)  # Replace index of tuples
         show_legend = df.shape[1] != 1  # Do not show the legend for 1 column
         df.plot.barh(ax=self.ax, legend=show_legend)
         self.ax.invert_yaxis()
@@ -100,7 +102,7 @@ class LCAResultsBarChart(Plot):
         self.ax.set_yticks(np.arange(len(labels)))
         self.ax.set_xlabel(bw.methods[method].get('unit'))
         self.ax.set_title(', '.join([m for m in method]))
-        self.ax.set_yticklabels(labels, minor=False)
+        # self.ax.set_yticklabels(labels, minor=False)
 
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
