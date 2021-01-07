@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2 import QtWidgets, QtGui
+from PySide2 import QtWidgets
 import os
 
 from activity_browser.app.signals import signals
@@ -95,8 +95,8 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.startup_project_combobox.setCurrentText(ab_settings.get_default_project_name())
 
     def bwdir_browse(self):
-        path = QtWidgets.QFileDialog().getExistingDirectory(
-            None, "Select a brightway2 database folder"
+        path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Select a brightway2 database folder"
         )
         if path:
             self.change_bw_dir(os.path.normpath(path))
