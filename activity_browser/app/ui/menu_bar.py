@@ -4,6 +4,7 @@ import json
 import brightway2 as bw
 from PySide2 import QtCore, QtWidgets, QtGui
 
+from ...info import __version__ as ab_version
 from .icons import qicons
 from ..signals import signals
 from .widgets import BiosphereUpdater
@@ -117,6 +118,7 @@ class MenuBar(object):
     def about(self):
         text = """
 Activity Browser - a graphical interface for Brightway2.<br><br>
+Application version: <b>{}</b><br><br>
 All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
 Main developers:<br>
 - Bernhard Steubing (CML Leiden University, b.steubing@cml.leidenuniv.nl)<br>
@@ -137,7 +139,7 @@ You should have received a copy of the GNU Lesser General Public License along w
         pixmap = self.window.icon.pixmap(QtCore.QSize(150, 150))
         msgBox.setIconPixmap(pixmap)
         msgBox.setWindowIcon(self.window.icon)
-        msgBox.setText(text)
+        msgBox.setText(text.format(ab_version))
         msgBox.exec_()
 
     def raise_issue_github(self):
