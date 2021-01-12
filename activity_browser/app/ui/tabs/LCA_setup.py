@@ -463,7 +463,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.
                 print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
-                df = pd.read_excel(path, sheet_name=idx)
+                df = pd.read_excel(path, sheet_name=idx, engine="openpyxl")
                 signals.parameter_scenario_sync.emit(self.index, df)
             finally:
                 self.scenario_name.setText(path.name)

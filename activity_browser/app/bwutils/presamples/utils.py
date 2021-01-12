@@ -8,7 +8,7 @@ from presamples import PresampleResource
 
 
 def load_scenarios_from_file(path: str) -> pd.DataFrame:
-    df = pd.read_excel(path)
+    df = pd.read_excel(path, engine="openpyxl")
     return df
 
 

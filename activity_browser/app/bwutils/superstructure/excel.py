@@ -65,7 +65,8 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
     header_idx = get_header_index(document_path, import_sheet)
     data = pd.read_excel(
         document_path, sheet_name=import_sheet, header=header_idx,
-        usecols=valid_cols, comment="*", na_values="", keep_default_na=False
+        usecols=valid_cols, comment="*", na_values="", keep_default_na=False,
+        engine="openpyxl"
     )
     diff = SUPERSTRUCTURE.difference(data.columns)
     # 'flow type' is not yet a required column
