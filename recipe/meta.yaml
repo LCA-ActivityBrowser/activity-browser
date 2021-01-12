@@ -38,6 +38,7 @@ requirements:
     - seaborn
     - presamples
     - openpyxl
+    - xlrd<2.0  # https://github.com/brightway-lca/brightway2-io/issues/86
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
