@@ -109,7 +109,7 @@ class MethodsTab(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        self.mode_radio_list.toggled.connect(self.button_clicked)
+        self.mode_radio_list.toggled.connect(self.update_view)
 
     @QtCore.Slot(tuple, name="searchCopiedMethod")
     def method_copied(self, method: tuple) -> None:
@@ -119,23 +119,9 @@ class MethodsTab(QtWidgets.QWidget):
         self.table.sync(query)
 
     @QtCore.Slot(bool, name="isListToggled")
-    def button_clicked(self, toggled: bool):
-        """Update view according to radiobutton selected."""
-        if not toggled:
-            self.update_view(view='tree')
-        else:
-            self.update_view(view='list')
-
-    def update_view(self, view='list'):
-        """Update the view."""
-        if view == 'list':
-            self.tree.setVisible(False)
-            #
-            self.table.setVisible(True)
-        else:
-            self.table.setVisible(False)
-            #
-            self.tree.setVisible(True)
+    def update_view(self, toggled: bool):
+        self.tree.setVisible(not toggled)
+        self.table.setVisible(toggled)
 
 
 class CharacterizationFactorsTab(ABTab):
