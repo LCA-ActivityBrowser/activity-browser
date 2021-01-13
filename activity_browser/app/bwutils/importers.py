@@ -91,12 +91,12 @@ class ABExcelImporter(ExcelImporter):
                     obj.apply_strategy(functools.partial(
                         relink_exchanges_with_db, old=db, new=new_db
                     ))
-                # Relinking failed (some exchanges still unlinked)
-                if any(obj.unlinked):
-                    # Raise a different exception.
-                    excs = [exc for exc in obj.unlinked][:10]
-                    databases = {exc.get("database", "(name missing)") for exc in obj.unlinked}
-                    raise LinkingFailed(excs, databases)
+            # Relinking failed (some exchanges still unlinked)
+            if any(obj.unlinked):
+                # Raise a different exception.
+                excs = [exc for exc in obj.unlinked][:10]
+                databases = {exc.get("database", "(name missing)") for exc in obj.unlinked}
+                raise LinkingFailed(excs, databases)
         if any(obj.unlinked):
             # Still have unlinked fields? Raise exception.
             excs = [exc for exc in obj.unlinked][:10]
