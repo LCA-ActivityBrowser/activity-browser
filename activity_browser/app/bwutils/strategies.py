@@ -31,6 +31,8 @@ def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
 
 
 def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
+    if old == new:
+        return _relink_exchanges(data, new)
     for act in data:
         for exc in (exc for exc in act.get("exchanges", []) if exc.get("database") == old):
             exc["database"] = new
