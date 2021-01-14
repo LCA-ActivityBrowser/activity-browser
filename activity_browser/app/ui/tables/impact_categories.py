@@ -38,7 +38,10 @@ class MethodsTable(ABDataFrameView):
         return self.dataframe.iat[index.row(), self.method_col]
 
     @Slot(QModelIndex, name="methodSelection")
-    def method_selected(self, proxy):
+    def method_selected(self, proxy=None):
+        if not proxy:
+            # as this funtion only works for one proxy, take the first of all selected methods
+            proxy = [i for i in self.selectedIndexes()][0]
         signals.method_selected.emit(self.get_method(proxy))
 
     def selected_methods(self) -> Iterable:
@@ -76,6 +79,7 @@ class MethodsTable(ABDataFrameView):
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
         menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
+        menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
         menu.exec_(event.globalPos())
 
     @Slot(name="copyMethod")
@@ -113,7 +117,7 @@ class MethodsTree(ABDictTreeView):
     def _connect_signals(self):
         super()._connect_signals()
         signals.project_selected.connect(self.sync)
-        self.doubleClicked.connect(self.method_double_clicked)
+        self.doubleClicked.connect(self.method_selected)
 
     def _select_model(self):
         return MethodsTreeModel(self.data)
@@ -174,10 +178,9 @@ class MethodsTree(ABDictTreeView):
         return self.dataframe[self.dataframe['Name'] == tree_level[1]]['method']
 
     @Slot(QModelIndex, name="methodSelection")
-    def method_double_clicked(self):
+    def method_selected(self):
         tree_level = self.tree_level()
         if tree_level[0] == 'leaf':
-            print("+ there should be a 'duplicate' function here")
             method = self.get_method(tree_level).to_list()[0]
             signals.method_selected.emit(method)
 
@@ -186,6 +189,7 @@ class MethodsTree(ABDictTreeView):
         if self.tree_level()[0] == 'leaf':
             menu = QtWidgets.QMenu(self)
             menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
+            menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
             menu.exec_(event.globalPos())
 
     def selected_methods(self) -> Iterable:

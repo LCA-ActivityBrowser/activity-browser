@@ -46,7 +46,6 @@ class MethodsTab(QtWidgets.QWidget):
     # some way of pruning the tree perhaps?
     # probably implement in the sync function in tables/impacts_cats
 
-    #TODO copy double click functionality to context menu for both list and tree views
     def __init__(self, parent):
         super(MethodsTab, self).__init__(parent)
 
