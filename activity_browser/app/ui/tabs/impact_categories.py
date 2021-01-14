@@ -45,23 +45,19 @@ class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(MethodsTab, self).__init__(parent)
 
-        self.table = MethodsTable(self)
-        self.table.setToolTip(
-            "Drag (groups of) impact categories to the calculation setup")
         self.tree = MethodsTree(self)
         self.tree.setToolTip(
+            "Drag (groups of) impact categories to the calculation setup")
+        self.table = MethodsTable(self)
+        self.table.setToolTip(
             "Drag (groups of) impact categories to the calculation setup")
         #
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Filter impact categories")
         self.reset_search_button = QtWidgets.QPushButton("Reset")
         #
-        self.mode_radio_list = QtWidgets.QRadioButton("List view")
-        self.mode_radio_list.setChecked(True)
-        self.mode_radio_list.setToolTip(
-            "List view of impact categories")
-        #
         self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
+        self.mode_radio_tree.setChecked(True)
         self.mode_radio_tree.setToolTip(
             "Tree view of impact categories\n"
             "v CML 2001\n"
@@ -70,6 +66,10 @@ class MethodsTab(QtWidgets.QWidget):
             "        ...\n"
             "You can drag entire 'branches' of impact categories at once")
         #
+        self.mode_radio_list = QtWidgets.QRadioButton("List view")
+        self.mode_radio_list.setToolTip(
+            "List view of impact categories")
+        #
         search_layout = QtWidgets.QHBoxLayout()
         search_layout.addWidget(self.search_box)
         search_layout.addWidget(self.reset_search_button)
@@ -77,8 +77,8 @@ class MethodsTab(QtWidgets.QWidget):
         mode_layout = QtWidgets.QHBoxLayout()
         mode_layout.setAlignment(QtCore.Qt.AlignTop)
         mode_layout.addWidget(header('Impact Categories'))
-        search_layout.addWidget(self.mode_radio_list)
         search_layout.addWidget(self.mode_radio_tree)
+        search_layout.addWidget(self.mode_radio_list)
         #
         mode_layout_container = QtWidgets.QWidget()
         mode_layout_container.setLayout(mode_layout)
@@ -91,9 +91,9 @@ class MethodsTab(QtWidgets.QWidget):
         container.addWidget(mode_layout_container)
         container.addWidget(search_layout_container)
         # container.addWidget(horizontal_line())
-        container.addWidget(self.table)
         container.addWidget(self.tree)
-        self.tree.setVisible(False)
+        container.addWidget(self.table)
+        self.table.setVisible(False)
         self.setLayout(container)
 
         self.reset_search_button.clicked.connect(self.table.sync)
