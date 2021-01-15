@@ -42,9 +42,8 @@ class CFsTab(QtWidgets.QWidget):
 
 
 class MethodsTab(QtWidgets.QWidget):
-    #TODO revise search in tree to keep original structure
-    # some way of pruning the tree perhaps?
-    # probably implement in the sync function in tables/impacts_cats
+    #TODO auto expand leaves on search
+    #TODO add expand/collapse all button
 
     def __init__(self, parent):
         super(MethodsTab, self).__init__(parent)
