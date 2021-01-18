@@ -527,6 +527,18 @@ class Contributions(object):
         return joined.reset_index(drop=False)
 
     @staticmethod
+    def adjust_table_unit(df: pd.DataFrame, method: Optional[tuple]) -> pd.DataFrame:
+        """Given a dataframe, adjust the unit of the table to either match the
+        given method, or not exist.
+        """
+        if "unit" not in df.columns:
+            return df
+        keys = df.index[~df["index"].isin({"Total", "Rest"})]
+        unit = bw.Method(method).metadata.get("unit") if method else "unit"
+        df.loc[keys, "unit"] = unit
+        return df
+
+    @staticmethod
     def _build_inventory(inventory: dict, indices: dict, columns: list,
                          fields: list) -> pd.DataFrame:
         df = pd.DataFrame(inventory)
@@ -691,9 +703,11 @@ class Contributions(object):
             C = self.normalize(C)
 
         top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
-        return self.get_labelled_contribution_dict(
+        labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
+        self.adjust_table_unit(labelled_df, method)
+        return labelled_df
 
     def top_process_contributions(self, functional_unit=None, method=None,
                                   aggregator=None, limit=5, normalize=False,
@@ -738,6 +752,8 @@ class Contributions(object):
             C = self.normalize(C)
 
         top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
-        return self.get_labelled_contribution_dict(
+        labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
+        self.adjust_table_unit(labelled_df, method)
+        return labelled_df
