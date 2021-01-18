@@ -549,13 +549,24 @@ class Contributions(object):
             )
         return self._build_inventory(*data)
 
-    @staticmethod
-    def _build_lca_scores_df(scores: np.ndarray, indices: list,
-                             columns: list, fields: list) -> pd.DataFrame:
+    def _build_lca_scores_df(self, scores: np.ndarray) -> pd.DataFrame:
         df = pd.DataFrame(
-            scores, index=pd.MultiIndex.from_tuples(indices), columns=columns
+            scores,
+            index=pd.MultiIndex.from_tuples(self.mlca.fu_activity_keys),
+            columns=self.mlca.methods
         )
-        joined = Contributions.join_df_with_metadata(df, x_fields=fields, y_fields=None)
+        # Add amounts column.
+        df["amount"] = [next(iter(fu.values()), 1.0) for fu in self.mlca.func_units]
+        joined = Contributions.join_df_with_metadata(
+            df, x_fields=self.act_fields, y_fields=None
+        )
+        # Precisely order the columns that are shown in the LCA Results overview
+        # tab: “X kg of product Y from activity Z in location L, and database D”
+        col_order = pd.Index([
+            "amount", "unit", "reference product", "name", "location", "database",
+        ])
+        methods = joined.columns.difference(col_order, sort=False)
+        joined = joined.loc[:, col_order.append(methods)]
         return joined.reset_index(drop=False)
 
     def lca_scores_df(self, normalized=False):
