@@ -191,9 +191,7 @@ class PresamplesContributions(Contributions):
         """
         scores = self.mlca.lca_scores_normalized if normalized else self.mlca.lca_scores
         scores = scores[:, :, self.mlca.current]
-        return super()._build_lca_scores_df(
-            scores, self.mlca.fu_activity_keys, self.mlca.methods, self.act_fields
-        )
+        return self._build_lca_scores_df(scores)
 
     def _build_contributions(self, data: np.ndarray, index: int, axis: int) -> np.ndarray:
         data = data[:, :, self.mlca.current]

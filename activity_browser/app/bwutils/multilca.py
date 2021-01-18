@@ -569,13 +569,11 @@ class Contributions(object):
         joined = joined.loc[:, col_order.append(methods)]
         return joined.reset_index(drop=False)
 
-    def lca_scores_df(self, normalized=False):
+    def lca_scores_df(self, normalized=False) -> pd.DataFrame:
         """Returns a metadata-annotated DataFrame of the LCA scores.
         """
         scores = self.mlca.lca_scores if not normalized else self.mlca.lca_scores_normalized
-        return self._build_lca_scores_df(
-            scores, self.mlca.fu_activity_keys, self.mlca.methods, self.act_fields
-        )
+        return self._build_lca_scores_df(scores)
 
     @staticmethod
     def _build_contributions(data: np.ndarray, index: int, axis: int) -> np.ndarray:
