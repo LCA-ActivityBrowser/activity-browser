@@ -126,6 +126,8 @@ class LCAResultsPlot(Plot):
         dfp = df.copy()
         dfp.index = dfp['index']
         dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
+        if "amount" in dfp.columns:
+            dfp.drop(["amount"], axis=1, inplace=True)  # Drop the 'amount' col
         if 'Total' in dfp.index:
             dfp.drop("Total", inplace=True)
 

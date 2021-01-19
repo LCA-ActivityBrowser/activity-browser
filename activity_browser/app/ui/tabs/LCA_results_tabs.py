@@ -674,6 +674,10 @@ class LCIAResultsTab(NewAnalysisTab):
             layout.addSpacerItem(stretch)
         return layout
 
+    def update_tab(self):
+        self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
+        super().update_tab()
+
     def update_plot(self):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
@@ -681,7 +685,6 @@ class LCIAResultsTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
-        self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
         self.plot.plot(self.df)
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
@@ -690,7 +693,6 @@ class LCIAResultsTab(NewAnalysisTab):
         """Update the table."""
         if not isinstance(self.table, LCAResultsTable):
             self.table = LCAResultsTable()
-        self.df = self.parent.contributions.lca_scores_df(normalized=self.relative)
         self.table.sync(self.df)
 
 
