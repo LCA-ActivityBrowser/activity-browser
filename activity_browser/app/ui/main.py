@@ -9,7 +9,6 @@ from .menu_bar import MenuBar
 from .panels import LeftPanel, RightPanel
 from .statusbar import Statusbar
 from .utils import StdRedirector
-from ..signals import signals
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -83,7 +82,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
-        self.statusbar = Statusbar(self)
+        self.setMenuBar(self.menu_bar)
+        self.status_bar = Statusbar(self)
+        self.setStatusBar(self.status_bar)
 
         self.connect_signals()
 

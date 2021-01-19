@@ -12,8 +12,8 @@ from ...signals import signals
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
         self.setWindowTitle("Updating '{}' database".format(bw.config.biosphere))
         self.setLabelText("Adding new flows to biosphere database")
         self.setRange(0, 0)
