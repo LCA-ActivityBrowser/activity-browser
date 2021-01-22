@@ -231,7 +231,7 @@ def clean_activity_name(activity_name: str) -> str:
     Integers are also removed aggressively, there are allowed, but not
     at the start of a parameter name.
     """
-    remove = ",.%[]0123456789"
+    remove = ",.%[]()0123456789"
     replace = " -"
     # Remove invalid characters
     for char in remove:
