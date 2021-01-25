@@ -5,13 +5,13 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
 from PySide2 import QtCore, QtWidgets
 import pytest
 
-from activity_browser.app.signals import signals
-from activity_browser.app.ui.tables.delegates import FormulaDelegate
-from activity_browser.app.ui.tables.parameters import (
+from activity_browser.signals import signals
+from activity_browser.ui.tables.delegates import FormulaDelegate
+from activity_browser.ui.tables.parameters import (
     BaseParameterTable, ActivityParameterTable, DataBaseParameterTable,
     ProjectParameterTable
 )
-from activity_browser.app.ui.tabs.parameters import ParameterDefinitionTab
+from activity_browser.layouts.tabs.parameters import ParameterDefinitionTab
 
 
 @pytest.mark.parametrize(

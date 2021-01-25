@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
-import shutil
 
 import brightway2 as bw
 from bw2data.parameters import ProjectParameter
@@ -11,9 +10,9 @@ from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QFileDialog
 import pytest
 
-from activity_browser.app.signals import signals
-from activity_browser.app.ui.tables.scenarios import PresamplesList, ScenarioTable
-from activity_browser.app.ui.tabs.parameters import ParametersTab, ParameterScenariosTab
+from activity_browser.signals import signals
+from activity_browser.ui.tables.scenarios import PresamplesList, ScenarioTable
+from activity_browser.layouts.tabs.parameters import ParametersTab, ParameterScenariosTab
 
 
 @pytest.fixture
