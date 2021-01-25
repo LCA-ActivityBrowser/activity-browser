@@ -8,8 +8,8 @@ from stats_arrays.distributions import (
     TriangularUncertainty
 )
 
-from activity_browser.app.ui.wizards import UncertaintyWizard
-from activity_browser.app.signals import signals
+from activity_browser.ui.wizards import UncertaintyWizard
+from activity_browser.signals import signals
 
 """
 Mess around with the uncertainty wizard.

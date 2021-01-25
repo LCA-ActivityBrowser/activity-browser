@@ -2,8 +2,8 @@
 import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser.app.signals import signals
-from activity_browser.app.ui.wizards.db_import_wizard import import_signals
+from activity_browser.signals import signals
+from activity_browser.ui.wizards.db_import_wizard import import_signals
 
 
 def test_add_default_data(qtbot, ab_app, monkeypatch):

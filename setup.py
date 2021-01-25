@@ -6,10 +6,12 @@ packages = []
 root_dir = os.path.dirname(__file__)
 if root_dir:
     os.chdir(root_dir)
+accepted_filetypes = (".html", ".png", ".svg", ".js", ".css")
 
 for dirpath, dirnames, filenames in os.walk('activity_browser'):
     # Ignore dirnames that start with '.'
-    if '__init__.py' in filenames:
+    if ('__init__.py' in filenames
+            or any(x.endswith(accepted_filetypes) for x in filenames)):
         pkg = dirpath.replace(os.path.sep, '.')
         if os.path.altsep:
             pkg = pkg.replace(os.path.altsep, '.')
