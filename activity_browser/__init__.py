@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 import traceback
 
@@ -7,6 +8,9 @@ from PySide2.QtWidgets import QApplication
 
 from .application import Application
 from .info import __version__
+
+# https://bugreports.qt.io/browse/QTBUG-87014
+os.environ['QT_MAC_WANTS_LAYER'] = '1'
 
 
 def run_activity_browser():
