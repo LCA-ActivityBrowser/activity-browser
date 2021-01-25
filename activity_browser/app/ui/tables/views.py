@@ -219,8 +219,11 @@ class ABDictTreeView(QTreeView):
 
     def expand_all(self, *args, **kwargs):
         """Expand all branches."""
-        #Note that this function is terribly slow with large trees, so you are advised not to use this without
-        # something like search [as implemented below through the query check]
+        #TODO this function is terribly slow with large trees, so you are advised not to use this without
+        # something like search [as implemented below through the query check].
+        # Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
+        # https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
+        # https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
 
         if 'query' in kwargs.keys() and kwargs['query'] != '':
 

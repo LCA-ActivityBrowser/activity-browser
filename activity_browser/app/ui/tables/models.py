@@ -371,4 +371,3 @@ class MethodsTreeModel(BaseTreeModel):
             else:
                 leaf = data[key]
                 root.build_item(leaf, root)
-                #ImpactCategoryItem.build_item(leaf, root)
