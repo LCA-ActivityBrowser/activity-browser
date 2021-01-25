@@ -348,6 +348,7 @@ class MethodsTreeModel(BaseTreeModel):
     """
     def __init__(self, data: dict, parent=None):
         super().__init__(data, parent)
+        self.xyz = 'text'
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
@@ -369,4 +370,5 @@ class MethodsTreeModel(BaseTreeModel):
                 self.build_tree(data[key], new_root)
             else:
                 leaf = data[key]
-                ImpactCategoryItem.build_item(leaf, root)
+                root.build_item(leaf, root)
+                #ImpactCategoryItem.build_item(leaf, root)

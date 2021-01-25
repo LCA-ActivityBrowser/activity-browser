@@ -151,7 +151,7 @@ class MethodsTree(ABDictTreeView):
             "method": method_obj[1],
         }
 
-    def nest_data(self):#, dataframe=None):#, query=None):
+    def nest_data(self):
         """Convert impact category dataframe into nested dict format, apply search if required.
 
         Format is:
@@ -193,11 +193,14 @@ class MethodsTree(ABDictTreeView):
 
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
+        menu = QtWidgets.QMenu(self)
         if self.tree_level()[0] == 'leaf':
-            menu = QtWidgets.QMenu(self)
             menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
             menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
-            menu.exec_(event.globalPos())
+        else:
+            menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
+            menu.addAction(qicons.backward, "Collapse all sub levels", self.collapse_branch)
+        menu.exec_(event.globalPos())
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""

@@ -179,6 +179,7 @@ def tree_model_decorate(sync):
         sync(self, *args, **kwargs)
         model = self._select_model()
         self.setModel(model)
+        self.expand_all(self, *args, **kwargs)
         self._resize()
     return wrapper
 
@@ -205,3 +206,55 @@ class ABDictTreeView(QTreeView):
         expanded or collapsed.
         """
         self.resizeColumnToContents(0)
+
+    def expand_branch(self):
+        """Expand selected branch."""
+        index = self.currentIndex()
+        self.expand_or_collapse(index, True)
+
+    def collapse_branch(self):
+        """Collapse selected branch."""
+        index = self.currentIndex()
+        self.expand_or_collapse(index, False)
+
+    def expand_all(self, *args, **kwargs):
+        """Expand all branches."""
+        #Note that this function is terribly slow with large trees, so you are advised not to use this without
+        # something like search [as implemented below through the query check]
+
+        if 'query' in kwargs.keys() and kwargs['query'] != '':
+
+            # does the same as expandAll()
+            #for i in range(len(self.model().root.children)):
+            #    self.expand_or_collapse(self.model().index(i, 0, QModelIndex()), True)
+
+            self.expandAll()
+
+    def expand_or_collapse(self, index, expand):
+        """Expand or collapse branch.
+
+        Will expand or collapse any branch and sub-branches given in index.
+        expand is a boolean that defines expand (True) or collapse (False)."""
+        # based on: https://stackoverflow.com/a/4208240
+
+        def recursive_expand_or_collapse(index, childCount, expand):
+
+            for childNo in range(0, childCount):
+                childIndex = index.child(childNo, 0)
+                if expand:  # if expanding, do that first (wonky animation otherwise)
+                    self.setExpanded(childIndex, expand)
+                subChildCount = childIndex.internalPointer().childCount()
+                if subChildCount > 0:
+                    recursive_expand_or_collapse(childIndex, subChildCount, expand)
+                if not expand:  # if collapsing, do it last (wonky animation otherwise)
+                    self.setExpanded(childIndex, expand)
+
+        if not expand:  # if collapsing, do that first (wonky animation otherwise)
+            self.setExpanded(index, expand)
+        childCount = index.internalPointer().childCount()
+        recursive_expand_or_collapse(index, childCount, expand)
+        if expand:  # if expanding, do that last (wonky animation otherwise)
+            self.setExpanded(index, expand)
+
+
+
