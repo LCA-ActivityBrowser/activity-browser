@@ -3,12 +3,12 @@ import sys
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from .style import header
-from .icons import qicons
-from .menu_bar import MenuBar
-from ..layouts.panels import LeftPanel, RightPanel
-from .statusbar import Statusbar
-from .utils import StdRedirector
+from ..ui.icons import qicons
+from ..ui.menu_bar import MenuBar
+from ..ui.statusbar import Statusbar
+from ..ui.style import header
+from ..ui.utils import StdRedirector
+from .panels import LeftPanel, RightPanel
 
 
 class MainWindow(QtWidgets.QMainWindow):

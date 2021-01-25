@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .controllers import controllers
-from .ui.main import MainWindow
+from .layouts import MainWindow
 
 
 class Application(object):
