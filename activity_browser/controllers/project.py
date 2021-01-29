@@ -123,6 +123,18 @@ class CSetupController(QObject):
                     "A calculation setup with this name already exists."
                 )
 
+    @Slot(str, name="copyCalculationSetup")
+    def copy_calculation_setup(self, current: str) -> None:
+        new_name, ok = QtWidgets.QInputDialog.getText(
+            self.window,
+            "Copy '{}'".format(current),
+            "Name of the copied calculation setup:" + " " * 10
+        )
+        if ok and new_name:
+            bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
+            signals.calculation_setup_selected.emit(new_name)
+            print("Copied calculation setup {} as {}".format(current, new_name))
+
     @Slot(str, name="deleteCalculationSetup")
     def delete_calculation_setup(self, name: str) -> None:
         del bw.calculation_setups[name]
