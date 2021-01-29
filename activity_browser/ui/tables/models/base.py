@@ -2,7 +2,7 @@
 from typing import Optional
 
 import numpy as np
-from pandas import DataFrame
+import pandas as pd
 from PySide2.QtCore import (
     QAbstractItemModel, QAbstractTableModel, QModelIndex,
     QSortFilterProxyModel, Qt
@@ -19,9 +19,9 @@ class PandasModel(QAbstractTableModel):
     """
     HEADERS = []
 
-    def __init__(self, parent=None):
+    def __init__(self, df: pd.DataFrame = None, parent=None):
         super().__init__(parent)
-        self._dataframe: Optional[DataFrame] = None
+        self._dataframe: Optional[pd.DataFrame] = df
 
     def rowCount(self, parent=None, *args, **kwargs):
         return self._dataframe.shape[0]
@@ -72,7 +72,7 @@ class PandasModel(QAbstractTableModel):
 
     def sync(self, *args, **kwargs) -> None:
         """(Re)build the dataframe according to the given arguments."""
-        self._dataframe = DataFrame([], columns=self.HEADERS)
+        self._dataframe = pd.DataFrame([], columns=self.HEADERS)
 
     def refresh_model(self) -> None:
         """Rebuild the proxy model after the underlying model has been changed."""
