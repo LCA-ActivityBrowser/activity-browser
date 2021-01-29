@@ -206,7 +206,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
     def reset_widget(self):
         self.hide()
-        self.table.reset_table()
+        self.table.model.clear()
 
     def setup_search(self):
         # 1st search box
@@ -225,7 +225,9 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
         # reset search
         reset_search_button = QtWidgets.QPushButton("Reset")
-        reset_search_button.clicked.connect(self.table.reset_search)
+        reset_search_button.clicked.connect(
+            lambda: self.table.model.sync(self.table.database_name)
+        )
         reset_search_button.clicked.connect(self.search_box.clear)
         reset_search_button.clicked.connect(self.search_box2.clear)
 
@@ -247,4 +249,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         search_term = self.search_box.text()
         search_term2 = self.search_box2.text()
         logic = self.logic_dropdown.currentText()
-        self.table.search(search_term, search_term2, logic=logic)
+        self.table.model.search(
+            self.table.database_name, search_term, search_term2, logic=logic
+        )
