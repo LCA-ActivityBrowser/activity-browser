@@ -1,0 +1,153 @@
+# -*- coding: utf-8 -*-
+import datetime
+import functools
+
+import arrow
+import brightway2 as bw
+from bw2data.utils import natural_sort
+import numpy as np
+import pandas as pd
+from PySide2.QtCore import Qt, QModelIndex
+
+from activity_browser.bwutils import AB_metadata, commontasks as bc
+from activity_browser.settings import project_settings
+from .base import PandasModel
+
+
+class DatabasesModel(PandasModel):
+    HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified"]
+
+    def sync(self):
+        # code below is based on the assumption that bw uses utc timestamps
+        tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
+        time_shift = - tz.utcoffset().total_seconds()
+
+        data = []
+        for name in natural_sort(bw.databases):
+            dt = bw.databases[name].get("modified", "")
+            if dt:
+                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
+            # final column includes interactive checkbox which shows read-only state of db
+            database_read_only = project_settings.db_is_readonly(name)
+            data.append({
+                "Name": name,
+                "Depends": ", ".join(bw.databases[name].get("depends", [])),
+                "Modified": dt,
+                "Records": bc.count_database_records(name),
+                "Read-only": database_read_only,
+            })
+
+        self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
+        self.refresh_model()
+
+
+class ActivitiesBiosphereModel(PandasModel):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.act_fields = lambda: AB_metadata.get_existing_fields(["reference product", "name", "location", "unit"])
+        self.ef_fields = lambda: AB_metadata.get_existing_fields(["name", "categories", "type", "unit"])
+        self.technosphere = True
+
+    @property
+    def fields(self) -> list:
+        """ Constructs a list of fields relevant for the type of database.
+        """
+        return self.act_fields() if self.technosphere else self.ef_fields()
+
+    def get_key(self, proxy: QModelIndex) -> tuple:
+        """ Get the key from the model using the given proxy index"""
+        proxy_model = proxy.model()
+        idx = proxy_model.mapToSource(proxy)
+        key = self._dataframe.iat[idx.row(), self._dataframe.columns.get_loc("key")]
+        return key
+
+    def clear(self) -> None:
+        self._dataframe = pd.DataFrame([])
+        self.refresh_model()
+
+    def df_from_metadata(self, db_name: str) -> pd.DataFrame:
+        """ Take the given database name and return the complete subset
+        of that database from the metadata.
+
+        The fields are used to prune the dataset of unused columns.
+        """
+        df = AB_metadata.get_database_metadata(db_name)
+        # New / empty database? Shortcut the sorting / structuring process
+        if df.empty:
+            return df
+        df = df.loc[:, self.fields + ["key"]]
+        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.fields] + ["key"]
+
+        # Sort dataframe on first column (activity name, usually)
+        # while ignoring case sensitivity
+        sort_field = df.columns[0]
+        df = df.iloc[df[sort_field].str.lower().argsort()]
+        sort_field_index = df.columns.to_list().index(sort_field)
+        self.parent().horizontalHeader().setSortIndicator(sort_field_index, Qt.AscendingOrder)
+        return df
+
+    def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
+        if df is not None:
+            # skip the rest of the sync here if a dataframe is directly supplied
+            print("Pandas Dataframe passed to sync.", df.shape)
+            self._dataframe = df
+            self.refresh_model()
+            return
+
+        if db_name not in bw.databases:
+            raise KeyError("This database does not exist!", db_name)
+        self.technosphere = bc.is_technosphere_db(db_name)
+
+        # Get dataframe from metadata and update column-names
+        df = self.df_from_metadata(db_name)
+        self._dataframe = df.reset_index(drop=True)
+        self.refresh_model()
+
+    def search(self, db_name: str, pattern1: str = None, pattern2: str = None,
+               logic='AND') -> None:
+        """ Filter the dataframe with two filters and a logical element
+        in between to allow different filter combinations.
+
+        TODO: Look at the possibility of using the proxy model to filter instead
+        """
+        df = self.df_from_metadata(db_name)
+        if all((pattern1, pattern2)):
+            mask1 = self.filter_dataframe(df, pattern1)
+            mask2 = self.filter_dataframe(df, pattern2)
+            # applying the logic
+            if logic == 'AND':
+                mask = np.logical_and(mask1, mask2)
+            elif logic == 'OR':
+                mask = np.logical_or(mask1, mask2)
+            elif logic == 'AND NOT':
+                mask = np.logical_and(mask1, ~mask2)
+        elif any((pattern1, pattern2)):
+            mask = self.filter_dataframe(df, pattern1 or pattern2)
+        else:
+            self.sync(db_name)
+            return
+        df = df.loc[mask].reset_index(drop=True)
+        self.sync(db_name, df=df)
+
+    def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
+        """ Filter the dataframe returning a mask that is True for all rows
+        where a search string has been found.
+
+        It is a "contains" type of search (e.g. "oal" would find "coal").
+        It also works for columns that contain tuples (e.g. ('water', 'ocean'),
+        and will match on partials i.e. both 'ocean' and 'ean' work.
+
+        An alternative solution would be to use .str.contains, but this does
+        not work for columns containing tuples (https://stackoverflow.com/a/29463757)
+        """
+        search_columns = (bc.bw_keys_to_AB_names.get(c, c) for c in self.fields)
+        mask = functools.reduce(
+            np.logical_or, [
+                df[col].apply(lambda x: pattern.lower() in str(x).lower())
+                for col in search_columns
+            ]
+        )
+        return mask
+
+    def flags(self, index):
+        return super().flags(index) | Qt.ItemIsDragEnabled
