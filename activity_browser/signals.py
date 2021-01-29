@@ -80,6 +80,7 @@ class Signals(QObject):
 
     # Calculation Setups
     new_calculation_setup = Signal()
+    copy_calculation_setup = Signal(str)
     delete_calculation_setup = Signal(str)
     rename_calculation_setup = Signal(str)
     set_default_calculation_setup = Signal()

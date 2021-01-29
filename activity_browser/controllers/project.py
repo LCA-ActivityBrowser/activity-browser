@@ -102,6 +102,7 @@ class CSetupController(QObject):
         self.window = parent
 
         signals.new_calculation_setup.connect(self.new_calculation_setup)
+        signals.copy_calculation_setup.connect(self.copy_calculation_setup)
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
         signals.delete_calculation_setup.connect(self.delete_calculation_setup)
 
