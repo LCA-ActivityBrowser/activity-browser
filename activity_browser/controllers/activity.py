@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Iterator
+from typing import Iterator, Optional, Union
 import uuid
 
 import brightway2 as bw
@@ -163,6 +163,15 @@ class ActivityController(QObject):
         bw.databases.set_modified(key[0])
         signals.metadata_changed.emit(key)
         signals.database_changed.emit(key[0])
+
+    @staticmethod
+    def _retrieve_activities(data: Union[tuple, Iterator[tuple]]) -> Iterator[Activity]:
+        """Given either a key-tuple or a list of key-tuples, return a list
+        of activities.
+        """
+        return [bw.get_activity(data)] if isinstance(data, tuple) else [
+            bw.get_activity(k) for k in data
+        ]
 
 
 class ExchangeController(QObject):
