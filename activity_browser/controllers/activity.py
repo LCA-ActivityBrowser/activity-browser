@@ -20,6 +20,7 @@ class ActivityController(QObject):
 
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
+        signals.delete_activities.connect(self.delete_activity)
         signals.duplicate_activity.connect(self.duplicate_activity)
         signals.show_duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
         signals.activity_modified.connect(self.modify_activity)
@@ -53,25 +54,35 @@ class ActivityController(QObject):
             signals.databases_changed.emit()
 
     @Slot(tuple, name="deleteActivity")
-    def delete_activity(self, key: tuple) -> None:
-        act = bw.get_activity(key)
-        nu = len(act.upstream())
-        if nu:
-            text = "activities consume" if nu > 1 else "activity consumes"
-            QtWidgets.QMessageBox.information(
-                self.window,
-                "Not possible.",
-                """Can't delete {}. {} upstream {} its reference product.
-                Upstream exchanges must be modified or deleted.""".format(act, nu, text)
-            )
-        else:
+    @Slot(list, name="deleteActivities")
+    def delete_activity(self, data: Union[tuple, Iterator[tuple]]) -> None:
+        """Use the given data to delete one or more activities from brightway2."""
+        activities = self._retrieve_activities(data)
+
+        if any(len(act.upstream()) > 0 for act in activities):
+            text = ("Can't delete one or more activities. Some upstream process"
+                    " consumes their reference products. Please edit or delete "
+                    "these upstream exchanges first.")
+            QtWidgets.QMessageBox.warning(self.window, "Not possible.", text)
+            return
+
+        # Iterate through the activities and:
+        # - Close any open activity tabs,
+        # - Delete any related parameters
+        # - Delete the activity
+        # - Clean the activity from the metadata.
+        for act in activities:
+            signals.close_activity_tab.emit(act.key)
             ParameterController.delete_activity_parameter(act.key)
             act.delete()
-            bw.databases.set_modified(act["database"])
-            signals.metadata_changed.emit(act.key)
-            signals.database_changed.emit(act["database"])
-            signals.databases_changed.emit()
-            signals.calculation_setup_changed.emit()
+            AB_metadata.update_metadata(act.key)
+
+        # After deletion, signal that the database has changed
+        db = next(iter(activities)).get("database")
+        bw.databases.set_modified(db)
+        signals.database_changed.emit(db)
+        signals.databases_changed.emit()
+        signals.calculation_setup_changed.emit()
 
     @staticmethod
     def generate_copy_code(key: tuple) -> str:
