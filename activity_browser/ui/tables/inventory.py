@@ -157,7 +157,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             qicons.add, "Add new activity", None
         )
         self.duplicate_activity_action = QtWidgets.QAction(
-            qicons.copy, "Duplicate activity", None
+            qicons.copy, "Duplicate activity/-ies", None
         )
         self.delete_activity_action = QtWidgets.QAction(
             qicons.delete, "Delete activity", None
@@ -193,9 +193,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database_name)
         )
-        self.duplicate_activity_action.triggered.connect(
-            lambda: signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
-        )
+        self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
         self.delete_activity_action.triggered.connect(
             lambda: signals.delete_activity.emit(self.get_key(self.currentIndex()))
         )
@@ -226,6 +224,11 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         for key in (self.get_key(p) for p in self.selectedIndexes()):
             signals.open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
+
+    @Slot(name="duplicateActivitiesWithinDb")
+    def duplicate_activities(self) -> None:
+        for key in (self.get_key(p) for p in self.selectedIndexes()):
+            signals.duplicate_activity.emit(key)
 
     @Slot(str)
     def check_database_changed(self, db_name: str) -> None:
