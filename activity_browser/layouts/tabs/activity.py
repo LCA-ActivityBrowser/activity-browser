@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
@@ -25,7 +26,7 @@ class ActivitiesTab(ABTab):
         signals.open_activity_tab.connect(self.open_activity_tab)
         signals.activity_modified.connect(self.update_activity_name)
         self.tabCloseRequested.connect(self.close_tab)
-        signals.delete_activity.connect(self.close_tab_by_tab_name)
+        signals.close_activity_tab.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
 
     @Slot(tuple, name="openActivityTab")
@@ -171,7 +172,11 @@ class ActivityTab(QtWidgets.QWidget):
         """Populate the various tables and boxes within the Activity Detail tab"""
         if self.db_name in bw.databases:
             # Avoid a weird signal interaction in the tests
-            self.activity = bw.get_activity(self.key)  # Refresh activity.
+            try:
+                self.activity = bw.get_activity(self.key)  # Refresh activity.
+            except DoesNotExist:
+                signals.close_activity_tab.emit(self.key)
+                return
         self.populate_description_box()
 
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
