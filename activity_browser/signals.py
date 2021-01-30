@@ -41,8 +41,10 @@ class Signals(QObject):
     duplicate_activity_to_db = Signal(str, object)
     show_duplicate_to_db_interface = Signal(tuple)
     open_activity_tab = Signal(tuple)
+    close_activity_tab = Signal(tuple)
     open_activity_graph_tab = Signal(tuple)
     delete_activity = Signal(tuple)
+    delete_activities = Signal(list)
 
     # Activity editing
     edit_activity = Signal(str)  # db_name
