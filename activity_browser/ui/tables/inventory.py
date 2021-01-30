@@ -160,7 +160,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             qicons.copy, "Duplicate activity/-ies", None
         )
         self.delete_activity_action = QtWidgets.QAction(
-            qicons.delete, "Delete activity", None
+            qicons.delete, "Delete activity/-ies", None
         )
 
         self.connect_signals()
@@ -194,9 +194,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             lambda: signals.new_activity.emit(self.database_name)
         )
         self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
-        self.delete_activity_action.triggered.connect(
-            lambda: signals.delete_activity.emit(self.get_key(self.currentIndex()))
-        )
+        self.delete_activity_action.triggered.connect(self.delete_activities)
         self.doubleClicked.connect(self.open_activity_tab)
 
     def reset_table(self) -> None:
@@ -224,6 +222,14 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         for key in (self.get_key(p) for p in self.selectedIndexes()):
             signals.open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
+
+    @Slot(name="deleteActivities")
+    def delete_activities(self) -> None:
+        if len(self.selectedIndexes()) > 1:
+            keys = [self.get_key(p) for p in self.selectedIndexes()]
+            signals.delete_activities.emit(keys)
+        else:
+            signals.delete_activity.emit(self.get_key(self.currentIndex()))
 
     @Slot(name="duplicateActivitiesWithinDb")
     def duplicate_activities(self) -> None:
