@@ -48,8 +48,8 @@ class ActivityController(QObject):
             )
             production_exchange.save()
             bw.databases.set_modified(database_name)
+            AB_metadata.update_metadata(new_act.key)
             signals.open_activity_tab.emit(new_act.key)
-            signals.metadata_changed.emit(new_act.key)
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
 
@@ -126,7 +126,6 @@ class ActivityController(QObject):
         bw.databases.set_modified(db)
         signals.database_changed.emit(db)
         signals.databases_changed.emit()
-        signals.open_activity_tab.emit(new_act.key)
 
     @Slot(tuple, name="copyActivityToDbInterface")
     def show_duplicate_to_db_interface(self, key: tuple) -> None:
@@ -182,7 +181,7 @@ class ActivityController(QObject):
         activity[field] = value
         activity.save()
         bw.databases.set_modified(key[0])
-        signals.metadata_changed.emit(key)
+        AB_metadata.update_metadata(key)
         signals.database_changed.emit(key[0])
 
     @staticmethod
@@ -223,7 +222,7 @@ class ExchangeController(QObject):
                 exc['type'] = 'unknown'
             exc.save()
         bw.databases.set_modified(to_key[0])
-        signals.metadata_changed.emit(to_key)
+        AB_metadata.update_metadata(to_key)
         signals.database_changed.emit(to_key[0])
 
     @Slot(list, name="deleteExchanges")
