@@ -38,6 +38,7 @@ class Signals(QObject):
     new_activity = Signal(str)
     add_activity_to_history = Signal(tuple)
     duplicate_activity = Signal(tuple)
+    duplicate_activities = Signal(list)
     duplicate_activity_to_db = Signal(str, object)
     show_duplicate_to_db_interface = Signal(tuple)
     open_activity_tab = Signal(tuple)

@@ -233,8 +233,11 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
     @Slot(name="duplicateActivitiesWithinDb")
     def duplicate_activities(self) -> None:
-        for key in (self.get_key(p) for p in self.selectedIndexes()):
-            signals.duplicate_activity.emit(key)
+        if len(self.selectedIndexes()) > 1:
+            keys = [self.get_key(p) for p in self.selectedIndexes()]
+            signals.duplicate_activities.emit(keys)
+        else:
+            signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
 
     @Slot(str)
     def check_database_changed(self, db_name: str) -> None:

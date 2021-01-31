@@ -22,7 +22,7 @@ class ActivityController(QObject):
         signals.delete_activity.connect(self.delete_activity)
         signals.delete_activities.connect(self.delete_activity)
         signals.duplicate_activity.connect(self.duplicate_activity)
-        signals.show_duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
+        signals.duplicate_activities.connect(self.duplicate_activity)
         signals.activity_modified.connect(self.modify_activity)
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
 
@@ -99,26 +99,32 @@ class ActivityController(QObject):
         return "{}_copy{}".format(code, n + 1)
 
     @Slot(tuple, name="copyActivity")
-    def duplicate_activity(self, key: tuple) -> None:
+    @Slot(list, name="copyActivities")
+    def duplicate_activity(self, data: Union[tuple, Iterator[tuple]]) -> None:
         """Duplicates the selected activity in the same db, with a new BW code."""
         # todo: add "copy of" (or similar) to name of activity for easy identification in new db
         # todo: some interface feedback so user knows the copy has succeeded
-        act = bw.get_activity(key)
-        new_code = self.generate_copy_code(key)
-        new_act = act.copy(new_code)
-        # Update production exchanges
-        for exc in new_act.production():
-            if exc.input.key == key:
-                exc.input = new_act
-                exc.save()
-        # Update 'products'
-        for product in new_act.get('products', []):
-            if product.get('input') == key:
-                product['input'] = new_act.key
-        new_act.save()
-        bw.databases.set_modified(act['database'])
-        signals.metadata_changed.emit(new_act.key)
-        signals.database_changed.emit(act['database'])
+        activities = self._retrieve_activities(data)
+
+        for act in activities:
+            new_code = self.generate_copy_code(act.key)
+            new_act = act.copy(new_code)
+            # Update production exchanges
+            for exc in new_act.production():
+                if exc.input.key == act.key:
+                    exc.input = new_act
+                    exc.save()
+            # Update 'products'
+            for product in new_act.get('products', []):
+                if product.get('input') == act.key:
+                    product['input'] = new_act.key
+            new_act.save()
+            AB_metadata.update_metadata(new_act.key)
+            signals.open_activity_tab.emit(new_act.key)
+
+        db = next(iter(activities)).get("database")
+        bw.databases.set_modified(db)
+        signals.database_changed.emit(db)
         signals.databases_changed.emit()
         signals.open_activity_tab.emit(new_act.key)
 
