@@ -158,18 +158,22 @@ class ActivityController(QObject):
 
     @Slot(str, object, name="copyActivityToDb")
     def duplicate_activity_to_db(self, target_db: str, activity: Activity):
-        new_code = self.generate_copy_code((target_db, activity['code']))
-        new_act_key = (target_db, new_code)
-        activity.copy(code=new_code, database=target_db)
+        new_key = self._copy_activity(target_db, activity)
         # only process database immediately if small
         if bc.count_database_records(target_db) < 50:
             bw.databases.clean()
-
         bw.databases.set_modified(target_db)
-        signals.metadata_changed.emit(new_act_key)
         signals.database_changed.emit(target_db)
-        signals.open_activity_tab.emit(new_act_key)
         signals.databases_changed.emit()
+        signals.open_activity_tab.emit(new_key)
+
+    @staticmethod
+    def _copy_activity(target: str, act: Activity) -> tuple:
+        new_code = ActivityController.generate_copy_code((target, act['code']))
+        new_key = (target, new_code)
+        act.copy(code=new_code, database=target)
+        AB_metadata.update_metadata(new_key)
+        return new_key
 
     @staticmethod
     @Slot(tuple, str, object, name="modifyActivity")
