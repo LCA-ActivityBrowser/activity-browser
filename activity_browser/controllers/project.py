@@ -114,15 +114,11 @@ class CSetupController(QObject):
             "Name of new calculation setup:" + " " * 10
         )
         if ok and name:
-            if name not in bw.calculation_setups.keys():
-                bw.calculation_setups[name] = {'inv': [], 'ia': []}
-                signals.calculation_setup_selected.emit(name)
-                print("New calculation setup: {}".format(name))
-            else:
-                QtWidgets.QMessageBox.information(
-                    self.window, "Not possible",
-                    "A calculation setup with this name already exists."
-                )
+            if not self._can_use_cs_name(name):
+                return
+            bw.calculation_setups[name] = {'inv': [], 'ia': []}
+            signals.calculation_setup_selected.emit(name)
+            print("New calculation setup: {}".format(name))
 
     @Slot(str, name="copyCalculationSetup")
     def copy_calculation_setup(self, current: str) -> None:
@@ -132,6 +128,8 @@ class CSetupController(QObject):
             "Name of the copied calculation setup:" + " " * 10
         )
         if ok and new_name:
+            if not self._can_use_cs_name(new_name):
+                return
             bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
             signals.calculation_setup_selected.emit(new_name)
             print("Copied calculation setup {} as {}".format(current, new_name))
@@ -150,9 +148,20 @@ class CSetupController(QObject):
             "New name of this calculation setup:" + " " * 10
         )
         if ok and new_name:
+            if not self._can_use_cs_name(new_name):
+                return
             bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
             # print("Current setups:", list(bw.calculation_setups.keys()))
             del bw.calculation_setups[current]
             # print("After deletion of {}:".format(current), list(bw.calculation_setups.keys()))
             signals.calculation_setup_selected.emit(new_name)
             print("Renamed calculation setup from {} to {}".format(current, new_name))
+
+    def _can_use_cs_name(self, new_name: str) -> bool:
+        if new_name in bw.calculation_setups.keys():
+            QtWidgets.QMessageBox.warning(
+                self.window, "Not possible",
+                "A calculation setup with this name already exists."
+            )
+            return False
+        return True
