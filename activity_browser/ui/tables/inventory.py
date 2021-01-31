@@ -179,7 +179,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         menu.addAction(self.delete_activity_action)
         menu.addAction(
             qicons.duplicate_to_other_database, "Duplicate to other database",
-            lambda: signals.show_duplicate_to_db_interface.emit(self.get_key(self.currentIndex()))
+            self.duplicate_activities_to_db
         )
         menu.exec_(event.globalPos())
 
@@ -245,6 +245,15 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         """
         if db_name == self.database_name and db_name in bw.databases:
             self.sync(db_name)
+
+    @Slot(name="duplicateActivitiesToOtherDb")
+    def duplicate_activities_to_db(self) -> None:
+        if len(self.selectedIndexes()) > 1:
+            keys = [self.get_key(p) for p in self.selectedIndexes()]
+            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
+        else:
+            key = self.get_key(self.currentIndex())
+            signals.duplicate_to_db_interface.emit(key, self.database_name)
 
     def df_from_metadata(self, db_name: str, fields: list) -> pd.DataFrame:
         """ Take the given database name and return the complete subset

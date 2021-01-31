@@ -23,6 +23,8 @@ class ActivityController(QObject):
         signals.delete_activities.connect(self.delete_activity)
         signals.duplicate_activity.connect(self.duplicate_activity)
         signals.duplicate_activities.connect(self.duplicate_activity)
+        signals.duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
+        signals.duplicate_to_db_interface_multiple.connect(self.show_duplicate_to_db_interface)
         signals.activity_modified.connect(self.modify_activity)
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
 
@@ -127,33 +129,36 @@ class ActivityController(QObject):
         signals.database_changed.emit(db)
         signals.databases_changed.emit()
 
-    @Slot(tuple, name="copyActivityToDbInterface")
-    def show_duplicate_to_db_interface(self, key: tuple) -> None:
-        origin_db = key[0]
-        activity = bw.get_activity(key)
+    @Slot(tuple, str, name="copyActivityToDbInterface")
+    @Slot(list, str, name="copyActivitiesToDbInterface")
+    def show_duplicate_to_db_interface(self, data: Union[tuple, Iterator[tuple]],
+                                       db_name: Optional[str] = None) -> None:
+        activities = self._retrieve_activities(data)
+        origin_db = db_name or next(iter(activities)).get("database")
 
         available_target_dbs = list(project_settings.get_editable_databases())
-
         if origin_db in available_target_dbs:
             available_target_dbs.remove(origin_db)
-
         if not available_target_dbs:
-            QtWidgets.QMessageBox.information(
-                self.window,
-                "No target database",
+            QtWidgets.QMessageBox.warning(
+                self.window, "No target database",
                 "No valid target databases available. Create a new database or set one to writable (not read-only)."
             )
-        else:
-            target_db, ok = QtWidgets.QInputDialog.getItem(
-                self.window,
-                "Copy activity to database",
-                "Target database:",
-                available_target_dbs,
-                0,
-                False
-            )
-            if ok:
-                self.duplicate_activity_to_db(target_db, activity)
+            return
+
+        target_db, ok = QtWidgets.QInputDialog.getItem(
+            self.window, "Copy activity to database", "Target database:",
+            available_target_dbs, 0, False
+        )
+        if target_db and ok:
+            new_keys = [self._copy_activity(target_db, act) for act in activities]
+            if bc.count_database_records(target_db) < 50:
+                bw.databases.clean()
+            bw.databases.set_modified(target_db)
+            signals.database_changed.emit(target_db)
+            signals.databases_changed.emit()
+            for key in new_keys:
+                signals.open_activity_tab.emit(key)
 
     @Slot(str, object, name="copyActivityToDb")
     def duplicate_activity_to_db(self, target_db: str, activity: Activity):
