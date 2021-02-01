@@ -103,6 +103,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.list_widget = CSList(self)
 
         self.new_cs_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.copy_cs_button = QtWidgets.QPushButton(qicons.copy, "Copy")
         self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
         self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
         self.calculation_type = QtWidgets.QComboBox()
@@ -123,6 +124,7 @@ class LCASetupTab(QtWidgets.QWidget):
         name_row.addWidget(header('Calculation Setup:'))
         name_row.addWidget(self.list_widget)
         name_row.addWidget(self.new_cs_button)
+        name_row.addWidget(self.copy_cs_button)
         name_row.addWidget(self.rename_cs_button)
         name_row.addWidget(self.delete_cs_button)
         name_row.addStretch(1)
@@ -164,6 +166,9 @@ class LCASetupTab(QtWidgets.QWidget):
         self.scenario_calc_btn.clicked.connect(self.scenario_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
+        self.copy_cs_button.clicked.connect(
+            lambda: signals.copy_calculation_setup.emit(self.list_widget.name)
+        )
         self.delete_cs_button.clicked.connect(
             lambda x: signals.delete_calculation_setup.emit(
                 self.list_widget.name

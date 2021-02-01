@@ -38,11 +38,15 @@ class Signals(QObject):
     new_activity = Signal(str)
     add_activity_to_history = Signal(tuple)
     duplicate_activity = Signal(tuple)
+    duplicate_activities = Signal(list)
     duplicate_activity_to_db = Signal(str, object)
-    show_duplicate_to_db_interface = Signal(tuple)
+    duplicate_to_db_interface = Signal(tuple, str)
+    duplicate_to_db_interface_multiple = Signal(list, str)
     open_activity_tab = Signal(tuple)
+    close_activity_tab = Signal(tuple)
     open_activity_graph_tab = Signal(tuple)
     delete_activity = Signal(tuple)
+    delete_activities = Signal(list)
 
     # Activity editing
     edit_activity = Signal(str)  # db_name
@@ -80,6 +84,7 @@ class Signals(QObject):
 
     # Calculation Setups
     new_calculation_setup = Signal()
+    copy_calculation_setup = Signal(str)
     delete_calculation_setup = Signal(str)
     rename_calculation_setup = Signal(str)
     set_default_calculation_setup = Signal()
