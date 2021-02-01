@@ -131,6 +131,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
         self.connect_signals()
 
+    @property
+    def technosphere(self) -> bool:
+        return self.model.technosphere
+
     def contextMenuEvent(self, event) -> None:
         """ Construct and present a menu.
         """
