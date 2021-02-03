@@ -12,7 +12,7 @@ from ..icons import qicons
 from ..widgets import TupleNameDialog
 from ..wizards import UncertaintyWizard
 from .views import ABDataFrameView, ABDictTreeView, dataframe_sync, tree_model_decorate
-from .models import MethodsTreeModel
+from .models import MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
 
 
@@ -22,78 +22,37 @@ class MethodsTable(ABDataFrameView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.drag_model = True
-        self.method_col = 0
         self.setDragEnabled(True)
         self.setDragDropMode(ABDataFrameView.DragOnly)
-        self.sync()
-        self._connect_signals()
+        self.model = MethodsListModel(self)
 
-    def _connect_signals(self):
-        self.doubleClicked.connect(self.method_selected)
+        self.doubleClicked.connect(
+            lambda p: signals.method_selected.emit(self.model.get_method(p))
+        )
         signals.project_selected.connect(self.sync)
-
-    def get_method(self, proxy: QModelIndex) -> tuple:
-        index = self.get_source_index(proxy)
-        return self.dataframe.iat[index.row(), self.method_col]
-
-    @Slot(QModelIndex, name="methodSelection")
-    def method_selected(self, proxy):
-        signals.method_selected.emit(self.get_method(proxy))
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""
-        return (self.get_method(p) for p in self.selectedIndexes())
+        return (self.model.get_method(p) for p in self.selectedIndexes())
 
-    @dataframe_sync
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
-        if query:
-            sorted_names = filter(
-                lambda obj: query.lower() in obj[0].lower(), sorted_names
-            )
-        self.dataframe = DataFrame([
-            self.build_row(method_obj) for method_obj in sorted_names
-        ], columns=self.HEADERS)
-        self.method_col = self.dataframe.columns.get_loc("method")
-
-    def build_row(self, method_obj) -> dict:
-        method = bw.methods[method_obj[1]]
-        return {
-            "Name": method_obj[0],
-            "Unit": method.get("unit", "Unknown"),
-            "# CFs": str(method.get("num_cfs", 0)),
-            "method": method_obj[1],
-        }
+        self.model.sync(query)
+        self._resize()
 
     def _resize(self) -> None:
-        self.setColumnHidden(self.method_col, True)
+        self.setColumnHidden(self.model.method_col, True)
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         ))
 
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
-        menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
-        menu.exec_(event.globalPos())
-
-    @Slot(name="copyMethod")
-    def copy_method(self) -> None:
-        """Call copy on the (first) selected method and present rename dialog."""
-        method = bw.Method(self.get_method(next(p for p in self.selectedIndexes())))
-        dialog = TupleNameDialog.get_combined_name(
-            self, "Impact category name", "Combined name:", method.name, "Copy"
+        menu.addAction(
+            qicons.copy, "Duplicate Impact Category",
+            lambda: self.model.copy_method(self.currentIndex())
         )
-        if dialog.exec_() == TupleNameDialog.Accepted:
-            new_name = dialog.result_tuple
-            if new_name in bw.methods:
-                warn = "Impact Category with name '{}' already exists!".format(new_name)
-                QtWidgets.QMessageBox.warning(self, "Copy failed", warn)
-                return
-            method.copy(new_name)
-            print("Copied method {} into {}".format(str(method.name), str(new_name)))
-            self.new_method.emit(new_name)
+        menu.exec_(event.globalPos())
 
 
 class MethodsTree(ABDictTreeView):
