@@ -14,7 +14,7 @@ class CFsTab(QtWidgets.QWidget):
         self.panel = parent
         self.method = method
         # Not visible when instantiated
-        self.cf_table = CFTable()
+        self.cf_table = CFTable(self)
         self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
         self.hide_uncertainty.setChecked(True)
         toolbar = QtWidgets.QToolBar(self)
@@ -35,8 +35,8 @@ class CFsTab(QtWidgets.QWidget):
 
     def connect_signals(self) -> None:
         self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
-        self.cf_table.modified.connect(lambda: self.cf_table.sync(self.method))
-        self.cf_table.modified.connect(
+        self.cf_table.model.modified.connect(lambda: self.cf_table.sync(self.method))
+        self.cf_table.model.modified.connect(
             lambda: self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
         )
 
@@ -104,7 +104,7 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.returnPressed.connect(lambda: self.tree.sync(query=self.search_box.text()))
 
         signals.project_selected.connect(self.search_box.clear)
-        self.table.new_method.connect(self.method_copied)
+        signals.new_method.connect(self.method_copied)
 
         self.connect_signals()
 

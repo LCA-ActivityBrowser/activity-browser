@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numbers
-from typing import Iterable, Optional
+from typing import Iterable
 
 import brightway2 as bw
 from pandas import DataFrame
@@ -10,9 +10,8 @@ from PySide2.QtCore import QModelIndex, Signal, Slot
 from ...signals import signals
 from ..icons import qicons
 from ..widgets import TupleNameDialog
-from ..wizards import UncertaintyWizard
-from .views import ABDataFrameView, ABDictTreeView, dataframe_sync, tree_model_decorate
-from .models import MethodsListModel, MethodsTreeModel
+from .views import ABDataFrameView, ABDictTreeView, tree_model_decorate
+from .models import CFModel, MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
 
 
@@ -269,16 +268,9 @@ class MethodsTree(ABDictTreeView):
 
 
 class CFTable(ABDataFrameView):
-    COLUMNS = ["name", "categories", "amount", "unit"]
-    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertainty"] + ["cf"]
-    UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
-    modified = Signal()
-
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.cf_column = None
-        self.method: Optional[bw.Method] = None
-        self.wizard: Optional[UncertaintyWizard] = None
+        self.model = CFModel(parent=self)
         self.setVisible(False)
         self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
         self.setItemDelegateForColumn(6, FloatDelegate(self))
@@ -287,33 +279,12 @@ class CFTable(ABDataFrameView):
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
 
-    @dataframe_sync
     def sync(self, method: tuple) -> None:
-        self.method = bw.Method(method)
-        self.dataframe = DataFrame([
-            self.build_row(obj) for obj in self.method.load()
-        ], columns=self.HEADERS + self.UNCERTAINTY)
-        self.cf_column = self.dataframe.columns.get_loc("cf")
-
-    def build_row(self, method_cf) -> dict:
-        key, amount = method_cf[:2]
-        flow = bw.get_activity(key)
-        row = {
-            self.HEADERS[i]: flow.get(c) for i, c in enumerate(self.COLUMNS)
-        }
-        # If uncertain, unpack the uncertainty dictionary
-        uncertain = not isinstance(amount, numbers.Number)
-        if uncertain:
-            row.update({k: amount.get(k, "nan") for k in self.UNCERTAINTY})
-            uncertain = amount.get("uncertainty type")
-            amount = amount["amount"]
-        else:
-            uncertain = 0
-        row.update({"Amount": amount, "Uncertainty": uncertain, "cf": method_cf})
-        return row
+        self.model.sync(method)
+        self._resize()
 
     def _resize(self) -> None:
-        self.setColumnHidden(5, True)
+        self.setColumnHidden(self.model.cf_column, True)
         self.hide_uncertain()
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
@@ -321,8 +292,8 @@ class CFTable(ABDataFrameView):
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:
-        for c in self.UNCERTAINTY:
-            self.setColumnHidden(self.dataframe.columns.get_loc(c), hide)
+        for i in self.model.uncertain_cols:
+            self.setColumnHidden(i, hide)
 
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
@@ -333,71 +304,8 @@ class CFTable(ABDataFrameView):
 
     @Slot(name="modifyCFUncertainty")
     def modify_uncertainty(self) -> None:
-        """Need to know both keys to select the correct exchange to update"""
-        index = self.get_source_index(next(p for p in self.selectedIndexes()))
-        method_cf = self.dataframe.iat[index.row(), self.cf_column]
-        self.wizard = UncertaintyWizard(method_cf, self)
-        self.wizard.complete.connect(self.modify_cf)
-        self.wizard.show()
+        self.model.modify_uncertainty(self.currentIndex())
 
     @Slot(name="removeCFUncertainty")
     def remove_uncertainty(self) -> None:
-        """Remove all uncertainty information from the selected CFs.
-
-        NOTE: Does not affect any selected CF that does not have uncertainty
-        information.
-        """
-        indices = (
-            self.get_source_index(p) for p in self.selectedIndexes()
-        )
-        selected = (
-            self.dataframe.iat[index.row(), self.cf_column] for index in indices
-        )
-        modified_cfs = (
-            self._unset_uncertainty(cf) for cf in selected
-            if isinstance(cf[1], dict)
-        )
-        cfs = self.method.load()
-        for cf in modified_cfs:
-            idx = next(i for i, c in enumerate(cfs) if c[0] == cf[0])
-            cfs[idx] = cf
-        self.method.write(cfs)
-        self.modified.emit()
-
-    @staticmethod
-    def _unset_uncertainty(cf: tuple) -> tuple:
-        """Modifies the given cf to remove the uncertainty dictionary."""
-        assert isinstance(cf[1], dict)
-        data = [*cf]
-        data[1] = data[1].get("amount")
-        return tuple(data)
-
-    @Slot(tuple, object, name="modifyCf")
-    def modify_cf(self, cf: tuple, uncertainty: dict) -> None:
-        """Update the CF with new uncertainty information, possibly converting
-        the second item in the tuple to a dictionary without losing information.
-        """
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(uncertainty)
-        else:
-            uncertainty["amount"] = data[1]
-            data[1] = uncertainty
-        self.modify_method_with_cf(tuple(data))
-
-    @Slot(tuple, name="modifyMethodWithCf")
-    def modify_method_with_cf(self, cf: tuple) -> None:
-        """ Take the given CF tuple, add it to the method object stored in
-        `self.method` and call .write() & .process() to finalize.
-
-        NOTE: if the flow key matches one of the CFs in method, that CF
-        will be edited, if not, a new CF will be added to the method.
-        """
-        cfs = self.method.load()
-        idx = next((i for i, c in enumerate(cfs) if c[0] == cf[0]), None)
-        if idx is None:
-            cfs.append(cf)
-        else:
-            cfs[idx] = cf
-        self.method.write(cfs)
-        self.modified.emit()
+        self.model.remove_uncertainty(self.selectedIndexes())
