@@ -84,6 +84,12 @@ class PandasModel(QAbstractTableModel):
         proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         parent.setModel(proxy_model)
 
+    @staticmethod
+    def proxy_to_source(proxy: QModelIndex) -> QModelIndex:
+        """Step from the QSortFilterProxyModel to the underlying PandasModel."""
+        model = proxy.model()
+        return model.mapToSource(proxy)
+
 
 class EditablePandasModel(PandasModel):
     """ Allows underlying dataframe to be edited through Delegate classes.
