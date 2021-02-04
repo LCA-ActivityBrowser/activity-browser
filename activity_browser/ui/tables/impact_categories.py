@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-import numbers
 from typing import Iterable
 
 import brightway2 as bw
 from pandas import DataFrame
 from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Signal, Slot
+from PySide2.QtCore import QModelIndex, Slot
 
 from ...signals import signals
 from ..icons import qicons
@@ -16,9 +15,6 @@ from .delegates import FloatDelegate, UncertaintyDelegate
 
 
 class MethodsTable(ABDataFrameView):
-    HEADERS = ["Name", "Unit", "# CFs", "method"]
-    new_method = Signal(tuple)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setDragEnabled(True)
@@ -56,7 +52,6 @@ class MethodsTable(ABDataFrameView):
 
 class MethodsTree(ABDictTreeView):
     HEADERS = ["Name", "Unit", "# CFs", "method"]
-    new_method = Signal(tuple)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -264,7 +259,7 @@ class MethodsTree(ABDictTreeView):
                 return
             method.copy(new_name)
             print("Copied method {} into {}".format(str(method.name), str(new_name)))
-            self.new_method.emit(new_name)
+            signals.new_method.emit(new_name)
 
 
 class CFTable(ABDataFrameView):
