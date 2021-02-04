@@ -85,20 +85,11 @@ class MethodsTab(QtWidgets.QWidget):
         search_layout.addWidget(self.search_button)
         search_layout.addWidget(self.reset_search_button)
         #
-        #self.tree_expand = QtWidgets.QRadioButton("Expand tree")
-        #self.tree_expand.setToolTip("Expand all tree branches")
-        #self.tree_collapse = QtWidgets.QRadioButton("Collapse tree")
-        #self.tree_collapse.setToolTip("Collapse all tree branches")
-        #
         mode_layout = QtWidgets.QHBoxLayout()
         mode_layout.setAlignment(QtCore.Qt.AlignTop)
         mode_layout.addWidget(header('Impact Categories'))
         search_layout.addWidget(self.mode_radio_tree)
         search_layout.addWidget(self.mode_radio_list)
-        #tree_settings_layout = QtWidgets.QHBoxLayout()
-        #tree_settings_layout.addWidget(self.tree_expand)
-        #tree_settings_layout.addWidget(self.tree_collapse)
-        #tree_settings_layout.addStretch(1)
         #
         mode_layout_container = QtWidgets.QWidget()
         mode_layout_container.setLayout(mode_layout)
@@ -106,14 +97,10 @@ class MethodsTab(QtWidgets.QWidget):
         search_layout_container = QtWidgets.QWidget()
         search_layout_container.setLayout(search_layout)
         #
-        #self.tree_settings_layout_container = QtWidgets.QWidget()
-        #self.tree_settings_layout_container.setLayout(tree_settings_layout)
-        #
         container = QtWidgets.QVBoxLayout()
         container.setAlignment(QtCore.Qt.AlignTop)
         container.addWidget(mode_layout_container)
         container.addWidget(search_layout_container)
-        #container.addWidget(self.tree_settings_layout_container)
         # container.addWidget(horizontal_line())
         container.addWidget(self.tree)
         container.addWidget(self.table)
@@ -122,9 +109,6 @@ class MethodsTab(QtWidgets.QWidget):
 
         self.reset_search_button.clicked.connect(self.table.sync)
         self.reset_search_button.clicked.connect(self.tree.sync)
-
-        #self.tree_expand.clicked.connect(self.tree.expand_all)
-        #self.tree_collapse.clicked.connect(self.tree.collapse_all)
 
         self.search_button.clicked.connect(lambda: self.table.sync(query=self.search_box.text()))
         self.search_button.clicked.connect(lambda: self.tree.query_sync(query=self.search_box.text()))
