@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from PySide2 import QtCore, QtWidgets
+from ...ui.icons import qicons
+
 
 from ...ui.style import header, horizontal_line
 from ...ui.tables import CFTable, MethodsTable, MethodsTree
@@ -53,8 +55,12 @@ class MethodsTab(QtWidgets.QWidget):
             "Drag (groups of) impact categories to the calculation setup")
         #
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("Filter impact categories")
-        self.reset_search_button = QtWidgets.QPushButton("Reset")
+        self.search_box.setPlaceholderText("Search impact categories")
+        self.search_button = QtWidgets.QToolButton()
+        self.search_button.setIcon(qicons.search)
+        self.search_button.setToolTip("Search impact categories")
+        self.reset_search_button = QtWidgets.QPushButton(qicons.delete, "")
+        self.reset_search_button.setToolTip("Clear the search")
         #
         self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
         self.mode_radio_tree.setChecked(True)
@@ -72,6 +78,7 @@ class MethodsTab(QtWidgets.QWidget):
         #
         search_layout = QtWidgets.QHBoxLayout()
         search_layout.addWidget(self.search_box)
+        search_layout.addWidget(self.search_button)
         search_layout.addWidget(self.reset_search_button)
         #
         #self.tree_expand = QtWidgets.QRadioButton("Expand tree")
@@ -115,6 +122,8 @@ class MethodsTab(QtWidgets.QWidget):
         #self.tree_expand.clicked.connect(self.tree.expand_all)
         #self.tree_collapse.clicked.connect(self.tree.collapse_all)
 
+        #self.search_button.clicked.connect(lambda: self.table.sync(query=self.search_box.text()))
+        #self.search_button.clicked.connect(lambda: self.tree.sync(query=self.search_box.text()))
         self.reset_search_button.clicked.connect(self.search_box.clear)
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         self.search_box.returnPressed.connect(lambda: self.tree.sync(query=self.search_box.text()))
