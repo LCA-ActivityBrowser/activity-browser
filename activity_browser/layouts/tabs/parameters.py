@@ -375,7 +375,7 @@ class ParameterScenariosTab(BaseRightTab):
         )
         if filename:
             try:
-                ps_utils.save_scenarios_to_file(self.tbl.dataframe, filename)
+                self.tbl.model.to_excel(filename)
             except FileCreateError as e:
                 QMessageBox.warning(
                     self, "File save error",
