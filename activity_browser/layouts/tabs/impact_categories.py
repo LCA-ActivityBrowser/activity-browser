@@ -56,9 +56,13 @@ class MethodsTab(QtWidgets.QWidget):
         #
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Search impact categories")
+        self.search_box.setToolTip("If a large number of matches is found the\n"
+                                   "tree is not expanded automatically.")
         self.search_button = QtWidgets.QToolButton()
         self.search_button.setIcon(qicons.search)
-        self.search_button.setToolTip("Search impact categories")
+        self.search_button.setToolTip("Search impact categories.\n"
+                                      "If a large number of matches is found the\n"
+                                      "tree is not expanded automatically.")
         self.reset_search_button = QtWidgets.QPushButton(qicons.delete, "")
         self.reset_search_button.setToolTip("Clear the search")
         #
@@ -122,11 +126,11 @@ class MethodsTab(QtWidgets.QWidget):
         #self.tree_expand.clicked.connect(self.tree.expand_all)
         #self.tree_collapse.clicked.connect(self.tree.collapse_all)
 
-        #self.search_button.clicked.connect(lambda: self.table.sync(query=self.search_box.text()))
-        #self.search_button.clicked.connect(lambda: self.tree.sync(query=self.search_box.text()))
+        self.search_button.clicked.connect(lambda: self.table.sync(query=self.search_box.text()))
+        self.search_button.clicked.connect(lambda: self.tree.query_sync(query=self.search_box.text()))
         self.reset_search_button.clicked.connect(self.search_box.clear)
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
-        self.search_box.returnPressed.connect(lambda: self.tree.sync(query=self.search_box.text()))
+        self.search_box.returnPressed.connect(lambda: self.tree.query_sync(query=self.search_box.text()))
 
         signals.project_selected.connect(self.search_box.clear)
         self.table.new_method.connect(self.method_copied)

@@ -179,7 +179,6 @@ def tree_model_decorate(sync):
         sync(self, *args, **kwargs)
         model = self._select_model()
         self.setModel(model)
-        self.expand_all(self, *args, **kwargs)
         self._resize()
     return wrapper
 
@@ -216,22 +215,6 @@ class ABDictTreeView(QTreeView):
         """Collapse selected branch."""
         index = self.currentIndex()
         self.expand_or_collapse(index, False)
-
-    def expand_all(self, *args, **kwargs):
-        """Expand all branches."""
-        #TODO this function is terribly slow with large trees, so you are advised not to use this without
-        # something like search [as implemented below through the query check].
-        # Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
-        # https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
-        # https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
-
-        if 'query' in kwargs.keys() and kwargs['query'] != '':
-
-            # does the same as expandAll()
-            #for i in range(len(self.model().root.children)):
-            #    self.expand_or_collapse(self.model().index(i, 0, QModelIndex()), True)
-
-            self.expandAll()
 
     def expand_or_collapse(self, index, expand):
         """Expand or collapse branch.

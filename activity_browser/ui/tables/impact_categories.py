@@ -135,12 +135,25 @@ class MethodsTree(ABDictTreeView):
 
     @tree_model_decorate
     def sync(self, query=None) -> None:
-
         self.nest_data()
-        if query and len(query) != 0:
-            self.data = self.search_tree(self.tree_data, query)
+        if query:
+            self.data, self.matches = self.search_tree(self.tree_data, query)
         else:
             self.data = self.tree_data
+
+    def query_sync(self, query=None):
+        """auto-expand on sync with query through this function."""
+        if query and len(query) != 0:
+            self.sync(query=query)
+            if self.matches <= 285:
+                self.expandAll()
+            # NOTE: self.expandAll() is terribly slow with large trees, so you are advised not to use this without
+            # something like search [as implemented below through the query check].
+            # Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
+            # https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
+            # https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
+        else:
+            self.sync()
 
     def build_row(self, method_obj) -> dict:
         method = bw.methods[method_obj[1]]
@@ -304,7 +317,7 @@ class MethodsTree(ABDictTreeView):
                 return key, True
         return clean_dict, False
 
-    def search_tree(self, tree, query):
+    def search_tree(self, tree, query, matches=0):
         """Search the tree and remove non-matching leaves and branches."""
         remove = []
         for key, value in tree.items():
@@ -313,9 +326,11 @@ class MethodsTree(ABDictTreeView):
                 if query.lower() not in value[0].lower():
                     # the query does not match
                     remove.append(key)
+                else:
+                    matches += 1
             else:
                 # this is not a leaf node, go deeper
-                sub_tree = self.search_tree(value, query)
+                sub_tree, matches = self.search_tree(value, query, matches)
                 if len(sub_tree) > 0:
                     # there were query matches in this branch
                     tree[key] = sub_tree
@@ -325,7 +340,7 @@ class MethodsTree(ABDictTreeView):
 
         for key in remove:
             tree.pop(key)
-        return tree
+        return tree, matches
 
     @Slot(name="copyMethod")
     def copy_method(self) -> None:
