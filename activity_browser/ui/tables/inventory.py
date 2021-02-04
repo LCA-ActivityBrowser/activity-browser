@@ -37,7 +37,9 @@ class DatabasesTable(ABDataFrameView):
     def _connect_signals(self):
         signals.project_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
-        self.doubleClicked.connect(self.open_database)
+        self.doubleClicked.connect(
+            lambda p: signals.database_selected.emit(self.model.get_db_name(p))
+        )
         self.relink_action.triggered.connect(
             lambda: signals.relink_database.emit(self.selected_db_name, self)
         )
@@ -59,8 +61,7 @@ class DatabasesTable(ABDataFrameView):
         )
         proxy = self.indexAt(a0.pos())
         if proxy.isValid():
-            index = self.get_source_index(proxy)
-            db_name = self.model.index(index.row(), 0).data()
+            db_name = self.model.get_db_name(proxy)
             self.relink_action.setEnabled(not project_settings.db_is_readonly(db_name))
         menu.exec_(a0.globalPos())
 
@@ -78,9 +79,9 @@ class DatabasesTable(ABDataFrameView):
             if proxy.column() == 2:
                 # Flip the read-only value for the database
                 new_value = not bool(proxy.data())
-                index = self.get_source_index(proxy)
-                db_name = self.model.index(index.row(), 0).data()
-                self.read_only_changed(db_name, new_value)
+                db_name = self.model.get_db_name(proxy)
+                project_settings.modify_db(db_name, new_value)
+                signals.database_read_only_changed.emit(db_name, new_value)
                 self.sync()
         super().mousePressEvent(e)
 
@@ -88,20 +89,7 @@ class DatabasesTable(ABDataFrameView):
     def selected_db_name(self) -> str:
         """ Return the database name of the user-selected index.
         """
-        index = self.get_source_index(self.currentIndex())
-        return self.model.index(index.row(), 0).data()
-
-    def open_database(self, proxy):
-        index = self.get_source_index(proxy)
-        signals.database_selected.emit(self.model.index(index.row(), 0).data())
-
-    @staticmethod
-    @Slot(str, bool)
-    def read_only_changed(db: str, read_only: bool):
-        """ User has clicked to update a db to either read-only or not.
-        """
-        project_settings.modify_db(db, read_only)
-        signals.database_read_only_changed.emit(db, read_only)
+        return self.model.get_db_name(self.currentIndex())
 
     def sync(self):
         # code below is based on the assumption that bw uses utc timestamps

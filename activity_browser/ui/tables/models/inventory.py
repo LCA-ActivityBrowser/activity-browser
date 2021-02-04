@@ -17,6 +17,10 @@ from .base import PandasModel
 class DatabasesModel(PandasModel):
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified"]
 
+    def get_db_name(self, proxy: QModelIndex) -> str:
+        idx = self.proxy_to_source(proxy)
+        return self._dataframe.iat[idx.row(), 0]
+
     def sync(self):
         # code below is based on the assumption that bw uses utc timestamps
         tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
