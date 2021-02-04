@@ -100,7 +100,6 @@ class DatabasesTable(ABDataFrameView):
 class ActivitiesBiosphereTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.database_name = None
         self.db_read_only = True
 
         self.model = ActivitiesBiosphereModel(parent=self)
@@ -118,6 +117,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         )
 
         self.connect_signals()
+
+    @property
+    def database_name(self) -> str:
+        return self.model.database_name
 
     @property
     def technosphere(self) -> bool:
@@ -158,8 +161,6 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.doubleClicked.connect(self.open_activity_tab)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
-        """ TEMP function."""
-        print("CALLED!")
         return self.model.get_key(proxy)
 
     @Slot(QtCore.QModelIndex, name="openActivityTab")
@@ -176,19 +177,11 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
     @Slot(name="deleteActivities")
     def delete_activities(self) -> None:
-        if len(self.selectedIndexes()) > 1:
-            keys = [self.model.get_key(p) for p in self.selectedIndexes()]
-            signals.delete_activities.emit(keys)
-        else:
-            signals.delete_activity.emit(self.model.get_key(self.currentIndex()))
+        self.model.delete_activities(self.selectedIndexes())
 
     @Slot(name="duplicateActivitiesWithinDb")
     def duplicate_activities(self) -> None:
-        if len(self.selectedIndexes()) > 1:
-            keys = [self.model.get_key(p) for p in self.selectedIndexes()]
-            signals.duplicate_activities.emit(keys)
-        else:
-            signals.duplicate_activity.emit(self.model.get_key(self.currentIndex()))
+        self.model.duplicate_activities(self.selectedIndexes())
 
     @Slot(str)
     def check_database_changed(self, db_name: str) -> None:
@@ -199,15 +192,9 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
     @Slot(name="duplicateActivitiesToOtherDb")
     def duplicate_activities_to_db(self) -> None:
-        if len(self.selectedIndexes()) > 1:
-            keys = [self.model.get_key(p) for p in self.selectedIndexes()]
-            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
-        else:
-            key = self.model.get_key(self.currentIndex())
-            signals.duplicate_to_db_interface.emit(key, self.database_name)
+        self.model.duplicate_activities_to_db(self.selectedIndexes())
 
     def sync(self, db_name: str) -> None:
-        self.database_name = db_name
         self.model.sync(db_name)
         self._resize()
         self.set_context_menu_policy()
@@ -219,6 +206,11 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             self.update_activity_table_read_only(self.database_name, self.db_read_only)
         else:
             self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+
+    def search(self, pattern1: str = None, pattern2: str = None,
+               logic='AND') -> None:
+        self.model.search(pattern1, pattern2, logic)
+        self._resize()
 
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
         """ [new, duplicate & delete] actions can only be selected for

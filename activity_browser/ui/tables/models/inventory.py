@@ -11,7 +11,8 @@ from PySide2.QtCore import Qt, QModelIndex
 
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.settings import project_settings
-from .base import PandasModel
+from activity_browser.signals import signals
+from .base import PandasModel, DragPandasModel
 
 
 class DatabasesModel(PandasModel):
@@ -45,9 +46,10 @@ class DatabasesModel(PandasModel):
         self.refresh_model()
 
 
-class ActivitiesBiosphereModel(PandasModel):
+class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+        self.database_name = None
         self.act_fields = lambda: AB_metadata.get_existing_fields(["reference product", "name", "location", "unit"])
         self.ef_fields = lambda: AB_metadata.get_existing_fields(["name", "categories", "type", "unit"])
         self.technosphere = True
@@ -100,6 +102,7 @@ class ActivitiesBiosphereModel(PandasModel):
 
         if db_name not in bw.databases:
             raise KeyError("This database does not exist!", db_name)
+        self.database_name = db_name
         self.technosphere = bc.is_technosphere_db(db_name)
 
         # Get dataframe from metadata and update column-names
@@ -107,14 +110,13 @@ class ActivitiesBiosphereModel(PandasModel):
         self._dataframe = df.reset_index(drop=True)
         self.refresh_model()
 
-    def search(self, db_name: str, pattern1: str = None, pattern2: str = None,
-               logic='AND') -> None:
+    def search(self, pattern1: str = None, pattern2: str = None, logic='AND') -> None:
         """ Filter the dataframe with two filters and a logical element
         in between to allow different filter combinations.
 
         TODO: Look at the possibility of using the proxy model to filter instead
         """
-        df = self.df_from_metadata(db_name)
+        df = self.df_from_metadata(self.database_name)
         if all((pattern1, pattern2)):
             mask1 = self.filter_dataframe(df, pattern1)
             mask2 = self.filter_dataframe(df, pattern2)
@@ -128,10 +130,10 @@ class ActivitiesBiosphereModel(PandasModel):
         elif any((pattern1, pattern2)):
             mask = self.filter_dataframe(df, pattern1 or pattern2)
         else:
-            self.sync(db_name)
+            self.sync(self.database_name)
             return
         df = df.loc[mask].reset_index(drop=True)
-        self.sync(db_name, df=df)
+        self.sync(self.database_name, df=df)
 
     def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
         """ Filter the dataframe returning a mask that is True for all rows
@@ -153,5 +155,24 @@ class ActivitiesBiosphereModel(PandasModel):
         )
         return mask
 
-    def flags(self, index):
-        return super().flags(index) | Qt.ItemIsDragEnabled
+    def delete_activities(self, proxies: list) -> None:
+        if len(proxies) > 1:
+            keys = [self.get_key(p) for p in proxies]
+            signals.delete_activities.emit(keys)
+        else:
+            signals.delete_activity.emit(self.get_key(proxies[0]))
+
+    def duplicate_activities(self, proxies: list) -> None:
+        if len(proxies) > 1:
+            keys = [self.get_key(p) for p in proxies]
+            signals.duplicate_activities.emit(keys)
+        else:
+            signals.duplicate_activity.emit(self.get_key(proxies[0]))
+
+    def duplicate_activities_to_db(self, proxies: list) -> None:
+        if len(proxies) > 1:
+            keys = [self.get_key(p) for p in proxies]
+            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
+        else:
+            key = self.get_key(proxies[0])
+            signals.duplicate_to_db_interface.emit(key, self.database_name)

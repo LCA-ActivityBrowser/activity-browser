@@ -249,6 +249,4 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         search_term = self.search_box.text()
         search_term2 = self.search_box2.text()
         logic = self.logic_dropdown.currentText()
-        self.table.model.search(
-            self.table.database_name, search_term, search_term2, logic=logic
-        )
+        self.table.search(search_term, search_term2, logic=logic)
