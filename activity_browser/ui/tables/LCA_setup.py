@@ -50,8 +50,6 @@ class CSActivityTable(ABDataFrameEdit):
 
         signals.calculation_setup_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
-        # after editing the model, signal that the calculation setup has changed.
-        self.model.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 
     def _resize(self):
         self.setColumnHidden(6, True)

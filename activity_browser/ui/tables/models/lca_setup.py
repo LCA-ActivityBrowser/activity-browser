@@ -20,6 +20,8 @@ class CSActivityModel(EditablePandasModel):
         super().__init__(parent=parent)
         self.current_cs = None
         self.key_col = 0
+        # after editing the model, signal that the calculation setup has changed.
+        self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 
     @property
     def activities(self) -> list:
