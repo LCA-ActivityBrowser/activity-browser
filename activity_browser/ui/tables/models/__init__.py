@@ -6,6 +6,7 @@ from .activity import (
 from .base import (
     PandasModel, DragPandasModel, EditablePandasModel, EditableDragPandasModel
 )
+from .history import ActivitiesHistoryModel
 from .impact_categories import CFModel, MethodsListModel
 from .inventory import DatabasesModel, ActivitiesBiosphereModel
 from .lca_setup import CSActivityModel, CSMethodsModel, ScenarioImportModel
