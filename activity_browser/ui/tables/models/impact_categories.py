@@ -5,15 +5,15 @@ from typing import Iterator, Optional
 import brightway2 as bw
 import pandas as pd
 from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Signal, Slot, Qt
+from PySide2.QtCore import QModelIndex, Signal, Slot
 
 from activity_browser.signals import signals
 from ...widgets import TupleNameDialog
 from ...wizards import UncertaintyWizard
-from .base import PandasModel
+from .base import PandasModel, DragPandasModel
 
 
-class MethodsListModel(PandasModel):
+class MethodsListModel(DragPandasModel):
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
     def __init__(self, parent=None):
@@ -67,9 +67,6 @@ class MethodsListModel(PandasModel):
             "# CFs": str(method.get("num_cfs", 0)),
             "method": method_obj[1],
         }
-
-    def flags(self, index):
-        return super().flags(index) | Qt.ItemIsDragEnabled
 
 
 class CFModel(PandasModel):
