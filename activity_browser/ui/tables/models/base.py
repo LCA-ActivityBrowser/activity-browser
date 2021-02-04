@@ -70,6 +70,10 @@ class PandasModel(QAbstractTableModel):
             index=False, header=include_header
         )
 
+    def to_excel(self, path: str) -> None:
+        """Store the underlying dataframe as excel in the given path"""
+        self._dataframe.to_excel(excel_writer=path)
+
     def sync(self, *args, **kwargs) -> None:
         """(Re)build the dataframe according to the given arguments."""
         self._dataframe = pd.DataFrame([], columns=self.HEADERS)
