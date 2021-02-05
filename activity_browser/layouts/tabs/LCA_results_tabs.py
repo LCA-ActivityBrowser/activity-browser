@@ -854,6 +854,9 @@ class ContributionTab(NewAnalysisTab):
         Implement in subclass."""
         raise NotImplementedError
 
+    def update_table(self):
+        self.table.sync(self.df)
+
     def update_plot(self):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
