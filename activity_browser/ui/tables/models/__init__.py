@@ -9,6 +9,7 @@ from .base import (
 from .history import ActivitiesHistoryModel
 from .impact_categories import CFModel, MethodsListModel
 from .inventory import DatabasesModel, ActivitiesBiosphereModel
+from .lca_results import LCAResultsModel, InventoryModel, ContributionModel
 from .lca_setup import CSActivityModel, CSMethodsModel, ScenarioImportModel
 from .scenarios import ScenarioModel
 from .tree import MethodsTreeModel, ParameterTreeModel
