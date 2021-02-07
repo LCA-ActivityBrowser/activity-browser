@@ -56,7 +56,6 @@ class MethodsTree(ABDictTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
         # set drag ability
-        self.drag_model = True
         self.setDragEnabled(True)
         self.setDragDropMode(ABDictTreeView.DragOnly)
         # set data

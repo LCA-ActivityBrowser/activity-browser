@@ -62,10 +62,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
     def get_key(self, proxy: QModelIndex) -> tuple:
         """ Get the key from the model using the given proxy index"""
-        proxy_model = proxy.model()
-        idx = proxy_model.mapToSource(proxy)
-        key = self._dataframe.iat[idx.row(), self._dataframe.columns.get_loc("key")]
-        return key
+        idx = self.proxy_to_source(proxy)
+        return self._dataframe.iat[idx.row(), self._dataframe.columns.get_loc("key")]
 
     def clear(self) -> None:
         self._dataframe = pd.DataFrame([])

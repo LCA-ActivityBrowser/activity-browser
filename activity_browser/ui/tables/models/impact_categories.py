@@ -21,8 +21,7 @@ class MethodsListModel(DragPandasModel):
         self.method_col = 0
 
     def get_method(self, proxy: QModelIndex) -> tuple:
-        proxy_model = proxy.model()
-        idx = proxy_model.mapToSource(proxy)
+        idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.method_col]
 
     @Slot(QModelIndex, name="copyMethod")
