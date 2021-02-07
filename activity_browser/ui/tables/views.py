@@ -4,12 +4,12 @@ from functools import wraps
 from typing import Optional
 
 from bw2data.filesystem import safe_filename
-from PySide2.QtCore import (QAbstractTableModel, QModelIndex, QSize,
-                            QSortFilterProxyModel, Qt, Slot)
+from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from ...settings import ab_settings
 from .delegates import ViewOnlyDelegate
+from .models import PandasModel
 
 
 class ABDataFrameView(QTableView):
@@ -38,7 +38,7 @@ class ABDataFrameView(QTableView):
         # Initialize attributes which are set during the `sync` step.
         # Creating (and typing) them here allows PyCharm to see them as
         # valid attributes.
-        self.model: Optional[QAbstractTableModel] = None
+        self.model: Optional[PandasModel] = None
         self.proxy_model: Optional[QSortFilterProxyModel] = None
 
     def get_max_height(self) -> int:
@@ -57,19 +57,6 @@ class ABDataFrameView(QTableView):
         """ Custom table resizing to perform after setting new (proxy) model.
         """
         self.setMaximumHeight(self.get_max_height())
-
-    @staticmethod
-    def get_source_index(proxy_index: QModelIndex) -> QModelIndex:
-        """ Returns the index of the original model from a proxymodel index.
-
-        This way data from the self._dataframe can be obtained correctly.
-        """
-        model = proxy_index.model()
-        if hasattr(model, 'mapToSource'):
-            # We are a proxy model
-            source_index = model.mapToSource(proxy_index)
-            return source_index
-        return QModelIndex()  # Returns an invalid index
 
     def to_clipboard(self):
         """ Copy dataframe to clipboard
@@ -118,7 +105,7 @@ class ABDataFrameView(QTableView):
             # Should we include headers?
             headers = e.modifiers() & Qt.ShiftModifier
             if e.key() == Qt.Key_C:  # copy
-                selection = [self.get_source_index(pindex) for pindex in self.selectedIndexes()]
+                selection = [self.model.proxy_to_source(p) for p in self.selectedIndexes()]
                 rows = [index.row() for index in selection]
                 columns = [index.column() for index in selection]
                 rows = sorted(set(rows), key=rows.index)
