@@ -83,15 +83,17 @@ class PandasModel(QAbstractTableModel):
         parent = self.parent()
         if parent is None:
             return
-        proxy_model = QSortFilterProxyModel(parent)
-        proxy_model.setSourceModel(self)
-        proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-        parent.setModel(proxy_model)
+        parent.proxy_model = QSortFilterProxyModel(parent)
+        parent.proxy_model.setSourceModel(self)
+        parent.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
+        parent.setModel(parent.proxy_model)
 
     @staticmethod
     def proxy_to_source(proxy: QModelIndex) -> QModelIndex:
         """Step from the QSortFilterProxyModel to the underlying PandasModel."""
         model = proxy.model()
+        if not hasattr(model, "mapToSource"):
+            return proxy  # Proxy is actually the PandasModel
         return model.mapToSource(proxy)
 
 
