@@ -17,15 +17,15 @@ from .models import (
     BaseParameterModel, ProjectParameterModel, DatabaseParameterModel,
     ActivityParameterModel, ParameterTreeModel,
 )
-from .views import ABDataFrameEdit, ABDictTreeView, tree_model_decorate
+from .views import ABDataFrameView, ABDictTreeView, tree_model_decorate
 
 
-class BaseParameterTable(ABDataFrameEdit):
+class BaseParameterTable(ABDataFrameView):
     MODEL = BaseParameterModel
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setSelectionMode(ABDataFrameEdit.SingleSelection)
+        self.setSelectionMode(ABDataFrameView.SingleSelection)
 
         self.model = self.MODEL(self)
 
@@ -52,6 +52,8 @@ class BaseParameterTable(ABDataFrameEdit):
 
     def custom_view_sizing(self) -> None:
         super().custom_view_sizing()
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
         self.setColumnHidden(self.model.param_col, True)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
@@ -194,7 +196,7 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(14, ViewOnlyFloatDelegate(self))
 
         # Set dropEnabled
-        self.setDragDropMode(ABDataFrameEdit.DropOnly)
+        self.setDragDropMode(ABDataFrameView.DropOnly)
         self.setAcceptDrops(True)
 
     def custom_view_sizing(self) -> None:

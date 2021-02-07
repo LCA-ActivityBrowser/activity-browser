@@ -8,7 +8,7 @@ from ..icons import qicons
 from .delegates import FloatDelegate, ViewOnlyDelegate
 from .impact_categories import MethodsTable, MethodsTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
-from .views import ABDataFrameEdit, ABDataFrameView
+from .views import ABDataFrameView
 
 
 class CSList(QtWidgets.QComboBox):
@@ -35,7 +35,7 @@ class CSList(QtWidgets.QComboBox):
         return self.currentText()
 
 
-class CSActivityTable(ABDataFrameEdit):
+class CSActivityTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)

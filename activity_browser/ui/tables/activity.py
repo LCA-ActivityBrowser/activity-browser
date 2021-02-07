@@ -7,12 +7,12 @@ from .models import (
     BaseExchangeModel, ProductExchangeModel, TechnosphereExchangeModel,
     BiosphereExchangeModel, DownstreamExchangeModel,
 )
-from .views import ABDataFrameEdit
+from .views import ABDataFrameView
 from ..icons import qicons
 from ...signals import signals
 
 
-class BaseExchangeTable(ABDataFrameEdit):
+class BaseExchangeTable(ABDataFrameView):
     MODEL = BaseExchangeModel
     # Signal used to correctly control `DetailsGroupBox`
     updated = Signal()
@@ -54,6 +54,8 @@ class BaseExchangeTable(ABDataFrameEdit):
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
         super().custom_view_sizing()
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
         self.setColumnHidden(self.model.exchange_column, True)
 
     def sync(self, exchanges=None):
