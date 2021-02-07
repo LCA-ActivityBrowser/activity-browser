@@ -186,9 +186,9 @@ can be used within the formula!</p>
     def build_tables(self):
         """ Read parameters from brightway and build dataframe tables
         """
-        self.project_table.sync(ProjectParameterTable.build_df())
-        self.database_table.sync(DataBaseParameterTable.build_df())
-        self.activity_table.sync(ActivityParameterTable.build_df())
+        self.project_table.sync()
+        self.database_table.sync()
+        self.activity_table.sync()
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases
@@ -205,7 +205,7 @@ can be used within the formula!</p>
 
     @Slot()
     def activity_order_column(self) -> None:
-        col = self.activity_table.combine_columns().index("order")
+        col = self.activity_table.model.order_col
         state = self.show_order.isChecked()
         if not state:
             self.activity_table.setColumnHidden(col, True)
