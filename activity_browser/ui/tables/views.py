@@ -10,29 +10,6 @@ from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
 
 from ...settings import ab_settings
 from .delegates import ViewOnlyDelegate
-from .models import (DragPandasModel, EditableDragPandasModel,
-                     EditablePandasModel, PandasModel)
-
-
-def dataframe_sync(sync):
-    """ Syncs the data from the dataframe into the table view.
-
-    Uses either of the PandasModel classes depending if the class is
-    'drag-enabled'.
-    """
-    @wraps(sync)
-    def wrapper(self, *args, **kwargs):
-        sync(self, *args, **kwargs)
-
-        self.model = self._select_model()
-        # See: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
-        self.proxy_model = QSortFilterProxyModel()
-        self.proxy_model.setSourceModel(self.model)
-        self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-        self.setModel(self.proxy_model)
-        self.custom_view_sizing()
-
-    return wrapper
 
 
 class ABDataFrameView(QTableView):
@@ -75,13 +52,6 @@ class ABDataFrameView(QTableView):
         if getattr(self, "model") is not None:
             return self.model.rowCount()
         return 0
-
-    def _select_model(self) -> QAbstractTableModel:
-        """ Select which model to use for the proxy model.
-        """
-        if hasattr(self, 'drag_model'):
-            return DragPandasModel(self.dataframe)
-        return PandasModel(self.dataframe)
 
     def custom_view_sizing(self):
         """ Custom table resizing to perform after setting new (proxy) model.
@@ -160,11 +130,6 @@ class ABDataFrameEdit(ABDataFrameView):
     """ Inherit from view class but use editable models and more flexible
     sizing.
     """
-    def _select_model(self) -> QAbstractTableModel:
-        if hasattr(self, 'drag_model'):
-            return EditableDragPandasModel(self.dataframe)
-        return EditablePandasModel(self.dataframe)
-
     def custom_view_sizing(self) -> None:
         self.setMaximumHeight(self.get_max_height())
         self.resizeColumnsToContents()
