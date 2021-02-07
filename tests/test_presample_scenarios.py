@@ -12,6 +12,7 @@ import pytest
 
 from activity_browser.signals import signals
 from activity_browser.ui.tables.scenarios import PresamplesList, ScenarioTable
+from activity_browser.ui.tables.models import ScenarioModel
 from activity_browser.layouts.tabs.parameters import ParametersTab, ParameterScenariosTab
 
 
@@ -30,7 +31,7 @@ def scenario_dataframes():
         ("test2", "project", 5.0),
         ("test3", "project", 7.0),
     ]
-    df = pd.DataFrame(data, columns=ScenarioTable.HEADERS)
+    df = pd.DataFrame(data, columns=ScenarioModel.HEADERS)
     new_df = df.copy()
     return df, new_df
 
@@ -96,12 +97,12 @@ def test_scenario_table_rebuild(qtbot, project_parameters):
     project_table = tab.tabs.get("Definitions").project_table
     scenario_table = tab.tabs.get("Scenarios").tbl
 
-    begin_df = scenario_table.dataframe.copy()
+    begin_df = scenario_table.model._dataframe.copy()
 
-    assert begin_df.equals(scenario_table.dataframe)
+    assert begin_df.equals(scenario_table.model._dataframe)
     with qtbot.waitSignal(signals.parameters_changed, timeout=500):
         project_table.model.setData(project_table.model.index(0, 1), 16)
-    assert not begin_df.equals(scenario_table.dataframe)
+    assert not begin_df.equals(scenario_table.model._dataframe)
 
 
 def test_scenario_table_rename(qtbot, project_parameters):
@@ -113,10 +114,10 @@ def test_scenario_table_rename(qtbot, project_parameters):
     project_table = tab.tabs.get("Definitions").project_table
     scenario_table = tab.tabs.get("Scenarios").tbl
 
-    assert scenario_table.dataframe.index[0] == "test1"
+    assert scenario_table.model._dataframe.index[0] == "test1"
     with qtbot.waitSignal(signals.parameter_renamed, timeout=500):
         project_table.rename_parameter(project_table.proxy_model.index(0, 0), "newname")
-    assert scenario_table.dataframe.index[0] == "newname"
+    assert scenario_table.model._dataframe.index[0] == "newname"
 
 
 def test_scenario_merge_new_scenarios(scenario_dataframes):
@@ -127,7 +128,7 @@ def test_scenario_merge_new_scenarios(scenario_dataframes):
     assert not df.equals(new)
 
     # `_perform_merge` is destructive to the 2nd DataFrame passed, so use a copy
-    df = ScenarioTable._perform_merge(df, new.copy())
+    df = ScenarioModel._perform_merge(df, new.copy())
     assert df.equals(new)
 
 
@@ -136,7 +137,7 @@ def test_scenario_merge_new_rows(scenario_dataframes):
     new: pd.DataFrame
     new.insert(3, "Scenario1", [5.0, 7.0, 9.0])
     new.insert(4, "Scenario2", [12.0, 16.0, 19.0])
-    df = ScenarioTable._perform_merge(df, new.copy())
+    df = ScenarioModel._perform_merge(df, new.copy())
     assert df.equals(new)
 
     new = new.append({
@@ -144,7 +145,7 @@ def test_scenario_merge_new_rows(scenario_dataframes):
         "Scenario1": 2.5, "Scenario2": 7.4
     }, ignore_index=True)
     assert not df.equals(new)
-    df = ScenarioTable._perform_merge(df, new.copy())
+    df = ScenarioModel._perform_merge(df, new.copy())
     # Unknown Name/Group combinations are ignored when merging
     assert "test4" not in df["Name"]
 
@@ -153,26 +154,26 @@ def test_scenario_merge_new_values(scenario_dataframes):
     df, new = scenario_dataframes
     new.insert(3, "Scenario1", [5.0, 7.0, 9.0])
     new.insert(4, "Scenario2", [12.0, 16.0, 19.0])
-    df = ScenarioTable._perform_merge(df, new.copy())
+    df = ScenarioModel._perform_merge(df, new.copy())
     assert df.equals(new)
     # Now alter values in the existing scenario columns.
     new.iat[1, 3] = 71.0
     new.iat[0, 4] = 2.0
     assert not df.equals(new)
-    df = ScenarioTable._perform_merge(df, new.copy())
+    df = ScenarioModel._perform_merge(df, new.copy())
     assert df.equals(new)
 
 
 def test_scenario_merge_empty_values(scenario_dataframes):
     df, new = scenario_dataframes
     new.insert(3, "Scenario1", [5.0, 7.0, 9.0])
-    df = ScenarioTable._perform_merge(df, new.copy())
+    df = ScenarioModel._perform_merge(df, new.copy())
     assert df.equals(new)
 
     new.iat[0, 3] = 50.0
     new.insert(4, "Scenario2", [12.0, np.NaN, 19.0])
     assert not df.equals(new)
-    df = ScenarioTable._perform_merge(df, new.copy())
+    df = ScenarioModel._perform_merge(df, new.copy())
     # Now the dataframes are not equal! Why?
     assert not df.equals(new)
     # Because the merge causes the value from the 'default' column to be copied

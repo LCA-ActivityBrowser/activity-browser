@@ -8,31 +8,10 @@ import pytest
 from activity_browser.signals import signals
 from activity_browser.ui.tables.delegates import FormulaDelegate
 from activity_browser.ui.tables.parameters import (
-    BaseParameterTable, ActivityParameterTable, DataBaseParameterTable,
+    ActivityParameterTable, DataBaseParameterTable,
     ProjectParameterTable
 )
 from activity_browser.layouts.tabs.parameters import ParameterDefinitionTab
-
-
-@pytest.mark.parametrize(
-    "method_call, parameters", [
-        ("build_df", None),
-        ("rename_parameter", ["", "", False]),
-        ("uncertainty_columns", [False]),
-        ("get_usable_parameters", None),
-        ("get_interpreter", None),
-    ]
-)
-def test_base_table_exceptions(qtbot, method_call, parameters):
-    """ Test most of the methods in the base table for exceptions.
-
-    Other methods are covered by subclasses using them.
-    """
-    table = BaseParameterTable()
-    qtbot.addWidget(table)
-    with pytest.raises(NotImplementedError):
-        func = getattr(table, method_call)
-        func(*parameters) if parameters else func()
 
 
 def test_create_project_param(qtbot):
@@ -69,7 +48,7 @@ def test_edit_project_param(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.sync()
 
     # Edit both the name and the amount of the first parameter.
     table.rename_parameter(table.proxy_model.index(0, 0), "test_project")
@@ -94,7 +73,7 @@ def test_delete_project_param(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.sync()
 
     # The 2nd parameter cannot be deleted
     param = table.get_parameter(table.proxy_model.index(1, 0))
@@ -146,7 +125,7 @@ def test_create_database_params(qtbot):
 def test_edit_database_params(qtbot):
     table = DataBaseParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.sync()
 
     # Fill rows with new variables
     table.rename_parameter(table.proxy_model.index(0, 0), "test_db1")
@@ -191,7 +170,7 @@ def test_downstream_dependency(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.sync()
 
     # First parameter of the project table is used by the database parameter
     param = table.get_parameter(table.proxy_model.index(0, 0))
@@ -211,7 +190,7 @@ def test_create_activity_param(qtbot):
     table = project_db_tab.activity_table
 
     # Open the order column just because we can
-    col = table.COLUMNS.index("order")
+    col = table.model.order_col
     assert table.isColumnHidden(col)
     with qtbot.waitSignal(project_db_tab.show_order.stateChanged, timeout=1000):
         qtbot.mouseClick(project_db_tab.show_order, QtCore.Qt.LeftButton)
@@ -220,7 +199,7 @@ def test_create_activity_param(qtbot):
     # Create multiple parameters for a single activity
     act_key = ("testdb", "act1")
     for _ in range(3):
-        table.add_parameter(act_key)
+        table.model.add_parameter(act_key)
 
     # Test created parameters
     assert ActivityParameter.select().count() == 3
@@ -232,7 +211,7 @@ def test_create_activity_param(qtbot):
     loc = table.visualRect(table.proxy_model.index(0, 0))
     qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=loc.center())
     group = table.get_current_group()
-    assert table.proxy_model.index(2, table.COLUMNS.index("group")).data() == group
+    assert table.proxy_model.index(2, table.model.group_col).data() == group
 
 
 def test_edit_activity_param(qtbot):
@@ -242,7 +221,7 @@ def test_edit_activity_param(qtbot):
     """
     table = ActivityParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.sync()
 
     # Fill rows with new variables
     table.rename_parameter(table.proxy_model.index(0, 0), "edit_act_1", True)
@@ -258,8 +237,8 @@ def test_edit_activity_param(qtbot):
 def test_activity_order_edit(qtbot):
     table = ActivityParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
-    group = table.model.index(0, table.group_column).data()
+    table.sync()
+    group = table.model.index(0, table.model.group_col).data()
     with qtbot.waitSignal(signals.parameters_changed, timeout=1000):
         table.model.setData(table.model.index(0, 5), [group])
 
@@ -276,7 +255,7 @@ def test_table_formula_delegates(qtbot, table_class):
     """
     table = table_class()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.sync()
 
     assert isinstance(table.itemDelegateForColumn(2), FormulaDelegate)
 
