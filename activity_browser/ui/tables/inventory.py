@@ -94,7 +94,7 @@ class DatabasesTable(ABDataFrameView):
     def sync(self):
         # code below is based on the assumption that bw uses utc timestamps
         self.model.sync()
-        self._resize()
+        self.custom_view_sizing()
 
 
 class ActivitiesBiosphereTable(ABDataFrameView):
@@ -196,7 +196,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
     def sync(self, db_name: str) -> None:
         self.model.sync(db_name)
-        self._resize()
+        self.custom_view_sizing()
         self.set_context_menu_policy()
 
     def set_context_menu_policy(self) -> None:
@@ -210,7 +210,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     def search(self, pattern1: str = None, pattern2: str = None,
                logic='AND') -> None:
         self.model.search(pattern1, pattern2, logic)
-        self._resize()
+        self.custom_view_sizing()
 
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
         """ [new, duplicate & delete] actions can only be selected for

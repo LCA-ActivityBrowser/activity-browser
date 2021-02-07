@@ -48,10 +48,10 @@ class BaseParameterTable(ABDataFrameEdit):
 
     def sync(self) -> None:
         self.model.sync()
-        self._resize()
+        self.custom_view_sizing()
 
-    def _resize(self) -> None:
-        super()._resize()
+    def custom_view_sizing(self) -> None:
+        super().custom_view_sizing()
         self.setColumnHidden(self.model.param_col, True)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
@@ -197,8 +197,8 @@ class ActivityParameterTable(BaseParameterTable):
         self.setDragDropMode(ABDataFrameEdit.DropOnly)
         self.setAcceptDrops(True)
 
-    def _resize(self) -> None:
-        super()._resize()
+    def custom_view_sizing(self) -> None:
+        super().custom_view_sizing()
         self.setColumnHidden(self.model.group_col, True)
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:

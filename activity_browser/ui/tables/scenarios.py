@@ -63,12 +63,12 @@ class ScenarioTable(ABDataFrameView):
 
     def sync(self, df=None) -> None:
         self.model.sync(df)
-        self._resize()
+        self.custom_view_sizing()
 
     @Slot(name="safeTableRebuild")
     def rebuild_table(self) -> None:
         self.model.rebuild_table()
-        self._resize()
+        self.custom_view_sizing()
 
     @Slot(bool, name="showGroupColumn")
     def group_column(self, shown: bool = False) -> None:

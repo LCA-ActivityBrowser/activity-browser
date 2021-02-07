@@ -50,17 +50,17 @@ class BaseExchangeTable(ABDataFrameEdit):
         self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
         self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
 
-    def _resize(self) -> None:
+    def custom_view_sizing(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
-        super()._resize()
+        super().custom_view_sizing()
         self.setColumnHidden(self.model.exchange_column, True)
 
     def sync(self, exchanges=None):
         """ Build the table using either new or stored exchanges iterable.
         """
         self.model.sync(exchanges)
-        self._resize()
+        self.custom_view_sizing()
 
     def open_activities(self) -> None:
         """ Take the selected indexes and attempt to open activity tabs.
@@ -169,10 +169,10 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
 
-    def _resize(self) -> None:
+    def custom_view_sizing(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
-        super()._resize()
+        super().custom_view_sizing()
         self.show_uncertainty()
 
     def show_uncertainty(self, show: bool = False) -> None:
@@ -225,8 +225,8 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.table_name = "biosphere"
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
 
-    def _resize(self) -> None:
-        super()._resize()
+    def custom_view_sizing(self) -> None:
+        super().custom_view_sizing()
         self.show_uncertainty()
 
     def show_uncertainty(self, show: bool = False) -> None:

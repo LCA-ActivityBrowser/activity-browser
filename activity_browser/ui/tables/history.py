@@ -22,7 +22,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
 
     def sync(self, df=None):
         self.model.sync(df)
-        self._resize()
+        self.custom_view_sizing()
 
     def contextMenuEvent(self, a0):
         menu = QMenu(self)
@@ -38,7 +38,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
         """
         self.model.open_tab_event(self.currentIndex())
 
-    def _resize(self):
+    def custom_view_sizing(self):
         self.setColumnHidden(self.model.key_col, True)  # Hide the 'key' column
         self.resizeColumnsToContents()
         self.resizeRowsToContents()

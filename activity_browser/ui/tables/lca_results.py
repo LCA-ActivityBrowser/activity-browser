@@ -11,7 +11,7 @@ class LCAResultsTable(ABDataFrameView):
 
     def sync(self, df) -> None:
         self.model.sync(df)
-        self._resize()
+        self.custom_view_sizing()
 
 
 class InventoryTable(ABDataFrameView):
@@ -21,7 +21,7 @@ class InventoryTable(ABDataFrameView):
 
     def sync(self, df) -> None:
         self.model.sync(df)
-        self._resize()
+        self.custom_view_sizing()
 
 
 class ContributionTable(ABDataFrameView):
@@ -31,7 +31,7 @@ class ContributionTable(ABDataFrameView):
 
     def sync(self, df) -> None:
         self.model.sync(df)
-        self._resize()
+        self.custom_view_sizing()
 
 
 

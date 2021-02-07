@@ -51,14 +51,14 @@ class CSActivityTable(ABDataFrameEdit):
         signals.calculation_setup_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
 
-    def _resize(self):
+    def custom_view_sizing(self):
         self.setColumnHidden(6, True)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
     def sync(self, name: str = None):
         self.model.sync(name)
-        self._resize()
+        self.custom_view_sizing()
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -70,7 +70,7 @@ class CSActivityTable(ABDataFrameEdit):
     @Slot(name="deleteRows")
     def delete_rows(self):
         self.model.delete_rows(self.selectedIndexes())
-        self._resize()
+        self.custom_view_sizing()
 
     def to_python(self) -> list:
         return self.model.activities
@@ -95,7 +95,7 @@ class CSActivityTable(ABDataFrameEdit):
         self.model.include_activities(
             {source.get_key(p): 1.0} for p in source.selectedIndexes()
         )
-        self._resize()
+        self.custom_view_sizing()
 
 
 class CSMethodsTable(ABDataFrameView):
@@ -106,19 +106,19 @@ class CSMethodsTable(ABDataFrameView):
         self.model = CSMethodsModel(self)
         signals.calculation_setup_selected.connect(self.sync)
 
-    def _resize(self):
+    def custom_view_sizing(self):
         self.setColumnHidden(3, True)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
     def sync(self, name: str = None):
         self.model.sync(name)
-        self._resize()
+        self.custom_view_sizing()
 
     @Slot(name="deleteRows")
     def delete_rows(self):
         self.model.delete_rows(self.selectedIndexes())
-        self._resize()
+        self.custom_view_sizing()
 
     def to_python(self):
         return self.model.methods
@@ -138,7 +138,7 @@ class CSMethodsTable(ABDataFrameView):
     def dropEvent(self, event):
         event.accept()
         self.model.include_methods(event.source().selected_methods())
-        self._resize()
+        self.custom_view_sizing()
 
 
 class ScenarioImportTable(ABDataFrameView):
@@ -151,4 +151,4 @@ class ScenarioImportTable(ABDataFrameView):
 
     def sync(self, names: list):
         self.model.sync(names)
-        self._resize()
+        self.custom_view_sizing()

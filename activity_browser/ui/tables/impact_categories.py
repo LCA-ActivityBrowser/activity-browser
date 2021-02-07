@@ -33,9 +33,9 @@ class MethodsTable(ABDataFrameView):
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
         self.model.sync(query)
-        self._resize()
+        self.custom_view_sizing()
 
-    def _resize(self) -> None:
+    def custom_view_sizing(self) -> None:
         self.setColumnHidden(self.model.method_col, True)
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
@@ -276,9 +276,9 @@ class CFTable(ABDataFrameView):
 
     def sync(self, method: tuple) -> None:
         self.model.sync(method)
-        self._resize()
+        self.custom_view_sizing()
 
-    def _resize(self) -> None:
+    def custom_view_sizing(self) -> None:
         self.setColumnHidden(self.model.cf_column, True)
         self.hide_uncertain()
         self.setSizePolicy(QtWidgets.QSizePolicy(

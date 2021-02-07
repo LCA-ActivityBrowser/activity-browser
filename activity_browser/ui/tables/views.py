@@ -30,7 +30,7 @@ def dataframe_sync(sync):
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         self.setModel(self.proxy_model)
-        self._resize()
+        self.custom_view_sizing()
 
     return wrapper
 
@@ -83,7 +83,7 @@ class ABDataFrameView(QTableView):
             return DragPandasModel(self.dataframe)
         return PandasModel(self.dataframe)
 
-    def _resize(self):
+    def custom_view_sizing(self):
         """ Custom table resizing to perform after setting new (proxy) model.
         """
         self.setMaximumHeight(self.get_max_height())
@@ -165,7 +165,7 @@ class ABDataFrameEdit(ABDataFrameView):
             return EditableDragPandasModel(self.dataframe)
         return EditablePandasModel(self.dataframe)
 
-    def _resize(self) -> None:
+    def custom_view_sizing(self) -> None:
         self.setMaximumHeight(self.get_max_height())
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -179,7 +179,7 @@ def tree_model_decorate(sync):
         sync(self, *args, **kwargs)
         model = self._select_model()
         self.setModel(model)
-        self._resize()
+        self.custom_view_sizing()
     return wrapper
 
 
@@ -191,8 +191,8 @@ class ABDictTreeView(QTreeView):
         self._connect_signals()
 
     def _connect_signals(self):
-        self.expanded.connect(self._resize)
-        self.collapsed.connect(self._resize)
+        self.expanded.connect(self.custom_view_sizing)
+        self.collapsed.connect(self.custom_view_sizing)
 
     def _select_model(self):
         """ Returns the model to be used in the view.
@@ -200,7 +200,7 @@ class ABDictTreeView(QTreeView):
         raise NotImplementedError
 
     @Slot()
-    def _resize(self) -> None:
+    def custom_view_sizing(self) -> None:
         """ Resize the first column (usually 'name') whenever an item is
         expanded or collapsed.
         """
