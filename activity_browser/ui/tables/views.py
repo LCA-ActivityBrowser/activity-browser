@@ -126,16 +126,6 @@ class ABDataFrameView(QTableView):
                 self.model.to_clipboard(rows, columns, headers)
 
 
-class ABDataFrameEdit(ABDataFrameView):
-    """ Inherit from view class but use editable models and more flexible
-    sizing.
-    """
-    def custom_view_sizing(self) -> None:
-        self.setMaximumHeight(self.get_max_height())
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
-
 def tree_model_decorate(sync):
     """ Take and execute the given sync function, then build the view model.
     """
