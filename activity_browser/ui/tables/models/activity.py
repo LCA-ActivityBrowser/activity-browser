@@ -87,7 +87,7 @@ class BaseExchangeModel(EditablePandasModel):
         TODO: Move this to the exchange controller.
         """
         exchange = self.get_exchange(proxy)
-        wizard = UncertaintyWizard(exchange, self)
+        wizard = UncertaintyWizard(exchange, self.parent())
         wizard.show()
 
     def remove_uncertainty(self, proxies: list) -> None:

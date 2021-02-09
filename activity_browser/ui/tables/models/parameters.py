@@ -122,7 +122,7 @@ class BaseParameterModel(EditablePandasModel):
     @Slot(name="modifyParameterUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        wizard = UncertaintyWizard(param, self)
+        wizard = UncertaintyWizard(param, self.parent())
         wizard.show()
 
     @Slot(name="unsetParameterUncertainty")
