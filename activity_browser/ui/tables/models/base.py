@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from PySide2.QtCore import (
     QAbstractItemModel, QAbstractTableModel, QModelIndex,
-    QSortFilterProxyModel, Qt
+    QSortFilterProxyModel, Qt, Signal
 )
 from PySide2.QtGui import QBrush
 
@@ -16,8 +16,13 @@ from activity_browser.ui.style import style_item
 class PandasModel(QAbstractTableModel):
     """ Abstract pandas table model adapted from
     https://stackoverflow.com/a/42955764.
+
+    TODO: Further improve the model by implementing insertRows and removeRows
+     methods, this will allow us to stop recreating the proxy model on every
+     add/delete call. See https://doc.qt.io/qt-5/qabstracttablemodel.html
     """
     HEADERS = []
+    updated = Signal()
 
     def __init__(self, df: pd.DataFrame = None, parent=None):
         super().__init__(parent)
@@ -69,6 +74,10 @@ class PandasModel(QAbstractTableModel):
         self._dataframe.iloc[rows, columns].to_clipboard(
             index=False, header=include_header
         )
+
+    def to_csv(self, path: str) -> None:
+        """Store the dataframe as csv in the given path."""
+        self._dataframe.to_csv(path)
 
     def to_excel(self, path: str) -> None:
         """Store the underlying dataframe as excel in the given path"""
