@@ -7,16 +7,16 @@ from .base import PandasModel
 class LCAResultsModel(PandasModel):
     def sync(self, df):
         self._dataframe = df.replace(np.nan, '', regex=True)
-        self.refresh_model()
+        self.updated.emit()
 
 
 class InventoryModel(PandasModel):
     def sync(self, df):
         self._dataframe = df
-        self.refresh_model()
+        self.updated.emit()
 
 
 class ContributionModel(PandasModel):
     def sync(self, df):
         self._dataframe = df.replace(np.nan, '', regex=True)
-        self.refresh_model()
+        self.updated.emit()

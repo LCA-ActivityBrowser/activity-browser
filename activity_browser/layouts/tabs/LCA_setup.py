@@ -475,9 +475,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 self.scenario_name.setToolTip(path.name)
 
     def sync_superstructure(self, df: pd.DataFrame) -> None:
+        # TODO: Move the 'scenario_df' into the model itself.
         self.scenario_df = df
         cols = scenario_names_from_df(self.scenario_df)
-        self.table.sync(cols)
+        self.table.model.sync(cols)
 
     @property
     def dataframe(self) -> pd.DataFrame:

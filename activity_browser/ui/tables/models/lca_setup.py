@@ -20,6 +20,8 @@ class CSActivityModel(EditablePandasModel):
         super().__init__(parent=parent)
         self.current_cs = None
         self.key_col = 0
+        signals.calculation_setup_selected.connect(self.sync)
+        signals.databases_changed.connect(self.sync)
         # after editing the model, signal that the calculation setup has changed.
         self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 
@@ -48,7 +50,7 @@ class CSActivityModel(EditablePandasModel):
         # Drop rows where the fu key was invalid in some way.
         self._dataframe = df.dropna().reset_index(drop=True)
         self.key_col = self._dataframe.columns.get_loc("key")
-        self.refresh_model()
+        self.updated.emit()
 
     def build_row(self, key: tuple, amount: float = 1.0) -> dict:
         try:
@@ -70,7 +72,7 @@ class CSActivityModel(EditablePandasModel):
         indices = (self.proxy_to_source(p) for p in proxies)
         rows = [i.row() for i in indices]
         self._dataframe = self._dataframe.drop(rows, axis=0).reset_index(drop=True)
-        self.refresh_model()
+        self.updated.emit()
         signals.calculation_setup_changed.emit()  # Trigger update of CS in brightway
 
     def include_activities(self, new_activities: Iterable) -> None:
@@ -81,7 +83,7 @@ class CSActivityModel(EditablePandasModel):
             data.append(self.build_row(k[0], v[0]))
         if data:
             self._dataframe = self._dataframe.append(data, ignore_index=True)
-            self.refresh_model()
+            self.updated.emit()
             signals.calculation_setup_changed.emit()
 
 
@@ -91,6 +93,7 @@ class CSMethodsModel(PandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.current_cs = None
+        signals.calculation_setup_selected.connect(self.sync)
 
     @property
     def methods(self) -> list:
@@ -105,7 +108,7 @@ class CSMethodsModel(PandasModel):
                 self.build_row(method)
                 for method in bw.calculation_setups[self.current_cs].get("ia", [])
             ], columns=self.HEADERS)
-        self.refresh_model()
+        self.updated.emit()
 
     @staticmethod
     def build_row(method: tuple) -> dict:
@@ -139,4 +142,4 @@ class ScenarioImportModel(PandasModel):
 
     def sync(self, names: list) -> None:
         self._dataframe = pd.DataFrame(names, columns=self.HEADERS)
-        self.refresh_model()
+        self.updated.emit()

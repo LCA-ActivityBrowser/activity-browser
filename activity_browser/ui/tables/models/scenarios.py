@@ -3,8 +3,10 @@ from typing import Iterable, Tuple
 
 import numpy as np
 import pandas as pd
+from PySide2.QtCore import Slot
 
 from activity_browser.bwutils.utils import Parameters
+from activity_browser.signals import signals
 from .base import PandasModel
 
 
@@ -14,7 +16,11 @@ class ScenarioModel(PandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+        signals.project_selected.connect(self.sync)
+        signals.parameters_changed.connect(self.rebuild_table)
+        signals.parameter_renamed.connect(self.update_param_name)
 
+    @Slot(name="doCleanSync")
     def sync(self, df: pd.DataFrame = None) -> None:
         """ Construct the dataframe from the existing parameters, if ``df``
         is given, perform a merge to possibly include additional columns.
@@ -32,7 +38,7 @@ class ScenarioModel(PandasModel):
                 df.drop(columns="default", inplace=True)
             new_df = self._perform_merge(new_df, df)
         self._dataframe = new_df.set_index("Name")
-        self.refresh_model()
+        self.updated.emit()
 
     @classmethod
     def _perform_merge(cls, left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
@@ -66,6 +72,7 @@ class ScenarioModel(PandasModel):
             df[idx] = df[idx].apply(lambda x: x.fillna(x["default"]), axis=1)
         return df
 
+    @Slot(name="resetDataIndex")
     def rebuild_table(self) -> None:
         """ Should be called when the `parameters_changed` signal is emitted.
         Will call sync with a copy of the current dataframe to ensure no
@@ -76,6 +83,7 @@ class ScenarioModel(PandasModel):
         """
         self.sync(self._dataframe.reset_index())
 
+    @Slot(str, str, str, name="renameParameterIndex")
     def update_param_name(self, old: str, group: str, new: str) -> None:
         """ Kind of a cheat, but directly edit the dataframe.index to update
         the table whenever the user renames a parameter.

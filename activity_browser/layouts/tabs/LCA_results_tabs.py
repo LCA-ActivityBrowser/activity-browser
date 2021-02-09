@@ -478,7 +478,7 @@ class InventoryTab(NewAnalysisTab):
             setattr(self, attr_name, self.parent.contributions.inventory_df(
                 inventory_type=inventory)
             )
-        self.table.sync(getattr(self, attr_name))
+        self.table.model.sync(getattr(self, attr_name))
 
     def clear_tables(self) -> None:
         """Set the biosphere and technosphere to None."""
@@ -688,7 +688,7 @@ class LCIAResultsTab(NewAnalysisTab):
         """Update the table."""
         if not isinstance(self.table, LCAResultsTable):
             self.table = LCAResultsTable()
-        self.table.sync(self.df)
+        self.table.model.sync(self.df)
 
 
 class ContributionTab(NewAnalysisTab):
@@ -855,7 +855,7 @@ class ContributionTab(NewAnalysisTab):
         raise NotImplementedError
 
     def update_table(self):
-        self.table.sync(self.df)
+        self.table.model.sync(self.df)
 
     def update_plot(self):
         """Update the plot."""

@@ -14,8 +14,6 @@ from ...signals import signals
 
 class BaseExchangeTable(ABDataFrameView):
     MODEL = BaseExchangeModel
-    # Signal used to correctly control `DetailsGroupBox`
-    updated = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -49,7 +47,10 @@ class BaseExchangeTable(ABDataFrameView):
         self.remove_formula_action.triggered.connect(self.remove_formula)
         self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
         self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
@@ -57,12 +58,6 @@ class BaseExchangeTable(ABDataFrameView):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
         self.setColumnHidden(self.model.exchange_column, True)
-
-    def sync(self, exchanges=None):
-        """ Build the table using either new or stored exchanges iterable.
-        """
-        self.model.sync(exchanges)
-        self.custom_view_sizing()
 
     def open_activities(self) -> None:
         """ Take the selected indexes and attempt to open activity tabs.
@@ -155,22 +150,12 @@ class TechnosphereExchangeTable(BaseExchangeTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
-        self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(6, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(7, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(9, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(10, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(11, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(12, ViewOnlyFloatDelegate(self))
         self.setItemDelegateForColumn(13, FormulaDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
 
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         """ Ensure the `exchange` column is hidden whenever the table is shown.
         """
@@ -212,21 +197,12 @@ class BiosphereExchangeTable(BaseExchangeTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
-        self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(5, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(6, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(7, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(9, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(10, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(11, ViewOnlyFloatDelegate(self))
         self.setItemDelegateForColumn(12, FormulaDelegate(self))
         self.table_name = "biosphere"
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
 
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         super().custom_view_sizing()
         self.show_uncertainty()
@@ -264,14 +240,7 @@ class DownstreamExchangeTable(BaseExchangeTable):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
-
         self.downstream = True
         self.table_name = "downstream"
 

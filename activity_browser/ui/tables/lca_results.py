@@ -7,36 +7,21 @@ class LCAResultsTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.model = LCAResultsModel(parent=self)
-        # self.sync = self.model.sync  # link the model sync method to the table
-
-    def sync(self, df) -> None:
-        self.model.sync(df)
-        self.custom_view_sizing()
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
 
 class InventoryTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.model = InventoryModel(parent=self)
-
-    def sync(self, df) -> None:
-        self.model.sync(df)
-        self.custom_view_sizing()
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
 
 class ContributionTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.model = ContributionModel(parent=self)
-
-    def sync(self, df) -> None:
-        self.model.sync(df)
-        self.custom_view_sizing()
-
-
-
-
-
-
-
-
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)

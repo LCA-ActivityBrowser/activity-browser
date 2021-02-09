@@ -40,7 +40,7 @@ class BaseExchangeModel(EditablePandasModel):
             self.create_row(exc) for exc in self.exchanges
         ], columns=self.columns)
         self.exchange_column = self._dataframe.columns.get_loc("exchange")
-        self.refresh_model()
+        self.updated.emit()
 
     @property
     def columns(self) -> list:

@@ -60,23 +60,12 @@ class ScenarioTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.model = ScenarioModel(self)
-
-    def sync(self, df=None) -> None:
-        self.model.sync(df)
-        self.custom_view_sizing()
-
-    @Slot(name="safeTableRebuild")
-    def rebuild_table(self) -> None:
-        self.model.rebuild_table()
-        self.custom_view_sizing()
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
     @Slot(bool, name="showGroupColumn")
     def group_column(self, shown: bool = False) -> None:
         self.setColumnHidden(0, not shown)
-
-    @Slot(str, str, str, name="renameParameterIndex")
-    def update_param_name(self, old: str, group: str, new: str) -> None:
-        self.model.update_param_name(old, group, new)
 
     def iterate_scenarios(self) -> Iterable[Tuple[str, Iterable]]:
         return self.model.iterate_scenarios()

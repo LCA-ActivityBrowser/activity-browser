@@ -45,11 +45,10 @@ class BaseParameterTable(ABDataFrameView):
             qicons.delete, "Remove uncertainty", None
         )
         self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
-    def sync(self) -> None:
-        self.model.sync()
-        self.custom_view_sizing()
-
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         super().custom_view_sizing()
         self.resizeColumnsToContents()
@@ -105,15 +104,9 @@ class ProjectParameterTable(BaseParameterTable):
         self.table_name = "project_parameter"
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(6, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(7, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
 
     def uncertainty_columns(self, show: bool):
         for i in range(3, 9):
@@ -139,16 +132,10 @@ class DataBaseParameterTable(BaseParameterTable):
         self.table_name = "database_parameter"
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, DatabaseDelegate(self))
         self.setItemDelegateForColumn(4, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(6, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(7, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(8, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(9, ViewOnlyFloatDelegate(self))
 
     def uncertainty_columns(self, show: bool):
         for i in range(4, 10):
@@ -179,26 +166,17 @@ class ActivityParameterTable(BaseParameterTable):
         self.table_name = "activity_parameter"
 
         # Set delegates for specific columns
-        self.setItemDelegateForColumn(0, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
-        self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(6, StringDelegate(self))
         self.setItemDelegateForColumn(7, ListDelegate(self))
-        self.setItemDelegateForColumn(8, ViewOnlyDelegate(self))
         self.setItemDelegateForColumn(9, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(10, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(11, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(12, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(13, ViewOnlyFloatDelegate(self))
-        self.setItemDelegateForColumn(14, ViewOnlyFloatDelegate(self))
 
         # Set dropEnabled
         self.setDragDropMode(ABDataFrameView.DropOnly)
         self.setAcceptDrops(True)
 
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         super().custom_view_sizing()
         self.setColumnHidden(self.model.group_col, True)
@@ -310,7 +288,7 @@ class ExchangesTable(ABDictTreeView):
         group = bc.build_activity_group_name(key)
         if not (ActivityParameter.select()
                 .where(ActivityParameter.group == group).count()):
-            ActivityParameterTable.add_parameter(key)
+            ActivityParameterModel.add_parameter(key)
 
         act = bw.get_activity(key)
         with bw.parameters.db.atomic():

@@ -140,7 +140,7 @@ class ProjectParameterModel(BaseParameterModel):
         ]
         self._dataframe = pd.DataFrame(data, columns=self.columns())
         self.param_col = self._dataframe.columns.get_loc("parameter")
-        self.refresh_model()
+        self.updated.emit()
 
     def add_parameter(self) -> None:
         """ Build a new parameter and immediately store it.
@@ -190,7 +190,7 @@ class DatabaseParameterModel(BaseParameterModel):
         self._dataframe = pd.DataFrame(data, columns=self.columns())
         self.db_col = self._dataframe.columns.get_loc("database")
         self.param_col = self._dataframe.columns.get_loc("parameter")
-        self.refresh_model()
+        self.updated.emit()
 
     def get_key(self, proxy: QModelIndex = None) -> tuple:
         return self.get_database(proxy), ""
@@ -275,7 +275,7 @@ class ActivityParameterModel(BaseParameterModel):
         self.param_col = self._dataframe.columns.get_loc("parameter")
         self.key_col = self._dataframe.columns.get_loc("key")
         self.order_col = self._dataframe.columns.get_loc("order")
-        self.refresh_model()
+        self.updated.emit()
 
     @classmethod
     def parse_parameter(cls, parameter) -> dict:

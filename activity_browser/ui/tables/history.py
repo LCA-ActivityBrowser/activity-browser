@@ -2,7 +2,6 @@
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QAbstractItemView, QMenu
 
-from ...signals import signals
 from ..icons import qicons
 from .models import ActivitiesHistoryModel
 from .views import ABDataFrameView
@@ -14,15 +13,9 @@ class ActivitiesHistoryTable(ABDataFrameView):
         self.setDragEnabled(True)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.model = ActivitiesHistoryModel(self)
-        self._connect_signals()
-
-    def _connect_signals(self):
         self.doubleClicked.connect(self.model.open_tab_event)
-        signals.project_selected.connect(self.sync)
-
-    def sync(self, df=None):
-        self.model.sync(df)
-        self.custom_view_sizing()
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
     def contextMenuEvent(self, a0):
         menu = QMenu(self)
@@ -38,6 +31,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
         """
         self.model.open_tab_event(self.currentIndex())
 
+    @Slot(name="resizeView")
     def custom_view_sizing(self):
         self.setColumnHidden(self.model.key_col, True)  # Hide the 'key' column
         self.resizeColumnsToContents()

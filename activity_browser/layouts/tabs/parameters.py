@@ -186,9 +186,9 @@ can be used within the formula!</p>
     def build_tables(self):
         """ Read parameters from brightway and build dataframe tables
         """
-        self.project_table.sync()
-        self.database_table.sync()
-        self.activity_table.sync()
+        self.project_table.model.sync()
+        self.database_table.model.sync()
+        self.activity_table.model.sync()
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases
@@ -310,15 +310,14 @@ class ParameterScenariosTab(BaseRightTab):
     <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
     """
 
-
     def _connect_signals(self):
         self.load_btn.clicked.connect(self.select_read_file)
         self.save_btn.clicked.connect(self.save_scenarios)
         self.calculate_btn.clicked.connect(self.calculate_scenarios)
         self.hide_group.toggled.connect(self.tbl.group_column)
-        signals.project_selected.connect(self.build_tables)
-        signals.parameters_changed.connect(self.tbl.rebuild_table)
-        signals.parameter_renamed.connect(self.tbl.update_param_name)
+        signals.project_selected.connect(
+            lambda: self.tbl.group_column(False)
+        )
         signals.parameter_scenario_sync.connect(self.process_scenarios)
 
     def _construct_layout(self):
@@ -344,16 +343,12 @@ class ParameterScenariosTab(BaseRightTab):
         layout.addStretch(1)
         self.setLayout(layout)
 
-    def build_tables(self) -> None:
-        self.tbl.sync()
-        self.tbl.group_column(False)
-
     @Slot(int, object, name="processParameterScenarios")
     def process_scenarios(self, table_idx: int, df: pd.DataFrame):
         """Use this method to discretely process a parameter scenario file
         for the LCA setup.
         """
-        self.tbl.sync(df=df)
+        self.tbl.model.sync(df=df)
         scenarios = self.build_flow_scenarios()
         signals.parameter_superstructure_built.emit(table_idx, scenarios)
 
@@ -365,7 +360,7 @@ class ParameterScenariosTab(BaseRightTab):
         )
         if path:
             df = ps_utils.load_scenarios_from_file(path)
-            self.tbl.sync(df=df)
+            self.tbl.model.sync(df=df)
 
     @Slot(name="saveScenarioTable")
     def save_scenarios(self):

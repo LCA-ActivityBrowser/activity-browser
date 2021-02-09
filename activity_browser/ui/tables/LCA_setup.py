@@ -5,7 +5,7 @@ from PySide2 import QtWidgets
 
 from activity_browser.signals import signals
 from ..icons import qicons
-from .delegates import FloatDelegate, ViewOnlyDelegate
+from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
@@ -42,23 +42,14 @@ class CSActivityTable(ABDataFrameView):
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.model = CSActivityModel(self)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
-        self.setItemDelegateForColumn(1, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(2, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(3, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyDelegate(self))
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
-        signals.calculation_setup_selected.connect(self.sync)
-        signals.databases_changed.connect(self.sync)
-
+    @Slot(name="resizeView")
     def custom_view_sizing(self):
         self.setColumnHidden(6, True)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-
-    def sync(self, name: str = None):
-        self.model.sync(name)
-        self.custom_view_sizing()
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -70,7 +61,6 @@ class CSActivityTable(ABDataFrameView):
     @Slot(name="deleteRows")
     def delete_rows(self):
         self.model.delete_rows(self.selectedIndexes())
-        self.custom_view_sizing()
 
     def to_python(self) -> list:
         return self.model.activities
@@ -95,7 +85,6 @@ class CSActivityTable(ABDataFrameView):
         self.model.include_activities(
             {source.get_key(p): 1.0} for p in source.selectedIndexes()
         )
-        self.custom_view_sizing()
 
 
 class CSMethodsTable(ABDataFrameView):
@@ -104,28 +93,24 @@ class CSMethodsTable(ABDataFrameView):
         self.setAcceptDrops(True)
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.model = CSMethodsModel(self)
-        signals.calculation_setup_selected.connect(self.sync)
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
+    @Slot(name="resizeView")
     def custom_view_sizing(self):
         self.setColumnHidden(3, True)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-
-    def sync(self, name: str = None):
-        self.model.sync(name)
-        self.custom_view_sizing()
-
-    @Slot(name="deleteRows")
-    def delete_rows(self):
-        self.model.delete_rows(self.selectedIndexes())
-        self.custom_view_sizing()
 
     def to_python(self):
         return self.model.methods
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()
-        menu.addAction(qicons.delete, "Remove row", self.delete_rows)
+        menu.addAction(
+            qicons.delete, "Remove row",
+            lambda: self.model.delete_rows(self.selectedIndexes())
+        )
         menu.exec_(a0.globalPos())
 
     def dragEnterEvent(self, event):
@@ -138,7 +123,6 @@ class CSMethodsTable(ABDataFrameView):
     def dropEvent(self, event):
         event.accept()
         self.model.include_methods(event.source().selected_methods())
-        self.custom_view_sizing()
 
 
 class ScenarioImportTable(ABDataFrameView):
@@ -148,7 +132,8 @@ class ScenarioImportTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.model = ScenarioImportModel(self)
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
     def sync(self, names: list):
         self.model.sync(names)
-        self.custom_view_sizing()

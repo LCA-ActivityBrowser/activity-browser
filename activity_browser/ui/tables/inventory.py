@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Slot
 
@@ -35,14 +34,14 @@ class DatabasesTable(ABDataFrameView):
         self._connect_signals()
 
     def _connect_signals(self):
-        signals.project_selected.connect(self.sync)
-        signals.databases_changed.connect(self.sync)
         self.doubleClicked.connect(
             lambda p: signals.database_selected.emit(self.model.get_db_name(p))
         )
         self.relink_action.triggered.connect(
             lambda: signals.relink_database.emit(self.selected_db_name, self)
         )
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu(self)
@@ -82,7 +81,7 @@ class DatabasesTable(ABDataFrameView):
                 db_name = self.model.get_db_name(proxy)
                 project_settings.modify_db(db_name, new_value)
                 signals.database_read_only_changed.emit(db_name, new_value)
-                self.sync()
+                self.model.sync()
         super().mousePressEvent(e)
 
     @property
@@ -90,11 +89,6 @@ class DatabasesTable(ABDataFrameView):
         """ Return the database name of the user-selected index.
         """
         return self.model.get_db_name(self.currentIndex())
-
-    def sync(self):
-        # code below is based on the assumption that bw uses utc timestamps
-        self.model.sync()
-        self.custom_view_sizing()
 
 
 class ActivitiesBiosphereTable(ABDataFrameView):
@@ -147,10 +141,6 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         menu.exec_(event.globalPos())
 
     def connect_signals(self):
-        signals.database_selected.connect(
-            lambda name: self.sync(name)
-        )
-        signals.database_changed.connect(self.check_database_changed)
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
         self.new_activity_action.triggered.connect(
@@ -159,6 +149,9 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
         self.delete_activity_action.triggered.connect(self.delete_activities)
         self.doubleClicked.connect(self.open_activity_tab)
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.set_context_menu_policy)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
@@ -183,22 +176,14 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     def duplicate_activities(self) -> None:
         self.model.duplicate_activities(self.selectedIndexes())
 
-    @Slot(str)
-    def check_database_changed(self, db_name: str) -> None:
-        """ Determine if we need to re-sync (did 'our' db change?).
-        """
-        if db_name == self.database_name and db_name in bw.databases:
-            self.sync(db_name)
-
     @Slot(name="duplicateActivitiesToOtherDb")
     def duplicate_activities_to_db(self) -> None:
         self.model.duplicate_activities_to_db(self.selectedIndexes())
 
     def sync(self, db_name: str) -> None:
         self.model.sync(db_name)
-        self.custom_view_sizing()
-        self.set_context_menu_policy()
 
+    @Slot(name="updateMenuContext")
     def set_context_menu_policy(self) -> None:
         if self.model.technosphere:
             self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
@@ -210,8 +195,12 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     def search(self, pattern1: str = None, pattern2: str = None,
                logic='AND') -> None:
         self.model.search(pattern1, pattern2, logic)
-        self.custom_view_sizing()
 
+    @Slot(name="resetSearch")
+    def reset_search(self) -> None:
+        self.model.sync(self.model.database_name)
+
+    @Slot(str, bool, name="updateReadOnly")
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
         """ [new, duplicate & delete] actions can only be selected for
         databases that are not read-only.

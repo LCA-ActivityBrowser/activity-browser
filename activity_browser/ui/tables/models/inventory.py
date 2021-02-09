@@ -7,7 +7,7 @@ import brightway2 as bw
 from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import Qt, QModelIndex
+from PySide2.QtCore import Qt, QModelIndex, Slot
 
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.settings import project_settings
@@ -17,6 +17,11 @@ from .base import PandasModel, DragPandasModel
 
 class DatabasesModel(PandasModel):
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        signals.project_selected.connect(self.sync)
+        signals.databases_changed.connect(self.sync)
 
     def get_db_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)
@@ -43,7 +48,7 @@ class DatabasesModel(PandasModel):
             })
 
         self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
-        self.refresh_model()
+        self.updated.emit()
 
 
 class ActivitiesBiosphereModel(DragPandasModel):
@@ -53,6 +58,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.act_fields = lambda: AB_metadata.get_existing_fields(["reference product", "name", "location", "unit"])
         self.ef_fields = lambda: AB_metadata.get_existing_fields(["name", "categories", "type", "unit"])
         self.technosphere = True
+        signals.database_selected.connect(self.sync)
+        signals.database_changed.connect(self.check_database_changed)
 
     @property
     def fields(self) -> list:
@@ -67,7 +74,14 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
     def clear(self) -> None:
         self._dataframe = pd.DataFrame([])
-        self.refresh_model()
+        self.updated.emit()
+
+    @Slot(str, name="optionalSync")
+    def check_database_changed(self, db_name: str) -> None:
+        """ Determine if we need to re-sync (did 'our' db change?).
+        """
+        if db_name == self.database_name and db_name in bw.databases:
+            self.sync(db_name)
 
     def df_from_metadata(self, db_name: str) -> pd.DataFrame:
         """ Take the given database name and return the complete subset
@@ -90,12 +104,13 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.parent().horizontalHeader().setSortIndicator(sort_field_index, Qt.AscendingOrder)
         return df
 
+    @Slot(str, name="syncModel")
     def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
             print("Pandas Dataframe passed to sync.", df.shape)
             self._dataframe = df
-            self.refresh_model()
+            self.updated.emit()
             return
 
         if db_name not in bw.databases:
@@ -106,7 +121,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # Get dataframe from metadata and update column-names
         df = self.df_from_metadata(db_name)
         self._dataframe = df.reset_index(drop=True)
-        self.refresh_model()
+        self.updated.emit()
 
     def search(self, pattern1: str = None, pattern2: str = None, logic='AND') -> None:
         """ Filter the dataframe with two filters and a logical element

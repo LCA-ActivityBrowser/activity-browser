@@ -19,6 +19,7 @@ class MethodsListModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.method_col = 0
+        signals.project_selected.connect(self.sync)
 
     def get_method(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
@@ -55,7 +56,7 @@ class MethodsListModel(DragPandasModel):
             self.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
         self.method_col = self._dataframe.columns.get_loc("method")
-        self.refresh_model()
+        self.updated.emit()
 
     @staticmethod
     def build_row(method_obj) -> dict:
@@ -78,6 +79,7 @@ class CFModel(PandasModel):
         super().__init__(parent=parent)
         self.cf_column = 0
         self.method: Optional[bw.Method] = None
+        self.modified.connect(lambda: self.sync(self.method.name))
 
     @property
     def uncertain_cols(self) -> list:
@@ -93,7 +95,7 @@ class CFModel(PandasModel):
             self.build_row(obj) for obj in self.method.load()
         ], columns=self.HEADERS + self.UNCERTAINTY)
         self.cf_column = self._dataframe.columns.get_loc("cf")
-        self.refresh_model()
+        self.updated.emit()
 
     @classmethod
     def build_row(cls, method_cf) -> dict:

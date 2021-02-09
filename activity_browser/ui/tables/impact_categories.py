@@ -24,7 +24,8 @@ class MethodsTable(ABDataFrameView):
         self.doubleClicked.connect(
             lambda p: signals.method_selected.emit(self.model.get_method(p))
         )
-        signals.project_selected.connect(self.sync)
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""
@@ -33,8 +34,8 @@ class MethodsTable(ABDataFrameView):
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
         self.model.sync(query)
-        self.custom_view_sizing()
 
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         self.setColumnHidden(self.model.method_col, True)
         self.setSizePolicy(QtWidgets.QSizePolicy(
@@ -272,11 +273,10 @@ class CFTable(ABDataFrameView):
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
-    def sync(self, method: tuple) -> None:
-        self.model.sync(method)
-        self.custom_view_sizing()
-
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         self.setColumnHidden(self.model.cf_column, True)
         self.hide_uncertain()

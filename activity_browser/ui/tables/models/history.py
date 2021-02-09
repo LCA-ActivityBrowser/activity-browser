@@ -14,6 +14,7 @@ class ActivitiesHistoryModel(PandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.key_col = 0
+        signals.project_selected.connect(self.sync)
         signals.add_activity_to_history.connect(self.add_activity)
 
     def sync(self, df=None):
@@ -21,7 +22,7 @@ class ActivitiesHistoryModel(PandasModel):
             df = pd.DataFrame([], columns=self.HEADERS)
         self._dataframe = df
         self.key_col = self._dataframe.columns.get_loc("key")
-        self.refresh_model()
+        self.updated.emit()
 
     @Slot(tuple, name="addActivityToHistory")
     def add_activity(self, key: tuple) -> None:

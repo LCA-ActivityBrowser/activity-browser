@@ -225,9 +225,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
         # reset search
         reset_search_button = QtWidgets.QPushButton("Reset")
-        reset_search_button.clicked.connect(
-            lambda: self.table.model.sync(self.table.database_name)
-        )
+        reset_search_button.clicked.connect(self.table.reset_search)
         reset_search_button.clicked.connect(self.search_box.clear)
         reset_search_button.clicked.connect(self.search_box2.clear)
 
@@ -243,7 +241,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         if self.table.database_name:
             self.show()
         self.label_database.setText("[{}]".format(db_name))
-        self.table.sync(db_name=db_name)
 
     def set_search_term(self):
         search_term = self.search_box.text()
