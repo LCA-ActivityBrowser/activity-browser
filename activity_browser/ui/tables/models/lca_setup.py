@@ -125,7 +125,7 @@ class CSMethodsModel(PandasModel):
         indices = (self.proxy_to_source(p) for p in proxies)
         rows = [i.row() for i in indices]
         self._dataframe = self._dataframe.drop(rows, axis=0).reset_index(drop=True)
-        self.refresh_model()
+        self.updated.emit()
         signals.calculation_setup_changed.emit()  # Trigger update of CS in brightway
 
     def include_methods(self, new_methods: Iterable) -> None:
@@ -133,7 +133,7 @@ class CSMethodsModel(PandasModel):
         data = [self.build_row(m) for m in new_methods if m not in old_methods]
         if data:
             self._dataframe = self._dataframe.append(data, ignore_index=True)
-            self.refresh_model()
+            self.updated.emit()
             signals.calculation_setup_changed.emit()
 
 

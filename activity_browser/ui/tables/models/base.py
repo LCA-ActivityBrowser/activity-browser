@@ -4,8 +4,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import (
-    QAbstractItemModel, QAbstractTableModel, QModelIndex,
-    QSortFilterProxyModel, Qt, Signal
+    QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, Signal,
 )
 from PySide2.QtGui import QBrush
 
@@ -86,16 +85,6 @@ class PandasModel(QAbstractTableModel):
     def sync(self, *args, **kwargs) -> None:
         """(Re)build the dataframe according to the given arguments."""
         self._dataframe = pd.DataFrame([], columns=self.HEADERS)
-
-    def refresh_model(self) -> None:
-        """Rebuild the proxy model after the underlying model has been changed."""
-        parent = self.parent()
-        if parent is None:
-            return
-        parent.proxy_model = QSortFilterProxyModel(parent)
-        parent.proxy_model.setSourceModel(self)
-        parent.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-        parent.setModel(parent.proxy_model)
 
     @staticmethod
     def proxy_to_source(proxy: QModelIndex) -> QModelIndex:

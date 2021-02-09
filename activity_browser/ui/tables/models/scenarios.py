@@ -93,7 +93,7 @@ class ScenarioModel(PandasModel):
             new, self._dataframe.index
         ), name=self._dataframe.index.name)
         self._dataframe.index = new_idx
-        self.refresh_model()
+        self.updated.emit()
 
     def iterate_scenarios(self) -> Iterable[Tuple[str, Iterable]]:
         """ Iterates through all of the non-description columns from left to right.
