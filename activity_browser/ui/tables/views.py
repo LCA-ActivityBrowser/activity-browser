@@ -6,6 +6,7 @@ from typing import Optional
 from bw2data.filesystem import safe_filename
 from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
+from PySide2.QtGui import QKeyEvent
 
 from ...settings import ab_settings
 from .delegates import ViewOnlyDelegate
@@ -34,7 +35,6 @@ class ABDataFrameView(QTableView):
         self.setItemDelegate(ViewOnlyDelegate(self))
 
         self.table_name = 'LCA results'
-        self.dataframe = None
         # Initialize attributes which are set during the `sync` step.
         # Creating (and typing) them here allows PyCharm to see them as
         # valid attributes.
@@ -49,19 +49,20 @@ class ABDataFrameView(QTableView):
         return QSize(self.width(), self.get_max_height())
 
     def rowCount(self) -> int:
-        if getattr(self, "model") is not None:
-            return self.model.rowCount()
-        return 0
+        return 0 if self.model is None else self.model.rowCount()
 
     def custom_view_sizing(self):
         """ Custom table resizing to perform after setting new (proxy) model.
         """
         self.setMaximumHeight(self.get_max_height())
 
+    @Slot(name="exportToClipboard")
     def to_clipboard(self):
         """ Copy dataframe to clipboard
         """
-        self.dataframe.to_clipboard()
+        rows = list(range(self.model.rowCount()))
+        cols = list(range(self.model.columnCount()))
+        self.model.to_clipboard(rows, cols, include_header=True)
 
     def savefilepath(self, default_file_name: str, file_filter: str=None):
         """ Construct and return default path where data is stored
@@ -77,6 +78,7 @@ class ABDataFrameView(QTableView):
         )
         return filepath
 
+    @Slot(name="exportToCsv")
     def to_csv(self):
         """ Save the dataframe data to a CSV file.
         """
@@ -84,8 +86,9 @@ class ABDataFrameView(QTableView):
         if filepath:
             if not filepath.endswith('.csv'):
                 filepath += '.csv'
-            self.dataframe.to_csv(filepath)
+            self.model.to_csv(filepath)
 
+    @Slot(name="exportToExcel")
     def to_excel(self):
         """ Save the dataframe data to an excel file.
         """
@@ -93,9 +96,9 @@ class ABDataFrameView(QTableView):
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'
-            self.dataframe.to_excel(filepath)
+            self.model.to_excel(filepath)
 
-    @Slot()
+    @Slot(QKeyEvent, name="copyEvent")
     def keyPressEvent(self, e):
         """ Allow user to copy selected data from the table
 
