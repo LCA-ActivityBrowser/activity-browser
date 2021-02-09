@@ -51,7 +51,15 @@ class ABDataFrameView(QTableView):
     def rowCount(self) -> int:
         return 0 if self.model is None else self.model.rowCount()
 
-    def custom_view_sizing(self):
+    @Slot(name="updateProxyModel")
+    def update_proxy_model(self) -> None:
+        self.proxy_model = QSortFilterProxyModel(self)
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
+        self.setModel(self.proxy_model)
+
+    @Slot(name="resizeView")
+    def custom_view_sizing(self) -> None:
         """ Custom table resizing to perform after setting new (proxy) model.
         """
         self.setMaximumHeight(self.get_max_height())
