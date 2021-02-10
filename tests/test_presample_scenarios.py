@@ -76,7 +76,7 @@ def test_empty_scenario_table(qtbot, bw2test):
     """
     table = ScenarioTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
     assert table.rowCount() == 0
 
 
@@ -85,7 +85,7 @@ def test_scenario_table(qtbot, project_parameters):
     """
     table = ScenarioTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
     assert table.rowCount() == 3
 
 
@@ -96,6 +96,7 @@ def test_scenario_table_rebuild(qtbot, project_parameters):
     qtbot.addWidget(tab)
     project_table = tab.tabs.get("Definitions").project_table
     scenario_table = tab.tabs.get("Scenarios").tbl
+    scenario_table.model.sync()  # Trigger a clean sync
 
     begin_df = scenario_table.model._dataframe.copy()
 
@@ -113,6 +114,7 @@ def test_scenario_table_rename(qtbot, project_parameters):
     qtbot.addWidget(tab)
     project_table = tab.tabs.get("Definitions").project_table
     scenario_table = tab.tabs.get("Scenarios").tbl
+    scenario_table.model.sync()  # Trigger a clean sync
 
     assert scenario_table.model._dataframe.index[0] == "test1"
     with qtbot.waitSignal(signals.parameter_renamed, timeout=500):
@@ -188,7 +190,8 @@ def test_scenario_tab(qtbot, monkeypatch, project_parameters):
     """
     tab = ParameterScenariosTab()
     qtbot.addWidget(tab)
-    tab.build_tables()
+    tab.tbl.model.sync()
+    tab.tbl.group_column(False)
     store_path = Path(bw.projects.dir) / "testsave.xlsx"
 
     # Save the table to the store_path, and load it in afterwards.

@@ -48,7 +48,7 @@ def test_edit_project_param(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
 
     # Edit both the name and the amount of the first parameter.
     table.rename_parameter(table.proxy_model.index(0, 0), "test_project")
@@ -73,7 +73,7 @@ def test_delete_project_param(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
 
     # The 2nd parameter cannot be deleted
     param = table.get_parameter(table.proxy_model.index(1, 0))
@@ -125,7 +125,7 @@ def test_create_database_params(qtbot):
 def test_edit_database_params(qtbot):
     table = DataBaseParameterTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
 
     # Fill rows with new variables
     table.rename_parameter(table.proxy_model.index(0, 0), "test_db1")
@@ -170,7 +170,7 @@ def test_downstream_dependency(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
 
     # First parameter of the project table is used by the database parameter
     param = table.get_parameter(table.proxy_model.index(0, 0))
@@ -221,7 +221,7 @@ def test_edit_activity_param(qtbot):
     """
     table = ActivityParameterTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
 
     # Fill rows with new variables
     table.rename_parameter(table.proxy_model.index(0, 0), "edit_act_1", True)
@@ -237,7 +237,7 @@ def test_edit_activity_param(qtbot):
 def test_activity_order_edit(qtbot):
     table = ActivityParameterTable()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
     group = table.model.index(0, table.model.group_col).data()
     with qtbot.waitSignal(signals.parameters_changed, timeout=1000):
         table.model.setData(table.model.index(0, 5), [group])
@@ -255,7 +255,7 @@ def test_table_formula_delegates(qtbot, table_class):
     """
     table = table_class()
     qtbot.addWidget(table)
-    table.sync()
+    table.model.sync()
 
     assert isinstance(table.itemDelegateForColumn(2), FormulaDelegate)
 
