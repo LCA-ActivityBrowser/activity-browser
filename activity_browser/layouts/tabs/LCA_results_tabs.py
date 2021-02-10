@@ -346,7 +346,7 @@ class NewAnalysisTab(QWidget):
 
     def update_table(self, *args, **kwargs):
         """Update the table."""
-        self.table.sync(*args, **kwargs)
+        self.table.model.sync(*args, **kwargs)
 
     def update_plot(self, *args, **kwargs):
         """Update the plot."""
@@ -478,7 +478,7 @@ class InventoryTab(NewAnalysisTab):
             setattr(self, attr_name, self.parent.contributions.inventory_df(
                 inventory_type=inventory)
             )
-        self.table.model.sync(getattr(self, attr_name))
+        super().update_table(getattr(self, attr_name))
 
     def clear_tables(self) -> None:
         """Set the biosphere and technosphere to None."""
@@ -685,10 +685,7 @@ class LCIAResultsTab(NewAnalysisTab):
             self.pt_layout.parentWidget().updateGeometry()
 
     def update_table(self):
-        """Update the table."""
-        if not isinstance(self.table, LCAResultsTable):
-            self.table = LCAResultsTable()
-        self.table.model.sync(self.df)
+        super().update_table(self.df)
 
 
 class ContributionTab(NewAnalysisTab):
@@ -855,7 +852,7 @@ class ContributionTab(NewAnalysisTab):
         raise NotImplementedError
 
     def update_table(self):
-        self.table.model.sync(self.df)
+        super().update_table(self.df)
 
     def update_plot(self):
         """Update the plot."""
@@ -1274,7 +1271,7 @@ class MonteCarloTab(NewAnalysisTab):
             self.layout.parentWidget().updateGeometry()
 
     def update_table(self):
-        self.table.sync(self.df)
+        super().update_table(self.df)
 
 
 class GSATab(NewAnalysisTab):
@@ -1437,7 +1434,7 @@ class GSATab(NewAnalysisTab):
         pass
 
     def update_table(self):
-        self.table.sync(self.df)
+        super().update_table(self.df)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
         """Construct the export layout but set it into a widget because we
