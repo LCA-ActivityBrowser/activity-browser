@@ -364,20 +364,15 @@ class ParameterScenariosTab(BaseRightTab):
 
     @Slot(name="saveScenarioTable")
     def save_scenarios(self):
-        filename, _ = QFileDialog.getSaveFileName(
-            self, caption="Save current scenarios to Excel",
-            filter=self.tbl.EXCEL_FILTER
-        )
-        if filename:
-            try:
-                self.tbl.model.to_excel(filename)
-            except FileCreateError as e:
-                QMessageBox.warning(
-                    self, "File save error",
-                    "Cannot save the file, please see if it is opened elsewhere or "
-                    "if you are allowed to save files in that location:\n\n{}".format(e),
-                    QMessageBox.Ok, QMessageBox.Ok
-                )
+        try:
+            self.tbl.to_excel("Save current scenarios to Excel")
+        except FileCreateError as e:
+            QMessageBox.warning(
+                self, "File save error",
+                "Cannot save the file, please see if it is opened elsewhere or "
+                "if you are allowed to save files in that location:\n\n{}".format(e),
+                QMessageBox.Ok, QMessageBox.Ok
+            )
 
     @Slot(name="createPresamplesPackage")
     def calculate_scenarios(self):

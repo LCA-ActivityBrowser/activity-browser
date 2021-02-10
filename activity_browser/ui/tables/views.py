@@ -72,19 +72,20 @@ class ABDataFrameView(QTableView):
         cols = list(range(self.model.columnCount()))
         self.model.to_clipboard(rows, cols, include_header=True)
 
-    def savefilepath(self, default_file_name: str, file_filter: str=None):
+    def savefilepath(self, default_file_name: str, caption: str = None, file_filter: str = None):
         """ Construct and return default path where data is stored
 
         Uses the application directory for AB
         """
         safe_name = safe_filename(default_file_name, add_hash=False)
+        caption = caption or "Choose location to save lca results"
         filepath, _ = QFileDialog.getSaveFileName(
-            parent=self,
-            caption='Choose location to save lca results',
+            parent=self, caption=caption,
             dir=os.path.join(ab_settings.data_dir, safe_name),
             filter=file_filter or self.ALL_FILTER,
         )
-        return filepath
+        # getSaveFileName can now weirdly return Path objects.
+        return str(filepath) if filepath else filepath
 
     @Slot(name="exportToCsv")
     def to_csv(self):
@@ -97,10 +98,10 @@ class ABDataFrameView(QTableView):
             self.model.to_csv(filepath)
 
     @Slot(name="exportToExcel")
-    def to_excel(self):
+    def to_excel(self, caption: str = None):
         """ Save the dataframe data to an excel file.
         """
-        filepath = self.savefilepath(self.table_name, file_filter=self.EXCEL_FILTER)
+        filepath = self.savefilepath(self.table_name, caption, file_filter=self.EXCEL_FILTER)
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'
