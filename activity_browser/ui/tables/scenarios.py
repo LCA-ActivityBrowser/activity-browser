@@ -59,9 +59,11 @@ class ScenarioTable(ABDataFrameView):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.table_name = "scenario_table"
         self.model = ScenarioModel(self)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
+        signals.project_selected.connect(self.group_column)
 
     @Slot(bool, name="showGroupColumn")
     def group_column(self, shown: bool = False) -> None:

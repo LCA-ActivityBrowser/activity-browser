@@ -315,9 +315,6 @@ class ParameterScenariosTab(BaseRightTab):
         self.save_btn.clicked.connect(self.save_scenarios)
         self.calculate_btn.clicked.connect(self.calculate_scenarios)
         self.hide_group.toggled.connect(self.tbl.group_column)
-        signals.project_selected.connect(
-            lambda: self.tbl.group_column(False)
-        )
         signals.parameter_scenario_sync.connect(self.process_scenarios)
 
     def _construct_layout(self):
