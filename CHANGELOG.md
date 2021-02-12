@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+### Added
+
+- ([#512](https://github.com/LCA-ActivityBrowser/activity-browser/pull/512))
+    Added a number of small improvements to the AB, users can now copy existing
+    LCA setups. Additionally, multiple activities can now be duplicated, deleted
+    or copied to other databases at once.
+
+### Changed
+
+- ([#492](https://github.com/LCA-ActivityBrowser/activity-browser/pull/492))
+    Split the massive controller into a number of smaller QObject controllers.
+    This will make it easier to debug problems with the controller.
+- ([#506](https://github.com/LCA-ActivityBrowser/activity-browser/pull/506))
+    Refactor the AB code to increase the separation between brightway code,
+    PySide2 code and Javascript/HTML/CSS code.
+- ([#519](https://github.com/LCA-ActivityBrowser/activity-browser/pull/519),
+  [#520](https://github.com/LCA-ActivityBrowser/activity-browser/pull/520))
+    Small fixes to the look of the AB for large database names and small
+    A matrices from @marc-vdm.
+
+### Fixed
+
+- ([#505](https://github.com/LCA-ActivityBrowser/activity-browser/pull/505))
+    The AB will now correctly create activity parameters for activities with
+    parentheses (round brackets) in the name.
+- ([#513](https://github.com/LCA-ActivityBrowser/activity-browser/pull/513))
+    Fix a regression which hid the scenario product/addition choice for the
+    Scenario LCA setup.
+- ([#525](https://github.com/LCA-ActivityBrowser/activity-browser/pull/525))
+    Fix broken figure exporting signals, thanks for @angelajanenagle pointing
+    this out!
+
 ## [2.6.3] - 2021-01-21
 
 ### Added
