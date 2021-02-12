@@ -337,8 +337,6 @@ class NewAnalysisTab(QWidget):
         """Update the plot and table if they are present."""
         if self.plot:
             self.update_plot()
-            self.export_plot.png.clicked.connect(self.plot.to_png)
-            self.export_plot.svg.clicked.connect(self.plot.to_svg)
         if self.table:
             self.update_table()
         if self.plot and self.table:
@@ -351,6 +349,8 @@ class NewAnalysisTab(QWidget):
     def update_plot(self, *args, **kwargs):
         """Update the plot."""
         self.plot.plot(*args, **kwargs)
+        self.export_plot.png.clicked.connect(self.plot.to_png)
+        self.export_plot.svg.clicked.connect(self.plot.to_svg)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
         """Construct a custom export button layout.
@@ -629,7 +629,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = LCAResultsBarChart(self.parent)
         self.layout.insertWidget(idx, self.plot)
-        self.plot.plot(df, method=method, labels=labels)
+        super().update_plot(df, method=method, labels=labels)
         self.updateGeometry()
         self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
 
@@ -682,7 +682,7 @@ class LCIAResultsTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
-        self.plot.plot(self.df)
+        super().update_plot(self.df)
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
@@ -865,7 +865,7 @@ class ContributionTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = ContributionPlot()
         self.pt_layout.insertWidget(idx, self.plot)
-        self.plot.plot(self.df, unit=self.unit)
+        super().update_plot(self.df, unit=self.unit)
         self.plot.plot_name = name
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
@@ -992,7 +992,7 @@ class CorrelationsTab(NewAnalysisTab):
         self.plot = CorrelationPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
         df = self.parent.mlca.get_normalized_scores_df()
-        self.plot.plot(df)
+        super().update_plot(df)
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
@@ -1264,10 +1264,8 @@ class MonteCarloTab(NewAnalysisTab):
         name = self.plot.plot_name
         self.plot = MonteCarloPlot(self.parent)
         self.layout.insertWidget(idx, self.plot)
-        self.plot.plot(self.df, method=method)
+        super().update_plot(self.df, method=method)
         self.plot.plot_name = name
-        self.export_plot.png.clicked.connect(self.plot.to_png)
-        self.export_plot.svg.clicked.connect(self.plot.to_svg)
         self.plot.show()
         if self.layout.parentWidget():
             self.layout.parentWidget().updateGeometry()
