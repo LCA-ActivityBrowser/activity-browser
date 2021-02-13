@@ -441,6 +441,8 @@ class InventoryTab(NewAnalysisTab):
         self.table.table_name = 'Inventory_' + self.parent.cs_name
         self.layout.addWidget(self.table)
 
+        self.layout.addStretch(1)
+
         self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
         self.connect_signals()
 
@@ -455,12 +457,9 @@ class InventoryTab(NewAnalysisTab):
     @QtCore.Slot(bool, name="isBiosphereToggled")
     def button_clicked(self, toggled: bool):
         """Update table according to radiobutton selected."""
-        if not toggled:
-            self.update_table(inventory='technosphere')
-            self.table.table_name = self.parent.cs_name + '_Inventory_technosphere'
-        else:
-            self.update_table(inventory='biosphere')
-            self.table.table_name = self.parent.cs_name + '_Inventory'
+        ext = "_Inventory" if toggled else "_Inventory_technosphere"
+        self.table.table_name = "{}{}".format(self.parent.cs_name, ext)
+        self.update_table()
 
     def configure_scenario(self):
         """Allow scenarios options to be visible when used."""
@@ -472,18 +471,16 @@ class InventoryTab(NewAnalysisTab):
         self.clear_tables()
         super().update_tab()
 
-    def update_table(self, inventory='biosphere'):
+    def update_table(self):
         """Update the table."""
-        if inventory == 'biosphere':
-            if self.df_biosphere is None:
-                self.df_biosphere = self.parent.contributions.inventory_df(
-                    inventory_type='biosphere')
-            self.table.sync(self.df_biosphere)
-        else:
-            if self.df_technosphere is None:
-                self.df_technosphere = self.parent.contributions.inventory_df(
-                    inventory_type='technosphere')
-            self.table.sync(self.df_technosphere)
+        inventory = "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
+        # We handle both 'df_biosphere' and 'df_technosphere' variables here.
+        attr_name = "df_{}".format(inventory)
+        if getattr(self, attr_name) is None:
+            setattr(self, attr_name, self.parent.contributions.inventory_df(
+                inventory_type=inventory)
+            )
+        self.table.sync(getattr(self, attr_name))
 
     def clear_tables(self) -> None:
         """Set the biosphere and technosphere to None."""

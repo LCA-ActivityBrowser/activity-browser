@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Iterator
+from typing import Iterator, Optional, Union
 import uuid
 
 import brightway2 as bw
@@ -20,8 +20,11 @@ class ActivityController(QObject):
 
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
+        signals.delete_activities.connect(self.delete_activity)
         signals.duplicate_activity.connect(self.duplicate_activity)
-        signals.show_duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
+        signals.duplicate_activities.connect(self.duplicate_activity)
+        signals.duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
+        signals.duplicate_to_db_interface_multiple.connect(self.show_duplicate_to_db_interface)
         signals.activity_modified.connect(self.modify_activity)
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
 
@@ -47,31 +50,41 @@ class ActivityController(QObject):
             )
             production_exchange.save()
             bw.databases.set_modified(database_name)
+            AB_metadata.update_metadata(new_act.key)
             signals.open_activity_tab.emit(new_act.key)
-            signals.metadata_changed.emit(new_act.key)
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
 
     @Slot(tuple, name="deleteActivity")
-    def delete_activity(self, key: tuple) -> None:
-        act = bw.get_activity(key)
-        nu = len(act.upstream())
-        if nu:
-            text = "activities consume" if nu > 1 else "activity consumes"
-            QtWidgets.QMessageBox.information(
-                self.window,
-                "Not possible.",
-                """Can't delete {}. {} upstream {} its reference product.
-                Upstream exchanges must be modified or deleted.""".format(act, nu, text)
-            )
-        else:
+    @Slot(list, name="deleteActivities")
+    def delete_activity(self, data: Union[tuple, Iterator[tuple]]) -> None:
+        """Use the given data to delete one or more activities from brightway2."""
+        activities = self._retrieve_activities(data)
+
+        if any(len(act.upstream()) > 0 for act in activities):
+            text = ("Can't delete one or more activities. Some upstream process"
+                    " consumes their reference products. Please edit or delete "
+                    "these upstream exchanges first.")
+            QtWidgets.QMessageBox.warning(self.window, "Not possible.", text)
+            return
+
+        # Iterate through the activities and:
+        # - Close any open activity tabs,
+        # - Delete any related parameters
+        # - Delete the activity
+        # - Clean the activity from the metadata.
+        for act in activities:
+            signals.close_activity_tab.emit(act.key)
             ParameterController.delete_activity_parameter(act.key)
             act.delete()
-            bw.databases.set_modified(act["database"])
-            signals.metadata_changed.emit(act.key)
-            signals.database_changed.emit(act["database"])
-            signals.databases_changed.emit()
-            signals.calculation_setup_changed.emit()
+            AB_metadata.update_metadata(act.key)
+
+        # After deletion, signal that the database has changed
+        db = next(iter(activities)).get("database")
+        bw.databases.set_modified(db)
+        signals.database_changed.emit(db)
+        signals.databases_changed.emit()
+        signals.calculation_setup_changed.emit()
 
     @staticmethod
     def generate_copy_code(key: tuple) -> str:
@@ -88,71 +101,83 @@ class ActivityController(QObject):
         return "{}_copy{}".format(code, n + 1)
 
     @Slot(tuple, name="copyActivity")
-    def duplicate_activity(self, key: tuple) -> None:
+    @Slot(list, name="copyActivities")
+    def duplicate_activity(self, data: Union[tuple, Iterator[tuple]]) -> None:
         """Duplicates the selected activity in the same db, with a new BW code."""
         # todo: add "copy of" (or similar) to name of activity for easy identification in new db
         # todo: some interface feedback so user knows the copy has succeeded
-        act = bw.get_activity(key)
-        new_code = self.generate_copy_code(key)
-        new_act = act.copy(new_code)
-        # Update production exchanges
-        for exc in new_act.production():
-            if exc.input.key == key:
-                exc.input = new_act
-                exc.save()
-        # Update 'products'
-        for product in new_act.get('products', []):
-            if product.get('input') == key:
-                product['input'] = new_act.key
-        new_act.save()
-        bw.databases.set_modified(act['database'])
-        signals.metadata_changed.emit(new_act.key)
-        signals.database_changed.emit(act['database'])
-        signals.databases_changed.emit()
-        signals.open_activity_tab.emit(new_act.key)
+        activities = self._retrieve_activities(data)
 
-    @Slot(tuple, name="copyActivityToDbInterface")
-    def show_duplicate_to_db_interface(self, key: tuple) -> None:
-        origin_db = key[0]
-        activity = bw.get_activity(key)
+        for act in activities:
+            new_code = self.generate_copy_code(act.key)
+            new_act = act.copy(new_code)
+            # Update production exchanges
+            for exc in new_act.production():
+                if exc.input.key == act.key:
+                    exc.input = new_act
+                    exc.save()
+            # Update 'products'
+            for product in new_act.get('products', []):
+                if product.get('input') == act.key:
+                    product['input'] = new_act.key
+            new_act.save()
+            AB_metadata.update_metadata(new_act.key)
+            signals.open_activity_tab.emit(new_act.key)
+
+        db = next(iter(activities)).get("database")
+        bw.databases.set_modified(db)
+        signals.database_changed.emit(db)
+        signals.databases_changed.emit()
+
+    @Slot(tuple, str, name="copyActivityToDbInterface")
+    @Slot(list, str, name="copyActivitiesToDbInterface")
+    def show_duplicate_to_db_interface(self, data: Union[tuple, Iterator[tuple]],
+                                       db_name: Optional[str] = None) -> None:
+        activities = self._retrieve_activities(data)
+        origin_db = db_name or next(iter(activities)).get("database")
 
         available_target_dbs = list(project_settings.get_editable_databases())
-
         if origin_db in available_target_dbs:
             available_target_dbs.remove(origin_db)
-
         if not available_target_dbs:
-            QtWidgets.QMessageBox.information(
-                self.window,
-                "No target database",
+            QtWidgets.QMessageBox.warning(
+                self.window, "No target database",
                 "No valid target databases available. Create a new database or set one to writable (not read-only)."
             )
-        else:
-            target_db, ok = QtWidgets.QInputDialog.getItem(
-                self.window,
-                "Copy activity to database",
-                "Target database:",
-                available_target_dbs,
-                0,
-                False
-            )
-            if ok:
-                self.duplicate_activity_to_db(target_db, activity)
+            return
+
+        target_db, ok = QtWidgets.QInputDialog.getItem(
+            self.window, "Copy activity to database", "Target database:",
+            available_target_dbs, 0, False
+        )
+        if target_db and ok:
+            new_keys = [self._copy_activity(target_db, act) for act in activities]
+            if bc.count_database_records(target_db) < 50:
+                bw.databases.clean()
+            bw.databases.set_modified(target_db)
+            signals.database_changed.emit(target_db)
+            signals.databases_changed.emit()
+            for key in new_keys:
+                signals.open_activity_tab.emit(key)
 
     @Slot(str, object, name="copyActivityToDb")
     def duplicate_activity_to_db(self, target_db: str, activity: Activity):
-        new_code = self.generate_copy_code((target_db, activity['code']))
-        new_act_key = (target_db, new_code)
-        activity.copy(code=new_code, database=target_db)
+        new_key = self._copy_activity(target_db, activity)
         # only process database immediately if small
         if bc.count_database_records(target_db) < 50:
             bw.databases.clean()
-
         bw.databases.set_modified(target_db)
-        signals.metadata_changed.emit(new_act_key)
         signals.database_changed.emit(target_db)
-        signals.open_activity_tab.emit(new_act_key)
         signals.databases_changed.emit()
+        signals.open_activity_tab.emit(new_key)
+
+    @staticmethod
+    def _copy_activity(target: str, act: Activity) -> tuple:
+        new_code = ActivityController.generate_copy_code((target, act['code']))
+        new_key = (target, new_code)
+        act.copy(code=new_code, database=target)
+        AB_metadata.update_metadata(new_key)
+        return new_key
 
     @staticmethod
     @Slot(tuple, str, object, name="modifyActivity")
@@ -161,8 +186,17 @@ class ActivityController(QObject):
         activity[field] = value
         activity.save()
         bw.databases.set_modified(key[0])
-        signals.metadata_changed.emit(key)
+        AB_metadata.update_metadata(key)
         signals.database_changed.emit(key[0])
+
+    @staticmethod
+    def _retrieve_activities(data: Union[tuple, Iterator[tuple]]) -> Iterator[Activity]:
+        """Given either a key-tuple or a list of key-tuples, return a list
+        of activities.
+        """
+        return [bw.get_activity(data)] if isinstance(data, tuple) else [
+            bw.get_activity(k) for k in data
+        ]
 
 
 class ExchangeController(QObject):
@@ -193,7 +227,7 @@ class ExchangeController(QObject):
                 exc['type'] = 'unknown'
             exc.save()
         bw.databases.set_modified(to_key[0])
-        signals.metadata_changed.emit(to_key)
+        AB_metadata.update_metadata(to_key)
         signals.database_changed.emit(to_key[0])
 
     @Slot(list, name="deleteExchanges")

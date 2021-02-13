@@ -157,10 +157,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             qicons.add, "Add new activity", None
         )
         self.duplicate_activity_action = QtWidgets.QAction(
-            qicons.copy, "Duplicate activity", None
+            qicons.copy, "Duplicate activity/-ies", None
         )
         self.delete_activity_action = QtWidgets.QAction(
-            qicons.delete, "Delete activity", None
+            qicons.delete, "Delete activity/-ies", None
         )
 
         self.connect_signals()
@@ -179,7 +179,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         menu.addAction(self.delete_activity_action)
         menu.addAction(
             qicons.duplicate_to_other_database, "Duplicate to other database",
-            lambda: signals.show_duplicate_to_db_interface.emit(self.get_key(self.currentIndex()))
+            self.duplicate_activities_to_db
         )
         menu.exec_(event.globalPos())
 
@@ -193,12 +193,8 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database_name)
         )
-        self.duplicate_activity_action.triggered.connect(
-            lambda: signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
-        )
-        self.delete_activity_action.triggered.connect(
-            lambda: signals.delete_activity.emit(self.get_key(self.currentIndex()))
-        )
+        self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
+        self.delete_activity_action.triggered.connect(self.delete_activities)
         self.doubleClicked.connect(self.open_activity_tab)
 
     def reset_table(self) -> None:
@@ -227,12 +223,37 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             signals.open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
 
+    @Slot(name="deleteActivities")
+    def delete_activities(self) -> None:
+        if len(self.selectedIndexes()) > 1:
+            keys = [self.get_key(p) for p in self.selectedIndexes()]
+            signals.delete_activities.emit(keys)
+        else:
+            signals.delete_activity.emit(self.get_key(self.currentIndex()))
+
+    @Slot(name="duplicateActivitiesWithinDb")
+    def duplicate_activities(self) -> None:
+        if len(self.selectedIndexes()) > 1:
+            keys = [self.get_key(p) for p in self.selectedIndexes()]
+            signals.duplicate_activities.emit(keys)
+        else:
+            signals.duplicate_activity.emit(self.get_key(self.currentIndex()))
+
     @Slot(str)
     def check_database_changed(self, db_name: str) -> None:
         """ Determine if we need to re-sync (did 'our' db change?).
         """
         if db_name == self.database_name and db_name in bw.databases:
             self.sync(db_name)
+
+    @Slot(name="duplicateActivitiesToOtherDb")
+    def duplicate_activities_to_db(self) -> None:
+        if len(self.selectedIndexes()) > 1:
+            keys = [self.get_key(p) for p in self.selectedIndexes()]
+            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
+        else:
+            key = self.get_key(self.currentIndex())
+            signals.duplicate_to_db_interface.emit(key, self.database_name)
 
     def df_from_metadata(self, db_name: str, fields: list) -> pd.DataFrame:
         """ Take the given database name and return the complete subset
