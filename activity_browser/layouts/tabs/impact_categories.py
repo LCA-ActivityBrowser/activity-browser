@@ -63,7 +63,8 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_button.setToolTip("Search impact categories.\n"
                                       "If a large number of matches is found the\n"
                                       "tree is not expanded automatically.")
-        self.reset_search_button = QtWidgets.QPushButton(qicons.delete, "")
+        self.reset_search_button = QtWidgets.QToolButton()
+        self.reset_search_button.setIcon(qicons.delete)
         self.reset_search_button.setToolTip("Clear the search")
         #
         self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
