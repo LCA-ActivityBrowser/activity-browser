@@ -1173,7 +1173,6 @@ class ImportSignals(QtCore.QObject):
     finished = Signal()
     unarchive_finished = Signal()
     download_complete = Signal()
-    biosphere_finished = Signal()
     import_failure = Signal(tuple)
     import_failure_detailed = Signal(object, tuple)
     cancel_sentinel = False
@@ -1185,39 +1184,6 @@ class ImportSignals(QtCore.QObject):
 
 
 import_signals = ImportSignals()
-
-
-class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle('Biosphere and impact categories')
-        self.setLabelText(
-            'Adding default biosphere and impact categories to project <b>{}</b>:'.format(
-                bw.projects.current)
-        )
-        self.setRange(0, 0)
-        self.show()
-
-        self.biosphere_thread = DefaultBiosphereThread()
-        import_signals.biosphere_finished.connect(self.finished)
-        import_signals.biosphere_finished.connect(self.biosphere_thread.exit)
-        self.biosphere_thread.start()
-
-    def finished(self):
-        self.setMaximum(1)
-        self.setValue(1)
-
-
-class DefaultBiosphereThread(QtCore.QThread):
-    def run(self):
-        bw.create_default_biosphere3()
-        if not len(bw.methods):
-            bw.create_default_lcia_methods()
-        if not len(bw.migrations):
-            bw.create_core_migrations()
-        import_signals.biosphere_finished.emit()
-        signals.change_project.emit(bw.projects.current)
-        signals.project_selected.emit()
 
 
 class ABEcoinventDownloader(eidl.EcoinventDownloader):
