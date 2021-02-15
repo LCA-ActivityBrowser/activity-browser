@@ -1,22 +1,43 @@
 # -*- coding: utf-8 -*-
-
 import brightway2 as bw
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
-from ..settings import ab_settings
-from ..signals import signals
+from activity_browser.bwutils import commontasks as bc
+from activity_browser.settings import ab_settings
+from activity_browser.signals import signals
 
 
 class ProjectController(QObject):
+    """The controller that handles all of the AB features on the level of
+    a brightway project.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window = parent
 
+        signals.project_selected.emit()
+        self.load_settings()
+
+        signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
         signals.change_project.connect(self.change_project)
         signals.new_project.connect(self.new_project)
         signals.copy_project.connect(self.copy_project)
         signals.delete_project.connect(self.delete_project)
+
+    @Slot(str, name="switchBwDirPath")
+    def switch_brightway2_dir_path(self, dirpath: str) -> None:
+        if bc.switch_brightway2_dir(dirpath):
+            self.change_project(ab_settings.startup_project, reload=True)
+            signals.databases_changed.emit()
+
+    def load_settings(self) -> None:
+        if ab_settings.settings:
+            print("Loading user settings:")
+            self.switch_brightway2_dir_path(dirpath=ab_settings.custom_bw_dir)
+            self.change_project(ab_settings.startup_project)
+        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        print('Brightway2 active project: {}'.format(bw.projects.current))
 
     @staticmethod
     @Slot(str, name="changeProject")
@@ -97,6 +118,9 @@ class ProjectController(QObject):
 
 
 class CSetupController(QObject):
+    """The controller that handles brightway features related to
+    calculation setups.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window = parent

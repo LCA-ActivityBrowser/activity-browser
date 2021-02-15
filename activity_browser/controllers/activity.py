@@ -238,7 +238,6 @@ class ExchangeController(QObject):
             exc.delete()
         for db in db_changed:
             bw.databases.set_modified(db)
-            # signals.metadata_changed.emit(to_key)
             signals.database_changed.emit(db)
 
     @Slot(object, )
