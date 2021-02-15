@@ -42,7 +42,7 @@ class CSActivityModel(EditablePandasModel):
             assert name in bw.calculation_setups, "Given calculation setup does not exist."
             self.current_cs = name
 
-        fus = bw.calculation_setups[self.current_cs].get('inv', [])
+        fus = bw.calculation_setups.get(self.current_cs, {}).get('inv', [])
         df = pd.DataFrame([
             self.build_row(key, amount) for func_unit in fus
             for key, amount in func_unit.items()
