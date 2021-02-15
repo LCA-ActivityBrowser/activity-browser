@@ -3,7 +3,6 @@ import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser.signals import signals
-from activity_browser.ui.wizards.db_import_wizard import import_signals
 
 
 def test_add_default_data(qtbot, ab_app, monkeypatch):
@@ -20,7 +19,8 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     )
     assert bw.projects.current == 'pytest_project'
 
-    with qtbot.waitSignal(import_signals.biosphere_finished, timeout=600000):
+    # The biosphere3 import finishes with a 'change_project' signal.
+    with qtbot.waitSignal(signals.change_project, timeout=600000):
         qtbot.mouseClick(
             project_tab.databases_widget.add_default_data_button,
             QtCore.Qt.LeftButton
