@@ -21,7 +21,6 @@ class DatabaseController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window = parent
-        self.db_wizard: Optional[QtWidgets.QWizard] = None
         self.copy_progress: Optional[QtWidgets.QDialog] = None
 
         signals.import_database.connect(self.import_database_wizard)
@@ -31,26 +30,13 @@ class DatabaseController(QObject):
         signals.install_default_data.connect(self.install_default_data)
         signals.relink_database.connect(self.relink_database)
 
-        signals.change_project.connect(self.clear_database_wizard)
         signals.project_selected.connect(self.ensure_sqlite_indices)
 
-    @Slot(name="deleteDatabaseWizard")
-    def clear_database_wizard(self):
-        """ Separate cleanup method, used to clear out existing import wizard
-        when switching projects.
-        """
-        if self.db_wizard is None:
-            return
-        self.db_wizard.deleteLater()
-        self.db_wizard = None
-
-    @Slot(QObject, name="openImportWizard")
-    def import_database_wizard(self, parent):
-        """ Create a database import wizard, if it already exists, set the
-        previous one to delete and recreate it.
-        """
-        self.clear_database_wizard()
-        self.db_wizard = DatabaseImportWizard(parent)
+    @Slot(name="openImportWizard")
+    def import_database_wizard(self) -> None:
+        """Start the database import wizard."""
+        wizard = DatabaseImportWizard(self.window)
+        wizard.show()
 
     @Slot(name="fixBrokenIndexes")
     def ensure_sqlite_indices(self):

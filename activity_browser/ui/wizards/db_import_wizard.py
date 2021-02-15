@@ -73,7 +73,6 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.setPage(self.CONFIRM, self.confirmation_page)
         self.setPage(self.IMPORT, self.import_page)
         self.setStartId(self.IMPORT_TYPE)
-        self.show()
 
         # with this line, finish behaves like cancel and the wizard can be reused
         # db import is done when finish button becomes active
