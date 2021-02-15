@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import Optional
-
 import brightway2 as bw
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.parameters import Group
@@ -10,8 +8,10 @@ from PySide2.QtCore import QObject, Slot
 from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
 from ..ui.widgets import (
-    CopyDatabaseDialog, DatabaseLinkingDialog, DefaultBiosphereDialog
+    CopyDatabaseDialog, DatabaseLinkingDialog, DefaultBiosphereDialog,
+    BiosphereUpdater,
 )
+from ..ui.wizards.db_export_wizard import DatabaseExportWizard
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
 from ..settings import project_settings
 from ..signals import signals
@@ -24,6 +24,8 @@ class DatabaseController(QObject):
         self.window = parent
 
         signals.import_database.connect(self.import_database_wizard)
+        signals.export_database.connect(self.export_database_wizard)
+        signals.update_biosphere.connect(self.update_biosphere)
         signals.add_database.connect(self.add_database)
         signals.delete_database.connect(self.delete_database)
         signals.copy_database.connect(self.copy_database)
@@ -36,6 +38,11 @@ class DatabaseController(QObject):
     def import_database_wizard(self) -> None:
         """Start the database import wizard."""
         wizard = DatabaseImportWizard(self.window)
+        wizard.show()
+
+    @Slot(name="openExportWizard")
+    def export_database_wizard(self) -> None:
+        wizard = DatabaseExportWizard(self.window)
         wizard.show()
 
     @Slot(name="fixBrokenIndexes")
@@ -53,6 +60,21 @@ class DatabaseController(QObject):
     def install_default_data(self) -> None:
         dialog = DefaultBiosphereDialog(self.window)
         dialog.show()
+
+    @Slot(name="updateBiosphereDialog")
+    def update_biosphere(self) -> None:
+        """ Open a popup with progression bar and run through the different
+        functions for adding ecoinvent biosphere flows.
+        """
+        ok = QtWidgets.QMessageBox.question(
+            self.window, "Update biosphere3?",
+            "Updating the biosphere3 database cannot be undone!",
+            QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
+            QtWidgets.QMessageBox.Abort
+        )
+        if ok == QtWidgets.QMessageBox.Ok:
+            dialog = BiosphereUpdater(self.window)
+            dialog.show()
 
     @Slot(name="addDatabase")
     def add_database(self):
