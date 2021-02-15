@@ -52,7 +52,7 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.relink_action)
         menu.addAction(
             qicons.duplicate_database, "Copy database",
-            lambda: signals.copy_database.emit(self.selected_db_name, self)
+            lambda: signals.copy_database.emit(self.selected_db_name)
         )
         menu.addAction(
             qicons.add, "Add new activity",

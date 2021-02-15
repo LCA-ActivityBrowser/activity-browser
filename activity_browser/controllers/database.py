@@ -21,7 +21,6 @@ class DatabaseController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window = parent
-        self.copy_progress: Optional[QtWidgets.QDialog] = None
 
         signals.import_database.connect(self.import_database_wizard)
         signals.add_database.connect(self.add_database)
@@ -74,20 +73,21 @@ class DatabaseController(QObject):
                 )
 
     @Slot(str, QObject, name="copyDatabaseAction")
-    def copy_database(self, name, parent):
+    def copy_database(self, name: str) -> None:
         new_name, ok = QtWidgets.QInputDialog.getText(
-            parent,
+            self.window,
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if ok and new_name:
             try:
                 # Attaching the created wizard to the class avoids the copying
                 # thread being prematurely destroyed.
-                self.copy_progress = CopyDatabaseDialog(parent)
-                self.copy_progress.begin_copy(name, new_name)
+                copy_progress = CopyDatabaseDialog(self.window)
+                copy_progress.show()
+                copy_progress.begin_copy(name, new_name)
                 project_settings.add_db(new_name)
             except ValueError as e:
-                QtWidgets.QMessageBox.information(parent, "Not possible", str(e))
+                QtWidgets.QMessageBox.information(self.window, "Not possible", str(e))
 
     @Slot(str, name="deleteDatabase")
     def delete_database(self, name: str) -> None:
