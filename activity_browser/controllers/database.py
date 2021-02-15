@@ -15,6 +15,7 @@ from ..ui.widgets import (
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
 from ..settings import project_settings
 from ..signals import signals
+from .project import ProjectController
 
 
 class DatabaseController(QObject):
@@ -101,7 +102,7 @@ class DatabaseController(QObject):
             project_settings.remove_db(name)
             del bw.databases[name]
             Group.delete().where(Group.name == name).execute()
-            self.change_project(bw.projects.current, reload=True)
+            ProjectController.change_project(bw.projects.current, reload=True)
 
     @Slot(str, QObject, name="relinkDatabase")
     def relink_database(self, db_name: str, parent: QObject) -> None:
