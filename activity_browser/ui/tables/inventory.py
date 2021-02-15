@@ -38,7 +38,7 @@ class DatabasesTable(ABDataFrameView):
             lambda p: signals.database_selected.emit(self.model.get_db_name(p))
         )
         self.relink_action.triggered.connect(
-            lambda: signals.relink_database.emit(self.selected_db_name, self)
+            lambda: signals.relink_database.emit(self.selected_db_name)
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)

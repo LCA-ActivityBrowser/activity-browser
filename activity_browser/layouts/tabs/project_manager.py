@@ -125,7 +125,7 @@ class DatabaseWidget(QtWidgets.QWidget):
 
     def _connect_signals(self):
         self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
-        self.import_database_button.clicked.connect(lambda: signals.import_database.emit(self))
+        self.import_database_button.clicked.connect(signals.import_database.emit)
         self.new_database_button.clicked.connect(signals.add_database.emit)
 
     def _construct_layout(self):

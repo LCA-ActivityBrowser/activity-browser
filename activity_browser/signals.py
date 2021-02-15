@@ -11,6 +11,7 @@ class Signals(QObject):
     # bw2 directory
     switch_bw2_dir_path = Signal(str)
     # directory_changed = Signal()
+    edit_settings = Signal()
 
     # Project
     change_project = Signal(str)
@@ -26,8 +27,10 @@ class Signals(QObject):
     delete_database = Signal(str)
     copy_database = Signal(str)
     install_default_data = Signal()
-    import_database = Signal(QObject)
-    relink_database = Signal(str, QObject)
+    import_database = Signal()
+    export_database = Signal()
+    relink_database = Signal(str)
+    update_biosphere = Signal()
 
     database_selected = Signal(str)
     databases_changed = Signal()

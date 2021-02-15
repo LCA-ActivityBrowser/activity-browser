@@ -104,13 +104,13 @@ class DatabaseController(QObject):
             Group.delete().where(Group.name == name).execute()
             ProjectController.change_project(bw.projects.current, reload=True)
 
-    @Slot(str, QObject, name="relinkDatabase")
-    def relink_database(self, db_name: str, parent: QObject) -> None:
+    @Slot(str, name="relinkDatabase")
+    def relink_database(self, db_name: str) -> None:
         """Relink technosphere exchanges within the given database."""
         db = bw.Database(db_name)
         depends = db.find_dependents()
         options = [(depend, bw.databases.list) for depend in depends]
-        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, parent)
+        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, self.window)
         if dialog.exec_() == DatabaseLinkingDialog.Accepted:
             # Now, start relinking.
             for old, new in dialog.relink.items():
