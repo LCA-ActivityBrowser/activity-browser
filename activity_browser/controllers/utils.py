@@ -3,6 +3,7 @@ from PySide2.QtCore import QObject, Slot
 
 from activity_browser.bwutils import AB_metadata, presamples as pc
 from activity_browser.signals import signals
+from ..ui.wizards.settings_wizard import SettingsWizard
 
 
 class UtilitiesController(QObject):
@@ -11,10 +12,12 @@ class UtilitiesController(QObject):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.window = parent
 
         signals.project_selected.connect(self.reset_metadata)
         signals.edit_activity.connect(self.print_convenience_information)
         signals.presample_package_delete.connect(self.remove_presamples_package)
+        signals.edit_settings.connect(self.open_settings_wizard)
 
     @staticmethod
     @Slot(name="triggerMetadataReset")
@@ -39,3 +42,8 @@ class UtilitiesController(QObject):
         files = pc.remove_package(path)
         print("Removed Presample files?", files)
         signals.presample_package_removed.emit()
+
+    @Slot(name="settingsWizard")
+    def open_settings_wizard(self) -> None:
+        wizard = SettingsWizard(self.window)
+        wizard.show()
