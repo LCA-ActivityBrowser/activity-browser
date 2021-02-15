@@ -2,6 +2,93 @@
 
 ## [Unreleased]
 
+### Added
+
+- ([#512](https://github.com/LCA-ActivityBrowser/activity-browser/pull/512))
+    Added a number of small improvements to the AB, users can now copy existing
+    LCA setups. Additionally, multiple activities can now be duplicated, deleted
+    or copied to other databases at once.
+
+### Changed
+
+- ([#492](https://github.com/LCA-ActivityBrowser/activity-browser/pull/492))
+    Split the massive controller into a number of smaller QObject controllers.
+    This will make it easier to debug problems with the controller.
+- ([#506](https://github.com/LCA-ActivityBrowser/activity-browser/pull/506))
+    Refactor the AB code to increase the separation between brightway code,
+    PySide2 code and Javascript/HTML/CSS code.
+- ([#519](https://github.com/LCA-ActivityBrowser/activity-browser/pull/519),
+  [#520](https://github.com/LCA-ActivityBrowser/activity-browser/pull/520))
+    Small fixes to the look of the AB for large database names and small
+    A matrices from @marc-vdm.
+
+### Fixed
+
+- ([#505](https://github.com/LCA-ActivityBrowser/activity-browser/pull/505))
+    The AB will now correctly create activity parameters for activities with
+    parentheses (round brackets) in the name.
+- ([#513](https://github.com/LCA-ActivityBrowser/activity-browser/pull/513))
+    Fix a regression which hid the scenario product/addition choice for the
+    Scenario LCA setup.
+- ([#525](https://github.com/LCA-ActivityBrowser/activity-browser/pull/525))
+    Fix broken figure exporting signals, thanks for @angelajanenagle pointing
+    this out!
+
+## [2.6.3] - 2021-01-21
+
+### Added
+
+- ([#488](https://github.com/LCA-ActivityBrowser/activity-browser/pull/488))
+    Added some small tests for the settings wizard.
+- ([#485](https://github.com/LCA-ActivityBrowser/activity-browser/pull/485))
+    Added a tree-view for the impact categories, this includes being able to
+    drop entire families of categories into an LCA setup at once!
+- ([#496](https://github.com/LCA-ActivityBrowser/activity-browser/pull/496))
+    Add in-app version information. This makes it easier for users to see which
+    version they are using.
+
+### Changed
+
+- ([#483](https://github.com/LCA-ActivityBrowser/activity-browser/pull/483))
+    Released the numpy version pin, SALib has released a new version on conda.
+- ([#487](https://github.com/LCA-ActivityBrowser/activity-browser/pull/487))
+    Change the top-level classes to directly subclass the class/object they
+    represent.
+
+### Fixed
+
+- ([#497](https://github.com/LCA-ActivityBrowser/activity-browser/pull/497), []())
+    Ensure future users of AB can continue using the AB. See this issue in 
+    [brightway2-io](https://github.com/brightway-lca/brightway2-io/issues/86)
+    for more details.
+- ([#501](https://github.com/LCA-ActivityBrowser/activity-browser/pull/501))
+    Fix the relinking not working with more than one database when importing
+    Excel datasets. 
+
+## [2.6.2] - 2020-12-14
+
+### Changed
+
+- ([#454](https://github.com/LCA-ActivityBrowser/activity-browser/pull/454))
+    Allow for multiple databases to be relinked during the database relink action.
+- ([#457](https://github.com/LCA-ActivityBrowser/activity-browser/pull/457))
+    Explicitly use the brightway2 default fields for importing/exporting of
+    Excel files, as this is something that will cause messes when not correctly
+    lined up.
+- ([#472](https://github.com/LCA-ActivityBrowser/activity-browser/pull/472))
+    Improve the copying of values from tables in the AB, table headers are now
+    included if the user is pressing the 'SHIFT' button. Also, simplify the
+    database importer by creating a new separate 7z extraction method and routing
+    the related methods through that.
+
+### Fixed
+
+- ([#464](https://github.com/LCA-ActivityBrowser/activity-browser/pull/464))
+    Fixed an issue where the Monte Carlo analysis was unable to distinguish
+    production and technosphere type changes made to the A matrix.
+- ([#479](https://github.com/LCA-ActivityBrowser/activity-browser/pull/479))
+    A number of bugfixes related to how parameters are handled, saved and deleted.
+
 ## [2.6.1] - 2020-09-28
 
 ### Added
@@ -358,7 +445,9 @@
 - Major overhaul of the GUI. See [#218](https://github.com/LCA-ActivityBrowser/activity-browser/pull/218) for details.
 - New conda stable and development builds (`activity-browser`, `activity-browser-dev`) can now be found in the `bsteubing` [channel](https://anaconda.org/bsteubing/).
 
-[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.1...HEAD
+[Unreleased]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.3...HEAD
+[2.6.3]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.2...2.6.3
+[2.6.2]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.1...2.6.2
 [2.6.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.6.0...2.6.1
 [2.6.0]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.1...2.6.0
 [2.5.1]: https://github.com/LCA-ActivityBrowser/activity-browser/compare/2.5.0...2.5.1
