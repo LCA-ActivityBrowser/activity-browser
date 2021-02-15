@@ -324,7 +324,7 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
 
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent=parent)
         self.setWindowTitle("Biosphere and impact categories")
         self.setRange(0, 3)
         self.setModal(Qt.ApplicationModal)
@@ -332,7 +332,6 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread = DefaultBiosphereThread(self)
         self.biosphere_thread.update.connect(self.update_progress)
         self.biosphere_thread.finished.connect(self.finished)
-        self.biosphere_thread.finished.connect(self.biosphere_thread.exit)
         self.biosphere_thread.start()
 
     @Slot(int, str, name="updateThread")
@@ -340,15 +339,15 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.setValue(current)
         self.setLabelText(text)
 
-    def finished(self):
+    def finished(self, result: int = None) -> None:
+        self.biosphere_thread.exit(result or 0)
+        self.setValue(3)
         signals.change_project.emit(bw.projects.current)
         signals.project_selected.emit()
-        self.setValue(3)
 
 
 class DefaultBiosphereThread(QThread):
     update = Signal(int, str)
-    finished = Signal()
 
     def run(self):
         project = "<b>{}</b>".format(bw.projects.current)
@@ -362,4 +361,3 @@ class DefaultBiosphereThread(QThread):
         if not len(bw.migrations):
             self.update.emit(2, "Creating core data migrations for {}".format(project))
             bw.create_core_migrations()
-        self.finished.emit()
