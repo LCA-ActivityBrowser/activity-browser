@@ -9,8 +9,10 @@ from PySide2.QtCore import QObject, Slot
 
 from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
-from ..ui.widgets import CopyDatabaseDialog, DatabaseLinkingDialog
-from ..ui.wizards.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
+from ..ui.widgets import (
+    CopyDatabaseDialog, DatabaseLinkingDialog, DefaultBiosphereDialog
+)
+from ..ui.wizards.db_import_wizard import DatabaseImportWizard
 from ..settings import project_settings
 from ..signals import signals
 
@@ -20,7 +22,6 @@ class DatabaseController(QObject):
         super().__init__(parent)
         self.window = parent
         self.db_wizard: Optional[QtWidgets.QWizard] = None
-        self.default_biosphere_dialog: Optional[QtWidgets.QDialog] = None
         self.copy_progress: Optional[QtWidgets.QDialog] = None
 
         signals.import_database.connect(self.import_database_wizard)
@@ -63,9 +64,9 @@ class DatabaseController(QObject):
             bw.Database(list(bw.databases)[-1])._add_indices()
 
     @Slot(name="bw2Setup")
-    def install_default_data(self):
-        self.default_biosphere_dialog = DefaultBiosphereDialog()
-        project_settings.add_db("biosphere3")
+    def install_default_data(self) -> None:
+        dialog = DefaultBiosphereDialog(self.window)
+        dialog.show()
 
     @Slot(name="addDatabase")
     def add_database(self):
