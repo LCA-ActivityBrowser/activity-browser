@@ -138,7 +138,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 
     def raise_issue_github(self):
         url = QtCore.QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
-        QtGui.QDesktopServices.openUrl(url=url)
+        QtGui.QDesktopServices.openUrl(url)
 
     def open_settings_wizard(self):
         self.settings_wizard = SettingsWizard(self.window)
