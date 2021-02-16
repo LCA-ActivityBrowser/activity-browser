@@ -59,9 +59,9 @@ class Signals(QObject):
     # exchanges_output_modified = Signal(list, tuple)
     exchanges_deleted = Signal(list)
     exchanges_add = Signal(list, tuple)
-    exchange_amount_modified = Signal(object, float)
     exchange_modified = Signal(object, str, object)
     # Exchange object and uncertainty dictionary
+    exchange_uncertainty_wizard = Signal(object)
     exchange_uncertainty_modified = Signal(object, object)
     exchange_pedigree_modified = Signal(object, object)
 

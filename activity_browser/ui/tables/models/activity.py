@@ -7,13 +7,12 @@ from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 from bw2data.proxies import ExchangeProxyBase
 import pandas as pd
-from PySide2.QtCore import QModelIndex, Qt
+from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser.bwutils import (
     PedigreeMatrix, uncertainty as uc, commontasks as bc
 )
 from activity_browser.signals import signals
-from ...wizards import UncertaintyWizard
 from .base import EditablePandasModel
 
 
@@ -81,14 +80,11 @@ class BaseExchangeModel(EditablePandasModel):
         for exchange in exchanges:
             signals.exchange_modified.emit(exchange, "formula", "")
 
+    @Slot(QModelIndex, name="modifyExchangeUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
-        """Need to know both keys to select the correct exchange to update.
-
-        TODO: Move this to the exchange controller.
-        """
+        """Need to know both keys to select the correct exchange to update."""
         exchange = self.get_exchange(proxy)
-        wizard = UncertaintyWizard(exchange, self.parent())
-        wizard.show()
+        signals.exchange_uncertainty_wizard.emit(exchange)
 
     def remove_uncertainty(self, proxies: list) -> None:
         exchanges = [self.get_exchange(p) for p in proxies]

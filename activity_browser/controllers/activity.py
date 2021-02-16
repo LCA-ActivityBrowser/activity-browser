@@ -7,9 +7,10 @@ from bw2data.backends.peewee.proxies import Activity, ExchangeProxyBase
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
-from ..bwutils import AB_metadata, commontasks as bc
-from ..settings import project_settings
-from ..signals import signals
+from activity_browser.bwutils import AB_metadata, commontasks as bc
+from activity_browser.settings import project_settings
+from activity_browser.signals import signals
+from activity_browser.ui.wizards import UncertaintyWizard
 from .parameter import ParameterController
 
 
@@ -206,8 +207,8 @@ class ExchangeController(QObject):
 
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
-        signals.exchange_amount_modified.connect(self.modify_exchange_amount)
         signals.exchange_modified.connect(self.modify_exchange)
+        signals.exchange_uncertainty_wizard.connect(self.edit_exchange_uncertainty)
         signals.exchange_uncertainty_modified.connect(self.modify_exchange_uncertainty)
         signals.exchange_pedigree_modified.connect(self.modify_exchange_pedigree)
 
@@ -240,13 +241,6 @@ class ExchangeController(QObject):
             bw.databases.set_modified(db)
             signals.database_changed.emit(db)
 
-    @Slot(object, )
-    def modify_exchange_amount(self, exchange, value):
-        exchange["amount"] = value
-        exchange.save()
-        bw.databases.set_modified(exchange["output"][0])
-        signals.database_changed.emit(exchange["output"][0])
-
     @staticmethod
     @Slot(object, str, object, name="editExchange")
     def modify_exchange(exchange: ExchangeProxyBase, field: str, value) -> None:
@@ -272,6 +266,12 @@ class ExchangeController(QObject):
             # If a formula was set, removed or changed, recalculate exchanges
             signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange["output"][0])
+
+    @Slot(object, name="runUncertaintyWizard")
+    def edit_exchange_uncertainty(self, exc: ExchangeProxyBase) -> None:
+        """Explicitly call the wizard here for altering the uncertainty."""
+        wizard = UncertaintyWizard(exc, self.window)
+        wizard.show()
 
     @staticmethod
     @Slot(object, object, name="modifyExchangeUncertainty")
