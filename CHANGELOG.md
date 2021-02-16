@@ -33,6 +33,8 @@
 - ([#525](https://github.com/LCA-ActivityBrowser/activity-browser/pull/525))
     Fix broken figure exporting signals, thanks for @angelajanenagle pointing
     this out!
+- ([#530](https://github.com/LCA-ActivityBrowser/activity-browser/issues/530))
+    Correct broken github issue reporting functionality.
 
 ## [2.6.3] - 2021-01-21
 
