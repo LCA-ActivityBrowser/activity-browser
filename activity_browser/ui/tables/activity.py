@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtWidgets
-from PySide2.QtCore import Signal, Slot
+from PySide2.QtCore import Slot
 
 from .delegates import *
 from .models import (
@@ -43,10 +43,18 @@ class BaseExchangeTable(ABDataFrameView):
         self._connect_signals()
 
     def _connect_signals(self):
-        self.delete_exchange_action.triggered.connect(self.delete_exchanges)
-        self.remove_formula_action.triggered.connect(self.remove_formula)
-        self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
-        self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
+        self.delete_exchange_action.triggered.connect(
+            lambda: self.model.delete_exchanges(self.selectedIndexes())
+        )
+        self.remove_formula_action.triggered.connect(
+            lambda: self.model.remove_formula(self.selectedIndexes())
+        )
+        self.modify_uncertainty_action.triggered.connect(
+            lambda: self.model.modify_uncertainty(self.currentIndex())
+        )
+        self.remove_uncertainty_action.triggered.connect(
+            lambda: self.model.remove_uncertainty(self.selectedIndexes())
+        )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
 
@@ -59,38 +67,9 @@ class BaseExchangeTable(ABDataFrameView):
         self.resizeRowsToContents()
         self.setColumnHidden(self.model.exchange_column, True)
 
+    @Slot(name="openActivities")
     def open_activities(self) -> None:
-        """ Take the selected indexes and attempt to open activity tabs.
-        """
-        for proxy in self.selectedIndexes():
-            act = self.model.get_key(proxy)
-            signals.open_activity_tab.emit(act)
-            signals.add_activity_to_history.emit(act)
-
-    @Slot(name="deleteExchanges")
-    def delete_exchanges(self) -> None:
-        """ Remove all of the selected exchanges from the activity.
-        """
-        self.model.delete_exchanges(self.selectedIndexes())
-
-    @Slot(name="removeFormulas")
-    def remove_formula(self) -> None:
-        """ Remove the formulas for all of the selected exchanges.
-
-        This will also check if the exchange has `original_amount` and
-        attempt to overwrite the `amount` with that value after removing the
-        `formula` field.
-        """
-        self.model.remove_formula(self.selectedIndexes())
-
-    @Slot(name="modifyExchangeUncertainty")
-    def modify_uncertainty(self) -> None:
-        """Need to know both keys to select the correct exchange to update"""
-        self.model.modify_uncertainty(self.currentIndex())
-
-    @Slot(name="unsetExchangeUncertainty")
-    def remove_uncertainty(self) -> None:
-        self.model.remove_uncertainty(self.selectedIndexes())
+        self.model.open_activities(self.selectedIndexes())
 
     def contextMenuEvent(self, a0) -> None:
         menu = QtWidgets.QMenu()

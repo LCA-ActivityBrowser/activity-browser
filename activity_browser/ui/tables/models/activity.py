@@ -64,11 +64,13 @@ class BaseExchangeModel(EditablePandasModel):
         exchange = self.get_exchange(proxy)
         return exchange.input.key
 
+    @Slot(list, name="deleteExchanges")
     def delete_exchanges(self, proxies: list) -> None:
         """ Remove all of the selected exchanges from the activity."""
         exchanges = [self.get_exchange(p) for p in proxies]
         signals.exchanges_deleted.emit(exchanges)
 
+    @Slot(list, name="removeFormulas")
     def remove_formula(self, proxies: list) -> None:
         """ Remove the formulas for all of the selected exchanges.
 
@@ -86,10 +88,20 @@ class BaseExchangeModel(EditablePandasModel):
         exchange = self.get_exchange(proxy)
         signals.exchange_uncertainty_wizard.emit(exchange)
 
+    @Slot(list, name="unsetExchangeUncertainty")
     def remove_uncertainty(self, proxies: list) -> None:
         exchanges = [self.get_exchange(p) for p in proxies]
         for exchange in exchanges:
             signals.exchange_uncertainty_modified.emit(exchange, uc.EMPTY_UNCERTAINTY)
+
+    @Slot(list, name="openActivities")
+    def open_activities(self, proxies: list) -> None:
+        """ Take the selected indexes and attempt to open activity tabs.
+        """
+        keys = (self.get_key(p) for p in proxies)
+        for key in keys:
+            signals.open_activity_tab.emit(key)
+            signals.add_activity_to_history.emit(key)
 
     def setData(self, index: QModelIndex, value, role=Qt.EditRole):
         """Whenever data is changed, call an update to the relevant exchange
