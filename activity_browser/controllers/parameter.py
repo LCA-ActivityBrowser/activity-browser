@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from typing import Union
+
 import brightway2 as bw
 from bw2data.parameters import ActivityParameter, Group, ParameterBase
 from PySide2.QtCore import QObject, Slot
+from PySide2.QtWidgets import QMessageBox
 
 from ..signals import signals
 
@@ -43,15 +46,32 @@ class ParameterController(QObject):
         bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
-    @staticmethod
     @Slot(object, str, object, name="modifyParameter")
-    def modify_parameter(param: ParameterBase, field: str, value: object) -> None:
-        if hasattr(param, field):
-            setattr(param, field, value)
-        else:
-            param.data[field] = value
-        param.save()
-        bw.parameters.recalculate()
+    def modify_parameter(self, param: ParameterBase, field: str,
+                         value: Union[str, float, list]) -> None:
+        with bw.parameters.db.atomic() as transaction:
+            try:
+                if hasattr(param, field):
+                    setattr(param, field, value)
+                elif field == "order":
+                    # Store the given order in the Group used by the parameter
+                    if param.group in value:
+                        value.remove(param.group)
+                    group = Group.get(name=param.group)
+                    group.order = value
+                    group.expire()
+                else:
+                    param.data[field] = value
+                param.save()
+                bw.parameters.recalculate()
+            except Exception as e:
+                # Anything wrong? Roll the transaction back and throw up a
+                # warning message.
+                transaction.rollback()
+                QMessageBox.warning(
+                    self.window, "Could not save changes", str(e),
+                    QMessageBox.Ok, QMessageBox.Ok
+                )
         signals.parameters_changed.emit()
 
     @staticmethod
