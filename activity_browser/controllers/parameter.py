@@ -60,20 +60,16 @@ class ParameterController(QObject):
     @staticmethod
     def delete_activity_parameter(key: tuple) -> None:
         """Remove all activity parameters and underlying exchange parameters
-        for the given key.
+        for the given activity key.
         """
-        query = ActivityParameter.select().where(
-            ActivityParameter.database == key[0],
-            ActivityParameter.code == key[1]
-        )
-        if not query.exists():
-            return
         query = (ActivityParameter
                  .select(ActivityParameter.group)
-                 .where(ActivityParameter.database == key[0],
-                        ActivityParameter.code == key[1])
+                 .where((ActivityParameter.database == key[0]) &
+                        (ActivityParameter.code == key[1]))
                  .tuples())
-        groups = set(p[0] for p in query.iterator())
+        if not query.exists():
+            return
+        groups = set(p[0] for p in query)
         for group in groups:
             bw.parameters.remove_from_group(group, key)
             exists = (ActivityParameter.select()
