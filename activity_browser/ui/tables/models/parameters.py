@@ -8,7 +8,6 @@ import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from PySide2.QtCore import Slot, QModelIndex
-from PySide2.QtWidgets import QInputDialog
 
 from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.signals import signals
@@ -86,9 +85,7 @@ class BaseParameterModel(EditablePandasModel):
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        with bw.parameters.db.atomic():
-            param.delete_instance()
-        signals.parameters_changed.emit()
+        signals.delete_parameter.emit(param)
 
     @Slot(name="modifyParameterUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
@@ -303,37 +300,6 @@ class ActivityParameterModel(BaseParameterModel):
         }
         # Save the new parameter immediately.
         bw.parameters.new_activity_parameters([row], group)
-        signals.parameters_changed.emit()
-
-    @Slot()
-    def delete_parameter(self, proxy) -> None:
-        """ Override the base method to include additional logic.
-
-        If there are multiple `ActivityParameters` for a single activity, only
-        delete the selected instance, otherwise use `bw.parameters.remove_from_group`
-        to clear out the `ParameterizedExchanges` as well.
-
-        TODO: Move to parameter controller.
-        """
-        key = self.get_key(proxy)
-        query = (ActivityParameter.select()
-                 .where(ActivityParameter.database == key[0],
-                        ActivityParameter.code == key[1]))
-
-        if query.count() > 1:
-            super().delete_parameter(proxy)
-        else:
-            act = bw.get_activity(key)
-            group = self.get_group(proxy)
-            bw.parameters.remove_from_group(group, act)
-            # Also clear the group if there are no more parameters in it
-            exists = (ActivityParameter.select()
-                      .where(ActivityParameter.group == group).exists())
-            if not exists:
-                with bw.parameters.db.atomic():
-                    Group.delete().where(Group.name == group).execute()
-
-        bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
     def get_activity_groups(self, proxy, ignore_groups: list = None) -> Iterable[str]:
