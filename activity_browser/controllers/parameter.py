@@ -16,9 +16,46 @@ class ParameterController(QObject):
 
         signals.parameter_modified.connect(self.modify_parameter)
         signals.rename_parameter.connect(self.rename_parameter)
+        signals.delete_parameter.connect(self.delete_parameter)
         signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
         signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
         signals.clear_activity_parameter.connect(self.clear_broken_activity_parameter)
+
+    @Slot(object, name="deleteParameter")
+    def delete_parameter(self, parameter: ParameterBase) -> None:
+        """ Remove the given parameter from the project.
+
+        If there are multiple `ActivityParameters` for a single activity, only
+        delete the selected instance, otherwise use `bw.parameters.remove_from_group`
+        to clear out the `ParameterizedExchanges` as well.
+        """
+        if isinstance(parameter, ActivityParameter):
+            db = parameter.database
+            code = parameter.code
+            amount = (ActivityParameter.select()
+                      .where((ActivityParameter.database == db) &
+                             (ActivityParameter.code == code))
+                      .count())
+
+            if amount > 1:
+                with bw.parameters.db.atomic():
+                    parameter.delete_instance()
+            else:
+                group = parameter.group
+                act = bw.get_activity((db, code))
+                bw.parameters.remove_from_group(group, act)
+                # Also clear the group if there are no more parameters in it
+                exists = (ActivityParameter.select()
+                          .where(ActivityParameter.group == group).exists())
+                if not exists:
+                    with bw.parameters.db.atomic():
+                        Group.delete().where(Group.name == group).execute()
+        else:
+            with bw.parameters.db.atomic():
+                parameter.delete_instance()
+        # After deleting things, recalculate and signal changes
+        bw.parameters.recalculate()
+        signals.parameters_changed.emit()
 
     @staticmethod
     def delete_activity_parameter(key: tuple) -> None:
