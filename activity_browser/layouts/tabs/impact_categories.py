@@ -34,7 +34,7 @@ class CFsTab(QtWidgets.QWidget):
 
     def connect_signals(self) -> None:
         self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
-        self.cf_table.model.modified.connect(
+        self.cf_table.model.updated.connect(
             lambda: self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
         )
 
