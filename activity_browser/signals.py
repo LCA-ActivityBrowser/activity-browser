@@ -68,6 +68,7 @@ class Signals(QObject):
     # Parameters
     add_activity_parameter = Signal(tuple)
     parameters_changed = Signal()
+    rename_parameter = Signal(object, str)
     parameter_renamed = Signal(str, str, str)  # old, group, new
     # Pass the key of the activity holding the exchange
     exchange_formula_changed = Signal(tuple)

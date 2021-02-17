@@ -4,7 +4,7 @@ from typing import Union
 import brightway2 as bw
 from bw2data.parameters import ActivityParameter, Group, ParameterBase
 from PySide2.QtCore import QObject, Slot
-from PySide2.QtWidgets import QMessageBox
+from PySide2.QtWidgets import QInputDialog, QMessageBox
 
 from ..signals import signals
 
@@ -15,6 +15,7 @@ class ParameterController(QObject):
         self.window = parent
 
         signals.parameter_modified.connect(self.modify_parameter)
+        signals.rename_parameter.connect(self.rename_parameter)
         signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
         signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
         signals.clear_activity_parameter.connect(self.clear_broken_activity_parameter)
@@ -73,6 +74,36 @@ class ParameterController(QObject):
                     QMessageBox.Ok, QMessageBox.Ok
                 )
         signals.parameters_changed.emit()
+
+    @Slot(object, str, name="renameParameter")
+    def rename_parameter(self, param: ParameterBase, group: str) -> None:
+        """Creates an input dialog where users can set a new name for the
+        given parameter.
+
+        NOTE: Currently defaults to updating downstream formulas if needed,
+        by sub-classing the QInputDialog class it becomes possible to allow
+        users to decide if they want to update downstream parameters.
+        """
+        new_name, ok = QInputDialog.getText(
+            self.window, "Rename parameter", "New parameter name:",
+        )
+        if not ok or not new_name:
+            return
+        try:
+            old_name = param.name
+            if group == "project":
+                bw.parameters.rename_project_parameter(param, new_name, True)
+            elif group in bw.databases:
+                bw.parameters.rename_database_parameter(param, new_name, True)
+            else:
+                bw.parameters.rename_activity_parameter(param, new_name, True)
+            signals.parameters_changed.emit()
+            signals.parameter_renamed.emit(old_name, group, new_name)
+        except Exception as e:
+            QMessageBox.warning(
+                self.window, "Could not save changes", str(e),
+                QMessageBox.Ok, QMessageBox.Ok
+            )
 
     @staticmethod
     @Slot(object, object, name="modifyParameterUncertainty")
