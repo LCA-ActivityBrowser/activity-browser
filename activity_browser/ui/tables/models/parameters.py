@@ -69,30 +69,11 @@ class BaseParameterModel(EditablePandasModel):
         return row
 
     @Slot(QModelIndex, name="editSingleParameter")
-    def edit_single_parameter(self, proxy: QModelIndex) -> None:
-        """ Take the proxy index and update the underlying brightway Parameter.
-
-        TODO: Move this to the parameter controller
-        """
-        param = self.get_parameter(proxy)
-        with bw.parameters.db.atomic() as transaction:
-            try:
-                field = self._dataframe.columns[proxy.column()]
-                if field not in self.COLUMNS:
-                    # Must store value inside 'data' field.
-                    param.data[field] = proxy.data()
-                else:
-                    setattr(param, field, proxy.data())
-                param.save()
-                # Saving the parameter expires the related group, so recalculate.
-                bw.parameters.recalculate()
-                signals.parameters_changed.emit()
-            except Exception as e:
-                # Anything wrong? Roll the transaction back, rebuild the table
-                # and throw up a warning message.
-                transaction.rollback()
-                simple_warning_box(self, "Could not save changes", str(e))
-                self.sync()
+    def edit_single_parameter(self, index: QModelIndex) -> None:
+        """Take the index and update the underlying brightway Parameter."""
+        param = self.get_parameter(index)
+        field = self._dataframe.columns[index.column()]
+        signals.parameter_modified.emit(param, field, index.data())
 
     def handle_parameter_rename(self, proxy: QModelIndex) -> None:
         """ Creates an input dialog where users can set a new name for the
@@ -347,20 +328,6 @@ class ActivityParameterModel(BaseParameterModel):
         signals.parameter_renamed.emit(parameter.name, parameter.group, new_name)
         bw.parameters.rename_activity_parameter(parameter, new_name, update)
 
-    def store_group_order(self, proxy) -> None:
-        """ Store the given order in the Group used by the parameter linked
-        in the proxy.
-
-        TODO: Move partially to parameter controller.
-        """
-        param = self.get_parameter(proxy)
-        order = proxy.data()
-        if param.group in order:
-            order.remove(param.group)
-        group = Group.get(name=param.group)
-        group.order = order
-        group.expire()
-
     @Slot()
     def delete_parameter(self, proxy) -> None:
         """ Override the base method to include additional logic.
@@ -437,15 +404,3 @@ class ActivityParameterModel(BaseParameterModel):
     def get_key(self, proxy: QModelIndex) -> tuple:
         index = self.proxy_to_source(proxy)
         return self._dataframe.iat[index.row(), self.key_col]
-
-    def edit_single_parameter(self, proxy: QModelIndex) -> None:
-        """ Override the base method because `order` is stored in Group,
-        not in Activity.
-        """
-        field = self._dataframe.columns[proxy.column()]
-        if field == "order":
-            self.store_group_order(proxy)
-            bw.parameters.recalculate()
-            signals.parameters_changed.emit()
-        else:
-            super().edit_single_parameter(proxy)
