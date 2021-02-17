@@ -101,7 +101,12 @@ class Signals(QObject):
     lca_scenario_calculation = Signal(str, object)
     lca_results_tabs_changed = Signal()
 
+    # Impact Categories & Characterization Factors
     new_method = Signal(tuple)
+    copy_method = Signal(tuple)
+    edit_method_cf = Signal(tuple, tuple)
+    remove_cf_uncertainties = Signal(list, tuple)
+    method_modified = Signal(tuple)
     method_selected = Signal(tuple)
     method_tabs_changed = Signal()
 
