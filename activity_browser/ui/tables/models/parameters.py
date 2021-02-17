@@ -33,9 +33,12 @@ class BaseParameterModel(EditablePandasModel):
         return self._dataframe.iat[idx.row(), self.param_col]
 
     def get_key(self, *args) -> tuple:
-        """ Use this to build a (partial) key for the current index.
-        """
+        """Use this to build a (partial) key for the current index."""
         return "", ""
+
+    def get_group(self, *args) -> str:
+        """Retrieve the group of the parameter currently selected."""
+        return "project"
 
     @classmethod
     def parse_parameter(cls, parameter) -> dict:
@@ -75,24 +78,11 @@ class BaseParameterModel(EditablePandasModel):
         field = self._dataframe.columns[index.column()]
         signals.parameter_modified.emit(param, field, index.data())
 
+    @Slot(QModelIndex, name="startRenameParameter")
     def handle_parameter_rename(self, proxy: QModelIndex) -> None:
-        """ Creates an input dialog where users can set a new name for the
-        selected parameter.
-
-        NOTE: Currently defaults to updating downstream formulas if needed,
-        by sub-classing the QInputDialog class it becomes possible to allow
-        users to decide if they want to update downstream parameters.
-        """
-        new_name, ok = QInputDialog.getText(
-            self.parent(), "Rename parameter", "New parameter name:",
-        )
-        if ok and new_name:
-            try:
-                self.rename_parameter(proxy, new_name)
-                signals.parameters_changed.emit()
-            except Exception as e:
-                simple_warning_box(self, "Could not save changes", str(e))
-                self.sync()
+        group = self.get_group(proxy)
+        param = self.get_parameter(proxy)
+        signals.rename_parameter.emit(param, group)
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
@@ -138,12 +128,6 @@ class ProjectParameterModel(BaseParameterModel):
         except ValueError as e:
             simple_warning_box(self, "Name already in use!", str(e))
 
-    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
-        """TODO: Move this to parameter controller."""
-        parameter = self.get_parameter(proxy)
-        signals.parameter_renamed.emit(parameter.name, "project", new_name)
-        bw.parameters.rename_project_parameter(parameter, new_name, update)
-
     @staticmethod
     def get_usable_parameters() -> Iterable[list]:
         return (
@@ -176,6 +160,11 @@ class DatabaseParameterModel(BaseParameterModel):
     def get_key(self, proxy: QModelIndex = None) -> tuple:
         return self.get_database(proxy), ""
 
+    def get_group(self, proxy: QModelIndex = None) -> str:
+        """ Retrieve the group of the activity currently selected.
+        """
+        return self.get_database(proxy)
+
     def add_parameter(self) -> None:
         """ Add a new database parameter to the dataframe
 
@@ -191,12 +180,6 @@ class DatabaseParameterModel(BaseParameterModel):
             signals.parameters_changed.emit()
         except ValueError as e:
             simple_warning_box(self, "Name already in use!", str(e))
-
-    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
-        """TODO: Move this to parameter controller."""
-        parameter = self.get_parameter(proxy)
-        signals.parameter_renamed.emit(parameter.name, parameter.database, new_name)
-        bw.parameters.rename_database_parameter(parameter, new_name, update)
 
     @staticmethod
     def get_usable_parameters():
@@ -321,12 +304,6 @@ class ActivityParameterModel(BaseParameterModel):
         # Save the new parameter immediately.
         bw.parameters.new_activity_parameters([row], group)
         signals.parameters_changed.emit()
-
-    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
-        """TODO: Move to parameter controller."""
-        parameter = self.get_parameter(proxy)
-        signals.parameter_renamed.emit(parameter.name, parameter.group, new_name)
-        bw.parameters.rename_activity_parameter(parameter, new_name, update)
 
     @Slot()
     def delete_parameter(self, proxy) -> None:
