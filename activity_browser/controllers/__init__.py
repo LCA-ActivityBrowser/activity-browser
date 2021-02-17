@@ -2,7 +2,9 @@
 from .activity import ActivityController, ExchangeController
 from .database import DatabaseController
 from .parameter import ParameterController
-from .project import ProjectController, CSetupController
+from .project import (
+    ProjectController, CSetupController, ImpactCategoryController
+)
 from .utils import UtilitiesController
 
 controllers = {
@@ -12,5 +14,6 @@ controllers = {
     "parameter_controller": ParameterController,
     "project_controller": ProjectController,
     "cs_controller": CSetupController,
+    "ia_controller": ImpactCategoryController,
     "utils_controller": UtilitiesController,
 }

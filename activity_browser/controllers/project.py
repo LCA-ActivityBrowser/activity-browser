@@ -6,6 +6,7 @@ from PySide2 import QtWidgets
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.settings import ab_settings
 from activity_browser.signals import signals
+from activity_browser.ui.widgets import TupleNameDialog
 
 
 class ProjectController(QObject):
@@ -189,3 +190,71 @@ class CSetupController(QObject):
             )
             return False
         return True
+
+
+class ImpactCategoryController(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.window = parent
+
+        signals.copy_method.connect(self.copy_method)
+        signals.edit_method_cf.connect(self.modify_method_with_cf)
+        signals.remove_cf_uncertainties.connect(self.remove_uncertainty)
+
+    @Slot(tuple, name="copyMethod")
+    def copy_method(self, method: tuple) -> None:
+        """Call copy on the (first) selected method and present rename dialog."""
+        method = bw.Method(method)
+        dialog = TupleNameDialog.get_combined_name(
+            self.window, "Impact category name", "Combined name:", method.name, "Copy"
+        )
+        if dialog.exec_() == TupleNameDialog.Accepted:
+            new_name = dialog.result_tuple
+            if new_name in bw.methods:
+                warn = "Impact Category with name '{}' already exists!".format(new_name)
+                QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
+                return
+            method.copy(new_name)
+            print("Copied method {} into {}".format(str(method.name), str(new_name)))
+            signals.new_method.emit(new_name)
+
+    @Slot(list, tuple, name="removeCFUncertainty")
+    def remove_uncertainty(self, removed: list, method: tuple) -> None:
+        """Remove all uncertainty information from the selected CFs.
+
+        NOTE: Does not affect any selected CF that does not have uncertainty
+        information.
+        """
+        def unset(cf: tuple) -> tuple:
+            data = [*cf]
+            data[1] = data[1].get("amount")
+            return tuple(data)
+
+        method = bw.Method(method)
+        modified_cfs = (
+            unset(cf) for cf in removed if isinstance(cf[1], dict)
+        )
+        cfs = method.load()
+        for cf in modified_cfs:
+            idx = next(i for i, c in enumerate(cfs) if c[0] == cf[0])
+            cfs[idx] = cf
+        method.write(cfs)
+        signals.method_modified.emit(method.name)
+
+    @Slot(tuple, tuple, name="modifyMethodWithCf")
+    def modify_method_with_cf(self, cf: tuple, method: tuple) -> None:
+        """ Take the given CF tuple, add it to the method object stored in
+        `self.method` and call .write() & .process() to finalize.
+
+        NOTE: if the flow key matches one of the CFs in method, that CF
+        will be edited, if not, a new CF will be added to the method.
+        """
+        method = bw.Method(method)
+        cfs = method.load()
+        idx = next((i for i, c in enumerate(cfs) if c[0] == cf[0]), None)
+        if idx is None:
+            cfs.append(cf)
+        else:
+            cfs[idx] = cf
+        method.write(cfs)
+        signals.method_modified.emit(method.name)
