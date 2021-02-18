@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import brightway2 as bw
 from bw2data.parameters import ActivityParameter, Group, ParameterBase
@@ -18,6 +18,7 @@ class ParameterController(QObject):
 
         signals.add_parameter.connect(self.add_parameter)
         signals.add_activity_parameter.connect(self.auto_add_parameter)
+        signals.add_activity_parameters.connect(self.multiple_auto_parameters)
         signals.parameter_modified.connect(self.modify_parameter)
         signals.rename_parameter.connect(self.rename_parameter)
         signals.delete_parameter.connect(self.delete_parameter)
@@ -49,8 +50,9 @@ class ParameterController(QObject):
                 p_type = "activity ({})".format(group)
             signals.added_parameter.emit(name, amount, p_type)
 
+    @staticmethod
     @Slot(tuple, name="addActivityParameter")
-    def auto_add_parameter(self, key: tuple) -> None:
+    def auto_add_parameter(key: tuple) -> None:
         """ Given the activity key, generate a new row with data from
         the activity and immediately call `new_activity_parameters`.
         """
@@ -68,6 +70,25 @@ class ParameterController(QObject):
         }
         # Save the new parameter immediately.
         bw.parameters.new_activity_parameters([row], group)
+        signals.parameters_changed.emit()
+
+    @Slot(list, name="addMultipleActivityParams")
+    def multiple_auto_parameters(self, keys: List[tuple]) -> None:
+        """Block the 'signals' object while iterating through the list of
+        keys, adding all of them as activity parameters.
+        """
+        warning = "Activity must be 'process' type, '{}' is type '{}'."
+        signals.blockSignals(True)
+        for key in keys:
+            act = bw.get_activity(key)
+            if act.get("type", "process") != "process":
+                issue = warning.format(act.get("name"), act.get("type"))
+                QMessageBox.warning(
+                    self.window, "Not allowed", issue, QMessageBox.Ok, QMessageBox.Ok
+                )
+                continue
+            self.auto_add_parameter(key)
+        signals.blockSignals(False)
         signals.parameters_changed.emit()
 
     @Slot(object, name="deleteParameter")

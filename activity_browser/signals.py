@@ -68,6 +68,7 @@ class Signals(QObject):
     # Parameters
     add_parameter = Signal(tuple)
     add_activity_parameter = Signal(tuple)
+    add_activity_parameters = Signal(list)
     added_parameter = Signal(str, str, str)
     parameters_changed = Signal()
     rename_parameter = Signal(object, str)
