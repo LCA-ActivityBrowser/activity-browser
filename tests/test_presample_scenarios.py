@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import presamples as ps
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QFileDialog
+from PySide2.QtWidgets import QFileDialog, QInputDialog
 import pytest
 
 from activity_browser.signals import signals
@@ -106,7 +106,7 @@ def test_scenario_table_rebuild(qtbot, project_parameters):
     assert not begin_df.equals(scenario_table.model._dataframe)
 
 
-def test_scenario_table_rename(qtbot, project_parameters):
+def test_scenario_table_rename(qtbot, project_parameters, monkeypatch):
     """ Renaming a parameter will change the index of the dataframe
     but not the values. (not that there is an easy way to test this)
     """
@@ -117,8 +117,11 @@ def test_scenario_table_rename(qtbot, project_parameters):
     scenario_table.model.sync()  # Trigger a clean sync
 
     assert scenario_table.model._dataframe.index[0] == "test1"
+    monkeypatch.setattr(
+        QInputDialog, "getText", staticmethod(lambda *args, **kwargs: ("newname", True))
+    )
     with qtbot.waitSignal(signals.parameter_renamed, timeout=500):
-        project_table.rename_parameter(project_table.proxy_model.index(0, 0), "newname")
+        project_table.model.handle_parameter_rename(project_table.proxy_model.index(0, 0))
     assert scenario_table.model._dataframe.index[0] == "newname"
 
 
