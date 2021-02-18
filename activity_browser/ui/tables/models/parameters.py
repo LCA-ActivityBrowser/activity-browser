@@ -9,10 +9,9 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from PySide2.QtCore import Slot, QModelIndex
 
-from activity_browser.bwutils import commontasks as bc, uncertainty as uc
+from activity_browser.bwutils import uncertainty as uc
 from activity_browser.signals import signals
-from ...widgets import simple_warning_box
-from ...wizards import UncertaintyWizard
+from activity_browser.ui.wizards import UncertaintyWizard
 from .base import EditablePandasModel
 
 
@@ -110,21 +109,6 @@ class ProjectParameterModel(BaseParameterModel):
         self.param_col = self._dataframe.columns.get_loc("parameter")
         self.updated.emit()
 
-    def add_parameter(self) -> None:
-        """ Build a new parameter and immediately store it.
-
-        TODO: Move this to parameter controller.
-        """
-        counter = (ProjectParameter.select().count() +
-                   DatabaseParameter.select().count())
-        try:
-            bw.parameters.new_project_parameters([
-                {"name": "param_{}".format(counter + 1), "amount": 1.0}
-            ], False)
-            signals.parameters_changed.emit()
-        except ValueError as e:
-            simple_warning_box(self, "Name already in use!", str(e))
-
     @staticmethod
     def get_usable_parameters() -> Iterable[list]:
         return (
@@ -161,22 +145,6 @@ class DatabaseParameterModel(BaseParameterModel):
         """ Retrieve the group of the activity currently selected.
         """
         return self.get_database(proxy)
-
-    def add_parameter(self) -> None:
-        """ Add a new database parameter to the dataframe
-
-        TODO: Move this to parameter controller.
-        """
-        counter = (ProjectParameter.select().count() +
-                   DatabaseParameter.select().count())
-        database = next(iter(bw.databases))
-        try:
-            bw.parameters.new_database_parameters([
-                {"name": "param_{}".format(counter + 1), "amount": 1.0}
-            ], database, False)
-            signals.parameters_changed.emit()
-        except ValueError as e:
-            simple_warning_box(self, "Name already in use!", str(e))
 
     @staticmethod
     def get_usable_parameters():
@@ -216,7 +184,6 @@ class ActivityParameterModel(BaseParameterModel):
         self.group_col = 0
         self.key_col = 0
         self.order_col = 0
-        signals.add_activity_parameter.connect(self.add_parameter)
 
     def sync(self) -> None:
         """ Build a dataframe using the ActivityParameters set in brightway
@@ -261,46 +228,10 @@ class ActivityParameterModel(BaseParameterModel):
         row["parameter"] = ActivityParameter.get_by_id(parameter.id)
         return row
 
-    def add_parameters(self, keys: Iterable[tuple]) -> None:
-        # Block signals from `signals` while iterating through dropped keys.
-        signals.blockSignals(True)
-        for key in keys:
-            act = bw.get_activity(key)
-            if act.get("type", "process") != "process":
-                simple_warning_box(
-                    self, "Not allowed",
-                    "Activity must be 'process' type, '{}' is type '{}'.".format(
-                        act.get("name"), act.get("type")
-                    )
-                )
-                continue
-            self.add_parameter(key)
-        signals.blockSignals(False)
-        signals.parameters_changed.emit()
-
     @staticmethod
     @Slot(tuple, name="addActivityParameter")
     def add_parameter(key: tuple) -> None:
-        """ Given the activity key, generate a new row with data from
-        the activity and immediately call `new_activity_parameters`.
-
-        TODO: Move to parameter controller.
-        """
-        act = bw.get_activity(key)
-        prep_name = bc.clean_activity_name(act.get("name"))
-        group = bc.build_activity_group_name(key, prep_name)
-        count = (ActivityParameter.select()
-                 .where(ActivityParameter.group == group).count())
-        row = {
-            "name": "{}_{}".format(prep_name, count + 1),
-            "amount": act.get("amount", 1.0),
-            "formula": act.get("formula", ""),
-            "database": key[0],
-            "code": key[1],
-        }
-        # Save the new parameter immediately.
-        bw.parameters.new_activity_parameters([row], group)
-        signals.parameters_changed.emit()
+        signals.add_activity_parameter.emit(key)
 
     def get_activity_groups(self, proxy, ignore_groups: list = None) -> Iterable[str]:
         """ Helper method to look into the Group and determine which if any
