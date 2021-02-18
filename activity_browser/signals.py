@@ -66,7 +66,9 @@ class Signals(QObject):
     exchange_pedigree_modified = Signal(object, object)
 
     # Parameters
+    add_parameter = Signal(tuple)
     add_activity_parameter = Signal(tuple)
+    added_parameter = Signal(str, str, str)
     parameters_changed = Signal()
     rename_parameter = Signal(object, str)
     parameter_renamed = Signal(str, str, str)  # old, group, new
