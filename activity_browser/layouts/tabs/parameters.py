@@ -129,10 +129,10 @@ can be used within the formula!</p>
         signals.project_selected.connect(self.build_tables)
         signals.parameters_changed.connect(self.build_tables)
         self.new_project_param.clicked.connect(
-            self.project_table.add_parameter
+            lambda: signals.add_parameter.emit(None)
         )
         self.new_database_param.clicked.connect(
-            self.database_table.add_parameter
+            lambda: signals.add_parameter.emit(None)
         )
         self.show_order.stateChanged.connect(self.activity_order_column)
         self.uncertainty_columns.stateChanged.connect(
