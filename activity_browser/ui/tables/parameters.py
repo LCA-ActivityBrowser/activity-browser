@@ -5,13 +5,12 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter,
                                 ProjectParameter)
 from PySide2.QtCore import Slot
 from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from PySide2.QtWidgets import QAction, QMenu
+from PySide2.QtWidgets import QAction, QMenu, QMessageBox
 
 from ...bwutils import commontasks as bc
 from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
-from ..widgets import simple_warning_box
 from .delegates import *
 from .models import (
     BaseParameterModel, ProjectParameterModel, DatabaseParameterModel,
@@ -79,9 +78,6 @@ class BaseParameterTable(ABDataFrameView):
     def get_key(self, *args) -> tuple:
         return self.model.get_key()
 
-    def rename_parameter(self, proxy, new_name: str, update: bool = True) -> None:
-        self.model.rename_parameter(proxy, new_name, update)
-
     def delete_parameter(self, proxy) -> None:
         self.model.delete_parameter(proxy)
 
@@ -112,9 +108,6 @@ class ProjectParameterTable(BaseParameterTable):
         for i in range(3, 9):
             self.setColumnHidden(i, not show)
 
-    def add_parameter(self):
-        self.model.add_parameter()
-
     @staticmethod
     def get_usable_parameters():
         return ProjectParameterModel.get_usable_parameters()
@@ -143,9 +136,6 @@ class DataBaseParameterTable(BaseParameterTable):
 
     def get_key(self) -> tuple:
         return self.model.get_key(self.currentIndex())
-
-    def add_parameter(self):
-        self.model.add_parameter()
 
     @staticmethod
     def get_usable_parameters():
@@ -197,18 +187,16 @@ class ActivityParameterTable(BaseParameterTable):
 
         if project_settings.settings["read-only-databases"].get(
                 db_table.database_name, True):
-            simple_warning_box(
+            QMessageBox.warning(
                 self, "Not allowed",
-                "Cannot set activity parameters on read-only databases"
+                "Cannot set activity parameters on read-only databases",
+                QMessageBox.Ok, QMessageBox.Ok
             )
             return
 
         keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
         event.accept()
-        self.model.add_parameters(keys)
-
-    def add_parameter(self, key: tuple) -> None:
-        self.model.add_parameter(key)
+        signals.add_activity_parameters.emit(keys)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         """ Override and activate QTableView.contextMenuEvent()
@@ -288,7 +276,7 @@ class ExchangesTable(ABDictTreeView):
         group = bc.build_activity_group_name(key)
         if not (ActivityParameter.select()
                 .where(ActivityParameter.group == group).count()):
-            ActivityParameterModel.add_parameter(key)
+            signals.add_activity_parameter.emit(key)
 
         act = bw.get_activity(key)
         with bw.parameters.db.atomic():
