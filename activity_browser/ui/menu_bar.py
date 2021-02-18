@@ -133,7 +133,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 
     def raise_issue_github(self):
         url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
-        QtGui.QDesktopServices.openUrl(url=url)
+        QtGui.QDesktopServices.openUrl(url)
 
     @Slot(name="testBiosphereExists")
     def biosphere_exists(self) -> None:
