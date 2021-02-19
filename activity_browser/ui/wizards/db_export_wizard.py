@@ -5,8 +5,7 @@ import brightway2 as bw
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from ...bwutils import commontasks as bc
-from ...bwutils.exporters import write_lci_excel
+from ...bwutils import commontasks as bc, exporters as exp
 
 
 EXPORTERS = {
@@ -14,7 +13,7 @@ EXPORTERS = {
     "BW2Package": bc.store_database_as_package,
     # Export the database, all project parameters and all parameters that are
     # related to that database as an Excel file.
-    "Excel": write_lci_excel,
+    "Excel": exp.write_lci_excel,
 }
 EXTENSIONS = {
     "BW2Package": ".bw2package",
@@ -34,7 +33,6 @@ class DatabaseExportWizard(QtWidgets.QWizard):
         self.pages = [self.export_page]
         for i, page in enumerate(self.pages):
             self.setPage(i, page)
-        self.show()
 
     def accept(self) -> None:
         self.perform_export()

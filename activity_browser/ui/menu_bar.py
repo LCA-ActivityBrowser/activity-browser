@@ -1,22 +1,17 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2 import QtCore, QtWidgets, QtGui
+from PySide2 import QtWidgets, QtGui
+from PySide2.QtCore import QSize, QUrl, Slot
 
 from ..info import __version__ as ab_version
 from .icons import qicons
 from ..signals import signals
-from .widgets import BiosphereUpdater
-from .wizards.settings_wizard import SettingsWizard
-from .wizards.db_export_wizard import DatabaseExportWizard
 
 
 class MenuBar(QtWidgets.QMenuBar):
     def __init__(self, window):
         super().__init__(parent=window)
         self.window = window
-        self.settings_wizard = None
-        self.export_wizard = None
-        self.biosphere_updater = None
         self.file_menu = QtWidgets.QMenu('&File', self.window)
         self.view_menu = QtWidgets.QMenu('&View', self.window)
         self.windows_menu = QtWidgets.QMenu('&Windows', self.window)
@@ -49,9 +44,9 @@ class MenuBar(QtWidgets.QMenuBar):
         signals.update_windows.connect(self.update_windows_menu)
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
-        self.update_biosphere_action.triggered.connect(self.update_biosphere)
-        self.export_db_action.triggered.connect(self.transfer_database_wizard)
-        self.import_db_action.triggered.connect(lambda: signals.import_database.emit(self.window))
+        self.update_biosphere_action.triggered.connect(signals.update_biosphere.emit)
+        self.export_db_action.triggered.connect(signals.export_database.emit)
+        self.import_db_action.triggered.connect(signals.import_database.emit)
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
@@ -61,7 +56,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.addAction(
             qicons.settings,
             '&Settings...',
-            self.open_settings_wizard
+            signals.edit_settings.emit
         )
 
     def setup_view_menu(self) -> None:
@@ -69,17 +64,17 @@ class MenuBar(QtWidgets.QMenuBar):
         self.view_menu.addAction(
             qicons.graph_explorer,
             '&Graph Explorer',
-            lambda x="Graph Explorer": signals.toggle_show_or_hide_tab.emit(x)
+            lambda: signals.toggle_show_or_hide_tab.emit("Graph Explorer")
         )
         self.view_menu.addAction(
             qicons.history,
             '&Activity History',
-            lambda x="History": signals.toggle_show_or_hide_tab.emit(x)
+            lambda: signals.toggle_show_or_hide_tab.emit("History")
         )
         self.view_menu.addAction(
             qicons.welcome,
             '&Welcome screen',
-            lambda x="Welcome": signals.toggle_show_or_hide_tab.emit(x)
+            lambda: signals.toggle_show_or_hide_tab.emit("Welcome")
         )
 
     def update_windows_menu(self):
@@ -90,7 +85,7 @@ class MenuBar(QtWidgets.QMenuBar):
             self.windows_menu.addAction(
                 widget.icon,
                 widget.name,
-                lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
+                lambda: self.window.stacked.setCurrentWidget(widget),
             )
 
     def setup_help_menu(self) -> None:
@@ -128,40 +123,22 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.<br><br>
 You should have received a copy of the GNU Lesser General Public License along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.
 """
-        msgBox = QtWidgets.QMessageBox()
+        msgBox = QtWidgets.QMessageBox(parent=self.window)
         msgBox.setWindowTitle('About the Activity Browser')
-        pixmap = self.window.icon.pixmap(QtCore.QSize(150, 150))
+        pixmap = self.window.icon.pixmap(QSize(150, 150))
         msgBox.setIconPixmap(pixmap)
         msgBox.setWindowIcon(self.window.icon)
         msgBox.setText(text.format(ab_version))
         msgBox.exec_()
 
     def raise_issue_github(self):
-        url = QtCore.QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
-        QtGui.QDesktopServices.openUrl(url=url)
+        url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
+        QtGui.QDesktopServices.openUrl(url)
 
-    def open_settings_wizard(self):
-        self.settings_wizard = SettingsWizard(self.window)
-
-    def transfer_database_wizard(self) -> None:
-        self.export_wizard = DatabaseExportWizard(self.window)
-
+    @Slot(name="testBiosphereExists")
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
         """
         exists = True if bw.config.biosphere in bw.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
-
-    def update_biosphere(self):
-        """ Open a popup with progression bar and run through the different
-        functions for adding ecoinvent biosphere flows.
-        """
-        ok = QtWidgets.QMessageBox.question(
-            self.window, "Update biosphere3?",
-            "Updating the biosphere3 database cannot be undone!",
-            QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
-            QtWidgets.QMessageBox.Abort
-        )
-        if ok == QtWidgets.QMessageBox.Ok:
-            self.biosphere_updater = BiosphereUpdater(self.window)

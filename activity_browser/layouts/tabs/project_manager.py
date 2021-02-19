@@ -125,7 +125,7 @@ class DatabaseWidget(QtWidgets.QWidget):
 
     def _connect_signals(self):
         self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
-        self.import_database_button.clicked.connect(lambda: signals.import_database.emit(self))
+        self.import_database_button.clicked.connect(signals.import_database.emit)
         self.new_database_button.clicked.connect(signals.add_database.emit)
 
     def _construct_layout(self):
@@ -206,7 +206,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
     def reset_widget(self):
         self.hide()
-        self.table.reset_table()
+        self.table.model.clear()
 
     def setup_search(self):
         # 1st search box
@@ -256,7 +256,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             db_display_name = db_name
             self.label_database.setToolTip('')
         self.label_database.setText("[{}]".format(db_display_name))
-        self.table.sync(db_name=db_name)
 
     def set_search_term(self):
         search_term = self.search_box.text()

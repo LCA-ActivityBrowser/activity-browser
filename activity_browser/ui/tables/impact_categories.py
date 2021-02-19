@@ -1,113 +1,62 @@
 # -*- coding: utf-8 -*-
-import numbers
-from typing import Iterable, Optional
+from typing import Iterable
 
 import brightway2 as bw
 from pandas import DataFrame
 from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Signal, Slot
+from PySide2.QtCore import QModelIndex, Slot
 
 from ...signals import signals
 from ..icons import qicons
 from ..widgets import TupleNameDialog
-from ..wizards import UncertaintyWizard
-from .views import ABDataFrameView, ABDictTreeView, dataframe_sync, tree_model_decorate
-from .models import MethodsTreeModel
+from .views import ABDataFrameView, ABDictTreeView, tree_model_decorate
+from .models import CFModel, MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
 
 
 class MethodsTable(ABDataFrameView):
-    HEADERS = ["Name", "Unit", "# CFs", "method"]
-    new_method = Signal(tuple)
-
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.drag_model = True
-        self.method_col = 0
         self.setDragEnabled(True)
         self.setDragDropMode(ABDataFrameView.DragOnly)
-        self.sync()
-        self._connect_signals()
+        self.model = MethodsListModel(self)
 
-    def _connect_signals(self):
-        self.doubleClicked.connect(self.method_selected)
-        signals.project_selected.connect(self.sync)
-
-    def get_method(self, proxy: QModelIndex) -> tuple:
-        index = self.get_source_index(proxy)
-        return self.dataframe.iat[index.row(), self.method_col]
-
-    @Slot(QModelIndex, name="methodSelection")
-    def method_selected(self, proxy=None):
-        if not proxy:
-            # as this funtion only works for one proxy, take the first of all selected methods
-            proxy = [i for i in self.selectedIndexes()][0]
-        signals.method_selected.emit(self.get_method(proxy))
+        self.doubleClicked.connect(
+            lambda p: signals.method_selected.emit(self.model.get_method(p))
+        )
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""
-        return (self.get_method(p) for p in self.selectedIndexes())
+        return (self.model.get_method(p) for p in self.selectedIndexes())
 
-    @dataframe_sync
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
-        if query and len(query) != 0:
-            sorted_names = filter(
-                lambda obj: query.lower() in obj[0].lower(), sorted_names
-            )
-        self.dataframe = DataFrame([
-            self.build_row(method_obj) for method_obj in sorted_names
-        ], columns=self.HEADERS)
-        self.method_col = self.dataframe.columns.get_loc("method")
+        self.model.sync(query)
 
-    def build_row(self, method_obj) -> dict:
-        method = bw.methods[method_obj[1]]
-        return {
-            "Name": method_obj[0],
-            "Unit": method.get("unit", "Unknown"),
-            "# CFs": str(method.get("num_cfs", 0)),
-            "method": method_obj[1],
-        }
-
-    def _resize(self) -> None:
-        self.setColumnHidden(self.method_col, True)
+    @Slot(name="resizeView")
+    def custom_view_sizing(self) -> None:
+        self.setColumnHidden(self.model.method_col, True)
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         ))
 
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
-        menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
-        menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
-        menu.exec_(event.globalPos())
-
-    @Slot(name="copyMethod")
-    def copy_method(self) -> None:
-        """Call copy on the (first) selected method and present rename dialog."""
-        method = bw.Method(self.get_method(next(p for p in self.selectedIndexes())))
-        dialog = TupleNameDialog.get_combined_name(
-            self, "Impact category name", "Combined name:", method.name, "Copy"
+        menu.addAction(
+            qicons.copy, "Duplicate Impact Category",
+            lambda: self.model.copy_method(self.currentIndex())
         )
-        if dialog.exec_() == TupleNameDialog.Accepted:
-            new_name = dialog.result_tuple
-            if new_name in bw.methods:
-                warn = "Impact Category with name '{}' already exists!".format(new_name)
-                QtWidgets.QMessageBox.warning(self, "Copy failed", warn)
-                return
-            method.copy(new_name)
-            print("Copied method {} into {}".format(str(method.name), str(new_name)))
-            self.new_method.emit(new_name)
+        menu.exec_(event.globalPos())
 
 
 class MethodsTree(ABDictTreeView):
     HEADERS = ["Name", "Unit", "# CFs", "method"]
-    new_method = Signal(tuple)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         # set drag ability
-        self.drag_model = True
         self.setDragEnabled(True)
         self.setDragDropMode(ABDictTreeView.DragOnly)
         # set data
@@ -292,6 +241,7 @@ class MethodsTree(ABDictTreeView):
 
     def names_dict_clean(self, names_dict):
         """Clean output from retro_dictify.
+
         Removes 'None' nodes and combines irrelevant nodes (with only 1 sublevel)
         """
         clean_dict = {}
@@ -357,20 +307,13 @@ class MethodsTree(ABDictTreeView):
                 return
             method.copy(new_name)
             print("Copied method {} into {}".format(str(method.name), str(new_name)))
-            self.new_method.emit(new_name)
+            signals.new_method.emit(new_name)
 
 
 class CFTable(ABDataFrameView):
-    COLUMNS = ["name", "categories", "amount", "unit"]
-    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertainty"] + ["cf"]
-    UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
-    modified = Signal()
-
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.cf_column = None
-        self.method: Optional[bw.Method] = None
-        self.wizard: Optional[UncertaintyWizard] = None
+        self.model = CFModel(parent=self)
         self.setVisible(False)
         self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
         self.setItemDelegateForColumn(6, FloatDelegate(self))
@@ -378,34 +321,12 @@ class CFTable(ABDataFrameView):
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.custom_view_sizing)
 
-    @dataframe_sync
-    def sync(self, method: tuple) -> None:
-        self.method = bw.Method(method)
-        self.dataframe = DataFrame([
-            self.build_row(obj) for obj in self.method.load()
-        ], columns=self.HEADERS + self.UNCERTAINTY)
-        self.cf_column = self.dataframe.columns.get_loc("cf")
-
-    def build_row(self, method_cf) -> dict:
-        key, amount = method_cf[:2]
-        flow = bw.get_activity(key)
-        row = {
-            self.HEADERS[i]: flow.get(c) for i, c in enumerate(self.COLUMNS)
-        }
-        # If uncertain, unpack the uncertainty dictionary
-        uncertain = not isinstance(amount, numbers.Number)
-        if uncertain:
-            row.update({k: amount.get(k, "nan") for k in self.UNCERTAINTY})
-            uncertain = amount.get("uncertainty type")
-            amount = amount["amount"]
-        else:
-            uncertain = 0
-        row.update({"Amount": amount, "Uncertainty": uncertain, "cf": method_cf})
-        return row
-
-    def _resize(self) -> None:
-        self.setColumnHidden(5, True)
+    @Slot(name="resizeView")
+    def custom_view_sizing(self) -> None:
+        self.setColumnHidden(self.model.cf_column, True)
         self.hide_uncertain()
         self.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
@@ -413,8 +334,8 @@ class CFTable(ABDataFrameView):
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:
-        for c in self.UNCERTAINTY:
-            self.setColumnHidden(self.dataframe.columns.get_loc(c), hide)
+        for i in self.model.uncertain_cols:
+            self.setColumnHidden(i, hide)
 
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
@@ -425,71 +346,8 @@ class CFTable(ABDataFrameView):
 
     @Slot(name="modifyCFUncertainty")
     def modify_uncertainty(self) -> None:
-        """Need to know both keys to select the correct exchange to update"""
-        index = self.get_source_index(next(p for p in self.selectedIndexes()))
-        method_cf = self.dataframe.iat[index.row(), self.cf_column]
-        self.wizard = UncertaintyWizard(method_cf, self)
-        self.wizard.complete.connect(self.modify_cf)
-        self.wizard.show()
+        self.model.modify_uncertainty(self.currentIndex())
 
     @Slot(name="removeCFUncertainty")
     def remove_uncertainty(self) -> None:
-        """Remove all uncertainty information from the selected CFs.
-
-        NOTE: Does not affect any selected CF that does not have uncertainty
-        information.
-        """
-        indices = (
-            self.get_source_index(p) for p in self.selectedIndexes()
-        )
-        selected = (
-            self.dataframe.iat[index.row(), self.cf_column] for index in indices
-        )
-        modified_cfs = (
-            self._unset_uncertainty(cf) for cf in selected
-            if isinstance(cf[1], dict)
-        )
-        cfs = self.method.load()
-        for cf in modified_cfs:
-            idx = next(i for i, c in enumerate(cfs) if c[0] == cf[0])
-            cfs[idx] = cf
-        self.method.write(cfs)
-        self.modified.emit()
-
-    @staticmethod
-    def _unset_uncertainty(cf: tuple) -> tuple:
-        """Modifies the given cf to remove the uncertainty dictionary."""
-        assert isinstance(cf[1], dict)
-        data = [*cf]
-        data[1] = data[1].get("amount")
-        return tuple(data)
-
-    @Slot(tuple, object, name="modifyCf")
-    def modify_cf(self, cf: tuple, uncertainty: dict) -> None:
-        """Update the CF with new uncertainty information, possibly converting
-        the second item in the tuple to a dictionary without losing information.
-        """
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(uncertainty)
-        else:
-            uncertainty["amount"] = data[1]
-            data[1] = uncertainty
-        self.modify_method_with_cf(tuple(data))
-
-    @Slot(tuple, name="modifyMethodWithCf")
-    def modify_method_with_cf(self, cf: tuple) -> None:
-        """ Take the given CF tuple, add it to the method object stored in
-        `self.method` and call .write() & .process() to finalize.
-
-        NOTE: if the flow key matches one of the CFs in method, that CF
-        will be edited, if not, a new CF will be added to the method.
-        """
-        cfs = self.method.load()
-        idx = next((i for i, c in enumerate(cfs) if c[0] == cf[0]), None)
-        if idx is None:
-            cfs.append(cf)
-        else:
-            cfs[idx] = cf
-        self.method.write(cfs)
-        self.modified.emit()
+        self.model.remove_uncertainty(self.selectedIndexes())

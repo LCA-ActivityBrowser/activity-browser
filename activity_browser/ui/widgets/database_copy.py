@@ -9,8 +9,8 @@ class CopyDatabaseDialog(QtWidgets.QProgressDialog):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setWindowTitle('Copying database')
+        self.setModal(QtCore.Qt.ApplicationModal)
         self.setRange(0, 0)
-        self.show()
 
         self.thread = CopyDatabaseThread(self)
         self.thread.finished.connect(self.finished)

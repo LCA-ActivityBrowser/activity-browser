@@ -337,8 +337,6 @@ class NewAnalysisTab(QWidget):
         """Update the plot and table if they are present."""
         if self.plot:
             self.update_plot()
-            self.export_plot.png.clicked.connect(self.plot.to_png)
-            self.export_plot.svg.clicked.connect(self.plot.to_svg)
         if self.table:
             self.update_table()
         if self.plot and self.table:
@@ -346,11 +344,13 @@ class NewAnalysisTab(QWidget):
 
     def update_table(self, *args, **kwargs):
         """Update the table."""
-        self.table.sync(*args, **kwargs)
+        self.table.model.sync(*args, **kwargs)
 
     def update_plot(self, *args, **kwargs):
         """Update the plot."""
         self.plot.plot(*args, **kwargs)
+        self.export_plot.png.clicked.connect(self.plot.to_png)
+        self.export_plot.svg.clicked.connect(self.plot.to_svg)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
         """Construct a custom export button layout.
@@ -480,7 +480,7 @@ class InventoryTab(NewAnalysisTab):
             setattr(self, attr_name, self.parent.contributions.inventory_df(
                 inventory_type=inventory)
             )
-        self.table.sync(getattr(self, attr_name))
+        super().update_table(getattr(self, attr_name))
 
     def clear_tables(self) -> None:
         """Set the biosphere and technosphere to None."""
@@ -629,7 +629,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = LCAResultsBarChart(self.parent)
         self.layout.insertWidget(idx, self.plot)
-        self.plot.plot(df, method=method, labels=labels)
+        super().update_plot(df, method=method, labels=labels)
         self.updateGeometry()
         self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
 
@@ -682,15 +682,12 @@ class LCIAResultsTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
-        self.plot.plot(self.df)
+        super().update_plot(self.df)
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
     def update_table(self):
-        """Update the table."""
-        if not isinstance(self.table, LCAResultsTable):
-            self.table = LCAResultsTable()
-        self.table.sync(self.df)
+        super().update_table(self.df)
 
 
 class ContributionTab(NewAnalysisTab):
@@ -856,6 +853,9 @@ class ContributionTab(NewAnalysisTab):
         Implement in subclass."""
         raise NotImplementedError
 
+    def update_table(self):
+        super().update_table(self.df)
+
     def update_plot(self):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
@@ -865,7 +865,7 @@ class ContributionTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = ContributionPlot()
         self.pt_layout.insertWidget(idx, self.plot)
-        self.plot.plot(self.df, unit=self.unit)
+        super().update_plot(self.df, unit=self.unit)
         self.plot.plot_name = name
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
@@ -992,7 +992,7 @@ class CorrelationsTab(NewAnalysisTab):
         self.plot = CorrelationPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
         df = self.parent.mlca.get_normalized_scores_df()
-        self.plot.plot(df)
+        super().update_plot(df)
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
@@ -1264,16 +1264,14 @@ class MonteCarloTab(NewAnalysisTab):
         name = self.plot.plot_name
         self.plot = MonteCarloPlot(self.parent)
         self.layout.insertWidget(idx, self.plot)
-        self.plot.plot(self.df, method=method)
+        super().update_plot(self.df, method=method)
         self.plot.plot_name = name
-        self.export_plot.png.clicked.connect(self.plot.to_png)
-        self.export_plot.svg.clicked.connect(self.plot.to_svg)
         self.plot.show()
         if self.layout.parentWidget():
             self.layout.parentWidget().updateGeometry()
 
     def update_table(self):
-        self.table.sync(self.df)
+        super().update_table(self.df)
 
 
 class GSATab(NewAnalysisTab):
@@ -1436,7 +1434,7 @@ class GSATab(NewAnalysisTab):
         pass
 
     def update_table(self):
-        self.table.sync(self.df)
+        super().update_table(self.df)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
         """Construct the export layout but set it into a widget because we

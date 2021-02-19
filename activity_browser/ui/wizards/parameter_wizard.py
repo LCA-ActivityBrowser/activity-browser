@@ -6,16 +6,16 @@ from PySide2.QtCore import Signal
 from ...bwutils import commontasks as bc
 
 
-PARAMETER_STRING_ENUM = {
-    0: "Project: Available to all other parameters",
-    # 1: "Database: Available to Database and Activity parameters of the same database",
-    1: "Activity: Available to Activity and exchange parameters within the group",
-}
-PARAMETER_FIELDS_ENUM = {
-    0: ("name", "amount"),
-    # 1: ("name", "amount", "database"),
-    1: ("name", "amount"),
-}
+PARAMETER_STRINGS = (
+    "Project: Available to all other parameters",
+    "Database: Available to Database and Activity parameters of the same database",
+    "Activity: Available to Activity and exchange parameters within the group",
+)
+PARAMETER_FIELDS = (
+    ("name", "amount"),
+    ("name", "amount", "database"),
+    ("name", "amount"),
+)
 
 
 class ParameterWizard(QtWidgets.QWizard):
@@ -25,47 +25,27 @@ class ParameterWizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         self.key = key
-        self.pages = {
-            0: SelectParameterTypePage(self),
-            1: CompleteParameterPage(self),
-        }
-        for i in sorted(self.pages):
-            self.setPage(i, self.pages[i])
-        self.show()
+        self.pages = (
+            SelectParameterTypePage(self),
+            CompleteParameterPage(self),
+        )
+        for i, p in enumerate(self.pages):
+            self.setPage(i, p)
 
-    def accept(self) -> None:
-        """ Here is where we create the actual parameter.
-        """
-        selected = [
-            self.field("btn_project"),
-            # self.field("btn_database"),
-            self.field("btn_activity")
-        ].index(True)
+    @property
+    def selected(self) -> int:
+        return self.pages[0].selected
 
+    @property
+    def param_data(self) -> dict:
         data = {
-            field: self.field(field) for field in PARAMETER_FIELDS_ENUM[selected]
+            field: self.field(field) for field in PARAMETER_FIELDS[self.selected]
         }
-        # Copy data here as it gets removed from during param creation
-        name = data.get("name")
-        amount = str(data.get("amount"))
-        p_type = "project"
-        if selected == 0:
-            bw.parameters.new_project_parameters([data])
-        # elif selected == 1:
-        #     db = data.pop("database")
-        #     bw.parameters.new_database_parameters([data], db)
-        #     p_type = "database ({})".format(db)
-        elif selected == 1:
-            group = bc.build_activity_group_name(self.key)
+        if self.selected == 2:
+            data["group"] = bc.build_activity_group_name(self.key)
             data["database"] = self.key[0]
             data["code"] = self.key[1]
-            bw.parameters.new_activity_parameters([data], group)
-            p_type = "activity ({})".format(group)
-
-        # On completing parameter creation, emit the values.
-        # Inspired by: https://stackoverflow.com/a/9195041
-        self.complete.emit(name, amount, p_type)
-        super().accept()
+        return data
 
 
 class SelectParameterTypePage(QtWidgets.QWizardPage):
@@ -83,33 +63,41 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
             "QGroupBox::title {top:-7 ex;left: 10px; subcontrol-origin: border}"
         )
         box_layout = QtWidgets.QVBoxLayout()
-        buttons = [QtWidgets.QRadioButton(PARAMETER_STRING_ENUM[i])
-                   for i in sorted(PARAMETER_STRING_ENUM)]
-        for b in buttons:
-            box_layout.addWidget(b)
+        self.button_group = QtWidgets.QButtonGroup()
+        self.button_group.setExclusive(True)
+        for i, s in enumerate(PARAMETER_STRINGS):
+            button = QtWidgets.QRadioButton(s)
+            self.button_group.addButton(button, i)
+            box_layout.addWidget(button)
         # If we have a complete key, pre-select the activity parameter btn.
-        buttons[1].setChecked(True) if all(self.key) else buttons[0].setChecked(True)
-
-        # If we don't have a complete key, we can't create an activity parameter
-        if self.key[1] == "":
-            buttons[-1].setEnabled(False)
+        if all(self.key):
+            self.button_group.button(2).setChecked(True)
+        else:
+            # If we don't have a complete key, we can't create an activity parameter
+            self.button_group.button(2).setEnabled(False)
+            self.button_group.button(0).setChecked(True)
         box.setLayout(box_layout)
         layout.addWidget(box)
         self.setLayout(layout)
 
-        self.registerField("btn_project", buttons[0])
-        # self.registerField("btn_database", buttons[1])
-        self.registerField("btn_activity", buttons[1])
+    @property
+    def selected(self) -> int:
+        return self.button_group.checkedId()
 
 
 class CompleteParameterPage(QtWidgets.QWizardPage):
     def __init__(self, parent):
         super().__init__(parent)
         self.setTitle("Fill out required values for the parameter")
+        self.parent = parent
 
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
         box = QtWidgets.QGroupBox("Data:")
+        box.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 5px; margin-top: 7px; margin-bottom: 7px; padding: 0px}"
+            "QGroupBox::title {top:-7 ex;left: 10px; subcontrol-origin: border}"
+        )
         grid = QtWidgets.QGridLayout()
         box.setLayout(grid)
         layout.addWidget(box)
@@ -140,29 +128,23 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
         self.registerField("database", self.database, "currentText")
 
     def initializePage(self) -> None:
-        selected = [
-            self.field("btn_project"),
-            # self.field("btn_database"),
-            self.field("btn_activity")
-        ].index(True)
-
         self.amount.setText("1.0")
-        if selected == 0:
+        if self.parent.selected == 0:
             self.name.clear()
             self.database.setHidden(True)
             self.database_label.setHidden(True)
-        # elif selected == 1:
-        #     self.name.clear()
-        #     self.database.clear()
-        #     dbs = bw.databases.list
-        #     self.database.insertItems(0, dbs)
-        #     if self.key[0] != "":
-        #         self.database.setCurrentIndex(
-        #             dbs.index(self.key[0])
-        #         )
-        #     self.database.setHidden(False)
-        #     self.database_label.setHidden(False)
-        elif selected == 1:
+        elif self.parent.selected == 1:
+            self.name.clear()
+            self.database.clear()
+            dbs = bw.databases.list
+            self.database.insertItems(0, dbs)
+            if self.key[0] != "":
+                self.database.setCurrentIndex(
+                    dbs.index(self.key[0])
+                )
+            self.database.setHidden(False)
+            self.database_label.setHidden(False)
+        elif self.parent.selected == 2:
             self.name.clear()
             self.database.setHidden(True)
             self.database_label.setHidden(True)
