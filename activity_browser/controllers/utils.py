@@ -1,48 +1,28 @@
 # -*- coding: utf-8 -*-
-
-import brightway2 as bw
 from PySide2.QtCore import QObject, Slot
 
-from ..bwutils import AB_metadata, commontasks as bc, presamples as pc
-from ..settings import ab_settings
-from ..signals import signals
-from .project import ProjectController
+from activity_browser.bwutils import AB_metadata, presamples as pc
+from activity_browser.signals import signals
+from ..ui.wizards.settings_wizard import SettingsWizard
 
 
-class DataController(QObject):
+class UtilitiesController(QObject):
+    """The controller that handles all of the AB features that are not directly
+    pulled from brightway.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
-        signals.project_selected.emit()
-        self.load_settings()
-        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        print('Brightway2 active project: {}'.format(bw.projects.current))
+        self.window = parent
 
-        signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
         signals.project_selected.connect(self.reset_metadata)
-        signals.metadata_changed.connect(self.update_metadata)
         signals.edit_activity.connect(self.print_convenience_information)
         signals.presample_package_delete.connect(self.remove_presamples_package)
-
-    def switch_brightway2_dir_path(self, dirpath):
-        if bc.switch_brightway2_dir(dirpath):
-            ProjectController.change_project(ab_settings.startup_project, reload=True)
-            signals.databases_changed.emit()
-
-    def load_settings(self):
-        if ab_settings.settings:
-            print("Loading user settings:")
-            self.switch_brightway2_dir_path(dirpath=ab_settings.custom_bw_dir)
-            ProjectController.change_project(ab_settings.startup_project)
+        signals.edit_settings.connect(self.open_settings_wizard)
 
     @staticmethod
     @Slot(name="triggerMetadataReset")
     def reset_metadata() -> None:
         AB_metadata.reset_metadata()
-
-    @staticmethod
-    @Slot(tuple, name="updateMetadataActivity")
-    def update_metadata(key: tuple) -> None:
-        AB_metadata.update_metadata(key)
 
     @staticmethod
     @Slot(str, name="printDatabaseInformation")
@@ -62,3 +42,8 @@ class DataController(QObject):
         files = pc.remove_package(path)
         print("Removed Presample files?", files)
         signals.presample_package_removed.emit()
+
+    @Slot(name="settingsWizard")
+    def open_settings_wizard(self) -> None:
+        wizard = SettingsWizard(self.window)
+        wizard.show()

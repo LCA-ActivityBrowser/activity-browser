@@ -8,31 +8,10 @@ import pytest
 from activity_browser.signals import signals
 from activity_browser.ui.tables.delegates import FormulaDelegate
 from activity_browser.ui.tables.parameters import (
-    BaseParameterTable, ActivityParameterTable, DataBaseParameterTable,
+    ActivityParameterTable, DataBaseParameterTable,
     ProjectParameterTable
 )
 from activity_browser.layouts.tabs.parameters import ParameterDefinitionTab
-
-
-@pytest.mark.parametrize(
-    "method_call, parameters", [
-        ("build_df", None),
-        ("rename_parameter", ["", "", False]),
-        ("uncertainty_columns", [False]),
-        ("get_usable_parameters", None),
-        ("get_interpreter", None),
-    ]
-)
-def test_base_table_exceptions(qtbot, method_call, parameters):
-    """ Test most of the methods in the base table for exceptions.
-
-    Other methods are covered by subclasses using them.
-    """
-    table = BaseParameterTable()
-    qtbot.addWidget(table)
-    with pytest.raises(NotImplementedError):
-        func = getattr(table, method_call)
-        func(*parameters) if parameters else func()
 
 
 def test_create_project_param(qtbot):
@@ -48,14 +27,12 @@ def test_create_project_param(qtbot):
     project_db_tab.build_tables()
     table = project_db_tab.project_table
 
-    signal_list = [
-        signals.parameters_changed, signals.parameters_changed,
-        signals.parameters_changed
-    ]
-    with qtbot.waitSignals(signal_list, timeout=1000):
-        qtbot.mouseClick(project_db_tab.new_project_param, QtCore.Qt.LeftButton)
-        qtbot.mouseClick(project_db_tab.new_project_param, QtCore.Qt.LeftButton)
-        qtbot.mouseClick(project_db_tab.new_project_param, QtCore.Qt.LeftButton)
+    bw.parameters.new_project_parameters([
+        {"name": "param_1", "amount": 1.0},
+        {"name": "param_2", "amount": 1.0},
+        {"name": "param_3", "amount": 1.0},
+    ])
+    table.model.sync()
     assert table.rowCount() == 3
 
     # New parameter is named 'param_1'
@@ -64,15 +41,18 @@ def test_create_project_param(qtbot):
     assert ProjectParameter.select().where(ProjectParameter.name == "param_1").exists()
 
 
-def test_edit_project_param(qtbot):
+def test_edit_project_param(qtbot, monkeypatch):
     """ Edit the existing parameter to have new values.
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.model.sync()
 
     # Edit both the name and the amount of the first parameter.
-    table.rename_parameter(table.proxy_model.index(0, 0), "test_project")
+    monkeypatch.setattr(
+        QtWidgets.QInputDialog, "getText", staticmethod(lambda *args, **kwargs: ("test_project", True))
+    )
+    table.model.handle_parameter_rename(table.proxy_model.index(0, 0))
     table.model.setData(table.model.index(0, 1), 2.5)
 
     # Check that parameter is correctly stored in brightway.
@@ -94,7 +74,7 @@ def test_delete_project_param(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.model.sync()
 
     # The 2nd parameter cannot be deleted
     param = table.get_parameter(table.proxy_model.index(1, 0))
@@ -127,15 +107,13 @@ def test_create_database_params(qtbot):
     assert table.isHidden()
     project_db_tab.show_database_params.toggle()
 
-    signal_list = [
-        signals.parameters_changed, signals.parameters_changed,
-        signals.parameters_changed
-    ]
     # Generate a few database parameters
-    with qtbot.waitSignals(signal_list, timeout=1000):
-        qtbot.mouseClick(project_db_tab.new_database_param, QtCore.Qt.LeftButton)
-        qtbot.mouseClick(project_db_tab.new_database_param, QtCore.Qt.LeftButton)
-        qtbot.mouseClick(project_db_tab.new_database_param, QtCore.Qt.LeftButton)
+    bw.parameters.new_database_parameters([
+        {"name": "param_2", "amount": 1.0},
+        {"name": "param_3", "amount": 1.0},
+        {"name": "param_4", "amount": 1.0},
+    ], database="biosphere3")
+    table.model.sync()
 
     # First created parameter is named 'param_2'
     assert table.model.index(0, 0).data() == "param_2"
@@ -143,17 +121,26 @@ def test_create_database_params(qtbot):
     assert DatabaseParameter.select().count() == 3
 
 
-def test_edit_database_params(qtbot):
+def test_edit_database_params(qtbot, monkeypatch):
     table = DataBaseParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.model.sync()
 
     # Fill rows with new variables
-    table.rename_parameter(table.proxy_model.index(0, 0), "test_db1")
+    monkeypatch.setattr(
+        QtWidgets.QInputDialog, "getText", staticmethod(lambda *args, **kwargs: ("test_db1", True))
+    )
+    table.model.handle_parameter_rename(table.proxy_model.index(0, 0))
     table.model.setData(table.model.index(0, 2), "test_project + 3.5")
-    table.rename_parameter(table.proxy_model.index(1, 0), "test_db2")
+    monkeypatch.setattr(
+        QtWidgets.QInputDialog, "getText", staticmethod(lambda *args, **kwargs: ("test_db2", True))
+    )
+    table.model.handle_parameter_rename(table.proxy_model.index(1, 0))
     table.model.setData(table.model.index(1, 2), "test_db1 ** 2")
-    table.rename_parameter(table.proxy_model.index(2, 0), "test_db3")
+    monkeypatch.setattr(
+        QtWidgets.QInputDialog, "getText", staticmethod(lambda *args, **kwargs: ("test_db3", True))
+    )
+    table.model.handle_parameter_rename(table.proxy_model.index(2, 0))
     table.model.setData(table.model.index(2, 1), "8.5")
     table.model.setData(table.model.index(2, 3), "testdb")
 
@@ -191,7 +178,7 @@ def test_downstream_dependency(qtbot):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.model.sync()
 
     # First parameter of the project table is used by the database parameter
     param = table.get_parameter(table.proxy_model.index(0, 0))
@@ -211,7 +198,7 @@ def test_create_activity_param(qtbot):
     table = project_db_tab.activity_table
 
     # Open the order column just because we can
-    col = table.COLUMNS.index("order")
+    col = table.model.order_col
     assert table.isColumnHidden(col)
     with qtbot.waitSignal(project_db_tab.show_order.stateChanged, timeout=1000):
         qtbot.mouseClick(project_db_tab.show_order, QtCore.Qt.LeftButton)
@@ -220,7 +207,7 @@ def test_create_activity_param(qtbot):
     # Create multiple parameters for a single activity
     act_key = ("testdb", "act1")
     for _ in range(3):
-        table.add_parameter(act_key)
+        table.model.add_parameter(act_key)
 
     # Test created parameters
     assert ActivityParameter.select().count() == 3
@@ -232,22 +219,28 @@ def test_create_activity_param(qtbot):
     loc = table.visualRect(table.proxy_model.index(0, 0))
     qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=loc.center())
     group = table.get_current_group()
-    assert table.proxy_model.index(2, table.COLUMNS.index("group")).data() == group
+    assert table.proxy_model.index(2, table.model.group_col).data() == group
 
 
-def test_edit_activity_param(qtbot):
+def test_edit_activity_param(qtbot, monkeypatch):
     """ Alter names, amounts and formulas.
 
     Introduce dependencies through formulas
     """
     table = ActivityParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.model.sync()
 
     # Fill rows with new variables
-    table.rename_parameter(table.proxy_model.index(0, 0), "edit_act_1", True)
+    monkeypatch.setattr(
+        QtWidgets.QInputDialog, "getText", staticmethod(lambda *args, **kwargs: ("edit_act_1", True))
+    )
+    table.model.handle_parameter_rename(table.proxy_model.index(0, 0))
     table.model.setData(table.model.index(0, 2), "test_db3 * 3")
-    table.rename_parameter(table.proxy_model.index(1, 0), "edit_act_2", True)
+    monkeypatch.setattr(
+        QtWidgets.QInputDialog, "getText", staticmethod(lambda *args, **kwargs: ("edit_act_2", True))
+    )
+    table.model.handle_parameter_rename(table.proxy_model.index(1, 0))
     table.model.setData(table.model.index(1, 2), "edit_act_1 - 3")
 
     # Test updated values
@@ -258,8 +251,8 @@ def test_edit_activity_param(qtbot):
 def test_activity_order_edit(qtbot):
     table = ActivityParameterTable()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
-    group = table.model.index(0, table.group_column).data()
+    table.model.sync()
+    group = table.model.index(0, table.model.group_col).data()
     with qtbot.waitSignal(signals.parameters_changed, timeout=1000):
         table.model.setData(table.model.index(0, 5), [group])
 
@@ -276,7 +269,7 @@ def test_table_formula_delegates(qtbot, table_class):
     """
     table = table_class()
     qtbot.addWidget(table)
-    table.sync(table.build_df())
+    table.model.sync()
 
     assert isinstance(table.itemDelegateForColumn(2), FormulaDelegate)
 

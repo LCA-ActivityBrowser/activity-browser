@@ -4,35 +4,13 @@ from functools import wraps
 from typing import Optional
 
 from bw2data.filesystem import safe_filename
-from PySide2.QtCore import (QAbstractTableModel, QModelIndex, QSize,
-                            QSortFilterProxyModel, Qt, Slot)
+from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
+from PySide2.QtGui import QKeyEvent
 
 from ...settings import ab_settings
 from .delegates import ViewOnlyDelegate
-from .models import (DragPandasModel, EditableDragPandasModel,
-                     EditablePandasModel, PandasModel)
-
-
-def dataframe_sync(sync):
-    """ Syncs the data from the dataframe into the table view.
-
-    Uses either of the PandasModel classes depending if the class is
-    'drag-enabled'.
-    """
-    @wraps(sync)
-    def wrapper(self, *args, **kwargs):
-        sync(self, *args, **kwargs)
-
-        self.model = self._select_model()
-        # See: http://doc.qt.io/qt-5/qsortfilterproxymodel.html#details
-        self.proxy_model = QSortFilterProxyModel()
-        self.proxy_model.setSourceModel(self.model)
-        self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-        self.setModel(self.proxy_model)
-        self._resize()
-
-    return wrapper
+from .models import PandasModel
 
 
 class ABDataFrameView(QTableView):
@@ -57,11 +35,10 @@ class ABDataFrameView(QTableView):
         self.setItemDelegate(ViewOnlyDelegate(self))
 
         self.table_name = 'LCA results'
-        self.dataframe = None
         # Initialize attributes which are set during the `sync` step.
         # Creating (and typing) them here allows PyCharm to see them as
         # valid attributes.
-        self.model: Optional[QAbstractTableModel] = None
+        self.model: Optional[PandasModel] = None
         self.proxy_model: Optional[QSortFilterProxyModel] = None
 
     def get_max_height(self) -> int:
@@ -72,54 +49,45 @@ class ABDataFrameView(QTableView):
         return QSize(self.width(), self.get_max_height())
 
     def rowCount(self) -> int:
-        if getattr(self, "model") is not None:
-            return self.model.rowCount()
-        return 0
+        return 0 if self.model is None else self.model.rowCount()
 
-    def _select_model(self) -> QAbstractTableModel:
-        """ Select which model to use for the proxy model.
-        """
-        if hasattr(self, 'drag_model'):
-            return DragPandasModel(self.dataframe)
-        return PandasModel(self.dataframe)
+    @Slot(name="updateProxyModel")
+    def update_proxy_model(self) -> None:
+        self.proxy_model = QSortFilterProxyModel(self)
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
+        self.setModel(self.proxy_model)
 
-    def _resize(self):
+    @Slot(name="resizeView")
+    def custom_view_sizing(self) -> None:
         """ Custom table resizing to perform after setting new (proxy) model.
         """
         self.setMaximumHeight(self.get_max_height())
 
-    @staticmethod
-    def get_source_index(proxy_index: QModelIndex) -> QModelIndex:
-        """ Returns the index of the original model from a proxymodel index.
-
-        This way data from the self._dataframe can be obtained correctly.
-        """
-        model = proxy_index.model()
-        if hasattr(model, 'mapToSource'):
-            # We are a proxy model
-            source_index = model.mapToSource(proxy_index)
-            return source_index
-        return QModelIndex()  # Returns an invalid index
-
+    @Slot(name="exportToClipboard")
     def to_clipboard(self):
         """ Copy dataframe to clipboard
         """
-        self.dataframe.to_clipboard()
+        rows = list(range(self.model.rowCount()))
+        cols = list(range(self.model.columnCount()))
+        self.model.to_clipboard(rows, cols, include_header=True)
 
-    def savefilepath(self, default_file_name: str, file_filter: str=None):
+    def savefilepath(self, default_file_name: str, caption: str = None, file_filter: str = None):
         """ Construct and return default path where data is stored
 
         Uses the application directory for AB
         """
         safe_name = safe_filename(default_file_name, add_hash=False)
+        caption = caption or "Choose location to save lca results"
         filepath, _ = QFileDialog.getSaveFileName(
-            parent=self,
-            caption='Choose location to save lca results',
+            parent=self, caption=caption,
             dir=os.path.join(ab_settings.data_dir, safe_name),
             filter=file_filter or self.ALL_FILTER,
         )
-        return filepath
+        # getSaveFileName can now weirdly return Path objects.
+        return str(filepath) if filepath else filepath
 
+    @Slot(name="exportToCsv")
     def to_csv(self):
         """ Save the dataframe data to a CSV file.
         """
@@ -127,18 +95,19 @@ class ABDataFrameView(QTableView):
         if filepath:
             if not filepath.endswith('.csv'):
                 filepath += '.csv'
-            self.dataframe.to_csv(filepath)
+            self.model.to_csv(filepath)
 
-    def to_excel(self):
+    @Slot(name="exportToExcel")
+    def to_excel(self, caption: str = None):
         """ Save the dataframe data to an excel file.
         """
-        filepath = self.savefilepath(self.table_name, file_filter=self.EXCEL_FILTER)
+        filepath = self.savefilepath(self.table_name, caption, file_filter=self.EXCEL_FILTER)
         if filepath:
             if not filepath.endswith('.xlsx'):
                 filepath += '.xlsx'
-            self.dataframe.to_excel(filepath)
+            self.model.to_excel(filepath)
 
-    @Slot()
+    @Slot(QKeyEvent, name="copyEvent")
     def keyPressEvent(self, e):
         """ Allow user to copy selected data from the table
 
@@ -148,27 +117,12 @@ class ABDataFrameView(QTableView):
             # Should we include headers?
             headers = e.modifiers() & Qt.ShiftModifier
             if e.key() == Qt.Key_C:  # copy
-                selection = [self.get_source_index(pindex) for pindex in self.selectedIndexes()]
+                selection = [self.model.proxy_to_source(p) for p in self.selectedIndexes()]
                 rows = [index.row() for index in selection]
                 columns = [index.column() for index in selection]
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
                 self.model.to_clipboard(rows, columns, headers)
-
-
-class ABDataFrameEdit(ABDataFrameView):
-    """ Inherit from view class but use editable models and more flexible
-    sizing.
-    """
-    def _select_model(self) -> QAbstractTableModel:
-        if hasattr(self, 'drag_model'):
-            return EditableDragPandasModel(self.dataframe)
-        return EditablePandasModel(self.dataframe)
-
-    def _resize(self) -> None:
-        self.setMaximumHeight(self.get_max_height())
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
 
 
 def tree_model_decorate(sync):
@@ -179,7 +133,7 @@ def tree_model_decorate(sync):
         sync(self, *args, **kwargs)
         model = self._select_model()
         self.setModel(model)
-        self._resize()
+        self.custom_view_sizing()
     return wrapper
 
 
@@ -191,8 +145,8 @@ class ABDictTreeView(QTreeView):
         self._connect_signals()
 
     def _connect_signals(self):
-        self.expanded.connect(self._resize)
-        self.collapsed.connect(self._resize)
+        self.expanded.connect(self.custom_view_sizing)
+        self.collapsed.connect(self.custom_view_sizing)
 
     def _select_model(self):
         """ Returns the model to be used in the view.
@@ -200,7 +154,7 @@ class ABDictTreeView(QTreeView):
         raise NotImplementedError
 
     @Slot()
-    def _resize(self) -> None:
+    def custom_view_sizing(self) -> None:
         """ Resize the first column (usually 'name') whenever an item is
         expanded or collapsed.
         """

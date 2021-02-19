@@ -181,14 +181,10 @@ class ActivityTab(QtWidgets.QWidget):
 
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
-        self.production.sync(self.activity.production())
-        self.technosphere.sync(self.activity.technosphere())
-        self.biosphere.sync(self.activity.biosphere())
-        self.downstream.sync(self.activity.upstream())
-
-        # Potentially update `DetailsGroupBox` now that tables are populated
-        for _, table in self.exchange_tables:
-            table.updated.emit()
+        self.production.model.sync(self.activity.production())
+        self.technosphere.model.sync(self.activity.technosphere())
+        self.biosphere.model.sync(self.activity.biosphere())
+        self.downstream.model.sync(self.activity.upstream())
 
         self.show_exchange_uncertainty(self.show_uncertainty.isChecked())
 

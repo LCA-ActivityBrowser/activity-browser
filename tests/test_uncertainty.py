@@ -20,8 +20,8 @@ def test_table_uncertainty_delegate(qtbot, bw2test, monkeypatch):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.add_parameter()
-    table.sync(table.build_df())
+    bw.parameters.new_project_parameters([{"name": "project_1", "amount": 1.0}], False)
+    table.model.sync()
 
     assert isinstance(table.itemDelegateForColumn(3), UncertaintyDelegate)
 

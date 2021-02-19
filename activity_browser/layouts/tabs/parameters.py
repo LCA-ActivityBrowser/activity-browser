@@ -129,10 +129,10 @@ can be used within the formula!</p>
         signals.project_selected.connect(self.build_tables)
         signals.parameters_changed.connect(self.build_tables)
         self.new_project_param.clicked.connect(
-            self.project_table.add_parameter
+            lambda: signals.add_parameter.emit(None)
         )
         self.new_database_param.clicked.connect(
-            self.database_table.add_parameter
+            lambda: signals.add_parameter.emit(None)
         )
         self.show_order.stateChanged.connect(self.activity_order_column)
         self.uncertainty_columns.stateChanged.connect(
@@ -186,9 +186,9 @@ can be used within the formula!</p>
     def build_tables(self):
         """ Read parameters from brightway and build dataframe tables
         """
-        self.project_table.sync(ProjectParameterTable.build_df())
-        self.database_table.sync(DataBaseParameterTable.build_df())
-        self.activity_table.sync(ActivityParameterTable.build_df())
+        self.project_table.model.sync()
+        self.database_table.model.sync()
+        self.activity_table.model.sync()
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases
@@ -205,7 +205,7 @@ can be used within the formula!</p>
 
     @Slot()
     def activity_order_column(self) -> None:
-        col = self.activity_table.combine_columns().index("order")
+        col = self.activity_table.model.order_col
         state = self.show_order.isChecked()
         if not state:
             self.activity_table.setColumnHidden(col, True)
@@ -310,15 +310,11 @@ class ParameterScenariosTab(BaseRightTab):
     <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
     """
 
-
     def _connect_signals(self):
         self.load_btn.clicked.connect(self.select_read_file)
         self.save_btn.clicked.connect(self.save_scenarios)
         self.calculate_btn.clicked.connect(self.calculate_scenarios)
         self.hide_group.toggled.connect(self.tbl.group_column)
-        signals.project_selected.connect(self.build_tables)
-        signals.parameters_changed.connect(self.tbl.rebuild_table)
-        signals.parameter_renamed.connect(self.tbl.update_param_name)
         signals.parameter_scenario_sync.connect(self.process_scenarios)
 
     def _construct_layout(self):
@@ -344,16 +340,12 @@ class ParameterScenariosTab(BaseRightTab):
         layout.addStretch(1)
         self.setLayout(layout)
 
-    def build_tables(self) -> None:
-        self.tbl.sync()
-        self.tbl.group_column(False)
-
     @Slot(int, object, name="processParameterScenarios")
     def process_scenarios(self, table_idx: int, df: pd.DataFrame):
         """Use this method to discretely process a parameter scenario file
         for the LCA setup.
         """
-        self.tbl.sync(df=df)
+        self.tbl.model.sync(df=df)
         scenarios = self.build_flow_scenarios()
         signals.parameter_superstructure_built.emit(table_idx, scenarios)
 
@@ -365,24 +357,19 @@ class ParameterScenariosTab(BaseRightTab):
         )
         if path:
             df = ps_utils.load_scenarios_from_file(path)
-            self.tbl.sync(df=df)
+            self.tbl.model.sync(df=df)
 
     @Slot(name="saveScenarioTable")
     def save_scenarios(self):
-        filename, _ = QFileDialog.getSaveFileName(
-            self, caption="Save current scenarios to Excel",
-            filter=self.tbl.EXCEL_FILTER
-        )
-        if filename:
-            try:
-                ps_utils.save_scenarios_to_file(self.tbl.dataframe, filename)
-            except FileCreateError as e:
-                QMessageBox.warning(
-                    self, "File save error",
-                    "Cannot save the file, please see if it is opened elsewhere or "
-                    "if you are allowed to save files in that location:\n\n{}".format(e),
-                    QMessageBox.Ok, QMessageBox.Ok
-                )
+        try:
+            self.tbl.to_excel("Save current scenarios to Excel")
+        except FileCreateError as e:
+            QMessageBox.warning(
+                self, "File save error",
+                "Cannot save the file, please see if it is opened elsewhere or "
+                "if you are allowed to save files in that location:\n\n{}".format(e),
+                QMessageBox.Ok, QMessageBox.Ok
+            )
 
     @Slot(name="createPresamplesPackage")
     def calculate_scenarios(self):

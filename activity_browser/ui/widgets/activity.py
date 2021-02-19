@@ -23,8 +23,10 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
         self.setLayout(layout)
         if isinstance(self.widget, QtWidgets.QTableWidget):
             self.widget.itemChanged.connect(self.toggle_empty_table)
-        if hasattr(self.widget, "updated"):
-            self.widget.updated.connect(self.toggle_empty_table)
+        # The model will have an 'updated' signal that is emitted whenever
+        # a change is made to the underlying data.
+        if hasattr(self.widget, "model"):
+            self.widget.model.updated.connect(self.toggle_empty_table)
 
     @QtCore.Slot(name="showHideTable")
     def showhide(self):

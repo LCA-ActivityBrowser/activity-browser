@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import Optional
-
 import brightway2 as bw
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.parameters import Group
@@ -9,47 +7,43 @@ from PySide2.QtCore import QObject, Slot
 
 from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
-from ..ui.widgets import CopyDatabaseDialog, DatabaseLinkingDialog
-from ..ui.wizards.db_import_wizard import DatabaseImportWizard, DefaultBiosphereDialog
+from ..ui.widgets import (
+    CopyDatabaseDialog, DatabaseLinkingDialog, DefaultBiosphereDialog,
+    BiosphereUpdater,
+)
+from ..ui.wizards.db_export_wizard import DatabaseExportWizard
+from ..ui.wizards.db_import_wizard import DatabaseImportWizard
 from ..settings import project_settings
 from ..signals import signals
+from .project import ProjectController
 
 
 class DatabaseController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window = parent
-        self.db_wizard: Optional[QtWidgets.QWizard] = None
-        self.default_biosphere_dialog: Optional[QtWidgets.QDialog] = None
-        self.copy_progress: Optional[QtWidgets.QDialog] = None
 
         signals.import_database.connect(self.import_database_wizard)
+        signals.export_database.connect(self.export_database_wizard)
+        signals.update_biosphere.connect(self.update_biosphere)
         signals.add_database.connect(self.add_database)
         signals.delete_database.connect(self.delete_database)
         signals.copy_database.connect(self.copy_database)
         signals.install_default_data.connect(self.install_default_data)
         signals.relink_database.connect(self.relink_database)
 
-        signals.change_project.connect(self.clear_database_wizard)
         signals.project_selected.connect(self.ensure_sqlite_indices)
 
-    @Slot(name="deleteDatabaseWizard")
-    def clear_database_wizard(self):
-        """ Separate cleanup method, used to clear out existing import wizard
-        when switching projects.
-        """
-        if self.db_wizard is None:
-            return
-        self.db_wizard.deleteLater()
-        self.db_wizard = None
+    @Slot(name="openImportWizard")
+    def import_database_wizard(self) -> None:
+        """Start the database import wizard."""
+        wizard = DatabaseImportWizard(self.window)
+        wizard.show()
 
-    @Slot(QObject, name="openImportWizard")
-    def import_database_wizard(self, parent):
-        """ Create a database import wizard, if it already exists, set the
-        previous one to delete and recreate it.
-        """
-        self.clear_database_wizard()
-        self.db_wizard = DatabaseImportWizard(parent)
+    @Slot(name="openExportWizard")
+    def export_database_wizard(self) -> None:
+        wizard = DatabaseExportWizard(self.window)
+        wizard.show()
 
     @Slot(name="fixBrokenIndexes")
     def ensure_sqlite_indices(self):
@@ -63,9 +57,24 @@ class DatabaseController(QObject):
             bw.Database(list(bw.databases)[-1])._add_indices()
 
     @Slot(name="bw2Setup")
-    def install_default_data(self):
-        self.default_biosphere_dialog = DefaultBiosphereDialog()
-        project_settings.add_db("biosphere3")
+    def install_default_data(self) -> None:
+        dialog = DefaultBiosphereDialog(self.window)
+        dialog.show()
+
+    @Slot(name="updateBiosphereDialog")
+    def update_biosphere(self) -> None:
+        """ Open a popup with progression bar and run through the different
+        functions for adding ecoinvent biosphere flows.
+        """
+        ok = QtWidgets.QMessageBox.question(
+            self.window, "Update biosphere3?",
+            "Updating the biosphere3 database cannot be undone!",
+            QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
+            QtWidgets.QMessageBox.Abort
+        )
+        if ok == QtWidgets.QMessageBox.Ok:
+            dialog = BiosphereUpdater(self.window)
+            dialog.show()
 
     @Slot(name="addDatabase")
     def add_database(self):
@@ -87,20 +96,21 @@ class DatabaseController(QObject):
                 )
 
     @Slot(str, QObject, name="copyDatabaseAction")
-    def copy_database(self, name, parent):
+    def copy_database(self, name: str) -> None:
         new_name, ok = QtWidgets.QInputDialog.getText(
-            parent,
+            self.window,
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if ok and new_name:
             try:
                 # Attaching the created wizard to the class avoids the copying
                 # thread being prematurely destroyed.
-                self.copy_progress = CopyDatabaseDialog(parent)
-                self.copy_progress.begin_copy(name, new_name)
+                copy_progress = CopyDatabaseDialog(self.window)
+                copy_progress.show()
+                copy_progress.begin_copy(name, new_name)
                 project_settings.add_db(new_name)
             except ValueError as e:
-                QtWidgets.QMessageBox.information(parent, "Not possible", str(e))
+                QtWidgets.QMessageBox.information(self.window, "Not possible", str(e))
 
     @Slot(str, name="deleteDatabase")
     def delete_database(self, name: str) -> None:
@@ -114,15 +124,15 @@ class DatabaseController(QObject):
             project_settings.remove_db(name)
             del bw.databases[name]
             Group.delete().where(Group.name == name).execute()
-            self.change_project(bw.projects.current, reload=True)
+            ProjectController.change_project(bw.projects.current, reload=True)
 
-    @Slot(str, QObject, name="relinkDatabase")
-    def relink_database(self, db_name: str, parent: QObject) -> None:
+    @Slot(str, name="relinkDatabase")
+    def relink_database(self, db_name: str) -> None:
         """Relink technosphere exchanges within the given database."""
         db = bw.Database(db_name)
         depends = db.find_dependents()
         options = [(depend, bw.databases.list) for depend in depends]
-        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, parent)
+        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, self.window)
         if dialog.exec_() == DatabaseLinkingDialog.Accepted:
             # Now, start relinking.
             for old, new in dialog.relink.items():

@@ -6,7 +6,7 @@ from .cutoff_menu import CutoffMenu
 from .database_copy import CopyDatabaseDialog
 from .dialog import (
     ForceInputDialog, TupleNameDialog, ExcelReadDialog, ChoiceSelectionDialog,
-    DatabaseLinkingDialog,
+    DatabaseLinkingDialog, DefaultBiosphereDialog
 )
 from .line_edit import (SignalledPlainTextEdit, SignalledComboEdit,
                         SignalledLineEdit)
