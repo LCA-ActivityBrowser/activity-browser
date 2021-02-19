@@ -86,8 +86,10 @@ class MethodsTree(ABDictTreeView):
     def sync(self, query=None) -> None:
         self.nest_data()
         if query:
+            self.query = query
             self.data, self.matches = self.search_tree(self.tree_data, query)
         else:
+            self.query = None
             self.data = self.tree_data
 
     def query_sync(self, query=None):
@@ -182,6 +184,14 @@ class MethodsTree(ABDictTreeView):
             filter_on = ', '.join(tree_level[1])
 
         methods = self.dataframe[self.dataframe['Name'].str.startswith(filter_on)]['method']
+
+        if self.query:
+            queries = []
+            for method in methods:
+                if self.query.lower() in ', '.join(method).lower():
+                    queries.append(method)
+            methods = queries
+
         return (m for m in methods)
 
     def tree_level(self):
