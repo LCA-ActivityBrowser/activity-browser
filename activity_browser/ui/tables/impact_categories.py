@@ -60,30 +60,49 @@ class MethodsTree(ABDictTreeView):
         self.setDragEnabled(True)
         self.setDragDropMode(ABDictTreeView.DragOnly)
         # set data
+        self.dataframe = self.get_dataframe()
         self.sync()
         self.setColumnHidden(self.method_col, True)
 
     def _connect_signals(self):
         super()._connect_signals()
         signals.project_selected.connect(self.sync)
-        self.doubleClicked.connect(self.method_double_clicked)
+        self.doubleClicked.connect(self.method_selected)
 
     def _select_model(self):
         return MethodsTreeModel(self.data)
 
-    @tree_model_decorate
-    def sync(self, query=None) -> None:
+    def get_dataframe(self) -> None:
+        """Retrieve dataframe of (queried) impact categories"""
         sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
-        if query:
-            sorted_names = filter(
-                lambda obj: query.lower() in obj[0].lower(), sorted_names
-            )
-        self.dataframe = DataFrame([
+
+        dataframe = DataFrame([
             self.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
-        self.method_col = self.dataframe.columns.get_loc("method")
+        self.method_col = dataframe.columns.get_loc("method")
+        return dataframe
 
+    @tree_model_decorate
+    def sync(self, query=None) -> None:
         self.nest_data()
+        if query:
+            self.data, self.matches = self.search_tree(self.tree_data, query)
+        else:
+            self.data = self.tree_data
+
+    def query_sync(self, query=None):
+        """auto-expand on sync with query through this function."""
+        if query and len(query) != 0:
+            self.sync(query=query)
+            if self.matches <= 285:
+                self.expandAll()
+            # NOTE: self.expandAll() is terribly slow with large trees, so you are advised not to use this without
+            # something like search [as implemented below through the query check].
+            # Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
+            # https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
+            # https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
+        else:
+            self.sync()
 
     def build_row(self, method_obj) -> dict:
         method = bw.methods[method_obj[1]]
@@ -95,7 +114,7 @@ class MethodsTree(ABDictTreeView):
         }
 
     def nest_data(self):
-        """Convert impact category dataframe into nested dict format.
+        """Convert impact category dataframe into nested dict format, apply search if required.
 
         Format is:
         {root1: {branch1: {leaf1: data},
@@ -119,27 +138,31 @@ class MethodsTree(ABDictTreeView):
         """
         updated_df = self.prep_df(self.dataframe)
         dirty_nested_df = self.retro_dictify(updated_df)
-        self.data, _ = self.names_dict_clean(dirty_nested_df)
+        self.tree_data, _ = self.names_dict_clean(dirty_nested_df)
 
     def get_method(self, tree_level=None) -> tuple:
+        """Retrieve method data"""
         if not tree_level:
             tree_level = self.tree_level()
         return self.dataframe[self.dataframe['Name'] == tree_level[1]]['method']
 
     @Slot(QModelIndex, name="methodSelection")
-    def method_double_clicked(self):
+    def method_selected(self):
         tree_level = self.tree_level()
         if tree_level[0] == 'leaf':
-            print("+ there should be a 'duplicate' function here")
             method = self.get_method(tree_level).to_list()[0]
             signals.method_selected.emit(method)
 
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
+        menu = QtWidgets.QMenu(self)
         if self.tree_level()[0] == 'leaf':
-            menu = QtWidgets.QMenu(self)
             menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
-            menu.exec_(event.globalPos())
+            menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
+        else:
+            menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
+            menu.addAction(qicons.backward, "Collapse all sub levels", self.collapse_branch)
+        menu.exec_(event.globalPos())
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""
@@ -243,6 +266,31 @@ class MethodsTree(ABDictTreeView):
                 # this is a leaf node, return the key
                 return key, True
         return clean_dict, False
+
+    def search_tree(self, tree, query, matches=0):
+        """Search the tree and remove non-matching leaves and branches."""
+        remove = []
+        for key, value in tree.items():
+            if type(value) == tuple:
+                # this is a leaf node
+                if query.lower() not in value[0].lower():
+                    # the query does not match
+                    remove.append(key)
+                else:
+                    matches += 1
+            else:
+                # this is not a leaf node, go deeper
+                sub_tree, matches = self.search_tree(value, query, matches)
+                if len(sub_tree) > 0:
+                    # there were query matches in this branch
+                    tree[key] = sub_tree
+                else:
+                    # there were no query matches in this branch
+                    remove.append(key)
+
+        for key in remove:
+            tree.pop(key)
+        return tree, matches
 
     @Slot(name="copyMethod")
     def copy_method(self) -> None:

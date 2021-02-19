@@ -223,21 +223,30 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.logic_dropdown = QtWidgets.QComboBox()
         self.logic_dropdown.addItems(['AND', 'OR', 'AND NOT'])
 
+        # search
+        self.search_button = QtWidgets.QToolButton()
+        self.search_button.setIcon(qicons.search)
+        self.search_button.setToolTip("Filter activities")
+        self.search_button.clicked.connect(self.set_search_term)
+
         # reset search
-        reset_search_button = QtWidgets.QPushButton("Reset")
-        reset_search_button.clicked.connect(self.table.reset_search)
-        reset_search_button.clicked.connect(self.search_box.clear)
-        reset_search_button.clicked.connect(self.search_box2.clear)
+        self.reset_search_button = QtWidgets.QToolButton()
+        self.reset_search_button.setIcon(qicons.delete)
+        self.reset_search_button.setToolTip("Clear the search")
+        self.reset_search_button.clicked.connect(self.table.reset_search)
+        self.reset_search_button.clicked.connect(self.search_box.clear)
+        self.reset_search_button.clicked.connect(self.search_box2.clear)
 
         signals.project_selected.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
         self.header_layout.addWidget(self.logic_dropdown)
         self.header_layout.addWidget(self.search_box2)
 
-        self.header_layout.addWidget(reset_search_button)
+        self.header_layout.addWidget(self.search_button)
+        self.header_layout.addWidget(self.reset_search_button)
 
     def update_table(self, db_name='biosphere3'):
-        # print('Updateing database table: ', db_name)
+        # print('Updating database table: ', db_name)
         if self.table.database_name:
             self.show()
         if len(db_name) > 15:
