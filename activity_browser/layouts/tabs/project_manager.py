@@ -68,10 +68,13 @@ class ProjectsWidget(QtWidgets.QWidget):
 
         # Buttons
         self.new_project_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.new_project_button.setToolTip('Make a new project')
         self.copy_project_button = QtWidgets.QPushButton(qicons.copy, "Copy")
+        self.copy_project_button.setToolTip('Copy the project')
         self.delete_project_button = QtWidgets.QPushButton(
             qicons.delete, "Delete"
         )
+        self.delete_project_button.setToolTip('Delete the project')
 
         self.construct_layout()
         self.connect_signals()
@@ -119,7 +122,9 @@ class DatabaseWidget(QtWidgets.QWidget):
             qicons.import_db, "Add default data (biosphere flows and impact categories)"
         )
         self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.new_database_button.setToolTip('Make a new database')
         self.import_database_button = QtWidgets.QPushButton(qicons.import_db, "Import")
+        self.import_database_button.setToolTip('Import a new database')
 
         self._construct_layout()
         self._connect_signals()
