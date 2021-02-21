@@ -175,15 +175,13 @@ class DatabaseWidget(QtWidgets.QWidget):
 class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
-        self.header = 'Activities'
-
         self.table = ActivitiesBiosphereTable(self)
 
         # Header widget
         self.header_widget = QtWidgets.QWidget()
         self.header_layout = QtWidgets.QHBoxLayout()
         self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.header_layout.addWidget(header(self.header))
+        self.header_layout.addWidget(header("Activities:"))
         self.header_widget.setLayout(self.header_layout)
 
         self.label_database = QtWidgets.QLabel("[]")
