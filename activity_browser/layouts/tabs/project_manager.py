@@ -21,7 +21,6 @@ class ProjectTab(QtWidgets.QWidget):
 
         # Layout
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-        # self.splitter.addWidget(self.projects_widget)
         self.splitter.addWidget(self.databases_widget)
         self.splitter.addWidget(self.activity_biosphere_widget)
 
@@ -44,14 +43,14 @@ class ProjectTab(QtWidgets.QWidget):
     def update_widgets(self):
         """Update widgets when a new database has been selected or the project has been changed.
         Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
-        no_databases = self.databases_widget.table.rowCount() == 0
+        no_databases = self.activity_biosphere_widget.table.rowCount() == 0
 
         self.databases_widget.update_widget()
 
         if not no_databases:
-            self.databases_widget.label_no_database_selected.show()
-        else:
             self.databases_widget.label_no_database_selected.hide()
+        else:
+            self.databases_widget.label_no_database_selected.show()
             self.activity_biosphere_widget.hide()
         self.resize_splitter()
 
@@ -60,12 +59,6 @@ class ProjectTab(QtWidgets.QWidget):
         widgets = [self.databases_widget, self.activity_biosphere_widget]
         sizes = [x.sizeHint().height() for x in widgets]
         self.splitter.setSizes(sizes)
-
-
-        # print("Widget sizes:", sizes)
-        # print("\nSH DB/Act/Bio: {}/{}/{}". format(*[x.sizeHint() for x in widgets]))
-        # print("Splitter Sizes:", self.splitter.sizes())
-        # print("SH Splitter Height:", self.splitter.height())
 
 
 class ProjectsWidget(QtWidgets.QWidget):
@@ -207,9 +200,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def connect_signals(self):
         signals.project_selected.connect(self.reset_widget)
 
-    # def sizeHint(self):
-    #     return self.table.sizeHint()
-
     def reset_widget(self):
         self.hide()
         self.table.model.clear()
@@ -252,7 +242,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.header_layout.addWidget(self.reset_search_button)
 
     def update_table(self, db_name='biosphere3'):
-        # print('Updating database table: ', db_name)
         if self.table.database_name:
             self.show()
         if len(db_name) > 15:
