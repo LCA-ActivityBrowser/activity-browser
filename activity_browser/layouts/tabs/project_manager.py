@@ -101,6 +101,11 @@ class ProjectsWidget(QtWidgets.QWidget):
         layout.addWidget(h_widget)
         self.setLayout(layout)
 
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
 
 class DatabaseWidget(QtWidgets.QWidget):
     def __init__(self, parent):
