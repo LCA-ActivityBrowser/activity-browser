@@ -72,30 +72,38 @@ class ProjectsWidget(QtWidgets.QWidget):
     def __init__(self):
         super(ProjectsWidget, self).__init__()
         self.projects_list = ProjectListWidget()
+
         # Buttons
         self.new_project_button = QtWidgets.QPushButton(qicons.add, "New")
         self.copy_project_button = QtWidgets.QPushButton(qicons.copy, "Copy")
         self.delete_project_button = QtWidgets.QPushButton(
             qicons.delete, "Delete"
         )
-        # Layout
-        self.h_layout = QtWidgets.QHBoxLayout()
-        self.h_layout.addWidget(header('Project:'))
-        self.h_layout.addWidget(self.projects_list)
-        self.h_layout.addWidget(self.new_project_button)
-        self.h_layout.addWidget(self.copy_project_button)
-        self.h_layout.addWidget(self.delete_project_button)
-        self.setLayout(self.h_layout)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum,
-            QtWidgets.QSizePolicy.Maximum)
-        )
+
+        self.construct_layout()
         self.connect_signals()
 
     def connect_signals(self):
         self.new_project_button.clicked.connect(signals.new_project.emit)
         self.delete_project_button.clicked.connect(signals.delete_project.emit)
         self.copy_project_button.clicked.connect(signals.copy_project.emit)
+
+    def construct_layout(self):
+        h_widget = QtWidgets.QWidget()
+        h_layout = QtWidgets.QHBoxLayout()
+        h_layout.setAlignment(QtCore.Qt.AlignLeft)
+        h_layout.addWidget(header('Project:'))
+        h_layout.addWidget(self.projects_list)
+        h_layout.addWidget(self.new_project_button)
+        h_layout.addWidget(self.copy_project_button)
+        h_layout.addWidget(self.delete_project_button)
+        h_widget.setLayout(h_layout)
+
+        # Overall Layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        layout.addWidget(h_widget)
+        self.setLayout(layout)
 
 
 class DatabaseWidget(QtWidgets.QWidget):
