@@ -364,6 +364,8 @@ class ScenarioImportPanel(BaseRightTab):
             # validation exception.
             return pd.DataFrame()
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
+        if not data:
+            return pd.DataFrame()
         manager = SuperstructureManager(*data)
         if self.product_choice.isChecked():
             kind = "product"
