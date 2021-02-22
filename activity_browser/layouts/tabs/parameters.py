@@ -340,14 +340,19 @@ class ParameterScenariosTab(BaseRightTab):
         layout.addStretch(1)
         self.setLayout(layout)
 
-    @Slot(int, object, name="processParameterScenarios")
-    def process_scenarios(self, table_idx: int, df: pd.DataFrame):
+    @Slot(int, object, bool, name="processParameterScenarios")
+    def process_scenarios(self, table_idx: int, df: pd.DataFrame, default: bool) -> None:
         """Use this method to discretely process a parameter scenario file
         for the LCA setup.
         """
-        self.tbl.model.sync(df=df)
-        scenarios = self.build_flow_scenarios()
-        signals.parameter_superstructure_built.emit(table_idx, scenarios)
+        try:
+            self.tbl.model.sync(df=df, include_default=default)
+            scenarios = self.build_flow_scenarios()
+            signals.parameter_superstructure_built.emit(table_idx, scenarios)
+        except AssertionError as e:
+            QMessageBox.critical(
+                self, "Cannot load parameters", str(e), QMessageBox.Ok, QMessageBox.Ok
+            )
 
     @Slot(name="loadSenarioTable")
     def select_read_file(self):
