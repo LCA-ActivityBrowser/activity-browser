@@ -319,7 +319,7 @@ class ParameterScenariosTab(BaseRightTab):
     <p><b>Suggested <i>workflow</i> to create scenarios for your parameters</b>:</p>
     <p>Export parameter-scenarios. This will generate an Excel file for you where you can add scenarios (columns). 
     You may want to delete rows that you intend to change or rows that are for dependent parameters (those that depend on other parameters) as these values will be overwritten by the formulas. 
-    Finally, import the parameter-scenarios in the <i>Calculation Setup</i> (not here!) to perform scenario calculations (you need to select "Scenario-based LCA").</p>
+    Finally, import the parameter-scenarios in the <i>Calculation Setup</i> (not here!) to perform scenario calculations (you need to select "Scenario LCA").</p>
     
     <p>For more information on this topic see also the 
     <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>

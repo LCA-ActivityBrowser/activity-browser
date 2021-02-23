@@ -107,7 +107,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
         self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
         self.calculation_type = QtWidgets.QComboBox()
-        self.calculation_type.addItems(["Standard LCA", "Scenario-based LCA", "Presamples LCA"])
+        self.calculation_type.addItems(["Standard LCA", "Scenario LCA", "Presamples LCA"])
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.presamples = PresamplesTuple(
             QtWidgets.QLabel("Prepared scenarios:"),
