@@ -21,23 +21,35 @@ class ScenarioModel(PandasModel):
         signals.parameter_renamed.connect(self.update_param_name)
 
     @Slot(name="doCleanSync")
-    def sync(self, df: pd.DataFrame = None) -> None:
+    def sync(self, df: pd.DataFrame = None, include_default: bool = True) -> None:
         """ Construct the dataframe from the existing parameters, if ``df``
         is given, perform a merge to possibly include additional columns.
         """
         data = [p[:3] for p in Parameters.from_bw_parameters()]
-        new_df = pd.DataFrame(data, columns=self.HEADERS)
-        if df is not None:
+        if df is None:
+            self._dataframe = pd.DataFrame(
+                data, columns=self.HEADERS).set_index("Name")
+        else:
             required = set(self.MATCH_COLS)
             if not required.issubset(df.columns):
                 raise ValueError(
                     "The given dataframe does not contain required columns: {}".format(required.difference(df.columns))
                 )
             assert df.columns.get_loc("Group") == 1
-            if "default" in df.columns:
-                df.drop(columns="default", inplace=True)
-            new_df = self._perform_merge(new_df, df)
-        self._dataframe = new_df.set_index("Name")
+            if include_default:
+                new_df = pd.DataFrame(data, columns=self.HEADERS)
+                if "default" in df.columns:
+                    df.drop(columns="default", inplace=True)
+                self._dataframe = self._perform_merge(new_df, df).set_index("Name")
+            else:
+                # Now we're gonna need to ensure that the dataframe is of
+                # the same size
+                assert len(data) >= df.shape[0], "Too many parameters found, not possible."
+                missing = len(data) - df.shape[0]
+                if missing != 0:
+                    nan_data = pd.DataFrame(index=pd.RangeIndex(missing), columns=df.columns)
+                    df = df.append(nan_data, ignore_index=True)
+                self._dataframe = df.set_index("Name")
         self.updated.emit()
 
     @classmethod

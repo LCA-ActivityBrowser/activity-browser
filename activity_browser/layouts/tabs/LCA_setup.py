@@ -364,6 +364,8 @@ class ScenarioImportPanel(BaseRightTab):
             # validation exception.
             return pd.DataFrame()
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
+        if not data:
+            return pd.DataFrame()
         manager = SuperstructureManager(*data)
         if self.product_choice.isChecked():
             kind = "product"
@@ -471,7 +473,17 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 # Try and read as parameter scenario file.
                 print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
                 df = pd.read_excel(path, sheet_name=idx, engine="openpyxl")
-                signals.parameter_scenario_sync.emit(self.index, df)
+                include_default = True
+                if "default" not in df.columns:
+                    query = QtWidgets.QMessageBox.question(
+                        self, "Default column not found",
+                        "Attempt to load and include the 'default' scenario column?",
+                        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                        QtWidgets.QMessageBox.No
+                    )
+                    if query == QtWidgets.QMessageBox.No:
+                        include_default = False
+                signals.parameter_scenario_sync.emit(self.index, df, include_default)
             finally:
                 self.scenario_name.setText(path.name)
                 self.scenario_name.setToolTip(path.name)
