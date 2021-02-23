@@ -284,6 +284,7 @@ class ParameterScenariosTab(BaseRightTab):
         self.calculate_btn = QPushButton(
             qicons.calculate, "Export as flow-scenarios"
         )
+        self.reset_btn = QPushButton(qicons.history, "Reset table")
         self.hide_group = QCheckBox("Show group column")
 
         self.tbl = ScenarioTable(self)
@@ -314,6 +315,7 @@ class ParameterScenariosTab(BaseRightTab):
         self.load_btn.clicked.connect(self.select_read_file)
         self.save_btn.clicked.connect(self.save_scenarios)
         self.calculate_btn.clicked.connect(self.calculate_scenarios)
+        self.reset_btn.clicked.connect(self.tbl.model.sync)
         self.hide_group.toggled.connect(self.tbl.group_column)
         signals.parameter_scenario_sync.connect(self.process_scenarios)
 
@@ -330,6 +332,7 @@ class ParameterScenariosTab(BaseRightTab):
         layout.addWidget(horizontal_line())
 
         row = QHBoxLayout()
+        row.addWidget(self.reset_btn)
         row.addWidget(self.save_btn)
         row.addWidget(self.load_btn)
         row.addWidget(self.calculate_btn)
