@@ -277,17 +277,31 @@ class ParameterScenariosTab(BaseRightTab):
         super().__init__(parent)
 
         self.load_btn = QPushButton(qicons.add, "Import parameter-scenarios")
+        self.load_btn.setToolTip(
+            "Load prepared excel files with additional parameter scenarios."
+        )
         self.save_btn = QPushButton(
             self.style().standardIcon(QStyle.SP_DialogSaveButton),
             "Export parameter-scenarios"
         )
+        self.save_btn.setToolTip(
+            "Export the current parameter scenario table to excel."
+        )
         self.calculate_btn = QPushButton(
             qicons.calculate, "Export as flow-scenarios"
         )
+        self.calculate_btn.setToolTip(
+            ("Process the current parameter scenario table into prepared flow"
+             " scenario data.")
+        )
         self.reset_btn = QPushButton(qicons.history, "Reset table")
+        self.reset_btn.setToolTip("Reset the scenario table, wiping any changes.")
         self.hide_group = QCheckBox("Show group column")
 
         self.tbl = ScenarioTable(self)
+        self.tbl.setToolTip(
+            "This table is not editable, use the export/import functionality"
+        )
 
         self._construct_layout()
         self._connect_signals()
