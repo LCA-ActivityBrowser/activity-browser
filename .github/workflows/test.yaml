@@ -1,0 +1,26 @@
+name: Pull request tests
+on: pull_request
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macos-latest, ubuntu-latest ]
+        python-version: [ 3.6, 3.7, 3.8 ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Testing python ${{ matrix.python-version }}
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          python-version: ${{ matrix.python-version }}
+          conda-channels: conda-forge, cmutel, bsteubing, haasad, pascallesage
+      - name: Install dependencies
+        shell: bash
+        run: |
+          conda install -q arrow brightway2 bw2io bw2data eidl \
+            fuzzywuzzy matplotlib-base networkx pandas "pyside2=5.13" \
+            salib seaborn presamples openpyxl "pytest>=5.2" pytest-qt \
+            pytest-mock "xlrd=1.2.0"
+      - name: Run tests
+        shell: bash
+        run: pytest -v --color=yes
