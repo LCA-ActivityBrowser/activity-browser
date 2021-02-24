@@ -48,7 +48,6 @@ class ProjectTab(QtWidgets.QWidget):
         self.databases_widget.update_widget()
 
         self.activity_biosphere_widget.setVisible(not no_databases)
-        self.databases_widget.label_no_database_selected.setVisible(no_databases)
         self.resize_splitter()
 
     def resize_splitter(self):
@@ -108,11 +107,8 @@ class DatabaseWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.table = DatabasesTable()
+        self.table.setToolTip("To select a database, double-click on an entry")
 
-        # Labels
-        self.label_no_database_selected = QtWidgets.QLabel(
-            "Select a database (double-click on table)."
-        )
         # Temporary inclusion to explain things before checkbox is back
         self.label_change_readonly = QtWidgets.QLabel(
             "To change a database from read-only to editable and back," +
@@ -144,7 +140,6 @@ class DatabaseWidget(QtWidgets.QWidget):
         header_layout.addWidget(self.add_default_data_button)
         header_layout.addWidget(self.new_database_button)
         header_layout.addWidget(self.import_database_button)
-        header_layout.addWidget(self.label_no_database_selected)
         header_widget.setLayout(header_layout)
 
         # Overall Layout
