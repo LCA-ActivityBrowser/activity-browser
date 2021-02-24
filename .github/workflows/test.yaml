@@ -20,7 +20,11 @@ jobs:
           conda install -q arrow brightway2 bw2io bw2data eidl \
             fuzzywuzzy matplotlib-base networkx pandas "pyside2=5.13" \
             salib seaborn presamples openpyxl "pytest>=5.2" pytest-qt \
-            pytest-mock "xlrd=1.2.0"
+            pytest-mock "xlrd=1.2.0" coveralls coverage pytest-cov
       - name: Run tests
         shell: bash
-        run: pytest -v --color=yes
+        run: pytest -v --cov=activity_browser
+      - name: Upload coverage
+        shell: bash
+        run: coveralls
+        if: (matrix.os == ubuntu-latest && matrix.python-version == 3.7)
