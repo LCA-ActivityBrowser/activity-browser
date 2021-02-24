@@ -25,6 +25,7 @@ jobs:
         shell: bash
         run: pytest -v --cov=activity_browser
       - name: Upload coverage
-        shell: bash
-        run: coveralls
-        if: (matrix.os == ubuntu-latest && matrix.python-version == 3.7)
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ( ${{ success() }} && matrix.os == ubuntu-latest && matrix.python-version == 3.7 )
