@@ -47,11 +47,8 @@ class ProjectTab(QtWidgets.QWidget):
 
         self.databases_widget.update_widget()
 
-        if not no_databases:
-            self.databases_widget.label_no_database_selected.hide()
-        else:
-            self.databases_widget.label_no_database_selected.show()
-            self.activity_biosphere_widget.hide()
+        self.activity_biosphere_widget.setVisible(not no_databases)
+        self.databases_widget.label_no_database_selected.setVisible(no_databases)
         self.resize_splitter()
 
     def resize_splitter(self):
@@ -160,19 +157,12 @@ class DatabaseWidget(QtWidgets.QWidget):
 
     def update_widget(self):
         no_databases = self.table.rowCount() == 0
-        if no_databases:
-            self.add_default_data_button.show()
-            self.import_database_button.hide()
-            self.new_database_button.hide()
-            self.table.hide()
-            self.label_no_database_selected.hide()
-            self.label_change_readonly.hide()
-        else:
-            self.add_default_data_button.hide()
-            self.import_database_button.show()
-            self.new_database_button.show()
-            self.table.show()
-            self.label_change_readonly.show()
+        self.add_default_data_button.setVisible(no_databases)
+        self.import_database_button.setVisible(not no_databases)
+        self.new_database_button.setVisible(not no_databases)
+
+        self.table.setVisible(not no_databases)
+        self.label_change_readonly.setVisible(not no_databases)
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
