@@ -81,7 +81,7 @@ class Signals(QObject):
     parameter_uncertainty_modified = Signal(object, object)
     parameter_pedigree_modified = Signal(object, object)
     delete_parameter = Signal(object)
-    parameter_scenario_sync = Signal(int, object)
+    parameter_scenario_sync = Signal(int, object, bool)
     parameter_superstructure_built = Signal(int, object)
     clear_activity_parameter = Signal(str, str, str)
 
