@@ -14,6 +14,8 @@ def ab_application():
     """
     app = Application()
     yield app
+    # Explicitly close the window
+    app.close()
     # Explicitly close the connection to all the databases for the pytest_project
     if bw.projects.current == "pytest_project":
         for _, db in bw.config.sqlite3_databases:
