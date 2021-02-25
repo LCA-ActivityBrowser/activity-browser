@@ -21,7 +21,6 @@ class ProjectTab(QtWidgets.QWidget):
 
         # Layout
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-        # self.splitter.addWidget(self.projects_widget)
         self.splitter.addWidget(self.databases_widget)
         self.splitter.addWidget(self.activity_biosphere_widget)
 
@@ -44,15 +43,11 @@ class ProjectTab(QtWidgets.QWidget):
     def update_widgets(self):
         """Update widgets when a new database has been selected or the project has been changed.
         Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
-        no_databases = self.databases_widget.table.rowCount() == 0
+        no_databases = self.activity_biosphere_widget.table.rowCount() == 0
 
         self.databases_widget.update_widget()
 
-        if not no_databases:
-            self.databases_widget.label_no_database_selected.show()
-        else:
-            self.databases_widget.label_no_database_selected.hide()
-            self.activity_biosphere_widget.hide()
+        self.activity_biosphere_widget.setVisible(not no_databases)
         self.resize_splitter()
 
     def resize_splitter(self):
@@ -62,34 +57,22 @@ class ProjectTab(QtWidgets.QWidget):
         self.splitter.setSizes(sizes)
 
 
-        # print("Widget sizes:", sizes)
-        # print("\nSH DB/Act/Bio: {}/{}/{}". format(*[x.sizeHint() for x in widgets]))
-        # print("Splitter Sizes:", self.splitter.sizes())
-        # print("SH Splitter Height:", self.splitter.height())
-
-
 class ProjectsWidget(QtWidgets.QWidget):
     def __init__(self):
         super(ProjectsWidget, self).__init__()
         self.projects_list = ProjectListWidget()
+
         # Buttons
         self.new_project_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.new_project_button.setToolTip('Make a new project')
         self.copy_project_button = QtWidgets.QPushButton(qicons.copy, "Copy")
+        self.copy_project_button.setToolTip('Copy the project')
         self.delete_project_button = QtWidgets.QPushButton(
             qicons.delete, "Delete"
         )
-        # Layout
-        self.h_layout = QtWidgets.QHBoxLayout()
-        self.h_layout.addWidget(header('Project:'))
-        self.h_layout.addWidget(self.projects_list)
-        self.h_layout.addWidget(self.new_project_button)
-        self.h_layout.addWidget(self.copy_project_button)
-        self.h_layout.addWidget(self.delete_project_button)
-        self.setLayout(self.h_layout)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum,
-            QtWidgets.QSizePolicy.Maximum)
-        )
+        self.delete_project_button.setToolTip('Delete the project')
+
+        self.construct_layout()
         self.connect_signals()
 
     def connect_signals(self):
@@ -97,16 +80,35 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.delete_project_button.clicked.connect(signals.delete_project.emit)
         self.copy_project_button.clicked.connect(signals.copy_project.emit)
 
+    def construct_layout(self):
+        h_widget = QtWidgets.QWidget()
+        h_layout = QtWidgets.QHBoxLayout()
+        h_layout.setAlignment(QtCore.Qt.AlignLeft)
+        h_layout.addWidget(header('Project:'))
+        h_layout.addWidget(self.projects_list)
+        h_layout.addWidget(self.new_project_button)
+        h_layout.addWidget(self.copy_project_button)
+        h_layout.addWidget(self.delete_project_button)
+        h_widget.setLayout(h_layout)
+
+        # Overall Layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        layout.addWidget(h_widget)
+        self.setLayout(layout)
+
+        self.setSizePolicy(QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Maximum)
+        )
+
 
 class DatabaseWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.table = DatabasesTable()
+        self.table.setToolTip("To select a database, double-click on an entry")
 
-        # Labels
-        self.label_no_database_selected = QtWidgets.QLabel(
-            "Select a database (double-click on table)."
-        )
         # Temporary inclusion to explain things before checkbox is back
         self.label_change_readonly = QtWidgets.QLabel(
             "To change a database from read-only to editable and back," +
@@ -118,7 +120,9 @@ class DatabaseWidget(QtWidgets.QWidget):
             qicons.import_db, "Add default data (biosphere flows and impact categories)"
         )
         self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
+        self.new_database_button.setToolTip('Make a new database')
         self.import_database_button = QtWidgets.QPushButton(qicons.import_db, "Import")
+        self.import_database_button.setToolTip('Import a new database')
 
         self._construct_layout()
         self._connect_signals()
@@ -136,7 +140,6 @@ class DatabaseWidget(QtWidgets.QWidget):
         header_layout.addWidget(self.add_default_data_button)
         header_layout.addWidget(self.new_database_button)
         header_layout.addWidget(self.import_database_button)
-        header_layout.addWidget(self.label_no_database_selected)
         header_widget.setLayout(header_layout)
 
         # Overall Layout
@@ -149,33 +152,24 @@ class DatabaseWidget(QtWidgets.QWidget):
 
     def update_widget(self):
         no_databases = self.table.rowCount() == 0
-        if no_databases:
-            self.add_default_data_button.show()
-            self.import_database_button.hide()
-            self.new_database_button.hide()
-            self.table.hide()
-            self.label_no_database_selected.hide()
-            self.label_change_readonly.hide()
-        else:
-            self.add_default_data_button.hide()
-            self.import_database_button.show()
-            self.new_database_button.show()
-            self.table.show()
-            self.label_change_readonly.show()
+        self.add_default_data_button.setVisible(no_databases)
+        self.import_database_button.setVisible(not no_databases)
+        self.new_database_button.setVisible(not no_databases)
+
+        self.table.setVisible(not no_databases)
+        self.label_change_readonly.setVisible(not no_databases)
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
-        self.header = 'Activities'
-
         self.table = ActivitiesBiosphereTable(self)
 
         # Header widget
         self.header_widget = QtWidgets.QWidget()
         self.header_layout = QtWidgets.QHBoxLayout()
         self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.header_layout.addWidget(header(self.header))
+        self.header_layout.addWidget(header("Activities:"))
         self.header_widget.setLayout(self.header_layout)
 
         self.label_database = QtWidgets.QLabel("[]")
@@ -200,9 +194,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
     def connect_signals(self):
         signals.project_selected.connect(self.reset_widget)
-
-    # def sizeHint(self):
-    #     return self.table.sizeHint()
 
     def reset_widget(self):
         self.hide()
@@ -246,7 +237,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.header_layout.addWidget(self.reset_search_button)
 
     def update_table(self, db_name='biosphere3'):
-        # print('Updating database table: ', db_name)
         if self.table.database_name:
             self.show()
         if len(db_name) > 15:
