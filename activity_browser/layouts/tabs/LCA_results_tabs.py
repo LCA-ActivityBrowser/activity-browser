@@ -354,16 +354,16 @@ class NewAnalysisTab(QWidget):
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
         """Construct a custom export button layout.
-        
+
         Produces layout with buttons for export of relevant sections (plot, table).
-        Options for figure are: 
+        Options for figure are:
             .png (image format useful for computer generated graphics)
-            .svg (scalable vector graphic, image is not pixels but data on where lines are, 
+            .svg (scalable vector graphic, image is not pixels but data on where lines are,
                 useful in reports)
         Options for Table are:
             copy (copies the table to clipboard)
             .csv (a comma separated values file of the table, useful for data storage)
-            Excel (an excel file, useful for exchanging with people and making visualizations) 
+            Excel (an excel file, useful for exchanging with people and making visualizations)
         """
         export_menu = QHBoxLayout()
 
@@ -429,11 +429,19 @@ class InventoryTab(NewAnalysisTab):
         self.radio_button_biosphere.setChecked(True)
         button_layout.addWidget(self.radio_button_biosphere)
         self.radio_button_technosphere = QRadioButton("Technosphere flows")
+        self.remove_zeros_checkbox = QCheckBox("Remove '0' values")
+        self.remove_zero_state = False
+        self.last_remove_zero_state = self.remove_zero_state
+        self.remove_zeros_checkbox.setChecked(self.remove_zero_state)
+        self.remove_zeros_checkbox.setToolTip("Choose whether to show '0' values or not.\n"
+                                              "When selected, '0' values are not shown.\n"
+                                              "Rows are only removed when all reference flows are '0'.")
         self.scenario_label = QLabel("Scenario:")
         button_layout.addWidget(self.radio_button_technosphere)
         button_layout.addWidget(self.scenario_label)
         button_layout.addWidget(self.scenario_box)
         button_layout.addStretch(1)
+        button_layout.addWidget(self.remove_zeros_checkbox)
         self.layout.addLayout(button_layout)
 
         # table
@@ -448,11 +456,19 @@ class InventoryTab(NewAnalysisTab):
 
     def connect_signals(self):
         self.radio_button_biosphere.toggled.connect(self.button_clicked)
+        self.remove_zeros_checkbox.toggled.connect(self.remove_zeros_checked)
         if self.using_presamples:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
+
+    @QtCore.Slot(bool, name="isRemoveZerosToggled")
+    def remove_zeros_checked(self, toggled: bool):
+        """Update table according to remove-zero selected."""
+        self.remove_zero_state = toggled
+        self.update_table()
+        self.last_remove_zero_state = self.remove_zero_state
 
     @QtCore.Slot(bool, name="isBiosphereToggled")
     def button_clicked(self, toggled: bool):
@@ -476,10 +492,19 @@ class InventoryTab(NewAnalysisTab):
         inventory = "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
         # We handle both 'df_biosphere' and 'df_technosphere' variables here.
         attr_name = "df_{}".format(inventory)
-        if getattr(self, attr_name) is None:
+        if getattr(self, attr_name) is None or self.remove_zero_state != self.last_remove_zero_state:
             setattr(self, attr_name, self.parent.contributions.inventory_df(
                 inventory_type=inventory)
-            )
+                    )
+
+        def filter_zeroes(df):
+            filter_on = [x for x in df.columns.tolist() if '|' in x]
+            return df[df[filter_on].sum(axis=1) != 0].reset_index(drop=True)
+
+        if self.remove_zero_state and getattr(self, 'df_biosphere') is not None:
+            self.df_biosphere = filter_zeroes(self.df_biosphere)
+        if self.remove_zero_state and getattr(self, 'df_technosphere') is not None:
+            self.df_technosphere = filter_zeroes(self.df_technosphere)
         super().update_table(getattr(self, attr_name))
 
     def clear_tables(self) -> None:
@@ -796,7 +821,7 @@ class ContributionTab(NewAnalysisTab):
     @QtCore.Slot(name="comboboxTriggerUpdate")
     def set_combobox_changes(self):
         """Update fields based on user-made changes in combobox.
-        
+
         Any trigger linked to this slot will cause the values in the
         combobox objects to be read out (which comparison, drop-down indexes,
         etc.) and fed into update calls.
@@ -848,8 +873,8 @@ class ContributionTab(NewAnalysisTab):
         super().update_tab()
 
     def update_dataframe(self, *args, **kwargs):
-        """Update the underlying dataframe. 
-        
+        """Update the underlying dataframe.
+
         Implement in subclass."""
         raise NotImplementedError
 
@@ -889,6 +914,7 @@ class ElementaryFlowContributionTab(ContributionTab):
         Plot/Table
         Export options
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -1072,8 +1098,6 @@ class MonteCarloTab(NewAnalysisTab):
                                    'Use this for reproducible samples.')
         self.seed = QLineEdit('')
         self.seed.setFixedWidth(30)
-
-
 
         self.hlayout_run = QHBoxLayout()
         self.hlayout_run.addWidget(self.scenario_label)
@@ -1465,6 +1489,7 @@ class MonteCarloWorkerThread(QtCore.QThread):
 
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
     So this is for future reference in case this issue is solved... """
+
     def set_mc(self, mc, iterations=20):
         self.mc = mc
         self.iterations = iterations
@@ -1475,6 +1500,7 @@ class MonteCarloWorkerThread(QtCore.QThread):
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
         print('in thread {}'.format(QtCore.QThread.currentThread()))
         signals.monte_carlo_ready.emit(self.mc.cs_name)
+
 
 worker_thread = MonteCarloWorkerThread()
 
