@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2 import QtCore
+from PySide2 import QtCore, QtWidgets
 
-from activity_browser.app.controller import Controller
-from activity_browser.app.signals import signals
-from activity_browser.app.ui.wizards.db_import_wizard import import_signals
+from activity_browser.signals import signals
 
 
-def test_add_default_data(qtbot, mocker, ab_app):
+def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'default'
     qtbot.waitForWindowShown(ab_app.main_window)
-    mocker.patch.object(Controller, 'get_new_project_name_dialog', return_value='pytest_project')
+    monkeypatch.setattr(
+        QtWidgets.QInputDialog, "getText",
+        staticmethod(lambda *args, **kwargs: ("pytest_project", True))
+    )
     project_tab = ab_app.main_window.left_panel.tabs['Project']
     qtbot.mouseClick(
         project_tab.projects_widget.new_project_button,
@@ -18,7 +19,8 @@ def test_add_default_data(qtbot, mocker, ab_app):
     )
     assert bw.projects.current == 'pytest_project'
 
-    with qtbot.waitSignal(import_signals.biosphere_finished, timeout=600000):
+    # The biosphere3 import finishes with a 'change_project' signal.
+    with qtbot.waitSignal(signals.change_project, timeout=600000):
         qtbot.mouseClick(
             project_tab.databases_widget.add_default_data_button,
             QtCore.Qt.LeftButton

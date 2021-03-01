@@ -2,9 +2,8 @@
 import brightway2 as bw
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QMessageBox, QWizard
-import pytest
 
-from activity_browser.app.ui.wizards.settings_wizard import SettingsWizard
+from activity_browser.ui.wizards.settings_wizard import SettingsWizard
 
 
 def test_settings_wizard_simple(qtbot, bw2test):

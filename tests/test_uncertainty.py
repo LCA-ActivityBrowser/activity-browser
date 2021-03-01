@@ -8,11 +8,11 @@ from PySide2 import QtCore, QtWidgets
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
 
-from activity_browser.app.bwutils.uncertainty import (
+from activity_browser.bwutils.uncertainty import (
     ExchangeUncertaintyInterface, CFUncertaintyInterface, get_uncertainty_interface
 )
-from activity_browser.app.ui.tables.delegates import UncertaintyDelegate
-from activity_browser.app.ui.tables.parameters import ProjectParameterTable
+from activity_browser.ui.tables.delegates import UncertaintyDelegate
+from activity_browser.ui.tables.parameters import ProjectParameterTable
 
 
 def test_table_uncertainty_delegate(qtbot, bw2test, monkeypatch):
@@ -20,8 +20,8 @@ def test_table_uncertainty_delegate(qtbot, bw2test, monkeypatch):
     """
     table = ProjectParameterTable()
     qtbot.addWidget(table)
-    table.add_parameter()
-    table.sync(table.build_df())
+    bw.parameters.new_project_parameters([{"name": "project_1", "amount": 1.0}], False)
+    table.model.sync()
 
     assert isinstance(table.itemDelegateForColumn(3), UncertaintyDelegate)
 

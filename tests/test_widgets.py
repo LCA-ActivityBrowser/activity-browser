@@ -2,7 +2,7 @@
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialogButtonBox, QMessageBox, QWidget
 
-from activity_browser.app.ui.widgets import (
+from activity_browser.ui.widgets import (
     BiosphereUpdater, SwitchComboBox, CutoffMenu, ForceInputDialog,
     parameter_save_errorbox, simple_warning_box
 )

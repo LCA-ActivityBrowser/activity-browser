@@ -14,8 +14,8 @@ build:
     - VERSION
     - CONDA_BLD_PATH
   entry_points:
-    - activity-browser = activity_browser.app:run_activity_browser
-    - activity-browser-cleanup = activity_browser.app.bwutils:cleanup
+    - activity-browser = activity_browser:run_activity_browser
+    - activity-browser-cleanup = activity_browser.bwutils:cleanup
 
 requirements:
   build:
