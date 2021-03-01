@@ -284,10 +284,10 @@ class SimpleDistributionPlot(Plot):
     def plot(self, data: np.ndarray, mean: float, label: str = "Value"):
         self.reset_plot()
         try:
-            sns.histplot(data.T, kde=True, stat="density", ax=self.ax)
+            sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
         except RuntimeError as e:
             print("Runtime error: {}\nPlotting without KDE.".format(e))
-            sns.histplot(data.T, kde=False, stat="density", ax=self.ax)
+            sns.histplot(data.T, kde=False, stat="density", ax=self.ax, edgecolor="none")
         self.ax.set_xlabel(label)
         self.ax.set_ylabel("Probability density")
         # Add vertical line at given mean of x-axis
