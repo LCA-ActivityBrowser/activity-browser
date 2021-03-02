@@ -153,18 +153,20 @@ class ABDictTreeView(QTreeView):
         """
         raise NotImplementedError
 
-    @Slot()
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         """ Resize the first column (usually 'name') whenever an item is
         expanded or collapsed.
         """
         self.resizeColumnToContents(0)
 
+    @Slot(name="expandSelectedBranch")
     def expand_branch(self):
         """Expand selected branch."""
         index = self.currentIndex()
         self.expand_or_collapse(index, True)
 
+    @Slot(name="collapseSelectedBranch")
     def collapse_branch(self):
         """Collapse selected branch."""
         index = self.currentIndex()
