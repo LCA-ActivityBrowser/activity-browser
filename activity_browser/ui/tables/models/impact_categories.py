@@ -4,11 +4,11 @@ from typing import Iterator, Optional
 
 import brightway2 as bw
 import pandas as pd
-from PySide2.QtCore import QModelIndex, Slot
+from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser.signals import signals
 from ...wizards import UncertaintyWizard
-from .base import PandasModel, DragPandasModel
+from .base import PandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
 
 class MethodsListModel(DragPandasModel):
@@ -128,3 +128,50 @@ class CFModel(PandasModel):
             uncertainty["amount"] = data[1]
             data[1] = uncertainty
         signals.edit_method_cf.emit(tuple(data), self.method.name)
+
+
+class ImpactCategoryItem(TreeItem):
+    """ Item in MethodsTreeModel."""
+    # this manual typing of COLUMNS below could be a risk later:
+    # potential fix could be to get data from HEADERS in tables/impact_categories/MethodsTree
+    def __init__(self, data: list, parent=None):
+        super().__init__(data, parent)
+
+    @classmethod
+    def build_item(cls, impact_cat, parent: TreeItem) -> 'ImpactCategoryItem':
+        item = cls(list(impact_cat), parent)
+        parent.appendChild(item)
+        return item
+
+
+class MethodsTreeModel(BaseTreeModel):
+    """
+    Tree model for impact categories.
+    Tree is auto generated in tables/impact_categories/MethodsTree
+    """
+    HEADERS = ["Name", "Unit", "# CFs", "method"]
+
+    def __init__(self, data: dict, parent=None):
+        super().__init__(parent)
+        self.root = ImpactCategoryItem.build_root(self.HEADERS)
+        self._data = data
+        self.setup_model_data()
+
+    def flags(self, index):
+        return super().flags(index) | Qt.ItemIsDragEnabled
+
+    def setup_model_data(self) -> None:
+        """ First construct the root, then process the data.
+        """
+        self.build_tree(self._data, self.root)
+
+    def build_tree(self, data: dict, root):
+        for key, value in data.items():
+            if isinstance(value, dict):
+                # this manual length setting of the list below could be a risk later:
+                # potential fix could be to get length from HEADERS in tables/impact_categories/MethodsTree
+                new_data = [key] + [""] * (self.columnCount() - 1)
+                new_root = root.build_item(new_data, root)
+                self.build_tree(value, new_root)
+            else:
+                ImpactCategoryItem.build_item(value, root)
