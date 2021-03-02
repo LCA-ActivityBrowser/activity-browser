@@ -13,7 +13,7 @@ from .lca_results import LCAResultsModel, InventoryModel, ContributionModel
 from .lca_setup import CSActivityModel, CSMethodsModel, ScenarioImportModel
 from .parameters import (
     BaseParameterModel, ProjectParameterModel, DatabaseParameterModel,
-    ActivityParameterModel,
+    ActivityParameterModel, ParameterTreeModel
 )
 from .scenarios import ScenarioModel
-from .tree import MethodsTreeModel, ParameterTreeModel
+from .tree import MethodsTreeModel
