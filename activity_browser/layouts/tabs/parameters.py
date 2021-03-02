@@ -269,7 +269,7 @@ class ParameterExchangesTab(BaseRightTab):
     def build_tables(self) -> None:
         """ Read parameters from brightway and build tree tables
         """
-        self.table.sync()
+        self.table.model.sync()
 
 
 class ParameterScenariosTab(BaseRightTab):
