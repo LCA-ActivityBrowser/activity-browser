@@ -39,7 +39,7 @@ class PandasModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:
             value = self._dataframe.iat[index.row(), index.column()]
-            if isinstance(value, np.float):
+            if isinstance(value, np.float64):
                 value = float(value)
             elif isinstance(value, np.bool_):
                 value = value.item()
