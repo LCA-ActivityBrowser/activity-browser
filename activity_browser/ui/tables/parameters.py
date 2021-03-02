@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from asteval import Interpreter
 import brightway2 as bw
-from bw2data.parameters import (ActivityParameter, DatabaseParameter,
-                                ProjectParameter)
+from bw2data.parameters import ActivityParameter
 from PySide2.QtCore import Slot
 from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PySide2.QtWidgets import QAction, QMenu, QMessageBox
@@ -16,7 +15,7 @@ from .models import (
     BaseParameterModel, ProjectParameterModel, DatabaseParameterModel,
     ActivityParameterModel, ParameterTreeModel,
 )
-from .views import ABDataFrameView, ABDictTreeView, tree_model_decorate
+from .views import ABDataFrameView, ABDictTreeView
 
 
 class BaseParameterTable(ABDataFrameView):
@@ -252,20 +251,15 @@ class ActivityParameterTable(BaseParameterTable):
 
 
 class ExchangesTable(ABDictTreeView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.model = ParameterTreeModel(parent=self)
+        self.setModel(self.model)
+        self.model.updated.connect(self.custom_view_sizing)
+
     def _connect_signals(self):
         super()._connect_signals()
         signals.exchange_formula_changed.connect(self.parameterize_exchanges)
-
-    @tree_model_decorate
-    def sync(self) -> None:
-        self.data.update({
-            "project": ProjectParameter.select().iterator(),
-            "database": DatabaseParameter.select().iterator(),
-            "activity": ActivityParameter.select().iterator(),
-        })
-
-    def _select_model(self):
-        return ParameterTreeModel(self.data)
 
     @Slot(tuple, name="parameterizeExchangesForKey")
     def parameterize_exchanges(self, key: tuple) -> None:
