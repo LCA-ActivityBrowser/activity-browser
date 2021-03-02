@@ -9,7 +9,7 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from PySide2.QtCore import Slot, QModelIndex
 
-from activity_browser.bwutils import uncertainty as uc
+from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
@@ -361,6 +361,7 @@ class ParameterTreeModel(BaseTreeModel):
         super().__init__(parent)
         self.root = ParameterItem.build_root(self.HEADERS)
         self.setup_model_data()
+        signals.exchange_formula_changed.connect(self.parameterize_exchanges)
 
     def setup_model_data(self) -> None:
         """ First construct the root, then process the data.
@@ -387,3 +388,21 @@ class ParameterTreeModel(BaseTreeModel):
         })
         self.setup_model_data()
         self.updated.emit()
+
+    @Slot(tuple, name="parameterizeExchanges")
+    def parameterize_exchanges(self, key: tuple) -> None:
+        """ Used whenever a formula is set on an exchange in an activity.
+
+        If no `ActivityParameter` exists for the key, generate one immediately
+        """
+        group = bc.build_activity_group_name(key)
+        if not (ActivityParameter.select()
+                .where(ActivityParameter.group == group).count()):
+            signals.add_activity_parameter.emit(key)
+
+        act = bw.get_activity(key)
+        with bw.parameters.db.atomic():
+            bw.parameters.remove_exchanges_from_group(group, act)
+            bw.parameters.add_exchanges_to_group(group, act)
+            ActivityParameter.recalculate_exchanges(group)
+        signals.parameters_changed.emit()
