@@ -7,6 +7,7 @@ from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 from bw2data.proxies import ExchangeProxyBase
 import pandas as pd
+from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser.bwutils import (
@@ -48,12 +49,17 @@ class BaseExchangeModel(EditablePandasModel):
     def create_row(self, exchange) -> dict:
         """ Take the given Exchange object and extract a number of attributes.
         """
-        row = {
-            "Amount": float(exchange.get("amount", 1)),
-            "Unit": exchange.input.get("unit", "Unknown"),
-            "exchange": exchange,
-        }
-        return row
+        try:
+            row = {
+                "Amount": float(exchange.get("amount", 1)),
+                "Unit": exchange.input.get("unit", "Unknown"),
+                "exchange": exchange,
+            }
+            return row
+        except DoesNotExist as e:
+            # The input activity does not exist. remove the exchange.
+            print("Broken exchange: {}, removing.".format(e))
+            signals.exchanges_deleted.emit([exchange])
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)
