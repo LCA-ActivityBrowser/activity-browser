@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+from peewee import DoesNotExist
 from PySide2.QtCore import Qt
 
+from activity_browser.signals import signals
 from .base import BaseTreeModel, TreeItem
 
 
@@ -57,14 +59,19 @@ class ParameterItem(TreeItem):
         act = bw.get_activity((act_param.database, act_param.code))
 
         for exc in [exc for exc in act.exchanges() if "formula" in exc]:
-            act_input = bw.get_activity(exc.input)
-            item = cls([
-                act_input.get("name"),
-                parent.data(1),
-                exc.amount,
-                exc.get("formula"),
-            ], parent)
-            parent.appendChild(item)
+            try:
+                act_input = bw.get_activity(exc.input)
+                item = cls([
+                    act_input.get("name"),
+                    parent.data(1),
+                    exc.amount,
+                    exc.get("formula"),
+                ], parent)
+                parent.appendChild(item)
+            except DoesNotExist as e:
+                # The exchange is coming from a deleted database, remove it
+                print("Broken exchange: {}, removing.".format(e))
+                signals.exchanges_deleted.emit([exc])
 
 
 class ImpactCategoryItem(TreeItem):
