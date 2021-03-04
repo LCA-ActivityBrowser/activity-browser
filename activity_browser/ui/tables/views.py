@@ -125,18 +125,6 @@ class ABDataFrameView(QTableView):
                 self.model.to_clipboard(rows, columns, headers)
 
 
-def tree_model_decorate(sync):
-    """ Take and execute the given sync function, then build the view model.
-    """
-    @wraps(sync)
-    def wrapper(self, *args, **kwargs):
-        sync(self, *args, **kwargs)
-        model = self._select_model()
-        self.setModel(model)
-        self.custom_view_sizing()
-    return wrapper
-
-
 class ABDictTreeView(QTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -147,11 +135,6 @@ class ABDictTreeView(QTreeView):
     def _connect_signals(self):
         self.expanded.connect(self.custom_view_sizing)
         self.collapsed.connect(self.custom_view_sizing)
-
-    def _select_model(self):
-        """ Returns the model to be used in the view.
-        """
-        raise NotImplementedError
 
     @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
@@ -197,6 +180,3 @@ class ABDictTreeView(QTreeView):
         recursive_expand_or_collapse(index, childCount, expand)
         if expand:  # if expanding, do that last (wonky animation otherwise)
             self.setExpanded(index, expand)
-
-
-
