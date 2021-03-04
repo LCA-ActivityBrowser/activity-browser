@@ -72,6 +72,10 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
         # If we have a complete key, pre-select the activity parameter btn.
         if all(self.key):
             self.button_group.button(2).setChecked(True)
+        elif self.key[0] != "":
+            # default to database parameter is we have something.
+            self.button_group.button(2).setEnabled(False)
+            self.button_group.button(1).setChecked(True)
         else:
             # If we don't have a complete key, we can't create an activity parameter
             self.button_group.button(2).setEnabled(False)
@@ -138,7 +142,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
             self.database.clear()
             dbs = bw.databases.list
             self.database.insertItems(0, dbs)
-            if self.key[0] != "":
+            if self.key[0] in dbs:
                 self.database.setCurrentIndex(
                     dbs.index(self.key[0])
                 )

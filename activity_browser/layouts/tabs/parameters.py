@@ -132,7 +132,7 @@ can be used within the formula!</p>
             lambda: signals.add_parameter.emit(None)
         )
         self.new_database_param.clicked.connect(
-            lambda: signals.add_parameter.emit(None)
+            lambda: signals.add_parameter.emit(("db", ""))
         )
         self.show_order.stateChanged.connect(self.activity_order_column)
         self.uncertainty_columns.stateChanged.connect(
