@@ -187,8 +187,9 @@ class ParameterController(QObject):
         by sub-classing the QInputDialog class it becomes possible to allow
         users to decide if they want to update downstream parameters.
         """
+        text = "Rename parameter '{}' to:".format(param.name)
         new_name, ok = QInputDialog.getText(
-            self.window, "Rename parameter", "New parameter name:",
+            self.window, "Rename parameter", text,
         )
         if not ok or not new_name:
             return
