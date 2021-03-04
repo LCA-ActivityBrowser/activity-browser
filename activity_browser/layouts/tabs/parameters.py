@@ -82,6 +82,8 @@ class ParameterDefinitionTab(BaseRightTab):
             "project": self.project_table, "database": self.database_table,
             "activity": self.activity_table,
         }
+        for t in self.tables.values():
+            t.model.sync()
 
         self.new_project_param = QPushButton(qicons.add, "New")
         self.database_header = header("Database:")
