@@ -7,6 +7,7 @@ from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 from bw2data.proxies import ExchangeProxyBase
 import pandas as pd
+from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser.bwutils import (
@@ -35,8 +36,9 @@ class BaseExchangeModel(EditablePandasModel):
         """
         if exchanges is not None:
             self.exchanges = exchanges
+        data = (self.create_row(exc) for exc in self.exchanges)
         self._dataframe = pd.DataFrame([
-            self.create_row(exc) for exc in self.exchanges
+            row for row in data if row
         ], columns=self.columns)
         self.exchange_column = self._dataframe.columns.get_loc("exchange")
         self.updated.emit()
@@ -48,12 +50,17 @@ class BaseExchangeModel(EditablePandasModel):
     def create_row(self, exchange) -> dict:
         """ Take the given Exchange object and extract a number of attributes.
         """
-        row = {
-            "Amount": float(exchange.get("amount", 1)),
-            "Unit": exchange.input.get("unit", "Unknown"),
-            "exchange": exchange,
-        }
-        return row
+        try:
+            row = {
+                "Amount": float(exchange.get("amount", 1)),
+                "Unit": exchange.input.get("unit", "Unknown"),
+                "exchange": exchange,
+            }
+            return row
+        except DoesNotExist as e:
+            # The input activity does not exist. remove the exchange.
+            print("Broken exchange: {}, removing.".format(e))
+            signals.exchanges_deleted.emit([exchange])
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)
@@ -205,24 +212,28 @@ class TechnosphereExchangeModel(BaseExchangeModel):
 
     def create_row(self, exchange: ExchangeProxyBase) -> dict:
         row = super().create_row(exchange)
-        act = exchange.input
-        row.update({
-            "Product": act.get("reference product") or act.get("name"),
-            "Activity": act.get("name"),
-            "Location": act.get("location", "Unknown"),
-            "Database": act.get("database"),
-            "Uncertainty": exchange.get("uncertainty type", 0),
-            "Formula": exchange.get("formula"),
-        })
         try:
-            matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
-            row.update({"pedigree": matrix.factors_as_tuple()})
-        except AssertionError:
-            row.update({"pedigree": None})
-        row.update({
-            k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
-        })
-        return row
+            act = exchange.input
+            row.update({
+                "Product": act.get("reference product") or act.get("name"),
+                "Activity": act.get("name"),
+                "Location": act.get("location", "Unknown"),
+                "Database": act.get("database"),
+                "Uncertainty": exchange.get("uncertainty type", 0),
+                "Formula": exchange.get("formula"),
+            })
+            try:
+                matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
+                row.update({"pedigree": matrix.factors_as_tuple()})
+            except AssertionError:
+                row.update({"pedigree": None})
+            row.update({
+                k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
+            })
+            return row
+        except DoesNotExist as e:
+            print("Exchange was deleted, continue.")
+            return {}
 
 
 class BiosphereExchangeModel(BaseExchangeModel):
@@ -243,23 +254,27 @@ class BiosphereExchangeModel(BaseExchangeModel):
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
-        act = exchange.input
-        row.update({
-            "Flow Name": act.get("name"),
-            "Compartments": " - ".join(act.get('categories', [])),
-            "Database": act.get("database"),
-            "Uncertainty": exchange.get("uncertainty type", 0),
-            "Formula": exchange.get("formula"),
-        })
         try:
-            matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
-            row.update({"pedigree": matrix.factors_as_tuple()})
-        except AssertionError:
-            row.update({"pedigree": None})
-        row.update({
-            k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
-        })
-        return row
+            act = exchange.input
+            row.update({
+                "Flow Name": act.get("name"),
+                "Compartments": " - ".join(act.get('categories', [])),
+                "Database": act.get("database"),
+                "Uncertainty": exchange.get("uncertainty type", 0),
+                "Formula": exchange.get("formula"),
+            })
+            try:
+                matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
+                row.update({"pedigree": matrix.factors_as_tuple()})
+            except AssertionError:
+                row.update({"pedigree": None})
+            row.update({
+                k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY
+            })
+            return row
+        except DoesNotExist as e:
+            print("Exchange was deleted, continue.")
+            return {}
 
 
 class DownstreamExchangeModel(BaseExchangeModel):
