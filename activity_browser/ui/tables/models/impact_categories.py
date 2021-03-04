@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 import numbers
 from typing import Iterator, Optional
 
 import brightway2 as bw
+import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
@@ -157,27 +159,180 @@ class MethodsTreeModel(BaseTreeModel):
     """
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
-    def __init__(self, data: dict, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.root = ImpactCategoryItem.build_root(self.HEADERS)
-        self._data = data
+
+        # All of the various variables.
+        self._dataframe: Optional[pd.DataFrame] = None
+        self.method_col = 0
+        self.tree_data = None
+        self.matches = None
+        self.query = None
+
         self.setup_model_data()
+
+        signals.project_selected.connect(self.sync)
+        signals.new_method.connect(self.setup_model_data)
+        signals.new_method.connect(self.filter_on_method)
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 
-    def setup_model_data(self) -> None:
-        """ First construct the root, then process the data.
-        """
-        self.build_tree(self._data, self.root)
-
-    def build_tree(self, data: dict, root):
+    def build_tree(self, data: dict, root: ImpactCategoryItem) -> None:
         for key, value in data.items():
             if isinstance(value, dict):
-                # this manual length setting of the list below could be a risk later:
-                # potential fix could be to get length from HEADERS in tables/impact_categories/MethodsTree
                 new_data = [key] + [""] * (self.columnCount() - 1)
                 new_root = root.build_item(new_data, root)
                 self.build_tree(value, new_root)
             else:
                 ImpactCategoryItem.build_item(value, root)
+
+    @Slot(name="methodsAltered")
+    def setup_model_data(self) -> None:
+        """Construct a dataframe of impact categories and a complete nested
+        dict of the dataframe.
+
+        Trigger this at the start and when a method is added/deleted.
+        """
+        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+        self._dataframe = pd.DataFrame([
+            MethodsListModel.build_row(method_obj) for method_obj in sorted_names
+        ], columns=self.HEADERS)
+        self.method_col = self._dataframe.columns.get_loc("method")
+        self.tree_data = self.nest_data(self._dataframe)
+
+    @Slot(name="clearSyncModel")
+    @Slot(str, name="syncModel")
+    def sync(self, query: str = None) -> None:
+        self.beginResetModel()
+        self.root.clear()
+        self.query = query
+        if self.query:
+            tree = deepcopy(self.tree_data)
+            self._data, self.matches = self.search_tree(tree, self.query)
+        else:
+            self._data = self.tree_data
+        self.build_tree(self._data, self.root)
+        self.endResetModel()
+        self.updated.emit()
+
+    def get_method(self, tree_level: tuple) -> tuple:
+        """Retrieve method data"""
+        name = tree_level[1]
+        methods = self._dataframe.loc[self._dataframe["Name"] == name, "method"]
+        return next(iter(methods))
+
+    def get_methods(self, name: str) -> Iterator:
+        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(name), "method"]
+        if self.query:
+            queries = [
+                method for method in methods
+                if self.query.lower() in ', '.join(method).lower()
+            ]
+            return queries
+        return methods
+
+    @Slot(QModelIndex, name="copyMethod")
+    def copy_method(self, level: tuple) -> None:
+        method = self.get_method(level)
+        signals.copy_method.emit(method)
+
+    @Slot(tuple, name="filterOnMethod")
+    def filter_on_method(self, method: tuple) -> None:
+        query = ", ".join(method)
+        self.sync(query)
+
+    @staticmethod
+    def nest_data(df: pd.DataFrame) -> dict:
+        """Convert impact category dataframe into nested dict format.
+
+        Format is:
+        {root1: {branch1: {leaf1: data},
+                          {leaf2: data}},
+                {branch2: {branch3: {leaf3: data},
+                                    {leaf4: data}},
+                          {branch4: {leaf5: data},
+                                    {leaf6: data}},
+                          {leaf7: data}}}
+        Where:
+        rootx  : top level category (str) eg: CML 2001
+        branchx: sub level category (str) eg: climate change
+                 can be arbitrary amount of branches
+        leafx  : category level (str)     eg: GWP 100a
+                 leaves and branches can be mixed together under roots or other branches
+        data   : data of category (tuple) eg: ('CML 2001, climate change, GWP 100a',
+                                               'kg CO2-Eq',
+                                               160,
+                                               "('CML 2001', 'climate change', 'GWP 100a')")
+                 here each index of the tuple refers to the data in the HEADERS list of this class
+        """
+        data = np.empty(df.shape[0], dtype=object)
+        for idx, row in enumerate(df.to_numpy(dtype=object)):
+            split = row[0].split(', ')  # split 'Name' column on ', '
+            split.append(tuple(row))
+            data[idx] = split
+
+        # From https://stackoverflow.com/a/19900276 but changed -2 to -1
+        #  this version is ~2 orders of magnitude faster than the pandas
+        #  option in the same answer
+        simple_dict = {}
+        for row in data:
+            here = simple_dict
+            for elem in row[:-1]:
+                if elem not in here:
+                    here[elem] = {}
+                here = here[elem]
+            here[row[-1]] = row[-1]
+
+        tree, _ = MethodsTreeModel.simplify_dict(simple_dict)
+        return tree
+
+    @staticmethod
+    def simplify_dict(names_dict: dict) -> (dict, bool):
+        """Recursively flatten the given nested dictionary."""
+        clean_dict = {}
+        for key, value in names_dict.items():
+            if isinstance(value, dict):
+                # this is not the leaf node, go deeper to find leaf
+                tree, is_leaf = MethodsTreeModel.simplify_dict(value)
+                if not is_leaf and len(value) == 1:
+                    # 'tree' is not leaf (end node) and only one sub level
+                    # combine sublevel, then add to tree
+                    key_orig = next(iter(tree.keys()))
+                    key = "{}, {}".format(key, key_orig)
+                    clean_dict[key] = tree[key_orig]
+                else:
+                    # 'tree' is either a leaf or has more sublevels
+                    # add as dict entry
+                    clean_dict[key] = tree
+            else:
+                # this is a leaf node, return the key
+                return key, True
+        return clean_dict, False
+
+    @staticmethod
+    def search_tree(tree: dict, query: str, matches: int = 0) -> (dict, int):
+        """Search the tree and remove non-matching leaves and branches."""
+        remove = []
+        for key, value in tree.items():
+            if isinstance(value, tuple):
+                # this is a leaf node
+                if query.lower() not in value[0].lower():
+                    # the query does not match
+                    remove.append(key)
+                else:
+                    matches += 1
+            else:
+                # this is not a leaf node, go deeper
+                sub_tree, matches = MethodsTreeModel.search_tree(value, query, matches)
+                if len(sub_tree) > 0:
+                    # there were query matches in this branch
+                    tree[key] = sub_tree
+                else:
+                    # there were no query matches in this branch
+                    remove.append(key)
+
+        for key in remove:
+            tree.pop(key)
+        return tree, matches
