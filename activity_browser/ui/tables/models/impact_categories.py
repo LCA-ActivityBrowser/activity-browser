@@ -18,6 +18,7 @@ class MethodsListModel(DragPandasModel):
         super().__init__(parent=parent)
         self.method_col = 0
         signals.project_selected.connect(self.sync)
+        signals.new_method.connect(self.filter_on_method)
 
     def get_method(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
@@ -27,6 +28,11 @@ class MethodsListModel(DragPandasModel):
     def copy_method(self, proxy: QModelIndex) -> None:
         method = self.get_method(proxy)
         signals.copy_method.emit(method)
+
+    @Slot(tuple, name="filterOnMethod")
+    def filter_on_method(self, method: tuple) -> None:
+        query = ", ".join(method)
+        self.sync(query)
 
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:

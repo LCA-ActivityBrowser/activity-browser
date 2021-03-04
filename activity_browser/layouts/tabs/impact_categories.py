@@ -128,7 +128,6 @@ class MethodsTab(QtWidgets.QWidget):
         """If a method is successfully copied, sync and filter for new name."""
         query = ", ".join(method)
         self.search_box.setText(query)
-        self.table.sync(query)
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
