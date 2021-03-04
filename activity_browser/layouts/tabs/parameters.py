@@ -183,12 +183,10 @@ can be used within the formula!</p>
         layout.addStretch(1)
         self.setLayout(layout)
 
+    @Slot(name="rebuildParameterTables")
     def build_tables(self):
         """ Read parameters from brightway and build dataframe tables
         """
-        self.project_table.model.sync()
-        self.database_table.model.sync()
-        self.activity_table.model.sync()
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases

@@ -25,6 +25,9 @@ class BaseParameterModel(EditablePandasModel):
         super().__init__(parent=parent)
         self.param_col = 0
         self.dataChanged.connect(self.edit_single_parameter)
+        signals.project_selected.connect(self.sync)
+        signals.parameters_changed.connect(self.sync)
+        signals.added_parameter.connect(self.sync)
 
     def get_parameter(self, proxy: QModelIndex) -> object:
         idx = self.proxy_to_source(proxy)
