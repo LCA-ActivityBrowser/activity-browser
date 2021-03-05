@@ -82,6 +82,8 @@ class ParameterDefinitionTab(BaseRightTab):
             "project": self.project_table, "database": self.database_table,
             "activity": self.activity_table,
         }
+        for t in self.tables.values():
+            t.model.sync()
 
         self.new_project_param = QPushButton(qicons.add, "New")
         self.database_header = header("Database:")
@@ -132,7 +134,7 @@ can be used within the formula!</p>
             lambda: signals.add_parameter.emit(None)
         )
         self.new_database_param.clicked.connect(
-            lambda: signals.add_parameter.emit(None)
+            lambda: signals.add_parameter.emit(("db", ""))
         )
         self.show_order.stateChanged.connect(self.activity_order_column)
         self.uncertainty_columns.stateChanged.connect(
@@ -183,12 +185,10 @@ can be used within the formula!</p>
         layout.addStretch(1)
         self.setLayout(layout)
 
+    @Slot(name="rebuildParameterTables")
     def build_tables(self):
         """ Read parameters from brightway and build dataframe tables
         """
-        self.project_table.model.sync()
-        self.database_table.model.sync()
-        self.activity_table.model.sync()
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases
