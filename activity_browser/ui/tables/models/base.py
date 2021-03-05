@@ -39,7 +39,7 @@ class PandasModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:
             value = self._dataframe.iat[index.row(), index.column()]
-            if isinstance(value, np.float):
+            if isinstance(value, np.float64):
                 value = float(value)
             elif isinstance(value, np.bool_):
                 value = value.item()
@@ -126,72 +126,78 @@ class EditableDragPandasModel(EditablePandasModel):
 
 
 class TreeItem(object):
-    COLUMNS = []
+    __slots__ = ["_data", "_parent", "_children"]
 
-    def __init__(self, data, parent=None):
+    def __init__(self, data: list, parent=None):
         self._data = data
         self._parent = parent
         self._children = []
 
     @classmethod
-    def build_root(cls) -> 'TreeItem':
-        root = cls(cls.COLUMNS)
-        return root
+    def build_root(cls, cols: list) -> 'TreeItem':
+        return cls(cols)
 
-    def appendChild(self, item):
+    def clear(self) -> None:
+        """Use this method to recursively prune a branch from a tree model.
+        When called on the root item, removes the entire tree.
+
+        Make sure to only use this in conjunction with model.beginModelReset
+        and model.endModelReset to avoid python crashing.
+        """
+        for c in self._children:
+            c.clear()
+        self._children = []
+
+    def appendChild(self, item) -> None:
         self._children.append(item)
 
-    def child(self, row: int):
+    def child(self, row: int) -> 'TreeItem':
         return self._children[row]
 
     @property
     def children(self) -> list:
         return self._children
 
-    def childCount(self):
+    def childCount(self) -> int:
         return len(self._children)
-
-    def columnCount(self):
-        return len(self.COLUMNS)
 
     def data(self, column: int):
         return self._data[column]
 
-    def parent(self):
+    def parent(self) -> Optional['TreeItem']:
         return self._parent
 
-    def row(self):
-        if self._parent:
-            return self._parent.children.index(self)
-        return 0
+    def row(self) -> int:
+        return self._parent.children.index(self) if self._parent else 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "({})".format(", ".join(str(x) for x in self._data))
 
 
 class BaseTreeModel(QAbstractItemModel):
     """ Base Model used to present data for QTreeView.
     """
-    def __init__(self, data, parent=None):
+    HEADERS = []
+    updated = Signal()
+
+    def __init__(self, parent=None, *args, **kwargs):
         super().__init__(parent)
         self.root = None
-        self.setup_model_data(data)
+        self._data = {}
 
-    def columnCount(self, parent=None) -> int:
-        if parent and parent.isValid():
-            return parent.internalPointer().columnCount()
-        return self.root.columnCount()
+    def columnCount(self, parent: QModelIndex = None, *args, **kwargs) -> int:
+        return len(self.HEADERS)
 
     def data(self, index, role: int = Qt.DisplayRole):
         if not index.isValid():
             return None
 
-        item = index.internalPointer()
         if role == Qt.DisplayRole:
+            item = index.internalPointer()
             return item.data(index.column())
 
         if role == Qt.ForegroundRole:
-            col_name = self.root.COLUMNS[index.column()]
+            col_name = self.HEADERS[index.column()]
             return QBrush(style_item.brushes.get(
                 col_name, style_item.brushes.get("default")
             ))
@@ -199,47 +205,37 @@ class BaseTreeModel(QAbstractItemModel):
     def headerData(self, column, orientation, role: int = Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             try:
-                return self.root.COLUMNS[column]
+                return self.HEADERS[column]
             except IndexError:
                 pass
         return None
 
-    def index(self, row, column, parent=None):
+    def index(self, row: int, column: int, parent: QModelIndex = None, *args, **kwargs):
         if not self.hasIndex(row, column, parent):
             return QModelIndex()
 
-        if not parent.isValid():
-            parent = self.root
-        else:
-            parent = parent.internalPointer()
-
+        parent = parent.internalPointer() if parent.isValid() else self.root
         child = parent.child(row)
         if child:
             return self.createIndex(row, column, child)
         else:
             return QModelIndex()
 
-    def parent(self, index: QModelIndex):
-        if not index.isValid():
+    def parent(self, child: QModelIndex = None):
+        if not child.isValid():
             return QModelIndex()
 
-        child = index.internalPointer()
+        child = child.internalPointer()
         parent = child.parent()
-
         if parent == self.root:
             return QModelIndex()
 
         return self.createIndex(parent.row(), 0, parent)
 
-    def rowCount(self, parent=None):
-        if parent and parent.column() > 0:
+    def rowCount(self, parent=None, *args, **kwargs):
+        if not parent or parent.column() > 0:
             return 0
-
-        if not parent.isValid():
-            parent = self.root
-        else:
-            parent = parent.internalPointer()
-
+        parent = parent.internalPointer() if parent.isValid() else self.root
         return parent.childCount()
 
     def flags(self, index):
@@ -248,7 +244,10 @@ class BaseTreeModel(QAbstractItemModel):
 
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-    def setup_model_data(self, data) -> None:
+    def setup_model_data(self) -> None:
         """ Method used to construct the tree of items for the model.
         """
         raise NotImplementedError
+
+    def sync(self, *args, **kwargs) -> None:
+        pass

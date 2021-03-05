@@ -125,18 +125,6 @@ class ABDataFrameView(QTableView):
                 self.model.to_clipboard(rows, columns, headers)
 
 
-def tree_model_decorate(sync):
-    """ Take and execute the given sync function, then build the view model.
-    """
-    @wraps(sync)
-    def wrapper(self, *args, **kwargs):
-        sync(self, *args, **kwargs)
-        model = self._select_model()
-        self.setModel(model)
-        self.custom_view_sizing()
-    return wrapper
-
-
 class ABDictTreeView(QTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -148,23 +136,20 @@ class ABDictTreeView(QTreeView):
         self.expanded.connect(self.custom_view_sizing)
         self.collapsed.connect(self.custom_view_sizing)
 
-    def _select_model(self):
-        """ Returns the model to be used in the view.
-        """
-        raise NotImplementedError
-
-    @Slot()
+    @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
         """ Resize the first column (usually 'name') whenever an item is
         expanded or collapsed.
         """
         self.resizeColumnToContents(0)
 
+    @Slot(name="expandSelectedBranch")
     def expand_branch(self):
         """Expand selected branch."""
         index = self.currentIndex()
         self.expand_or_collapse(index, True)
 
+    @Slot(name="collapseSelectedBranch")
     def collapse_branch(self):
         """Collapse selected branch."""
         index = self.currentIndex()
@@ -195,6 +180,3 @@ class ABDictTreeView(QTreeView):
         recursive_expand_or_collapse(index, childCount, expand)
         if expand:  # if expanding, do that last (wonky animation otherwise)
             self.setExpanded(index, expand)
-
-
-

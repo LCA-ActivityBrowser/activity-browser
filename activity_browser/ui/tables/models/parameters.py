@@ -7,12 +7,13 @@ import brightway2 as bw
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
+from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
 
-from activity_browser.bwutils import uncertainty as uc
+from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
-from .base import EditablePandasModel
+from .base import BaseTreeModel, EditablePandasModel, TreeItem
 
 
 class BaseParameterModel(EditablePandasModel):
@@ -281,3 +282,136 @@ class ActivityParameterModel(BaseParameterModel):
     def get_key(self, proxy: QModelIndex) -> tuple:
         index = self.proxy_to_source(proxy)
         return self._dataframe.iat[index.row(), self.key_col]
+
+
+class ParameterItem(TreeItem):
+    @classmethod
+    def build_header(cls, header: str, parent: TreeItem) -> 'ParameterItem':
+        item = cls([header, "", "", ""], parent)
+        parent.appendChild(item)
+        return item
+
+    @classmethod
+    def build_item(cls, param, parent: TreeItem) -> 'ParameterItem':
+        """ Depending on the parameter type, the group is changed, defaults to
+        'project'.
+
+        For Activity parameters, use a 'header' item as parent, create one
+        if it does not exist.
+        """
+        group = "project"
+        if hasattr(param, "code") and hasattr(param, "database"):
+            database = "database - {}".format(str(param.database))
+            if database not in [x.data(0) for x in parent.children]:
+                cls.build_header(database, parent)
+            parent = next(x for x in parent.children if x.data(0) == database)
+            group = getattr(param, "group")
+        elif hasattr(param, "database"):
+            group = param.database
+
+        item = cls([
+            getattr(param, "name", ""),
+            group,
+            getattr(param, "amount", 1.0),  # set to 1 instead of 0 as division by 0 causes problems
+            getattr(param, "formula", ""),
+        ], parent)
+
+        # If the variable is found, we're working on an activity parameter
+        if "database" in locals():
+            cls.build_exchanges(param, item)
+
+        parent.appendChild(item)
+        return item
+
+    @classmethod
+    def build_exchanges(cls, act_param, parent: TreeItem) -> None:
+        """ Take the given activity parameter, retrieve the matching activity
+        and construct tree-items for each exchange with a `formula` field.
+        """
+        act = bw.get_activity((act_param.database, act_param.code))
+
+        for exc in [exc for exc in act.exchanges() if "formula" in exc]:
+            try:
+                act_input = bw.get_activity(exc.input)
+                item = cls([
+                    act_input.get("name"),
+                    parent.data(1),
+                    exc.amount,
+                    exc.get("formula"),
+                ], parent)
+                parent.appendChild(item)
+            except DoesNotExist as e:
+                # The exchange is coming from a deleted database, remove it
+                print("Broken exchange: {}, removing.".format(e))
+                signals.exchanges_deleted.emit([exc])
+
+
+class ParameterTreeModel(BaseTreeModel):
+    """
+    Ordering and foldouts as follows:
+    - Project parameters:
+        - All 'root' objects
+        - No children
+    - Database parameters:
+        - All 'root' objects
+        - No children
+    - Activity parameters:
+        - Never root objects.
+        - Placed under simple 'database' root objects
+        - Exchanges as children
+    - Exchange parameters:
+        - Never root objects
+        - Children of relevant activity parameter
+        - No children
+    """
+    HEADERS = ["Name", "Group", "Amount", "Formula"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.root = ParameterItem.build_root(self.HEADERS)
+        self.setup_model_data()
+        signals.exchange_formula_changed.connect(self.parameterize_exchanges)
+
+    def setup_model_data(self) -> None:
+        """ First construct the root, then process the data.
+        """
+        for param in self._data.get("project", []):
+            ParameterItem.build_item(param, self.root)
+        for param in self._data.get("database", []):
+            ParameterItem.build_item(param, self.root)
+        for param in self._data.get("activity", []):
+            try:
+                _ = bw.get_activity((param.database, param.code))
+            except:
+                continue
+            ParameterItem.build_item(param, self.root)
+
+    def sync(self, *args, **kwargs) -> None:
+        self.beginResetModel()
+        self.root.clear()
+        self.endResetModel()
+        self._data.update({
+            "project": ProjectParameter.select().iterator(),
+            "database": DatabaseParameter.select().iterator(),
+            "activity": ActivityParameter.select().iterator(),
+        })
+        self.setup_model_data()
+        self.updated.emit()
+
+    @Slot(tuple, name="parameterizeExchanges")
+    def parameterize_exchanges(self, key: tuple) -> None:
+        """ Used whenever a formula is set on an exchange in an activity.
+
+        If no `ActivityParameter` exists for the key, generate one immediately
+        """
+        group = bc.build_activity_group_name(key)
+        if not (ActivityParameter.select()
+                .where(ActivityParameter.group == group).count()):
+            signals.add_activity_parameter.emit(key)
+
+        act = bw.get_activity(key)
+        with bw.parameters.db.atomic():
+            bw.parameters.remove_exchanges_from_group(group, act)
+            bw.parameters.add_exchanges_to_group(group, act)
+            ActivityParameter.recalculate_exchanges(group)
+        signals.parameters_changed.emit()
