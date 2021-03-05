@@ -3,9 +3,7 @@ import os
 import sys
 import traceback
 
-from PySide2.QtCore import (
-    QOperatingSystemVersion, QSysInfo, __version__ as qt_version
-)
+from PySide2.QtCore import QSysInfo, __version__ as qt_version
 from PySide2.QtWidgets import QApplication
 
 from .application import Application
@@ -17,8 +15,7 @@ from .info import __version__
 # https://github.com/mapeditor/tiled/issues/2845
 # https://doc.qt.io/qt-5/qoperatingsystemversion.html#MacOSBigSur-var
 if QSysInfo.productType() == "osx" and (
-    QOperatingSystemVersion.majorVersion() == 10 and QOperatingSystemVersion.minorVersion() == 16 or
-    QOperatingSystemVersion.majorVersion() == 11 and QOperatingSystemVersion.minorVersion() == 0
+    QSysInfo.productVersion() == "10.16" or QSysInfo.productVersion() == "11.0"
 ):
     os.environ["QT_MAC_WANTS_LAYER"] = "1"
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
