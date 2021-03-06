@@ -62,10 +62,52 @@ jobs:
         env:
           QT_DEBUG_PLUGINS: 1
         run: |
-          catchsegv xvfb-run --auto-servernum pytest -v --cov=activity_browser;
+          catchsegv xvfb-run --auto-servernum pytest --cov=activity_browser --cov-report=;
       - name: Upload coverage
         if: ${{ matrix.python-version == '3.7' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         # https://github.com/lemurheavy/coveralls-public/issues/1435#issuecomment-763357004
-        run: coveralls --service=github
+        # https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
+        # https://github.com/TheKevJames/coveralls-python/issues/252
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_SERVICE_NAME: github
+        run: |
+          coveralls
+
+  deploy-development:
+    # Make sure to only run a deploy if all tests pass.
+    needs: [ "test-linux", "test-macos" ]
+    # And only on a push event, not a pull_request.
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    env:
+      PKG_NAME: "activity-browser-dev"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and deploy 3.7
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          python-version: 3.7
+      - name: Install dependencies
+        run: |
+          conda install -q -y -c defaults conda-build anaconda-client conda-verify
+      - name: Prepare workdir and variables
+        run: |
+          mkdir -p ${{ github.workspace }}/conda-bld
+          echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+          echo "CONDA_BLD_PATH=${{ github.workspace }}/conda-bld" >> $GITHUB_ENV
+          echo "BUILD_YAML=${{ github.workspace }}/ci/travis/recipe" >> $GITHUB_ENV
+      - name: Build development package
+        env:
+          BUILD_ARGS: "--old-build-string --no-anaconda-upload --no-test"
+        run: |
+          conda-build -c defaults -c conda-forge -c cmutel -c haasad -c pascallesage \
+            ${{ env.BUILD_ARGS }} ${{ env.BUILD_YAML }}
+      - name: Upload the development package
+        env:
+          UPLOAD_ARGS: "--force"
+          USER: "bsteubing"
+        run: |
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload -u ${{ env.USER }} \
+            -l main ${{ env.CONDA_BLD_PATH }}/noarch/${{ env.PKG_NAME }}-${{ env.VERSION }}-pypy_0.tar.bz2 \
+            ${{ env.UPLOAD_ARGS }}
