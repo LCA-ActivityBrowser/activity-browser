@@ -44,9 +44,9 @@ script:
   # Run code coverage of the source code using all of the tests.
   - coverage run --source=activity_browser -m pytest -v;
 
-after_success:
-  # Only upload the code coverage from linux py37 machine
-  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$PYENV" == "3.7" ]; then coveralls; fi
+#after_success:
+#  # Only upload the code coverage from linux py37 machine
+#  - if [ "$TRAVIS_OS_NAME" == "linux" -a "$PYENV" == "3.7" ]; then coveralls; fi
 
 # https://docs.travis-ci.com/user/deployment/script/
 # https://docs.travis-ci.com/user/deployment/#pull-requests
