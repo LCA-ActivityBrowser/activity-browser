@@ -78,7 +78,7 @@ jobs:
     # Make sure to only run a deploy if all tests pass.
     needs: [ "test-linux", "test-macos" ]
     # And only on a push event, not a pull_request.
-    if: ${{ github.event_name == "push" }}
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     env:
       PKG_NAME: "activity-browser-dev"
@@ -93,10 +93,10 @@ jobs:
           conda install -q -y -c defaults conda-build anaconda-client conda-verify
       - name: Prepare workdir and variables
         run: |
-          mkdir -p ${{ GITHUB_WORKSPACE }}/conda-bld
+          mkdir -p ${{ github.workspace }}/conda-bld
           echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
-          echo "CONDA_BLD_PATH=$GITHUB_WORKSPACE/conda-bld" >> $GITHUB_ENV
-          echo "BUILD_YAML=$GITHUB_WORKSPACE/ci/travis/recipe" >> $GITHUB_ENV
+          echo "CONDA_BLD_PATH=${{ github.workspace }}/conda-bld" >> $GITHUB_ENV
+          echo "BUILD_YAML=${{ github.workspace }}/ci/travis/recipe" >> $GITHUB_ENV
       - name: Build development package
         env:
           BUILD_ARGS: "--old-build-string --no-anaconda-upload --no-test"

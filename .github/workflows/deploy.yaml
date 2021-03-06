@@ -22,9 +22,9 @@ jobs:
         # For setting the tag as version:
         # https://stackoverflow.com/questions/58177786/get-the-current-pushed-tag-in-github-actions
         run: |
-          mkdir -p ${{ GITHUB_WORKSPACE }}/conda-bld
-          echo "CONDA_BLD_PATH=$GITHUB_WORKSPACE/conda-bld" >> $GITHUB_ENV
-          echo "BUILD_YAML=$GITHUB_WORKSPACE/ci/travis/recipe" >> $GITHUB_ENV
+          mkdir -p ${{ github.workspace }}/conda-bld
+          echo "CONDA_BLD_PATH=${{ github.workspace }}/conda-bld" >> $GITHUB_ENV
+          echo "BUILD_YAML=${{ github.workspace }}/ci/travis/recipe" >> $GITHUB_ENV
           echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Alter yaml file
         # Strip the last sentence (as this is the stable version) out of the meta.yaml file.
