@@ -27,7 +27,7 @@ jobs:
             pytest-mock "xlrd=1.2.0"
       - name: Run tests
         run: |
-          pytest -v
+          pytest
 
   test-linux:
     runs-on: ubuntu-latest
@@ -109,5 +109,5 @@ jobs:
           USER: "bsteubing"
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload -u ${{ env.USER }} \
-            -l main ${{ env.CONDA_BLD_PATH }}/noarch/${{ env.PKG_NAME }}-${{ env.VERSION }}-pypy_0.tar.bz2 \
+            -l main ${{ env.CONDA_BLD_PATH }}/noarch/${{ env.PKG_NAME }}-${{ env.VERSION }}-py_0.tar.bz2 \
             ${{ env.UPLOAD_ARGS }}
