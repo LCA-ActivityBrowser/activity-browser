@@ -93,9 +93,9 @@ jobs:
           conda install -q -y -c defaults conda-build anaconda-client conda-verify
       - name: Prepare workdir and variables
         run: |
-          mkdir -p ${{ github.workspace }}/conda-bld
+          mkdir -p ~/miniconda/conda-bld
           echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
-          echo "CONDA_BLD_PATH=${{ github.workspace }}/conda-bld" >> $GITHUB_ENV
+          echo "CONDA_BLD_PATH=~/miniconda/conda-bld" >> $GITHUB_ENV
           echo "BUILD_YAML=${{ github.workspace }}/ci/travis/recipe" >> $GITHUB_ENV
       - name: Build development package
         env:
