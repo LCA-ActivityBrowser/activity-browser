@@ -1219,6 +1219,7 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
         code = self.extraction_process.wait()
         if code != 0:
             # The archive was corrupted in some way.
+            import_signals.cancel_sentinel = True
             import_signals.unarchive_failed.emit(self.out_path)
 
     def handle_connection_timeout(self):
