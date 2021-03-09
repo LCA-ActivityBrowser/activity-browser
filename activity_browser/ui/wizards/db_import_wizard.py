@@ -498,6 +498,7 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.unarchive_finished.connect(self.update_unarchive)
         import_signals.missing_dbs.connect(self.fix_db_import)
         import_signals.links_required.connect(self.fix_excel_import)
+        import_signals.unarchive_failed.connect(self.report_failed_unarchive)
 
         # Threads
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
@@ -648,6 +649,22 @@ class ImportPage(QtWidgets.QWizardPage):
             return
         # Restart the page
         self.initializePage()
+
+    @Slot(str, name="handleUnzipFailed")
+    def report_failed_unarchive(self, file: str) -> None:
+        """Handle the issue where the 7z file for ecoinvent/spold files is
+         in some way corrupted.
+         """
+        self.main_worker_thread.exit(1)
+
+        error = (
+            "Corrupted (.7z) archive",
+            "The archive '{}' is corrupted, please remove and re-download it.".format(file),
+        )
+        import_signals.import_failure_detailed.emit(
+            QtWidgets.QMessageBox.Warning, error
+        )
+        return
 
 
 class MainWorkerThread(QtCore.QThread):
@@ -1171,6 +1188,7 @@ class ImportSignals(QtCore.QObject):
     finalizing = Signal()
     finished = Signal()
     unarchive_finished = Signal()
+    unarchive_failed = Signal(str)
     download_complete = Signal()
     import_failure = Signal(tuple)
     import_failure_detailed = Signal(object, tuple)
@@ -1198,7 +1216,10 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
         """
         extract_cmd = '7za x {} -o{}'.format(self.out_path, target_dir)
         self.extraction_process = subprocess.Popen(extract_cmd.split(), stdout=subprocess.DEVNULL)
-        self.extraction_process.wait()
+        code = self.extraction_process.wait()
+        if code != 0:
+            # The archive was corrupted in some way.
+            import_signals.unarchive_failed.emit(self.out_path)
 
     def handle_connection_timeout(self):
         msg = "The request timed out, please check your internet connection!"
