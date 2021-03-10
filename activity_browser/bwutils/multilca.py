@@ -214,9 +214,14 @@ class MLCA(object):
     def all_databases(self) -> set:
         """ Get all databases linked to the reference flows.
         """
+        def get_dependents(dbs: set, dependents: list) -> set:
+            for dep in (bw.databases[db].get('depends', []) for db in dependents):
+                if not dbs.issuperset(dep):
+                    dbs = get_dependents(dbs.union(dep), dep)
+            return dbs
+
         databases = set(f[0] for f in self.fu_activity_keys)
-        for dep in (bw.databases[db].get('depends', []) for db in databases):
-            databases = databases.union(dep)
+        databases = get_dependents(databases, list(databases))
         # In rare cases, the default biosphere is not found as a dependency, see:
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/298
         # Always include it.
