@@ -2,11 +2,11 @@
 import hashlib
 import os
 import textwrap
+
 import arrow
 import brightway2 as bw
 from bw2data import databases
 from bw2data.proxies import ActivityProxyBase
-from bw2data.utils import natural_sort
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 """
@@ -18,12 +18,15 @@ When adding new methods, please use the sections below (or add a new section, if
 
 
 # Formatting
-def wrap_text(string, max_length=80):
-    """wrap the label making sure that key and name are in 2 rows"""
-    # idea from https://stackoverflow.com/a/39134215/4929813
-    wrapArgs = {'width': max_length, 'break_long_words': True, 'replace_whitespace': False}
-    fold = lambda line, wrapArgs: textwrap.fill(line, **wrapArgs)
-    return '\n'.join([fold(line, wrapArgs) for line in string.splitlines()])
+def wrap_text(string: str, max_length: int = 80) -> str:
+    """Wrap the label making sure that key and name are in 2 rows.
+
+    idea from https://stackoverflow.com/a/39134215/4929813
+    """
+    def fold(line: str) -> str:
+        return textwrap.fill(line, width=max_length, break_long_words=True,
+                             replace_whitespace=False)
+    return '\n'.join(map(fold, string.splitlines()))
 
 
 def format_activity_label(key, style='pnl', max_length=40):
@@ -57,6 +60,7 @@ def format_activity_label(key, style='pnl', max_length=40):
             return wrap_text(str(key))
     return wrap_text(label, max_length=max_length)
 
+
 # Switch brightway directory
 def switch_brightway2_dir(dirpath):
     if dirpath == bw.projects._base_data_dir:
@@ -81,6 +85,7 @@ def switch_brightway2_dir(dirpath):
         print('Could not access BW_DIR as specified in settings.py')
         return False
 
+
 # Database
 def get_database_metadata(name):
     """ Returns a dictionary with database meta-information. """
@@ -92,14 +97,6 @@ def get_database_metadata(name):
         dt = arrow.get(dt).humanize()
     d['Last modified'] = dt
     return d
-
-
-def get_databases_data(databases):
-    """Returns a list with dictionaries that describe the available databases."""
-    data = []
-    for row, name in enumerate(natural_sort(databases)):
-        data.append(get_database_metadata(name))
-    yield data
 
 
 def is_technosphere_db(db_name: str) -> bool:
@@ -150,26 +147,6 @@ AB_names_to_bw_keys = {
 
 bw_keys_to_AB_names = {v: k for k, v in AB_names_to_bw_keys.items()}
 
-def get_activity_data(datasets):
-    # if not fields:
-    #     fields = ["name", "reference product", "amount", "location", "unit", "database"]
-    # obj = {}
-    # for field in fields:
-    #     obj.update({field: key.get(field, '')})
-    # obj.update({"key": key})
-    for ds in datasets:
-        obj = {
-            'Activity': ds.get('name', ''),
-            'Reference product': ds.get('reference product', ''),  # only in v3
-            'Location': ds.get('location', 'unknown'),
-            # 'Amount': "{:.4g}".format(key['amount']),
-            'Unit': ds.get('unit', 'unknown'),
-            'Database': ds.get(['database'], 'unknown'),
-            'Uncertain': "True" if ds.get("uncertainty type", 0) > 1 else "False",
-            'key': ds,
-        }
-        yield obj
-
 
 def get_activity_name(key, str_length=22):
     return ','.join(key.get('name', '').split(',')[:3])[:str_length]
@@ -217,19 +194,6 @@ def build_activity_group_name(key: tuple, name: str = None) -> str:
     return "{}_{}".format(clean, simple_hash)
 
 
-def get_activity_data_as_lists(act_keys, keys=None):
-    results = dict()
-    for key in keys:
-        results[key] = []
-
-    for act_key in act_keys:
-        act = bw.get_activity(act_key)
-        for key in keys:
-            results[key].append(act.get(key, 'Unknown'))
-
-    return results
-
-
 def identify_activity_type(activity):
     """Return the activity type based on its naming."""
     name = activity["name"]
@@ -245,34 +209,19 @@ def identify_activity_type(activity):
         return "production"
 
 
-# Exchanges
-def get_exchanges_data(exchanges):
-    # TODO: not finished
-    results = []
-    for exc in exchanges:
-        results.append(exc)
-    for r in results:
-        print(r)
-
-
 # LCIA
-def unit_of_method(method):
+def unit_of_method(method: tuple) -> str:
+    """Attempt to return the unit of the given method."""
     assert method in bw.methods
-    return bw.methods[method].get('unit')
+    return bw.methods[method].get("unit", "unit")
 
-def get_LCIA_method_name_dict(keys):
-    """Impact categories in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
+
+def get_LCIA_method_name_dict(keys: list) -> dict:
+    """Impact categories in brightway2 are stored in tuples, which is
+    unpractical for display in, e.g. dropdown menus.
+
     Returns a dictionary with
-    keys: comma separated strings
-    values: brightway2 method tuples
+        keys: comma separated strings
+        values: brightway2 method tuples
     """
     return {', '.join(key): key for key in keys}
-
-
-#
-# def get_locations_in_db(db_name):
-#     """returns the set of locations in a database"""
-#     db = bw.Database(db_name)
-#     loc_set = set()
-#     [loc_set.add(act.get("location")) for act in db]
-#     return loc_set
