@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime as dt
 import numbers
 from pathlib import Path
 from typing import Union
 
+import brightway2 as bw
 from bw2data.utils import safe_filename
 from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
 from bw2io.export.csv import reformat
 import xlsxwriter
 
+from .importers import ABPackage
 from .pedigree import PedigreeMatrix
 
 # Copied most of this code wholesale from bw2io package.
@@ -102,3 +105,31 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
     workbook.close()
 
     return out_file
+
+
+def store_database_as_package(db_name: str, directory: str = None) -> bool:
+    """ Attempt to use `bw.BW2Package` to save the given database as an
+    isolated package that can be shared with others.
+    Returns a boolean signifying success or failure.
+    """
+    if db_name not in bw.databases:
+        return False
+    metadata = bw.databases[db_name]
+    db = bw.Database(db_name)
+    directory = directory or bw.projects.output_dir
+    output_dir = Path(directory)
+    if output_dir.suffix == ".bw2package":
+        out_file = output_dir
+    else:
+        out_file = output_dir / "{}.bw2package".format(db.filename)
+    # First, ensure the metadata on the database is up-to-date.
+    modified = dt.strptime(metadata["modified"], "%Y-%m-%dT%H:%M:%S.%f")
+    if "processed" in metadata:
+        processed = dt.strptime(metadata["processed"], "%Y-%m-%dT%H:%M:%S.%f")
+        if processed < modified:
+            db.process()
+    else:
+        db.process()
+    # Now that processing is done, perform the export.
+    ABPackage.unrestricted_export(db, out_file)
+    return True
