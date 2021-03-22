@@ -6,7 +6,9 @@ import pandas as pd
 
 from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_columns
-from .utils import EXCHANGE_KEYS
+
+
+EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 
 
 class SuperstructureManager(object):

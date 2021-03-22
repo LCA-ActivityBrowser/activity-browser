@@ -4,8 +4,6 @@ from bw2data.backends.peewee import ActivityDataset
 import numpy as np
 import pandas as pd
 
-from .utils import FROM_ALL, TO_ALL
-
 
 FROM_ACT = pd.Index([
     "from activity name", "from reference product", "from location",
@@ -19,6 +17,14 @@ FROM_BIOS = pd.Index([
 ])
 TO_BIOS = pd.Index([
     "to activity name", "to categories", "to database"
+])
+FROM_ALL = pd.Index([
+    "from activity name", "from reference product", "from location",
+    "from categories", "from database", "from key"
+])
+TO_ALL = pd.Index([
+    "to activity name", "to reference product", "to location", "to categories",
+    "to database", "to key"
 ])
 
 
@@ -77,49 +83,6 @@ def data_from_index(index: tuple) -> dict:
     }
 
 
-def all_flows_found(df: pd.DataFrame, part: str = "from") -> bool:
-    """Determines if all activities from the given 'from' or 'to' chunk"""
-    select = FROM_BIOS if part == "from" else TO_BIOS
-    sub = df.loc[:, select]
-    sub = sub[sub.iloc[:, 2] == bw.config.biosphere]  # Use only biosphere exchanges
-    if sub.empty:
-        return True
-
-    names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
-    query = (ActivityDataset
-             .select(ActivityDataset.name, ActivityDataset.data, ActivityDataset.database)
-             .where((ActivityDataset.name.in_(names)) &
-                    (ActivityDataset.database.in_(dbs)))
-             .tuples())
-    matches = set(
-        (x[0], x[1]["categories"], x[2])
-        for x in query.iterator() if "categories" in x[1]
-    )
-    combinations = sub.iloc[:, 0:3].apply(tuple, axis=1)
-    return combinations.isin(matches).all()
-
-
-def all_activities_found(df: pd.DataFrame, part: str = "from") -> bool:
-    """Determines if all activities from the given 'from' or 'to' chunk"""
-    select = FROM_ACT if part == "from" else TO_ACT
-    sub = df.loc[:, select]
-    sub = sub[sub.iloc[:, 3] != bw.config.biosphere]  # Exclude biosphere exchanges
-    if sub.empty:
-        return True
-
-    names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
-    query = (ActivityDataset
-             .select(ActivityDataset.name, ActivityDataset.product, ActivityDataset.location)
-             .where((ActivityDataset.name.in_(names)) &
-                    (ActivityDataset.product.in_(products)) &
-                    (ActivityDataset.location.in_(locations)) &
-                    (ActivityDataset.database.in_(dbs)))
-             .tuples())
-    matches = set(query.iterator())
-    combinations = sub.iloc[:, 0:3].apply(tuple, axis=1)
-    return combinations.isin(matches).all()
-
-
 def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
     """Build a dictionary of (name, product, location) -> (database, key) pairs."""
     select = FROM_ACT if part == "from" else TO_ACT
@@ -138,7 +101,7 @@ def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
                     (ActivityDataset.location.in_(locations)) &
                     (ActivityDataset.database.in_(dbs)))
              .namedtuples())
-    activities = dict(process_ad_namedtuple(x) for x in query.iterator())
+    activities = dict(map(process_ad_namedtuple, query.iterator()))
     return activities
 
 
@@ -157,7 +120,7 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
              .where((ActivityDataset.name.in_(names)) &
                     (ActivityDataset.database.in_(dbs)))
              .namedtuples())
-    flows = dict(process_ad_flow(x) for x in query.iterator())
+    flows = dict(map(process_ad_flow, query.iterator()))
     return flows
 
 
