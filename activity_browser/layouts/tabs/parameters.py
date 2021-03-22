@@ -378,7 +378,7 @@ class ParameterScenariosTab(BaseRightTab):
             filter=self.tbl.EXCEL_FILTER
         )
         if path:
-            df = ps_utils.load_scenarios_from_file(path)
+            df = pd.read_excel(path, engine="openpyxl")
             self.tbl.model.sync(df=df)
 
     @Slot(name="saveScenarioTable")
