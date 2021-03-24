@@ -1,4 +1,10 @@
-[![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)[![Build Status](https://travis-ci.org/LCA-ActivityBrowser/activity-browser.svg?branch=master)](https://travis-ci.org/LCA-ActivityBrowser/activity-browser)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)[![Build status](https://ci.appveyor.com/api/projects/status/8cljoh7o1jrof8tf/branch/master?svg=true)](https://ci.appveyor.com/project/bsteubing/activity-browser/branch/master)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=master)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=master)
+[![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser)
+[![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser)
+![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)
+![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)
+![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)
+[![Pull request tests](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/main.yaml/badge.svg)](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/main.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=master)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=master)
 
 
 # Activity Browser - a GUI for Brightway2
