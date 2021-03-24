@@ -86,6 +86,15 @@ def switch_brightway2_dir(dirpath):
         return False
 
 
+def cleanup_deleted_bw_projects() -> None:
+    """Clean up the deleted projects from disk.
+
+    NOTE: This cannot be done from within the AB.
+    """
+    n_dir = bw.projects.purge_deleted_directories()
+    print('Deleted {} unused project directories!'.format(n_dir))
+
+
 # Database
 def get_database_metadata(name):
     """ Returns a dictionary with database meta-information. """
