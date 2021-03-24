@@ -10,6 +10,9 @@ from .commontasks import count_database_records
 
 # todo: extend store over several projects
 
+def list_to_tuple(x) -> tuple:
+    return tuple(x) if isinstance(x, list) else x
+
 
 class MetaDataStore(object):
     """A container for technosphere and biosphere metadata during an AB session.
@@ -53,32 +56,30 @@ class MetaDataStore(object):
             If a database name does not exist in `brightway.databases`
 
         """
+        new = set(db_names_list).difference(self.databases)
+        if not new:
+            return
+
         dfs = list()
         dfs.append(self.dataframe)
         print('Current shape and databases in the MetaDataStore:', self.dataframe.shape, self.databases)
-        for db_name in db_names_list:
+        for db_name in new:
             if db_name not in bw.databases:
                 raise ValueError('This database does not exist:', db_name)
-            if db_name in self.databases:
-                continue
 
             print('Adding:', db_name)
             self.databases.add(db_name)
 
             # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
-            df_temp = pd.DataFrame(bw.Database(db_name))
-
-            # add keys and make MultiIndex from keys
-            keys = [k for k in zip(df_temp['database'], df_temp['code'])]
-            df_temp.index = pd.MultiIndex.from_tuples(keys)
-            df_temp['key'] = keys
+            df = pd.DataFrame(bw.Database(db_name))
+            df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
+            df.index = pd.MultiIndex.from_tuples(df["key"])
 
             # In a new 'biosphere3' database, some categories values are lists
-            if 'categories' in df_temp:
-                df_temp['categories'] = df_temp['categories'].apply(
-                    lambda x: tuple(x) if isinstance(x, list) else x)
+            if "categories" in df.columns:
+                df["categories"] = df.loc[:, "categories"].apply(list_to_tuple)
 
-            dfs.append(df_temp)
+            dfs.append(df)
 
         # add this metadata to already existing metadata
         self.dataframe = pd.concat(dfs, sort=False)
