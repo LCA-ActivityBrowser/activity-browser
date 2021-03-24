@@ -6,11 +6,12 @@ on:
     branches: [ master ]
 
 jobs:
-  test-macos:
-    runs-on: macos-latest
+  tests-simple:
     strategy:
       matrix:
         python-version: [ 3.6, 3.7, 3.8 ]
+        os: [ macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - name: Testing python ${{ matrix.python-version }}
