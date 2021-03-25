@@ -29,6 +29,29 @@ jobs:
         run: |
           pytest
 
+  test-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [ 3.6, 3.7, 3.8 ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Testing python ${{ matrix.python-version }}
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          conda install -q -y -c defaults -c conda-forge -c cmutel -c haasad `
+            -c pascallesage arrow "brightway2>=2.1.2" "bw2io>=0.7.dev1" `
+            "bw2data>=3.6.1" "eidl>=1.2.0" fuzzywuzzy "matplotlib-base>=2.2.2" `
+            networkx "pandas>=0.24.1" "pyside2>=5.13.1" "salib>=1.3.11" `
+            seaborn presamples openpyxl "pytest>=5.2" pytest-qt `
+            pytest-mock "xlrd=1.2.0"
+      - name: Run tests
+        run: |
+          pytest
+
   test-linux:
     runs-on: ubuntu-latest
     strategy:
@@ -76,7 +99,7 @@ jobs:
 
   deploy-development:
     # Make sure to only run a deploy if all tests pass.
-    needs: [ "test-linux", "test-macos" ]
+    needs: [ "test-linux", "test-macos", "test-windows" ]
     # And only on a push event, not a pull_request.
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
