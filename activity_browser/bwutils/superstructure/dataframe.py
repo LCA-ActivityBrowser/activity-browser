@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import List
+from typing import List, Tuple
 
 import brightway2 as bw
 import numpy as np
@@ -34,7 +34,7 @@ def superstructure_from_arrays(samples: np.ndarray, indices: np.ndarray, names: 
     return df
 
 
-def arrays_from_superstructure(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+def arrays_from_superstructure(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     """Construct a presamples package from a superstructure DataFrame.
 
     Shortcut over the previous method, avoiding database calls improves
@@ -49,7 +49,7 @@ def arrays_from_superstructure(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
     return result, values.to_numpy()
 
 
-def arrays_from_indexed_superstructure(df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+def arrays_from_indexed_superstructure(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     def guess(row: tuple) -> str:
         if row[0][0] == bw.config.biosphere:
             return "biosphere"
