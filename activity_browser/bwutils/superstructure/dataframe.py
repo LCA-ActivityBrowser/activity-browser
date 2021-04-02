@@ -50,17 +50,10 @@ def arrays_from_superstructure(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray
 
 
 def arrays_from_indexed_superstructure(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
-    def guess(row: tuple) -> str:
-        if row[0][0] == bw.config.biosphere:
-            return "biosphere"
-        elif row[0] == row[1]:
-            return "production"
-        else:
-            return "technosphere"
     result = np.zeros(df.shape[0], dtype=object)
     for i, data in enumerate(df.index.to_flat_index()):
         result[i] = Index.build_from_dict(
-            {"input": data[0], "output": data[1], "flow type": guess(data)}
+            {"input": data[0], "output": data[1], "flow type": data[2]}
         )
     return result, df.to_numpy(dtype=float)
 
