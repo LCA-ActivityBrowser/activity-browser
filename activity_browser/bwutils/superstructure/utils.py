@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import brightway2 as bw
 import pandas as pd
 
 
@@ -31,4 +32,12 @@ TO_ALL = pd.Index([
 ])
 
 
-
+def guess_flow_type(row: pd.Series) -> str:
+    """Given a series of input- and output keys, make a guess on the flow type.
+    """
+    if row.iat[0][0] == bw.config.biosphere:
+        return "biosphere"
+    elif row.iat[0] == row.iat[1]:
+        return "production"
+    else:
+        return "technosphere"
