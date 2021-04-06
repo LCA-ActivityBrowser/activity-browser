@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import os
 import io
+from pathlib import Path
 from pprint import pprint
 import subprocess
 import tempfile
@@ -256,14 +256,14 @@ class ChooseDirPage(QtWidgets.QWizardPage):
         self.path_edit.setText(path)
 
     def validatePage(self):
-        dir_path = self.field('dirpath')
-        if not os.path.isdir(dir_path):
+        dir_path = Path(self.field('dirpath') or "")
+        if not dir_path.is_dir():
             warning = 'Not a directory:<br>{}'.format(dir_path)
             QtWidgets.QMessageBox.warning(self, 'Not a directory!', warning)
             return False
         else:
-            spold_files = [f for f in os.listdir(dir_path) if f.endswith('.spold')]
-            if not spold_files:
+            count = sum(1 for _ in dir_path.glob("*.spold"))
+            if not count:
                 warning = 'No ecospold files found in this directory:<br>{}'.format(dir_path)
                 QtWidgets.QMessageBox.warning(self, 'No ecospold files!', warning)
                 return False
@@ -318,13 +318,13 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
             self.path_edit.setText(path)
 
     def validatePage(self):
-        path = self.field('archive_path')
-        if os.path.isfile(path):
-            if path.lower().endswith('.7z'):
+        path = Path(self.field('archive_path') or "")
+        if path.is_file():
+            if path.suffix == ".7z":
                 return True
             else:
                 warning = ('Unexpected filetype: <b>{}</b><br>Import might not work.' +
-                           'Continue anyway?').format(os.path.split(path)[-1])
+                           'Continue anyway?').format(path.suffix)
                 answer = QtWidgets.QMessageBox.question(self, 'Not a 7zip archive!', warning)
                 return answer == QtWidgets.QMessageBox.Yes
         else:
@@ -360,7 +360,7 @@ class DBNamePage(QtWidgets.QWizardPage):
         elif self.wizard.import_type == 'forwast':
             self.name_edit.setText('Forwast')
         elif self.wizard.import_type == "local":
-            filename = os.path.basename(self.field("archive_path"))
+            filename = Path(self.field("archive_path")).name
             if "." in filename:
                 self.name_edit.setText(filename.split(".")[0])
             else:
@@ -498,6 +498,7 @@ class ImportPage(QtWidgets.QWizardPage):
         import_signals.unarchive_finished.connect(self.update_unarchive)
         import_signals.missing_dbs.connect(self.fix_db_import)
         import_signals.links_required.connect(self.fix_excel_import)
+        import_signals.unarchive_failed.connect(self.report_failed_unarchive)
 
         # Threads
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
@@ -649,6 +650,22 @@ class ImportPage(QtWidgets.QWizardPage):
         # Restart the page
         self.initializePage()
 
+    @Slot(str, name="handleUnzipFailed")
+    def report_failed_unarchive(self, file: str) -> None:
+        """Handle the issue where the 7z file for ecoinvent/spold files is
+         in some way corrupted.
+         """
+        self.main_worker_thread.exit(1)
+
+        error = (
+            "Corrupted (.7z) archive",
+            "The archive '{}' is corrupted, please remove and re-download it.".format(file),
+        )
+        import_signals.import_failure_detailed.emit(
+            QtWidgets.QMessageBox.Warning, error
+        )
+        return
+
 
 class MainWorkerThread(QtCore.QThread):
     def __init__(self, downloader, parent=None):
@@ -666,7 +683,8 @@ class MainWorkerThread(QtCore.QThread):
                use_forwast=False, use_local=False, relink=None) -> None:
         self.db_name = db_name
         self.archive_path = archive_path
-        self.datasets_path = datasets_path
+        if datasets_path:
+            self.datasets_path = Path(datasets_path)
         self.use_forwast = use_forwast
         self.use_local = use_local
         self.relink = relink or {}
@@ -694,10 +712,11 @@ class MainWorkerThread(QtCore.QThread):
             self.run_download()
 
         with tempfile.TemporaryDirectory() as tempdir:
+            temp_dir = Path(tempdir)
             if not import_signals.cancel_sentinel:
-                self.run_extract(tempdir)
+                self.run_extract(temp_dir)
             if not import_signals.cancel_sentinel:
-                dataset_dir = os.path.join(tempdir, "datasets")
+                dataset_dir = temp_dir.joinpath("datasets")
                 self.run_import(dataset_dir)
 
     def run_forwast(self) -> None:
@@ -706,6 +725,7 @@ class MainWorkerThread(QtCore.QThread):
         forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
         import_signals.download_complete.emit()
         with tempfile.TemporaryDirectory() as tempdir:
+            temp_dir = Path(tempdir)
             if not import_signals.cancel_sentinel:
                 forwast_zip.extractall(tempdir)
                 import_signals.unarchive_finished.emit()
@@ -713,8 +733,8 @@ class MainWorkerThread(QtCore.QThread):
                 import_signals.extraction_progress.emit(0, 0)
                 import_signals.strategy_progress.emit(0, 0)
                 import_signals.db_progress.emit(0, 0)
-                bw.BW2Package.import_file(os.path.join(tempdir, 'forwast.bw2package'))
-            if self.db_name != 'forwast':
+                bw.BW2Package.import_file(str(temp_dir.joinpath("forwast.bw2package")))
+            if self.db_name.lower() != 'forwast':
                 bw.Database('forwast').rename(self.db_name)
             if not import_signals.cancel_sentinel:
                 import_signals.extraction_progress.emit(1, 1)
@@ -729,7 +749,7 @@ class MainWorkerThread(QtCore.QThread):
         self.downloader.download()
         import_signals.download_complete.emit()
 
-    def run_extract(self, temp_dir) -> None:
+    def run_extract(self, temp_dir: Path) -> None:
         """Use the connected ecoinvent downloader to extract the downloaded
         7zip file.
         """
@@ -746,21 +766,22 @@ class MainWorkerThread(QtCore.QThread):
         """
         self.downloader.out_path = self.archive_path
         with tempfile.TemporaryDirectory() as tempdir:
+            temp_dir = Path(tempdir)
             self.run_extract(tempdir)
             if not import_signals.cancel_sentinel:
                 # Working with ecoinvent 7z file? look for 'datasets' dir
-                eco_dir = os.path.join(tempdir, "datasets")
-                if os.path.exists(eco_dir) and os.path.isdir(eco_dir):
+                eco_dir = temp_dir.joinpath("datasets")
+                if eco_dir.exists() and eco_dir.is_dir():
                     self.run_import(eco_dir)
                 else:
                     # Use the temp dir itself instead.
-                    self.run_import(tempdir)
+                    self.run_import(temp_dir)
 
-    def run_import(self, import_dir) -> None:
+    def run_import(self, import_dir: Path) -> None:
         """Use the given dataset path to import the ecospold2 files."""
         try:
             importer = SingleOutputEcospold2Importer(
-                import_dir,
+                str(import_dir),
                 self.db_name,
                 extractor=ActivityBrowserExtractor,
                 signal=import_signals.strategy_progress
@@ -790,7 +811,8 @@ class MainWorkerThread(QtCore.QThread):
         """
         try:
             import_signals.db_progress.emit(0, 0)
-            if os.path.splitext(self.archive_path)[1] in {".xlsx", ".xls"}:
+            archive = Path(self.archive_path)
+            if archive.suffix in {".xlsx", ".xls"}:
                 result = ABExcelImporter.simple_automated_import(
                     self.archive_path, self.db_name, self.relink
                 )
@@ -1036,15 +1058,13 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
             self.path.setText(path)
 
     def changed(self):
-        exists = True if os.path.isfile(self.path.text()) else False
-        valid = False
-        if exists:
-            base, ext = os.path.splitext(self.path.text())
-            valid = True if ext.lower() == ".bw2package" else False
-            if not valid:
-                import_signals.import_failure.emit(
-                    ("Invalid extension", "Expecting 'local' import database file to have '.bw2package' extension")
-                )
+        path = Path(self.path.text())
+        exists = path.is_file()
+        valid = path.suffix.lower() == ".bw2package"
+        if exists and not valid:
+            import_signals.import_failure.emit(
+                ("Invalid extension", "Expecting 'local' import database file to have '.bw2package' extension")
+            )
         self.complete = all([exists, valid])
         self.completeChanged.emit()
 
@@ -1095,15 +1115,13 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
 
     @Slot(name="pathChanged")
     def changed(self) -> None:
-        exists = True if os.path.isfile(self.path.text()) else False
-        valid = False
-        if exists:
-            base, ext = os.path.splitext(self.path.text())
-            valid = True if ext.lower() in {".xlsx", ".xls"} else False
-            if not valid:
-                import_signals.import_failure.emit(
-                    ("Invalid extension", "Expecting excel file to have '.xls' or '.xlsx' extension")
-                )
+        path = Path(self.path.text())
+        exists = path.is_file()
+        valid = path.suffix.lower() in {".xlsx", ".xls"}
+        if exists and not valid:
+            import_signals.import_failure.emit(
+                ("Invalid extension", "Expecting excel file to have '.xls' or '.xlsx' extension")
+            )
         self.complete = all([exists, valid])
         self.completeChanged.emit()
 
@@ -1118,26 +1136,25 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
     - need to display progress in gui
     """
     @classmethod
-    def extract(cls, dirpath, db_name, *args, **kwargs):
-        assert os.path.exists(dirpath), dirpath
-        if os.path.isdir(dirpath):
-            filelist = [filename for filename in os.listdir(dirpath)
-                        if os.path.isfile(os.path.join(dirpath, filename))
-                        and filename.split(".")[-1].lower() == "spold"
-                        ]
-        elif os.path.isfile(dirpath):
-            filelist = [dirpath]
+    def extract(cls, dirpath: str, db_name: str, *args, **kwargs):
+        dir_path = Path(dirpath)
+        assert dir_path.exists(), "Given path {} does not exist.".format(dir_path)
+        if dir_path.is_dir():
+            file_list = [fn.name for fn in dir_path.glob("*.spold")]
+        elif dir_path.is_file():
+            file_list = [dir_path.name]
         else:
             raise OSError("Can't understand path {}".format(dirpath))
 
         data = []
-        total = len(filelist)
-        for i, filename in enumerate(filelist, start=1):
+        total = len(file_list)
+        dir_path = str(dir_path)
+        for i, filename in enumerate(file_list, start=1):
             if import_signals.cancel_sentinel:
                 print(f'Extraction canceled at position {i}!')
                 raise ImportCanceledError
 
-            data.append(cls.extract_activity(dirpath, filename, db_name))
+            data.append(cls.extract_activity(dir_path, filename, db_name))
             import_signals.extraction_progress.emit(i, total)
 
         return data
@@ -1171,6 +1188,7 @@ class ImportSignals(QtCore.QObject):
     finalizing = Signal()
     finished = Signal()
     unarchive_finished = Signal()
+    unarchive_failed = Signal(str)
     download_complete = Signal()
     import_failure = Signal(tuple)
     import_failure_detailed = Signal(object, tuple)
@@ -1198,7 +1216,11 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
         """
         extract_cmd = '7za x {} -o{}'.format(self.out_path, target_dir)
         self.extraction_process = subprocess.Popen(extract_cmd.split(), stdout=subprocess.DEVNULL)
-        self.extraction_process.wait()
+        code = self.extraction_process.wait()
+        if code != 0:
+            # The archive was corrupted in some way.
+            import_signals.cancel_sentinel = True
+            import_signals.unarchive_failed.emit(self.out_path)
 
     def handle_connection_timeout(self):
         msg = "The request timed out, please check your internet connection!"

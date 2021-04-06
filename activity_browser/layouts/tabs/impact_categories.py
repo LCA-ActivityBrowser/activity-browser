@@ -115,6 +115,10 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         self.search_box.returnPressed.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
 
+        #Updates the search filter with each textchange, remove if it impacts performance
+        self.search_box.textChanged.connect(lambda: self.table.sync(query=self.search_box.text()))
+        self.search_box.textChanged.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
+
         signals.project_selected.connect(self.search_box.clear)
         signals.new_method.connect(self.method_copied)
 
