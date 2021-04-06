@@ -6,7 +6,7 @@ import pandas as pd
 
 from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_columns
-from .utils import EXCHANGE_KEYS
+from .utils import EXCHANGE_KEYS, INDEX_KEYS, guess_flow_type
 
 
 class SuperstructureManager(object):
@@ -102,7 +102,7 @@ class SuperstructureManager(object):
         where the last instance survives.
         """
         if not isinstance(df.index, pd.MultiIndex):
-            df.index = SuperstructureManager.index_from_keys(df)
+            df.index = SuperstructureManager.build_index(df)
         duplicates = df.index.duplicated(keep="last")
         if duplicates.any():
             print("Found and dropped {} duplicate exchanges.".format(duplicates.sum()))
@@ -110,12 +110,24 @@ class SuperstructureManager(object):
         return df
 
     @staticmethod
-    def index_from_keys(df: pd.DataFrame) -> pd.MultiIndex:
-        """Construct MultiIndex from exchange keys, allowing for data merging."""
+    def build_index(df: pd.DataFrame) -> pd.MultiIndex:
+        """Construct MultiIndex from exchange keys and flows, allowing for
+        data merging.
+
+        - If any of the exchange key columns are missing keys, attempt to fill
+        them. If filling them does not succeed, raise an assertion.
+        """
         if df.loc[:, EXCHANGE_KEYS].isna().any().all():
             df = fill_df_keys_with_fields(df)
             assert df.loc[:, EXCHANGE_KEYS].notna().all().all(), "Cannot find all keys."
+        unknown_flows = df.loc[:, "flow type"].isna()
+        if unknown_flows.any():
+            print("Not all flow types are known, guessing {} flows".format(
+                unknown_flows.sum()
+            ))
+            df.loc[unknown_flows, "flow type"] = df.loc[
+                unknown_flows, EXCHANGE_KEYS].apply(guess_flow_type, axis=1)
         return pd.MultiIndex.from_tuples(
-            df.loc[:, EXCHANGE_KEYS].apply(tuple, axis=1),
-            names=["input", "output"]
+            df.loc[:, INDEX_KEYS].apply(tuple, axis=1),
+            names=["input", "output", "flow"]
         )

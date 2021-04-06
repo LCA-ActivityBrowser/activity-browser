@@ -73,7 +73,7 @@ def data_from_index(index: tuple) -> dict:
         "to categories": to_data[3],
         "to database": to_data[4],
         "to key": to_key,
-        "flow type": getattr(index, "flow_type", np.NaN),
+        "flow type": index[2] if len(index) > 2 else np.NaN,
     }
 
 
