@@ -10,6 +10,8 @@ from ...ui.tables import (
 )
 from ...signals import signals
 
+from ...bwutils.commontasks import update_and_shorten_label
+
 
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -239,13 +241,16 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def update_table(self, db_name='biosphere3'):
         if self.table.database_name:
             self.show()
+
+        update_and_shorten_label(self.label_database, db_name)
+        """
         if len(db_name) > 15:
             self.label_database.setToolTip(db_name)
             db_display_name = db_name[:12] + '...'
         else:
             db_display_name = db_name
             self.label_database.setToolTip('')
-        self.label_database.setText("[{}]".format(db_display_name))
+        self.label_database.setText("[{}]".format(db_display_name))"""
 
     def set_search_term(self):
         search_term = self.search_box.text()
