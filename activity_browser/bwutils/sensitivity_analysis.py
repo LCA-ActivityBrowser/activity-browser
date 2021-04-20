@@ -374,7 +374,6 @@ class GlobalSensitivityAnalysis(object):
         # log-transformation. This makes it more robust for very uneven distributions of LCA results (e.g. toxicity related impacts).
         # Can only be applied if all Monte-Carlo LCA scores are either positive or negative.
         # Should not be used when LCA scores overlap zero (sometimes positive and sometimes negative)
-        print(self.Y)
         # if np.all(self.Y > 0) if self.Y[0] > 0 else np.all(self.Y < 0):  # check if all LCA scores are of the same sign
         #     self.Y = np.log(np.abs(self.Y))  # this makes it more robust for very uneven distributions of LCA results
         if np.all(self.Y > 0):  # all positive numbers
@@ -385,7 +384,6 @@ class GlobalSensitivityAnalysis(object):
             print('All negative LCA scores. Log-transformation performed.')
         else:  # mixed positive and negative numbers
             print('Log-transformation cannot be applied as LCA scores overlap zero.')
-        print(self.Y)
 
         # define problem
         self.names = self.metadata.index  # ['GSA name']
