@@ -192,7 +192,7 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
         data[params_index]['index'] = cf_index
         data[params_index]['GSA name'] = "CF: " + bio_act['name'] + str(bio_act['categories'])
 
-    print('CF filtering resulted in including {} of {} characteriation factors.'.format(
+    print('CHARACTERIZATION FACTORS filtering resulted in including {} of {} characteriation factors.'.format(
         len(data),
         len(lca.cf_params),
     ))
@@ -384,6 +384,8 @@ class GlobalSensitivityAnalysis(object):
             print('All negative LCA scores. Log-transformation performed.')
         else:  # mixed positive and negative numbers
             print('Log-transformation cannot be applied as LCA scores overlap zero.')
+
+        # print('Filtering took {} seconds'.format(np.round(time() - start, 2)))
 
         # define problem
         self.names = self.metadata.index  # ['GSA name']
