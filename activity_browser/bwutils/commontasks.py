@@ -61,6 +61,24 @@ def format_activity_label(key, style='pnl', max_length=40):
             return wrap_text(str(key))
     return wrap_text(label, max_length=max_length)
 
+def update_and_shorten_label(label, text, length=15, enable=True) -> None:
+    """update and shorten label text to given given length and move entire name to tooltip.
+
+    Can be useful for shortening database names
+
+    label: Label object
+    text: original label text
+    length: cut-off length
+    enable: enable/disable cut-off"""
+
+    tooltip = ''
+    if enable and len(text) > length:
+        tooltip = text
+        text = text[:(length - 3)] + '...'
+
+    label.setText('[{}]'.format(text))
+    label.setToolTip(tooltip)
+
 # Switch brightway directory
 def switch_brightway2_dir(dirpath):
     if dirpath == bw.projects._base_data_dir:
