@@ -43,6 +43,7 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
     - [Miniconda](#miniconda)
     - [Configure conda channels](#configure-conda-channels)
     - [Install the activity browser](#install-the-activity-browser)
+    - [Updating the activity browser](#updating-the-activity-browser)
     - [Development Version](#development-version)
     - [Important Notice: the AB switched from PyQt5 to PySide2](#important-notice-the-ab-switched-from-pyqt5-to-pyside2)
         - [Why?](#why)
@@ -100,6 +101,15 @@ This will install the activity-browser and all of its dependencies in a new cond
 
 It is recommended that you have a separate conda environment for the activity browser like explained above, but you can also install the activity browser in your root, brightway2 or other existing conda environment if you prefer. Having separate environments for different projects generally reduces unwanted side-effects and incompatibilities between packages. You can still access the same brightway-projects even if you work with different conda environments.
 
+### Updating the activity browser
+
+You may want to update the activity browser to receive new features & bugfixes:
+
+```bash
+conda update -n ab --channel conda-forge activity-browser
+```
+
+This will update the activity-browser and all of its dependencies in the conda environment called `ab`.
 
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
