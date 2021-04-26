@@ -40,6 +40,9 @@ jobs:
         uses: s-weigand/setup-conda@v1.0.5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install conda fix
+        run: |
+          conda install conda
       - name: Install dependencies
         run: |
           conda install -q -y -c defaults -c conda-forge -c cmutel -c haasad `
