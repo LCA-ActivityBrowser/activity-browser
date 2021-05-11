@@ -218,9 +218,7 @@ class ExchangeController(QObject):
         for key in from_keys:
             technosphere_db = bc.is_technosphere_db(key[0])
             exc = activity.new_exchange(input=key, amount=1)
-            if key == to_key:
-                exc['type'] = 'production'
-            elif technosphere_db is True:
+            if technosphere_db is True:
                 exc['type'] = 'technosphere'
             elif technosphere_db is False:
                 exc['type'] = 'biosphere'
