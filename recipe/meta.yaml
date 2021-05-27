@@ -23,8 +23,9 @@ requirements:
     - python
     - setuptools
   run:
-    - python<3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
+    - python>=3.8, <=3.9 # https://github.com/conda-forge/pyside2-feedstock/issues/56
     - arrow
+    - bokeh
     - brightway2 >=2.1.2
     - bw2io >=0.7.dev1
     - bw2data >=3.6.1

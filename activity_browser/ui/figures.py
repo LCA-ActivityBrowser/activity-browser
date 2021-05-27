@@ -9,12 +9,19 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
 import seaborn as sns
 
 from ..bwutils.commontasks import wrap_text
 from ..settings import ab_settings
 
+
+from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.plotting import figure as bfig
+from bokeh.resources import CDN
+from bokeh.embed import file_html
+from bokeh.palettes import cividis
+from os import path
 
 # todo: sizing of the figures needs to be improved and systematized...
 # todo: Bokeh is a potential alternative as it allows interactive visualizations,
@@ -210,6 +217,164 @@ class ContributionPlot(Plot):
         self.setMinimumHeight(size_pixels[1])
         self.canvas.draw()
 
+
+class BPlot(QtWidgets.QWidget):
+    ALL_FILTER = "All Files (*.*)"
+    PNG_FILTER = "PNG (*.png)"
+    SVG_FILTER = "SVG (*.svg)"
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # create figure, canvas, and axis
+        # self.figure = Figure(tight_layout=True)
+        # self.figure = Figure(constrained_layout=True)
+        # self.canvas = FigureCanvasQTAgg(self.figure)
+        # self.ax = self.figure.add_subplot(111)  # create an axis
+        self.plot_name = 'Figure'
+
+        self.view = QtWebEngineWidgets.QWebEngineView()
+        self.page = QtWebEngineWidgets.QWebEnginePage()
+        # set the layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.view)
+        self.setLayout(layout)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.updateGeometry()
+
+    def plot(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def reset_plot(self) -> None:
+        self.page.load(self.url)
+        #TODO: refresh page
+        #self.figure.clf()
+        #self.ax = self.figure.add_subplot(111)
+
+    def get_canvas_size_in_inches(self):
+        # print("Canvas size:", self.canvas.get_width_height())
+        return tuple(x / self.view.dpi for x in self.page.get_width_height())
+
+    def savefilepath(self, default_file_name: str, file_filter: str = ALL_FILTER):
+        default = default_file_name or "LCA results"
+        safe_name = safe_filename(default, add_hash=False)
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self,
+            caption='Choose location to save lca results',
+            dir=os.path.join(ab_settings.data_dir, safe_name),
+            filter=file_filter,
+        )
+        return filepath
+
+    def to_png(self):
+        """ Export to .png format. """
+        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
+        if filepath:
+            if not filepath.endswith('.png'):
+                filepath += '.png'
+            #TODO: self.figure.savefig(filepath)
+
+    def to_svg(self):
+        """ Export to .svg format. """
+        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
+        if filepath:
+            if not filepath.endswith('.svg'):
+                filepath += '.svg'
+            #TODO: self.figure.savefig(filepath)
+
+class BContributionPlot(BPlot):
+    MAX_LEGEND = 30
+
+    def __init__(self):
+        super().__init__()
+        self.plot_name = 'Contributions'
+
+    def plot(self, df: pd.DataFrame, unit: str = None):
+        """ Plot a horizontal bar chart of the process contributions. """
+        dfp = df.copy()
+        dfp.index = dfp['index']
+        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
+        if 'Total' in dfp.index:
+            dfp.drop("Total", inplace=True)
+
+        # self.ax.clear()
+        # canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
+        # optimal_height_inches = 4 + dfp.shape[1] * 0.55
+        # # print('Optimal Contribution plot height:', optimal_height_inches)
+        # self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
+
+        # avoid figures getting too large horizontally
+        dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
+        dfp.columns = pd.Index([wrap_text(i, max_length=40) for i in dfp.columns])
+
+        contriTranspose = dfp.T
+        column_source = ColumnDataSource(contriTranspose)
+
+        p = bfig(y_range=list(contriTranspose.index), plot_height=750, tools="hover", tooltips="$name: @$name")
+        p.hbar_stack(list(contriTranspose.columns), height=0.9, y='index', source=column_source, legend_label=list(contriTranspose.columns),
+                     color=cividis(len(contriTranspose.columns)))
+
+        new_legend = p.legend[0]
+        new_legend.location = "center"
+        p.legend[0] = None
+        p.legend[0].label_text_font_size = "5pt"
+        p.add_layout(new_legend, 'below')
+
+        p.ygrid.grid_line_color = None
+        p.axis.minor_tick_line_color = None
+        p.outline_line_color = None
+
+        html = file_html(p, CDN, "my plot")
+        if not path.exists('chart.html'):
+            f = open("chart.html", "x")
+            f.close()
+        f = open("chart.html", "w")
+        f.write(html)
+        f.close()
+
+        #TODO: Update to relative path or get path from api
+        url = QtCore.QUrl.fromLocalFile(r"C:\Users\user\Documents\Laptop_DriveFiles\CML_StudentAssistant\GithubSync\Visualization\activity-browser\chart.html")
+
+        self.url = url
+        #self.page.allowed_pages.append(self.url)
+        self.page.load(self.url) #TODO: Check: webView.setHtml
+
+        # associate page with view
+        self.view.setPage(self.page)
+        # Old code
+        # Strip invalid characters from the ends of row/column headers
+        # dfp.index = dfp.index.str.strip("_ \n\t")
+        # dfp.columns = dfp.columns.str.strip("_ \n\t")
+        #
+        #
+        #
+        # dfp.T.plot.barh(
+        #     stacked=True,
+        #     cmap=plt.cm.nipy_spectral_r,
+        #     ax=self.ax,
+        #     legend=False if dfp.shape[0] >= self.MAX_LEGEND else True,
+        # )
+        # self.ax.tick_params(labelsize=8)
+        # if unit:
+        #     self.ax.set_xlabel(unit)
+        #
+        # # show legend if not too many items
+        # if not dfp.shape[0] >= self.MAX_LEGEND:
+        #     plt.rc('legend', **{'fontsize': 8})
+        #     ncols = math.ceil(dfp.shape[0] * 0.6 / optimal_height_inches)
+        #     # print('Ncols:', ncols, dfp.shape[0] * 0.55, optimal_height_inches)
+        #     self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
+        #
+        # # grid
+        # self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
+        # self.ax.set_axisbelow(True)  # puts gridlines behind bars
+        #
+        # # refresh canvas
+        # # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
+        # # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
+        #
+        # size_pixels = self.figure.get_size_inches() * self.figure.dpi
+        # self.setMinimumHeight(size_pixels[1])
+        # self.canvas.draw()
 
 class CorrelationPlot(Plot):
     def __init__(self, parent=None):
