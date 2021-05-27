@@ -131,7 +131,6 @@ class MethodsTab(QtWidgets.QWidget):
         self.mode_radio_list.toggled.connect(self.update_view)
 
     def initiate_search(self):
-        print('Called with: {}', self.search_box.text())
         self.table.sync(query=self.search_box.text())
         self.tree.model.sync(query=self.search_box.text())
 
