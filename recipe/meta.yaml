@@ -17,16 +17,16 @@ build:
   entry_points:
     - activity-browser = activity_browser:run_activity_browser
     - activity-browser-cleanup = activity_browser.bwutils:cleanup
-
-requirements:
+get condarequirements:
   build:
     - python
     - setuptools
   run:
     - python<3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
+    - numpy >=1.20.2
     - arrow
     - brightway2 >=2.1.2
-    - bw2io >=0.7.dev1
+    - bw2io >=0.8.3
     - bw2data >=3.6.1
     - eidl >=1.2.0
     - fuzzywuzzy

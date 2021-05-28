@@ -25,7 +25,7 @@ requirements:
     - python<3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
     - arrow
     - brightway2 >=2.1.2
-    - bw2io >=0.8
+    - bw2io >=0.7.dev1
     - bw2data >=3.6.1
     - eidl >=1.2.0
     - fuzzywuzzy
