@@ -114,14 +114,6 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         self.search_box.returnPressed.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
 
-        # TOREFACTOR: In case we need to add debounce time to other search functions it is recommended to create a
-        # custom control which inherits from QLineEdit
-        self.debounce = QtCore.QTimer()
-        self.debounce.setInterval(500)
-        self.debounce.setSingleShot(True)
-        self.debounce.timeout.connect(self.initiate_search)
-        self.search_box.textChanged.connect(self.debounce.start)
-
         signals.project_selected.connect(self.search_box.clear)
         signals.new_method.connect(self.method_copied)
 
@@ -129,10 +121,6 @@ class MethodsTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         self.mode_radio_list.toggled.connect(self.update_view)
-
-    def initiate_search(self):
-        self.table.sync(query=self.search_box.text())
-        self.tree.model.sync(query=self.search_box.text())
 
     @QtCore.Slot(tuple, name="searchCopiedMethod")
     def method_copied(self, method: tuple) -> None:
