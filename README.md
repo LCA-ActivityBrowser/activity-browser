@@ -89,8 +89,10 @@ channels:
 
 After configuring your conda channels, the activity browser can be installed with this command:
 
+02-06-2021 Currently we are using a different command since there's a different version of MKl we need. 
+
 ```bash
-conda create -y -n ab -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser>2.4"
+conda create -n <Your Environment Name> -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser>2.4" mkl=2020.2 python=3.8
 ```
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
