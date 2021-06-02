@@ -2,6 +2,7 @@
 import math
 import os
 
+from jinja2 import Template
 import brightway2 as bw
 from bw2data.filesystem import safe_filename
 import matplotlib.pyplot as plt
@@ -20,7 +21,7 @@ from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.plotting import figure as bfig
 from bokeh.resources import CDN
 from bokeh.embed import file_html
-from bokeh.palettes import cividis
+from bokeh.palettes import cividis, GnBu3, OrRd3
 from os import path
 
 # todo: sizing of the figures needs to be improved and systematized...
@@ -234,6 +235,7 @@ class BPlot(QtWidgets.QWidget):
 
         self.view = QtWebEngineWidgets.QWebEngineView()
         self.page = QtWebEngineWidgets.QWebEnginePage()
+
         # set the layout
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.view)
@@ -281,6 +283,7 @@ class BPlot(QtWidgets.QWidget):
                 filepath += '.svg'
             #TODO: self.figure.savefig(filepath)
 
+
 class BContributionPlot(BPlot):
     MAX_LEGEND = 30
 
@@ -290,6 +293,26 @@ class BContributionPlot(BPlot):
 
     def plot(self, df: pd.DataFrame, unit: str = None):
         """ Plot a horizontal bar chart of the process contributions. """
+        bokeh_jspath = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), "\\static\\javascript\\bokeh-2.3.2.min.js"
+        )
+        template = Template("""
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8">
+                <title>{{ title if title else "Bokeh Plot" }}</title>
+                <script type="text/javascript" src="""""+bokeh_jspath+"""""></script>
+                <script type="text/javascript">
+                    Bokeh.set_log_level("info");
+                </script>
+            </head>
+            <body>
+                {{ plot_div | safe }}
+                {{ plot_script | safe }}
+            </body>
+        </html> """)
+
         dfp = df.copy()
         dfp.index = dfp['index']
         dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
@@ -304,7 +327,7 @@ class BContributionPlot(BPlot):
 
         # avoid figures getting too large horizontally
         dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
-        dfp.columns = pd.Index([wrap_text(i, max_length=40) for i in dfp.columns])
+        dfp.columns = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.columns])
 
         contriTranspose = dfp.T
         column_source = ColumnDataSource(contriTranspose)
@@ -313,6 +336,13 @@ class BContributionPlot(BPlot):
         p.hbar_stack(list(contriTranspose.columns), height=0.9, y='index', source=column_source, legend_label=list(contriTranspose.columns),
                      color=cividis(len(contriTranspose.columns)))
 
+        # p = bfig(y_range=list(contriTranspose.index), plot_height=800, plot_width=1600,  title="Fruit import/export, by year",
+        #            toolbar_location=None)
+        #
+        # p.hbar_stack(list(contriTranspose.columns), y='index', height=0.9, color=cividis(len(contriTranspose.columns)),
+        #              source=column_source, legend_label=list(contriTranspose.columns))
+
+        #p.add_layout(p.legend[0], 'right')
         new_legend = p.legend[0]
         new_legend.location = "center"
         p.legend[0] = None
@@ -323,21 +353,21 @@ class BContributionPlot(BPlot):
         p.axis.minor_tick_line_color = None
         p.outline_line_color = None
 
-        html = file_html(p, CDN, "my plot")
-        if not path.exists('chart.html'):
-            f = open("chart.html", "x")
-            f.close()
-        f = open("chart.html", "w")
-        f.write(html)
-        f.close()
-
+        # html = file_html(p, CDN, "my plot")
+        # if not path.exists('bokeh_chart.html'):
+        #     f = open("bokeh_chart.html", "x")
+        #     f.close()
+        # f = open("bokeh_chart.html", "w")
+        # f.write(html)
+        # f.close()
+        html = file_html(p, template=template, resources=None)
         #TODO: Update to relative path or get path from api
-        url = QtCore.QUrl.fromLocalFile(r"C:\Users\user\Documents\Laptop_DriveFiles\CML_StudentAssistant\GithubSync\Visualization\activity-browser\chart.html")
+        #url = QtCore.QUrl.fromLocalFile(r"/activity_browser/static/bokeh_chart.html")
 
-        self.url = url
+        #self.url = url
         #self.page.allowed_pages.append(self.url)
-        self.page.load(self.url) #TODO: Check: webView.setHtml
-
+        #self.page.load(self.url) #TODO: Check: webView.setHtml
+        self.page.setHtml(html)
         # associate page with view
         self.view.setPage(self.page)
         # Old code
@@ -375,6 +405,7 @@ class BContributionPlot(BPlot):
         # size_pixels = self.figure.get_size_inches() * self.figure.dpi
         # self.setMinimumHeight(size_pixels[1])
         # self.canvas.draw()
+
 
 class CorrelationPlot(Plot):
     def __init__(self, parent=None):

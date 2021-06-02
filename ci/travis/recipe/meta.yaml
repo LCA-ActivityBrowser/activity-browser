@@ -24,6 +24,7 @@ requirements:
   run:
     - python<3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
     - arrow
+    - bokeh >=2.3.2
     - brightway2 >=2.1.2
     - bw2io >=0.8
     - bw2data >=3.6.1
