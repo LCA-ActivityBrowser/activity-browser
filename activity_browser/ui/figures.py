@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+import json
 import math
 import os
 
+from PySide2.QtCore import QObject, Slot
+from PySide2.QtWidgets import QMenu, QAction, QMessageBox
+from bokeh.events import Tap
+from bokeh.io import export_png
 from jinja2 import Template
 import brightway2 as bw
 from bw2data.filesystem import safe_filename
@@ -10,19 +15,18 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
-from PySide2 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
+from pathlib import Path
+from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 import seaborn as sns
 
 from ..bwutils.commontasks import wrap_text
 from ..settings import ab_settings
 
-
-from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.models import ColumnDataSource, HoverTool, TapTool, OpenURL, CustomJS
 from bokeh.plotting import figure as bfig
-from bokeh.resources import CDN
 from bokeh.embed import file_html
-from bokeh.palettes import cividis, GnBu3, OrRd3
-from os import path
+from bokeh.palettes import viridis
+
 
 # todo: sizing of the figures needs to be improved and systematized...
 # todo: Bokeh is a potential alternative as it allows interactive visualizations,
@@ -226,15 +230,19 @@ class BPlot(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        # create figure, canvas, and axis
-        # self.figure = Figure(tight_layout=True)
-        # self.figure = Figure(constrained_layout=True)
-        # self.canvas = FigureCanvasQTAgg(self.figure)
-        # self.ax = self.figure.add_subplot(111)  # create an axis
+
         self.plot_name = 'Figure'
+        self.bridge = Bridge(self)
+        self.channel = QtWebChannel.QWebChannel()
+        self.channel.registerObject('bridge', self.bridge)
 
         self.view = QtWebEngineWidgets.QWebEngineView()
+        self.view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # QtCore.Qt.NoContextMenu
+        #self.debugview = QtWebEngineWidgets.QWebEngineView()
+        self.view.customContextMenuRequested.connect(self.on_context_menu)
+        self.view.setMinimumHeight(400)
         self.page = QtWebEngineWidgets.QWebEnginePage()
+        self.page.setWebChannel(self.channel)
 
         # set the layout
         layout = QtWidgets.QVBoxLayout()
@@ -243,14 +251,21 @@ class BPlot(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.updateGeometry()
 
+    def on_context_menu(self, pos):
+        # TODO: send signal from js using QChannel to let this know the index(process name) then link the action to open the process
+        context = QMenu(self)
+        context.addAction(QAction("Open activity list", self)) # connect to event handler
+        context.addAction(QAction("Other action", self))
+        context.popup(self.mapToGlobal(pos));  # .exec(self.mapToGlobal(pos))
+
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
     def reset_plot(self) -> None:
         self.page.load(self.url)
-        #TODO: refresh page
-        #self.figure.clf()
-        #self.ax = self.figure.add_subplot(111)
+        # TODO: refresh page
+        # self.figure.clf()
+        # self.ax = self.figure.add_subplot(111)
 
     def get_canvas_size_in_inches(self):
         # print("Canvas size:", self.canvas.get_width_height())
@@ -273,7 +288,8 @@ class BPlot(QtWidgets.QWidget):
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
-            #TODO: self.figure.savefig(filepath)
+            # export_png(plot, filename=filepath)
+            # TODO: self.figure.savefig(filepath)
 
     def to_svg(self):
         """ Export to .svg format. """
@@ -281,7 +297,7 @@ class BPlot(QtWidgets.QWidget):
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
-            #TODO: self.figure.savefig(filepath)
+            # TODO: self.figure.savefig(filepath)
 
 
 class BContributionPlot(BPlot):
@@ -293,23 +309,30 @@ class BContributionPlot(BPlot):
 
     def plot(self, df: pd.DataFrame, unit: str = None):
         """ Plot a horizontal bar chart of the process contributions. """
-        bokeh_jspath = os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), "\\static\\javascript\\bokeh-2.3.2.min.js"
-        )
+        package_dir = Path(__file__).resolve().parents[2]
+        bokeh_jspath = str(package_dir.joinpath("activity_browser", "static", "javascript", "bokeh-2.3.2.min.js"))
+        js_code = open(bokeh_jspath, mode="r", encoding='UTF-8').read()
+
         template = Template("""
         <!DOCTYPE html>
         <html lang="en">
             <head>
                 <meta charset="utf-8">
                 <title>{{ title if title else "Bokeh Plot" }}</title>
-                <script type="text/javascript" src="""""+bokeh_jspath+"""""></script>
-                <script type="text/javascript">
+                 <script type="text/javascript">""" + js_code + """</script>
+                 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+                 <script type="text/javascript">
                     Bokeh.set_log_level("info");
-                </script>
+                 </script>
             </head>
             <body>
                 {{ plot_div | safe }}
                 {{ plot_script | safe }}
+                <script type="text/javascript">
+                    new QWebChannel(qt.webChannelTransport, function (channel) {
+                        window.bridge = channel.objects.bridge;
+                    });
+                 </script>
             </body>
         </html> """)
 
@@ -319,92 +342,98 @@ class BContributionPlot(BPlot):
         if 'Total' in dfp.index:
             dfp.drop("Total", inplace=True)
 
-        # self.ax.clear()
-        # canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
-        # optimal_height_inches = 4 + dfp.shape[1] * 0.55
-        # # print('Optimal Contribution plot height:', optimal_height_inches)
-        # self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
-
         # avoid figures getting too large horizontally
         dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
         dfp.columns = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.columns])
 
-        contriTranspose = dfp.T
-        column_source = ColumnDataSource(contriTranspose)
+        contri_transpose = dfp.T
+        contri_transpose = contri_transpose.fillna(0)
+        column_source = ColumnDataSource(contri_transpose)
 
-        p = bfig(y_range=list(contriTranspose.index), plot_height=750, tools="hover", tooltips="$name: @$name")
-        p.hbar_stack(list(contriTranspose.columns), height=0.9, y='index', source=column_source, legend_label=list(contriTranspose.columns),
-                     color=cividis(len(contriTranspose.columns)))
+        height = 0.7
+        p = bfig(y_range=list(contri_transpose.index), plot_height=400, tools=['hover', 'pan', 'wheel_zoom'],
+                 tooltips="$name: @$name")
+        p.hbar_stack(list(contri_transpose.columns), height=height, y='index', source=column_source,
+                     legend_label=list(contri_transpose.columns),
+                     fill_color=viridis(len(contri_transpose.columns)), muted_alpha=2)
 
-        # p = bfig(y_range=list(contriTranspose.index), plot_height=800, plot_width=1600,  title="Fruit import/export, by year",
-        #            toolbar_location=None)
-        #
-        # p.hbar_stack(list(contriTranspose.columns), y='index', height=0.9, color=cividis(len(contriTranspose.columns)),
-        #              source=column_source, legend_label=list(contriTranspose.columns))
-
-        #p.add_layout(p.legend[0], 'right')
         new_legend = p.legend[0]
         new_legend.location = "center"
         p.legend[0] = None
-        p.legend[0].label_text_font_size = "5pt"
+        p.legend[0].label_text_font_size = "8pt"
+        new_legend.click_policy = 'hide'
         p.add_layout(new_legend, 'below')
 
         p.ygrid.grid_line_color = None
         p.axis.minor_tick_line_color = None
         p.outline_line_color = None
 
-        # html = file_html(p, CDN, "my plot")
-        # if not path.exists('bokeh_chart.html'):
-        #     f = open("bokeh_chart.html", "x")
-        #     f.close()
-        # f = open("bokeh_chart.html", "w")
-        # f.write(html)
-        # f.close()
-        html = file_html(p, template=template, resources=None)
-        #TODO: Update to relative path or get path from api
-        #url = QtCore.QUrl.fromLocalFile(r"/activity_browser/static/bokeh_chart.html")
+        # TODO: Pass the key of the activity here so the js can send it back to bokeh
+        callback = CustomJS(args=dict(source=column_source, height=height, legend_labels=list(contri_transpose.columns)),
+                            code="""
+        var bar_index = Math.floor(cb_obj.y);
+        var bar_index_start = bar_index + (height/2);
+        var bar_index_end = bar_index + 1 - (height/2);
+        
+        if(cb_obj.x > 0 && cb_obj.y > 0 && bar_index < source.data.index.length 
+            && cb_obj.y >= bar_index_start && cb_obj.y <= bar_index_end)
+        {
+            console.log('On a bar');
+            var prev_val = 0;
+            for(var index in legend_labels)
+            {
+                var legend_label = legend_labels[index];
+                if(source.data[legend_label][bar_index.toString()]<=0)
+                    continue;
+                prev_val = source.data[legend_label][bar_index.toString()] + prev_val;
+                if(cb_obj.x < prev_val) {
+                    console.log(legend_label);
+                    var open_activity_dict = {
+                        'x': legend_label,
+                        'y': source.data.index[bar_index]
+                    }
+                    window.bridge.chart_interaction(JSON.stringify(open_activity_dict));
+                    break;
+                }
+            }
+        }
+        """)
+        p.js_on_event('doubletap', callback)
 
-        #self.url = url
-        #self.page.allowed_pages.append(self.url)
-        #self.page.load(self.url) #TODO: Check: webView.setHtml
+        html = file_html(p, template=template, resources=None)
         self.page.setHtml(html)
-        # associate page with view
+        #self.page.setDevToolsPage(self.debugview.page())
+        #self.debugview.show()
         self.view.setPage(self.page)
-        # Old code
-        # Strip invalid characters from the ends of row/column headers
-        # dfp.index = dfp.index.str.strip("_ \n\t")
-        # dfp.columns = dfp.columns.str.strip("_ \n\t")
-        #
-        #
-        #
-        # dfp.T.plot.barh(
-        #     stacked=True,
-        #     cmap=plt.cm.nipy_spectral_r,
-        #     ax=self.ax,
-        #     legend=False if dfp.shape[0] >= self.MAX_LEGEND else True,
-        # )
-        # self.ax.tick_params(labelsize=8)
-        # if unit:
-        #     self.ax.set_xlabel(unit)
-        #
-        # # show legend if not too many items
-        # if not dfp.shape[0] >= self.MAX_LEGEND:
-        #     plt.rc('legend', **{'fontsize': 8})
-        #     ncols = math.ceil(dfp.shape[0] * 0.6 / optimal_height_inches)
-        #     # print('Ncols:', ncols, dfp.shape[0] * 0.55, optimal_height_inches)
-        #     self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
-        #
-        # # grid
-        # self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
-        # self.ax.set_axisbelow(True)  # puts gridlines behind bars
-        #
-        # # refresh canvas
-        # # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
-        # # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
-        #
-        # size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        # self.setMinimumHeight(size_pixels[1])
-        # self.canvas.draw()
+
+
+class Bridge(QObject):
+    @Slot(str, name="chart_interaction")
+    def chart_interaction(self, interaction_args: str):
+        """ Is called when part of HBar is clicked in Javascript (via Bokeh callback).
+        Args:
+            interaction_args: string of a serialized json dictionary describing
+            - X axis label (Process/EF the part of Hbar represnts)
+            - Y axis label (Process/EF/Impact Category the Hbar represnts)
+        """
+        interaction_data_dict = json.loads(interaction_args)
+        interaction_data_dict["key"] = (
+        interaction_data_dict["y"], interaction_data_dict["x"])  # since JSON does not know tuples
+        print("Click information: ", interaction_args)
+        msgBox = QMessageBox()
+        msgBox.setText(interaction_args)
+        msgBox.setDefaultButton(QMessageBox.Ok)
+        msgBox.exec_()
+        # TODO: Open activity if applicable
+        #TODO: Solution:
+            # On Bokeh Tap event -> Get the process and store in js global variable -> Open context menu on js
+            # -> On context menu action get value from global variable and invoke the Pyside QWebChannel
+                # $('#menu') .css({
+                #       top: e.pageY + 'px',
+                #       left: e.pageX + 'px'
+                #     }) .show();
+                # OR
+                # use a context menu library
 
 
 class CorrelationPlot(Plot):
@@ -454,6 +483,7 @@ class CorrelationPlot(Plot):
 
 class MonteCarloPlot(Plot):
     """ Monte Carlo plot."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.plot_name = 'Monte Carlo'
@@ -463,13 +493,14 @@ class MonteCarloPlot(Plot):
 
         for col in df.columns:
             color = self.ax._get_lines.get_next_color()
-            df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color, alpha=0.5)  # , histtype="step")
+            df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color,
+                         alpha=0.5)  # , histtype="step")
             # self.ax.axvline(df[col].median(), color=color)
             self.ax.axvline(df[col].mean(), color=color)
 
         self.ax.set_xlabel(bw.methods[method]["unit"])
         self.ax.set_ylabel('Probability')
-        self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ) #ncol=2
+        self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), )  # ncol=2
 
         # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
 
