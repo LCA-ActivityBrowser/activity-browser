@@ -313,6 +313,13 @@ class BContributionPlot(BPlot):
         bokeh_jspath = str(package_dir.joinpath("activity_browser", "static", "javascript", "bokeh-2.3.2.min.js"))
         js_code = open(bokeh_jspath, mode="r", encoding='UTF-8').read()
 
+        # TODO:
+            # Reduce js code - Let context menu be in Python
+            # Show context menu on right click
+            # 2 bugs assigned to me
+            # Add a debounce to cut-off slider
+
+
         template = Template("""
         <!DOCTYPE html>
         <html lang="en">
@@ -324,14 +331,79 @@ class BContributionPlot(BPlot):
                  <script type="text/javascript">
                     Bokeh.set_log_level("info");
                  </script>
+                 <style>
+                    option:hover {
+                      background-color: #e6e6e6;
+                    }
+                    option {
+                        padding: 5px;
+                    }
+                    select {
+                        overflow: hidden;
+                        background-color: #cccccc;
+                    }
+                    .hidden {
+                      visibility: hidden;
+                    }
+                    #contextMenu:active {
+                      box-shadow: 0 0 5px rgba(0, 0, 0, .25);
+                    }
+                    #contextMenu {
+                      z-index:100;
+                      box-sizing: border-box;
+                      position: absolute;
+                      box-shadow: 0 0 12px rgba(0, 0, 0, .25);
+                      transition: box-shadow ease-in 50ms;
+                    }
+            </style>
             </head>
             <body>
+                <div id='contextMenu' class='hidden'></div>
                 {{ plot_div | safe }}
                 {{ plot_script | safe }}
                 <script type="text/javascript">
                     new QWebChannel(qt.webChannelTransport, function (channel) {
                         window.bridge = channel.objects.bridge;
                     });
+                    
+                    const options = ['Open Activity', 'Open details'] // TODO: This should come from configuration
+                    var result_dict = {} //action, sub_bar, bar
+                    const contextMenu = document.getElementById('contextMenu');
+                    function openContextMenu(sx, sy) { //Pass options and sx,sy here
+                        contextMenu.style.left = `${ sx }px`;
+                        contextMenu.style.top = `${ sy }px`;
+                        contextMenu.innerHTML = '';
+                        var select = document.createElement("select");
+                        select.id = "options"
+                        select.size = 2 //options.length
+                        for (const val of options)
+                        {
+                            var option = document.createElement("option");
+                            option.value = val;
+                            option.text = val.charAt(0).toUpperCase() + val.slice(1);
+                            select.appendChild(option);
+                        }
+                        select.onchange = () => {
+                            console.log('selection changed');
+                            result_dict.action = select.value;
+                            clearContextMenu();
+                            window.bridge.chart_interaction(JSON.stringify(result_dict));
+                        }
+                       contextMenu.appendChild(select);
+                       contextMenu.classList.remove('hidden');
+                    }
+                    document.onmousewheel = () => {
+                      clearContextMenu()
+                    };
+                    document.onkeydown = (e) => {
+                      if (e.key === 'Escape' || e.which === 27 || e.keyCode === 27) {
+                        clearContextMenu()
+                      }
+                    };
+                    function clearContextMenu(){
+                        contextMenu.classList.add('hidden');
+                        contextMenu.innerHTML = '';
+                    }
                  </script>
             </body>
         </html> """)
@@ -371,10 +443,12 @@ class BContributionPlot(BPlot):
         # TODO: Pass the key of the activity here so the js can send it back to bokeh
         callback = CustomJS(args=dict(source=column_source, height=height, legend_labels=list(contri_transpose.columns)),
                             code="""
+        console.log('works');
+        var bar_margin = 1 - height;
         var bar_index = Math.floor(cb_obj.y);
-        var bar_index_start = bar_index + (height/2);
-        var bar_index_end = bar_index + 1 - (height/2);
-        
+        var bar_index_start = bar_index + (bar_margin/2);
+        var bar_index_end = bar_index + 1 - (bar_margin/2);
+        var found = false;
         if(cb_obj.x > 0 && cb_obj.y > 0 && bar_index < source.data.index.length 
             && cb_obj.y >= bar_index_start && cb_obj.y <= bar_index_end)
         {
@@ -388,17 +462,21 @@ class BContributionPlot(BPlot):
                 prev_val = source.data[legend_label][bar_index.toString()] + prev_val;
                 if(cb_obj.x < prev_val) {
                     console.log(legend_label);
-                    var open_activity_dict = {
-                        'x': legend_label,
-                        'y': source.data.index[bar_index]
-                    }
-                    window.bridge.chart_interaction(JSON.stringify(open_activity_dict));
+                    result_dict.bar = source.data.index[bar_index];
+                    result_dict.sub_bar = legend_label;
+                    
+                    openContextMenu(cb_obj.sx, cb_obj.sy);
+                    found = true;
                     break;
                 }
             }
+            
+        }
+        if(!found) {
+            clearContextMenu()
         }
         """)
-        p.js_on_event('doubletap', callback)
+        p.js_on_event('tap', callback)
 
         html = file_html(p, template=template, resources=None)
         self.page.setHtml(html)
@@ -416,24 +494,13 @@ class Bridge(QObject):
             - X axis label (Process/EF the part of Hbar represnts)
             - Y axis label (Process/EF/Impact Category the Hbar represnts)
         """
-        interaction_data_dict = json.loads(interaction_args)
-        interaction_data_dict["key"] = (
-        interaction_data_dict["y"], interaction_data_dict["x"])  # since JSON does not know tuples
-        print("Click information: ", interaction_args)
+        #interaction_data_dict = json.loads(interaction_args)
+        print(interaction_args)
+        #TODO: Open activity or react to event
         msgBox = QMessageBox()
         msgBox.setText(interaction_args)
         msgBox.setDefaultButton(QMessageBox.Ok)
         msgBox.exec_()
-        # TODO: Open activity if applicable
-        #TODO: Solution:
-            # On Bokeh Tap event -> Get the process and store in js global variable -> Open context menu on js
-            # -> On context menu action get value from global variable and invoke the Pyside QWebChannel
-                # $('#menu') .css({
-                #       top: e.pageY + 'px',
-                #       left: e.pageX + 'px'
-                #     }) .show();
-                # OR
-                # use a context menu library
 
 
 class CorrelationPlot(Plot):
