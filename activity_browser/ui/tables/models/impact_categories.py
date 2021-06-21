@@ -3,6 +3,7 @@ from copy import deepcopy
 import numbers
 from typing import Iterator, Optional
 
+
 import brightway2 as bw
 import numpy as np
 import pandas as pd
@@ -268,6 +269,9 @@ class MethodsTreeModel(BaseTreeModel):
                  here each index of the tuple refers to the data in the HEADERS list of this class
         """
         data = np.empty(df.shape[0], dtype=object)
+
+
+
         for idx, row in enumerate(df.to_numpy(dtype=object)):
             split = row[0].split(', ')  # split 'Name' column on ', '
             split.append(tuple(row))
@@ -285,17 +289,39 @@ class MethodsTreeModel(BaseTreeModel):
                 here = here[elem]
             here[row[-1]] = row[-1]
 
-        tree, _ = MethodsTreeModel.simplify_dict(simple_dict)
-        return tree
 
+
+
+        return simple_dict
+
+#Work in progress
+    @staticmethod
+    def flatten_dict(deep_dict):
+        def do_flatten(deep_dict, current_key):
+            for key, value in deep_dict.items():
+                # the key will be a flattened tuple
+                # but the type of `key` is not touched
+                new_key = current_key + (key,)
+                # if we have a dict, we recurse
+                if isinstance(value, dict):
+                    yield from do_flatten(value, new_key)
+                else:
+                    yield (new_key, value)
+
+        return dict(do_flatten(deep_dict, ()))
+
+    #het gaat mis in deze functie
     @staticmethod
     def simplify_dict(names_dict: dict) -> (dict, bool):
         """Recursively flatten the given nested dictionary."""
+
         clean_dict = {}
         for key, value in names_dict.items():
             if isinstance(value, dict):
-                # this is not the leaf node, go deeper to find leaf
+                i = len(value)
+                # if this is not the leaf node, go deeper to find leaf
                 tree, is_leaf = MethodsTreeModel.simplify_dict(value)
+
                 if not is_leaf and len(value) == 1:
                     # 'tree' is not leaf (end node) and only one sub level
                     # combine sublevel, then add to tree

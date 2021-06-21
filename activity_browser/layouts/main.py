@@ -46,6 +46,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_panel = LeftPanel(self)
         self.right_panel = RightPanel(self)
 
+        #Sets the minimum width for the right panel so scaling on Mac Screens doesnt go out of bounds
+        self.right_panel.setMinimumWidth(100)
+
         self.splitter_horizontal = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter_horizontal.addWidget(self.left_panel)
         self.splitter_horizontal.addWidget(self.right_panel)
