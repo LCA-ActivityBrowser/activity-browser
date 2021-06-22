@@ -114,7 +114,7 @@ It is recommended that you have a separate conda environment for the activity br
 You may want to update the activity browser to receive new features & bugfixes:
 
 ```bash
-conda update -n ab --channel conda-forge activity-browser
+conda update -n ab activity-browser
 ```
 
 This will update the activity-browser and all of its dependencies in the conda environment called `ab`.
@@ -127,14 +127,14 @@ The most recent version of the master branch is automatically uploaded and gener
 Install the development version like this:
 
 ```bash
-conda create -y -n ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser-dev>2019.10.30"
+conda create -n ab_dev activity-browser-dev
 ```
 
 Or update like this if you already have a dev environment:
 
 ```bash
 conda activate ab_dev
-conda update --channel conda-forge activity-browser-dev
+conda update activity-browser-dev
 ```
 
 ---
