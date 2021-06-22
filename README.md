@@ -114,7 +114,8 @@ It is recommended that you have a separate conda environment for the activity br
 You may want to update the activity browser to receive new features & bugfixes:
 
 ```bash
-conda update -n ab activity-browser
+conda activate ab
+conda update activity-browser
 ```
 
 This will update the activity-browser and all of its dependencies in the conda environment called `ab`.
