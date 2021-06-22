@@ -22,7 +22,7 @@ The activity browser is an open source software for Life Cycle Assessment (LCA) 
     - advanced foreground and background scenario modeling (e.g. possibility to work with scenarios from Integrated Assessment Models)
     - generate and load [presamples](https://github.com/PascalLesage/presamples) data
     - define and directly visualize the uncertainties of your input data (including Pedigree Matrix)
-- **Advanced analysis of LCA results:** 
+- **Advanced analysis of LCA results:**
     - Contribution analyses (including aggregation by product name, region or other attributes)
     - Sankey Diagrams
     - Monte Carlo Analysis (building upon the fast brightway engine)
@@ -32,12 +32,13 @@ The activity browser is an open source software for Life Cycle Assessment (LCA) 
 
 ## Scientific paper
 Please have a look at our scientific paper on the Activity Browser and cite it in your work if it has been useful to you:
-https://doi.org/10.1016/j.simpa.2019.100012 
+https://doi.org/10.1016/j.simpa.2019.100012
 
 ## Youtube tutorials
 Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/) to learn how to install and use the Activity Browser.
 
 ## Contents
+- [Quickstart](#Quickstart)
 - [Installation](#installation)
     - [Conda](#conda)
     - [Configure conda channels](#configure-conda-channels)
@@ -52,6 +53,16 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
 - [Copyright](#copyright)
 - [License](#authors)
 - [Additional Resources](#additional-resources)
+
+## Quickstart
+
+You can install and start the activity-browser like this:
+
+```bash
+conda create -n ab -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage activity-browser
+conda activate ab
+activity-browser
+```
 
 ## Installation
 
@@ -89,7 +100,7 @@ channels:
 
 After configuring your conda channels, the activity browser can be installed with this command:
 
-02-06-2021 Currently we are using a different command since there's a different version of MKl we need. 
+02-06-2021 Currently we are using a different command since there's a different version of MKl we need.
 
 ```bash
 conda create -n <Your Environment Name> -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser>2.4" mkl=2020.2 python=3.8
@@ -153,7 +164,7 @@ Then simply run `activity-browser` and the application will open.
 
 ## Contributing
 
-**Your contribution counts! The AB is a community project.** 
+**Your contribution counts! The AB is a community project.**
 
 If you have ideas for improvements to the code or documentation or want to propose new features, please take a look at our [contributing guidelines](CONTRIBUTING.md) and open issues and/or pull-requests.
 
