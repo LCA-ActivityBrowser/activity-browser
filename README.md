@@ -95,7 +95,7 @@ channels:
   - haasad
   - pascallesage
 ```
-You can also edit your user's `.condarc` file and modify the channels there.
+You can also edit your user's `.condarc` file and modify the channels there. If you prefer to not add these channels to your conda config permanently, you'll have to always explicitly list them for `conda install` and `conda update` commands (see example in [Quickstart](#Quickstart)).
 
 ### Install the activity browser
 
