@@ -102,7 +102,7 @@ You can also edit your user's `.condarc` file and modify the channels there.
 After configuring your conda channels, the activity browser can be installed with this command:
 
 ```bash
-conda create -n <Your Environment Name> -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser>2.4" python=3.8
+conda create -n ab activity-browser
 ```
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
