@@ -146,7 +146,6 @@ class LCASetupTab(QtWidgets.QWidget):
 
         cs_panel_layout.addWidget(header('Reference flows:'))
         cs_panel_layout.addWidget(self.activities_table)
-        cs_panel_layout.addWidget(horizontal_line())
         cs_panel_layout.addWidget(header('Impact categories:'))
         cs_panel_layout.addWidget(self.methods_table)
 
