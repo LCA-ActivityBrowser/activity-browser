@@ -22,7 +22,7 @@ The activity browser is an open source software for Life Cycle Assessment (LCA) 
     - advanced foreground and background scenario modeling (e.g. possibility to work with scenarios from Integrated Assessment Models)
     - generate and load [presamples](https://github.com/PascalLesage/presamples) data
     - define and directly visualize the uncertainties of your input data (including Pedigree Matrix)
-- **Advanced analysis of LCA results:** 
+- **Advanced analysis of LCA results:**
     - Contribution analyses (including aggregation by product name, region or other attributes)
     - Sankey Diagrams
     - Monte Carlo Analysis (building upon the fast brightway engine)
@@ -32,12 +32,13 @@ The activity browser is an open source software for Life Cycle Assessment (LCA) 
 
 ## Scientific paper
 Please have a look at our scientific paper on the Activity Browser and cite it in your work if it has been useful to you:
-https://doi.org/10.1016/j.simpa.2019.100012 
+https://doi.org/10.1016/j.simpa.2019.100012
 
 ## Youtube tutorials
 Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/) to learn how to install and use the Activity Browser.
 
 ## Contents
+- [Quickstart](#Quickstart)
 - [Installation](#installation)
     - [Conda](#conda)
     - [Configure conda channels](#configure-conda-channels)
@@ -53,6 +54,16 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
 - [License](#authors)
 - [Additional Resources](#additional-resources)
 
+## Quickstart
+
+You can install and start the activity-browser like this:
+
+```bash
+conda create -n ab -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage activity-browser
+conda activate ab
+activity-browser
+```
+
 ## Installation
 
 ### Conda
@@ -66,33 +77,32 @@ Skip this step if you already have a working installation of anaconda or minicon
 The activity-browser has many dependencies and you need to add five [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
 
 ```bash
-conda config --append channels conda-forge
+conda config --prepend channels conda-forge
 conda config --append channels cmutel
 conda config --append channels bsteubing
 conda config --append channels haasad
 conda config --append channels pascallesage
 ```
 
-If you have already installed brightway2 before, chances are you already have these channels in your config file. You can check your channels with `conda config --show channels`. The output should look something like this if everything is set up correctly:
+You can check your channels with `conda config --show channels`. The output should look like this if everything is set up correctly:
 
 ```bash
 channels:
-  - defaults
   - conda-forge
+  - defaults
   - cmutel
   - bsteubing
   - haasad
   - pascallesage
 ```
+You can also edit your user's `.condarc` file and modify the channels there. If you prefer to not add these channels to your conda config permanently, you'll have to always explicitly list them for `conda install` and `conda update` commands (see example in [Quickstart](#Quickstart)).
 
 ### Install the activity browser
 
 After configuring your conda channels, the activity browser can be installed with this command:
 
-02-06-2021 Currently we are using a different command since there's a different version of MKl we need. 
-
 ```bash
-conda create -n <Your Environment Name> -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser>2.4" mkl=2020.2 python=3.8
+conda create -n ab activity-browser
 ```
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
@@ -104,7 +114,8 @@ It is recommended that you have a separate conda environment for the activity br
 You may want to update the activity browser to receive new features & bugfixes:
 
 ```bash
-conda update -n ab --channel conda-forge activity-browser
+conda activate ab
+conda update activity-browser
 ```
 
 This will update the activity-browser and all of its dependencies in the conda environment called `ab`.
@@ -117,14 +128,14 @@ The most recent version of the master branch is automatically uploaded and gener
 Install the development version like this:
 
 ```bash
-conda create -y -n ab_dev -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage "activity-browser-dev>2019.10.30"
+conda create -n ab_dev activity-browser-dev
 ```
 
 Or update like this if you already have a dev environment:
 
 ```bash
 conda activate ab_dev
-conda update --channel conda-forge activity-browser-dev
+conda update activity-browser-dev
 ```
 
 ---
@@ -153,7 +164,7 @@ Then simply run `activity-browser` and the application will open.
 
 ## Contributing
 
-**Your contribution counts! The AB is a community project.** 
+**Your contribution counts! The AB is a community project.**
 
 If you have ideas for improvements to the code or documentation or want to propose new features, please take a look at our [contributing guidelines](CONTRIBUTING.md) and open issues and/or pull-requests.
 
