@@ -61,7 +61,6 @@ def format_activity_label(key, style='pnl', max_length=40):
     return wrap_text(label, max_length=max_length)
 
 
-=======
 def update_and_shorten_label(label, text, length=15, enable=True) -> None:
     """update and shorten label text to given given length and move entire name to tooltip.
 
