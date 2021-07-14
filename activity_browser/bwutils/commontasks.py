@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime as dt
 import hashlib
-from pathlib import Path
 import os
 import textwrap
+
 import arrow
 import brightway2 as bw
 from bw2data import databases
 from bw2data.proxies import ActivityProxyBase
-from bw2data.utils import natural_sort
 from bw2data.project import ProjectDataset, SubstitutableDatabase
-
-from .importers import ABPackage
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
@@ -22,12 +18,15 @@ When adding new methods, please use the sections below (or add a new section, if
 
 
 # Formatting
-def wrap_text(string, max_length=80):
-    """wrap the label making sure that key and name are in 2 rows"""
-    # idea from https://stackoverflow.com/a/39134215/4929813
-    wrapArgs = {'width': max_length, 'break_long_words': True, 'replace_whitespace': False}
-    fold = lambda line, wrapArgs: textwrap.fill(line, **wrapArgs)
-    return '\n'.join([fold(line, wrapArgs) for line in string.splitlines()])
+def wrap_text(string: str, max_length: int = 80) -> str:
+    """Wrap the label making sure that key and name are in 2 rows.
+
+    idea from https://stackoverflow.com/a/39134215/4929813
+    """
+    def fold(line: str) -> str:
+        return textwrap.fill(line, width=max_length, break_long_words=True,
+                             replace_whitespace=False)
+    return '\n'.join(map(fold, string.splitlines()))
 
 
 def format_activity_label(key, style='pnl', max_length=40):
@@ -61,6 +60,8 @@ def format_activity_label(key, style='pnl', max_length=40):
             return wrap_text(str(key))
     return wrap_text(label, max_length=max_length)
 
+
+=======
 def update_and_shorten_label(label, text, length=15, enable=True) -> None:
     """update and shorten label text to given given length and move entire name to tooltip.
 
@@ -78,6 +79,7 @@ def update_and_shorten_label(label, text, length=15, enable=True) -> None:
 
     label.setText('[{}]'.format(text))
     label.setToolTip(tooltip)
+
 
 # Switch brightway directory
 def switch_brightway2_dir(dirpath):
@@ -103,6 +105,16 @@ def switch_brightway2_dir(dirpath):
         print('Could not access BW_DIR as specified in settings.py')
         return False
 
+
+def cleanup_deleted_bw_projects() -> None:
+    """Clean up the deleted projects from disk.
+
+    NOTE: This cannot be done from within the AB.
+    """
+    n_dir = bw.projects.purge_deleted_directories()
+    print('Deleted {} unused project directories!'.format(n_dir))
+
+
 # Database
 def get_database_metadata(name):
     """ Returns a dictionary with database meta-information. """
@@ -114,14 +126,6 @@ def get_database_metadata(name):
         dt = arrow.get(dt).humanize()
     d['Last modified'] = dt
     return d
-
-
-def get_databases_data(databases):
-    """Returns a list with dictionaries that describe the available databases."""
-    data = []
-    for row, name in enumerate(natural_sort(databases)):
-        data.append(get_database_metadata(name))
-    yield data
 
 
 def is_technosphere_db(db_name: str) -> bool:
@@ -142,47 +146,6 @@ def is_technosphere_activity(activity: ActivityProxyBase) -> bool:
     if "type" not in activity:
         return is_technosphere_db(activity.key[0])
     return activity.get("type") == "process"
-
-
-def store_database_as_package(db_name: str, directory: str = None) -> bool:
-    """ Attempt to use `bw.BW2Package` to save the given database as an
-    isolated package that can be shared with others.
-    Returns a boolean signifying success or failure.
-    """
-    if db_name not in bw.databases:
-        return False
-    metadata = bw.databases[db_name]
-    db = bw.Database(db_name)
-    directory = directory or bw.projects.output_dir
-    output_dir = Path(directory)
-    if output_dir.suffix == ".bw2package":
-        out_file = output_dir
-    else:
-        out_file = output_dir / "{}.bw2package".format(db.filename)
-    # First, ensure the metadata on the database is up-to-date.
-    modified = dt.strptime(metadata["modified"], "%Y-%m-%dT%H:%M:%S.%f")
-    if "processed" in metadata:
-        processed = dt.strptime(metadata["processed"], "%Y-%m-%dT%H:%M:%S.%f")
-        if processed < modified:
-            db.process()
-    else:
-        db.process()
-    # Now that processing is done, perform the export.
-    ABPackage.unrestricted_export(db, out_file)
-    return True
-
-
-def import_database_from_package(filepath: str, alternate_name: str = None) -> (str, bool):
-    """ Make use of `bw.BW2Package` to import a database-like object
-    from the given file path.
-    Returns a string and boolean signifying the database name (if found)
-    and the success or failure of the import.
-    """
-    data = bw.BW2Package.import_file(filepath=filepath)
-    db = next(iter(data))
-    if alternate_name:
-        db.rename(alternate_name)
-    return db.name, True
 
 
 def count_database_records(name: str) -> int:
@@ -212,26 +175,6 @@ AB_names_to_bw_keys = {
 }
 
 bw_keys_to_AB_names = {v: k for k, v in AB_names_to_bw_keys.items()}
-
-def get_activity_data(datasets):
-    # if not fields:
-    #     fields = ["name", "reference product", "amount", "location", "unit", "database"]
-    # obj = {}
-    # for field in fields:
-    #     obj.update({field: key.get(field, '')})
-    # obj.update({"key": key})
-    for ds in datasets:
-        obj = {
-            'Activity': ds.get('name', ''),
-            'Reference product': ds.get('reference product', ''),  # only in v3
-            'Location': ds.get('location', 'unknown'),
-            # 'Amount': "{:.4g}".format(key['amount']),
-            'Unit': ds.get('unit', 'unknown'),
-            'Database': ds.get(['database'], 'unknown'),
-            'Uncertain': "True" if ds.get("uncertainty type", 0) > 1 else "False",
-            'key': ds,
-        }
-        yield obj
 
 
 def get_activity_name(key, str_length=22):
@@ -280,19 +223,6 @@ def build_activity_group_name(key: tuple, name: str = None) -> str:
     return "{}_{}".format(clean, simple_hash)
 
 
-def get_activity_data_as_lists(act_keys, keys=None):
-    results = dict()
-    for key in keys:
-        results[key] = []
-
-    for act_key in act_keys:
-        act = bw.get_activity(act_key)
-        for key in keys:
-            results[key].append(act.get(key, 'Unknown'))
-
-    return results
-
-
 def identify_activity_type(activity):
     """Return the activity type based on its naming."""
     name = activity["name"]
@@ -308,34 +238,19 @@ def identify_activity_type(activity):
         return "production"
 
 
-# Exchanges
-def get_exchanges_data(exchanges):
-    # TODO: not finished
-    results = []
-    for exc in exchanges:
-        results.append(exc)
-    for r in results:
-        print(r)
-
-
 # LCIA
-def unit_of_method(method):
+def unit_of_method(method: tuple) -> str:
+    """Attempt to return the unit of the given method."""
     assert method in bw.methods
-    return bw.methods[method].get('unit')
+    return bw.methods[method].get("unit", "unit")
 
-def get_LCIA_method_name_dict(keys):
-    """Impact categories in brightway2 are stored in tuples, which is unpractical for display in, e.g. dropdown Menues.
+
+def get_LCIA_method_name_dict(keys: list) -> dict:
+    """Impact categories in brightway2 are stored in tuples, which is
+    unpractical for display in, e.g. dropdown menus.
+
     Returns a dictionary with
-    keys: comma separated strings
-    values: brightway2 method tuples
+        keys: comma separated strings
+        values: brightway2 method tuples
     """
     return {', '.join(key): key for key in keys}
-
-
-#
-# def get_locations_in_db(db_name):
-#     """returns the set of locations in a database"""
-#     db = bw.Database(db_name)
-#     loc_set = set()
-#     [loc_set.add(act.get("location")) for act in db]
-#     return loc_set

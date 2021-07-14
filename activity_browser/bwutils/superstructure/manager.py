@@ -6,7 +6,11 @@ import pandas as pd
 
 from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_columns
-from .utils import EXCHANGE_KEYS, INDEX_KEYS, guess_flow_type
+from .utils import guess_flow_type
+
+
+EXCHANGE_KEYS = pd.Index(["from key", "to key"])
+INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
 
 
 class SuperstructureManager(object):

@@ -20,16 +20,6 @@ SUPERSTRUCTURE = pd.Index([
     "to key",
     "flow type",
 ])
-EXCHANGE_KEYS = pd.Index(["from key", "to key"])
-INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
-FROM_ALL = pd.Index([
-    "from activity name", "from reference product", "from location",
-    "from categories", "from database", "from key"
-])
-TO_ALL = pd.Index([
-    "to activity name", "to reference product", "to location", "to categories",
-    "to database", "to key"
-])
 
 
 def guess_flow_type(row: pd.Series) -> str:

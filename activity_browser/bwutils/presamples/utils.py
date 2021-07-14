@@ -1,34 +1,20 @@
+# -*- coding: utf-8 -*-
 import json
 from pathlib import Path
 from typing import Iterable, List, Optional
 
 import brightway2 as bw
-import pandas as pd
 from presamples import PresampleResource
 
 
-def load_scenarios_from_file(path: str) -> pd.DataFrame:
-    df = pd.read_excel(path, engine="openpyxl")
-    return df
-
-
-def save_scenarios_to_file(data: pd.DataFrame, path: str) -> None:
-    data.to_excel(excel_writer=path)
-
-
-def presamples_dir() -> Optional[Path]:
-    path = Path(bw.projects.dir, "presamples")
-    return path if path.is_dir() else None
-
-
 def count_presample_packages() -> int:
-    ps_dir = presamples_dir()
-    return sum(1 for _ in ps_dir.iterdir()) if ps_dir else 0
+    ps_dir = Path(bw.projects.dir).joinpath("presamples")
+    return sum(1 for _ in ps_dir.iterdir()) if ps_dir.is_dir() else 0
 
 
 def presamples_packages() -> Iterable:
-    ps_dir = presamples_dir()
-    return ps_dir.glob("*/datapackage.json") if ps_dir else []
+    ps_dir = Path(bw.projects.dir).joinpath("presamples")
+    return ps_dir.glob("*/datapackage.json") if ps_dir.is_dir() else []
 
 
 def find_all_package_names() -> List[str]:
@@ -63,7 +49,8 @@ def remove_package(path: Path) -> bool:
     """ Attempt to remove a presamples package with the given path
     returns success.
     """
-    if path.parent == presamples_dir() and path.is_dir():
+    ps_dir = Path(bw.projects.dir).joinpath("presamples")
+    if path.parent == ps_dir and path.is_dir():
         for p in path.iterdir():
             p.unlink()
         path.rmdir()

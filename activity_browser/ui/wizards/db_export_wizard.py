@@ -5,12 +5,12 @@ import brightway2 as bw
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from ...bwutils import commontasks as bc, exporters as exp
+from activity_browser.bwutils import exporters as exp
 
 
 EXPORTERS = {
     # Store data as a BW2Package.
-    "BW2Package": bc.store_database_as_package,
+    "BW2Package": exp.store_database_as_package,
     # Export the database, all project parameters and all parameters that are
     # related to that database as an Excel file.
     "Excel": exp.write_lci_excel,

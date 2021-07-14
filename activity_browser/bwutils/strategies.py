@@ -9,6 +9,8 @@ from bw2io.errors import StrategyError
 from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_by_fields
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
+from .commontasks import clean_activity_name
+
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
 
@@ -171,31 +173,10 @@ def hash_parameter_group(data: list) -> list:
     for ds in (ds for ds in data if "parameters" in ds):
         key = (ds.get("database"), ds.get("code"))
         simple_hash = hashlib.md5(":".join(key).encode()).hexdigest()
-        clean = _clean_activity_name(ds.get("name"))
+        clean = clean_activity_name(ds.get("name"))
         for p, d in ds.get("parameters", {}).items():
             d["group"] = "{}_{}".format(clean, simple_hash)
     return data
-
-
-def _clean_activity_name(activity_name: str) -> str:
-    """ Takes a given activity name and remove or replace all characters
-    not allowed to be in there.
-
-    TODO: Figure out how to import from commontasks.
-    """
-    remove = ",.%[]0123456789"
-    replace = " -"
-    # Remove invalid characters
-    for char in remove:
-        if char in activity_name:
-            activity_name = activity_name.replace(char, "")
-    # Replace spacing and dashes with underscores
-    for char in replace:
-        if char in activity_name:
-            activity_name = activity_name.replace(char, "_")
-    # strip underscores from start of string
-    activity_name = activity_name.lstrip("_")
-    return activity_name
 
 
 def csv_rewrite_product_key(data):
