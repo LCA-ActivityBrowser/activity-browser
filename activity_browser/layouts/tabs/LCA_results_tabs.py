@@ -1090,7 +1090,7 @@ class MonteCarloTab(NewAnalysisTab):
         # H-LAYOUT start simulation
         self.button_run = QPushButton('Run')
         self.label_iterations = QLabel('Iterations:')
-        self.iterations = QLineEdit('20')
+        self.iterations = QLineEdit('30')
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
         self.label_seed = QLabel('Random seed:')

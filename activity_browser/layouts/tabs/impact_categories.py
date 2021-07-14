@@ -3,7 +3,6 @@
 from PySide2 import QtCore, QtWidgets
 from ...ui.icons import qicons
 
-
 from ...ui.style import header, horizontal_line
 from ...ui.tables import CFTable, MethodsTable, MethodsTree
 from ...signals import signals
@@ -115,10 +114,6 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
         self.search_box.returnPressed.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
 
-        #Updates the search filter with each textchange, remove if it impacts performance
-        self.search_box.textChanged.connect(lambda: self.table.sync(query=self.search_box.text()))
-        self.search_box.textChanged.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
-
         signals.project_selected.connect(self.search_box.clear)
         signals.new_method.connect(self.method_copied)
 
@@ -136,7 +131,7 @@ class MethodsTab(QtWidgets.QWidget):
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
         self.tree.setVisible(not toggled)
-        #self.tree_settings_layout_container.setVisible(not toggled)
+        # self.tree_settings_layout_container.setVisible(not toggled)
         self.table.setVisible(toggled)
 
 

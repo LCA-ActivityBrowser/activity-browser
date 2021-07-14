@@ -127,7 +127,7 @@ class MethodsTree(ABDictTreeView):
         branch: the descending list of branch levels, list()
             branch example: ('CML 2001', 'climate change')"""
         indexes = self.selectedIndexes()
-        if indexes[1].data() != '' or indexes[2].data() != '':
+        if indexes[1].data() != '' or indexes[2].data() != '' or indexes[3].data() != '':
             return 'leaf', indexes[0].data()
         elif indexes[0].parent().data() is None:
             return 'root', indexes[0].data()

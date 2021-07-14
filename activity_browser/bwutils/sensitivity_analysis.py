@@ -192,7 +192,7 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
         data[params_index]['index'] = cf_index
         data[params_index]['GSA name'] = "CF: " + bio_act['name'] + str(bio_act['categories'])
 
-    print('CF filtering resulted in including {} of {} characteriation factors.'.format(
+    print('CHARACTERIZATION FACTORS filtering resulted in including {} of {} characteriation factors.'.format(
         len(data),
         len(lca.cf_params),
     ))
@@ -370,8 +370,22 @@ class GlobalSensitivityAnalysis(object):
 
         # Get Y (LCA scores)
         self.Y = self.mc.get_results_dataframe(act_key=self.activity.key)[self.method].to_numpy()
-        self.Y = np.log(self.Y)  # this makes it more robust for very uneven distributions of LCA results
-        # (e.g. toxicity related impacts); for not so large differences in LCIA results it should not matter
+
+        # log-transformation. This makes it more robust for very uneven distributions of LCA results (e.g. toxicity related impacts).
+        # Can only be applied if all Monte-Carlo LCA scores are either positive or negative.
+        # Should not be used when LCA scores overlap zero (sometimes positive and sometimes negative)
+        # if np.all(self.Y > 0) if self.Y[0] > 0 else np.all(self.Y < 0):  # check if all LCA scores are of the same sign
+        #     self.Y = np.log(np.abs(self.Y))  # this makes it more robust for very uneven distributions of LCA results
+        if np.all(self.Y > 0):  # all positive numbers
+            self.Y = np.log(np.abs(self.Y))
+            print('All positive LCA scores. Log-transformation performed.')
+        elif np.all(self.Y < 0):  # all negative numbers
+            self.Y = -np.log(np.abs(self.Y))
+            print('All negative LCA scores. Log-transformation performed.')
+        else:  # mixed positive and negative numbers
+            print('Log-transformation cannot be applied as LCA scores overlap zero.')
+
+        # print('Filtering took {} seconds'.format(np.round(time() - start, 2)))
 
         # define problem
         self.names = self.metadata.index  # ['GSA name']
