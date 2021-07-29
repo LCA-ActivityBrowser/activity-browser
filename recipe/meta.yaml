@@ -36,8 +36,10 @@ requirements:
     - networkx
     - pandas >=0.24.1
     - pyside2 >=5.13.1
+    - python-chromedriver-binary
     - salib >=1.3.11
     - seaborn
+    - selenium
     - presamples
     - openpyxl
     - xlrd<2.0  # https://github.com/brightway-lca/brightway2-io/issues/86

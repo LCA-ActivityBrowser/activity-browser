@@ -2,35 +2,33 @@
 import json
 import math
 import os
+from typing import Optional
 
-from PySide2.QtCore import QObject, Slot
-from PySide2.QtWidgets import QMenu, QAction, QMessageBox
-from bokeh.events import Tap
-from bokeh.io import export_png
-from jinja2 import Template
 import brightway2 as bw
-from bw2data.filesystem import safe_filename
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 import seaborn as sns
+from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
+from PySide2.QtCore import QObject, Slot
+from PySide2.QtWidgets import QMenu, QAction
+from bokeh.embed import file_html
+from bokeh.io import export_png, export_svg
+from bokeh.models import ColumnDataSource, HoverTool, CustomJS
+from bokeh.palettes import viridis
+from bokeh.plotting import figure as bfig
+from bw2data.filesystem import safe_filename
+from jinja2 import Template
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 
+from activity_browser.ui.web import webutils
+from .. import utils
 from ..bwutils.commontasks import wrap_text
 from ..settings import ab_settings
 
-from bokeh.models import ColumnDataSource, HoverTool, TapTool, OpenURL, CustomJS
-from bokeh.plotting import figure as bfig
-from bokeh.embed import file_html
-from bokeh.palettes import viridis
-
-
 # todo: sizing of the figures needs to be improved and systematized...
-# todo: Bokeh is a potential alternative as it allows interactive visualizations,
-#  but this issue needs to be resolved first: https://github.com/bokeh/bokeh/issues/8169
+
 
 class Plot(QtWidgets.QWidget):
     ALL_FILTER = "All Files (*.*)"
@@ -92,37 +90,6 @@ class Plot(QtWidgets.QWidget):
             self.figure.savefig(filepath)
 
 
-class LCAResultsBarChart(Plot):
-    """" Generate a bar chart comparing the absolute LCA scores of the products """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.plot_name = 'LCA scores'
-
-    def plot(self, df: pd.DataFrame, method: tuple, labels: list):
-        self.reset_plot()
-        height_inches, width_inches = self.get_canvas_size_in_inches()
-        self.figure.set_size_inches(height_inches, width_inches)
-
-        # https://github.com/LCA-ActivityBrowser/activity-browser/issues/489
-        df.index = pd.Index(labels)  # Replace index of tuples
-        show_legend = df.shape[1] != 1  # Do not show the legend for 1 column
-        df.plot.barh(ax=self.ax, legend=show_legend)
-        self.ax.invert_yaxis()
-
-        # labels
-        self.ax.set_yticks(np.arange(len(labels)))
-        self.ax.set_xlabel(bw.methods[method].get('unit'))
-        self.ax.set_title(', '.join([m for m in method]))
-        # self.ax.set_yticklabels(labels, minor=False)
-
-        # grid
-        self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
-        self.ax.set_axisbelow(True)  # puts gridlines behind bars
-
-        # draw
-        self.canvas.draw()
-
-
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -165,65 +132,7 @@ class LCAResultsPlot(Plot):
         self.canvas.draw()
 
 
-class ContributionPlot(Plot):
-    MAX_LEGEND = 30
-
-    def __init__(self):
-        super().__init__()
-        self.plot_name = 'Contributions'
-
-    def plot(self, df: pd.DataFrame, unit: str = None):
-        """ Plot a horizontal bar chart of the process contributions. """
-        dfp = df.copy()
-        dfp.index = dfp['index']
-        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
-        if 'Total' in dfp.index:
-            dfp.drop("Total", inplace=True)
-
-        self.ax.clear()
-        canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
-        optimal_height_inches = 4 + dfp.shape[1] * 0.55
-        # print('Optimal Contribution plot height:', optimal_height_inches)
-        self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
-
-        # avoid figures getting too large horizontally
-        dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
-        dfp.columns = pd.Index([wrap_text(i, max_length=40) for i in dfp.columns])
-        # Strip invalid characters from the ends of row/column headers
-        dfp.index = dfp.index.str.strip("_ \n\t")
-        dfp.columns = dfp.columns.str.strip("_ \n\t")
-
-        dfp.T.plot.barh(
-            stacked=True,
-            cmap=plt.cm.nipy_spectral_r,
-            ax=self.ax,
-            legend=False if dfp.shape[0] >= self.MAX_LEGEND else True,
-        )
-        self.ax.tick_params(labelsize=8)
-        if unit:
-            self.ax.set_xlabel(unit)
-
-        # show legend if not too many items
-        if not dfp.shape[0] >= self.MAX_LEGEND:
-            plt.rc('legend', **{'fontsize': 8})
-            ncols = math.ceil(dfp.shape[0] * 0.6 / optimal_height_inches)
-            # print('Ncols:', ncols, dfp.shape[0] * 0.55, optimal_height_inches)
-            self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
-
-        # grid
-        self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
-        self.ax.set_axisbelow(True)  # puts gridlines behind bars
-
-        # refresh canvas
-        # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
-        # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
-
-        size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumHeight(size_pixels[1])
-        self.canvas.draw()
-
-
-class BPlot(QtWidgets.QWidget):
+class BokehPlot(QtWidgets.QWidget):
     ALL_FILTER = "All Files (*.*)"
     PNG_FILTER = "PNG (*.png)"
     SVG_FILTER = "SVG (*.svg)"
@@ -231,45 +140,29 @@ class BPlot(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.figure = None
         self.plot_name = 'Figure'
-        self.bridge = Bridge(self)
-        self.channel = QtWebChannel.QWebChannel()
-        self.channel.registerObject('bridge', self.bridge)
 
         self.view = QtWebEngineWidgets.QWebEngineView()
-        self.view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # QtCore.Qt.NoContextMenu
-        #self.debugview = QtWebEngineWidgets.QWebEngineView()
-        self.view.customContextMenuRequested.connect(self.on_context_menu)
-        self.view.setMinimumHeight(400)
         self.page = QtWebEngineWidgets.QWebEnginePage()
-        self.page.setWebChannel(self.channel)
+        self.view.setContentsMargins(0, 0, 0, 0)
 
         # set the layout
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.view)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.updateGeometry()
 
-    def on_context_menu(self, pos):
-        # TODO: send signal from js using QChannel to let this know the index(process name) then link the action to open the process
-        context = QMenu(self)
-        context.addAction(QAction("Open activity list", self)) # connect to event handler
-        context.addAction(QAction("Other action", self))
-        context.popup(self.mapToGlobal(pos));  # .exec(self.mapToGlobal(pos))
+    def on_context_menu(self, *args, **kwargs):
+        raise NotImplementedError
 
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
     def reset_plot(self) -> None:
-        self.page.load(self.url)
-        # TODO: refresh page
-        # self.figure.clf()
-        # self.ax = self.figure.add_subplot(111)
-
-    def get_canvas_size_in_inches(self):
-        # print("Canvas size:", self.canvas.get_width_height())
-        return tuple(x / self.view.dpi for x in self.page.get_width_height())
+        self.view.reload()
 
     def savefilepath(self, default_file_name: str, file_filter: str = ALL_FILTER):
         default = default_file_name or "LCA results"
@@ -288,8 +181,8 @@ class BPlot(QtWidgets.QWidget):
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
-            # export_png(plot, filename=filepath)
-            # TODO: self.figure.savefig(filepath)
+            fig_width = self.figure.width + 500
+            export_png(self.figure, filename=filepath, width=fig_width)
 
     def to_svg(self):
         """ Export to .svg format. """
@@ -297,210 +190,220 @@ class BPlot(QtWidgets.QWidget):
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
-            # TODO: self.figure.savefig(filepath)
+            fig_width = self.figure.width + 500
+            self.figure.output_backend = "svg"
+            export_svg(self.figure, filename=filepath, width=fig_width)
+            self.figure.output_backend = "canvas"
 
 
-class BContributionPlot(BPlot):
-    MAX_LEGEND = 30
+class LCAResultsBarChart(BokehPlot):
+    """" Generate a bar chart comparing the absolute LCA scores of the products """
+    BAR_HEIGHT = 0.6
+
+    def on_context_menu(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.plot_name = 'LCA scores'
+
+    def plot(self, df: pd.DataFrame, method: tuple, labels: list):
+
+        df.index = pd.Index(labels)  # Replace index of tuples
+        show_legend = df.shape[1] != 1  # Do not show the legend for 1 column
+
+        if show_legend:
+            column_source = ColumnDataSource(df)
+        else:
+            column_source = ColumnDataSource({'values': list(df[0].values), 'index': list(df.index)})
+
+        x_max = max(df.max())
+        x_min = min(df.min())
+        lca_results_plot = bfig(title=(', '.join([m for m in method])), y_range=list(df.index),
+                                plot_height=BokehPlotUtils.calculate_bar_chart_height(bar_count=df.index.size,
+                                                                                      legend_item_count=df.columns.size),
+                                x_range=(x_min, x_max), tools=['hover'],
+                                tooltips=("$name: @$name" if show_legend else "@values"),
+                                sizing_mode="stretch_width", toolbar_location=None)
+
+        if show_legend:
+            lca_results_plot.hbar_stack(list(df.columns), height=self.BAR_HEIGHT, y='index', source=column_source,
+                                        legend_label=list(df.columns),
+                                        fill_color=viridis(len(df.columns)), line_width=0)
+        else:
+            lca_results_plot.hbar(y="index", height=self.BAR_HEIGHT, right="values", source=column_source)
+
+        # p.x_range.start = 0
+        lca_results_plot.xaxis.axis_label = bw.methods[method].get('unit')
+
+        if show_legend:
+            new_legend = lca_results_plot.legend[0]
+            lca_results_plot.legend[0] = None
+            lca_results_plot.legend[0].label_text_font_size = "8pt"
+            new_legend.click_policy = 'hide'
+            new_legend.location = (-200, 0)  # "bottom_left"
+            lca_results_plot.add_layout(new_legend, 'below')
+
+        lca_results_plot.ygrid.grid_line_color = None
+        lca_results_plot.axis.minor_tick_line_color = None
+        lca_results_plot.outline_line_color = None
+
+        self.figure = lca_results_plot
+
+        # Disable context menu as no actions at the moment
+        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+
+        template = BokehPlotUtils.build_html_bokeh_template()
+        html = file_html(lca_results_plot, template=template, resources=None)
+        self.page.setHtml(html)
+        self.view.setPage(self.page)
+
+
+class ContributionPlot(BokehPlot):
+    BAR_HEIGHT = 0.6
 
     def __init__(self):
         super().__init__()
         self.plot_name = 'Contributions'
+        self.data: pd.DataFrame = None
+        self.context_menu_actions: Optional[list] = None
+        self.chart_bridge: Optional[ChartBridge] = None
+        self.channel: Optional[QtWebChannel.QWebChannel] = None
 
-    def plot(self, df: pd.DataFrame, unit: str = None):
-        """ Plot a horizontal bar chart of the process contributions. """
-        package_dir = Path(__file__).resolve().parents[2]
-        bokeh_jspath = str(package_dir.joinpath("activity_browser", "static", "javascript", "bokeh-2.3.2.min.js"))
-        js_code = open(bokeh_jspath, mode="r", encoding='UTF-8').read()
+    def plot(self, df: pd.DataFrame, unit: str = None, context_menu_actions: [] = None,
+             is_relative: bool = True):
+        """ Plot a horizontal stacked bar chart of the process contributions. """
 
-        # TODO:
-            # Reduce js code - Let context menu be in Python
-            # Show context menu on right click
-            # 2 bugs assigned to me
-            # Add a debounce to cut-off slider
-
-
-        template = Template("""
-        <!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="utf-8">
-                <title>{{ title if title else "Bokeh Plot" }}</title>
-                 <script type="text/javascript">""" + js_code + """</script>
-                 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-                 <script type="text/javascript">
-                    Bokeh.set_log_level("info");
-                 </script>
-                 <style>
-                    option:hover {
-                      background-color: #e6e6e6;
-                    }
-                    option {
-                        padding: 5px;
-                    }
-                    select {
-                        overflow: hidden;
-                        background-color: #cccccc;
-                    }
-                    .hidden {
-                      visibility: hidden;
-                    }
-                    #contextMenu:active {
-                      box-shadow: 0 0 5px rgba(0, 0, 0, .25);
-                    }
-                    #contextMenu {
-                      z-index:100;
-                      box-sizing: border-box;
-                      position: absolute;
-                      box-shadow: 0 0 12px rgba(0, 0, 0, .25);
-                      transition: box-shadow ease-in 50ms;
-                    }
-            </style>
-            </head>
-            <body>
-                <div id='contextMenu' class='hidden'></div>
-                {{ plot_div | safe }}
-                {{ plot_script | safe }}
-                <script type="text/javascript">
-                    new QWebChannel(qt.webChannelTransport, function (channel) {
-                        window.bridge = channel.objects.bridge;
-                    });
-                    
-                    const options = ['Open Activity', 'Open details'] // TODO: This should come from configuration
-                    var result_dict = {} //action, sub_bar, bar
-                    const contextMenu = document.getElementById('contextMenu');
-                    function openContextMenu(sx, sy) { //Pass options and sx,sy here
-                        contextMenu.style.left = `${ sx }px`;
-                        contextMenu.style.top = `${ sy }px`;
-                        contextMenu.innerHTML = '';
-                        var select = document.createElement("select");
-                        select.id = "options"
-                        select.size = 2 //options.length
-                        for (const val of options)
-                        {
-                            var option = document.createElement("option");
-                            option.value = val;
-                            option.text = val.charAt(0).toUpperCase() + val.slice(1);
-                            select.appendChild(option);
-                        }
-                        select.onchange = () => {
-                            console.log('selection changed');
-                            result_dict.action = select.value;
-                            clearContextMenu();
-                            window.bridge.chart_interaction(JSON.stringify(result_dict));
-                        }
-                       contextMenu.appendChild(select);
-                       contextMenu.classList.remove('hidden');
-                    }
-                    document.onmousewheel = () => {
-                      clearContextMenu()
-                    };
-                    document.onkeydown = (e) => {
-                      if (e.key === 'Escape' || e.which === 27 || e.keyCode === 27) {
-                        clearContextMenu()
-                      }
-                    };
-                    function clearContextMenu(){
-                        contextMenu.classList.add('hidden');
-                        contextMenu.innerHTML = '';
-                    }
-                 </script>
-            </body>
-        </html> """)
-
+        # Prepare dataframe for plotting
         dfp = df.copy()
         dfp.index = dfp['index']
         dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
         if 'Total' in dfp.index:
             dfp.drop("Total", inplace=True)
 
-        # avoid figures getting too large horizontally
+        # Avoid figures getting too large horizontally
         dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
         dfp.columns = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.columns])
 
         contri_transpose = dfp.T
         contri_transpose = contri_transpose.fillna(0)
         column_source = ColumnDataSource(contri_transpose)
+        self.data = contri_transpose
 
-        height = 0.7
-        p = bfig(y_range=list(contri_transpose.index), plot_height=400, tools=['hover', 'pan', 'wheel_zoom'],
-                 tooltips="$name: @$name")
-        p.hbar_stack(list(contri_transpose.columns), height=height, y='index', source=column_source,
-                     legend_label=list(contri_transpose.columns),
-                     fill_color=viridis(len(contri_transpose.columns)), muted_alpha=2)
+        contribution_plot = bfig(y_range=list(contri_transpose.index), toolbar_location=None,
+                                 plot_height=BokehPlotUtils.calculate_bar_chart_height(
+                                     bar_count=contri_transpose.index.size,
+                                     legend_item_count=contri_transpose.columns.size),
+                                 sizing_mode="stretch_width")
+        contribution_plot.hbar_stack(list(contri_transpose.columns), height=self.BAR_HEIGHT, y='index',
+                                     source=column_source,
+                                     legend_label=list(contri_transpose.columns),
+                                     fill_color=viridis(len(contri_transpose.columns)), line_width=0)
 
-        new_legend = p.legend[0]
-        new_legend.location = "center"
-        p.legend[0] = None
-        p.legend[0].label_text_font_size = "8pt"
+        if is_relative:
+            contribution_plot.x_range.start = 0
+
+        if unit:
+            contribution_plot.xaxis.axis_label = unit
+
+        # Handle legend
+        new_legend = contribution_plot.legend[0]
+        new_legend.location = (-200, 0)  # "bottom_left"
+        contribution_plot.legend[0] = None
+        contribution_plot.legend[0].label_text_font_size = "8pt"
         new_legend.click_policy = 'hide'
-        p.add_layout(new_legend, 'below')
+        contribution_plot.add_layout(new_legend, 'below')
 
-        p.ygrid.grid_line_color = None
-        p.axis.minor_tick_line_color = None
-        p.outline_line_color = None
+        # Handle styling
+        contribution_plot.ygrid.grid_line_color = None
+        contribution_plot.axis.minor_tick_line_color = None
+        contribution_plot.outline_line_color = None
 
-        # TODO: Pass the key of the activity here so the js can send it back to bokeh
-        callback = CustomJS(args=dict(source=column_source, height=height, legend_labels=list(contri_transpose.columns)),
-                            code="""
-        console.log('works');
-        var bar_margin = 1 - height;
-        var bar_index = Math.floor(cb_obj.y);
-        var bar_index_start = bar_index + (bar_margin/2);
-        var bar_index_end = bar_index + 1 - (bar_margin/2);
-        var found = false;
-        if(cb_obj.x > 0 && cb_obj.y > 0 && bar_index < source.data.index.length 
-            && cb_obj.y >= bar_index_start && cb_obj.y <= bar_index_end)
-        {
-            console.log('On a bar');
-            var prev_val = 0;
-            for(var index in legend_labels)
-            {
-                var legend_label = legend_labels[index];
-                if(source.data[legend_label][bar_index.toString()]<=0)
-                    continue;
-                prev_val = source.data[legend_label][bar_index.toString()] + prev_val;
-                if(cb_obj.x < prev_val) {
-                    console.log(legend_label);
-                    result_dict.bar = source.data.index[bar_index];
-                    result_dict.sub_bar = legend_label;
-                    
-                    openContextMenu(cb_obj.sx, cb_obj.sy);
-                    found = true;
-                    break;
-                }
-            }
-            
-        }
-        if(!found) {
-            clearContextMenu()
-        }
-        """)
-        p.js_on_event('tap', callback)
+        self.figure = contribution_plot
 
-        html = file_html(p, template=template, resources=None)
+        # Prepare for right-click interactions
+        self.context_menu_actions = context_menu_actions
+        add_context_menu_actions = context_menu_actions is not None
+
+        hover_callback = None
+        if add_context_menu_actions:
+            self.chart_bridge = ChartBridge(self)
+            self.channel = QtWebChannel.QWebChannel()
+            self.channel.registerObject('chartBridge', self.chart_bridge)
+            self.page.setWebChannel(self.channel)
+            self.view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+            self.view.customContextMenuRequested.connect(self.on_context_menu)
+            hover_callback = CustomJS(code="""
+                                                    //console.log(cb_data)
+                                                    window.lastHover = {}
+                                                    window.lastHover.x = cb_data.geometry.x
+                                                    window.lastHover.y = cb_data.geometry.y
+                                                    """)
+        else:
+            self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+
+        hover_tool_plot = HoverTool(callback=hover_callback, tooltips="$name: @$name")
+        contribution_plot.add_tools(hover_tool_plot)
+
+        # Create static HTML and render in webview (this can be exported - will contain hover interaction)
+        template = BokehPlotUtils.build_html_bokeh_template(add_context_menu_communication=add_context_menu_actions,
+                                                            disable_horizontal_scroll=True)
+        html = file_html(contribution_plot, template=template, resources=None)
         self.page.setHtml(html)
-        #self.page.setDevToolsPage(self.debugview.page())
-        #self.debugview.show()
         self.view.setPage(self.page)
 
-
-class Bridge(QObject):
-    @Slot(str, name="chart_interaction")
-    def chart_interaction(self, interaction_args: str):
-        """ Is called when part of HBar is clicked in Javascript (via Bokeh callback).
-        Args:
-            interaction_args: string of a serialized json dictionary describing
-            - X axis label (Process/EF the part of Hbar represnts)
-            - Y axis label (Process/EF/Impact Category the Hbar represnts)
+    def on_context_menu(self, pos):
         """
-        #interaction_data_dict = json.loads(interaction_args)
-        print(interaction_args)
-        #TODO: Open activity or react to event
-        msgBox = QMessageBox()
-        msgBox.setText(interaction_args)
-        msgBox.setDefaultButton(QMessageBox.Ok)
-        msgBox.exec_()
+        Finds the bar and sub-bar, if position of right-click is correct, prepares context menu with actions passed and shows it
+        @param pos: Position of right-click within application window
+        @return:
+        """
+        if not self.context_menu_actions or self.chart_bridge.context_menu_x is None or self.chart_bridge.context_menu_y is None:
+            return
+
+        bar_margin = 1 - self.BAR_HEIGHT
+        bar_index = math.floor(self.chart_bridge.context_menu_y)
+        bar_index_start = bar_index + (bar_margin / 2)
+        bar_index_end = bar_index + 1 - (bar_margin / 2)
+        if (
+                self.chart_bridge.context_menu_x > 0 and self.chart_bridge.context_menu_y > 0 and bar_index < self.data.index.size
+                and bar_index_start <= self.chart_bridge.context_menu_y <= bar_index_end):
+            prev_val = 0
+            for col_index, column in enumerate(list(self.data.columns), start=0):
+                if self.data.iloc[bar_index][column] <= 0:
+                    continue
+                prev_val = self.data.iloc[bar_index][column] + prev_val
+                if self.chart_bridge.context_menu_x < prev_val:
+                    # bar_label = self.data.index[bar_index]
+                    # sub_bar_label = column
+
+                    context = QMenu(self)
+                    for action_name, _action in self.context_menu_actions:
+                        context_menu_item = QAction(action_name, self)
+                        context_menu_item.triggered.connect(
+                            lambda: _action(bar_index=bar_index, sub_bar_index=col_index))
+                        context.addAction(context_menu_item)
+                    context.popup(self.mapToGlobal(pos))
+                    break
+
+
+class ChartBridge(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.context_menu_x = 0
+        self.context_menu_y = 0
+
+    @Slot(str, name="set_context_menu_coordinates")
+    def set_context_menu_coordinates(self, args: str):
+        """ Called when user opens context menu by right-clicking on HBar.
+        Args:
+            args: string of a serialized json dictionary describing
+            - x: X axis label (Process the part of Hbar represnts)
+            - y: Y axis label (Process the part of Hbar represnts)
+        """
+        data_dict = json.loads(args)
+        self.context_menu_x = data_dict['x']
+        self.context_menu_y = data_dict['y']
 
 
 class CorrelationPlot(Plot):
@@ -590,3 +493,42 @@ class SimpleDistributionPlot(Plot):
         _, height = self.canvas.get_width_height()
         self.setMinimumHeight(height / 2)
         self.canvas.draw()
+
+
+class BokehPlotUtils:
+    BOKEH_JS_File_Name = "bokeh-2.3.2.min.js"
+
+    @staticmethod
+    def build_html_bokeh_template(add_context_menu_communication: bool = False,
+                                  disable_horizontal_scroll: bool = False):
+        bokeh_jspath = webutils.get_static_js_path(BokehPlotUtils.BOKEH_JS_File_Name)
+        bokeh_js_code = utils.read_file_text(bokeh_jspath)
+        template = Template("""
+                <!DOCTYPE html>
+                <html lang="en">
+                    <head>
+                         <meta charset="utf-8">
+                         <script type="text/javascript">""" + bokeh_js_code + """</script>
+                         """ + (
+            """<script src="qrc:///qtwebchannel/qwebchannel.js"></script>""" if add_context_menu_communication else "") + """
+                    </head>
+                    <body""" + (
+                                """ style="overflow-x:hidden;" """ if disable_horizontal_scroll else "") + """>
+                        {{ plot_div | safe }}
+                        {{ plot_script | safe }}
+                        """ + (
+                                """<script type="text/javascript">
+                                    new QWebChannel(qt.webChannelTransport, function (channel) {
+                                        window.chartBridge = channel.objects.chartBridge;
+                                    });
+                                  document.addEventListener('contextmenu', function(e) {
+                                     window.chartBridge.set_context_menu_coordinates(JSON.stringify({x:window.lastHover.x, y: window.lastHover.y}));
+                                  }, true);
+                                 </script>""" if add_context_menu_communication else "") + """
+                    </body>
+                </html> """)
+        return template
+
+    @staticmethod
+    def calculate_bar_chart_height(bar_count: int = 1, legend_item_count: int = 1):
+        return 100 + (90 * bar_count) + (30 * legend_item_count)
