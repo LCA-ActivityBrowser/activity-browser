@@ -35,7 +35,7 @@ Please have a look at our scientific paper on the Activity Browser and cite it i
 https://doi.org/10.1016/j.simpa.2019.100012
 
 ## Youtube tutorials
-Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/) to learn how to install and use the Activity Browser.
+Watch our videos on [youtube](https://www.youtube.com/watch?v=oeL_FOsNYfU&list=PLCL5MSXsvM4Q6cFgcMoc_wTGwHv973lpo) to learn how to install and use the Activity Browser.
 
 ## Contents
 - [Quickstart](#Quickstart)
