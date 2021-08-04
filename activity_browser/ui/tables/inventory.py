@@ -30,6 +30,9 @@ class DatabasesTable(ABDataFrameView):
         self.relink_action = QtWidgets.QAction(
             qicons.edit, "Relink database", None
         )
+        self.new_activity_action =QtWidgets.QAction(
+            qicons.add, "Add new activity", None
+        )
         self.model = DatabasesModel(parent=self)
         self._connect_signals()
 
@@ -39,6 +42,9 @@ class DatabasesTable(ABDataFrameView):
         )
         self.relink_action.triggered.connect(
             lambda: signals.relink_database.emit(self.selected_db_name)
+        )
+        self.new_activity_action.triggered.connect(
+            lambda: signals.new_activity.emit(self.selected_db_name)
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -54,14 +60,12 @@ class DatabasesTable(ABDataFrameView):
             qicons.duplicate_database, "Copy database",
             lambda: signals.copy_database.emit(self.selected_db_name)
         )
-        menu.addAction(
-            qicons.add, "Add new activity",
-            lambda: signals.new_activity.emit(self.selected_db_name)
-        )
+        menu.addAction(self.new_activity_action)
         proxy = self.indexAt(a0.pos())
         if proxy.isValid():
             db_name = self.model.get_db_name(proxy)
             self.relink_action.setEnabled(not project_settings.db_is_readonly(db_name))
+            self.new_activity_action.setEnabled(not project_settings.db_is_readonly(db_name))
         menu.exec_(a0.globalPos())
 
     def mousePressEvent(self, e):
