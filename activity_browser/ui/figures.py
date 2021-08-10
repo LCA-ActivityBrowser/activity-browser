@@ -14,7 +14,7 @@ from PySide2.QtCore import QObject, Slot
 from PySide2.QtWidgets import QMenu, QAction
 from bokeh.embed import file_html
 from bokeh.io import export_png, export_svg
-from bokeh.models import ColumnDataSource, HoverTool, CustomJS
+from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span
 from bokeh.palettes import viridis
 from bokeh.plotting import figure as bfig
 from bw2data.filesystem import safe_filename
@@ -26,6 +26,7 @@ from activity_browser.ui.web import webutils
 from .. import utils
 from ..bwutils.commontasks import wrap_text
 from ..settings import ab_settings
+
 
 # todo: sizing of the figures needs to be improved and systematized...
 
@@ -451,30 +452,45 @@ class CorrelationPlot(Plot):
         self.canvas.draw()
 
 
-class MonteCarloPlot(Plot):
+class MonteCarloPlot(BokehPlot):
     """ Monte Carlo plot."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.plot_name = 'Monte Carlo'
 
+    def on_context_menu(self, *args, **kwargs):
+        raise NotImplementedError
+
     def plot(self, df: pd.DataFrame, method: tuple):
-        self.ax.clear()
-
+        p = bfig(tools=['hover'], background_fill_color="#fafafa", toolbar_location=None, sizing_mode="stretch_width",
+                 tooltips=[("Probability", "@top"), ("Value", "@right")])
+        colors = viridis(df.columns.size)
+        i = 0
         for col in df.columns:
-            color = self.ax._get_lines.get_next_color()
-            df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color,
-                         alpha=0.5)  # , histtype="step")
-            # self.ax.axvline(df[col].median(), color=color)
-            self.ax.axvline(df[col].mean(), color=color)
+            hist, edges = np.histogram(df[col], density=True)
+            p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:], fill_color=colors[i], line_color="white",
+                   alpha=0.5, legend_label=col)
+            span = Span(location=df[col].mean(), dimension='height', line_color=colors[i], line_width=2)
+            p.renderers.append(span)
+            i = i + 1
 
-        self.ax.set_xlabel(bw.methods[method]["unit"])
-        self.ax.set_ylabel('Probability')
-        self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), )  # ncol=2
+        p.legend.location = "center"
+        p.legend.background_fill_color = "#fefefe"
+        p.legend.click_policy = 'hide'
+        p.xaxis.axis_label = bw.methods[method]["unit"]
+        p.yaxis.axis_label = 'Probability'
+        p.add_layout(p.legend[0], 'below')
 
-        # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
+        self.figure = p
 
-        self.canvas.draw()
+        # Disable context menu as no actions at the moment
+        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+
+        template = BokehPlotUtils.build_html_bokeh_template()
+        html = file_html(p, template=template, resources=None)
+        self.page.setHtml(html)
+        self.view.setPage(self.page)
 
 
 class SimpleDistributionPlot(Plot):

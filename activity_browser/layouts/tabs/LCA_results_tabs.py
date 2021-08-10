@@ -1338,7 +1338,6 @@ class MonteCarloTab(NewAnalysisTab):
 
     def update_plot(self, method):
         idx = self.layout.indexOf(self.plot)
-        self.plot.figure.clf()
         self.plot.deleteLater()
         # name is already altered by update_mc before update_plot
         name = self.plot.plot_name
