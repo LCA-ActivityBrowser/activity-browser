@@ -83,6 +83,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay = QtWidgets.QGridLayout()
         grid_lay.addWidget(QtWidgets.QLabel('Reference flow: '), 0, 0)
         grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
+        #TODO: If senario: Add senario controls
 
         self.update_calculation_setup()
 

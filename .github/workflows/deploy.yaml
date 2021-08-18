@@ -14,7 +14,7 @@ jobs:
       - name: Build and deploy
         uses: s-weigand/setup-conda@v1.0.5
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Install dependencies
         run: |
           conda install -q -y -c defaults conda-build anaconda-client conda-verify

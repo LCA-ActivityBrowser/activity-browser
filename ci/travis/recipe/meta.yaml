@@ -22,10 +22,11 @@ requirements:
     - python
     - setuptools
   run:
-    - python<3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
+    - python>=3.8, <=3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
     - arrow
+    - bokeh >=2.3.2
     - brightway2 >=2.1.2
-    - bw2io >=0.7.dev1
+    - bw2io >=0.8
     - bw2data >=3.6.1
     - eidl >=1.2.0
     - fuzzywuzzy
@@ -33,8 +34,10 @@ requirements:
     - networkx
     - pandas >=0.24.1
     - pyside2 >=5.13.1
+    - python-chromedriver-binary
     - salib >=1.3.11
     - seaborn
+    - selenium
     - presamples
     - openpyxl
     - xlrd<2.0  # https://github.com/brightway-lca/brightway2-io/issues/86
