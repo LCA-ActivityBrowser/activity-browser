@@ -945,9 +945,6 @@ class ElementaryFlowContributionTab(ContributionTab):
         Export options
     """
 
-    def get_context_menu_actions(self) -> []:
-        return None
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -976,6 +973,9 @@ class ElementaryFlowContributionTab(ContributionTab):
             **kwargs, limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative
         )
+
+    def get_context_menu_actions(self) -> []:
+        return None
 
 
 class ProcessContributionsTab(ContributionTab):
@@ -1034,17 +1034,15 @@ class ProcessContributionsTab(ContributionTab):
         return updated_dataframe
 
     def get_context_menu_actions(self) -> []:
-        if self.is_aggregated:
-            return None
-        return [("Open Activity", self.open_activity)]
+        if not self.is_aggregated:
+            return [("Open Activity", self.open_activity)]
 
-    def open_activity(self, bar_index: int, sub_bar_index: int):
+    def open_activity(self, sub_bar_index: int):
         if list(self.activity_key_label_map)[sub_bar_index] == "Rest":
             print("Cannot open Rest")
             return
         signals.open_activity_tab.emit(
             self.activity_key_label_map[list(self.activity_key_label_map)[sub_bar_index]])
-
 
 class CorrelationsTab(NewAnalysisTab):
     def __init__(self, parent):
