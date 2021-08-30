@@ -49,7 +49,10 @@ class DatabasesTable(ABDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
 
-    def contextMenuEvent(self, a0) -> None:
+    def contextMenuEvent(self, event) -> None:
+        if self.indexAt(event.pos()).row() == -1:
+            return
+
         menu = QtWidgets.QMenu(self)
         menu.addAction(
             qicons.delete, "Delete database",
@@ -61,12 +64,12 @@ class DatabasesTable(ABDataFrameView):
             lambda: signals.copy_database.emit(self.selected_db_name)
         )
         menu.addAction(self.new_activity_action)
-        proxy = self.indexAt(a0.pos())
+        proxy = self.indexAt(event.pos())
         if proxy.isValid():
             db_name = self.model.get_db_name(proxy)
             self.relink_action.setEnabled(not project_settings.db_is_readonly(db_name))
             self.new_activity_action.setEnabled(not project_settings.db_is_readonly(db_name))
-        menu.exec_(a0.globalPos())
+        menu.exec_(event.globalPos())
 
     def mousePressEvent(self, e):
         """ A single mouseclick should trigger the 'read-only' column to alter
@@ -127,6 +130,8 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     def contextMenuEvent(self, event) -> None:
         """ Construct and present a menu.
         """
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.right, "Open activity", self.open_activity_tabs)
         menu.addAction(

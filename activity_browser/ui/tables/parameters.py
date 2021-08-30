@@ -50,9 +50,11 @@ class BaseParameterTable(ABDataFrameView):
         self.resizeRowsToContents()
         self.setColumnHidden(self.model.param_col, True)
 
-    def contextMenuEvent(self, event: QContextMenuEvent):
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Have the parameter test to see if it can be deleted safely.
         """
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QMenu(self)
         menu.addAction(self.rename_action)
         menu.addAction(self.modify_uncertainty_action)
@@ -194,11 +196,13 @@ class ActivityParameterTable(BaseParameterTable):
         event.accept()
         signals.add_activity_parameters.emit(keys)
 
-    def contextMenuEvent(self, event: QContextMenuEvent):
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Override and activate QTableView.contextMenuEvent()
 
         All possible menu events should be added and wired up here
         """
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QMenu(self)
         menu.addAction(
             qicons.add, "Open activities", self.open_activity_tab
