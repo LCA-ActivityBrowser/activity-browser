@@ -123,7 +123,7 @@ This will update the activity-browser and all of its dependencies in the conda e
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
 
-The most recent version of the master branch is automatically uploaded and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
+The most recent version of the master branch is automatically uploaded to anaconda as the `activity-browser-dev` package and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
 Install the development version like this:
 
@@ -172,9 +172,10 @@ If you experience problems or are suffering from a specific bug, please [raise a
 
 ## Authors
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl)
-- Daniel de Koning (d.g.de.koning@cml.leidenuniv.nl)
+- Matthijs Vos (m.vos@cml.leidenuniv.nl)
 - Adrian Haas (haasad@ethz.ch)
 - Chris Mutel (cmutel@gmail.com)
+- Daniel de Koning (d.g.de.koning@cml.leidenuniv.nl)
 
 ## Contributing projects
 The development of the Activity Browser was co-financed by the following projects:
