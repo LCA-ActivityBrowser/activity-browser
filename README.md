@@ -212,7 +212,6 @@ __Activity Browser__:
   - paper on **modular LCA** using the Activity Browser: https://link.springer.com/article/10.1007/s11367-015-1015-3
   - documentation modular LCA: http://activity-browser.readthedocs.io/en/latest/index.html
   - re-implementation of modular LCA into the AB is ongoing, see here: https://github.com/marc-vdm/activity-browser/tree/mLCA
-- 
 
 __Brightway2__:
 - https://brightway.dev/
