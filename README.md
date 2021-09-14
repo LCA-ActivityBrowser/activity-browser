@@ -204,10 +204,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ## Additional Resources
 
 __Activity Browser__:
-- paper on the Activity Browser: https://doi.org/10.1016/j.simpa.2019.100012
-- paper on modular LCA using the Activity Browser: https://link.springer.com/article/10.1007/s11367-015-1015-3
-- documentation modular LCA: http://activity-browser.readthedocs.io/en/latest/index.html
-- version of the AB that includes modular LCA: https://bitbucket.org/bsteubing/activity-browser
+- **Activity Browser**: overview paper https://doi.org/10.1016/j.simpa.2019.100012
+- **Global Sensitiviy Analysis**: 
+  - paper describing GSA as implemented in the AB: https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194
+  - additional description on our Wiki: https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis 
+- **Modular LCA**:
+  - paper on **modular LCA** using the Activity Browser: https://link.springer.com/article/10.1007/s11367-015-1015-3
+  - documentation modular LCA: http://activity-browser.readthedocs.io/en/latest/index.html
+  - re-implementation of modular LCA into the AB is ongoing, see here: https://github.com/marc-vdm/activity-browser/tree/mLCA
+- 
 
 __Brightway2__:
 - https://brightway.dev/
