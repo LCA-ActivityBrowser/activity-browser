@@ -119,7 +119,7 @@ def drop_no_uncertainty_exchanges(excs, indices):
     excs_no = list()
     indices_no = list()
     for exc, ind in zip(excs, indices):
-        if exc.get('uncertainty type') != 0:
+        if exc.get('uncertainty type') >= 1:
             excs_no.append(exc)
             indices_no.append(ind)
     print('Dropping {} exchanges of {} with no uncertainty. {} remaining.'.format(
@@ -175,7 +175,7 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
     (in the biosphere matrix). Filters non-stochastic CFs if desired (default)."""
     data = dict()
     for params_index, row in enumerate(lca.cf_params):
-        if only_uncertain_CFs and row['uncertainty_type'] == 0:
+        if only_uncertain_CFs and row['uncertainty_type'] <= 1:
             continue
         cf_index = row['row']
         bio_act = bw.get_activity(lca.biosphere_dict_rev[cf_index])
