@@ -483,6 +483,10 @@ const cartographer = function() {
     let max_impact;
     canvas.render();
 
+    cartographer.update_svg_style = function (svg) {
+        window.style_element_text = svg
+    }
+
     // Allow update of graph by parsing a JSON document.
     cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
@@ -624,6 +628,36 @@ d3.select("#resetButtonqPWKOg").on("click", function() {
     canvas.reset();
 });
 
+d3.select("#downloadSVGtButtonqPWKOg").on("click", function() {
+    var parentTag = document.getElementById("canvasqPWKOg");
+    var svg = parentTag.firstChild
+    var clone = document.createElement('svg');
+    clone.setAttribute("xmlns","http://www.w3.org/2000/svg")
+    clone.setAttribute("xmlns:xlink","http://www.w3.org/1999/xlink")
+    clone.setAttribute("width","100%")
+    clone.setAttribute("height","4500") // TODO:
+    clone.insertAdjacentHTML('afterbegin', window.style_element_text)
+    var inner_graphic = document.getElementsByClassName("inner")[0]
+
+    const parser = new DOMParser();
+    const new_doc = parser.parseFromString(inner_graphic.outerHTML, "text/html");
+
+    var inner_graphic_staging = new_doc.getElementsByClassName("inner")[0]
+    panCanvasElem = inner_graphic_staging.getElementsByClassName("panCanvas")[0]
+    panCanvasElem.removeAttribute("width")
+    panCanvasElem.removeAttribute("height")
+    panCanvasElem.removeAttribute("transform")
+    var rect_elem = inner_graphic_staging.getElementsByClassName("background")[0]
+    inner_graphic_staging.removeChild(rect_elem);
+    clone.appendChild(inner_graphic_staging);
+
+    //get svg source.
+    var serializer = new XMLSerializer();
+    var source = serializer.serializeToString(clone);
+
+    window.bridge.download_triggered(source)
+});
+
 var max_string_length = 20;
 var max_edge_width = 40;
 var render = dagreD3.render();
@@ -680,5 +714,6 @@ function roundNumber(number) {
 new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
     window.bridge.graph_ready.connect(cartographer.update_graph);
+    window.bridge.style.connect(cartographer.update_svg_style);
 });
 

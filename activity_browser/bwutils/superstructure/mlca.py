@@ -156,6 +156,14 @@ class SuperstructureMLCA(MLCA):
                         self.lca.characterized_inventory.sum(axis=1)).ravel()
                     self.process_contributions[row, col, ps_col] = self.lca.characterized_inventory.sum(axis=0)
 
+    def perform_calculations_for_scenario(self, scenario_index, func_unit, method_index):
+        self.current = scenario_index
+        self.update_matrices()
+        self.lca.redo_lci(func_unit)
+        self.lca.characterization_matrix = self.method_matrices[method_index]
+        self.lca.lcia_calculation()
+        self.lca.decompose_technosphere()
+
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         """ Overrides the parent and returns a dataframe with the scenarios
          as columns

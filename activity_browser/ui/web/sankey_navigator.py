@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
-import os
 import json
+import os
 import time
+from typing import List
 
 import brightway2 as bw
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
+from PySide2.QtWidgets import QComboBox
 
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
+from ...bwutils.superstructure.graph_traversal import GraphTraversal
 from ...signals import signals
+
 
 # TODO:
 # switch between percent and absolute values
@@ -38,17 +42,20 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
     def __init__(self, cs_name, parent=None):
         super().__init__(parent)
-
+        self.parent = parent
         self.cs = cs_name
         self.selected_db = None
         self.has_sankey = False
         self.func_units = []
         self.methods = []
+        self.scenarios = []
         self.graph = Graph()
 
         # Additional Qt objects
+        self.scenario_label = QtWidgets.QLabel('Scenarios: ')
         self.func_unit_cb = QtWidgets.QComboBox()
         self.method_cb = QtWidgets.QComboBox()
+        self.scenario_cb = QtWidgets.QComboBox()
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()
         self.button_calculate = QtWidgets.QPushButton('Calculate')
@@ -71,6 +78,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         # checkboxes
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
+        self.scenario_cb.currentIndexChanged.connect(self.new_sankey)
         # self.cutoff_sb.valueChanged.connect(self.new_sankey)
         # self.max_calc_sb.valueChanged.connect(self.new_sankey)
 
@@ -82,13 +90,17 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         # Layout Reference Flows and Impact Categories
         grid_lay = QtWidgets.QGridLayout()
         grid_lay.addWidget(QtWidgets.QLabel('Reference flow: '), 0, 0)
-        grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 1, 0)
-        #TODO: If senario: Add senario controls
+
+        grid_lay.addWidget(self.scenario_label, 1, 0)
+        grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 2, 0)
+        # TODO: If senario: Add senario controls
 
         self.update_calculation_setup()
 
         grid_lay.addWidget(self.func_unit_cb, 0, 1)
-        grid_lay.addWidget(self.method_cb, 1, 1)
+        grid_lay.addWidget(self.scenario_cb, 1, 1)
+        grid_lay.addWidget(self.method_cb, 2, 1)
+
         # self.reload_pb = QtWidgets.QPushButton('Reload')
         # self.reload_pb.clicked.connect(self.new_sankey)
         # grid_lay.addWidget(self.reload_pb, 2, 0)
@@ -102,22 +114,22 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         # grid_lay.addWidget(self.color_attr_cb, 0, 3)
 
         # cut-off
-        grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 1, 2)
+        grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 2, 2)
         self.cutoff_sb.setRange(0.0, 1.0)
         self.cutoff_sb.setSingleStep(0.001)
         self.cutoff_sb.setDecimals(4)
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.cutoff_sb, 1, 3)
+        grid_lay.addWidget(self.cutoff_sb, 2, 3)
 
         # max-iterations of graph traversal
-        grid_lay.addWidget(QtWidgets.QLabel('Calculation depth: '), 1, 4)
+        grid_lay.addWidget(QtWidgets.QLabel('Calculation depth: '), 2, 4)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
         self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.max_calc_sb, 1, 5)
+        grid_lay.addWidget(self.max_calc_sb, 2, 5)
 
         grid_lay.setColumnStretch(6, 1)
         hlay = QtWidgets.QHBoxLayout()
@@ -150,6 +162,33 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.layout.addWidget(self.view)
         self.setLayout(self.layout)
 
+    @property
+    def using_presamples(self) -> bool:
+        """Check if presamples is used."""
+        return self.parent.using_presamples if self.parent else False
+
+    def get_scenario_labels(self) -> List[str]:
+        """Get scenario labels if presamples is used."""
+        return self.parent.mlca.scenario_names if self.using_presamples else []
+
+    def configure_scenario(self):
+        """Determine if scenario Qt widgets are visible or not and retrieve
+        scenario labels for the selection drop-down box.
+        """
+        self.scenario_cb.setVisible(self.using_presamples)
+        self.scenario_label.setVisible(self.using_presamples)
+        if self.using_presamples:
+            self.scenarios = self.get_scenario_labels()
+            self.update_combobox(self.scenario_cb, self.scenarios)
+
+    @staticmethod
+    def update_combobox(box: QComboBox, labels: List[str]) -> None:
+        """Update the combobox menu."""
+        box.blockSignals(True)
+        box.clear()
+        box.insertItems(0, labels)
+        box.blockSignals(False)
+
     def update_calculation_setup(self, cs_name=None) -> None:
         """Update Calculation Setup, reference flows and impact categories, and dropdown menus."""
         # block signals
@@ -164,6 +203,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.methods = bw.calculation_setups[self.cs]['ia']
         self.func_unit_cb.clear()
         self.func_unit_cb.addItems([repr(list(fu.keys())[0]) for fu in self.func_units])
+        self.configure_scenario()
         self.method_cb.clear()
         self.method_cb.addItems([repr(m) for m in self.methods])
 
@@ -173,18 +213,34 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
     def new_sankey(self) -> None:
         print("New Sankey for CS: ", self.cs)
-        demand = self.func_units[self.func_unit_cb.currentIndex()]
-        method = self.methods[self.method_cb.currentIndex()]
+        demand_index = self.func_unit_cb.currentIndex()
+        method_index = self.method_cb.currentIndex()
+
+        demand = self.func_units[demand_index]
+        method = self.methods[method_index]
+        scenario_index = None
+        perform_scenario = False
+        if self.using_presamples:
+            perform_scenario = True
+            scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()
         max_calc = self.max_calc_sb.value()
-        self.update_sankey(demand, method, cut_off=cutoff, max_calc=max_calc)
+        self.update_sankey(demand, method, perform_scenario=perform_scenario, scenario_index=scenario_index,
+                           demand_index=demand_index, method_index=method_index, cut_off=cutoff,
+                           max_calc=max_calc)
 
-    def update_sankey(self, demand, method, cut_off=0.05, max_calc=100) -> None:
+    def update_sankey(self, demand, method, scenario_index: int = None,
+                      demand_index: int = None, method_index: int = None,
+                      perform_scenario: bool = False, cut_off=0.05,
+                      max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
         print("Demand / Method: {} {}".format(demand, method))
         start = time.time()
+
         try:
-            data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+            data = GraphTraversal().calculate(demand, method, scenario_index, demand_index, method_index,
+                                              self.parent.mlca, perform_scenario,
+                                              cutoff=cut_off, max_calc=max_calc)
         except ValueError as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
         print("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
@@ -215,6 +271,7 @@ class Graph(BaseGraph):
     Functionality for graph navigation (e.g. adding and removing nodes).
     A JSON representation of the graph (edges and nodes) enables its use in javascript/html/css.
     """
+
     def new_graph(self, data):
         self.json_data = Graph.get_json_data(data)
         self.update()
@@ -253,6 +310,8 @@ class Graph(BaseGraph):
     @staticmethod
     def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
         act, amount = demand[0], demand[1]
+        if type(act) is tuple:
+            act = bw.get_activity(act)
         format_str = ("Reference flow: {:.2g} {} {} | {} | {} <br>"
                       "Total impact: {:.2g} {}")
         return format_str.format(
@@ -271,6 +330,7 @@ class Graph(BaseGraph):
 
         Inspired by https://stackoverflow.com/a/7045809
         """
+
         def build_json_node(act, values: dict) -> dict:
             return {
                 "db": act.key[0],
@@ -286,12 +346,14 @@ class Graph(BaseGraph):
                 "cum_norm": values.get("cum") / lca_score,
                 "class": "demand" if act == demand else identify_activity_type(act),
             }
+
         return build_json_node
 
     @staticmethod
     def compose_edge_builder(reverse_dict: dict, lca_score: float, lcia_unit: str):
         """Build a function which turns graph edges into valid JSON documents.
         """
+
         def build_json_edge(edge: dict) -> dict:
             p = bw.get_activity(reverse_dict[edge["from"]])
             from_key = reverse_dict[edge["from"]]
@@ -310,4 +372,5 @@ class Graph(BaseGraph):
                     edge["impact"], lcia_unit, edge["impact"] / lca_score * 100,
                 )
             }
+
         return build_json_edge

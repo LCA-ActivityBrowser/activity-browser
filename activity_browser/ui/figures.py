@@ -242,7 +242,7 @@ class LCAResultsBarChart(BokehPlot):
             lca_results_plot.legend[0] = None
             lca_results_plot.legend[0].label_text_font_size = "8pt"
             new_legend.click_policy = 'hide'
-            new_legend.location = (-200, 0)  # "bottom_left"
+            new_legend.location = (-100, 0)  # "bottom_left"
             lca_results_plot.add_layout(new_legend, 'below')
 
         lca_results_plot.ygrid.grid_line_color = None
@@ -286,7 +286,7 @@ class ContributionPlot(BokehPlot):
         dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
         dfp.columns = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.columns])
 
-        contri_transpose = dfp.T
+        contri_transpose = dfp.T # TODO: Issue: All charts seem to be corrupt
         contri_transpose = contri_transpose.fillna(0)
         column_source = ColumnDataSource(contri_transpose)
         self.data = contri_transpose
@@ -302,14 +302,14 @@ class ContributionPlot(BokehPlot):
                                      fill_color=viridis(len(contri_transpose.columns)), line_width=0)
 
         if is_relative:
-            contribution_plot.x_range.start = 0
+            contribution_plot.x_range.start = 0 # test case
 
         if unit:
             contribution_plot.xaxis.axis_label = unit
 
         # Handle legend
         new_legend = contribution_plot.legend[0]
-        new_legend.location = (-200, 0)  # "bottom_left"
+        new_legend.location = (-100, 0)  # "bottom_left"
         contribution_plot.legend[0] = None
         contribution_plot.legend[0].label_text_font_size = "8pt"
         new_legend.click_policy = 'hide'
