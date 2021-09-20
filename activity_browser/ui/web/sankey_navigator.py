@@ -11,7 +11,7 @@ from PySide2.QtWidgets import QComboBox
 
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
-from ...bwutils.superstructure.graph_traversal import GraphTraversal
+from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
 from ...signals import signals
 
 
@@ -52,7 +52,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.graph = Graph()
 
         # Additional Qt objects
-        self.scenario_label = QtWidgets.QLabel('Scenarios: ')
+        self.scenario_label = QtWidgets.QLabel('Scenario: ')
         self.func_unit_cb = QtWidgets.QComboBox()
         self.method_cb = QtWidgets.QComboBox()
         self.scenario_cb = QtWidgets.QComboBox()
@@ -219,28 +219,29 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         demand = self.func_units[demand_index]
         method = self.methods[method_index]
         scenario_index = None
-        perform_scenario = False
+        scenario_lca = False
         if self.using_presamples:
-            perform_scenario = True
+            scenario_lca = True
             scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()
         max_calc = self.max_calc_sb.value()
-        self.update_sankey(demand, method, perform_scenario=perform_scenario, scenario_index=scenario_index,
-                           demand_index=demand_index, method_index=method_index, cut_off=cutoff,
-                           max_calc=max_calc)
+        self.update_sankey(demand, method, scenario_lca=scenario_lca, scenario_index=scenario_index,
+                           method_index=method_index, cut_off=cutoff, max_calc=max_calc)
 
-    def update_sankey(self, demand, method, scenario_index: int = None,
-                      demand_index: int = None, method_index: int = None,
-                      perform_scenario: bool = False, cut_off=0.05,
+    def update_sankey(self, demand, method, scenario_index: int = None, method_index: int = None,
+                      scenario_lca: bool = False, cut_off=0.05,
                       max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
         print("Demand / Method: {} {}".format(demand, method))
         start = time.time()
 
         try:
-            data = GraphTraversal().calculate(demand, method, scenario_index, demand_index, method_index,
-                                              self.parent.mlca, perform_scenario,
-                                              cutoff=cut_off, max_calc=max_calc)
+            if scenario_lca:
+                self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+            else:
+                data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+
         except ValueError as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
         print("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
