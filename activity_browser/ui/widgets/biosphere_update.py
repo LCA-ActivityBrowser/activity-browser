@@ -3,7 +3,8 @@ import brightway2 as bw
 from bw2data.errors import ValidityError
 from bw2io.data import (
     add_ecoinvent_33_biosphere_flows, add_ecoinvent_34_biosphere_flows,
-    add_ecoinvent_35_biosphere_flows, add_ecoinvent_36_biosphere_flows,
+    add_ecoinvent_35_biosphere_flows, add_ecoinvent_36_biosphere_flows, add_ecoinvent_37_biosphere_flows,
+    add_ecoinvent_38_biosphere_flows,
 )
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
@@ -44,6 +45,8 @@ class UpdateBiosphereThread(QtCore.QThread):
         add_ecoinvent_34_biosphere_flows,
         add_ecoinvent_35_biosphere_flows,
         add_ecoinvent_36_biosphere_flows,
+        add_ecoinvent_37_biosphere_flows,
+        add_ecoinvent_38_biosphere_flows,
     )
     progress = Signal(int)
 
