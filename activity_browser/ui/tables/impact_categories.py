@@ -68,6 +68,10 @@ class MethodsTree(ABDictTreeView):
         super()._connect_signals()
         self.doubleClicked.connect(self.method_selected)
 
+    @Slot(name="syncTree")
+    def sync(self, query=None) -> None:
+        self.model.sync(query)
+
     @Slot(name="optionalExpandAll")
     def optional_expand(self) -> None:
         """auto-expand on sync with query through this function.

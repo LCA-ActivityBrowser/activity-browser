@@ -213,6 +213,10 @@ class MethodsTreeModel(BaseTreeModel):
             tree = deepcopy(self.tree_data)
             self._data, self.matches = self.search_tree(tree, self.query)
         else:
+            # TODO Temporary fix to clear the tree model. Might impact performance
+            self.setup_model_data()
+            # ________
+
             self._data = self.tree_data
         self.build_tree(self._data, self.root)
         self.endResetModel()
@@ -289,10 +293,9 @@ class MethodsTreeModel(BaseTreeModel):
                 here = here[elem]
             here[row[-1]] = row[-1]
 
+        tree, _ = MethodsTreeModel.simplify_dict(simple_dict)
 
-
-
-        return simple_dict
+        return tree
 
 #Work in progress
     @staticmethod
@@ -310,18 +313,15 @@ class MethodsTreeModel(BaseTreeModel):
 
         return dict(do_flatten(deep_dict, ()))
 
-    #het gaat mis in deze functie
+
     @staticmethod
     def simplify_dict(names_dict: dict) -> (dict, bool):
         """Recursively flatten the given nested dictionary."""
-
         clean_dict = {}
         for key, value in names_dict.items():
             if isinstance(value, dict):
-                i = len(value)
-                # if this is not the leaf node, go deeper to find leaf
+                # this is not the leaf node, go deeper to find leaf
                 tree, is_leaf = MethodsTreeModel.simplify_dict(value)
-
                 if not is_leaf and len(value) == 1:
                     # 'tree' is not leaf (end node) and only one sub level
                     # combine sublevel, then add to tree
