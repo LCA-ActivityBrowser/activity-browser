@@ -27,6 +27,7 @@ requirements:
     - numpy >=1.20.2
     - arrow
     - brightway2 >=2.1.2
+    - bw2calc <2
     - bw2io >=0.8.6
     - bw2data >=3.6.1
     - bw2calc=1.8.0
