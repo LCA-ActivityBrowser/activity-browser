@@ -156,6 +156,22 @@ class SuperstructureMLCA(MLCA):
                         self.lca.characterized_inventory.sum(axis=1)).ravel()
                     self.process_contributions[row, col, ps_col] = self.lca.characterized_inventory.sum(axis=0)
 
+    def update_lca_calculation_for_sankey(self, scenario_index: int, func_unit: str, method_index: int):
+        """
+        Reuses the LCA object to prepare the LCA object for necessary calculations to be made before performing the
+        Graph Traversal calculations
+
+        @param scenario_index: Index of the Scenario for which the calculation must be performed
+        @param func_unit: The functional unit for which the calculation must be performed
+        @param method_index: Index of the method for which the calculation must be performed
+        """
+        self.current = scenario_index
+        self.update_matrices()
+        self.lca.redo_lci(func_unit)
+        self.lca.characterization_matrix = self.method_matrices[method_index]
+        self.lca.lcia_calculation()
+        self.lca.decompose_technosphere()
+
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         """ Overrides the parent and returns a dataframe with the scenarios
          as columns
