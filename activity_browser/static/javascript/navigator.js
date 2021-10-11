@@ -1,4 +1,4 @@
-console.log ("Starting Graph Navigator.");
+console.log ("Starting "+is_sankey_mode ? "Sankey" : ""+" Navigator.");
 
 // SETUP GRAPH
 // https://github.com/dagrejs/graphlib/wiki/API-Reference
@@ -34,8 +34,8 @@ function getWindowSize() {
     return {x,y};
 };
 
-
-var max_string_length = 20.0
+var max_string_length = 20;
+var max_edge_width = 40;
 
 var globalWidth = null;
 var globalHeight = null;
@@ -60,8 +60,8 @@ d3.demo.canvas = function() {
     getWindowSize();
 
     "use strict";
-    console.log("Windowsize: w: "+globalWidth+ " ; h: "+globalHeight)
-    var width           = globalWidth*1.0,
+    console.log("w: "+globalWidth+ " ; h: "+globalHeight)
+    var width           = globalWidth*(is_sankey_mode?0.9:1.0),
         height          = globalHeight*0.6,
         base            = null,
         wrapperBorder   = 0,
@@ -73,7 +73,7 @@ d3.demo.canvas = function() {
     updateDimensions = function() {
         getWindowSize();
         width           = globalWidth*0.99;
-        height          = globalHeight*0.65;
+        height          = globalHeight*(is_sankey_mode?0.6:0.65);
     }
 
 
@@ -477,14 +477,23 @@ d3.demo.minimap = function() {
 /** GRAPH **/
 const cartographer = function() {
     // call to render to ensure sizing is correct.
+    let max_impact;
     canvas.render();
+
+    cartographer.update_svg_style = function (svg) {
+        window.style_element_text = svg
+    }
 
     // Allow update of graph by parsing a JSON document.
     cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
         let data = JSON.parse(json_data);
+        if(is_sankey_mode) {
+            max_impact = data["max_impact"];
+	        console.log("Max impact:", max_impact)
+	    }
         heading.innerHTML = data.title;
-        // Cleanup old graph
+        // Reset graph to empty
         graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
 
         // nodes --> graph
@@ -502,45 +511,91 @@ const cartographer = function() {
 
         // Adds click listener, calling handleMouseClick func
         var nodes = panCanvas.selectAll("g .node")
+            .on("click", handleMouseClick);
+
+        if(is_sankey_mode) {
+            nodes.on("mouseover", handleMouseOverNode)
+            nodes.on("mouseout", function(d) {
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+
+            // change node fill based on impact
+            var node_rects = panCanvas.selectAll("g .node rect")
             .on("click", handleMouseClick)
-            console.log ("click!");
+            .style("fill", function(d) {
+                console.log(color(graph.node(d).ind_norm));
+                return color(graph.node(d).ind_norm);
+            });
+        }
+
         // listener for mouse-hovers
         var edges = panCanvas.selectAll("g .edgePath")
-            .on("mouseover", handleMouseHover)
+            .on("mouseover", handleMouseOverEdge)
             .on("mouseout", function(d) {
-                div.transition()
-                .duration(500)
-                .style("opacity", 0);
-            });
+            div.transition()
+            .duration(500)
+            .style("opacity", 0);
+        });
+
+        if(is_sankey_mode) {
+            edges.attr("stroke-width", function(d) { return graph.edge(d).weight; })
+
+             // re-scale arrowheads to fit into edge (they become really big otherwise)
+            markers = d3.selectAll("marker")
+                .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
+        }
     };
 
     const buildGraphNode = function (n) {
-        graph.setNode(n['id'], {
-            label: formatNodeText(n['name'], n['location']),
-            labelType: "html",
+        var node_data = {
             product: n['product'],
             location: n['location'],
             id: n['id'],
             database: n['db'],
             class: n['class'],
-          });
+        };
+
+        if(is_sankey_mode) {
+            node_data.label = wrapText(n['name'], max_string_length)
+                          + '\n' + n['location']
+                          + '\n(' + Math.round(n['ind_norm'] * 100) + '%)';
+            node_data.ind_norm = n['ind_norm'];
+            node_data.tooltip = '<b>' + n['name'] + '</b>'
+                      + '<br>Individual impact: &nbsp&nbsp&nbsp' + roundNumber(n['ind']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)'
+                      + '<br>Cumulative impact: ' + roundNumber(n['cum']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cum_norm'] * 100) + '%)';
+        } else {
+            node_data.label = formatNodeText(n['name'], n['location']);
+            node_data.labelType = "html";
+        }
+
+        graph.setNode(n['id'], node_data);
     };
 
     const buildGraphEdge = function (e) {
-        graph.setEdge(
-            e['source_id'],
-            e['target_id'],
-            {
-                label: formatEdgeText(e['product'], max_string_length),
-                labelType: "html",
-                amount: e['amount'],
-                unit: e['unit'],
-                product: e['product'],
-                tooltip: e['tooltip'],
-                arrowhead: "vee",
-                curve: d3.curveBasis,
-            }
-        );
+        var edge_data = {
+            amount: e['amount'],
+            unit: e['unit'],
+            product: e['product'],
+            tooltip: e['tooltip'],
+            curve: d3.curveBasis,
+        }
+
+        if(is_sankey_mode) {
+            edge_data.label = wrapText(e['product']
+                + '\n(' + roundNumber(e['ind_norm']*100) + '%)', max_string_length);
+            edge_data.weight = Math.abs(e["impact"] / max_impact ) * max_edge_width;
+            let impact_or_benefit = "impact";
+            if (e['impact'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");};
+            edge_data.class = impact_or_benefit;
+        } else {
+            edge_data.label = formatEdgeText(e['product'], max_string_length);
+            edge_data.labelType = "html";
+            edge_data.arrowhead = "vee";
+        }
+
+        graph.setEdge(e['source_id'], e['target_id'], edge_data);
     };
 
     // Function called on click
@@ -562,9 +617,20 @@ const cartographer = function() {
         window.bridge.node_clicked(JSON.stringify(click_dict))
     };
 
-    const handleMouseHover = function (e) {
-        console.log ("mouseover!");
-        edge = graph.edge(e)
+    const handleMouseOverNode = function (n) {
+        console.log ("mouseover Node!");
+        node = graph.node(n);
+        div.transition()
+            .duration(200)
+            .style("opacity", .9);
+        div	.html(node.tooltip)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+    };
+
+    const handleMouseOverEdge = function (e) {
+        console.log ("mouseover Edge!");
+        edge = graph.edge(e);
         div.transition()
             .duration(200)
             .style("opacity", .9);
@@ -573,6 +639,7 @@ const cartographer = function() {
             .style("top", (d3.event.pageY - 28) + "px");
     };
 };
+
 
 /** RUN SCRIPT **/
 
@@ -584,14 +651,43 @@ d3.select("#resetButtonqPWKOg").on("click", function() {
     canvas.reset();
 });
 
+d3.select("#downloadSVGtButtonqPWKOg").on("click", function() {
+    var parentTag = document.getElementById("canvasqPWKOg");
+    var svg = parentTag.firstChild
+    var svg_rect = svg.getBBox(); // get the bounding rectangle
+    var clone = document.createElement('svg');
+    clone.setAttribute("xmlns","http://www.w3.org/2000/svg")
+    clone.setAttribute("xmlns:xlink","http://www.w3.org/1999/xlink")
+    clone.setAttribute("width",String(svg_rect.width))
+    clone.setAttribute("height",String(svg_rect.height))
+    clone.insertAdjacentHTML('afterbegin', window.style_element_text)
+    var inner_graphic = document.getElementsByClassName("inner")[0]
+
+    const parser = new DOMParser();
+    const new_doc = parser.parseFromString(inner_graphic.outerHTML, "text/html");
+
+    var inner_graphic_staging = new_doc.getElementsByClassName("inner")[0]
+    panCanvasElem = inner_graphic_staging.getElementsByClassName("panCanvas")[0]
+    panCanvasElem.removeAttribute("width")
+    panCanvasElem.removeAttribute("height")
+    panCanvasElem.removeAttribute("transform")
+    var rect_elem = inner_graphic_staging.getElementsByClassName("background")[0]
+    inner_graphic_staging.removeChild(rect_elem);
+    clone.appendChild(inner_graphic_staging);
+
+    //get svg source.
+    var serializer = new XMLSerializer();
+    var source = serializer.serializeToString(clone);
+
+    window.bridge.download_triggered(source)
+});
+
 // Construct 'render' object and initialize cartographer.
 var render = dagreD3.render();
 var graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
 cartographer();
 
 /* END OF ADAPTED DEMO SCRIPT*/
-
-
 
 /**
  * Build svg container and listen for zoom and drag calls
@@ -613,12 +709,28 @@ var div = d3.select("#canvasqPWKOg").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
+// Access graph size:
+//panCanvas.graph().width
+
+var color = d3.scaleLinear()
+    .domain([-99999999, -1, 0, 1, 99999999])
+    .range(["green", "green", "white", "red", "red"]);
+
+//var color = d3.scaleLinear()
+//    .domain([-1, 0, 1])
+//    .range(["green", "white", "red"]);
 
 // break strings into multiple lines after certain length if necessary
 function wrapText(str, length) {
     //console.log(str.replace(/.{10}\S*\s+/g, "$&@").split(/\s+@/).join("\n"))
-    return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join("<br>")
+    return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join(is_sankey_mode?"\n":"<br>")
 //    return str.match(new RegExp('.{1,' + length + '}', 'g')).join("\n");
+}
+
+function roundNumber(number) {
+//    return number.toFixed(2)
+    return number.toPrecision(3)
+//    return Math.round(number * 100)/100
 }
 
 function formatNodeText(name, location) {
@@ -633,7 +745,9 @@ function formatEdgeText(product) {
 }
 
 // Connect bridge to 'update_graph' function through QWebChannel.
-new QWebChannel(qt.webChannelTransport, function(channel) {
+new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge = channel.objects.bridge;
     window.bridge.graph_ready.connect(cartographer.update_graph);
+    window.bridge.style.connect(cartographer.update_svg_style);
 });
+

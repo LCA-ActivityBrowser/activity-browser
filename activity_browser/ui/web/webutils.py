@@ -58,3 +58,6 @@ class RestrictedWebViewWidget(QtWidgets.QWidget):
 
 def get_static_js_path(file_name: str = "") -> str:
     return str(get_base_path().joinpath("static", "javascript", file_name))
+
+def get_static_css_path(file_name: str = "") -> str:
+    return str(get_base_path().joinpath("static", "css", file_name))
