@@ -11,12 +11,13 @@ import pandas as pd
 import seaborn as sns
 from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PySide2.QtCore import QObject, Slot
-from PySide2.QtWidgets import QMenu, QAction
+from PySide2.QtGui import QMovie
+from PySide2.QtWidgets import QMenu, QAction, QLabel
 from bokeh.embed import file_html
 from bokeh.io import export_png, export_svg
 from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span
 from bokeh.palettes import viridis
-from bokeh.plotting import figure as bfig
+from bokeh.plotting import figure as bokeh_figure
 from bw2data.filesystem import safe_filename
 from jinja2 import Template
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -151,6 +152,7 @@ class BokehPlot(QtWidgets.QWidget):
         # set the layout
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.view)
+
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -163,9 +165,9 @@ class BokehPlot(QtWidgets.QWidget):
         raise NotImplementedError
 
     def reset_plot(self) -> None:
-        self.view.reload()
+        pass
 
-    def savefilepath(self, default_file_name: str, file_filter: str = ALL_FILTER):
+    def save_file_path(self, default_file_name: str, file_filter: str = ALL_FILTER):
         default = default_file_name or "LCA results"
         safe_name = safe_filename(default, add_hash=False)
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -178,7 +180,7 @@ class BokehPlot(QtWidgets.QWidget):
 
     def to_png(self):
         """ Export to .png format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
+        filepath = self.save_file_path(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
@@ -187,7 +189,7 @@ class BokehPlot(QtWidgets.QWidget):
 
     def to_svg(self):
         """ Export to .svg format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
+        filepath = self.save_file_path(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'
@@ -195,7 +197,6 @@ class BokehPlot(QtWidgets.QWidget):
             self.figure.output_backend = "svg"
             export_svg(self.figure, filename=filepath, width=fig_width)
             self.figure.output_backend = "canvas"
-
 
 class LCAResultsBarChart(BokehPlot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
@@ -220,12 +221,12 @@ class LCAResultsBarChart(BokehPlot):
 
         x_max = max(df.max())
         x_min = min(df.min())
-        lca_results_plot = bfig(title=(', '.join([m for m in method])), y_range=list(df.index),
-                                plot_height=BokehPlotUtils.calculate_bar_chart_height(bar_count=df.index.size,
-                                                                                      legend_item_count=df.columns.size),
-                                x_range=(x_min, x_max), tools=['hover'],
-                                tooltips=("$name: @$name" if show_legend else "@values"),
-                                sizing_mode="stretch_width", toolbar_location=None)
+        lca_results_plot = bokeh_figure(title=(', '.join([m for m in method])), y_range=list(df.index),
+                                        plot_height=BokehPlotUtils.calculate_bar_chart_height(bar_count=df.index.size,
+                                                                                              legend_item_count=df.columns.size),
+                                        x_range=(x_min, x_max), tools=['hover'],
+                                        tooltips=("$name: @$name" if show_legend else "@values"),
+                                        sizing_mode="stretch_width", toolbar_location=None)
 
         if show_legend:
             lca_results_plot.hbar_stack(list(df.columns), height=self.BAR_HEIGHT, y='index', source=column_source,
@@ -234,7 +235,12 @@ class LCAResultsBarChart(BokehPlot):
         else:
             lca_results_plot.hbar(y="index", height=self.BAR_HEIGHT, right="values", source=column_source)
 
-        # p.x_range.start = 0
+        # TODO:
+        # Handle scenarios and https://github.com/LCA-ActivityBrowser/activity-browser/issues/622
+        # In case of relative and the overall value is Negative then the scaling must be from 0 to -1
+
+        if x_min > 0 and x_max > 0:
+            lca_results_plot.x_range.start = 0
         lca_results_plot.xaxis.axis_label = bw.methods[method].get('unit')
 
         if show_legend:
@@ -261,55 +267,74 @@ class LCAResultsBarChart(BokehPlot):
 
 
 class ContributionPlot(BokehPlot):
-    BAR_HEIGHT = 0.6
+    BAR_HEIGHT = 0.4
 
     def __init__(self):
         super().__init__()
         self.plot_name = 'Contributions'
-        self.data: pd.DataFrame = None
-        self.context_menu_actions: Optional[list] = None
-        self.chart_bridge: Optional[ChartBridge] = None
-        self.channel: Optional[QtWebChannel.QWebChannel] = None
+        self.plot_data: pd.DataFrame = None
+        self.context_menu_actions: list = None
+        self.chart_bridge: ChartBridge = None
+        self.channel: QtWebChannel.QWebChannel = None
+        self.hover_callback = None
 
     def plot(self, df: pd.DataFrame, unit: str = None, context_menu_actions: [] = None,
              is_relative: bool = True):
-        """ Plot a horizontal stacked bar chart of the process contributions. """
+        """ Plot a horizontal stacked bar chart for the process and elementary flow contributions. """
+        self.context_menu_actions = context_menu_actions
 
-        # Prepare dataframe for plotting
-        dfp = df.copy()
-        dfp.index = dfp['index']
-        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
-        if 'Total' in dfp.index:
-            dfp.drop("Total", inplace=True)
+        # Copy, clean and transform the dataframe for plotting
+        self.plot_data = df.copy()
+        self.plot_data.index = self.plot_data['index']
+        self.plot_data.drop(self.plot_data.select_dtypes(['object']), axis=1,
+                            inplace=True)  # Remove all non-numeric columns (metadata)
+        if 'Total' in self.plot_data.index:
+            self.plot_data.drop("Total", inplace=True)
+        self.plot_data = self.plot_data.fillna(0)
+        self.plot_data = self.plot_data.T
 
-        # Avoid figures getting too large horizontally
-        dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
-        dfp.columns = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.columns])
+        # Avoid figures getting too large horizontally by text wrapping
+        self.plot_data.index = pd.Index([wrap_text(str(i), max_length=40) for i in self.plot_data.index])
+        self.plot_data.columns = pd.Index([wrap_text(str(i), max_length=40) for i in self.plot_data.columns])
 
-        contri_transpose = dfp.T # TODO: Issue: All charts seem to be corrupt
-        contri_transpose = contri_transpose.fillna(0)
-        column_source = ColumnDataSource(contri_transpose)
-        self.data = contri_transpose
+        # Handle negative values
+        has_negative_values = (self.plot_data.values < 0).any()
+        has_positive_values = (self.plot_data.values > 0).any()
+        positive_df = self.plot_data.copy()
+        if has_negative_values:
+            negative_df = self.plot_data[self.plot_data < 0]
+            negative_df = negative_df.fillna(0)
+            positive_df = self.plot_data[self.plot_data > 0]
+            positive_df = positive_df.fillna(0)
 
-        contribution_plot = bfig(y_range=list(contri_transpose.index), toolbar_location=None,
-                                 plot_height=BokehPlotUtils.calculate_bar_chart_height(
-                                     bar_count=contri_transpose.index.size,
-                                     legend_item_count=contri_transpose.columns.size),
-                                 sizing_mode="stretch_width")
-        contribution_plot.hbar_stack(list(contri_transpose.columns), height=self.BAR_HEIGHT, y='index',
-                                     source=column_source,
-                                     legend_label=list(contri_transpose.columns),
-                                     fill_color=viridis(len(contri_transpose.columns)), line_width=0)
+        # Compute plot height
+        plot_height = BokehPlotUtils.calculate_bar_chart_height(bar_count=self.plot_data.index.size,
+                                                                legend_item_count=self.plot_data.columns.size)
 
-        if is_relative:
-            contribution_plot.x_range.start = 0 # test case
+        # Prepare the plot and add stacked bars
+        contribution_plot = bokeh_figure(y_range=list(self.plot_data.index), toolbar_location=None,
+                                         plot_height=plot_height,
+                                         sizing_mode="stretch_width")
+        if has_positive_values:
+            contribution_plot.hbar_stack(list(positive_df.columns), height=self.BAR_HEIGHT, y='index',
+                                         source=ColumnDataSource(positive_df),
+                                         legend_label=list(positive_df.columns),
+                                         fill_color=viridis(len(positive_df.columns)), line_width=0)
+        if has_negative_values:
+            contribution_plot.hbar_stack(list(negative_df.columns), height=self.BAR_HEIGHT, y='index',
+                                         source=ColumnDataSource(negative_df),
+                                         legend_label=list(negative_df.columns),
+                                         fill_color=viridis(len(negative_df.columns)), line_width=0)
+
+        if not has_negative_values:
+            contribution_plot.x_range.start = 0
 
         if unit:
             contribution_plot.xaxis.axis_label = unit
 
-        # Handle legend
+        # Relocate the legend to bottom left to save space
         new_legend = contribution_plot.legend[0]
-        new_legend.location = (-100, 0)  # "bottom_left"
+        new_legend.location = (-200, 0)
         contribution_plot.legend[0] = None
         contribution_plot.legend[0].label_text_font_size = "8pt"
         new_legend.click_policy = 'hide'
@@ -322,42 +347,45 @@ class ContributionPlot(BokehPlot):
 
         self.figure = contribution_plot
 
-        # Prepare for right-click interactions
-        self.context_menu_actions = context_menu_actions
-        add_context_menu_actions = context_menu_actions is not None
+        # Handle context menu:
+        self.init_context_menu()
 
-        hover_callback = None
-        if add_context_menu_actions:
+        # Add tooltip on hover
+        hover_tool_plot = HoverTool(callback=self.hover_callback, tooltips="$name: @$name")
+        contribution_plot.add_tools(hover_tool_plot)
+
+        # Create static HTML and render in web-view (this can be exported - will contain hover interaction)
+        template = BokehPlotUtils.build_html_bokeh_template(
+            add_context_menu_communication=self.context_menu_actions is not None,
+            disable_horizontal_scroll=True)
+        html = file_html(contribution_plot, template=template, resources=None)
+        self.page.setHtml(html)
+        self.view.setPage(self.page)
+
+    def init_context_menu(self):
+        # Prepare context menu actions Array[tuples(label, function callback)]
+        if self.context_menu_actions is not None:
             self.chart_bridge = ChartBridge(self)
             self.channel = QtWebChannel.QWebChannel()
             self.channel.registerObject('chartBridge', self.chart_bridge)
             self.page.setWebChannel(self.channel)
             self.view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
             self.view.customContextMenuRequested.connect(self.on_context_menu)
-            hover_callback = CustomJS(code="""
-                                                    //console.log(cb_data)
-                                                    window.lastHover = {}
-                                                    window.lastHover.x = cb_data.geometry.x
-                                                    window.lastHover.y = cb_data.geometry.y
-                                                    """)
+            self.hover_callback = CustomJS(code="""
+                                                            //console.log(cb_data)
+                                                            window.lastHover = {}
+                                                            window.lastHover.x = cb_data.geometry.x
+                                                            window.lastHover.y = cb_data.geometry.y
+                                                            """)
         else:
+            self.hover_callback = None
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
-
-        hover_tool_plot = HoverTool(callback=hover_callback, tooltips="$name: @$name")
-        contribution_plot.add_tools(hover_tool_plot)
-
-        # Create static HTML and render in webview (this can be exported - will contain hover interaction)
-        template = BokehPlotUtils.build_html_bokeh_template(add_context_menu_communication=add_context_menu_actions,
-                                                            disable_horizontal_scroll=True)
-        html = file_html(contribution_plot, template=template, resources=None)
-        self.page.setHtml(html)
-        self.view.setPage(self.page)
 
     def on_context_menu(self, pos):
         """
-        Finds the bar and sub-bar, if position of right-click is correct, prepares context menu with actions passed and shows it
+        Finds the bar and sub-bar, if position of right-click is correct, prepares context menu with actions passed
+        and shows it with the co-ordinates passed to ChartBridge object
         @param pos: Position of right-click within application window
-        @return:
         """
         if not self.context_menu_actions or self.chart_bridge.context_menu_x is None or self.chart_bridge.context_menu_y is None:
             return
@@ -366,15 +394,27 @@ class ContributionPlot(BokehPlot):
         bar_index = math.floor(self.chart_bridge.context_menu_y)
         bar_index_start = bar_index + (bar_margin / 2)
         bar_index_end = bar_index + 1 - (bar_margin / 2)
-        if (
-                self.chart_bridge.context_menu_x > 0 and self.chart_bridge.context_menu_y > 0 and bar_index < self.data.index.size
-                and bar_index_start <= self.chart_bridge.context_menu_y <= bar_index_end):
+        if (self.chart_bridge.context_menu_y > 0 and bar_index < self.plot_data.index.size
+                and bar_index_start <= self.chart_bridge.context_menu_y <= bar_index_end):  # self.chart_bridge.context_menu_x > 0 and
+
+            data_table = self.plot_data.copy()
+            is_sub_bar_negative = self.chart_bridge.context_menu_x < 0
+
+            if is_sub_bar_negative:
+                data_table = data_table[data_table < 0]
+                data_table = data_table.abs()
+            else:
+                data_table = data_table[data_table > 0]
+
+            data_table = data_table.fillna(0)
+
             prev_val = 0
-            for col_index, column in enumerate(list(self.data.columns), start=0):
-                if self.data.iloc[bar_index][column] <= 0:
+            for col_index, column in enumerate(list(data_table.columns), start=0):
+                if data_table.iloc[bar_index][column] == 0:
                     continue
-                prev_val = self.data.iloc[bar_index][column] + prev_val
-                if self.chart_bridge.context_menu_x < prev_val:
+
+                prev_val = data_table.iloc[bar_index][column] + prev_val
+                if abs(self.chart_bridge.context_menu_x) < prev_val:
                     # bar_label = self.data.index[bar_index]
                     # sub_bar_label = column
 
@@ -389,6 +429,10 @@ class ContributionPlot(BokehPlot):
 
 
 class ChartBridge(QObject):
+    """
+    Chart bridge is used to communicate the co-ordinates in the chart where the user performs a right-click
+    """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.context_menu_x = 0
@@ -396,11 +440,13 @@ class ChartBridge(QObject):
 
     @Slot(str, name="set_context_menu_coordinates")
     def set_context_menu_coordinates(self, args: str):
-        """ Called when user opens context menu by right-clicking on HBar.
+        """
+        The set_context_menu_coordinates is called from the JS with the co-ordinates and these co-ordinates are then used to
+    open the context menu from python.
         Args:
             args: string of a serialized json dictionary describing
-            - x: X axis label (Process the part of Hbar represnts)
-            - y: Y axis label (Process the part of Hbar represnts)
+            - x: X axis co-ordinate (Index of the sub-bar(part-of bar) on which context menu was opened)
+            - y: Y axis co-ordinate (Index of the bar on which context menu was opened)
         """
         data_dict = json.loads(args)
         self.context_menu_x = data_dict['x']
@@ -463,8 +509,9 @@ class MonteCarloPlot(BokehPlot):
         raise NotImplementedError
 
     def plot(self, df: pd.DataFrame, method: tuple):
-        p = bfig(tools=['hover'], background_fill_color="#fafafa", toolbar_location=None, sizing_mode="stretch_width",
-                 tooltips=[("Probability", "@top"), ("Value", "@right")])
+        p = bokeh_figure(tools=['hover'], background_fill_color="#fafafa", toolbar_location=None,
+                         sizing_mode="stretch_width",
+                         tooltips=[("Probability", "@top"), ("Value", "@right")])
         colors = viridis(df.columns.size)
         i = 0
         for col in df.columns:
@@ -534,9 +581,14 @@ class BokehPlotUtils:
                         {{ plot_script | safe }}
                         """ + (
                                 """<script type="text/javascript">
+                                    // Connect to QWebChannel and accept the injected chartBridge object for communication
+                                    // with Pyside 
                                     new QWebChannel(qt.webChannelTransport, function (channel) {
                                         window.chartBridge = channel.objects.chartBridge;
                                     });
+                                    
+                                  // Called when user right-clicks, passes the co-ordinates to python via the injected  
+                                  // chartBridge object to open context menu from pyside
                                   document.addEventListener('contextmenu', function(e) {
                                      window.chartBridge.set_context_menu_coordinates(JSON.stringify({x:window.lastHover.x, y: window.lastHover.y}));
                                   }, true);
@@ -547,4 +599,4 @@ class BokehPlotUtils:
 
     @staticmethod
     def calculate_bar_chart_height(bar_count: int = 1, legend_item_count: int = 1):
-        return 100 + (90 * bar_count) + (30 * legend_item_count)
+        return 100 + (80 * bar_count) + (25 * legend_item_count)
