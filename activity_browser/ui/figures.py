@@ -239,7 +239,7 @@ class LCAResultsBarChart(BokehPlot):
         # Handle scenarios and https://github.com/LCA-ActivityBrowser/activity-browser/issues/622
         # In case of relative and the overall value is Negative then the scaling must be from 0 to -1
 
-        if x_min == x_max:
+        if x_min > 0 and x_max > 0:
             lca_results_plot.x_range.start = 0
         lca_results_plot.xaxis.axis_label = bw.methods[method].get('unit')
 
@@ -290,7 +290,7 @@ class ContributionPlot(BokehPlot):
                             inplace=True)  # Remove all non-numeric columns (metadata)
         if 'Total' in self.plot_data.index:
             self.plot_data.drop("Total", inplace=True)
-        self.plot_data.fillna(0)
+        self.plot_data = self.plot_data.fillna(0)
         self.plot_data = self.plot_data.T
 
         # Avoid figures getting too large horizontally by text wrapping
