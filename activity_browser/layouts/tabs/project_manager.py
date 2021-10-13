@@ -38,6 +38,7 @@ class ProjectTab(QtWidgets.QWidget):
     def connect_signals(self):
         signals.project_selected.connect(self.change_project)
         signals.database_selected.connect(self.update_widgets)
+        signals.database_changed.connect(self.update_widgets)
 
     def change_project(self):
         self.update_widgets()

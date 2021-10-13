@@ -40,6 +40,8 @@ class MethodsTable(ABDataFrameView):
         ))
 
     def contextMenuEvent(self, event) -> None:
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QtWidgets.QMenu(self)
         menu.addAction(
             qicons.copy, "Duplicate Impact Category",
@@ -94,6 +96,8 @@ class MethodsTree(ABDictTreeView):
 
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QtWidgets.QMenu(self)
         if self.tree_level()[0] == 'leaf':
             menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
@@ -182,6 +186,8 @@ class CFTable(ABDataFrameView):
             self.setColumnHidden(i, hide)
 
     def contextMenuEvent(self, event) -> None:
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QtWidgets.QMenu(self)
         menu.addAction(qicons.edit, "Modify uncertainty", self.modify_uncertainty)
         menu.addSeparator()

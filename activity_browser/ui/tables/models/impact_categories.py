@@ -274,8 +274,6 @@ class MethodsTreeModel(BaseTreeModel):
         """
         data = np.empty(df.shape[0], dtype=object)
 
-
-
         for idx, row in enumerate(df.to_numpy(dtype=object)):
             split = row[0].split(', ')  # split 'Name' column on ', '
             split.append(tuple(row))
@@ -286,16 +284,16 @@ class MethodsTreeModel(BaseTreeModel):
         #  option in the same answer
         simple_dict = {}
         for row in data:
+            tempRow = list(row[-1])
+            tempRow[0]= tempRow[-1][-1]
+            newRow = tuple(tempRow)
             here = simple_dict
-            for elem in row[:-1]:
+            for elem in row[:-2]:
                 if elem not in here:
                     here[elem] = {}
                 here = here[elem]
-            here[row[-1]] = row[-1]
-
-        tree, _ = MethodsTreeModel.simplify_dict(simple_dict)
-
-        return tree
+            here[row[-1]] = newRow
+        return simple_dict
 
 #Work in progress
     @staticmethod

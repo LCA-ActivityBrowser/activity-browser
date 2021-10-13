@@ -7,7 +7,11 @@ from typing import Type
 
 from PySide2 import QtWebEngineWidgets, QtWebChannel, QtWidgets
 from PySide2.QtCore import Signal, Slot, QObject, Qt, QUrl
+from bw2data.filesystem import safe_filename
 
+from . import webutils
+from ... import utils
+from ...settings import ab_settings
 from ...ui.icons import qicons
 from ...signals import signals
 
@@ -18,7 +22,7 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
     """
     HTML_FILE = ""
 
-    def __init__(self, parent=None, *args, **kwargs):
+    def __init__(self, parent=None, css_file: str = "", *args, **kwargs):
         super().__init__(parent)
 
         # Graph object subclassed from BaseGraph.
@@ -32,7 +36,11 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
         self.view.loadFinished.connect(self.load_finished_handler)
         self.view.setContextMenuPolicy(Qt.PreventContextMenu)
         self.view.page().setWebChannel(self.channel)
+        self.debugview = QtWebEngineWidgets.QWebEngineView()
+        self.view.page().setDevToolsPage(self.debugview.page())
+        self.debugview.show()
         self.url = QUrl.fromLocalFile(self.HTML_FILE)
+        self.css_file = css_file
 
         # Various Qt objects
         self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
@@ -81,6 +89,10 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
 
     def send_json(self) -> None:
         self.bridge.graph_ready.emit(self.graph.json_data)
+        css_path = webutils.get_static_css_path(self.css_file)
+        css_code = utils.read_file_text(css_path)
+        style_element = "<style>" + css_code + "</style>"
+        self.bridge.style.emit(style_element)
 
     def draw_graph(self) -> None:
         self.view.load(self.url)
@@ -90,9 +102,36 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
         pass
 
 
+ALL_FILTER = "All Files (*.*)"
+
+
+def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
+    default = default_file_name or "Graph SVG Export"
+    safe_name = safe_filename(default, add_hash=False)
+    filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+        caption='Choose location to save svg',
+        dir=os.path.join(ab_settings.data_dir, safe_name),
+        filter=file_filter,
+    )
+    return filepath
+
+
+def to_svg(svg):
+    """ Export to .svg format. """
+    # TODO: Exported filename
+    filepath = savefilepath(default_file_name="svg_export", file_filter="SVG (*.svg)")
+    if filepath:
+        if not filepath.endswith('.svg'):
+            filepath += '.svg'
+        svg_file = open(filepath, "w")
+        svg_file.write(svg)
+        svg_file.close()
+
+
 class Bridge(QObject):
     graph_ready = Signal(str)
     update_graph = Signal(object)
+    style = Signal(str)
 
     @Slot(str, name="node_clicked")
     def node_clicked(self, click_text: str):
@@ -106,6 +145,14 @@ class Bridge(QObject):
         click_dict["key"] = (click_dict["database"], click_dict["id"])  # since JSON does not know tuples
         print("Click information: ", click_dict)
         self.update_graph.emit(click_dict)
+
+    @Slot(str, name="download_triggered")
+    def download_triggered(self, svg: str):
+        """ Is called when a node is clicked in Javascript.
+        Args:
+            svg: string of svg
+        """
+        to_svg(svg)
 
 
 class BaseGraph(object):
