@@ -10,6 +10,7 @@ from collections import namedtuple
 from typing import Union
 
 import numpy as np
+from PySide2 import QtCore
 from PySide2.QtCore import QLocale, Qt, Signal, Slot
 from PySide2.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QRadioButton, QSlider, QLabel,
@@ -69,6 +70,14 @@ contributions to be shown")
         self.cutoff_slider_rght_btn = QPushButton(">")
         self.cutoff_slider_rght_btn.setToolTip("This button moves the cut-off value one increment")
 
+        self.debounce_slider = QtCore.QTimer()
+        self.debounce_slider.setInterval(750)
+        self.debounce_slider.setSingleShot(True)
+
+        self.debounce_text = QtCore.QTimer()
+        self.debounce_text.setInterval(300)
+        self.debounce_text.setSingleShot(True)
+
         self.make_layout()
         self.connect_signals()
 
@@ -79,16 +88,24 @@ contributions to be shown")
         self.cutoff_slider_lft_btn.clicked.connect(self.cutoff_increment_left_check)
         self.cutoff_slider_rght_btn.clicked.connect(self.cutoff_increment_right_check)
 
-        # Cut-off log slider
-        self.sliders.relative.valueChanged.connect(
-            lambda: self.cutoff_slider_relative_check("sl"))
-        self.cutoff_slider_line.textChanged.connect(
-            lambda: self.cutoff_slider_relative_check("le"))
-        # Cut-off slider
-        self.sliders.topx.valueChanged.connect(
-            lambda: self.cutoff_slider_topx_check("sl"))
-        self.cutoff_slider_line.textChanged.connect(
-            lambda: self.cutoff_slider_topx_check("le"))
+        self.debounce_slider.timeout.connect(self.initiate_slider_change)
+        self.debounce_text.timeout.connect(self.initiate_text_change)
+
+        self.sliders.relative.valueChanged.connect(self.debounce_slider.start)
+        self.sliders.topx.valueChanged.connect(self.debounce_slider.start)
+        self.cutoff_slider_line.textChanged.connect(self.debounce_text.start)
+
+    def initiate_slider_change(self):
+        if self.is_relative:
+            self.cutoff_slider_relative_check("sl")
+        else:
+            self.cutoff_slider_topx_check("sl")
+
+    def initiate_text_change(self):
+        if self.is_relative:
+            self.cutoff_slider_relative_check("le")
+        else:
+            self.cutoff_slider_topx_check("le")
 
     @property
     def is_relative(self) -> bool:

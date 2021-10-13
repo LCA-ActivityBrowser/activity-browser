@@ -55,7 +55,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     )
 
     def __init__(self, parent=None, key=None):
-        super().__init__(parent)
+        super().__init__(parent, css_file="navigator.css")
 
         self.graph = Graph()
 

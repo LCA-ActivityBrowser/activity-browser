@@ -17,12 +17,14 @@ class ActivitiesHistoryTable(ABDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
 
-    def contextMenuEvent(self, a0):
+    def contextMenuEvent(self, event) -> None:
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QMenu(self)
         menu.addAction(
             qicons.right, "Open in new tab", self.open_tab
         )
-        menu.exec_(a0.globalPos())
+        menu.exec_(event.globalPos())
 
     @Slot(name="openTab")
     def open_tab(self):

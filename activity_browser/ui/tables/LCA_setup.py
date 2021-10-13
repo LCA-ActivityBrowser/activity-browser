@@ -65,11 +65,13 @@ class CSActivityTable(ABDataFrameView):
     def to_python(self) -> list:
         return self.model.activities
 
-    def contextMenuEvent(self, a0) -> None:
+    def contextMenuEvent(self, event) -> None:
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.right, "Open activity", self.open_activities)
         menu.addAction(qicons.delete, "Remove row", self.delete_rows)
-        menu.exec_(a0.globalPos())
+        menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
         if getattr(event.source(), "technosphere", False):
@@ -105,13 +107,15 @@ class CSMethodsTable(ABDataFrameView):
     def to_python(self):
         return self.model.methods
 
-    def contextMenuEvent(self, a0) -> None:
+    def contextMenuEvent(self, event) -> None:
+        if self.indexAt(event.pos()).row() == -1:
+            return
         menu = QtWidgets.QMenu()
         menu.addAction(
             qicons.delete, "Remove row",
             lambda: self.model.delete_rows(self.selectedIndexes())
         )
-        menu.exec_(a0.globalPos())
+        menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
         if isinstance(event.source(), (MethodsTable, MethodsTree)):
