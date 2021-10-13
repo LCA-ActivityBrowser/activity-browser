@@ -61,7 +61,7 @@ def test_cutoff_menu_relative(qtbot):
     assert slider.sliders.relative.value() == 20
     assert slider.sliders.relative.log_value == 1.8
 
-    with qtbot.waitSignal(slider.slider_change, timeout=500):
+    with qtbot.waitSignal(slider.slider_change, timeout=800):
         slider.cutoff_slider_line.setText("0.1")
     assert slider.sliders.relative.value() == 40
     assert slider.sliders.relative.log_value == 10
@@ -70,7 +70,7 @@ def test_cutoff_menu_relative(qtbot):
 def test_cutoff_slider_toggle(qtbot):
     slider = CutoffMenu()
     qtbot.addWidget(slider)
-    with qtbot.waitSignal(slider.buttons.topx.toggled, timeout=500):
+    with qtbot.waitSignal(slider.buttons.topx.toggled, timeout=800):
         slider.buttons.topx.click()
     assert not slider.is_relative
     assert slider.limit_type == "number"
@@ -87,7 +87,7 @@ def test_cutoff_slider_top(qtbot):
     qtbot.mouseClick(slider.cutoff_slider_lft_btn, Qt.LeftButton)
     assert slider.sliders.topx.value() == 1
 
-    with qtbot.waitSignal(slider.slider_change, timeout=500):
+    with qtbot.waitSignal(slider.slider_change, timeout=800):
         slider.cutoff_slider_line.setText("15")
     assert slider.sliders.topx.value() == 15
 
