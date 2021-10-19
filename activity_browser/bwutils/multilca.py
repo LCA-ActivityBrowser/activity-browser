@@ -101,6 +101,7 @@ class MLCA(object):
         If the given `cs_name` cannot be found in brightway calculation_setups
 
     """
+
     def __init__(self, cs_name: str):
         try:
             cs = bw.calculation_setups[cs_name]
@@ -214,6 +215,7 @@ class MLCA(object):
     def all_databases(self) -> set:
         """ Get all databases linked to the reference flows.
         """
+
         def get_dependents(dbs: set, dependents: list) -> set:
             for dep in (bw.databases[db].get('depends', []) for db in dependents):
                 if not dbs.issuperset(dep):
@@ -377,7 +379,7 @@ class Contributions(object):
             cont_per.update({
                 ('Total', ''): C[col, :].sum(),
                 ('Rest', ''): C[col, :].sum() - top_contribution[:, 0].sum(),
-                })
+            })
             for value, index in top_contribution:
                 cont_per.update({rev_dict[index]: value})
             topcontribution_dict.update({fu_or_method: cont_per})
@@ -456,7 +458,7 @@ class Contributions(object):
         """
 
         # replace column keys with labels
-        df.columns = cls.get_labels(df.columns, fields=y_fields)#, separator='\n')
+        df.columns = cls.get_labels(df.columns, fields=y_fields)  # , separator='\n')
         # Coerce index to MultiIndex if it currently isn't
         if not isinstance(df.index, pd.MultiIndex):
             df.index = pd.MultiIndex.from_tuples(df.index)
@@ -500,6 +502,9 @@ class Contributions(object):
         `pandas.DataFrame`
             Annotated contribution dict inside a pandas dataframe
 
+        `dict`
+            Dictionary mapping keys and names (Used to open activity from charts)
+
         """
         dfs = (
             pd.DataFrame(v.values(), index=list(v.keys()), columns=[k])
@@ -528,8 +533,8 @@ class Contributions(object):
             df = df.reindex(combined_keys, axis="index", fill_value=0.0)
             df.index = self.get_labels(df.index, mask=mask)
             joined = df
-
-        return joined.reset_index(drop=False)
+        key_map = dict(zip(list(joined.index), list(df.index)))
+        return joined.reset_index(drop=False), key_map
 
     @staticmethod
     def adjust_table_unit(df: pd.DataFrame, method: Optional[tuple]) -> pd.DataFrame:
@@ -717,7 +722,7 @@ class Contributions(object):
             C = self.normalize(C)
 
         top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
-        labelled_df = self.get_labelled_contribution_dict(
+        labelled_df, _ = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
         self.adjust_table_unit(labelled_df, method)
@@ -752,6 +757,9 @@ class Contributions(object):
         `pandas.DataFrame`
             Annotated top-contribution dataframe
 
+        `dict`
+            Dictionary mapping keys and names (Used to open activity from charts)
+
         """
         C = self.get_contributions(self.ACT, functional_unit, method)
 
@@ -766,8 +774,8 @@ class Contributions(object):
             C = self.normalize(C)
 
         top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
-        labelled_df = self.get_labelled_contribution_dict(
+        labelled_df, key_label_map = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
         self.adjust_table_unit(labelled_df, method)
-        return labelled_df
+        return labelled_df, key_label_map
