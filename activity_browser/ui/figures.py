@@ -559,7 +559,7 @@ class SimpleDistributionPlot(Plot):
 
 
 class BokehPlotUtils:
-    BOKEH_JS_File_Name = "bokeh-2.3.2.min.js"
+    BOKEH_JS_File_Name = "bokeh-2.4.1.min.js"
 
     @staticmethod
     def build_html_bokeh_template(add_context_menu_communication: bool = False,
