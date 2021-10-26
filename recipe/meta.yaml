@@ -27,9 +27,9 @@ requirements:
     - numpy >=1.20.2
     - arrow
     - brightway2 >=2.1.2
-    - bw2io <=0.9
-    - bw2data <=4.0
-    - bw2calc<=2.0
+    - bw2io >=0.8.6
+    - bw2data >=3.6.1
+    - bw2calc=1.8.0
     - eidl >=1.2.0
     - fuzzywuzzy
     - matplotlib-base >=2.2.2
