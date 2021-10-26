@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8 ]
+        python-version: [ 3.8 ]
     steps:
       - uses: actions/checkout@v2
       - name: Testing python ${{ matrix.python-version }}
@@ -24,7 +24,7 @@ jobs:
             "bw2data>=3.6.1" "eidl>=1.2.0" fuzzywuzzy "matplotlib-base>=2.2.2" \
             networkx "pandas>=0.24.1" "pyside2>=5.13.1" "salib>=1.4" \
             seaborn presamples openpyxl "pytest>=5.2" pytest-qt \
-            pytest-mock "xlrd=1.2.0"
+            pytest-mock "xlrd=1.2.0" "bokeh >=2.4.1" python-chromedriver-binary selenium
       - name: Run tests
         run: |
           pytest
@@ -33,7 +33,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8 ]
+        python-version: [ 3.8 ]
     steps:
       - uses: actions/checkout@v2
       - name: Testing python ${{ matrix.python-version }}
@@ -50,7 +50,7 @@ jobs:
             "bw2data>=3.6.1" "eidl>=1.2.0" fuzzywuzzy "matplotlib-base>=2.2.2" `
             networkx "pandas>=0.24.1" "pyside2>=5.13.1" "salib>=1.4" `
             seaborn presamples openpyxl "pytest>=5.2" pytest-qt `
-            pytest-mock "xlrd=1.2.0"
+            pytest-mock "xlrd=1.2.0" "bokeh >=2.4.1" python-chromedriver-binary selenium
       - name: Run tests
         run: |
           pytest
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8 ]
+        python-version: [ 3.8 ]
     steps:
       - uses: actions/checkout@v2
       - name: Testing python ${{ matrix.python-version }}
@@ -83,7 +83,7 @@ jobs:
             "bw2data>=3.6.1" "eidl>=1.2.0" fuzzywuzzy "matplotlib-base>=2.2.2" \
             networkx "pandas>=0.24.1" "pyside2>=5.13.1" "salib>=1.4" \
             seaborn presamples openpyxl "pytest>=5.2" pytest-qt \
-            pytest-mock "xlrd=1.2.0" coveralls coverage pytest-cov
+            pytest-mock "xlrd=1.2.0" "bokeh >=2.4.1" python-chromedriver-binary selenium coveralls coverage pytest-cov
       - name: Run linux tests
         env:
           QT_DEBUG_PLUGINS: 1
@@ -110,10 +110,10 @@ jobs:
       PKG_NAME: "activity-browser-dev"
     steps:
       - uses: actions/checkout@v2
-      - name: Build and deploy 3.7
+      - name: Build and deploy 3.8
         uses: s-weigand/setup-conda@v1.0.5
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Install dependencies
         run: |
           conda install -q -y -c defaults conda-build anaconda-client conda-verify
