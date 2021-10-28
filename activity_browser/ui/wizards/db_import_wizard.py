@@ -961,6 +961,8 @@ class LoginThread(QtCore.QThread):
 
 
 class EcoinventVersionPage(QtWidgets.QWizardPage):
+    ALLOWED_SYSTEM_MODELS = ["cutoff", "consequential", "apos"]
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.wizard = self.parent()
@@ -983,14 +985,22 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         if self.db_dict is None:
             self.wizard.downloader.db_dict = self.wizard.downloader.get_available_files()
             self.db_dict = self.wizard.downloader.db_dict
-        self.system_models = {
-            version: sorted({k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True)
-            for version in sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
-        }
+        self.system_models = {}
+        for key_tuple in list(self.db_dict.keys()):
+            # Ignore items like ('electricity emission factors – scope 2 – 3 in v3.8.7z',) without system information
+            if len(key_tuple) == 2:
+                key, value = key_tuple
+                # Ignore the values like "Change Report"
+                if value in list(self.ALLOWED_SYSTEM_MODELS):
+                    self.system_models.setdefault(key, []).append(value)
+
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
+        if "technical report" in self.system_models:
+            del self.system_models["technical report"]
         if "universal" in self.system_models:
             del self.system_models["universal"]
+
         self.version_combobox.clear()
         self.system_model_combobox.clear()
         self.version_combobox.addItems(list(self.system_models.keys()))
