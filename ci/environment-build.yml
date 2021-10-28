@@ -1,0 +1,11 @@
+name: build
+channels:
+  - conda-forge
+  - cmutel
+  - bsteubing
+  - haasad
+  - pascallesage
+dependencies:
+  - conda-build
+  - anaconda-client
+  - conda-verify

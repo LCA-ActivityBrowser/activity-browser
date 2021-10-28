@@ -12,7 +12,6 @@ build:
   script_env:
     - PKG_NAME
     - VERSION
-    - CONDA_BLD_PATH
   entry_points:
     - activity-browser = activity_browser:run_activity_browser
     - activity-browser-cleanup = activity_browser.bwutils:cleanup
@@ -21,24 +20,7 @@ requirements:
   build:
     - python
     - setuptools
-  run:
-    - python>=3.8, <=3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
-    - arrow
-    - brightway2 >=2.1.2
-    - bw2io >=0.8.6
-    - bw2data >=3.6.1
-    - bw2calc=1.8.0
-    - eidl >=1.2.0
-    - fuzzywuzzy
-    - matplotlib-base >=2.2.2
-    - networkx
-    - pandas >=0.24.1
-    - pyside2 >=5.13.1
-    - salib >=1.4
-    - seaborn
-    - presamples
-    - openpyxl
-    - xlrd <2.0  # https://github.com/brightway-lca/brightway2-io/issues/86
+  run:  # dependencies are added via github action from ci/recipe/stable/meta.yaml
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
