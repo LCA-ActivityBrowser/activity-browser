@@ -1,4 +1,4 @@
-name: Deploy to anaconda
+name: stable conda release
 on:
   release:
     types:
@@ -7,39 +7,21 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      PKG_NAME: "activity-browser"
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
-      - name: Build and deploy
-        uses: s-weigand/setup-conda@v1.0.5
+      - name: Build and deploy 3.8
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: 3.8
-      - name: Install dependencies
+          activate-environment: build
+          environment-file: ci/environment-build.yml
+      - name: Build activity-browser stable
         run: |
-          conda install -q -y -c defaults conda-build anaconda-client conda-verify
-      - name: Prepare workdir and variables
-        # For setting the tag as version:
-        # https://stackoverflow.com/questions/58177786/get-the-current-pushed-tag-in-github-actions
+          conda build ci/recipe/stable
+      - name: Upload to anaconda.org
         run: |
-          mkdir -p ~/miniconda/conda-bld
-          echo "CONDA_BLD_PATH=~/miniconda/conda-bld" >> $GITHUB_ENV
-          echo "BUILD_YAML=${{ github.workspace }}/ci/travis/recipe" >> $GITHUB_ENV
-          echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Alter yaml file
-        # Strip the last sentence (as this is the stable version) out of the meta.yaml file.
-        # NOTE: this can get fiddly.
-        run: |
-          sed -i -e "`wc -l ${{ env.BUILD_YAML }}/meta.yaml | cut -d ' ' -f 1`d" ${{ env.BUILD_YAML }}/meta.yaml
-      - name: Build package
-        env:
-          BUILD_ARGS: "--no-anaconda-upload --no-test"
-        run: |
-          conda-build -c defaults -c conda-forge -c cmutel -c haasad -c pascallesage \
-            ${{ env.BUILD_ARGS }} ${{ env.BUILD_YAML }}
-      - name: Upload the stable package
-        env:
-          USER: "bsteubing"
-        run: |
-          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload -u ${{ env.USER }} \
-            -l main ${{ env.CONDA_BLD_PATH }}/noarch/${{ env.PKG_NAME }}-${{ env.VERSION }}-pypy_0.tar.bz2
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
+          /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2

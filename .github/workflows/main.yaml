@@ -1,71 +1,99 @@
-name: Pull request tests
+name: tests and development release
 on:
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
   push:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
-  test-macos:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        python-version: [ 3.7, 3.8 ]
+  patch-test-environment:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Patch test environment dependencies
+        # This step adds the run requirements from the stable recipe to the test environment
+        uses: mikefarah/yq@master
+        with:
+          cmd: |
+            yq eval-all 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' ci/environment-test.yml ci/recipe/stable/meta.yaml > patched-environment.yml
+      - name: Show patched environment
+        run: cat patched-environment.yml
+      - name: Upload patched environment as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: patched-environment
+          path: patched-environment.yml
+
+  test-macos:
+    runs-on: macos-latest
+    needs: patch-test-environment
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download patched test environment
+        uses: actions/download-artifact@v2
+        with:
+          name: patched-environment
       - name: Testing python ${{ matrix.python-version }}
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          conda install -q -y -c defaults -c conda-forge -c cmutel -c haasad \
-            -c pascallesage arrow "brightway2>=2.1.2" "bw2io>=0.8.6" "bw2calc=1.8.0" \
-            "bw2data>=3.6.1" "eidl>=1.2.0" fuzzywuzzy "matplotlib-base>=2.2.2" \
-            networkx "pandas>=0.24.1" "pyside2>=5.13.1" "salib>=1.4" \
-            seaborn presamples openpyxl "pytest>=5.2" pytest-qt \
-            pytest-mock "xlrd=1.2.0"
+          activate-environment: test
+          environment-file: patched-environment.yml
       - name: Run tests
         run: |
           pytest
 
   test-windows:
     runs-on: windows-latest
+    needs: patch-test-environment
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8 ]
+        python-version: [3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
+      - name: Download patched test environment
+        uses: actions/download-artifact@v2
+        with:
+          name: patched-environment
       - name: Testing python ${{ matrix.python-version }}
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install conda fix
-        run: |
-          conda install conda
-      - name: Install dependencies
-        run: |
-          conda install -q -y -c defaults -c conda-forge -c cmutel -c haasad `
-            -c pascallesage arrow "brightway2>=2.1.2" "bw2io >=0.8.6"  "bw2calc=1.8.0" `
-            "bw2data>=3.6.1" "eidl>=1.2.0" fuzzywuzzy "matplotlib-base>=2.2.2" `
-            networkx "pandas>=0.24.1" "pyside2>=5.13.1" "salib>=1.4" `
-            seaborn presamples openpyxl "pytest>=5.2" pytest-qt `
-            pytest-mock "xlrd=1.2.0"
+          activate-environment: test
+          environment-file: patched-environment.yml
       - name: Run tests
         run: |
           pytest
 
   test-linux:
     runs-on: ubuntu-latest
+    needs: patch-test-environment
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8 ]
+        python-version: [3.8, 3.9]
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
+      - name: Download patched test environment
+        uses: actions/download-artifact@v2
+        with:
+          name: patched-environment
       - name: Testing python ${{ matrix.python-version }}
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
+          activate-environment: test
+          environment-file: patched-environment.yml
       # See https://stackoverflow.com/a/60694208/14506150
       # and https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
       - name: Install linux dependencies
@@ -76,21 +104,16 @@ jobs:
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
           --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 \
           1920x1200x24 -ac +extension GLX +render -noreset;
-      - name: Install dependencies
+      - name: Install coveralls dependencies
         run: |
-          conda install -q -y -c defaults -c conda-forge -c cmutel -c haasad \
-            -c pascallesage arrow "brightway2>=2.1.2" "bw2io >=0.8.6" "bw2calc=1.8.0" \
-            "bw2data>=3.6.1" "eidl>=1.2.0" fuzzywuzzy "matplotlib-base>=2.2.2" \
-            networkx "pandas>=0.24.1" "pyside2>=5.13.1" "salib>=1.4" \
-            seaborn presamples openpyxl "pytest>=5.2" pytest-qt \
-            pytest-mock "xlrd=1.2.0" coveralls coverage pytest-cov
+          conda install -q -y coveralls coverage pytest-cov
       - name: Run linux tests
         env:
           QT_DEBUG_PLUGINS: 1
         run: |
           catchsegv xvfb-run --auto-servernum pytest --cov=activity_browser --cov-report=;
       - name: Upload coverage
-        if: ${{ matrix.python-version == '3.7' }}
+        if: ${{ matrix.python-version == '3.8' }}
         # https://github.com/lemurheavy/coveralls-public/issues/1435#issuecomment-763357004
         # https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
         # https://github.com/TheKevJames/coveralls-python/issues/252
@@ -102,38 +125,41 @@ jobs:
 
   deploy-development:
     # Make sure to only run a deploy if all tests pass.
-    #needs: [ "test-linux", "test-macos", "test-windows" ]
+    needs:
+      - test-linux
+      - test-macos
+      - test-windows
     # And only on a push event, not a pull_request.
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     env:
       PKG_NAME: "activity-browser-dev"
     steps:
       - uses: actions/checkout@v2
-      - name: Build and deploy 3.7
-        uses: s-weigand/setup-conda@v1.0.5
+      - name: Build and deploy 3.8
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.7
-      - name: Install dependencies
+          python-version: 3.8
+          activate-environment: build
+          environment-file: ci/environment-build.yml
+      - name: Export version
         run: |
-          conda install -q -y -c defaults conda-build anaconda-client conda-verify
-      - name: Prepare workdir and variables
-        run: |
-          mkdir -p ~/miniconda/conda-bld
           echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
-          echo "CONDA_BLD_PATH=~/miniconda/conda-bld" >> $GITHUB_ENV
-          echo "BUILD_YAML=${{ github.workspace }}/ci/travis/recipe" >> $GITHUB_ENV
+      - name: Patch recipe with run requirements from stable
+        uses: mikefarah/yq@master
+        # Adds the run dependencies from the stable recipe to the dev recipe (inplace)
+        with:
+          cmd: |
+            yq eval-all -i 'select(fi == 0).requirements.run += select(fi == 1).requirements.run | select(fi == 0)' ci/recipe/dev/meta.yaml ci/recipe/stable/meta.yaml
+      - name: Show patched dev recipe
+        run: cat ci/recipe/dev/meta.yaml
       - name: Build development package
-        env:
-          BUILD_ARGS: "--old-build-string --no-anaconda-upload --no-test"
         run: |
-          conda-build -c defaults -c conda-forge -c cmutel -c haasad -c pascallesage \
-            ${{ env.BUILD_ARGS }} ${{ env.BUILD_YAML }}
+          conda build ci/recipe/dev
       - name: Upload the development package
-        env:
-          UPLOAD_ARGS: "--force"
-          USER: "bsteubing"
         run: |
-          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload -u ${{ env.USER }} \
-            -l main ${{ env.CONDA_BLD_PATH }}/noarch/${{ env.PKG_NAME }}-${{ env.VERSION }}-py_0.tar.bz2 \
-            ${{ env.UPLOAD_ARGS }}
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload --force \
+          /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
