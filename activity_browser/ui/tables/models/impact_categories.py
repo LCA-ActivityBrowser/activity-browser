@@ -348,15 +348,18 @@ class MethodsTreeModel(BaseTreeModel):
                 else:
                     matches += 1
             else:
-                # this is not a leaf node, go deeper
-                sub_tree, matches = MethodsTreeModel.search_tree(value, query, matches)
-                if len(sub_tree) > 0:
-                    # there were query matches in this branch
-                    tree[key] = sub_tree
+                # this is not a leaf node
+                if query.lower() not in key.lower():
+                    # the query does not match, go deeper
+                    sub_tree, matches = MethodsTreeModel.search_tree(value, query, matches)
+                    if len(sub_tree) > 0:
+                        # there were query matches in this branch
+                        tree[key] = sub_tree
+                    else:
+                        # there were no query matches in this branch
+                        remove.append(key)
                 else:
-                    # there were no query matches in this branch
-                    remove.append(key)
-
+                    matches += 1
         for key in remove:
             tree.pop(key)
         return tree, matches
