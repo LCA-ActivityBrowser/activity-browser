@@ -128,15 +128,14 @@ class MethodsTree(ABDictTreeView):
 
     def tree_level(self) -> tuple:
         """Return list of (tree level, content).
-
         Where content depends on level:
-        leaf:   the name of impact category, str()
+        leaf:   the descending list of branch levels, list()
         root:   the name of the root, str()
         branch: the descending list of branch levels, list()
-            branch example: ('CML 2001', 'climate change')"""
+            leaf/branch example: ('CML 2001', 'climate change')"""
         indexes = self.selectedIndexes()
         if indexes[1].data() != '' or indexes[2].data() != '':
-            return 'leaf', indexes[0].data()
+            return 'leaf', self.find_levels()
         elif indexes[0].parent().data() is None:
             return 'root', indexes[0].data()
         else:
