@@ -224,7 +224,7 @@ class MethodsTreeModel(BaseTreeModel):
 
     def get_method(self, tree_level: tuple) -> tuple:
         """Retrieve method data"""
-        name = tree_level[1]
+        name = ", ".join(tree_level[1])
         methods = self._dataframe.loc[self._dataframe["Name"] == name, "method"]
         return next(iter(methods))
 
