@@ -275,7 +275,7 @@ class MethodsTreeModel(BaseTreeModel):
         data = np.empty(df.shape[0], dtype=object)
 
         for idx, row in enumerate(df.to_numpy(dtype=object)):
-            split = row[0].split(', ')  # split 'Name' column on ', '
+            split = list(row[3]) # convert tuple to list
             split.append(tuple(row))
             data[idx] = split
 
