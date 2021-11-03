@@ -47,6 +47,6 @@ about:
   license_file: LICENSE.txt
   summary: GUI for brightway2
   description: |
-    The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
+    The Activity Browser is a graphical user interface for the [brightway2](https://brightway.dev/)
     advanced life cycle assessment framework. More details and installation instructions can be found
     on [github](https://github.com/LCA-ActivityBrowser/activity-browser).
