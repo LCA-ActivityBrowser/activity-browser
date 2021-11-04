@@ -121,7 +121,7 @@ class MethodsTree(ABDictTreeView):
             filter_on = tree_level[1] + ', '
         else:
             # filter on the branch and its parents/roots
-            filter_on = ', '.join(tree_level[1])
+            filter_on = ', '.join(tree_level[1]) + ', '
 
         methods = self.model.get_methods(filter_on)
         return methods
