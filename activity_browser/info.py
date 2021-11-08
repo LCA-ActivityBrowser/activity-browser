@@ -1,3 +1,6 @@
-# -*- coding: utf-8 -*-
-__version__ = "2.6.3"
-__version_info__ = (2, 6, 3)
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version(__package__)
+except PackageNotFoundError:
+    __version__ = "0.0.0"
