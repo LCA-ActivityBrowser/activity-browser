@@ -224,7 +224,7 @@ class MethodsTreeModel(BaseTreeModel):
 
     def get_method(self, tree_level: tuple) -> tuple:
         """Retrieve method data"""
-        name = tree_level[1]
+        name = ", ".join(tree_level[1])
         methods = self._dataframe.loc[self._dataframe["Name"] == name, "method"]
         return next(iter(methods))
 
@@ -275,7 +275,7 @@ class MethodsTreeModel(BaseTreeModel):
         data = np.empty(df.shape[0], dtype=object)
 
         for idx, row in enumerate(df.to_numpy(dtype=object)):
-            split = row[0].split(', ')  # split 'Name' column on ', '
+            split = list(row[3]) # convert tuple to list
             split.append(tuple(row))
             data[idx] = split
 
@@ -348,15 +348,18 @@ class MethodsTreeModel(BaseTreeModel):
                 else:
                     matches += 1
             else:
-                # this is not a leaf node, go deeper
-                sub_tree, matches = MethodsTreeModel.search_tree(value, query, matches)
-                if len(sub_tree) > 0:
-                    # there were query matches in this branch
-                    tree[key] = sub_tree
+                # this is not a leaf node
+                if query.lower() not in key.lower():
+                    # the query does not match, go deeper
+                    sub_tree, matches = MethodsTreeModel.search_tree(value, query, matches)
+                    if len(sub_tree) > 0:
+                        # there were query matches in this branch
+                        tree[key] = sub_tree
+                    else:
+                        # there were no query matches in this branch
+                        remove.append(key)
                 else:
-                    # there were no query matches in this branch
-                    remove.append(key)
-
+                    matches += 1
         for key in remove:
             tree.pop(key)
         return tree, matches

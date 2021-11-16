@@ -12,7 +12,6 @@ build:
   script_env:
     - PKG_NAME
     - VERSION
-    - CONDA_BLD_PATH
   entry_points:
     - activity-browser = activity_browser:run_activity_browser
     - activity-browser-cleanup = activity_browser.bwutils:cleanup
@@ -21,27 +20,7 @@ requirements:
   build:
     - python
     - setuptools
-  run:
-    - python>=3.8, <=3.9  # https://github.com/conda-forge/pyside2-feedstock/issues/56
-    - arrow
-    - bokeh >=2.4.1
-    - brightway2 >=2.1.2
-    - bw2io >=0.8.6
-    - bw2data >=3.6.1
-    - bw2calc=1.8.0
-    - eidl >=1.2.0
-    - fuzzywuzzy
-    - matplotlib-base >=2.2.2
-    - networkx
-    - pandas >=0.24.1
-    - pyside2 >=5.13.1
-    - python-chromedriver-binary
-    - salib >=1.4
-    - seaborn
-    - selenium
-    - presamples
-    - openpyxl
-    - xlrd <2.0  # https://github.com/brightway-lca/brightway2-io/issues/86
+  run:  # dependencies are added via github action from ci/recipe/stable/meta.yaml
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
@@ -50,7 +29,7 @@ about:
   license_file: LICENSE.txt
   summary: "{{ os.environ.get('SUMMARY', 'Development version of the Activity Browser') }}"
   description: |
-    The Activity Browser is a graphical user interface for the [brightway2](https://brightwaylca.org/)
+    The Activity Browser is a graphical user interface for the [brightway2](https://brightway.dev/)
     advanced life cycle assessment framework. More details and installation instructions can be found
     on [github](https://github.com/LCA-ActivityBrowser/activity-browser).
     This is the development version. For the stable release install the `activity-browser` package.

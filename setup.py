@@ -17,9 +17,14 @@ for dirpath, dirnames, filenames in os.walk('activity_browser'):
             pkg = pkg.replace(os.path.altsep, '.')
         packages.append(pkg)
 
+if 'VERSION' in os.environ:
+    version = os.environ['VERSION']
+else:
+    version = os.environ.get('GIT_DESCRIBE_TAG', '0.0.0')
+
 setup(
     name='activity-browser',
-    version="2.6.3",
+    version=version,
     packages=packages,
     include_package_data=True,
     author="Bernhard Steubing",
