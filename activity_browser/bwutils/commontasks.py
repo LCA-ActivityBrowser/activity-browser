@@ -272,6 +272,17 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
     return data
 
 
+def get_exchanges_from_a_list_of_activities(activities: list, as_keys: bool = False) -> list:
+    """Get all exchanges in a list of activities."""
+    if as_keys:
+        activities = [bw.get_activity(key) for key in activities]
+    exchanges = []
+    for act in activities:
+        for exc in act.exchanges():
+            exchanges.append(exc)
+    return exchanges
+
+
 # LCIA
 def unit_of_method(method: tuple) -> str:
     """Attempt to return the unit of the given method."""
