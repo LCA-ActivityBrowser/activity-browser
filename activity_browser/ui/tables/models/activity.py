@@ -102,7 +102,7 @@ class BaseExchangeModel(EditablePandasModel):
             signals.exchange_uncertainty_modified.emit(exchange, uc.EMPTY_UNCERTAINTY)
 
     @Slot(list, name="copyFlowInformation")
-    def copy_flow_information(self, proxies: list) -> None:
+    def copy_exchanges_for_SDF(self, proxies: list) -> None:
         exchanges = [self.get_exchange(p) for p in proxies]
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)

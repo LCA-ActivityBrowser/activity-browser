@@ -190,7 +190,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
             key = self.get_key(proxies[0])
             signals.duplicate_to_db_interface.emit(key, self.database_name)
 
-    def copy_flow_information(self, proxies: list) -> None:
+    def copy_exchanges_for_SDF(self, proxies: list) -> None:
         if len(proxies) > 1:
             keys = [self.get_key(p) for p in proxies]
         else:
