@@ -36,6 +36,9 @@ class BaseExchangeTable(ABDataFrameView):
         self.remove_uncertainty_action = QtWidgets.QAction(
             qicons.delete, "Remove uncertainty/-ies", None
         )
+        self.copy_flow_information = QtWidgets.QAction(
+            qicons.superstructure, "Copy flow information", None
+        )
 
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
@@ -54,6 +57,9 @@ class BaseExchangeTable(ABDataFrameView):
         )
         self.remove_uncertainty_action.triggered.connect(
             lambda: self.model.remove_uncertainty(self.selectedIndexes())
+        )
+        self.copy_flow_information.triggered.connect(
+            lambda: self.model.copy_flow_information(self.selectedIndexes())
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -115,6 +121,7 @@ class ProductExchangeTable(BaseExchangeTable):
             return
         menu = QtWidgets.QMenu()
         menu.addAction(self.remove_formula_action)
+        menu.addAction(self.copy_flow_information)
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
@@ -164,6 +171,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
         menu.addAction(self.remove_uncertainty_action)
+        menu.addAction(self.copy_flow_information)
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
@@ -210,6 +218,7 @@ class BiosphereExchangeTable(BaseExchangeTable):
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
         menu.addAction(self.remove_uncertainty_action)
+        menu.addAction(self.copy_flow_information)
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
