@@ -116,6 +116,9 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.delete_activity_action = QtWidgets.QAction(
             qicons.delete, "Delete activity/-ies", None
         )
+        self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
+            qicons.superstructure, "Exchanges for scenario difference file", None
+        )
 
         self.connect_signals()
 
@@ -147,6 +150,14 @@ class ActivitiesBiosphereTable(ABDataFrameView):
             qicons.duplicate_to_other_database, "Duplicate to other database",
             self.duplicate_activities_to_db
         )
+
+        # Submenu copy to clipboard
+        submenu_copy = QtWidgets.QMenu(menu)
+        submenu_copy.setTitle('Copy to clipboard')
+        submenu_copy.setIcon(qicons.copy_to_clipboard)
+        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        menu.addMenu(submenu_copy)
+
         menu.exec_(event.globalPos())
 
     def connect_signals(self):
@@ -157,6 +168,7 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         )
         self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
         self.delete_activity_action.triggered.connect(self.delete_activities)
+        self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
         self.doubleClicked.connect(self.open_activity_tab)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -188,6 +200,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     @Slot(name="duplicateActivitiesToOtherDb")
     def duplicate_activities_to_db(self) -> None:
         self.model.duplicate_activities_to_db(self.selectedIndexes())
+
+    @Slot(name="copyFlowInformation")
+    def copy_exchanges_for_SDF(self) -> None:
+        self.model.copy_exchanges_for_SDF(self.selectedIndexes())
 
     def sync(self, db_name: str) -> None:
         self.model.sync(db_name)

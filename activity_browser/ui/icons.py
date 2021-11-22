@@ -70,6 +70,10 @@ class Icons(object):
     welcome = create_path('main', 'welcome.png')
     main_window = create_path('main', 'home.png')
 
+    # other
+    superstructure = create_path('main', 'superstructure.png')
+    copy_to_clipboard = create_path('main', 'copy_to_clipboard.png')
+
 
 class QIcons(Icons):
     """ Using the Icons class, returns the same attributes, but as QIcon type

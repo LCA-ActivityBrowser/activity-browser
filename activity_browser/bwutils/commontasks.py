@@ -237,6 +237,52 @@ def identify_activity_type(activity):
         return "production"
 
 
+# EXCHANGES
+def get_exchanges_in_scenario_difference_file_notation(exchanges):
+    """From a list of exchanges get the information needed for the scenario difference (SDF) file that is used in
+    conjunction with the superstructure approach. This is a convenience function to export data from the AB in a format
+    suitable for the SDF. """
+    data = []
+    for exc in exchanges:
+        try:
+            from_act = bw.get_activity(exc.get('input'))
+            to_act = bw.get_activity(exc.get('output'))
+
+            row = {
+                'from activity name': from_act.get('name', ''),
+                'from reference product': from_act.get('reference product', ''),
+                'from location': from_act.get('location', ''),
+                'from categories': from_act.get('categories', ''),
+                'from database': from_act.get('database', ''),
+                'from key': from_act.key,
+                'to activity name': to_act.get('name', ''),
+                'to reference product': to_act.get('reference product', ''),
+                'to location': to_act.get('location', ''),
+                'to categories': to_act.get('categories', ''),
+                'to database': to_act.get('database', ''),
+                'to key': to_act.key,
+                'flow type': exc.get('type', ''),
+                'amount': exc.get('amount', ''),
+            }
+            data.append(row)
+
+        except:
+            # The input activity does not exist. remove the exchange.
+            print("Something did not work with the following exchange: {}. It was removed from the list.".format(exc))
+    return data
+
+
+def get_exchanges_from_a_list_of_activities(activities: list, as_keys: bool = False) -> list:
+    """Get all exchanges in a list of activities."""
+    if as_keys:
+        activities = [bw.get_activity(key) for key in activities]
+    exchanges = []
+    for act in activities:
+        for exc in act.exchanges():
+            exchanges.append(exc)
+    return exchanges
+
+
 # LCIA
 def unit_of_method(method: tuple) -> str:
     """Attempt to return the unit of the given method."""
@@ -253,3 +299,4 @@ def get_LCIA_method_name_dict(keys: list) -> dict:
         values: brightway2 method tuples
     """
     return {', '.join(key): key for key in keys}
+

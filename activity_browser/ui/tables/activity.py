@@ -36,6 +36,9 @@ class BaseExchangeTable(ABDataFrameView):
         self.remove_uncertainty_action = QtWidgets.QAction(
             qicons.delete, "Remove uncertainty/-ies", None
         )
+        self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
+            qicons.superstructure, "Exchanges for scenario difference file", None
+        )
 
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
@@ -54,6 +57,9 @@ class BaseExchangeTable(ABDataFrameView):
         )
         self.remove_uncertainty_action.triggered.connect(
             lambda: self.model.remove_uncertainty(self.selectedIndexes())
+        )
+        self.copy_exchanges_for_SDF_action.triggered.connect(
+            lambda: self.model.copy_exchanges_for_SDF(self.selectedIndexes())
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -115,6 +121,13 @@ class ProductExchangeTable(BaseExchangeTable):
             return
         menu = QtWidgets.QMenu()
         menu.addAction(self.remove_formula_action)
+        # Submenu copy to clipboard
+        submenu_copy = QtWidgets.QMenu(menu)
+        submenu_copy.setTitle('Copy to clipboard')
+        submenu_copy.setIcon(qicons.copy_to_clipboard)
+        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        menu.addMenu(submenu_copy)
+
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
@@ -164,6 +177,13 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
         menu.addAction(self.remove_uncertainty_action)
+        # Submenu copy to clipboard
+        submenu_copy = QtWidgets.QMenu(menu)
+        submenu_copy.setTitle('Copy to clipboard')
+        submenu_copy.setIcon(qicons.copy_to_clipboard)
+        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        menu.addMenu(submenu_copy)
+
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
@@ -210,6 +230,14 @@ class BiosphereExchangeTable(BaseExchangeTable):
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
         menu.addAction(self.remove_uncertainty_action)
+
+        # Submenu copy to clipboard
+        submenu_copy = QtWidgets.QMenu(menu)
+        submenu_copy.setTitle('Copy to clipboard')
+        submenu_copy.setIcon(qicons.copy_to_clipboard)
+        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        menu.addMenu(submenu_copy)
+
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):

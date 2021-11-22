@@ -189,3 +189,15 @@ class ActivitiesBiosphereModel(DragPandasModel):
         else:
             key = self.get_key(proxies[0])
             signals.duplicate_to_db_interface.emit(key, self.database_name)
+
+    def copy_exchanges_for_SDF(self, proxies: list) -> None:
+        if len(proxies) > 1:
+            keys = [self.get_key(p) for p in proxies]
+        else:
+            keys = [self.get_key(proxies[0])]
+
+        exchanges = bc.get_exchanges_from_a_list_of_activities(activities=keys,
+                                                               as_keys=True)
+        data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
+        df = pd.DataFrame(data)
+        df.to_clipboard(excel=True)
