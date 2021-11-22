@@ -23,10 +23,16 @@ def wrap_text(string: str, max_length: int = 80) -> str:
 
     idea from https://stackoverflow.com/a/39134215/4929813
     """
+
     def fold(line: str) -> str:
         return textwrap.fill(line, width=max_length, break_long_words=True,
                              replace_whitespace=False)
+
     return '\n'.join(map(fold, string.splitlines()))
+
+
+def wrap_text_by_separator(string: str) -> str:
+    return string.replace("|", '\n')
 
 
 def format_activity_label(key, style='pnl', max_length=40):
@@ -35,16 +41,16 @@ def format_activity_label(key, style='pnl', max_length=40):
 
         if style == 'pnl':
             label = '\n'.join([act.get('reference product', ''), act.get('name', ''),
-                           str(act.get('location', ''))])
+                               str(act.get('location', ''))])
         elif style == 'pnl_':
             label = ' | '.join([act.get('reference product', ''), act.get('name', ''),
-                           str(act.get('location', ''))])
+                                str(act.get('location', ''))])
         elif style == 'pnld':
             label = ' | '.join([act.get('reference product', ''), act.get('name', ''),
-                           str(act.get('location', '')), act.get('database', ''),])
+                                str(act.get('location', '')), act.get('database', ''), ])
         elif style == 'pl':
             label = ', '.join([act.get('reference product', '') or act.get('name', ''),
-                                         str(act.get('location', '')),])
+                               str(act.get('location', '')), ])
         elif style == 'key':
             label = str(act.key)  # safer to use key, code does not always exist
 
@@ -52,7 +58,7 @@ def format_activity_label(key, style='pnl', max_length=40):
             label = ',\n'.join([act.get('name', ''), str(act.get('categories', ''))])
         else:
             label = '\n'.join([act.get('reference product', ''), act.get('name', ''),
-                           str(act.get('location', ''))])
+                               str(act.get('location', ''))])
     except:
         if isinstance(key, tuple):
             return wrap_text(str(''.join(key)))

@@ -4,17 +4,17 @@
 Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
-from collections import namedtuple
 import traceback
+from collections import namedtuple
 from typing import List, Optional, Union
 
-from bw2calc.errors import BW2CalcError
+from PySide2 import QtGui, QtCore
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
     QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
 )
-from PySide2 import QtGui, QtCore
+from bw2calc.errors import BW2CalcError
 from stats_arrays.errors import InvalidParamsError
 
 from ...bwutils import (
@@ -25,12 +25,12 @@ from ...bwutils import (
 )
 from ...signals import signals
 from ...ui.figures import (
-    LCAResultsPlot, CorrelationPlot, LCAResultsBarChart, MonteCarloPlot, ContributionPlot
+    CorrelationPlot, LCAResultsBarChart, MonteCarloPlot, ContributionPlot, LCAResultsOverview
 )
 from ...ui.style import horizontal_line, vertical_line, header
 from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
+from ...ui.web import SankeyNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
-from ...ui.web import SankeyNavigatorWidget, RestrictedWebViewWidget
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -559,7 +559,7 @@ class LCAResultsTab(NewAnalysisTab):
         self.button_by_method = QRadioButton("by impact category")
         self.button_by_method.setToolTip(
             "Show the impacts of each reference flow for the selected impact categories")
-        self.button_by_method.setChecked(True)
+        self.button_by_method.setChecked(False)
         self.scenario_label = QLabel("Scenario:")
         self.button_group.addButton(self.button_overview, 0)
         self.button_group.addButton(self.button_by_method, 1)
@@ -572,7 +572,8 @@ class LCAResultsTab(NewAnalysisTab):
         self.layout.addWidget(self.lca_scores_widget)
         self.layout.addWidget(self.lca_overview_widget)
 
-        self.button_clicked(False)
+        self.button_clicked(True)
+        self.button_overview.setChecked(True)
         self.connect_signals()
 
     def connect_signals(self):
@@ -684,7 +685,7 @@ class LCIAResultsTab(NewAnalysisTab):
         self.df = None
 
         # if not self.parent.single_func_unit:
-        self.plot = LCAResultsPlot(self.parent)
+        self.plot = LCAResultsOverview(self.parent)
         self.plot.plot_name = self.parent.cs_name + '_LCIA results'
         self.table = LCAResultsTable(self.parent)
         self.table.table_name = self.parent.cs_name + '_LCIA results'
@@ -723,9 +724,8 @@ class LCIAResultsTab(NewAnalysisTab):
     def update_plot(self):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
-        self.plot.figure.clf()
         self.plot.deleteLater()
-        self.plot = LCAResultsPlot(self.parent)
+        self.plot = LCAResultsOverview(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
         super().update_plot(self.df)
         if self.pt_layout.parentWidget():

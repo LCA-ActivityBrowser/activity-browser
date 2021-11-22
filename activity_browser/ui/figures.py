@@ -2,7 +2,6 @@
 import json
 import math
 import os
-from typing import Optional
 
 import brightway2 as bw
 import matplotlib.pyplot as plt
@@ -11,21 +10,22 @@ import pandas as pd
 import seaborn as sns
 from PySide2 import QtWidgets, QtCore, QtWebEngineWidgets, QtWebChannel
 from PySide2.QtCore import QObject, Slot
-from PySide2.QtGui import QMovie
-from PySide2.QtWidgets import QMenu, QAction, QLabel
+from PySide2.QtWidgets import QMenu, QAction
 from bokeh.embed import file_html
 from bokeh.io import export_png, export_svg
-from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span
-from bokeh.palettes import viridis
+from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span, WheelZoomTool
+from bokeh.palettes import turbo
 from bokeh.plotting import figure as bokeh_figure
+from bokeh.transform import dodge
 from bw2data.filesystem import safe_filename
 from jinja2 import Template
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from numpy import mgrid
 
 from activity_browser.ui.web import webutils
 from .. import utils
-from ..bwutils.commontasks import wrap_text
+from ..bwutils.commontasks import wrap_text, wrap_text_by_separator
 from ..settings import ab_settings
 
 
@@ -198,6 +198,7 @@ class BokehPlot(QtWidgets.QWidget):
             export_svg(self.figure, filename=filepath, width=fig_width)
             self.figure.output_backend = "canvas"
 
+
 class LCAResultsBarChart(BokehPlot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
     BAR_HEIGHT = 0.6
@@ -210,9 +211,9 @@ class LCAResultsBarChart(BokehPlot):
         self.plot_name = 'LCA scores'
 
     def plot(self, df: pd.DataFrame, method: tuple, labels: list):
-
         df.index = pd.Index(labels)  # Replace index of tuples
         show_legend = df.shape[1] != 1  # Do not show the legend for 1 column
+        df = df[::-1]
 
         if show_legend:
             column_source = ColumnDataSource(df)
@@ -221,39 +222,100 @@ class LCAResultsBarChart(BokehPlot):
 
         x_max = max(df.max())
         x_min = min(df.min())
+        if x_min == x_max and x_min < 0:
+            x_max = 0
+
         lca_results_plot = bokeh_figure(title=(', '.join([m for m in method])), y_range=list(df.index),
                                         plot_height=BokehPlotUtils.calculate_bar_chart_height(bar_count=df.index.size,
                                                                                               legend_item_count=df.columns.size),
                                         x_range=(x_min, x_max), tools=['hover'],
                                         tooltips=("$name: @$name" if show_legend else "@values"),
                                         sizing_mode="stretch_width", toolbar_location=None)
+        lca_results_plot.title.text_font_style = "bold"
+        lca_results_plot.title.text_font_size = "12pt"
 
         if show_legend:
             lca_results_plot.hbar_stack(list(df.columns), height=self.BAR_HEIGHT, y='index', source=column_source,
                                         legend_label=list(df.columns),
-                                        fill_color=viridis(len(df.columns)), line_width=0)
+                                        fill_color=turbo(len(df.columns)), line_width=0)
         else:
             lca_results_plot.hbar(y="index", height=self.BAR_HEIGHT, right="values", source=column_source)
 
         # TODO:
         # Handle scenarios and https://github.com/LCA-ActivityBrowser/activity-browser/issues/622
-        # In case of relative and the overall value is Negative then the scaling must be from 0 to -1
+
+        if x_min < 0:
+            lca_results_plot.x_range.start = x_min
 
         if x_min > 0 and x_max > 0:
             lca_results_plot.x_range.start = 0
         lca_results_plot.xaxis.axis_label = bw.methods[method].get('unit')
 
+        BokehPlotUtils.style_axis_labels(lca_results_plot.yaxis)
+
+        # Relocate the legend to bottom left to save space
         if show_legend:
-            new_legend = lca_results_plot.legend[0]
-            lca_results_plot.legend[0] = None
-            lca_results_plot.legend[0].label_text_font_size = "8pt"
-            new_legend.click_policy = 'hide'
-            new_legend.location = (-100, 0)  # "bottom_left"
-            lca_results_plot.add_layout(new_legend, 'below')
+            BokehPlotUtils.style_and_place_legend(lca_results_plot, "bottom_left")
 
         lca_results_plot.ygrid.grid_line_color = None
         lca_results_plot.axis.minor_tick_line_color = None
         lca_results_plot.outline_line_color = None
+
+        self.figure = lca_results_plot
+
+        # Disable context menu as no actions at the moment
+        self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+
+        template = BokehPlotUtils.build_html_bokeh_template()
+        html = file_html(lca_results_plot, template=template, resources=None)
+        self.page.setHtml(html)
+        self.view.setPage(self.page)
+
+
+class LCAResultsOverview(BokehPlot):
+    """" Generate a bar chart comparing the relative LCA scores of the products """
+
+    def on_context_menu(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.plot_name = 'LCA Overview'
+
+    def plot(self, df: pd.DataFrame):
+        dfp = df.copy()
+        dfp.index = dfp['index']
+        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
+        if "amount" in dfp.columns:
+            dfp.drop(["amount"], axis=1, inplace=True)  # Drop the 'amount' col
+        if 'Total' in dfp.index:
+            dfp.drop("Total", inplace=True)
+
+        # avoid figures getting too large
+        dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
+        dfp.columns = [wrap_text_by_separator(i) for i in dfp.columns]
+
+        dfp = dfp.T
+
+        column_source = ColumnDataSource(dfp)
+        lca_results_plot = bokeh_figure(x_range=list(dfp.index), y_range=(0, max(dfp.max())),
+                                        sizing_mode="stretch_width", toolbar_location=None)
+
+        colors = turbo(len(dfp.columns))
+        for column_index in range(0, dfp.columns.size):
+            lca_results_plot.vbar(
+                x=dodge('index', mgrid[-0.3:0.3:dfp.columns.size * 1j][column_index] if dfp.columns.size > 1 else 0.0,
+                        range=lca_results_plot.x_range),
+                top=dfp.columns[column_index], width=0.1 if dfp.columns.size > 3 else 0.3, source=column_source,
+                color=colors[column_index], legend_label=dfp.columns[column_index])
+
+        lca_results_plot.x_range.range_padding = 0.08
+        lca_results_plot.xgrid.grid_line_color = None
+        BokehPlotUtils.style_axis_labels(lca_results_plot.xaxis)
+        lca_results_plot.xaxis.major_label_orientation = 45.0
+
+        # Relocate the legend to bottom left to save space
+        BokehPlotUtils.style_and_place_legend(lca_results_plot, "bottom_left")
 
         self.figure = lca_results_plot
 
@@ -292,6 +354,7 @@ class ContributionPlot(BokehPlot):
             self.plot_data.drop("Total", inplace=True)
         self.plot_data = self.plot_data.fillna(0)
         self.plot_data = self.plot_data.T
+        self.plot_data = self.plot_data[::-1]  # Reverse sort the data as bokeh reverses the plotting order
 
         # Avoid figures getting too large horizontally by text wrapping
         self.plot_data.index = pd.Index([wrap_text(str(i), max_length=40) for i in self.plot_data.index])
@@ -319,31 +382,29 @@ class ContributionPlot(BokehPlot):
             contribution_plot.hbar_stack(list(positive_df.columns), height=self.BAR_HEIGHT, y='index',
                                          source=ColumnDataSource(positive_df),
                                          legend_label=list(positive_df.columns),
-                                         fill_color=viridis(len(positive_df.columns)), line_width=0)
+                                         fill_color=turbo(len(positive_df.columns)), line_width=0)
         if has_negative_values:
             contribution_plot.hbar_stack(list(negative_df.columns), height=self.BAR_HEIGHT, y='index',
                                          source=ColumnDataSource(negative_df),
                                          legend_label=list(negative_df.columns),
-                                         fill_color=viridis(len(negative_df.columns)), line_width=0)
+                                         fill_color=turbo(len(negative_df.columns)), line_width=0)
 
         if not has_negative_values:
             contribution_plot.x_range.start = 0
 
         if unit:
             contribution_plot.xaxis.axis_label = unit
+            contribution_plot.xaxis.axis_label_text_font_size = "10pt"
+            contribution_plot.xaxis.axis_label_text_font_style = "bold"
 
         # Relocate the legend to bottom left to save space
-        new_legend = contribution_plot.legend[0]
-        new_legend.location = (-200, 0)
-        contribution_plot.legend[0] = None
-        contribution_plot.legend[0].label_text_font_size = "8pt"
-        new_legend.click_policy = 'hide'
-        contribution_plot.add_layout(new_legend, 'below')
+        BokehPlotUtils.style_and_place_legend(contribution_plot, (-200, 0))
 
         # Handle styling
         contribution_plot.ygrid.grid_line_color = None
         contribution_plot.axis.minor_tick_line_color = None
         contribution_plot.outline_line_color = None
+        BokehPlotUtils.style_axis_labels(contribution_plot.yaxis)
 
         self.figure = contribution_plot
 
@@ -509,25 +570,24 @@ class MonteCarloPlot(BokehPlot):
         raise NotImplementedError
 
     def plot(self, df: pd.DataFrame, method: tuple):
-        p = bokeh_figure(tools=['hover'], background_fill_color="#fafafa", toolbar_location=None,
+        p = bokeh_figure(tools=['hover', 'wheel_zoom', 'pan'], background_fill_color="#fafafa", toolbar_location=None,
                          sizing_mode="stretch_width",
                          tooltips=[("Probability", "@top"), ("Value", "@right")])
-        colors = viridis(df.columns.size)
+        p.toolbar.active_scroll = p.select_one(WheelZoomTool)
+        colors = turbo(df.columns.size)
         i = 0
         for col in df.columns:
             hist, edges = np.histogram(df[col], density=True)
-            p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:], fill_color=colors[i], line_color="white",
+            p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:], fill_color=colors[i], line_width=0,
                    alpha=0.5, legend_label=col)
             span = Span(location=df[col].mean(), dimension='height', line_color=colors[i], line_width=2)
             p.renderers.append(span)
             i = i + 1
 
-        p.legend.location = "center"
-        p.legend.background_fill_color = "#fefefe"
-        p.legend.click_policy = 'hide'
+        # Relocate the legend to bottom left to save space
+        BokehPlotUtils.style_and_place_legend(p, "center")
         p.xaxis.axis_label = bw.methods[method]["unit"]
         p.yaxis.axis_label = 'Probability'
-        p.add_layout(p.legend[0], 'below')
 
         self.figure = p
 
@@ -599,4 +659,28 @@ class BokehPlotUtils:
 
     @staticmethod
     def calculate_bar_chart_height(bar_count: int = 1, legend_item_count: int = 1):
-        return 100 + (80 * bar_count) + (25 * legend_item_count)
+        return 120 + (70 * bar_count) + (20 * legend_item_count)
+
+    @staticmethod
+    def style_and_place_legend(plot, location):
+        new_legend = plot.legend[0]
+        new_legend.location = location
+        plot.legend[0] = None
+        plot.legend[0].label_text_font_size = "8pt"
+        plot.legend[0].label_text_font_style = "bold"
+        plot.legend[0].label_height = 10
+        plot.legend[0].label_standoff = 2
+        plot.legend[0].glyph_width = 15
+        plot.legend[0].glyph_height = 15
+        plot.legend[0].spacing = 1
+        plot.legend[0].margin = 0
+        plot.legend.border_line_color = None
+        new_legend.click_policy = 'hide'
+        plot.add_layout(new_legend, 'below')
+
+    @staticmethod
+    def style_axis_labels(axis):
+        axis.major_label_text_font_size = "10pt"
+        axis.major_label_text_font_style = "bold"
+        axis.major_label_text_line_height = 0.8
+        axis.major_label_text_align = "right"
