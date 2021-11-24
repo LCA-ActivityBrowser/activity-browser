@@ -12,6 +12,7 @@ import pandas as pd
 from PySide2 import QtWidgets
 import seaborn as sns
 
+from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
 from ..settings import ab_settings
 
@@ -52,20 +53,9 @@ class Plot(QtWidgets.QWidget):
         # print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
-    def savefilepath(self, default_file_name: str, file_filter: str = ALL_FILTER):
-        default = default_file_name or "LCA results"
-        safe_name = safe_filename(default, add_hash=False)
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self,
-            caption='Choose location to save lca results',
-            dir=os.path.join(ab_settings.data_dir, safe_name),
-            filter=file_filter,
-        )
-        return filepath
-
     def to_png(self):
         """ Export to .png format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
+        filepath = savefilepath(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
         if filepath:
             if not filepath.endswith('.png'):
                 filepath += '.png'
@@ -73,7 +63,7 @@ class Plot(QtWidgets.QWidget):
 
     def to_svg(self):
         """ Export to .svg format. """
-        filepath = self.savefilepath(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
+        filepath = savefilepath(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
         if filepath:
             if not filepath.endswith('.svg'):
                 filepath += '.svg'

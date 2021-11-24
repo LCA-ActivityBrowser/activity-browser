@@ -13,7 +13,7 @@ from activity_browser.ui.widgets import (
 
 def test_comparison_switch_empty(qtbot):
     parent = QWidget()
-    parent.using_presamples = False
+    parent.has_scenarios = False
     qtbot.addWidget(parent)
     box = SwitchComboBox(parent)
     box.configure(False, False)
@@ -24,7 +24,7 @@ def test_comparison_switch_empty(qtbot):
 
 def test_comparison_switch_no_presamples(qtbot):
     parent = QWidget()
-    parent.using_presamples = False
+    parent.has_scenarios = False
     qtbot.addWidget(parent)
     box = SwitchComboBox(parent)
     box.configure()
@@ -35,7 +35,7 @@ def test_comparison_switch_no_presamples(qtbot):
 
 def test_comparison_switch_all(qtbot):
     parent = QWidget()
-    parent.using_presamples = True
+    parent.has_scenarios = True
     qtbot.addWidget(parent)
     box = SwitchComboBox(parent)
     box.configure()

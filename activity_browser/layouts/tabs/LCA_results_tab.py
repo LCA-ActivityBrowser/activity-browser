@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-from typing import Union
 import traceback
 
 from bw2calc.errors import BW2CalcError
 from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout
-import pandas as pd
 
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
@@ -29,8 +27,6 @@ class LCAResultsTab(ABTab):
 
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
-        signals.lca_presamples_calculation.connect(self.generate_setup)
-        signals.lca_scenario_calculation.connect(self.generate_setup)
         signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
@@ -43,21 +39,23 @@ class LCAResultsTab(ABTab):
             index = self.indexOf(self.tabs[name])
             self.close_tab(index)
 
-    @Slot(str, name="generateSimpleLCA")
-    @Slot(str, str, name="generatePresamplesLCA")
-    @Slot(str, object, name="generateSuperstructureLCA")
-    def generate_setup(self, cs_name: str, presamples: Union[str, pd.DataFrame] = None):
+    @Slot(str, name="generateSetup")
+    def generate_setup(self, data: dict):
         """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
-        if isinstance(presamples, str):
+
+        cs_name = data.get('cs_name', 'new calculation')
+        calculation_type = data.get('calculation_type', 'simple')
+
+        if calculation_type == 'presamples':
             name = "{}[Presamples]".format(cs_name)
-        elif isinstance(presamples, pd.DataFrame):
+        elif calculation_type == 'scenario':
             name = "{}[Scenarios]".format(cs_name)
         else:
             name = cs_name
         self.remove_setup(name)
 
         try:
-            new_tab = LCAResultsSubTab(cs_name, presamples, self)
+            new_tab = LCAResultsSubTab(data, self)
             self.tabs[name] = new_tab
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])

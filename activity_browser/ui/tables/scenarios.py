@@ -18,16 +18,15 @@ class PresamplesList(QComboBox):
     def _connect_signals(self):
         # If a calculation is run with presamples, catch the signal and
         # update all instances of PresamplesList.
-        signals.lca_presamples_calculation.connect(
-            lambda _, ps: self.sync(ps)
-        )
+        signals.lca_calculation.connect(self.sync)
         signals.presample_package_created.connect(self.sync)
         signals.presample_package_removed.connect(self.sync)
         signals.project_selected.connect(self.sync)
 
     @Slot(name="syncAll")
     @Slot(str, name="syncOnName")
-    def sync(self, name: str = None) -> None:
+    def sync(self, data: dict) -> None:
+        name = data.get('cs_name')
         self.blockSignals(True)
         self.clear()
         resources = self.get_package_names()
