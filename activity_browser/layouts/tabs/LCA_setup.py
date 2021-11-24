@@ -205,7 +205,6 @@ class LCASetupTab(QtWidgets.QWidget):
     def start_calculation(self):
         data = {
             'cs_name': self.list_widget.name,
-            'export_only': self.export_only.isChecked(),
             'calculation_type': 'simple',
         }
         signals.lca_calculation.emit(data)
@@ -214,7 +213,6 @@ class LCASetupTab(QtWidgets.QWidget):
     def presamples_calculation(self):
         data = {
             'cs_name': self.list_widget.name,
-            'export_only': self.export_only.isChecked(),
             'calculation_type': 'presamples',
             'data': self.presamples.list.selection,
         }
@@ -238,7 +236,6 @@ class LCASetupTab(QtWidgets.QWidget):
         """Construct index / value array and begin LCA calculation."""
         data = {
             'cs_name': self.list_widget.name,
-            'export_only': self.export_only.isChecked(),
             'calculation_type': 'scenario',
             'data': self.scenario_panel.combined_dataframe(),
         }

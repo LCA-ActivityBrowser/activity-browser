@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
-import os
 
 import brightway2 as bw
-from bw2data.filesystem import safe_filename
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -14,7 +12,6 @@ import seaborn as sns
 
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
-from ..settings import ab_settings
 
 
 # todo: sizing of the figures needs to be improved and systematized...

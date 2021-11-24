@@ -25,15 +25,16 @@ class PresamplesList(QComboBox):
 
     @Slot(name="syncAll")
     @Slot(str, name="syncOnName")
-    def sync(self, data: dict) -> None:
-        name = data.get('cs_name')
+    def sync(self, data: dict = None) -> None:
         self.blockSignals(True)
         self.clear()
         resources = self.get_package_names()
         self.insertItems(0, resources)
         self.blockSignals(False)
-        if name and name in resources:
-            self.setCurrentIndex(resources.index(name))
+        if data:
+            name = data.get('cs_name')
+            if name in resources:
+                self.setCurrentIndex(resources.index(name))
 
     @property
     def selection(self) -> str:
