@@ -12,7 +12,7 @@ class SwitchComboBox(QtWidgets.QComboBox):
     """
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.using_presamples = getattr(parent, "using_presamples")
+        self.has_scenarios = getattr(parent, "has_scenarios")
         self.switches = Switches(
             "Reference Flows", "Impact Categories", "Scenarios"
         )
@@ -22,7 +22,7 @@ class SwitchComboBox(QtWidgets.QComboBox):
         self.blockSignals(True)
         if all([has_func, has_method]):
             self.insertItems(0, [self.switches.func, self.switches.method])
-        if self.using_presamples:
+        if self.has_scenarios:
             self.insertItems(self.indexes.scenario, [self.switches.scenario])
         self.setVisible(self.count() > 0)
         self.blockSignals(False)

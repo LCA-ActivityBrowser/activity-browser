@@ -43,6 +43,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
     def __init__(self, cs_name, parent=None):
         super().__init__(parent, css_file="sankey_navigator.css")
         self.parent = parent
+        self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
         self.selected_db = None
         self.has_sankey = False
@@ -161,22 +162,17 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.layout.addWidget(self.view)
         self.setLayout(self.layout)
 
-    @property
-    def using_presamples(self) -> bool:
-        """Check if presamples is used."""
-        return self.parent.using_presamples if self.parent else False
-
     def get_scenario_labels(self) -> List[str]:
         """Get scenario labels if presamples is used."""
-        return self.parent.mlca.scenario_names if self.using_presamples else []
+        return self.parent.mlca.scenario_names if self.has_scenarios else []
 
     def configure_scenario(self):
         """Determine if scenario Qt widgets are visible or not and retrieve
         scenario labels for the selection drop-down box.
         """
-        self.scenario_cb.setVisible(self.using_presamples)
-        self.scenario_label.setVisible(self.using_presamples)
-        if self.using_presamples:
+        self.scenario_cb.setVisible(self.has_scenarios)
+        self.scenario_label.setVisible(self.has_scenarios)
+        if self.has_scenarios:
             self.scenarios = self.get_scenario_labels()
             self.update_combobox(self.scenario_cb, self.scenarios)
 
@@ -219,7 +215,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         method = self.methods[method_index]
         scenario_index = None
         scenario_lca = False
-        if self.using_presamples:
+        if self.has_scenarios:
             scenario_lca = True
             scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()

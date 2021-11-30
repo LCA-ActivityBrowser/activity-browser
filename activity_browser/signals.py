@@ -10,12 +10,10 @@ class Signals(QObject):
 
     # bw2 directory
     switch_bw2_dir_path = Signal(str)
-    # directory_changed = Signal()
     edit_settings = Signal()
 
     # Project
     change_project = Signal(str)
-    # change_project_dialog = Signal()
     new_project = Signal()
     copy_project = Signal()
     delete_project = Signal()
@@ -31,7 +29,6 @@ class Signals(QObject):
     export_database = Signal()
     relink_database = Signal(str)
     update_biosphere = Signal()
-
     database_selected = Signal(str)
     databases_changed = Signal()
     database_changed = Signal(str)
@@ -56,7 +53,6 @@ class Signals(QObject):
     activity_modified = Signal(tuple, str, object)
 
     # Exchanges
-    # exchanges_output_modified = Signal(list, tuple)
     exchanges_deleted = Signal(list)
     exchanges_add = Signal(list, tuple)
     exchange_modified = Signal(object, str, object)
@@ -101,9 +97,7 @@ class Signals(QObject):
     calculation_setup_selected = Signal(str)
 
     # LCA Results
-    lca_calculation = Signal(str)
-    lca_presamples_calculation = Signal(str, str)
-    lca_scenario_calculation = Signal(str, object)
+    lca_calculation = Signal(dict)
     lca_results_tabs_changed = Signal()
 
     # Impact Categories & Characterization Factors

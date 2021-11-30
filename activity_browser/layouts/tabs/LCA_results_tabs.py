@@ -19,9 +19,9 @@ from stats_arrays.errors import InvalidParamsError
 
 from ...bwutils import (
     Contributions, MonteCarloLCA, MLCA, PresamplesMLCA,
-    PresamplesContributions, SuperstructureContributions,
     SuperstructureMLCA, GlobalSensitivityAnalysis,
-    commontasks as bc
+    commontasks as bc,
+    calculations,
 )
 from ...signals import signals
 from ...ui.figures import (
@@ -83,10 +83,11 @@ class LCAResultsSubTab(QTabWidget):
 
     update_scenario_box_index = QtCore.Signal(int)
 
-    def __init__(self, name: str, presamples=None, parent=None):
+    def __init__(self, data: dict, parent=None):
         super().__init__(parent)
-        self.cs_name = name
-        self.presamples = presamples
+        self.data = data
+        self.cs_name = self.data.get('cs_name')
+        self.has_scenarios = False if data.get('calculation_type') == 'simple' else True
         self.mlca: Optional[Union[MLCA, PresamplesMLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
         self.mc: Optional[MonteCarloLCA] = None
@@ -98,7 +99,11 @@ class LCAResultsSubTab(QTabWidget):
         self.setVisible(False)
         self.visible = False
 
-        self.do_calculations()
+        self.mlca, self.contributions, self.mc = calculations.do_LCA_calculations(data)
+        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+        self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
+        self.single_method = True if len(self.mlca.methods) == 1 else False
+
         self.tabs = Tabs(
             inventory=InventoryTab(self),
             results=LCAResultsTab(self),
@@ -120,61 +125,6 @@ class LCAResultsSubTab(QTabWidget):
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
-
-    def do_calculations(self):
-        """Perform the MLCA calculation."""
-        if self.presamples is None:
-            try:
-                self.mlca = MLCA(self.cs_name)
-                self.contributions = Contributions(self.mlca)
-            except KeyError as e:
-                raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
-        elif isinstance(self.presamples, str):
-            try:
-                self.mlca = PresamplesMLCA(self.cs_name, self.presamples)
-                self.contributions = PresamplesContributions(self.mlca)
-            except IndexError as e:
-                # Occurs when a presamples package is used that refers to old
-                # or non-existing array indices.
-                msg = ("Given scenario package refers to non-existent exchanges."
-                       " It is suggested to remove or edit this package.")
-                raise BW2CalcError(msg, str(e)).with_traceback(e.__traceback__)
-            except KeyError as e:
-                raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
-        else:
-            try:
-                self.mlca = SuperstructureMLCA(self.cs_name, self.presamples)
-                self.contributions = SuperstructureContributions(self.mlca)
-            except AssertionError as e:
-                # This occurs if the superstructure itself detects something is wrong.
-                raise BW2CalcError("Scenario LCA failed.", str(e)).with_traceback(e.__traceback__)
-            except ValueError as e:
-                # This occurs if the LCA matrix does not contain any of the
-                # exchanges mentioned in the superstructure data.
-                raise BW2CalcError(
-                    "Scenario LCA failed.",
-                    "Constructed LCA matrix does not contain any exchanges from the superstructure"
-                ).with_traceback(e.__traceback__)
-            except KeyError as e:
-                raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
-        self.mlca.calculate()
-        self.mc = MonteCarloLCA(self.cs_name)
-
-        # self.mct = CSMonteCarloLCAThread()
-        # self.mct.start()
-        # self.mct.initialize(self.cs_name)
-
-        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
-        self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
-        self.single_method = True if len(self.mlca.methods) == 1 else False
-
-    @property
-    def using_presamples(self) -> bool:
-        """Used to determine if a Scenario Analysis is performed."""
-        return all([
-            self.presamples is not None,
-            isinstance(self.mlca, (PresamplesMLCA, SuperstructureMLCA))
-        ])
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""
@@ -231,6 +181,7 @@ class NewAnalysisTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self.has_scenarios = self.parent.has_scenarios
 
         # Important variables optionally used in subclasses
         self.table: Optional[QTableView] = None
@@ -317,21 +268,16 @@ class NewAnalysisTab(QWidget):
         self.relative = checked
         self.update_tab()
 
-    @property
-    def using_presamples(self) -> bool:
-        """Check if presamples is used."""
-        return self.parent.using_presamples if self.parent else False
-
     def get_scenario_labels(self) -> List[str]:
         """Get scenario labels if presamples is used."""
-        return self.parent.mlca.scenario_names if self.using_presamples else []
+        return self.parent.mlca.scenario_names if self.has_scenarios else []
 
     def configure_scenario(self):
         """Determine if scenario Qt widgets are visible or not and retrieve
         scenario labels for the selection drop-down box.
         """
         if self.scenario_box:
-            self.scenario_box.setVisible(self.using_presamples)
+            self.scenario_box.setVisible(self.has_scenarios)
             self.update_combobox(self.scenario_box, self.get_scenario_labels())
 
     @staticmethod
@@ -474,7 +420,7 @@ class InventoryTab(NewAnalysisTab):
     def connect_signals(self):
         self.radio_button_biosphere.toggled.connect(self.button_clicked)
         self.remove_zeros_checkbox.toggled.connect(self.remove_zeros_checked)
-        if self.using_presamples:
+        if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
@@ -497,7 +443,7 @@ class InventoryTab(NewAnalysisTab):
     def configure_scenario(self):
         """Allow scenarios options to be visible when used."""
         super().configure_scenario()
-        self.scenario_label.setVisible(self.using_presamples)
+        self.scenario_label.setVisible(self.has_scenarios)
 
     def update_tab(self):
         """Update the tab."""
@@ -578,7 +524,7 @@ class LCAResultsTab(NewAnalysisTab):
 
     def connect_signals(self):
         self.button_overview.toggled.connect(self.button_clicked)
-        if self.using_presamples:
+        if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
@@ -637,7 +583,7 @@ class LCAScoresTab(NewAnalysisTab):
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
         """Add 3d excel export if presamples- or scenario-type LCA is performed."""
         layout = super().build_export(has_table, has_plot)
-        if self.using_presamples:
+        if self.has_scenarios:
             # Remove the last QSpacerItem from the layout,
             stretch = layout.takeAt(layout.count() - 1)
             # Then add the additional label and export btn, plus new stretch.
@@ -701,7 +647,7 @@ class LCIAResultsTab(NewAnalysisTab):
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
         """Add 3d excel export if presamples- or scenario-type LCA is performed."""
         layout = super().build_export(has_table, has_plot)
-        if self.using_presamples:
+        if self.has_scenarios:
             # Remove the last QSpacerItem from the layout,
             stretch = layout.takeAt(layout.count() - 1)
             # Then add the additional label and export btn, plus new stretch.
@@ -813,7 +759,7 @@ class ContributionTab(NewAnalysisTab):
     def configure_scenario(self):
         """Supplement the superclass method because there are more things to hide in these tabs."""
         super().configure_scenario()
-        visible = self.using_presamples
+        visible = self.has_scenarios
         self.combobox_menu.scenario_label.setVisible(visible)
 
     @QtCore.Slot(int, name="changeComparisonView")
@@ -826,7 +772,7 @@ class ContributionTab(NewAnalysisTab):
     @QtCore.Slot(bool, name="hideScenarioCombo")
     def toggle_scenario(self, active: bool):
         """Allow scenarios options to be visible when used."""
-        if self.using_presamples:
+        if self.has_scenarios:
             self.combobox_menu.scenario.setHidden(active)
             self.combobox_menu.scenario_label.setHidden(active)
 
@@ -849,10 +795,8 @@ class ContributionTab(NewAnalysisTab):
         etc.) and fed into update calls.
         """
         if self.combobox_menu.agg.currentText() != 'none':
-            self.is_aggregated = True
             compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
         else:
-            self.is_aggregated = False
             compare_fields = {"aggregator": None}
 
         # Determine which comparison is active and update the comparison.
@@ -885,7 +829,7 @@ class ContributionTab(NewAnalysisTab):
         self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
 
         # Add wiring for presamples scenarios
-        if self.using_presamples:
+        if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
@@ -974,8 +918,6 @@ class ElementaryFlowContributionTab(ContributionTab):
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative
         )
 
-    def get_context_menu_actions(self) -> []:
-        return None
 
 class ProcessContributionsTab(ContributionTab):
     """Class for the 'Process Contributions' sub-tab.
@@ -1131,7 +1073,7 @@ class MonteCarloTab(NewAnalysisTab):
         # self.radio_button_biosphere.clicked.connect(self.button_clicked)
         # self.radio_button_technosphere.clicked.connect(self.button_clicked)
 
-        if self.using_presamples:
+        if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
@@ -1305,7 +1247,7 @@ class MonteCarloTab(NewAnalysisTab):
 
     def configure_scenario(self):
         super().configure_scenario()
-        self.scenario_label.setVisible(self.using_presamples)
+        self.scenario_label.setVisible(self.has_scenarios)
 
     def update_tab(self):
         self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
@@ -1335,6 +1277,7 @@ class MonteCarloTab(NewAnalysisTab):
 
     def update_plot(self, method):
         idx = self.layout.indexOf(self.plot)
+        self.plot.figure.clf()
         self.plot.deleteLater()
         # name is already altered by update_mc before update_plot
         name = self.plot.plot_name
