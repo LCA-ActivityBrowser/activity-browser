@@ -201,7 +201,7 @@ class BokehPlot(QtWidgets.QWidget):
 
 class LCAResultsBarChart(BokehPlot):
     """" Generate a bar chart comparing the absolute LCA scores of the products """
-    BAR_HEIGHT = 0.6
+    BAR_HEIGHT = 0.7
 
     def on_context_menu(self, *args, **kwargs):
         raise NotImplementedError
@@ -226,8 +226,9 @@ class LCAResultsBarChart(BokehPlot):
             x_max = 0
 
         lca_results_plot = bokeh_figure(title=(', '.join([m for m in method])), y_range=list(df.index),
-                                        plot_height=BokehPlotUtils.calculate_bar_chart_height(bar_count=df.index.size,
-                                                                                              legend_item_count=df.columns.size),
+                                        plot_height=BokehPlotUtils.calculate_results_chart_height(
+                                            bar_count=df.index.size,
+                                            legend_item_count=df.columns.size),
                                         x_range=(x_min, x_max), tools=['hover'],
                                         tooltips=("$name: @$name" if show_legend else "@values"),
                                         sizing_mode="stretch_width", toolbar_location=None)
@@ -272,6 +273,23 @@ class LCAResultsBarChart(BokehPlot):
         self.view.setPage(self.page)
 
 
+# Compute the relative distances within the yaxis for the placement of sub-bars in the area allocated for a bar
+def get_sub_bar_placement(column_size):
+    bar_distribution_value = 0.0
+    bar_height = 0.4
+    if column_size == 2:
+        bar_distribution_value = 0.1
+        bar_height = 0.2
+    if column_size >= 3:
+        bar_distribution_value = 0.3
+        bar_height = 0.15
+    if column_size > 6:
+        bar_distribution_value = 0.4
+        bar_height = 0.08
+
+    return bar_distribution_value, bar_height
+
+
 class LCAResultsOverview(BokehPlot):
     """" Generate a bar chart comparing the relative LCA scores of the products """
 
@@ -297,22 +315,35 @@ class LCAResultsOverview(BokehPlot):
 
         dfp = dfp.T
 
+        # TODO: What in case of just one reference flow? Dont show this tab?
+        dfp = dfp.apply(lambda x: x / x.max(), axis=1)
+        dfp = dfp[::-1]
+
         column_source = ColumnDataSource(dfp)
-        lca_results_plot = bokeh_figure(x_range=list(dfp.index), y_range=(0, max(dfp.max())),
-                                        sizing_mode="stretch_width", toolbar_location=None)
+
+        # Compute plot height
+        plot_height = BokehPlotUtils.calculate_results_chart_height(bar_count=dfp.index.size,
+                                                                    legend_item_count=dfp.columns.size)
+
+        lca_results_plot = bokeh_figure(y_range=list(dfp.index), x_range=(0, max(dfp.max())),
+                                        plot_height=plot_height, sizing_mode="stretch_width", toolbar_location=None)
+
+        bar_distribution_value, bar_height = get_sub_bar_placement(dfp.columns.size)
 
         colors = turbo(len(dfp.columns))
         for column_index in range(0, dfp.columns.size):
-            lca_results_plot.vbar(
-                x=dodge('index', mgrid[-0.3:0.3:dfp.columns.size * 1j][column_index] if dfp.columns.size > 1 else 0.0,
-                        range=lca_results_plot.x_range),
-                top=dfp.columns[column_index], width=0.1 if dfp.columns.size > 3 else 0.3, source=column_source,
-                color=colors[column_index], legend_label=dfp.columns[column_index])
+            renderer = lca_results_plot.hbar(
+                y=dodge('index', mgrid[-bar_distribution_value:bar_distribution_value:dfp.columns.size * 1j][
+                    column_index] if dfp.columns.size > 1 else 0.0,
+                        range=lca_results_plot.y_range),
+                right=dfp.columns[column_index], height=bar_height, source=column_source,
+                color=colors[column_index], legend_label=dfp.columns[column_index], name=dfp.columns[column_index])
+            hover = HoverTool(tooltips="$name: @$name", renderers=[renderer])
+            lca_results_plot.add_tools(hover)
 
-        lca_results_plot.x_range.range_padding = 0.08
-        lca_results_plot.xgrid.grid_line_color = None
-        BokehPlotUtils.style_axis_labels(lca_results_plot.xaxis)
-        lca_results_plot.xaxis.major_label_orientation = 45.0
+        lca_results_plot.y_range.range_padding = 0.02
+        lca_results_plot.ygrid.grid_line_color = None
+        BokehPlotUtils.style_axis_labels(lca_results_plot.yaxis)
 
         # Relocate the legend to bottom left to save space
         BokehPlotUtils.style_and_place_legend(lca_results_plot, "bottom_left")
@@ -329,7 +360,7 @@ class LCAResultsOverview(BokehPlot):
 
 
 class ContributionPlot(BokehPlot):
-    BAR_HEIGHT = 0.4
+    BAR_HEIGHT = 0.8
 
     def __init__(self):
         super().__init__()
@@ -570,9 +601,8 @@ class MonteCarloPlot(BokehPlot):
         raise NotImplementedError
 
     def plot(self, df: pd.DataFrame, method: tuple):
-        p = bokeh_figure(tools=['hover', 'wheel_zoom', 'pan'], background_fill_color="#fafafa", toolbar_location=None,
-                         sizing_mode="stretch_width",
-                         tooltips=[("Probability", "@top"), ("Value", "@right")])
+        p = bokeh_figure(tools=['wheel_zoom', 'pan'], background_fill_color="#fafafa", toolbar_location=None,
+                         sizing_mode="stretch_width")  # tools=['hover', tooltips=[("Probability", "@top"), ("Value", "@right")]
         p.toolbar.active_scroll = p.select_one(WheelZoomTool)
         colors = turbo(df.columns.size)
         i = 0
@@ -588,6 +618,8 @@ class MonteCarloPlot(BokehPlot):
         BokehPlotUtils.style_and_place_legend(p, "center")
         p.xaxis.axis_label = bw.methods[method]["unit"]
         p.yaxis.axis_label = 'Probability'
+        p.y_range.start = 0
+        p.y_range.bounds = (0, None)
 
         self.figure = p
 
@@ -659,7 +691,11 @@ class BokehPlotUtils:
 
     @staticmethod
     def calculate_bar_chart_height(bar_count: int = 1, legend_item_count: int = 1):
-        return 120 + (70 * bar_count) + (20 * legend_item_count)
+        return 120 + (45 * bar_count) + (20 * legend_item_count)
+
+    @staticmethod
+    def calculate_results_chart_height(bar_count: int = 1, legend_item_count: int = 1):
+        return 120 + (45 * bar_count) + (40 * legend_item_count)
 
     @staticmethod
     def style_and_place_legend(plot, location):

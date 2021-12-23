@@ -14,7 +14,6 @@ from PySide2.QtWidgets import (
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
     QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
 )
-from bw2calc.errors import BW2CalcError
 from stats_arrays.errors import InvalidParamsError
 
 from ...bwutils import (
@@ -529,12 +528,12 @@ class LCAResultsTab(NewAnalysisTab):
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
-            self.button_by_method.toggled.connect(
-                lambda on_lcia: self.scenario_box.setHidden(on_lcia)
-            )
-            self.button_by_method.toggled.connect(
-                lambda on_lcia: self.scenario_label.setHidden(on_lcia)
-            )
+            # self.button_by_method.toggled.connect(
+            #     lambda on_lcia: self.scenario_box.setHidden(on_lcia)
+            # )
+            # self.button_by_method.toggled.connect(
+            #     lambda on_lcia: self.scenario_label.setHidden(on_lcia)
+            # )
 
     @QtCore.Slot(bool, name="overviewToggled")
     def button_clicked(self, is_overview: bool):
@@ -544,8 +543,8 @@ class LCAResultsTab(NewAnalysisTab):
     def configure_scenario(self):
         """Allow scenarios options to be visible when used."""
         super().configure_scenario()
-        self.scenario_box.setHidden(self.button_by_method.isChecked())
-        self.scenario_label.setHidden(self.button_by_method.isChecked())
+        self.scenario_box.setVisible(self.has_scenarios)
+        self.scenario_label.setVisible(self.has_scenarios)
 
     def update_tab(self):
         """Update the tab."""
@@ -795,8 +794,10 @@ class ContributionTab(NewAnalysisTab):
         etc.) and fed into update calls.
         """
         if self.combobox_menu.agg.currentText() != 'none':
+            self.is_aggregated = True
             compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
         else:
+            self.is_aggregated = False
             compare_fields = {"aggregator": None}
 
         # Determine which comparison is active and update the comparison.
@@ -918,6 +919,9 @@ class ElementaryFlowContributionTab(ContributionTab):
             limit_type=self.cutoff_menu.limit_type, normalize=self.relative
         )
 
+    def get_context_menu_actions(self) -> []:
+        return None
+
 
 class ProcessContributionsTab(ContributionTab):
     """Class for the 'Process Contributions' sub-tab.
@@ -984,6 +988,7 @@ class ProcessContributionsTab(ContributionTab):
             return
         signals.open_activity_tab.emit(
             self.activity_key_label_map[list(self.activity_key_label_map)[sub_bar_index]])
+
 
 class CorrelationsTab(NewAnalysisTab):
     def __init__(self, parent):
@@ -1277,7 +1282,6 @@ class MonteCarloTab(NewAnalysisTab):
 
     def update_plot(self, method):
         idx = self.layout.indexOf(self.plot)
-        self.plot.figure.clf()
         self.plot.deleteLater()
         # name is already altered by update_mc before update_plot
         name = self.plot.plot_name
