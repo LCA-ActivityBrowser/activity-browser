@@ -13,7 +13,7 @@ from PySide2.QtCore import QObject, Slot
 from PySide2.QtWidgets import QMenu, QAction
 from bokeh.embed import file_html
 from bokeh.io import export_png, export_svg
-from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span, WheelZoomTool
+from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span, WheelZoomTool, Whisker
 from bokeh.palettes import turbo
 from bokeh.plotting import figure as bokeh_figure
 from bokeh.transform import dodge
@@ -382,6 +382,8 @@ class ContributionPlot(BokehPlot):
         self.plot_data.drop(self.plot_data.select_dtypes(['object']), axis=1,
                             inplace=True)  # Remove all non-numeric columns (metadata)
         if 'Total' in self.plot_data.index:
+            totals = list(self.plot_data.loc["Total"])
+            totals.reverse()
             self.plot_data.drop("Total", inplace=True)
         self.plot_data = self.plot_data.fillna(0)
         self.plot_data = self.plot_data.T
@@ -409,16 +411,27 @@ class ContributionPlot(BokehPlot):
         contribution_plot = bokeh_figure(y_range=list(self.plot_data.index), toolbar_location=None,
                                          plot_height=plot_height,
                                          sizing_mode="stretch_width")
+
         if has_positive_values:
             contribution_plot.hbar_stack(list(positive_df.columns), height=self.BAR_HEIGHT, y='index',
                                          source=ColumnDataSource(positive_df),
                                          legend_label=list(positive_df.columns),
                                          fill_color=turbo(len(positive_df.columns)), line_width=0)
+
         if has_negative_values:
             contribution_plot.hbar_stack(list(negative_df.columns), height=self.BAR_HEIGHT, y='index',
                                          source=ColumnDataSource(negative_df),
                                          legend_label=list(negative_df.columns),
                                          fill_color=turbo(len(negative_df.columns)), line_width=0)
+            source_totals = ColumnDataSource(
+                data=dict(base=list(self.plot_data.index), lower=np.zeros(self.plot_data.index.size), upper=totals))
+            w = Whisker(source=source_totals, base="base", upper="upper", lower="lower", dimension="width",
+                        level="overlay", line_color="red", line_width=1.5)
+            w.upper_head.line_width = 1.5
+            w.lower_head.line_width = 1.5
+            w.upper_head.line_color = 'red'
+            w.lower_head.line_color = 'red'
+            contribution_plot.add_layout(w)
 
         if not has_negative_values:
             contribution_plot.x_range.start = 0
