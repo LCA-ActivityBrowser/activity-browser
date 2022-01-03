@@ -197,6 +197,9 @@ d3.demo.canvas = function() {
             //]);
         };
 
+        //TODO: Place legend on top of the SVG or better and limit the viewport area
+        //TODO: UX improvement, more space for the graph itself
+
         var zoomHandler = function() {
             panCanvas.attr("transform", d3.event.transform);
             // here we filter out the emitting of events that originated outside of the normal ZoomBehavior; this prevents an infinite loop
@@ -530,6 +533,25 @@ const cartographer = function() {
             });
         }
 
+        nodes.on("contextmenu", function(node, index) {
+                // make dictionary containing the node key and how the user clicked on it
+                // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
+                // event.screenX and screenY maybe gives correct location
+                let click_dict = {
+                    "database": graph.node(node).database,
+                    "id": graph.node(node).id,
+                    "mouse": event.button,
+                    "keyboard": {
+                        "shift": event.shiftKey,
+                        "alt": event.altKey,
+                    }
+                }
+                window.bridge.node_right_clicked(JSON.stringify(click_dict))
+
+                //Can create a make shift context menu in HTML too
+                //d3.event.preventDefault();
+            });
+
         // listener for mouse-hovers
         var edges = panCanvas.selectAll("g .edgePath")
             .on("mouseover", handleMouseOverEdge)
@@ -683,7 +705,7 @@ d3.select("#downloadSVGtButtonqPWKOg").on("click", function() {
 });
 
 // Construct 'render' object and initialize cartographer.
-var render = dagreD3.render();
+var render = dagreD3.render(); //TODO: Investigate replacing dagre: Just layouting, retain D3 as it is mostly for rendering
 var graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
 cartographer();
 
@@ -751,3 +773,6 @@ new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge.style.connect(cartographer.update_svg_style);
 });
 
+document.addEventListener('contextmenu', function(e) {
+    window.bridge.reset_context_menu("");
+}, true);
