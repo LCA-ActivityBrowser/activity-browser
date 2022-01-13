@@ -28,7 +28,19 @@ class SettingsWizard(QtWidgets.QWizard):
             custom_bw_dir = self.field('custom_bw_dir')
             ab_settings.custom_bw_dir = custom_bw_dir
             print("Saved startup brightway directory as: ", custom_bw_dir)
-
+            #within conda environment (if working inside it) set also BRIGHTWAY2_DIR if different than bw2 default directory
+            if custom_bw_dir != ab_settings.get_default_directory():
+                try:
+                    os.system("conda env config vars set BRIGHTWAY2_DIR=%s" % custom_bw_dir) 
+                    print("BRIGHTWAY2_DIR changed to %s, changes take effect after you have reactivated your environment" % custom_bw_dir )
+                except:
+                    print("unable to set BRIGHTWAY2_DIR")
+            else:
+                try:
+                    os.system("conda env config vars unset BRIGHTWAY2_DIR") 
+                    print("BRIGHTWAY2_DIR unset, changes take effect after you have reactivated your environment")
+                except:
+                    print("unable to unset BRIGHTWAY2_DIR")
         # project
         current_startup_project = ab_settings.startup_project
         if self.field('startup_project') != current_startup_project:

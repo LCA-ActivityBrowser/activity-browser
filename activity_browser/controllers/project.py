@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+import os
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
@@ -18,6 +19,7 @@ class ProjectController(QObject):
         self.window = parent
 
         signals.project_selected.emit()
+        self.check_bw2dir()
         self.load_settings()
 
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
@@ -31,6 +33,17 @@ class ProjectController(QObject):
         if bc.switch_brightway2_dir(dirpath):
             self.change_project(ab_settings.startup_project, reload=True)
             signals.databases_changed.emit()
+
+    def check_bw2dir(self) -> None:
+        """make `custom_bw_dir` consistent with BW2 directory settings""" 
+        if ab_settings.settings:
+			#if BRIGHTWAY2_DIR set outsied AB
+            if os.getenv("BRIGHTWAY2_DIR") and ab_settings.custom_bw_dir != os.getenv("BRIGHTWAY2_DIR"):
+                ab_settings.custom_bw_dir = os.getenv("BRIGHTWAY2_DIR")
+			#if BRIGHTWAY2_DIR unset outsied AB
+            if not os.getenv("BRIGHTWAY2_DIR") and ab_settings.custom_bw_dir != ab_settings.get_default_directory():
+                ab_settings.custom_bw_dir = ab_settings.get_default_directory() 
+            ab_settings.write_settings()
 
     def load_settings(self) -> None:
         if ab_settings.settings:

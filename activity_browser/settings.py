@@ -7,6 +7,7 @@ from typing import Optional
 
 import appdirs
 import brightway2 as bw
+import sys
 
 from .signals import signals
 
@@ -121,7 +122,9 @@ class ABSettings(BaseSettings):
     def get_default_directory() -> str:
         """ Returns the default brightway application directory
         """
-        return bw.projects._get_base_directories()[0]
+        #same codes of bw2data.project._get_base_directories
+        LABEL = "Brightway2" if sys.version_info < (3, 0) else "Brightway3"
+        return appdirs.user_data_dir(LABEL, "pylca")
 
     @staticmethod
     def get_default_project_name() -> Optional[str]:
