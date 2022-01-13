@@ -54,11 +54,13 @@ class BaseSettings(object):
 
 class ABSettings(BaseSettings):
     """
-    Interface to the json settings file. Will create a userdata directory via appdirs if not
+    Interface to the json settings file. Will create an environment specific userdata directory via appdirs if not
     already present.
     """
     def __init__(self, filename: str):
-        ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
+        # check if enviro exists otherwise call it "default" working only with conda and venv environemnts 
+        envir= os.getenv("CONDA_DEFAULT_ENV") or os.getenv("VIRTUAL_ENV") or "default"
+        ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser", version = envir)
         if not os.path.isdir(ab_dir.user_data_dir):
             os.makedirs(ab_dir.user_data_dir, exist_ok=True)
         self.move_old_settings(ab_dir.user_data_dir, filename)
