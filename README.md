@@ -120,6 +120,10 @@ conda update activity-browser
 
 This will update the activity-browser and all of its dependencies in the conda environment called `ab`.
 
+| :warning: The activity browser has dropped support for python versions below `3.8`|
+|---|
+| You should re-install if you have an older installation of the activity browser which doesn't use `python >= 3.8` (you can check with `conda list` or `python --version` in your conda environment). You can remove your existing environment with `conda remove -n ab --all` or choose a new environment name (instead of `ab`). Re-installing will not affect your activity-browser/brightway projects. |
+
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
 
@@ -205,9 +209,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __Activity Browser__:
 - **Activity Browser**: overview paper https://doi.org/10.1016/j.simpa.2019.100012
-- **Global Sensitiviy Analysis**: 
+- **Global Sensitiviy Analysis**:
   - paper describing GSA as implemented in the AB: https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194
-  - additional description on our Wiki: https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis 
+  - additional description on our Wiki: https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis
 - **Modular LCA**:
   - paper on **modular LCA** using the Activity Browser: https://link.springer.com/article/10.1007/s11367-015-1015-3
   - documentation modular LCA: http://activity-browser.readthedocs.io/en/latest/index.html
