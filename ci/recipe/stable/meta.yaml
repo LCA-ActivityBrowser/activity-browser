@@ -21,13 +21,13 @@ requirements:
     - python
     - setuptools
   run:
-    - python>=3.8
+    - python >=3.8
     - numpy >=1.20.2
     - arrow
-    - brightway2 >=2.1.2
+    - brightway2 >=2.4.2  # due to scipy incompatibility with bw2calc <1.8.1
     - bw2io >=0.8.6, <0.8.9
     - bw2data >=3.6.1, <3.9.9
-    - bw2calc=1.8.1
+    - bw2calc =1.8.1
     - eidl >=1.3.2
     - fuzzywuzzy
     - matplotlib-base >=2.2.2
@@ -38,7 +38,7 @@ requirements:
     - seaborn
     - presamples
     - openpyxl
-    - xlrd<2.0  # https://github.com/brightway-lca/brightway2-io/issues/86
+    - xlrd <2.0  # https://github.com/brightway-lca/brightway2-io/issues/86
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
