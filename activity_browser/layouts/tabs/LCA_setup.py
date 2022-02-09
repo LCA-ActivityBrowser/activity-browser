@@ -2,7 +2,7 @@
 from collections import namedtuple
 
 from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
 import pandas as pd
 
@@ -478,6 +478,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if dialog.exec_() == ExcelReadDialog.Accepted:
             path = dialog.path
             idx = dialog.import_sheet.currentIndex()
+            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+            print('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
                 df = import_from_excel(path, idx)
@@ -500,6 +502,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             finally:
                 self.scenario_name.setText(path.name)
                 self.scenario_name.setToolTip(path.name)
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         # TODO: Move the 'scenario_df' into the model itself.

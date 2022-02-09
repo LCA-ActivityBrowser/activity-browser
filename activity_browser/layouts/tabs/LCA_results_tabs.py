@@ -12,6 +12,7 @@ from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
     QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
+    QApplication
 )
 from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
@@ -98,6 +99,7 @@ class LCAResultsSubTab(QTabWidget):
         self.setVisible(False)
         self.visible = False
 
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         self.mlca, self.contributions, self.mc = calculations.do_LCA_calculations(data)
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
         self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
@@ -124,6 +126,7 @@ class LCAResultsSubTab(QTabWidget):
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
+        QApplication.restoreOverrideCursor()
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""
@@ -1132,6 +1135,7 @@ class MonteCarloTab(NewAnalysisTab):
             "parameters": self.include_parameters.isChecked(),
         }
 
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             self.parent.mc.calculate(iterations=iterations, seed=seed, **includes)
             signals.monte_carlo_finished.emit()
@@ -1140,6 +1144,7 @@ class MonteCarloTab(NewAnalysisTab):
             # print(e)
             traceback.print_exc()
             QMessageBox.warning(self, 'Could not perform Monte Carlo simulation', str(e))
+        QApplication.restoreOverrideCursor()
 
         # a threaded way for this - unfortunatley this crashes as:
         # pypardsio_solver is used for the 'spsolve' and 'factorized' functions. Python crashes on windows if multiple
@@ -1366,6 +1371,7 @@ class GSATab(NewAnalysisTab):
         # print('Calculating GSA for: ', act_number, method_number, cutoff_technosphere, cutoff_biosphere)
 
         try:
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.GSA.perform_GSA(act_number=act_number, method_number=method_number,
                                  cutoff_technosphere=cutoff_technosphere, cutoff_biosphere=cutoff_biosphere)
             # self.update_mc()
@@ -1381,6 +1387,7 @@ class GSATab(NewAnalysisTab):
                 message_addition = "\nThe reason for this is likely that there are no uncertain exchanges. Please check " \
                                    "the checkboxes in the Monte Carlo tab."
             QMessageBox.warning(self, 'Could not perform GSA', str(message) + message_addition)
+        QApplication.restoreOverrideCursor()
 
         self.update_gsa()
 
