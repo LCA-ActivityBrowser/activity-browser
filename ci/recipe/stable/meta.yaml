@@ -27,7 +27,7 @@ requirements:
     - brightway2 >=2.1.2
     - bw2io >=0.8.6, <0.8.9
     - bw2data >=3.6.1, <3.9.9
-    - bw2calc=1.8.0
+    - bw2calc=1.8.1
     - eidl >=1.3.2
     - fuzzywuzzy
     - matplotlib-base >=2.2.2
