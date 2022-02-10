@@ -134,6 +134,7 @@ def test_update_alter_mean(qtbot, monkeypatch, ab_app):
     assert np.isclose(np.log(param.amount), loc)
 
 
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_lognormal_mean_balance(qtbot, bw2test):
     uncertain = {
         "loc": 2,
