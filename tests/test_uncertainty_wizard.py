@@ -168,6 +168,7 @@ def test_lognormal_mean_balance(qtbot, bw2test):
     assert wizard.field("negative")
 
 
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_pedigree(qtbot, bw2test):
     """Configure uncertainty using the pedigree page of the wizard."""
     uncertain = {
