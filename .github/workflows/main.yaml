@@ -47,6 +47,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: test
           environment-file: patched-environment.yml
+      - name: Environment info
+        run: |
+          conda list -n test
+          conda env export -n test
+          conda env export -n test -f env-osx64.yaml
+      - name: Upload final environment as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: env-osx64.yaml
+          path: env-osx64.yaml
       - name: Run tests
         run: |
           pytest
@@ -69,6 +79,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: test
           environment-file: patched-environment.yml
+      - name: Environment info
+        run: |
+          conda list -n test
+          conda env export -n test
+          conda env export -n test -f env-win64.yaml
+      - name: Upload final environment as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: env-win64.yaml
+          path: env-win64.yaml
       - name: Run tests
         run: |
           pytest
@@ -96,6 +116,16 @@ jobs:
           environment-file: patched-environment.yml
       # See https://stackoverflow.com/a/60694208/14506150
       # and https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
+      - name: Environment info
+        run: |
+          conda list -n test
+          conda env export -n test
+          conda env export -n test -f env-linux64.yaml
+      - name: Upload final environment as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: env-linux64.yaml
+          path: env-linux64.yaml
       - name: Install linux dependencies
         run: |
           sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
