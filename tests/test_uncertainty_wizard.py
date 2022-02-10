@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import sys
+
 from bw2data.parameters import ProjectParameter
 import numpy as np
 from PySide2.QtWidgets import QMessageBox, QWizard
@@ -23,6 +25,7 @@ def test_wizard_fail(qtbot):
         UncertaintyWizard(mystery_box)
 
 
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_uncertainty_wizard_simple(qtbot, bw2test, capsys):
     """Use extremely simple text to open the wizard and go to all the pages."""
     param = ProjectParameter.create(name="test1", amount=3)
