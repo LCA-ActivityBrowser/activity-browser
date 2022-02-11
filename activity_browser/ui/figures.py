@@ -360,7 +360,7 @@ class LCAResultsOverview(BokehPlot):
 
 
 class ContributionPlot(BokehPlot):
-    BAR_HEIGHT = 0.8
+    BAR_HEIGHT = 0.6
 
     def __init__(self):
         super().__init__()
@@ -442,7 +442,7 @@ class ContributionPlot(BokehPlot):
             contribution_plot.xaxis.axis_label_text_font_style = "bold"
 
         # Relocate the legend to bottom left to save space
-        BokehPlotUtils.style_and_place_legend(contribution_plot, (-200, 0))
+        BokehPlotUtils.style_and_place_legend(contribution_plot, (-100, 0))
 
         # Handle styling
         contribution_plot.ygrid.grid_line_color = None
@@ -704,7 +704,7 @@ class BokehPlotUtils:
 
     @staticmethod
     def calculate_bar_chart_height(bar_count: int = 1, legend_item_count: int = 1):
-        return 120 + (45 * bar_count) + (20 * legend_item_count)
+        return 90 + (35 * bar_count) + (20 * legend_item_count)
 
     @staticmethod
     def calculate_results_chart_height(bar_count: int = 1, legend_item_count: int = 1):
@@ -715,7 +715,7 @@ class BokehPlotUtils:
         new_legend = plot.legend[0]
         new_legend.location = location
         plot.legend[0] = None
-        plot.legend[0].label_text_font_size = "8pt"
+        plot.legend[0].label_text_font_size = "10pt"
         plot.legend[0].label_text_font_style = "bold"
         plot.legend[0].label_height = 10
         plot.legend[0].label_standoff = 2

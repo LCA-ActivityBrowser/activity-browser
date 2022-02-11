@@ -563,6 +563,7 @@ class Contributions(object):
         """Returns an inventory dataframe with metadata of the given type.
         """
         try:
+            # TODO: Inventory results source
             data = self.inventory_data[inventory_type]
         except KeyError:
             raise ValueError(

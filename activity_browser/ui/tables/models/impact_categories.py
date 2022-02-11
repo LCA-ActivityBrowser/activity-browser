@@ -85,7 +85,7 @@ class CFModel(PandasModel):
             self.method = bw.Method(method)
         assert self.method is not None, "A method must be set."
         self._dataframe = pd.DataFrame([
-            self.build_row(obj) for obj in self.method.load()
+            self.build_row(obj) for obj in self.method.load() # TODO: Fetching CFs from Method bw.methods -> bw.Method(method).load()
         ], columns=self.HEADERS + self.UNCERTAINTY)
         self.cf_column = self._dataframe.columns.get_loc("cf")
         self.updated.emit()

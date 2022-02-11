@@ -454,6 +454,7 @@ class InventoryTab(NewAnalysisTab):
         inventory = "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
         # We handle both 'df_biosphere' and 'df_technosphere' variables here.
         attr_name = "df_{}".format(inventory)
+        # TODO: Getting Inventory results
         if getattr(self, attr_name) is None or self.remove_zero_state != self.last_remove_zero_state:
             setattr(self, attr_name, self.parent.contributions.inventory_df(
                 inventory_type=inventory)
