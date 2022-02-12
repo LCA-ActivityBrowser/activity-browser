@@ -94,9 +94,7 @@ jobs:
   deploy-development:
     # Make sure to only run a deploy if all tests pass.
     needs:
-      - test-linux
-      - test-macos
-      - test-windows
+      - tests
     # And only on a push event, not a pull_request.
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
