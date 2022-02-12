@@ -60,7 +60,7 @@ jobs:
           name: env-${{ matrix.os }}-${{ matrix.python-version }}.yaml
           path: env.yaml
       - name: Install linux dependencies
-        if: ${{ matrix.os == ubuntu-latest}}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
         run: |
           sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
@@ -71,17 +71,17 @@ jobs:
           1920x1200x24 -ac +extension GLX +render -noreset;
           conda install -q -y coveralls coverage pytest-cov
       - name: Run linux tests
-        if: ${{ matrix.os == ubuntu-latest}}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         env:
           QT_DEBUG_PLUGINS: 1
         run: |
           catchsegv xvfb-run --auto-servernum pytest --cov=activity_browser --cov-report=;
       - name: Run tests
-        if: ${{ matrix.os != ubuntu-latest}}
+        if: ${{ matrix.os != 'ubuntu-latest' }}
         run: |
           pytest
       - name: Upload coverage
-        if: ${{ matrix.python-version == '3.9' && matrix.os == ubuntu-latest }}
+        if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest' }}
         # https://github.com/lemurheavy/coveralls-public/issues/1435#issuecomment-763357004
         # https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
         # https://github.com/TheKevJames/coveralls-python/issues/252
