@@ -111,7 +111,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.show_uncertainty.toggled.connect(self.show_exchange_uncertainty)
 
         # Reveal/hide exchange comment columns
-        self.show_comment = QtWidgets.QCheckBox("Show Exchange comments")
+        self.show_comment = QtWidgets.QCheckBox("Show Comments")
         self.show_comment.setToolTip("Show or hide the comment column in the Technosphere Inputs and Biosphere Flows tables")
         self.show_comment.setChecked(False)
         self.show_comment.toggled.connect(self.show_comments)
