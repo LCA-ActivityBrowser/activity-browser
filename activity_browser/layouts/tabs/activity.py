@@ -110,11 +110,18 @@ class ActivityTab(QtWidgets.QWidget):
         self.show_uncertainty.setChecked(False)
         self.show_uncertainty.toggled.connect(self.show_exchange_uncertainty)
 
+        # Reveal/hide exchange comment columns
+        self.show_comment = QtWidgets.QCheckBox("Show Exchange comments")
+        self.show_comment.setToolTip("Show or hide the comment column in the Technosphere Inputs and Biosphere Flows tables")
+        self.show_comment.setChecked(False)
+        self.show_comment.toggled.connect(self.show_comments)
+
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
         toolbar.addWidget(self.checkbox_edit_act)
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.show_uncertainty)
+        toolbar.addWidget(self.show_comment)
         self.graph_action = toolbar.addAction(
             qicons.graph_explorer, "Show graph", self.open_graph
         )
@@ -187,6 +194,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.downstream.model.sync(self.activity.upstream())
 
         self.show_exchange_uncertainty(self.show_uncertainty.isChecked())
+        self.show_comments(self.show_comment.isChecked())
 
     def populate_description_box(self):
         """Populate the activity description."""
@@ -209,6 +217,11 @@ class ActivityTab(QtWidgets.QWidget):
     def show_exchange_uncertainty(self, toggled: bool) -> None:
         self.technosphere.show_uncertainty(toggled)
         self.biosphere.show_uncertainty(toggled)
+
+    @Slot(bool, name="toggleCommentColumn")
+    def show_comments(self, toggled: bool) -> None:
+        self.technosphere.show_comments(toggled)
+        self.biosphere.show_comments(toggled)
 
     @Slot(bool, name="toggleReadOnly")
     def act_read_only_changed(self, read_only: bool) -> None:
