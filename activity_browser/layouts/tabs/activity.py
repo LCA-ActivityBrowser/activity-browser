@@ -98,33 +98,35 @@ class ActivityTab(QtWidgets.QWidget):
         # self.checkbox_description.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.checkbox_activity_description.setChecked(not self.read_only)
         self.checkbox_activity_description.setToolTip(
-            "Show or hide the description of the activity"
+            "Show/hide the activity description"
         )
         self.toggle_activity_description_visibility()
 
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
         # Reveal/hide uncertainty columns
-        self.show_uncertainty = QtWidgets.QCheckBox("Show Uncertainty")
-        self.show_uncertainty.setToolTip("Show or hide the uncertainty columns")
-        self.show_uncertainty.setChecked(False)
-        self.show_uncertainty.toggled.connect(self.show_exchange_uncertainty)
+        self.checkbox_uncertainty = QtWidgets.QCheckBox("Uncertainty")
+        self.checkbox_uncertainty.setToolTip("Show/hide the uncertainty columns")
+        self.checkbox_uncertainty.setChecked(False)
+        self.checkbox_uncertainty.toggled.connect(self.show_exchange_uncertainty)
 
         # Reveal/hide exchange comment columns
-        self.show_comment = QtWidgets.QCheckBox("Show Comments")
-        self.show_comment.setToolTip("Show or hide the comment column in the Technosphere Inputs and Biosphere Flows tables")
-        self.show_comment.setChecked(False)
-        self.show_comment.toggled.connect(self.show_comments)
+        self.checkbox_comment = QtWidgets.QCheckBox("Comments")
+        self.checkbox_comment.setToolTip("Show/hide the comment column")
+        self.checkbox_comment.setChecked(False)
+        self.checkbox_comment.toggled.connect(self.show_comments)
 
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
-        toolbar.addWidget(self.checkbox_edit_act)
-        toolbar.addWidget(self.checkbox_activity_description)
-        toolbar.addWidget(self.show_uncertainty)
-        toolbar.addWidget(self.show_comment)
         self.graph_action = toolbar.addAction(
-            qicons.graph_explorer, "Show graph", self.open_graph
+            qicons.graph_explorer, "Show in Graph Explorer", self.open_graph
         )
+        toolbar.addWidget(self.checkbox_edit_act)
+        # toolbar.addWidget(QtWidgets.QLabel('Show:  '))
+        toolbar.addWidget(self.checkbox_activity_description)
+        toolbar.addWidget(self.checkbox_uncertainty)
+        toolbar.addWidget(self.checkbox_comment)
+
 
         # activity-specific data displayed and editable near the top of the tab
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
@@ -137,7 +139,7 @@ class ActivityTab(QtWidgets.QWidget):
 
         self.exchange_tables = [
             ("Products:", self.production),
-            ("Technosphere Inputs:", self.technosphere),
+            ("Technosphere Flows:", self.technosphere),
             ("Biosphere Flows:", self.biosphere),
             ("Downstream Consumers:", self.downstream),
         ]
@@ -193,8 +195,8 @@ class ActivityTab(QtWidgets.QWidget):
         self.biosphere.model.sync(self.activity.biosphere())
         self.downstream.model.sync(self.activity.upstream())
 
-        self.show_exchange_uncertainty(self.show_uncertainty.isChecked())
-        self.show_comments(self.show_comment.isChecked())
+        self.show_exchange_uncertainty(self.checkbox_uncertainty.isChecked())
+        self.show_comments(self.checkbox_comment.isChecked())
 
     def populate_description_box(self):
         """Populate the activity description."""
