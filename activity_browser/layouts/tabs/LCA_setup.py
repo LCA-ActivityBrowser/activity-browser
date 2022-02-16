@@ -146,11 +146,16 @@ class LCASetupTab(QtWidgets.QWidget):
         container.addLayout(calc_row)
         container.addWidget(horizontal_line())
 
-        cs_panel_layout.addWidget(header('Reference flows:'))
+        self.ref_flow_header = header('Reference flows:')
+        self.impact_cat_header = header('Impact categories:')
+        self.middle_split = horizontal_line()
+        self.no_setup_label = QtWidgets.QLabel("To do an LCA, create a new calculation setup first by pressing 'New'.")
+        cs_panel_layout.addWidget(self.ref_flow_header)
         cs_panel_layout.addWidget(self.activities_table)
-        cs_panel_layout.addWidget(horizontal_line())
-        cs_panel_layout.addWidget(header('Impact categories:'))
+        cs_panel_layout.addWidget(self.middle_split)
+        cs_panel_layout.addWidget(self.impact_cat_header)
         cs_panel_layout.addWidget(self.methods_table)
+        cs_panel_layout.addWidget(self.no_setup_label)
 
         self.cs_panel.setLayout(cs_panel_layout)
         container.addWidget(self.cs_panel)
@@ -264,11 +269,40 @@ class LCASetupTab(QtWidgets.QWidget):
         self.presamples.button.setEnabled(valid)
 
     def show_details(self, show: bool = True):
+        # show/hide items from name_row
         self.rename_cs_button.setVisible(show)
         self.delete_cs_button.setVisible(show)
+        self.copy_cs_button.setVisible(show)
         self.list_widget.setVisible(show)
+        # show/hide items from calc_row
+        if not show:
+            self.calculate_button.setVisible(show)
+            self.presamples.button.setVisible(show)
+            self.scenario_calc_btn.setVisible(show)
+            self.calculation_type.setVisible(show)
+            self.presamples.label.setVisible(show)
+            self.presamples.list.setVisible(show)
+            self.presamples.remove.setVisible(show)
+        else:
+            self.calculation_type.setVisible(show)
+            calc_type = self.calculation_type.currentText()
+            if calc_type == "Standard LCA":
+                self.calculate_button.setVisible(show)
+            elif calc_type == "Scenario LCA":
+                self.scenario_calc_btn.setVisible(show)
+            elif calc_type == "Presamples LCA":
+                self.presamples.button.setVisible(show)
+                self.presamples.label.setVisible(show)
+                self.presamples.list.setVisible(show)
+                self.presamples.remove.setVisible(show)
+
+        # show/hide other things
+        self.ref_flow_header.setVisible(show)
         self.activities_table.setVisible(show)
+        self.middle_split.setVisible(show)
+        self.impact_cat_header.setVisible(show)
         self.methods_table.setVisible(show)
+        self.no_setup_label.setVisible(not(show))
 
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
