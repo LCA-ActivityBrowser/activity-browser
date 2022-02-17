@@ -98,6 +98,10 @@ class CSActivityModel(CSGenericModel):
 
     @Slot(str, name="syncModel")
     def sync(self, name: str = None):
+        if len(bw.calculation_setups) == 0:
+            self._dataframe = pd.DataFrame(columns=self.HEADERS)
+            self.updated.emit()
+            return
         if self.current_cs is None and name is None:
             raise ValueError("'name' cannot be None if no name is set")
         if name:
