@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt, QEvent
 from PySide2 import QtWidgets
 
 from activity_browser.signals import signals
@@ -38,12 +38,20 @@ class CSList(QtWidgets.QComboBox):
 class CSActivityTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
+        self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+
         self.setAcceptDrops(True)
-        self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+        self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        self.setDragDropOverwriteMode(False)
+
         self.model = CSActivityModel(self)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
+        self.setToolTip("Drag Activities from the Activities table to include them as a reference flow\n"
+                        "Click and drag to re-order individual rows of the table\n"
+                        "Hold CTRL and click to select multiple rows to open or delete them.")
 
     @Slot(name="resizeView")
     def custom_view_sizing(self):
@@ -65,6 +73,17 @@ class CSActivityTable(ABDataFrameView):
     def to_python(self) -> list:
         return self.model.activities
 
+    def mousePressEvent(self, event):
+        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
+        if event.button() == Qt.LeftButton:
+            if event.modifiers() & Qt.ControlModifier:
+                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
+                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+            else:
+                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        ABDataFrameView.mousePressEvent(self, event)
+
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
@@ -74,7 +93,8 @@ class CSActivityTable(ABDataFrameView):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if getattr(event.source(), "technosphere", False):
+        if getattr(event.source(), "technosphere", False)\
+                or event.source() is self:
             event.accept()
 
     def dragMoveEvent(self, event) -> None:
@@ -83,20 +103,37 @@ class CSActivityTable(ABDataFrameView):
     def dropEvent(self, event):
         event.accept()
         source = event.source()
-        print('Dropevent from:', source)
-        self.model.include_activities(
-            {source.get_key(p): 1.0} for p in source.selectedIndexes()
-        )
+        if getattr(event.source(), "technosphere", False):
+            print('Dropevent from:', source)
+            self.model.include_activities(
+                {source.get_key(p): 1.0} for p in source.selectedIndexes()
+            )
+        elif event.source() is self:
+            selection = self.selectedIndexes()
+            from_index = selection[0].row() if selection else -1
+            to_index = self.indexAt(event.pos()).row()
+            if (0 <= from_index < self.model.rowCount() and
+                    0 <= to_index < self.model.rowCount() and
+                    from_index != to_index):
+                self.model.relocateRow(from_index, to_index)
 
 
 class CSMethodsTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
+        self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+
         self.setAcceptDrops(True)
-        self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+        self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        self.setDragDropOverwriteMode(False)
+
         self.model = CSMethodsModel(self)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
+        self.setToolTip("Drag impact categories from the impact categories tree/table to include them \n"
+                        "Click and drag to re-order individual rows of the table\n"
+                        "Hold CTRL and click to select multiple rows to open or delete them.")
 
     @Slot(name="resizeView")
     def custom_view_sizing(self):
@@ -106,6 +143,17 @@ class CSMethodsTable(ABDataFrameView):
 
     def to_python(self):
         return self.model.methods
+
+    def mousePressEvent(self, event):
+        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
+        if event.button() == Qt.LeftButton:
+            if event.modifiers() & Qt.ControlModifier:
+                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
+                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+            else:
+                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        ABDataFrameView.mousePressEvent(self, event)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -118,7 +166,8 @@ class CSMethodsTable(ABDataFrameView):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), (MethodsTable, MethodsTree)):
+        if isinstance(event.source(), (MethodsTable, MethodsTree))\
+                or event.source() is self:
             event.accept()
 
     def dragMoveEvent(self, event) -> None:
@@ -126,7 +175,17 @@ class CSMethodsTable(ABDataFrameView):
 
     def dropEvent(self, event):
         event.accept()
-        self.model.include_methods(event.source().selected_methods())
+        source = event.source()
+        if isinstance(event.source(), (MethodsTable, MethodsTree)):
+            self.model.include_methods(event.source().selected_methods())
+        elif event.source() is self:
+            selection = self.selectedIndexes()
+            from_index = selection[0].row() if selection else -1
+            to_index = self.indexAt(event.pos()).row()
+            if (0 <= from_index < self.model.rowCount() and
+                    0 <= to_index < self.model.rowCount() and
+                    from_index != to_index):
+                self.model.relocateRow(from_index, to_index)
 
 
 class ScenarioImportTable(ABDataFrameView):
