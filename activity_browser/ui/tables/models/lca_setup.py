@@ -78,6 +78,7 @@ class CSActivityModel(CSGenericModel):
 
         signals.calculation_setup_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
+        signals.database_changed.connect(self.check_activities)
         # after editing the model, signal that the calculation setup has changed.
         self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 
@@ -85,6 +86,11 @@ class CSActivityModel(CSGenericModel):
     def activities(self) -> list:
         selection = self._dataframe.loc[:, ["Amount", "key"]].to_dict(orient="records")
         return [{x["key"]: x["Amount"]} for x in selection]
+
+    def check_activities(self, db):
+        databases = [list(k.keys())[0][0] for k in self.activities]
+        if db in databases:
+            self.sync()
 
     def get_key(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
