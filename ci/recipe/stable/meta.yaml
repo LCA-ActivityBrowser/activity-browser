@@ -21,7 +21,7 @@ requirements:
     - python
     - setuptools
   run:
-    - python >=3.8,<3.10
+    - python >=3.8
     - arrow
     - brightway2 >=2.4.2
     - pyperclip
