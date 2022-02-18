@@ -62,10 +62,16 @@ class ActivityController(QObject):
         """Use the given data to delete one or more activities from brightway2."""
         activities = self._retrieve_activities(data)
 
-        if any(len(act.upstream()) > 0 for act in activities):
-            text = ("Can't delete one or more activities. Some upstream process"
-                    " consumes their reference products. Please edit or delete "
-                    "these upstream exchanges first.")
+        text = ("Can't delete one or more activities. Some upstream process"
+                " consumes their reference products. Please edit or delete "
+                "these upstream exchanges first.")
+
+        if any(len(act.upstream()) == 1 for act in activities):
+            for act in activities:
+                if act.key != [u.output.key for u in act.upstream()][0]:
+                    QtWidgets.QMessageBox.warning(self.window, "Not possible.", text)
+                    return
+        elif any(len(act.upstream()) > 0 for act in activities):
             QtWidgets.QMessageBox.warning(self.window, "Not possible.", text)
             return
 
