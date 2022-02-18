@@ -17,7 +17,7 @@ from activity_browser.signals import signals
 Mess around with the uncertainty wizard.
 """
 
-
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_wizard_fail(qtbot):
     """Can't create a wizard if no uncertainty interface exists."""
     mystery_box = ["Hello", "My", "Name", "Is", "Error"]  # Type is list.
@@ -51,6 +51,7 @@ def test_uncertainty_wizard_simple(qtbot, bw2test, capsys):
     assert not wizard.using_pedigree
 
 
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_graph_rebuild(qtbot, bw2test):
     """Test that the graph is correctly built and rebuilt, ensure
     that the 'finish' button is enabled and disabled at the correct
@@ -85,6 +86,7 @@ def test_graph_rebuild(qtbot, bw2test):
     assert wizard.button(QWizard.FinishButton).isEnabled()
 
 
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_update_uncertainty(qtbot, ab_app):
     """Using the signal/controller setup, update the uncertainty of a parameter"""
     param = ProjectParameter.create(name="uc1", amount=3)
@@ -107,6 +109,7 @@ def test_update_uncertainty(qtbot, ab_app):
     assert "loc" in param.data and param.data["loc"] == 3
 
 
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_update_alter_mean(qtbot, monkeypatch, ab_app):
     param = ProjectParameter.create(name="uc2", amount=1)
     wizard = UncertaintyWizard(param, None)
