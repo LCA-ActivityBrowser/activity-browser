@@ -35,9 +35,32 @@ class CSList(QtWidgets.QComboBox):
         return self.currentText()
 
 
-class CSActivityTable(ABDataFrameView):
+class CSGenericTable(ABDataFrameView):
+    """ Generic class to enable internal re-ordering of items in table.
+
+    Items commented out (blass below + first line of init) are intended to help
+    with showing a 'drop indicator' where the dragged item would end up.
+    This doesn't work yet
+    See also comments on PR here: https://github.com/LCA-ActivityBrowser/activity-browser/pull/719
+    See also this stackoverflow page: https://stackoverflow.com/questions/61387248/in-pyqt5-how-do-i-properly-move-rows-in-a-qtableview-using-dragdrop
+    """
+    # class DropMarkerStyle(QtWidgets.QProxyStyle):
+    #     def drawPrimitive(self, element, option, painter, widget=None):
+    #         """Draw a line across the entire row rather than just the column we're hovering over.
+    #         This may not always work depending on global style - for instance I think it won't
+    #         work on OSX."""
+    #         if element == self.PE_IndicatorItemViewItemDrop and not option.rect.isNull():
+    #             option_new = QtWidgets.QStyleOption(option)
+    #             option_new.rect.setLeft(0)
+    #             if widget:
+    #                 option_new.rect.setRight(widget.width())
+    #             option = option_new
+    #         super().drawPrimitive(element, option, painter, widget)
+
     def __init__(self, parent=None):
         super().__init__(parent)
+        # self.setStyle(self.DropMarkerStyle())
+
         self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
 
@@ -45,6 +68,24 @@ class CSActivityTable(ABDataFrameView):
         self.setDragDropMode(QtWidgets.QTableView.InternalMove)
         self.setDragDropOverwriteMode(False)
 
+    def mousePressEvent(self, event):
+        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
+        if event.button() == Qt.LeftButton:
+            if event.modifiers() & Qt.ControlModifier:
+                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
+                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+            else:
+                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        ABDataFrameView.mousePressEvent(self, event)
+
+    def dragMoveEvent(self, event) -> None:
+        pass
+
+
+class CSActivityTable(CSGenericTable):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.model = CSActivityModel(self)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
@@ -73,17 +114,6 @@ class CSActivityTable(ABDataFrameView):
     def to_python(self) -> list:
         return self.model.activities
 
-    def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
-        if event.button() == Qt.LeftButton:
-            if event.modifiers() & Qt.ControlModifier:
-                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
-                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
-            else:
-                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
-        ABDataFrameView.mousePressEvent(self, event)
-
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
@@ -96,9 +126,6 @@ class CSActivityTable(ABDataFrameView):
         if getattr(event.source(), "technosphere", False)\
                 or event.source() is self:
             event.accept()
-
-    def dragMoveEvent(self, event) -> None:
-        pass
 
     def dropEvent(self, event):
         event.accept()
@@ -118,16 +145,9 @@ class CSActivityTable(ABDataFrameView):
                 self.model.relocateRow(from_index, to_index)
 
 
-class CSMethodsTable(ABDataFrameView):
+class CSMethodsTable(CSGenericTable):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
-        self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-
-        self.setAcceptDrops(True)
-        self.setDragDropMode(QtWidgets.QTableView.InternalMove)
-        self.setDragDropOverwriteMode(False)
-
         self.model = CSMethodsModel(self)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -144,17 +164,6 @@ class CSMethodsTable(ABDataFrameView):
     def to_python(self):
         return self.model.methods
 
-    def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
-        if event.button() == Qt.LeftButton:
-            if event.modifiers() & Qt.ControlModifier:
-                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
-                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
-            else:
-                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
-        ABDataFrameView.mousePressEvent(self, event)
-
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
@@ -170,12 +179,8 @@ class CSMethodsTable(ABDataFrameView):
                 or event.source() is self:
             event.accept()
 
-    def dragMoveEvent(self, event) -> None:
-        pass
-
     def dropEvent(self, event):
         event.accept()
-        source = event.source()
         if isinstance(event.source(), (MethodsTable, MethodsTree)):
             self.model.include_methods(event.source().selected_methods())
         elif event.source() is self:
