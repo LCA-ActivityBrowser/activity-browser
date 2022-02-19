@@ -1,0 +1,7 @@
+name: ab
+channels:
+  - conda-forge
+  - cmutel
+  - bsteubing
+dependencies:
+  - activity-browser
