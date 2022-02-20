@@ -1,4 +1,4 @@
-name: github release
+name: stable release
 on:
   push:
     tags:
@@ -7,6 +7,9 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
       - name: Build changelog from PRs with labels
@@ -21,10 +24,24 @@ jobs:
         with:
           cmd: |
             yq eval-all -i 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' ci/conda-envs/ab.yml ci/recipe/stable/meta.yaml
-      - name: Create Release
+      - name: Create github release
         uses: ncipollo/release-action@v1
         with:
           body: ${{steps.build_changelog.outputs.changelog}}
           artifacts: 'ci/conda-envs/ab.yml'
           commit: master
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up conda-build environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: 3.8
+          activate-environment: build
+          environment-file: ci/conda-envs/build.yml
+      - name: Build activity-browser stable
+        run: |
+          conda build ci/recipe/stable
+      - name: Upload to anaconda.org
+        run: |
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
+          /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload ci/conda-envs/ab.yml
