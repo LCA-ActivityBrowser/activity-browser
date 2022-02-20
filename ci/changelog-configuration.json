@@ -2,15 +2,15 @@
     "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
     "categories": [
         {
-          "title": "## 🖧 Breaking Changes",
+          "title": "## 🚧 Breaking Changes",
             "labels": ["breaking"]
         },
         {
             "title": "## 🚀 Features",
-            "labels": ["feature"]
+            "labels": ["feature", "enhancement"]
         },
         {
-            "title": "## 🖥 User Interface",
+            "title": "## 🖱 User Interface",
             "labels": ["ui"]
         },
         {
@@ -19,14 +19,14 @@
         },
         {
             "title": "## 🐛 Bug Fixes",
-            "labels": ["bugfix"]
+            "labels": ["bug"]
         },
         {
             "title": "## 📄 Documentation",
             "labels": ["documentation"]
         },
         {
-            "title": "## ⚙ CI and Packaging",
+            "title": "## 🚚 CI and Packaging",
             "labels": ["ci"]
         }
     ],
