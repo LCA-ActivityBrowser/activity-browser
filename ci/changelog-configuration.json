@@ -2,28 +2,32 @@
     "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
     "categories": [
         {
-            "title": "## 🚀 Features",
-            "labels": ["enhancement", "feature"]
-        },
-        {
-            "title": "## 🛠️ Minor Changes",
-            "labels": ["change"]
-        },
-        {
-            "title": "## 🔎 Breaking Changes",
+          "title": "## 🖧 Breaking Changes",
             "labels": ["breaking"]
         },
         {
-            "title": "## 🐛 Fixes",
-            "labels": ["bug", "fix"]
+            "title": "## 🚀 Features",
+            "labels": ["feature"]
+        },
+        {
+            "title": "## 🖥 User Interface",
+            "labels": ["ui"]
+        },
+        {
+            "title": "## 🛠️  Changes",
+            "labels": ["change"]
+        },
+        {
+            "title": "## 🐛 Bug Fixes",
+            "labels": ["bugfix"]
         },
         {
             "title": "## 📄 Documentation",
             "labels": ["documentation"]
         },
         {
-            "title": "## 🔗 Dependency Updates",
-            "labels": ["dependency"]
+            "title": "## ⚙ CI and Packaging",
+            "labels": ["ci"]
         }
     ],
     "template": "${{CATEGORIZED_COUNT}} changes since ${{FROM_TAG}}\n\n${{CHANGELOG}}"
