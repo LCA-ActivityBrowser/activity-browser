@@ -5,14 +5,14 @@ from typing import Iterable, List, Optional
 import brightway2 as bw
 import numpy as np
 import pandas as pd
-import presamples as ps
+import presamples as ps #TODO ps
 
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
 from .utils import get_package_path
 
 
-class PresamplesMLCA(MLCA):
+class PresamplesMLCA(MLCA): #TODO ps
     """ Subclass of the `MLCA` class which adds another dimension in the form
      of scenarios / presamples arrays.
 

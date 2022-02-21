@@ -161,6 +161,28 @@ class ParameterManager(object):
         self.parameters.update(values)
         return self.calculate()
 
+    def ps_recalculate(self, values: List[float]) -> np.ndarray:
+        """Leftover from Presamples."""
+        data = self.recalculate(values)
+        # After recalculating all the exchanges format them according to
+        # presamples requirements: samples as a column of floats.
+        samples = data.reshape(1, -1).T
+        return samples
+
+    def reformat_indices(self) -> np.ndarray:
+        """Leftover from Presamples."""
+        result = np.zeros(len(self.indices), dtype=object)
+        for i, idx in enumerate(self.indices):
+            result[i] = (idx.input, idx.output, idx.input.database_type)
+        return result
+
+    def arrays_from_scenarios(self, scenarios) -> (np.ndarray, np.ndarray):
+        """Leftover from Presamples."""
+        sample_data = [self.ps_recalculate(list(values)) for _, values in scenarios]
+        samples = np.concatenate(sample_data, axis=1)
+        indices = self.reformat_indices()
+        return samples, indices
+
     @staticmethod
     def has_parameterized_exchanges() -> bool:
         """ Test if ParameterizedExchanges exist, no point to using this manager

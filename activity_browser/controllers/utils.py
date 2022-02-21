@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from PySide2.QtCore import QObject, Slot
 
-from activity_browser.bwutils import AB_metadata, presamples as pc
+#from activity_browser.bwutils import AB_metadata, presamples as pc #TODO ps
+from activity_browser.bwutils import AB_metadata
 from activity_browser.signals import signals
 from ..ui.wizards.settings_wizard import SettingsWizard
 
@@ -16,7 +17,7 @@ class UtilitiesController(QObject):
 
         signals.project_selected.connect(self.reset_metadata)
         signals.edit_activity.connect(self.print_convenience_information)
-        signals.presample_package_delete.connect(self.remove_presamples_package)
+        # signals.presample_package_delete.connect(self.remove_presamples_package) #TODO ps
         signals.edit_settings.connect(self.open_settings_wizard)
 
     @staticmethod
@@ -29,19 +30,19 @@ class UtilitiesController(QObject):
     def print_convenience_information(db_name: str) -> None:
         AB_metadata.print_convenience_information(db_name)
 
-    @staticmethod
-    @Slot(str, name="removePresamplesPackage")
-    def remove_presamples_package(name_id: str) -> None:
-        path = pc.get_package_path(name_id)
-        resource = pc.clear_resource_by_name(name_id)
-        if path is None and not resource:
-            raise ValueError(
-                "Given presample package '{}' could not be found.".format(name_id)
-            )
-        print("Removed PresampleResource object?", resource)
-        files = pc.remove_package(path)
-        print("Removed Presample files?", files)
-        signals.presample_package_removed.emit()
+    # @staticmethod
+    # @Slot(str, name="removePresamplesPackage")
+    # def remove_presamples_package(name_id: str) -> None: #TODO ps
+    #     path = pc.get_package_path(name_id)
+    #     resource = pc.clear_resource_by_name(name_id)
+    #     if path is None and not resource:
+    #         raise ValueError(
+    #             "Given presample package '{}' could not be found.".format(name_id)
+    #         )
+    #     print("Removed PresampleResource object?", resource)
+    #     files = pc.remove_package(path)
+    #     print("Removed Presample files?", files)
+    #     signals.presample_package_removed.emit()
 
     @Slot(name="settingsWizard")
     def open_settings_wizard(self) -> None:

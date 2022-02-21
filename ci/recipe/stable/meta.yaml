@@ -29,7 +29,7 @@ requirements:
     - pyside2 >=5.13.1
     - salib >=1.4
     - seaborn
-    - presamples
+    #- presamples #TODO ps
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

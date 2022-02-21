@@ -7,6 +7,8 @@ import brightway2 as bw
 from presamples import PresampleResource
 
 
+# TODO ps
+
 def count_presample_packages() -> int:
     ps_dir = Path(bw.projects.dir).joinpath("presamples")
     return sum(1 for _ in ps_dir.iterdir()) if ps_dir.is_dir() else 0

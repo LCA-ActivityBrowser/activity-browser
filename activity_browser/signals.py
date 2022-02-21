@@ -81,10 +81,10 @@ class Signals(QObject):
     parameter_superstructure_built = Signal(int, object)
     clear_activity_parameter = Signal(str, str, str)
 
-    # Presamples
-    presample_package_created = Signal(str)
-    presample_package_delete = Signal(str)
-    presample_package_removed = Signal()
+    # Presamples #TODO ps
+    # presample_package_created = Signal(str)
+    # presample_package_delete = Signal(str)
+    # presample_package_removed = Signal()
 
     # Calculation Setups
     new_calculation_setup = Signal()
