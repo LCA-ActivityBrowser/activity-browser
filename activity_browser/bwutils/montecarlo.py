@@ -302,7 +302,7 @@ class MonteCarloLCA(object):
     @staticmethod
     def get_labels(key_list, fields: list = None, separator=' | ',
                    max_length: int = None) -> list:
-        fields = fields or ['name', 'reference product', 'location', 'database']
+        fields = fields or ['reference product', 'name', 'location', 'database']
         # need to do this as the keys come from a pd.Multiindex
         acts = (bw.get_activity(key).as_dict() for key in (k for k in key_list))
         translated_keys = [

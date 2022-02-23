@@ -3,17 +3,16 @@
 
 Each of these classes is either a parent for - or a sub-LCA results tab.
 """
-
+import string
 import traceback
 from collections import namedtuple
 from typing import List, Optional, Union
-
+import brightway2 as bw # TODO move to bw utils
 from PySide2 import QtGui, QtCore
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
-    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-)
+    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog, )
 from stats_arrays.errors import InvalidParamsError
 
 from ...bwutils import (
@@ -29,7 +28,8 @@ from ...ui.figures import (
 from ...ui.style import horizontal_line, vertical_line, header
 from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
 from ...ui.web import SankeyNavigatorWidget
-from ...ui.widgets import CutoffMenu, SwitchComboBox
+from ...ui.widgets import SwitchComboBox
+from ...ui.widgets.mini_cutoff_menu import MiniCutoffMenu
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -189,6 +189,7 @@ class NewAnalysisTab(QWidget):
         self.is_plot_visible: Optional[bool] = None
         self.relativity: Optional[Relativity] = None
         self.relative: Optional[bool] = None
+        self.cutoff_menu: Optional[string] = None
         self.export_plot: Optional[ExportPlot] = None
         self.export_table: Optional[ExportTable] = None
 
@@ -205,7 +206,7 @@ class NewAnalysisTab(QWidget):
         widget.setLayout(self.pt_layout)
 
         # Option switches
-        self.analysis_views = PlotTableVisibilityToggle(
+        self.analysis_views = PlotTableVisibilityToggle( # todo move to upper layout
             QRadioButton("Plot"),
             QRadioButton("Table")
         )
@@ -239,7 +240,14 @@ class NewAnalysisTab(QWidget):
             self.relativity.relative.toggled.connect(self.relativity_check)
             row.addWidget(relativity_group_box)
 
+        if self.cutoff_menu:
+            vline = vertical_line()
+            row.addWidget(vline)
+            row.addWidget(self.cutoff_menu)
+
         row.addStretch()
+
+        row.addWidget(horizontal_line())
 
         # Assemble Table and Plot area
         if self.table and self.plot:
@@ -392,6 +400,17 @@ class InventoryTab(NewAnalysisTab):
         button_layout.addWidget(self.radio_button_biosphere)
         self.radio_button_technosphere = QRadioButton("Technosphere flows")
         self.remove_zeros_checkbox = QCheckBox("Remove '0' values")
+
+        self.show_characterised_flows = False
+        self.characterised_checkbox = QCheckBox("Show characterised flows")
+        self.characterised_checkbox.setChecked(self.show_characterised_flows)
+        self.characterised_checkbox.setToolTip("Show the flows which have characterisation factors in Impact Categories.")
+
+        self.show_uncharacterised_flows = False
+        self.uncharacterised_checkbox = QCheckBox("Show uncharacterised flows")
+        self.uncharacterised_checkbox.setChecked(self.show_uncharacterised_flows)
+        self.uncharacterised_checkbox.setToolTip("Show the flows which do not have characterisation factors in Impact Categories.\n")
+
         self.remove_zero_state = False
         self.last_remove_zero_state = self.remove_zero_state
         self.remove_zeros_checkbox.setChecked(self.remove_zero_state)
@@ -403,6 +422,8 @@ class InventoryTab(NewAnalysisTab):
         button_layout.addWidget(self.scenario_label)
         button_layout.addWidget(self.scenario_box)
         button_layout.addStretch(1)
+        button_layout.addWidget(self.characterised_checkbox)
+        button_layout.addWidget(self.uncharacterised_checkbox)
         button_layout.addWidget(self.remove_zeros_checkbox)
         self.layout.addLayout(button_layout)
 
@@ -419,6 +440,8 @@ class InventoryTab(NewAnalysisTab):
     def connect_signals(self):
         self.radio_button_biosphere.toggled.connect(self.button_clicked)
         self.remove_zeros_checkbox.toggled.connect(self.remove_zeros_checked)
+        self.characterised_checkbox.toggled.connect(self.characterised_flows_checked)
+        self.uncharacterised_checkbox.toggled.connect(self.uncharacterised_flows_checked)
         if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
             self.parent.update_scenario_box_index.connect(
@@ -432,12 +455,36 @@ class InventoryTab(NewAnalysisTab):
         self.update_table()
         self.last_remove_zero_state = self.remove_zero_state
 
+    @QtCore.Slot(bool, name="isCharacterisedFlowsToggled")
+    def characterised_flows_checked(self, toggled: bool):
+        """Update table according to remove-zero selected."""
+        self.show_characterised_flows = toggled
+        self.update_table()
+        self.last_show_characterised_flows = self.show_characterised_flows
+
+    @QtCore.Slot(bool, name="isUncharacterisedFlowsToggled")
+    def uncharacterised_flows_checked(self, toggled: bool):
+        """Update table according to remove-zero selected."""
+        self.show_uncharacterised_flows = toggled
+        self.update_table()
+        self.last_show_uncharacterised_flows = self.show_characterised_flows
+
     @QtCore.Slot(bool, name="isBiosphereToggled")
     def button_clicked(self, toggled: bool):
         """Update table according to radiobutton selected."""
         ext = "_Inventory" if toggled else "_Inventory_technosphere"
         self.table.table_name = "{}{}".format(self.parent.cs_name, ext)
         self.update_table()
+        if not toggled:
+            self.characterised_checkbox.blockSignals(True)
+            self.uncharacterised_checkbox.blockSignals(True)
+            self.characterised_checkbox.setChecked(True)
+            self.uncharacterised_checkbox.setChecked(True)
+            self.characterised_checkbox.blockSignals(False)
+            self.uncharacterised_checkbox.blockSignals(False)
+        self.characterised_checkbox.setVisible(toggled)
+        self.uncharacterised_checkbox.setVisible(toggled)
+
 
     def configure_scenario(self):
         """Allow scenarios options to be visible when used."""
@@ -459,6 +506,11 @@ class InventoryTab(NewAnalysisTab):
             setattr(self, attr_name, self.parent.contributions.inventory_df(
                 inventory_type=inventory)
                     )
+
+        #TODO: write util in bwutil to fetch all the cfs for the selected ICs and Union the set
+        #TODO: Intersection the union and df_bio in self.parent.contributions.inventory_df
+        # for method in self.parent.mlca.methods:
+        #     methods = bw.Method(self.parent.mlca.methods[0]).load())
 
         def filter_zeroes(df):
             filter_on = [x for x in df.columns.tolist() if '|' in x]
@@ -686,7 +738,9 @@ class ContributionTab(NewAnalysisTab):
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent)
-        self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
+        #self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
+        self.cutoff_menu = MiniCutoffMenu(self, cutoff_value=0.05) #TODO: Is 5 % alright?
+
         self.combobox_menu = Combobox(
             func=QComboBox(self),
             func_label=QLabel("Reference Flow:"),
@@ -768,6 +822,15 @@ class ContributionTab(NewAnalysisTab):
         self.toggle_method(index == self.switches.indexes.method)
         self.toggle_scenario(index == self.switches.indexes.scenario)
         self.update_tab()
+
+    @QtCore.Slot(bool, name="isRelativeToggled")
+    def cutoff_type_check(self, toggled: bool) -> None:
+        if toggled:
+            self.limit_type = "percent"
+            self.cutoff_slider_line.setValidator(self.validators.relative)
+        else:
+            self.limit_type = "number"
+            self.cutoff_slider_line.setValidator(self.validators.topx)
 
     @QtCore.Slot(bool, name="hideScenarioCombo")
     def toggle_scenario(self, active: bool):
@@ -895,8 +958,6 @@ class ElementaryFlowContributionTab(ContributionTab):
         super().__init__(parent)
 
         self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
-        self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
         self.layout.addWidget(horizontal_line())
@@ -947,8 +1008,6 @@ class ProcessContributionsTab(ContributionTab):
         super().__init__(parent)
 
         self.layout.addLayout(get_header_layout('Process Contributions'))
-        self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
         self.layout.addWidget(horizontal_line())

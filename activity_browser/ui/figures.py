@@ -13,8 +13,8 @@ from PySide2.QtCore import QObject, Slot
 from PySide2.QtWidgets import QMenu, QAction
 from bokeh.embed import file_html
 from bokeh.io import export_png, export_svg
-from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span, WheelZoomTool, Whisker
-from bokeh.palettes import turbo
+from bokeh.models import ColumnDataSource, HoverTool, CustomJS, Span, WheelZoomTool, Whisker, Label
+from bokeh.palettes import turbo, magma
 from bokeh.plotting import figure as bokeh_figure
 from bokeh.transform import dodge
 from bw2data.filesystem import safe_filename
@@ -238,7 +238,7 @@ class LCAResultsBarChart(BokehPlot):
         if show_legend:
             lca_results_plot.hbar_stack(list(df.columns), height=self.BAR_HEIGHT, y='index', source=column_source,
                                         legend_label=list(df.columns),
-                                        fill_color=turbo(len(df.columns)), line_width=0)
+                                        fill_color=BokehPlotUtils.get_color_palette(len(df.columns)), line_width=0)
         else:
             lca_results_plot.hbar(y="index", height=self.BAR_HEIGHT, right="values", source=column_source)
 
@@ -316,7 +316,7 @@ class LCAResultsOverview(BokehPlot):
         dfp = dfp.T
 
         # TODO: What in case of just one reference flow? Dont show this tab?
-        dfp = dfp.apply(lambda x: x / x.max(), axis=1)
+        dfp = dfp.apply(lambda x: (x / x.max()) if (x.max() > 0) else (x / x.min()), axis=1)  # handle both neg scenario
         dfp = dfp[::-1]
 
         column_source = ColumnDataSource(dfp)
@@ -324,13 +324,16 @@ class LCAResultsOverview(BokehPlot):
         # Compute plot height
         plot_height = BokehPlotUtils.calculate_results_chart_height(bar_count=dfp.index.size,
                                                                     legend_item_count=dfp.columns.size)
+        min = 0
+        if dfp.min().min() < 0:
+            min = dfp.min().min()
 
-        lca_results_plot = bokeh_figure(y_range=list(dfp.index), x_range=(0, max(dfp.max())),
+        lca_results_plot = bokeh_figure(y_range=list(dfp.index), x_range=(min, 1),
                                         plot_height=plot_height, sizing_mode="stretch_width", toolbar_location=None)
 
         bar_distribution_value, bar_height = get_sub_bar_placement(dfp.columns.size)
 
-        colors = turbo(len(dfp.columns))
+        colors = BokehPlotUtils.get_color_palette(len(dfp.columns))
         for column_index in range(0, dfp.columns.size):
             renderer = lca_results_plot.hbar(
                 y=dodge('index', mgrid[-bar_distribution_value:bar_distribution_value:dfp.columns.size * 1j][
@@ -344,6 +347,10 @@ class LCAResultsOverview(BokehPlot):
         lca_results_plot.y_range.range_padding = 0.02
         lca_results_plot.ygrid.grid_line_color = None
         BokehPlotUtils.style_axis_labels(lca_results_plot.yaxis)
+
+        lca_results_plot.xaxis.axis_label = "Impact relative to largest"
+        lca_results_plot.xaxis.axis_label_text_font_size = "10pt"
+        lca_results_plot.xaxis.axis_label_text_font_style = "bold"
 
         # Relocate the legend to bottom left to save space
         BokehPlotUtils.style_and_place_legend(lca_results_plot, "bottom_left")
@@ -416,22 +423,30 @@ class ContributionPlot(BokehPlot):
             contribution_plot.hbar_stack(list(positive_df.columns), height=self.BAR_HEIGHT, y='index',
                                          source=ColumnDataSource(positive_df),
                                          legend_label=list(positive_df.columns),
-                                         fill_color=turbo(len(positive_df.columns)), line_width=0)
+                                         fill_color=BokehPlotUtils.get_color_palette(len(positive_df.columns)),
+                                         line_width=0)
 
         if has_negative_values:
             contribution_plot.hbar_stack(list(negative_df.columns), height=self.BAR_HEIGHT, y='index',
                                          source=ColumnDataSource(negative_df),
                                          legend_label=list(negative_df.columns),
-                                         fill_color=turbo(len(negative_df.columns)), line_width=0)
+                                         fill_color=BokehPlotUtils.get_color_palette(len(negative_df.columns), True),
+                                         line_width=0)
             source_totals = ColumnDataSource(
                 data=dict(base=list(self.plot_data.index), lower=np.zeros(self.plot_data.index.size), upper=totals))
             w = Whisker(source=source_totals, base="base", upper="upper", lower="lower", dimension="width",
-                        level="overlay", line_color="red", line_width=1.5)
+                        level="overlay", line_color="red", line_width=1.5) # TODO: Dont add wisker for positive bar
             w.upper_head.line_width = 1.5
             w.lower_head.line_width = 1.5
             w.upper_head.line_color = 'red'
             w.lower_head.line_color = 'red'
             contribution_plot.add_layout(w)
+
+            total_legend = Label(x=0, y=-45, x_units='screen', y_units='screen',
+                                 text=' H Aggregate value ', render_mode='css', text_color='red',
+                                 border_line_color='black', border_line_alpha=1.0, text_font_size="10pt",
+                                 text_font_style="bold", background_fill_color='white', background_fill_alpha=1.0)
+            contribution_plot.add_layout(total_legend)
 
         if not has_negative_values:
             contribution_plot.x_range.start = 0
@@ -617,10 +632,10 @@ class MonteCarloPlot(BokehPlot):
         p = bokeh_figure(tools=['wheel_zoom', 'pan'], background_fill_color="#fafafa", toolbar_location=None,
                          sizing_mode="stretch_width")  # tools=['hover', tooltips=[("Probability", "@top"), ("Value", "@right")]
         p.toolbar.active_scroll = p.select_one(WheelZoomTool)
-        colors = turbo(df.columns.size)
+        colors = BokehPlotUtils.get_color_palette(df.columns.size)
         i = 0
         for col in df.columns:
-            hist, edges = np.histogram(df[col], density=True)
+            hist, edges = np.histogram(df[col], density=False)
             p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:], fill_color=colors[i], line_width=0,
                    alpha=0.5, legend_label=col)
             span = Span(location=df[col].mean(), dimension='height', line_color=colors[i], line_width=2)
@@ -630,7 +645,7 @@ class MonteCarloPlot(BokehPlot):
         # Relocate the legend to bottom left to save space
         BokehPlotUtils.style_and_place_legend(p, "center")
         p.xaxis.axis_label = bw.methods[method]["unit"]
-        p.yaxis.axis_label = 'Probability'
+        p.yaxis.axis_label = 'Count'
         p.y_range.start = 0
         p.y_range.bounds = (0, None)
 
@@ -704,7 +719,7 @@ class BokehPlotUtils:
 
     @staticmethod
     def calculate_bar_chart_height(bar_count: int = 1, legend_item_count: int = 1):
-        return 90 + (35 * bar_count) + (20 * legend_item_count)
+        return 90 + (35 * bar_count) + (17 * legend_item_count)
 
     @staticmethod
     def calculate_results_chart_height(bar_count: int = 1, legend_item_count: int = 1):
@@ -733,3 +748,15 @@ class BokehPlotUtils:
         axis.major_label_text_font_style = "bold"
         axis.major_label_text_line_height = 0.8
         axis.major_label_text_align = "right"
+
+    REST_COLOR = "#808080"
+
+    @staticmethod
+    def get_color_palette(length: int, first_grey: bool = False) -> tuple:
+        base_colors = list(turbo(length if length < 256 else 256))
+        if length > 256:
+            backup_colors = list(magma(length - 256))
+            base_colors = base_colors + backup_colors
+        if first_grey:
+            base_colors[0] = BokehPlotUtils.REST_COLOR
+        return tuple(base_colors)
