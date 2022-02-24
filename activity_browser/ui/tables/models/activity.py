@@ -22,7 +22,7 @@ class BaseExchangeModel(EditablePandasModel):
     # Fields accepted by brightway to be stored in exchange objects.
     VALID_FIELDS = {
         "amount", "formula", "uncertainty type", "loc", "scale", "shape",
-        "minimum", "maximum"
+        "minimum", "maximum", "comment"
     }
 
     def __init__(self, key=None, parent=None):
@@ -204,7 +204,7 @@ class ProductExchangeModel(BaseExchangeModel):
 class TechnosphereExchangeModel(BaseExchangeModel):
     COLUMNS = [
         "Amount", "Unit", "Product", "Activity", "Location", "Database",
-        "Uncertainty", "Formula"
+        "Uncertainty", "Formula", "Comment"
     ]
     UNCERTAINTY = [
         "loc", "scale", "shape", "minimum", "maximum"
@@ -228,6 +228,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
                 "Database": act.get("database"),
                 "Uncertainty": exchange.get("uncertainty type", 0),
                 "Formula": exchange.get("formula"),
+                "Comment": exchange.get("comment"),
             })
             try:
                 matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
@@ -246,7 +247,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
 class BiosphereExchangeModel(BaseExchangeModel):
     COLUMNS = [
         "Amount", "Unit", "Flow Name", "Compartments", "Database",
-        "Uncertainty", "Formula"
+        "Uncertainty", "Formula", "Comment"
     ]
     UNCERTAINTY = [
         "loc", "scale", "shape", "minimum", "maximum"
@@ -269,6 +270,7 @@ class BiosphereExchangeModel(BaseExchangeModel):
                 "Database": act.get("database"),
                 "Uncertainty": exchange.get("uncertainty type", 0),
                 "Formula": exchange.get("formula"),
+                "Comment": exchange.get("comment"),
             })
             try:
                 matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))

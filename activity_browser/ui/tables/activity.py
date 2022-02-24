@@ -148,6 +148,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.setItemDelegateForColumn(6, ViewOnlyUncertaintyDelegate(self))
         self.setItemDelegateForColumn(13, FormulaDelegate(self))
+        self.setItemDelegateForColumn(14, StringDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
 
@@ -166,6 +167,12 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setColumnHidden(cols.index("pedigree"), not show)
         for c in self.model.UNCERTAINTY:
             self.setColumnHidden(cols.index(c), not show)
+
+    def show_comments(self, show: bool = False) -> None:
+        """Show or hide the comment column.
+        """
+        cols = self.model.columns
+        self.setColumnHidden(cols.index("Comment"), not show)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -204,8 +211,9 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.setItemDelegateForColumn(5, ViewOnlyUncertaintyDelegate(self))
         self.setItemDelegateForColumn(12, FormulaDelegate(self))
-        self.table_name = "biosphere"
+        self.setItemDelegateForColumn(13, StringDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+        self.table_name = "biosphere"
 
     @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
@@ -220,6 +228,12 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setColumnHidden(cols.index("pedigree"), not show)
         for c in self.model.UNCERTAINTY:
             self.setColumnHidden(cols.index(c), not show)
+
+    def show_comments(self, show: bool = False) -> None:
+        """Show or hide the comment column.
+        """
+        cols = self.model.columns
+        self.setColumnHidden(cols.index("Comment"), not show)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:

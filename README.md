@@ -59,7 +59,7 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
 You can install and start the activity-browser like this:
 
 ```bash
-conda create -n ab -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage activity-browser
+conda create -n ab -c conda-forge -c cmutel -c bsteubing activity-browser
 conda activate ab
 activity-browser
 ```
@@ -74,14 +74,12 @@ Skip this step if you already have a working installation of anaconda or minicon
 
 ### Configure conda channels
 
-The activity-browser has many dependencies and you need to add five [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
+The activity-browser has many dependencies and you need to add three [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
 
 ```bash
 conda config --prepend channels conda-forge
 conda config --append channels cmutel
 conda config --append channels bsteubing
-conda config --append channels haasad
-conda config --append channels pascallesage
 ```
 
 You can check your channels with `conda config --show channels`. The output should look like this if everything is set up correctly:
@@ -92,8 +90,6 @@ channels:
   - defaults
   - cmutel
   - bsteubing
-  - haasad
-  - pascallesage
 ```
 You can also edit your user's `.condarc` file and modify the channels there. If you prefer to not add these channels to your conda config permanently, you'll have to always explicitly list them for `conda install` and `conda update` commands (see example in [Quickstart](#Quickstart)).
 
@@ -119,6 +115,10 @@ conda update activity-browser
 ```
 
 This will update the activity-browser and all of its dependencies in the conda environment called `ab`.
+
+| :warning: The activity browser has dropped support for python versions below `3.8`|
+|---|
+| You should re-install if you have an older installation of the activity browser which doesn't use `python >= 3.8` (you can check with `conda list` or `python --version` in your conda environment). You can remove your existing environment with `conda remove -n ab --all` or choose a new environment name (instead of `ab`). Re-installing will not affect your activity-browser/brightway projects. |
 
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
@@ -205,9 +205,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __Activity Browser__:
 - **Activity Browser**: overview paper https://doi.org/10.1016/j.simpa.2019.100012
-- **Global Sensitiviy Analysis**: 
+- **Global Sensitiviy Analysis**:
   - paper describing GSA as implemented in the AB: https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194
-  - additional description on our Wiki: https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis 
+  - additional description on our Wiki: https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis
 - **Modular LCA**:
   - paper on **modular LCA** using the Activity Browser: https://link.springer.com/article/10.1007/s11367-015-1015-3
   - documentation modular LCA: http://activity-browser.readthedocs.io/en/latest/index.html

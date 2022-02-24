@@ -8,6 +8,7 @@ from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import Qt, QModelIndex, Slot
+from PySide2.QtWidgets import QApplication
 
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.settings import project_settings
@@ -119,8 +120,10 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.technosphere = bc.is_technosphere_db(db_name)
 
         # Get dataframe from metadata and update column-names
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         df = self.df_from_metadata(db_name)
         self._dataframe = df.reset_index(drop=True)
+        QApplication.restoreOverrideCursor()
         self.updated.emit()
 
     def search(self, pattern1: str = None, pattern2: str = None, logic='AND') -> None:

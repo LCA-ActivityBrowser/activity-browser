@@ -4,14 +4,67 @@ from typing import Iterable
 import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
-from PySide2.QtCore import QModelIndex, Slot
+import numpy as np
+from PySide2.QtCore import QModelIndex, Slot, Qt
 
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.signals import signals
 from .base import EditablePandasModel, PandasModel
 
 
-class CSActivityModel(EditablePandasModel):
+class CSGenericModel(EditablePandasModel):
+    """ Intermediate class to enable internal move functionality for the
+    reference flows and impact categories tables. The below flags and relocate functions
+    are required to enable internal move.
+
+    Technically, CSMethodsModel is not editable, but as no editing delegates are set in the
+    tables, no editing is possible.
+    """
+
+    def flags(self, index):
+        """ Returns flags
+        """
+        if not index.isValid():
+            return super().flags(index) | Qt.ItemIsDropEnabled
+        if index.row() < len(self._dataframe):
+            return super().flags(index) | Qt.ItemIsDragEnabled
+        return super().flags(index)
+
+    def relocateRow(self, row_source, row_target) -> None:
+        """ Relocate a row.
+        Move a row in the table to another position and store the new dataframe
+        """
+        row_a, row_b = max(row_source, row_target), min(row_source, row_target)
+        self.beginMoveRows(QModelIndex(), row_a, row_a, QModelIndex(), row_b)
+        # copy data
+        data_source = self._dataframe.iloc[row_source].copy()
+        if row_source > row_target:  # the row needs to be moved up
+            pass
+            # delete old row
+            self._dataframe = self._dataframe.drop(row_source, axis=0).reset_index(drop=True)
+            # insert data
+            self._dataframe = pd.DataFrame(np.insert(self._dataframe.values,
+                                                     row_target,
+                                                     values=data_source,
+                                                     axis=0),
+                                           columns=self.HEADERS)
+        elif row_source < row_target:  # the row needs to be moved down
+            pass
+            # insert data
+            self._dataframe = pd.DataFrame(np.insert(self._dataframe.values,
+                                                     row_target,
+                                                     values=data_source,
+                                                     axis=0),
+                                           columns=self.HEADERS)
+            # delete old row
+            self._dataframe = self._dataframe.drop(row_source, axis=0).reset_index(drop=True)
+
+        self.updated.emit()
+        signals.calculation_setup_changed.emit()
+        self.endMoveRows()
+
+
+class CSActivityModel(CSGenericModel):
     HEADERS = [
         "Amount", "Unit", "Product", "Activity", "Location", "Database"
     ]
@@ -20,8 +73,12 @@ class CSActivityModel(EditablePandasModel):
         super().__init__(parent=parent)
         self.current_cs = None
         self.key_col = 0
+
+        self.HEADERS = self.HEADERS + ["key"]
+
         signals.calculation_setup_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
+        signals.database_changed.connect(self.check_activities)
         # after editing the model, signal that the calculation setup has changed.
         self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 
@@ -30,12 +87,21 @@ class CSActivityModel(EditablePandasModel):
         selection = self._dataframe.loc[:, ["Amount", "key"]].to_dict(orient="records")
         return [{x["key"]: x["Amount"]} for x in selection]
 
+    def check_activities(self, db):
+        databases = [list(k.keys())[0][0] for k in self.activities]
+        if db in databases:
+            self.sync()
+
     def get_key(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.key_col]
 
     @Slot(str, name="syncModel")
     def sync(self, name: str = None):
+        if len(bw.calculation_setups) == 0:
+            self._dataframe = pd.DataFrame(columns=self.HEADERS)
+            self.updated.emit()
+            return
         if self.current_cs is None and name is None:
             raise ValueError("'name' cannot be None if no name is set")
         if name:
@@ -46,7 +112,7 @@ class CSActivityModel(EditablePandasModel):
         df = pd.DataFrame([
             self.build_row(key, amount) for func_unit in fus
             for key, amount in func_unit.items()
-        ], columns=self.HEADERS + ["key"])
+        ], columns=self.HEADERS)
         # Drop rows where the fu key was invalid in some way.
         self._dataframe = df.dropna().reset_index(drop=True)
         self.key_col = self._dataframe.columns.get_loc("key")
@@ -59,7 +125,7 @@ class CSActivityModel(EditablePandasModel):
                 raise TypeError("Activity is not of type 'process'")
             row = {
                 key: act.get(bc.AB_names_to_bw_keys[key], "")
-                for key in self.HEADERS
+                for key in self.HEADERS[:-1]
             }
             row.update({"Amount": amount, "key": key})
             return row
@@ -87,7 +153,7 @@ class CSActivityModel(EditablePandasModel):
             signals.calculation_setup_changed.emit()
 
 
-class CSMethodsModel(PandasModel):
+class CSMethodsModel(CSGenericModel):
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
     def __init__(self, parent=None):

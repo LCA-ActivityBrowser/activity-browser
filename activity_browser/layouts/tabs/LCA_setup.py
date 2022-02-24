@@ -2,7 +2,7 @@
 from collections import namedtuple
 
 from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
 import pandas as pd
 
@@ -146,11 +146,28 @@ class LCASetupTab(QtWidgets.QWidget):
         container.addLayout(calc_row)
         container.addWidget(horizontal_line())
 
-        cs_panel_layout.addWidget(header('Reference flows:'))
-        cs_panel_layout.addWidget(self.activities_table)
-        cs_panel_layout.addWidget(horizontal_line())
-        cs_panel_layout.addWidget(header('Impact categories:'))
-        cs_panel_layout.addWidget(self.methods_table)
+        # widget for the reference flows
+        self.reference_flow_widget = QtWidgets.QWidget()
+        reference_flow_layout = QtWidgets.QVBoxLayout()
+        reference_flow_layout.addWidget(header('Reference flows:'))
+        reference_flow_layout.addWidget(self.activities_table)
+        self.reference_flow_widget.setLayout(reference_flow_layout)
+
+        # widget for the impact categories
+        self.impact_categories_widget = QtWidgets.QWidget()
+        impact_categories_layout = QtWidgets.QVBoxLayout()
+        impact_categories_layout.addWidget(header('Impact categories:'))
+        impact_categories_layout.addWidget(self.methods_table)
+        self.impact_categories_widget.setLayout(impact_categories_layout)
+
+        # splitter widget to combine the two above widgets
+        self.splitter = QtWidgets.QSplitter(Qt.Vertical)
+        self.splitter.addWidget(self.reference_flow_widget)
+        self.splitter.addWidget(self.impact_categories_widget)
+
+        self.no_setup_label = QtWidgets.QLabel("To do an LCA, create a new calculation setup first by pressing 'New'.")
+        cs_panel_layout.addWidget(self.no_setup_label)
+        cs_panel_layout.addWidget(self.splitter)
 
         self.cs_panel.setLayout(cs_panel_layout)
         container.addWidget(self.cs_panel)
@@ -264,11 +281,36 @@ class LCASetupTab(QtWidgets.QWidget):
         self.presamples.button.setEnabled(valid)
 
     def show_details(self, show: bool = True):
+        # show/hide items from name_row
         self.rename_cs_button.setVisible(show)
         self.delete_cs_button.setVisible(show)
+        self.copy_cs_button.setVisible(show)
         self.list_widget.setVisible(show)
-        self.activities_table.setVisible(show)
-        self.methods_table.setVisible(show)
+        # show/hide items from calc_row
+        if not show:
+            self.calculate_button.setVisible(show)
+            self.presamples.button.setVisible(show)
+            self.scenario_calc_btn.setVisible(show)
+            self.calculation_type.setVisible(show)
+            self.presamples.label.setVisible(show)
+            self.presamples.list.setVisible(show)
+            self.presamples.remove.setVisible(show)
+        else:
+            self.calculation_type.setVisible(show)
+            calc_type = self.calculation_type.currentText()
+            if calc_type == "Standard LCA":
+                self.calculate_button.setVisible(show)
+            elif calc_type == "Scenario LCA":
+                self.scenario_calc_btn.setVisible(show)
+            elif calc_type == "Presamples LCA":
+                self.presamples.button.setVisible(show)
+                self.presamples.label.setVisible(show)
+                self.presamples.list.setVisible(show)
+                self.presamples.remove.setVisible(show)
+
+        # show/hide tables widgets
+        self.splitter.setVisible(show)
+        self.no_setup_label.setVisible(not(show))
 
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
@@ -478,6 +520,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if dialog.exec_() == ExcelReadDialog.Accepted:
             path = dialog.path
             idx = dialog.import_sheet.currentIndex()
+            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+            print('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
                 df = import_from_excel(path, idx)
@@ -500,6 +544,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             finally:
                 self.scenario_name.setText(path.name)
                 self.scenario_name.setToolTip(path.name)
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         # TODO: Move the 'scenario_df' into the model itself.
