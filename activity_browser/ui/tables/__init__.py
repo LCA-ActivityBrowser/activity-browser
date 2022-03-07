@@ -9,6 +9,5 @@ from .LCA_setup import CSActivityTable, CSList, CSMethodsTable, ScenarioImportTa
 from .parameters import (ActivityParameterTable, DataBaseParameterTable,
                          ExchangesTable, ProjectParameterTable)
 from .projects import ProjectListWidget
-#from .scenarios import PresamplesList, ScenarioTable #TODO ps
 from .scenarios import ScenarioTable
 

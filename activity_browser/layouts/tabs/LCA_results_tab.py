@@ -46,9 +46,6 @@ class LCAResultsTab(ABTab):
         cs_name = data.get('cs_name', 'new calculation')
         calculation_type = data.get('calculation_type', 'simple')
 
-        # if calculation_type == 'presamples': #TODO ps
-        #     name = "{}[Presamples]".format(cs_name)
-        # elif calculation_type == 'scenario':
         if calculation_type == 'scenario':
             name = "{}[Scenarios]".format(cs_name)
         else:

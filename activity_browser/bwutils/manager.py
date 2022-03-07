@@ -162,7 +162,12 @@ class ParameterManager(object):
         return self.calculate()
 
     def ps_recalculate(self, values: List[float]) -> np.ndarray:
-        """Leftover from Presamples."""
+        """Used to recalculate brightway parameters without editing the database.
+        Leftover from Presamples.
+
+        Side-note on presamples: Presamples was used in AB for calculating scenarios,
+        presamples was superseded by this implementation. For more reading:
+        https://presamples.readthedocs.io/en/latest/index.html"""
         data = self.recalculate(values)
         # After recalculating all the exchanges format them according to
         # presamples requirements: samples as a column of floats.
@@ -170,14 +175,24 @@ class ParameterManager(object):
         return samples
 
     def reformat_indices(self) -> np.ndarray:
-        """Leftover from Presamples."""
+        """Additional information is required for storing the indices as presamples.
+        Leftover from Presamples.
+
+        Side-note on presamples: Presamples was used in AB for calculating scenarios,
+        presamples was superseded by this implementation. For more reading:
+        https://presamples.readthedocs.io/en/latest/index.html"""
         result = np.zeros(len(self.indices), dtype=object)
         for i, idx in enumerate(self.indices):
             result[i] = (idx.input, idx.output, idx.input.database_type)
         return result
 
     def arrays_from_scenarios(self, scenarios) -> (np.ndarray, np.ndarray):
-        """Leftover from Presamples."""
+        """Used to generate exchange scenario data from parameter scenario data.
+        Leftover from Presamples.
+
+        Side-note on presamples: Presamples was used in AB for calculating scenarios,
+        presamples was superseded by this implementation. For more reading:
+        https://presamples.readthedocs.io/en/latest/index.html"""
         sample_data = [self.ps_recalculate(list(values)) for _, values in scenarios]
         samples = np.concatenate(sample_data, axis=1)
         indices = self.reformat_indices()

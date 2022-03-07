@@ -22,7 +22,7 @@ def test_comparison_switch_empty(qtbot):
     assert not box.isVisible()
 
 
-def test_comparison_switch_no_presamples(qtbot): #TODO ps
+def test_comparison_switch_no_scenarios(qtbot):
     parent = QWidget()
     parent.has_scenarios = False
     qtbot.addWidget(parent)
