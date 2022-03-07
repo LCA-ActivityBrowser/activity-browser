@@ -168,8 +168,44 @@ class TupleNameDialog(QtWidgets.QDialog):
         return obj
 
 
-class ExcelReadDialog(QtWidgets.QDialog):
+class GenericReadDialog(QtWidgets.QDialog):
+    SUFFIXES = None
+    FILTER = ""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    @Slot(name="browseFile")
+    def browse(self) -> None:
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            parent=self, caption="Select scenario template file",
+            filter=self.FILTER
+        )
+        if path:
+            self.path_line.setText(path)
+
+    def update_combobox(self, file_path) -> None:
+        self.import_sheet.blockSignals(True)
+        self.import_sheet.clear()
+        names = get_sheet_names(file_path)
+        self.import_sheet.addItems(names)
+        self.import_sheet.setEnabled(self.import_sheet.count() > 0)
+        self.import_sheet.blockSignals(False)
+
+    @Slot(name="pathChanged")
+    def changed(self) -> None:
+        """Determine if selected path is valid."""
+        self.path = Path(self.path_line.text())
+        self.complete = all([
+            self.path.exists(), self.path.is_file(),
+            self.path.suffix in self.SUFFIXES
+        ])
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
+
+
+class ExcelReadDialog(GenericReadDialog):
     SUFFIXES = {".xls", ".xlsx"}
+    FILTER = "Excel (*.xlsx);; All Files (*.*)"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -208,23 +244,6 @@ class ExcelReadDialog(QtWidgets.QDialog):
         layout.addWidget(self.buttons)
         self.setLayout(layout)
 
-    @Slot(name="browseFile")
-    def browse(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=self, caption="Select scenario template file",
-            filter="Excel (*.xlsx);; All Files (*.*)"
-        )
-        if path:
-            self.path_line.setText(path)
-
-    def update_combobox(self, file_path) -> None:
-        self.import_sheet.blockSignals(True)
-        self.import_sheet.clear()
-        names = get_sheet_names(file_path)
-        self.import_sheet.addItems(names)
-        self.import_sheet.setEnabled(self.import_sheet.count() > 0)
-        self.import_sheet.blockSignals(False)
-
     @Slot(name="pathChanged")
     def changed(self) -> None:
         """Determine if selected path is valid."""
@@ -236,6 +255,43 @@ class ExcelReadDialog(QtWidgets.QDialog):
         if self.complete:
             self.update_combobox(self.path)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
+
+
+class CSVReadDialog(GenericReadDialog):
+    SUFFIXES = {".csv"}
+    FILTER = "csv (*.csv);; All Files (*.*)"
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Select csv file to read")
+
+        self.path = None
+        self.path_line = QtWidgets.QLineEdit()
+        self.path_line.setReadOnly(True)
+        self.path_line.textChanged.connect(self.changed)
+        self.path_btn = QtWidgets.QPushButton("Browse")
+        self.path_btn.clicked.connect(self.browse)
+        self.complete = False
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        grid = QtWidgets.QGridLayout()
+        grid.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
+        grid.addWidget(self.path_line, 0, 1, 1, 2)
+        grid.addWidget(self.path_btn, 0, 3, 1, 1)
+
+        input_box = QtWidgets.QGroupBox(self)
+        input_box.setStyleSheet(style_group_box.border_title)
+        input_box.setLayout(grid)
+        layout.addWidget(input_box)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
 
 
 class DatabaseLinkingDialog(QtWidgets.QDialog):
