@@ -59,7 +59,7 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
 You can install and start the activity-browser like this:
 
 ```bash
-conda create -n ab -c conda-forge -c cmutel -c bsteubing -c haasad -c pascallesage activity-browser
+conda create -n ab -c conda-forge -c cmutel -c bsteubing activity-browser
 conda activate ab
 activity-browser
 ```
@@ -74,14 +74,12 @@ Skip this step if you already have a working installation of anaconda or minicon
 
 ### Configure conda channels
 
-The activity-browser has many dependencies and you need to add five [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
+The activity-browser has many dependencies and you need to add three [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
 
 ```bash
 conda config --prepend channels conda-forge
 conda config --append channels cmutel
 conda config --append channels bsteubing
-conda config --append channels haasad
-conda config --append channels pascallesage
 ```
 
 You can check your channels with `conda config --show channels`. The output should look like this if everything is set up correctly:
@@ -92,8 +90,6 @@ channels:
   - defaults
   - cmutel
   - bsteubing
-  - haasad
-  - pascallesage
 ```
 You can also edit your user's `.condarc` file and modify the channels there. If you prefer to not add these channels to your conda config permanently, you'll have to always explicitly list them for `conda install` and `conda update` commands (see example in [Quickstart](#Quickstart)).
 
