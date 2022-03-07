@@ -24,7 +24,7 @@ def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
         print("Given document uses an unknown encoding: {}".format(e))
 
 
-def get_header_index(document_path: Union[str, Path], import_sheet: int):
+def get_excel_header_index(document_path: Union[str, Path], import_sheet: int):
     """Retrieves the line index for the column headers, will raise an
     exception if not found in the first 10 rows.
     """
@@ -34,11 +34,14 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
         for i in range(10):
             value = sheet.cell(i + 1, 1).value
             if isinstance(value, str) and value.startswith("from activity name"):
+                wb.close()
                 return i
     except IndexError as e:
+        wb.close()
         raise IndexError("Expected headers not found in file").with_traceback(e.__traceback__)
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
+        wb.close()
     raise ValueError("Could not find required headers in given document sheet.")
 
 
@@ -62,7 +65,7 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
     'usecols' is used to exclude specific columns from the excel document.
     'comment' is used to exclude specific rows from the excel document.
     """
-    header_idx = get_header_index(document_path, import_sheet)
+    header_idx = get_excel_header_index(document_path, import_sheet)
     data = pd.read_excel(
         document_path, sheet_name=import_sheet, header=header_idx,
         usecols=valid_cols, comment="*", na_values="", keep_default_na=False,
