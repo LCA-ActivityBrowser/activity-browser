@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2.QtCore import Slot, Qt, QEvent
+from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
 
 from activity_browser.signals import signals
@@ -74,10 +74,10 @@ class CSActivityTable(ABDataFrameView):
         return self.model.activities
 
     def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
+        """ Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
         if event.button() == Qt.LeftButton:
-            if event.modifiers() & Qt.ControlModifier:
-                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
+            if event.modifiers() & Qt.ControlModifier or event.modifiers() & Qt.ShiftModifier:
+                self.setSelectionMode(QtWidgets.QTableView.ExtendedSelection)
                 self.setDragDropMode(QtWidgets.QTableView.DropOnly)
             else:
                 self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
@@ -145,10 +145,10 @@ class CSMethodsTable(ABDataFrameView):
         return self.model.methods
 
     def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
+        """ Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
         if event.button() == Qt.LeftButton:
-            if event.modifiers() & Qt.ControlModifier:
-                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
+            if event.modifiers() & Qt.ControlModifier or event.modifiers() & Qt.ShiftModifier:
+                self.setSelectionMode(QtWidgets.QTableView.ExtendedSelection)
                 self.setDragDropMode(QtWidgets.QTableView.DropOnly)
             else:
                 self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
