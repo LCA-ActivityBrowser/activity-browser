@@ -46,7 +46,7 @@ def get_excel_header_index(document_path: Union[str, Path], import_sheet: int):
 
 
 def get_csv_header_index(document_path: Union[str, Path]):
-    """Retrieves the line index for the column headers and seperator character,
+    """Retrieves the line index for the column headers and separator character,
     will raise an exception if not found in the first 10 rows.
     """
     file_start = 'from activity name'

@@ -518,8 +518,14 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     def load_action(self) -> None:
 
         excel_file = "Open an Excel scenario file"
+        excel_tip = "Load an excel file."
         csv_file = "Open a CSV scenario file"
-        choice_dlg = ChoiceSelectionDialog.get_choice(self, excel_file, csv_file)
+        csv_tip = "Load a CSV file.\n" \
+                  "CSV auto-detects the separator (like ',' ';' '::' etc),\n" \
+                  "but does not support strings/text cells in quotes ( ' or \" )."
+        choice_dlg = ChoiceSelectionDialog.get_choice_and_tip(self,
+                                                              choices=[excel_file, csv_file],
+                                                              tips=[excel_tip, csv_tip])
         if choice_dlg.exec_() != ChoiceSelectionDialog.Accepted:
             return
         if choice_dlg.choice == excel_file:

@@ -85,6 +85,7 @@ class ChoiceSelectionDialog(QtWidgets.QDialog):
 
     @classmethod
     def get_choice(cls, parent: QtWidgets.QWidget, *choices) -> 'ChoiceSelectionDialog':
+        """Get choices for the dialog."""
         assert len(choices) > 0, "Must give choices to choose from."
 
         obj = cls(parent)
@@ -97,6 +98,29 @@ class ChoiceSelectionDialog(QtWidgets.QDialog):
         obj.input_box.layout().addWidget(first)
         for choice in iterable:
             btn = QtWidgets.QRadioButton(str(choice))
+            obj.group.addButton(btn)
+            obj.input_box.layout().addWidget(btn)
+        obj.input_box.updateGeometry()
+        return obj
+
+    @classmethod
+    def get_choice_and_tip(cls, parent: QtWidgets.QWidget, choices: list, tips: list) -> 'ChoiceSelectionDialog':
+        """Get choices for the dialog."""
+        assert len(choices) > 0, "Must give choices to choose from."
+        assert len(choices) == len(tips), "Must give same amount of choices and tips."
+
+        obj = cls(parent)
+        obj.setWindowTitle("Select the option")
+
+        iterable_choices = iter(choices)
+        first = QtWidgets.QRadioButton(str(next(iterable_choices)))
+        first.setToolTip(tips[0])
+        first.setChecked(True)
+        obj.group.addButton(first)
+        obj.input_box.layout().addWidget(first)
+        for i, choice in enumerate(iterable_choices):
+            btn = QtWidgets.QRadioButton(str(choice))
+            btn.setToolTip(tips[i+1])
             obj.group.addButton(btn)
             obj.input_box.layout().addWidget(btn)
         obj.input_box.updateGeometry()
@@ -169,6 +193,7 @@ class TupleNameDialog(QtWidgets.QDialog):
 
 
 class GenericReadDialog(QtWidgets.QDialog):
+    """Generic super class for excel/csv file imports for scenarios."""
     SUFFIXES = None
     FILTER = ""
 
