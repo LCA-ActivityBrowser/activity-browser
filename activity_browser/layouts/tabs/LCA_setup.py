@@ -522,7 +522,11 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         csv_file = "Open a CSV scenario file"
         csv_tip = "Load a CSV file.\n" \
                   "CSV auto-detects the separator (like ',' ';' '::' etc),\n" \
-                  "but does not support strings/text cells in quotes ( ' or \" )."
+                  "but does not support strings/text cells in quotes ( ' or \" ).\n" \
+                  "CSV loader does not support spaces as separator.\n" \
+                  "Tip: Be aware that some processes may contain your separator\n" \
+                  "e.g. 'market for electricity, high voltage', the ',' separator\n" \
+                  "would not work here."
         choice_dlg = ChoiceSelectionDialog.get_choice_and_tip(self,
                                                               choices=[excel_file, csv_file],
                                                               tips=[excel_tip, csv_tip])
