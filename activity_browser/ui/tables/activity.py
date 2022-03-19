@@ -173,6 +173,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
+        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -234,6 +235,7 @@ class BiosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
+        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
