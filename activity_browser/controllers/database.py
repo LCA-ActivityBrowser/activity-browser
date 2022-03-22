@@ -121,6 +121,7 @@ class DatabaseController(QObject):
                 name, bc.count_database_records(name))
         )
         if ok == QtWidgets.QMessageBox.Yes:
+            signals.delete_database_confirmed.emit(name)
             project_settings.remove_db(name)
             del bw.databases[name]
             Group.delete().where(Group.name == name).execute()

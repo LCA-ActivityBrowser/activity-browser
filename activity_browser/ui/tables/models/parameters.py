@@ -132,6 +132,7 @@ class DatabaseParameterModel(BaseParameterModel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.db_col = 0
+        signals.delete_database_confirmed.connect(self.remove_on_db_delete)
 
     def sync(self) -> None:
         data = [
@@ -176,6 +177,12 @@ class DatabaseParameterModel(BaseParameterModel):
         interpreter.symtable.update(DatabaseParameter.static(db_name))
         return interpreter
 
+    def remove_on_db_delete(self, name):
+        """Remove all database parameters that belong to database 'name' when database 'name' is deleted."""
+        removals = [row[self.param_col] for _, row in self._dataframe.iterrows() if row['database'] == name]
+        for param in removals:
+            signals.delete_parameter.emit(param)
+
 
 class ActivityParameterModel(BaseParameterModel):
     COLUMNS = [
@@ -188,6 +195,7 @@ class ActivityParameterModel(BaseParameterModel):
         self.group_col = 0
         self.key_col = 0
         self.order_col = 0
+        signals.delete_database_confirmed.connect(self.remove_on_db_delete)
 
     def sync(self) -> None:
         """ Build a dataframe using the ActivityParameters set in brightway
@@ -282,6 +290,15 @@ class ActivityParameterModel(BaseParameterModel):
     def get_key(self, proxy: QModelIndex) -> tuple:
         index = self.proxy_to_source(proxy)
         return self._dataframe.iat[index.row(), self.key_col]
+
+    def remove_on_db_delete(self, name):
+        """Remove all activity parameters from activities in database 'name' when database 'name' is deleted."""
+        # pad the database name so we don't accidentally delete parameters from databases that have overlapping names
+        # e.g. delete 'test_database_1' does not delete 'test_database_10' too
+        padded_name = "('{}',".format(name)
+        removals = [row[self.param_col] for _, row in self._dataframe.iterrows() if padded_name in row['key']]
+        for param in removals:
+            signals.delete_parameter.emit(param)
 
 
 class ParameterItem(TreeItem):
