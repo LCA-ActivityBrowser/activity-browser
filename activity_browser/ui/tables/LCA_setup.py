@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2.QtCore import Slot, Qt, QEvent
+from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
 
 from activity_browser.signals import signals
@@ -44,23 +44,9 @@ class CSGenericTable(ABDataFrameView):
     See also comments on PR here: https://github.com/LCA-ActivityBrowser/activity-browser/pull/719
     See also this stackoverflow page: https://stackoverflow.com/questions/61387248/in-pyqt5-how-do-i-properly-move-rows-in-a-qtableview-using-dragdrop
     """
-    # class DropMarkerStyle(QtWidgets.QProxyStyle):
-    #     def drawPrimitive(self, element, option, painter, widget=None):
-    #         """Draw a line across the entire row rather than just the column we're hovering over.
-    #         This may not always work depending on global style - for instance I think it won't
-    #         work on OSX."""
-    #         if element == self.PE_IndicatorItemViewItemDrop and not option.rect.isNull():
-    #             option_new = QtWidgets.QStyleOption(option)
-    #             option_new.rect.setLeft(0)
-    #             if widget:
-    #                 option_new.rect.setRight(widget.width())
-    #             option = option_new
-    #         super().drawPrimitive(element, option, painter, widget)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        # self.setStyle(self.DropMarkerStyle())
-
         self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
 
@@ -114,6 +100,17 @@ class CSActivityTable(CSGenericTable):
     def to_python(self) -> list:
         return self.model.activities
 
+    def mousePressEvent(self, event):
+        """ Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
+        if event.button() == Qt.LeftButton:
+            if event.modifiers() & Qt.ControlModifier or event.modifiers() & Qt.ShiftModifier:
+                self.setSelectionMode(QtWidgets.QTableView.ExtendedSelection)
+                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+            else:
+                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        ABDataFrameView.mousePressEvent(self, event)
+
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
@@ -164,6 +161,17 @@ class CSMethodsTable(CSGenericTable):
     def to_python(self):
         return self.model.methods
 
+    def mousePressEvent(self, event):
+        """ Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
+        if event.button() == Qt.LeftButton:
+            if event.modifiers() & Qt.ControlModifier or event.modifiers() & Qt.ShiftModifier:
+                self.setSelectionMode(QtWidgets.QTableView.ExtendedSelection)
+                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
+            else:
+                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        ABDataFrameView.mousePressEvent(self, event)
+
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
@@ -181,6 +189,7 @@ class CSMethodsTable(CSGenericTable):
 
     def dropEvent(self, event):
         event.accept()
+        source = event.source()
         if isinstance(event.source(), (MethodsTable, MethodsTree)):
             self.model.include_methods(event.source().selected_methods())
         elif event.source() is self:
