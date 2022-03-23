@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from collections import namedtuple
-
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
@@ -33,7 +31,7 @@ Responsibilities
 
 ``CalculationSetupTab`` manages whether the activities and methods tables are shown, and which buttons are shown.
 
-``CSActivityTableWidget`` and ``CSMethodsTableWidget`` mangage drag and drop events, and use signals to communicate data changes with the controller.
+``CSActivityTableWidget`` and ``CSMethodsTableWidget`` manage drag and drop events, and use signals to communicate data changes with the controller.
 
 Initiation
 ----------
@@ -108,9 +106,6 @@ class LCASetupTab(QtWidgets.QWidget):
         self.calculation_type = QtWidgets.QComboBox()
         self.calculation_type.addItems(["Standard LCA", "Scenario LCA"])
 
-        self.scenario_calc_btn = QtWidgets.QPushButton(qicons.calculate, "Calculate")
-        self.scenario_calc_btn.hide()
-
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setup:'))
         name_row.addWidget(self.list_widget)
@@ -122,7 +117,6 @@ class LCASetupTab(QtWidgets.QWidget):
 
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
-        calc_row.addWidget(self.scenario_calc_btn)
         calc_row.addWidget(self.calculation_type)
         calc_row.addStretch(1)
 
@@ -165,7 +159,6 @@ class LCASetupTab(QtWidgets.QWidget):
     def connect_signals(self):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
-        self.scenario_calc_btn.clicked.connect(self.scenario_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.copy_cs_button.clicked.connect(
@@ -199,20 +192,25 @@ class LCASetupTab(QtWidgets.QWidget):
 
     @Slot(name="calculationDefault")
     def start_calculation(self):
-        data = {
-            'cs_name': self.list_widget.name,
-            'calculation_type': 'simple',
-        }
-        signals.lca_calculation.emit(data)
+        """Check what calculation type is selected and send the correct data signal."""
 
-    @Slot(name="calculationScenario")
-    def scenario_calculation(self) -> None:
-        """Construct index / value array and begin LCA calculation."""
-        data = {
-            'cs_name': self.list_widget.name,
-            'calculation_type': 'scenario',
-            'data': self.scenario_panel.combined_dataframe(),
-        }
+        calc_type = self.calculation_type.currentIndex()
+        if calc_type == self.DEFAULT:
+            # Standard LCA
+            data = {
+                'cs_name': self.list_widget.name,
+                'calculation_type': 'simple',
+            }
+        elif calc_type == self.SCENARIOS:
+            # Scenario LCA
+            data = {
+                'cs_name': self.list_widget.name,
+                'calculation_type': 'scenario',
+                'data': self.scenario_panel.combined_dataframe(),
+            }
+        else:
+            return
+
         signals.lca_calculation.emit(data)
 
     @Slot(name="toggleDefaultCalculation")
@@ -221,7 +219,6 @@ class LCASetupTab(QtWidgets.QWidget):
         if not len(calculation_setups):
             self.show_details(False)
             self.calculate_button.setEnabled(False)
-            self.scenario_calc_btn.setEnabled(False)
         else:
             signals.calculation_setup_selected.emit(
                 sorted(calculation_setups)[0]
@@ -234,18 +231,8 @@ class LCASetupTab(QtWidgets.QWidget):
         self.copy_cs_button.setVisible(show)
         self.list_widget.setVisible(show)
         # show/hide items from calc_row
-        if not show:
-            self.calculate_button.setVisible(show)
-            self.scenario_calc_btn.setVisible(show)
-            self.calculation_type.setVisible(show)
-        else:
-            self.calculation_type.setVisible(show)
-            calc_type = self.calculation_type.currentText()
-            if calc_type == "Standard LCA":
-                self.calculate_button.setVisible(show)
-            elif calc_type == "Scenario LCA":
-                self.scenario_calc_btn.setVisible(show)
-
+        self.calculate_button.setVisible(show)
+        self.calculation_type.setVisible(show)
         # show/hide tables widgets
         self.splitter.setVisible(show)
         self.no_setup_label.setVisible(not(show))
@@ -253,20 +240,16 @@ class LCASetupTab(QtWidgets.QWidget):
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
         if index == self.DEFAULT:
-            # Standard LCA.
-            self.calculate_button.show()
-            self.scenario_calc_btn.hide()
+            # Standard LCA
             self.scenario_panel.hide()
         elif index == self.SCENARIOS:
-            self.calculate_button.hide()
-            self.scenario_calc_btn.show()
+            # Scenario LCA
             self.scenario_panel.show()
         self.cs_panel.updateGeometry()
 
     def enable_calculations(self):
         valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
-        self.scenario_calc_btn.setEnabled(valid_cs)
 
 
 class ScenarioImportPanel(BaseRightTab):

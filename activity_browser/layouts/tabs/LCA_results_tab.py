@@ -41,7 +41,7 @@ class LCAResultsTab(ABTab):
 
     @Slot(str, name="generateSetup")
     def generate_setup(self, data: dict):
-        """ Check if the calculation setup exists, if it does, remove it, then create a new one. """
+        """ Check if the calculation results with this setup name exists, if it does, remove it, then create a new one. """
 
         cs_name = data.get('cs_name', 'new calculation')
         calculation_type = data.get('calculation_type', 'simple')
