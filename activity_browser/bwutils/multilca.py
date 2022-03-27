@@ -342,7 +342,7 @@ class Contributions(object):
             2-dimensional array of same shape, with scores normalized.
 
         """
-        scores = contribution_array.sum(axis=1, keepdims=True)
+        scores = abs(contribution_array).sum(axis=1, keepdims=True)
         return contribution_array / scores
 
     def _build_dict(self, C, FU_M_index, rev_dict, limit, limit_type):
@@ -372,7 +372,7 @@ class Contributions(object):
         """
         topcontribution_dict = dict()
         for fu_or_method, col in FU_M_index.items():
-            top_contribution = ca.sort_array(C[col, :], limit=limit, limit_type=limit_type)
+            top_contribution = self.sort_array(C[col, :], limit=limit, limit_type=limit_type)
             cont_per = dict()
             cont_per.update({
                 ('Total', ''): C[col, :].sum(),
@@ -382,6 +382,46 @@ class Contributions(object):
                 cont_per.update({rev_dict[index]: value})
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
+
+
+    @staticmethod
+    def sort_array(data, limit=25, limit_type="number", total=None):
+        """
+        Duplicated from brightway2-analyzer and modified to fix issue: https://github.com/brightway-lca/brightway2-analyzer/issues/18
+
+        Common sorting function for all ``top`` methods. Sorts by highest value first.
+        Operates in either ``number`` or ``percent`` mode. In ``number`` mode, return ``limit`` values. In ``percent`` mode, return all values >= (total * limit); where ``0 < limit <= 1``.
+        Returns 2-d numpy array of sorted values and row indices, e.g.:
+        .. code-block:: python
+            ContributionAnalysis().sort_array((1., 3., 2.))
+        returns
+        .. code-block:: python
+            (
+                (3, 1),
+                (2, 2),
+                (1, 0)
+            )
+        Args:
+            * *data* (numpy array): A 1-d array of values to sort.
+            * *limit* (number, default=25): Number of values to return, or percentage cutoff.
+            * *limit_type* (str, default=``number``): Either ``number`` or ``percent``.
+            * *total* (number, default=None): Optional specification of summed data total.
+        Returns:
+            2-d numpy array of values and row indices.
+        """
+        total = total or np.abs(data).sum()
+        if limit_type not in ("number", "percent"):
+            raise ValueError("limit_type must be either 'percent' or 'index'.")
+        if limit_type == "percent":
+            if not 0 < limit <= 1:
+                raise ValueError("Percentage limits > 0 and <= 1.")
+            limit = (np.abs(data) >= (total * limit)).sum() # Updated to fix issue: https://github.com/brightway-lca/brightway2-analyzer/issues/18
+
+        results = np.hstack(
+            (data.reshape((-1, 1)), np.arange(data.shape[0]).reshape((-1, 1)))
+        )
+        return results[np.argsort(np.abs(data))[::-1]][:limit, :]
+
 
     @staticmethod
     def get_labels(key_list, fields=None, separator=' | ',
