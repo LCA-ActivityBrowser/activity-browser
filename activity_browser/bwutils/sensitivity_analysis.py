@@ -119,9 +119,10 @@ def drop_no_uncertainty_exchanges(excs, indices):
     excs_no = list()
     indices_no = list()
     for exc, ind in zip(excs, indices):
-        if exc.get('uncertainty type') >= 1:
-            excs_no.append(exc)
-            indices_no.append(ind)
+        if exc.get('uncertainty type'):
+            if exc.get('uncertainty type') >= 1:
+                excs_no.append(exc)
+                indices_no.append(ind)
     print('Dropping {} exchanges of {} with no uncertainty. {} remaining.'.format(
         len(excs) - len(excs_no), len(excs), len(excs_no)
     ))
