@@ -7,7 +7,6 @@ from .commontasks import cleanup_deleted_bw_projects as cleanup
 from .metadata import AB_metadata
 from .multilca import MLCA, Contributions
 from .pedigree import PedigreeMatrix
-from .presamples import PresamplesContributions, PresamplesMLCA
 from .superstructure import SuperstructureContributions, SuperstructureMLCA
 from .uncertainty import (
     CFUncertaintyInterface, ExchangeUncertaintyInterface,
