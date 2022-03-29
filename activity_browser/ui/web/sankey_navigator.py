@@ -163,7 +163,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.setLayout(self.layout)
 
     def get_scenario_labels(self) -> List[str]:
-        """Get scenario labels if presamples is used."""
+        """Get scenario labels if scenario is used."""
         return self.parent.mlca.scenario_names if self.has_scenarios else []
 
     def configure_scenario(self):
