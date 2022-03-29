@@ -20,7 +20,6 @@ The activity browser is an open source software for Life Cycle Assessment (LCA) 
 - **Advanced LCA modeling:**
     - parametrization
     - advanced foreground and background scenario modeling (e.g. possibility to work with scenarios from Integrated Assessment Models)
-    - generate and load [presamples](https://github.com/PascalLesage/presamples) data
     - define and directly visualize the uncertainties of your input data (including Pedigree Matrix)
 - **Advanced analysis of LCA results:**
     - Contribution analyses (including aggregation by product name, region or other attributes)
