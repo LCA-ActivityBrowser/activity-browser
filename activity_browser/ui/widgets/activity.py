@@ -15,7 +15,7 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
         self.widget = widget
         self.setCheckable(True)
         self.toggled.connect(self.showhide)
-        self.setChecked(False)
+        self.setChecked(True)
         self.setStyleSheet("QGroupBox { border: none; }")
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(widget)
@@ -34,10 +34,7 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
 
     @QtCore.Slot(name="toggleEmptyTable")
     def toggle_empty_table(self) -> None:
-        # Workaround so that the downstream table is only toggled by users.
-        if self.title() == "Downstream Consumers:":
-            return
-        self.setChecked(bool(self.widget.rowCount()))
+        self.setChecked(bool(self.widget.rowCount() and self.isChecked()))
 
 
 class ActivityDataGrid(QtWidgets.QWidget):
