@@ -5,7 +5,7 @@ from brightway2 import calculation_setups
 import pandas as pd
 
 from ...bwutils.superstructure import (
-    SuperstructureManager, import_from_file, scenario_names_from_df,
+    SuperstructureManager, import_from_excel, scenario_names_from_df,
     SUPERSTRUCTURE,
 )
 from ...signals import signals
@@ -14,7 +14,7 @@ from ...ui.style import horizontal_line, header, style_group_box
 from ...ui.tables import (
     CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
 )
-from ...ui.widgets import ChoiceSelectionDialog, ExcelReadDialog, CSVReadDialog
+from ...ui.widgets import ExcelReadDialog
 from .base import BaseRightTab
 
 """
@@ -426,48 +426,20 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     @Slot(name="loadScenarioFile")
     def load_action(self) -> None:
-
-        excel_file = "Open an Excel scenario file"
-        excel_tip = "Load an excel file."
-        csv_file = "Open a CSV scenario file"
-        csv_tip = "Load a CSV file.\n" \
-                  "CSV auto-detects the separator (like ',' ';' '::' etc),\n" \
-                  "but does not support strings/text cells in quotes ( ' or \" ).\n" \
-                  "CSV loader does not support spaces as separator.\n" \
-                  "Tip: Be aware that some processes may contain your separator\n" \
-                  "e.g. 'market for electricity, high voltage', the ',' separator\n" \
-                  "would not work here."
-        choice_dlg = ChoiceSelectionDialog.get_choice_and_tip(self,
-                                                              choices=[excel_file, csv_file],
-                                                              tips=[excel_tip, csv_tip])
-        if choice_dlg.exec_() != ChoiceSelectionDialog.Accepted:
-            return
-        if choice_dlg.choice == excel_file:
-            file_type = 'excel'
-            dialog = ExcelReadDialog(self)
-        elif choice_dlg.choice == csv_file:
-            file_type = 'csv'
-            dialog = CSVReadDialog(self)
-
-        if dialog.exec_() == ExcelReadDialog.Accepted or dialog.exec_() == CSVReadDialog.Accepted:
+        dialog = ExcelReadDialog(self)
+        if dialog.exec_() == ExcelReadDialog.Accepted:
             path = dialog.path
-            if file_type == 'excel':
-                idx = dialog.import_sheet.currentIndex()
-            else:
-                idx = None
+            idx = dialog.import_sheet.currentIndex()
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             print('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
-                df = import_from_file(path, file_type, idx)
+                df = import_from_excel(path, idx)
                 self.sync_superstructure(df)
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.
                 print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
-                if file_type == 'excel':
-                    df = pd.read_excel(path, sheet_name=idx, engine="openpyxl")
-                elif file_type == 'csv':
-                    df = pd.read_csv(path)
+                df = pd.read_excel(path, sheet_name=idx, engine="openpyxl")
                 include_default = True
                 if "default" not in df.columns:
                     query = QtWidgets.QMessageBox.question(

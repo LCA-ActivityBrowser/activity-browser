@@ -54,79 +54,6 @@ class ForceInputDialog(QtWidgets.QDialog):
         return obj
 
 
-class ChoiceSelectionDialog(QtWidgets.QDialog):
-    """Given a number of options, select one of them."""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        self.input_box = QtWidgets.QGroupBox(self)
-        self.input_box.setStyleSheet(style_group_box.border_title)
-        input_field_layout = QtWidgets.QVBoxLayout()
-        self.input_box.setLayout(input_field_layout)
-        self.group = QtWidgets.QButtonGroup(self)
-        self.group.setExclusive(True)
-
-        self.buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-        )
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.input_box)
-        layout.addWidget(self.buttons)
-        self.setLayout(layout)
-
-    @property
-    def choice(self) -> str:
-        """Returns the name of the chosen option, allowing for a comparison"""
-        checked = self.group.checkedButton()
-        return checked.text()
-
-    @classmethod
-    def get_choice(cls, parent: QtWidgets.QWidget, *choices) -> 'ChoiceSelectionDialog':
-        """Get choices for the dialog."""
-        assert len(choices) > 0, "Must give choices to choose from."
-
-        obj = cls(parent)
-        obj.setWindowTitle("Select the option")
-
-        iterable = iter(choices)
-        first = QtWidgets.QRadioButton(str(next(iterable)))
-        first.setChecked(True)
-        obj.group.addButton(first)
-        obj.input_box.layout().addWidget(first)
-        for choice in iterable:
-            btn = QtWidgets.QRadioButton(str(choice))
-            obj.group.addButton(btn)
-            obj.input_box.layout().addWidget(btn)
-        obj.input_box.updateGeometry()
-        return obj
-
-    @classmethod
-    def get_choice_and_tip(cls, parent: QtWidgets.QWidget, choices: list, tips: list) -> 'ChoiceSelectionDialog':
-        """Get choices for the dialog."""
-        assert len(choices) > 0, "Must give choices to choose from."
-        assert len(choices) == len(tips), "Must give same amount of choices and tips."
-
-        obj = cls(parent)
-        obj.setWindowTitle("Select the option")
-
-        iterable_choices = iter(choices)
-        first = QtWidgets.QRadioButton(str(next(iterable_choices)))
-        first.setToolTip(tips[0])
-        first.setChecked(True)
-        obj.group.addButton(first)
-        obj.input_box.layout().addWidget(first)
-        for i, choice in enumerate(iterable_choices):
-            btn = QtWidgets.QRadioButton(str(choice))
-            btn.setToolTip(tips[i+1])
-            obj.group.addButton(btn)
-            obj.input_box.layout().addWidget(btn)
-        obj.input_box.updateGeometry()
-        return obj
-
-
 class TupleNameDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -192,45 +119,8 @@ class TupleNameDialog(QtWidgets.QDialog):
         return obj
 
 
-class GenericReadDialog(QtWidgets.QDialog):
-    """Generic super class for excel/csv file imports for scenarios."""
-    SUFFIXES = None
-    FILTER = ""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    @Slot(name="browseFile")
-    def browse(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=self, caption="Select scenario template file",
-            filter=self.FILTER
-        )
-        if path:
-            self.path_line.setText(path)
-
-    def update_combobox(self, file_path) -> None:
-        self.import_sheet.blockSignals(True)
-        self.import_sheet.clear()
-        names = get_sheet_names(file_path)
-        self.import_sheet.addItems(names)
-        self.import_sheet.setEnabled(self.import_sheet.count() > 0)
-        self.import_sheet.blockSignals(False)
-
-    @Slot(name="pathChanged")
-    def changed(self) -> None:
-        """Determine if selected path is valid."""
-        self.path = Path(self.path_line.text())
-        self.complete = all([
-            self.path.exists(), self.path.is_file(),
-            self.path.suffix in self.SUFFIXES
-        ])
-        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
-
-
-class ExcelReadDialog(GenericReadDialog):
+class ExcelReadDialog(QtWidgets.QDialog):
     SUFFIXES = {".xls", ".xlsx"}
-    FILTER = "Excel (*.xlsx);; All Files (*.*)"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -269,6 +159,23 @@ class ExcelReadDialog(GenericReadDialog):
         layout.addWidget(self.buttons)
         self.setLayout(layout)
 
+    @Slot(name="browseFile")
+    def browse(self) -> None:
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            parent=self, caption="Select scenario template file",
+            filter="Excel (*.xlsx);; All Files (*.*)"
+        )
+        if path:
+            self.path_line.setText(path)
+
+    def update_combobox(self, file_path) -> None:
+        self.import_sheet.blockSignals(True)
+        self.import_sheet.clear()
+        names = get_sheet_names(file_path)
+        self.import_sheet.addItems(names)
+        self.import_sheet.setEnabled(self.import_sheet.count() > 0)
+        self.import_sheet.blockSignals(False)
+
     @Slot(name="pathChanged")
     def changed(self) -> None:
         """Determine if selected path is valid."""
@@ -280,43 +187,6 @@ class ExcelReadDialog(GenericReadDialog):
         if self.complete:
             self.update_combobox(self.path)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
-
-
-class CSVReadDialog(GenericReadDialog):
-    SUFFIXES = {".csv"}
-    FILTER = "csv (*.csv);; All Files (*.*)"
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Select csv file to read")
-
-        self.path = None
-        self.path_line = QtWidgets.QLineEdit()
-        self.path_line.setReadOnly(True)
-        self.path_line.textChanged.connect(self.changed)
-        self.path_btn = QtWidgets.QPushButton("Browse")
-        self.path_btn.clicked.connect(self.browse)
-        self.complete = False
-
-        self.buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-        )
-        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
-
-        layout = QtWidgets.QVBoxLayout()
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
-        grid.addWidget(self.path_line, 0, 1, 1, 2)
-        grid.addWidget(self.path_btn, 0, 3, 1, 1)
-
-        input_box = QtWidgets.QGroupBox(self)
-        input_box.setStyleSheet(style_group_box.border_title)
-        input_box.setLayout(grid)
-        layout.addWidget(input_box)
-        layout.addWidget(self.buttons)
-        self.setLayout(layout)
 
 
 class DatabaseLinkingDialog(QtWidgets.QDialog):
