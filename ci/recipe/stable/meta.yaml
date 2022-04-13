@@ -24,12 +24,11 @@ requirements:
     - python >=3.8,<3.10
     - arrow
     - brightway2 >=2.4.2
-    - eidl >=1.4
+    - eidl >=1.4.2
     - networkx
     - pyside2 >=5.13.1
     - salib >=1.4
     - seaborn
-    - presamples
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

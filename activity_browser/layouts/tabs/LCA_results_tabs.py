@@ -18,7 +18,7 @@ from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
 
 from ...bwutils import (
-    Contributions, MonteCarloLCA, MLCA, PresamplesMLCA,
+    Contributions, MonteCarloLCA, MLCA,
     SuperstructureMLCA, GlobalSensitivityAnalysis,
     commontasks as bc,
     calculations,
@@ -88,7 +88,7 @@ class LCAResultsSubTab(QTabWidget):
         self.data = data
         self.cs_name = self.data.get('cs_name')
         self.has_scenarios = False if data.get('calculation_type') == 'simple' else True
-        self.mlca: Optional[Union[MLCA, PresamplesMLCA, SuperstructureMLCA]] = None
+        self.mlca: Optional[Union[MLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
         self.mc: Optional[MonteCarloLCA] = None
         self.method_dict = dict()
@@ -146,7 +146,7 @@ class LCAResultsSubTab(QTabWidget):
 
     @QtCore.Slot(int, name="updateUnderlyingMatrices")
     def update_scenario_data(self, index: int) -> None:
-        """Will calculate which presamples array to use and update all child tabs."""
+        """Will calculate which scenario array to use and update all child tabs."""
         if index == self.mlca.current:
             return
         self.mlca.set_scenario(index)
@@ -254,7 +254,7 @@ class NewAnalysisTab(QWidget):
         self.update_tab()
 
     def get_scenario_labels(self) -> List[str]:
-        """Get scenario labels if presamples is used."""
+        """Get scenario labels if scenarios are used."""
         return self.parent.mlca.scenario_names if self.has_scenarios else []
 
     def configure_scenario(self):
@@ -565,7 +565,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
-        """Add 3d excel export if presamples- or scenario-type LCA is performed."""
+        """Add 3d excel export if scenario-type LCA is performed."""
         layout = super().build_export(has_table, has_plot)
         if self.has_scenarios:
             # Remove the last QSpacerItem from the layout,
@@ -626,7 +626,7 @@ class LCIAResultsTab(NewAnalysisTab):
         self.layout.addLayout(self.build_export(True, True))
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
-        """Add 3d excel export if presamples- or scenario-type LCA is performed."""
+        """Add 3d excel export if scenario-type LCA is performed."""
         layout = super().build_export(has_table, has_plot)
         if self.has_scenarios:
             # Remove the last QSpacerItem from the layout,
@@ -807,13 +807,6 @@ class ContributionTab(NewAnalysisTab):
         self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
-
-        # Add wiring for presamples scenarios
-        if self.has_scenarios:
-            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
-            self.parent.update_scenario_box_index.connect(
-                lambda index: self.set_combobox_index(self.scenario_box, index)
-            )
 
     def update_tab(self):
         """Update the tab."""

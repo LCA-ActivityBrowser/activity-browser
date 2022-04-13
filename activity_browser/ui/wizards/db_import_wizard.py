@@ -1214,9 +1214,7 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
     def extract(self, target_dir):
         """ Override extract method to redirect the stdout to dev null.
         """
-        extract_cmd = ['7za', 'x', self.out_path, '-o{}'.format(target_dir)]
-        self.extraction_process = subprocess.Popen(extract_cmd, stdout=subprocess.DEVNULL)
-        code = self.extraction_process.wait()
+        code = super().extract(target_dir=target_dir, stdout=subprocess.DEVNULL)
         if code != 0:
             # The archive was corrupted in some way.
             import_signals.cancel_sentinel = True

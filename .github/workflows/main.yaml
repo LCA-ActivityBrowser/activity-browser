@@ -17,7 +17,7 @@ jobs:
         uses: mikefarah/yq@master
         with:
           cmd: |
-            yq eval-all 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' ci/environment-test.yml ci/recipe/stable/meta.yaml > patched-environment.yml
+            yq eval-all 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' ci/conda-envs/test.yml ci/recipe/stable/meta.yaml > patched-environment.yml
       - name: Show patched environment
         run: cat patched-environment.yml
       - name: Upload patched environment as artifact
@@ -110,22 +110,25 @@ jobs:
         with:
           python-version: 3.8
           activate-environment: build
-          environment-file: ci/environment-build.yml
+          environment-file: ci/conda-envs/build.yml
       - name: Export version
         run: |
           echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
       - name: Patch recipe with run requirements from stable
         uses: mikefarah/yq@master
         # Adds the run dependencies from the stable recipe to the dev recipe (inplace)
+        # Also adds the dependecies to the ab_dev environment file
         with:
           cmd: |
             yq eval-all -i 'select(fi == 0).requirements.run += select(fi == 1).requirements.run | select(fi == 0)' ci/recipe/dev/meta.yaml ci/recipe/stable/meta.yaml
+            yq eval-all -i 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' ci/conda-envs/ab_dev.yml ci/recipe/stable/meta.yaml
       - name: Show patched dev recipe
         run: cat ci/recipe/dev/meta.yaml
       - name: Build development package
         run: |
           conda build ci/recipe/dev
-      - name: Upload the development package
+      - name: Upload the activity-browser-dev package and env
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload --force \
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload ci/conda-envs/ab_dev.yml

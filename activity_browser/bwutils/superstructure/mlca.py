@@ -15,8 +15,8 @@ from .dataframe import (
 
 
 class SuperstructureMLCA(MLCA):
-    """Very similar implementation as the PresamplesMLCA class, a possible
-    replacement for using presamples by avoiding saving anything to files.
+    """Subclass of the `MLCA` class which adds another dimension in the form
+     of scenarios.
     """
     matrices = {
         "biosphere": "biosphere_matrix",
@@ -41,6 +41,10 @@ class SuperstructureMLCA(MLCA):
         # the 'input' keys are matched to the product_dict or
         # biosphere_dict ('rows') while the 'output' keys are matched
         # to the activity_dict ('cols').
+
+        # Side-note on presamples: Presamples was used in AB for calculating scenarios,
+        # presamples was superseded by this implementation. For more reading:
+        # https://presamples.readthedocs.io/en/latest/use_with_bw2.html
         self.matrix_indices = np.zeros(len(self.indices), dtype=[
             ('row', np.uint32), ('col', np.uint32), ('type', np.uint8),
         ])
@@ -125,8 +129,7 @@ class SuperstructureMLCA(MLCA):
             matrix[idx["row"], idx["col"], ] = sample
 
     def _perform_calculations(self):
-        """ Near copy of `MLCA` class, but includes a loop for all presample
-        arrays.
+        """ Near copy of `MLCA` class, but includes a loop for all scenarios.
         """
         for ps_col in range(self.total):
             self.next_scenario()
@@ -192,7 +195,7 @@ class SuperstructureMLCA(MLCA):
         if index < 0:
             raise ValueError("Negative indexes are not allowed")
         elif index >= self.total:
-            raise ValueError("Given index is not possible for current presamples dataset")
+            raise ValueError("Given index is not possible for current scenario dataset")
         if index < self.current:
             return [*range(self.current, self.total), *range(index)]
         else:
@@ -274,7 +277,7 @@ class SuperstructureContributions(Contributions):
         return super().get_contributions(contribution, functional_unit, method)
 
     def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
-        # If both functional_unit and method are given, return presamples index.
+        # If both functional_unit and method are given, return scenario index.
         if all(kwargs.values()):
             return self.mlca.scenario_index, self.act_fields
         else:

@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: 3.8
           activate-environment: build
-          environment-file: ci/environment-build.yml
+          environment-file: ci/conda-envs/build.yml
       - name: Build activity-browser stable
         run: |
           conda build ci/recipe/stable
