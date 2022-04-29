@@ -87,9 +87,18 @@ class ParameterDefinitionTab(BaseRightTab):
         self.database_header = header("Database:")
         self.new_database_param = QPushButton(qicons.add, "New")
         self.show_order = QCheckBox("Show order column", self)
-        self.show_database_params = QCheckBox("Show database parameters", self)
+        self.show_database_params = QCheckBox("Database parameters", self)
+        self.show_database_params.setToolTip("Show/hide the database parameters")
         self.show_database_params.setChecked(True)
-        self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
+        self.activity_header = header("Activity:")
+        self.show_activity_params = QCheckBox("Activity parameters", self)
+        self.show_activity_params.setToolTip("Show/hide the activity parameters")
+        self.show_activity_params.setChecked(True)
+        self.comment_column = QCheckBox("Comments", self)
+        self.comment_column.setToolTip("Show/hide the comment column")
+        self.hide_comment_column()
+        self.uncertainty_columns = QCheckBox("Uncertainty", self)
+        self.uncertainty_columns.setToolTip("Show/hide the uncertainty columns")
 
         self._construct_layout()
         self._connect_signals()
@@ -135,12 +144,19 @@ can be used within the formula!</p>
             lambda: signals.add_parameter.emit(("db", ""))
         )
         self.show_order.stateChanged.connect(self.activity_order_column)
-        self.uncertainty_columns.stateChanged.connect(
-            self.hide_uncertainty_columns
-        )
         self.show_database_params.toggled.connect(
             self.hide_database_parameter
         )
+        self.show_activity_params.toggled.connect(
+            self.hide_activity_parameter
+        )
+        self.comment_column.stateChanged.connect(
+            self.hide_comment_column
+        )
+        self.uncertainty_columns.stateChanged.connect(
+            self.hide_uncertainty_columns
+        )
+
 
     def _construct_layout(self):
         """ Construct the widget layout for the variable parameters tab
@@ -151,6 +167,8 @@ can be used within the formula!</p>
         row = QToolBar()
         row.addWidget(header("Parameters "))
         row.addWidget(self.show_database_params)
+        row.addWidget(self.show_activity_params)
+        row.addWidget(self.comment_column)
         row.addWidget(self.uncertainty_columns)
         row.addAction(
             qicons.question, "About brightway parameters",
@@ -174,7 +192,7 @@ can be used within the formula!</p>
         layout.addWidget(self.database_table)
 
         row = QHBoxLayout()
-        row.addWidget(header("Activity:"))
+        row.addWidget(self.activity_header)
         row.addWidget(self.show_order)
         row.addStretch(1)
         layout.addLayout(row)
@@ -202,6 +220,12 @@ can be used within the formula!</p>
             table.uncertainty_columns(show)
 
     @Slot()
+    def hide_comment_column(self):
+        show = self.comment_column.isChecked()
+        for table in self.tables.values():
+            table.comment_column(show)
+
+    @Slot()
     def activity_order_column(self) -> None:
         col = self.activity_table.model.order_col
         state = self.show_order.isChecked()
@@ -216,6 +240,12 @@ can be used within the formula!</p>
         self.database_header.setHidden(not toggled)
         self.new_database_param.setHidden(not toggled)
         self.database_table.setHidden(not toggled)
+
+    @Slot(bool)
+    def hide_activity_parameter(self, toggled: bool) -> None:
+        self.activity_header.setHidden(not toggled)
+        self.show_order.setHidden(not toggled)
+        self.activity_table.setHidden(not toggled)
 
 
 class ParameterExchangesTab(BaseRightTab):
