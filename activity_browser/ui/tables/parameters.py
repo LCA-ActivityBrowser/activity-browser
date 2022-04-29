@@ -89,6 +89,13 @@ class BaseParameterTable(ABDataFrameView):
         proxy = next(p for p in self.selectedIndexes())
         self.model.remove_uncertainty(proxy)
 
+    def comment_column(self, show: bool):
+        self.setColumnHidden(self.model.comment_col, not show)
+
+        super().custom_view_sizing()
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
 
 class ProjectParameterTable(BaseParameterTable):
     MODEL = ProjectParameterModel
@@ -100,10 +107,11 @@ class ProjectParameterTable(BaseParameterTable):
         # Set delegates for specific columns
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
-        self.setItemDelegateForColumn(3, ViewOnlyUncertaintyDelegate(self))
+        self.setItemDelegateForColumn(3, StringDelegate(self))
+        self.setItemDelegateForColumn(4, ViewOnlyUncertaintyDelegate(self))
 
     def uncertainty_columns(self, show: bool):
-        for i in range(3, 9):
+        for i in range(4, 10):
             self.setColumnHidden(i, not show)
 
     @staticmethod
@@ -126,10 +134,12 @@ class DataBaseParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(1, FloatDelegate(self))
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(3, DatabaseDelegate(self))
-        self.setItemDelegateForColumn(4, ViewOnlyUncertaintyDelegate(self))
+        self.setItemDelegateForColumn(4, StringDelegate(self))
+        self.setItemDelegateForColumn(5, ViewOnlyUncertaintyDelegate(self))
+
 
     def uncertainty_columns(self, show: bool):
-        for i in range(4, 10):
+        for i in range(5, 11):
             self.setColumnHidden(i, not show)
 
     def get_key(self) -> tuple:
@@ -158,7 +168,8 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(2, FormulaDelegate(self))
         self.setItemDelegateForColumn(6, StringDelegate(self))
         self.setItemDelegateForColumn(7, ListDelegate(self))
-        self.setItemDelegateForColumn(9, ViewOnlyUncertaintyDelegate(self))
+        self.setItemDelegateForColumn(9, StringDelegate(self))
+        self.setItemDelegateForColumn(10, ViewOnlyUncertaintyDelegate(self))
 
         # Set dropEnabled
         self.setDragDropMode(ABDataFrameView.DropOnly)
@@ -228,7 +239,7 @@ class ActivityParameterTable(BaseParameterTable):
             signals.open_activity_tab.emit(key)
 
     def uncertainty_columns(self, show: bool):
-        for i in range(9, 15):
+        for i in range(10, 16):
             self.setColumnHidden(i, not show)
 
     def get_key(self, proxy=None) -> tuple:

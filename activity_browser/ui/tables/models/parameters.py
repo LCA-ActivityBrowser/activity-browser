@@ -25,6 +25,7 @@ class BaseParameterModel(EditablePandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.param_col = 0
+        self.comment_col = 0
         self.dataChanged.connect(self.edit_single_parameter)
         signals.project_selected.connect(self.sync)
         signals.parameters_changed.connect(self.sync)
@@ -53,6 +54,7 @@ class BaseParameterModel(EditablePandasModel):
         data = getattr(parameter, "data", {})
         row.update(cls.extract_uncertainty_data(data))
         row["parameter"] = parameter
+        row["comment"] = data.get("comment", "")
         return row
 
     @classmethod
@@ -103,7 +105,7 @@ class BaseParameterModel(EditablePandasModel):
 
 
 class ProjectParameterModel(BaseParameterModel):
-    COLUMNS = ["name", "amount", "formula"]
+    COLUMNS = ["name", "amount", "formula", "comment"]
 
     def sync(self) -> None:
         data = [
@@ -111,6 +113,7 @@ class ProjectParameterModel(BaseParameterModel):
         ]
         self._dataframe = pd.DataFrame(data, columns=self.columns())
         self.param_col = self._dataframe.columns.get_loc("parameter")
+        self.comment_col = self._dataframe.columns.get_loc("comment")
         self.updated.emit()
 
     @staticmethod
@@ -127,7 +130,7 @@ class ProjectParameterModel(BaseParameterModel):
 
 
 class DatabaseParameterModel(BaseParameterModel):
-    COLUMNS = ["name", "amount", "formula", "database"]
+    COLUMNS = ["name", "amount", "formula", "database", "comment"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -140,6 +143,7 @@ class DatabaseParameterModel(BaseParameterModel):
         self._dataframe = pd.DataFrame(data, columns=self.columns())
         self.db_col = self._dataframe.columns.get_loc("database")
         self.param_col = self._dataframe.columns.get_loc("parameter")
+        self.comment_col = self._dataframe.columns.get_loc("comment")
         self.updated.emit()
 
     def get_key(self, proxy: QModelIndex = None) -> tuple:
@@ -180,7 +184,7 @@ class DatabaseParameterModel(BaseParameterModel):
 class ActivityParameterModel(BaseParameterModel):
     COLUMNS = [
         "name", "amount", "formula", "product", "activity", "location",
-        "group", "order", "key"
+        "group", "order", "key", "comment"
     ]
 
     def __init__(self, parent=None):
@@ -207,6 +211,7 @@ class ActivityParameterModel(BaseParameterModel):
         self.param_col = self._dataframe.columns.get_loc("parameter")
         self.key_col = self._dataframe.columns.get_loc("key")
         self.order_col = self._dataframe.columns.get_loc("order")
+        self.comment_col = self._dataframe.columns.get_loc("comment")
         self.updated.emit()
 
     @classmethod
