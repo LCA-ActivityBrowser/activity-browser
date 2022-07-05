@@ -123,7 +123,9 @@ class SuperstructureManager(object):
         """
         if df.loc[:, EXCHANGE_KEYS].isna().any().all():
             df = fill_df_keys_with_fields(df)
-            assert df.loc[:, EXCHANGE_KEYS].notna().all().all(), "Cannot find all keys."
+            _df = df.loc[:, EXCHANGE_KEYS].notna()
+            assert _df.all().all(), "Cannot find all keys. {} of {} exchanges are broken.".format(len(df[_df]),
+                                                                                                  len(df))
         unknown_flows = df.loc[:, "flow type"].isna()
         if unknown_flows.any():
             print("Not all flow types are known, guessing {} flows".format(

@@ -23,12 +23,12 @@ def test_table_uncertainty_delegate(qtbot, bw2test, monkeypatch):
     bw.parameters.new_project_parameters([{"name": "project_1", "amount": 1.0}], False)
     table.model.sync()
 
-    assert isinstance(table.itemDelegateForColumn(3), UncertaintyDelegate)
+    assert isinstance(table.itemDelegateForColumn(4), UncertaintyDelegate)
 
     delegate = UncertaintyDelegate(table)
     option = QtWidgets.QStyleOptionViewItem()
     option.rect = QtCore.QRect(0, 0, 100, 100)
-    index = table.proxy_model.index(0, 3)
+    index = table.proxy_model.index(0, 4)
     rect = table.visualRect(index)
     qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
     editor = delegate.createEditor(table, option, index)

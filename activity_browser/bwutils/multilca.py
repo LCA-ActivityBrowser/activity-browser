@@ -342,7 +342,7 @@ class Contributions(object):
             2-dimensional array of same shape, with scores normalized.
 
         """
-        scores = contribution_array.sum(axis=1, keepdims=True)
+        scores = abs(contribution_array).sum(axis=1, keepdims=True)
         return contribution_array / scores
 
     def _build_dict(self, C, FU_M_index, rev_dict, limit, limit_type):
@@ -382,6 +382,7 @@ class Contributions(object):
                 cont_per.update({rev_dict[index]: value})
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
+
 
     @staticmethod
     def get_labels(key_list, fields=None, separator=' | ',
