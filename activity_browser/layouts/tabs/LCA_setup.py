@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from collections import namedtuple
-
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
@@ -14,7 +12,7 @@ from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
 from ...ui.tables import (
-    CSActivityTable, CSList, CSMethodsTable, PresamplesList, ScenarioImportTable
+    CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
 )
 from ...ui.widgets import ExcelReadDialog
 from .base import BaseRightTab
@@ -33,7 +31,7 @@ Responsibilities
 
 ``CalculationSetupTab`` manages whether the activities and methods tables are shown, and which buttons are shown.
 
-``CSActivityTableWidget`` and ``CSMethodsTableWidget`` mangage drag and drop events, and use signals to communicate data changes with the controller.
+``CSActivityTableWidget`` and ``CSMethodsTableWidget`` manage drag and drop events, and use signals to communicate data changes with the controller.
 
 Initiation
 ----------
@@ -82,13 +80,10 @@ State data
 The currently selected calculation setup is retrieved by getting the currently selected value in ``CSList``.
 
 """
-PresamplesTuple = namedtuple("presamples", ["label", "list", "button", "remove"])
-
 
 class LCASetupTab(QtWidgets.QWidget):
     DEFAULT = 0
     SCENARIOS = 1
-    PRESAMPLES = 2
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -109,18 +104,7 @@ class LCASetupTab(QtWidgets.QWidget):
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()
-        self.calculation_type.addItems(["Standard LCA", "Scenario LCA", "Presamples LCA"])
-
-        self.presamples = PresamplesTuple(
-            QtWidgets.QLabel("Prepared scenarios:"),
-            PresamplesList(self),
-            QtWidgets.QPushButton(qicons.calculate, "Calculate"),
-            QtWidgets.QPushButton(qicons.delete, "Remove"),
-        )
-        for obj in self.presamples:
-            obj.hide()
-        self.scenario_calc_btn = QtWidgets.QPushButton(qicons.calculate, "Calculate")
-        self.scenario_calc_btn.hide()
+        self.calculation_type.addItems(["Standard LCA", "Scenario LCA"])
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header('Calculation Setup:'))
@@ -133,12 +117,7 @@ class LCASetupTab(QtWidgets.QWidget):
 
         calc_row = QtWidgets.QHBoxLayout()
         calc_row.addWidget(self.calculate_button)
-        calc_row.addWidget(self.presamples.button)
-        calc_row.addWidget(self.scenario_calc_btn)
         calc_row.addWidget(self.calculation_type)
-        calc_row.addWidget(self.presamples.label)
-        calc_row.addWidget(self.presamples.list)
-        calc_row.addWidget(self.presamples.remove)
         calc_row.addStretch(1)
 
         container = QtWidgets.QVBoxLayout()
@@ -180,9 +159,6 @@ class LCASetupTab(QtWidgets.QWidget):
     def connect_signals(self):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
-        self.presamples.button.clicked.connect(self.presamples_calculation)
-        self.presamples.remove.clicked.connect(self.remove_presamples_package)
-        self.scenario_calc_btn.clicked.connect(self.scenario_calculation)
 
         self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
         self.copy_cs_button.clicked.connect(
@@ -201,14 +177,10 @@ class LCASetupTab(QtWidgets.QWidget):
 
         # Slots
         signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
-        signals.set_default_calculation_setup.connect(self.valid_presamples)
         signals.project_selected.connect(self.set_default_calculation_setup)
-        signals.project_selected.connect(self.valid_presamples)
         signals.calculation_setup_selected.connect(lambda: self.show_details())
         signals.calculation_setup_selected.connect(self.enable_calculations)
         signals.calculation_setup_changed.connect(self.enable_calculations)
-        signals.calculation_setup_changed.connect(self.valid_presamples)
-        signals.presample_package_created.connect(self.valid_presamples)
 
     def save_cs_changes(self):
         name = self.list_widget.name
@@ -220,42 +192,25 @@ class LCASetupTab(QtWidgets.QWidget):
 
     @Slot(name="calculationDefault")
     def start_calculation(self):
-        data = {
-            'cs_name': self.list_widget.name,
-            'calculation_type': 'simple',
-        }
-        signals.lca_calculation.emit(data)
+        """Check what calculation type is selected and send the correct data signal."""
 
-    @Slot(name="calculationPresamples")
-    def presamples_calculation(self):
-        data = {
-            'cs_name': self.list_widget.name,
-            'calculation_type': 'presamples',
-            'data': self.presamples.list.selection,
-        }
-        signals.lca_calculation.emit(data)
+        calc_type = self.calculation_type.currentIndex()
+        if calc_type == self.DEFAULT:
+            # Standard LCA
+            data = {
+                'cs_name': self.list_widget.name,
+                'calculation_type': 'simple',
+            }
+        elif calc_type == self.SCENARIOS:
+            # Scenario LCA
+            data = {
+                'cs_name': self.list_widget.name,
+                'calculation_type': 'scenario',
+                'data': self.scenario_panel.combined_dataframe(),
+            }
+        else:
+            return
 
-    @Slot(name="removePresamplesPackage")
-    def remove_presamples_package(self):
-        """Removes the current presamples package selected from the list."""
-        name_id = self.presamples.list.selection
-        do_remove = QtWidgets.QMessageBox.question(
-            self, "Removing presample package",
-            "Are you sure you want to remove presample package '{}'?".format(name_id),
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-            QtWidgets.QMessageBox.No
-        )
-        if do_remove == QtWidgets.QMessageBox.Yes:
-            signals.presample_package_delete.emit(name_id)
-
-    @Slot(name="calculationScenario")
-    def scenario_calculation(self) -> None:
-        """Construct index / value array and begin LCA calculation."""
-        data = {
-            'cs_name': self.list_widget.name,
-            'calculation_type': 'scenario',
-            'data': self.scenario_panel.combined_dataframe(),
-        }
         signals.lca_calculation.emit(data)
 
     @Slot(name="toggleDefaultCalculation")
@@ -264,21 +219,10 @@ class LCASetupTab(QtWidgets.QWidget):
         if not len(calculation_setups):
             self.show_details(False)
             self.calculate_button.setEnabled(False)
-            self.scenario_calc_btn.setEnabled(False)
         else:
             signals.calculation_setup_selected.emit(
                 sorted(calculation_setups)[0]
             )
-
-    @Slot(name="togglePresampleCalculation")
-    def valid_presamples(self):
-        """ Determine if calculate with presamples is active.
-        """
-        valid = self.calculate_button.isEnabled() and self.presamples.list.has_packages
-        if valid:
-            self.presamples.list.sync()
-        self.presamples.list.setEnabled(valid)
-        self.presamples.button.setEnabled(valid)
 
     def show_details(self, show: bool = True):
         # show/hide items from name_row
@@ -287,27 +231,8 @@ class LCASetupTab(QtWidgets.QWidget):
         self.copy_cs_button.setVisible(show)
         self.list_widget.setVisible(show)
         # show/hide items from calc_row
-        if not show:
-            self.calculate_button.setVisible(show)
-            self.presamples.button.setVisible(show)
-            self.scenario_calc_btn.setVisible(show)
-            self.calculation_type.setVisible(show)
-            self.presamples.label.setVisible(show)
-            self.presamples.list.setVisible(show)
-            self.presamples.remove.setVisible(show)
-        else:
-            self.calculation_type.setVisible(show)
-            calc_type = self.calculation_type.currentText()
-            if calc_type == "Standard LCA":
-                self.calculate_button.setVisible(show)
-            elif calc_type == "Scenario LCA":
-                self.scenario_calc_btn.setVisible(show)
-            elif calc_type == "Presamples LCA":
-                self.presamples.button.setVisible(show)
-                self.presamples.label.setVisible(show)
-                self.presamples.list.setVisible(show)
-                self.presamples.remove.setVisible(show)
-
+        self.calculate_button.setVisible(show)
+        self.calculation_type.setVisible(show)
         # show/hide tables widgets
         self.splitter.setVisible(show)
         self.no_setup_label.setVisible(not(show))
@@ -315,31 +240,16 @@ class LCASetupTab(QtWidgets.QWidget):
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
         if index == self.DEFAULT:
-            # Standard LCA.
-            self.calculate_button.show()
-            for obj in self.presamples:
-                obj.hide()
-            self.scenario_calc_btn.hide()
+            # Standard LCA
             self.scenario_panel.hide()
         elif index == self.SCENARIOS:
-            self.calculate_button.hide()
-            for obj in self.presamples:
-                obj.hide()
-            self.scenario_calc_btn.show()
+            # Scenario LCA
             self.scenario_panel.show()
-        elif index == self.PRESAMPLES:
-            # Presamples / Scenarios LCA.
-            self.calculate_button.hide()
-            for obj in self.presamples:
-                obj.show()
-            self.scenario_calc_btn.hide()
-            self.scenario_panel.hide()
         self.cs_panel.updateGeometry()
 
     def enable_calculations(self):
         valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
         self.calculate_button.setEnabled(valid_cs)
-        self.scenario_calc_btn.setEnabled(valid_cs)
 
 
 class ScenarioImportPanel(BaseRightTab):

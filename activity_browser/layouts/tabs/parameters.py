@@ -2,7 +2,6 @@
 from pathlib import Path
 
 import brightway2 as bw
-from bw2data.filesystem import safe_filename
 import pandas as pd
 from PySide2.QtCore import Slot, QSize
 from PySide2.QtWidgets import (
@@ -11,7 +10,7 @@ from PySide2.QtWidgets import (
 )
 from xlsxwriter.exceptions import FileCreateError
 
-from ...bwutils import presamples as ps_utils
+from ...bwutils.manager import ParameterManager
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
@@ -19,7 +18,6 @@ from ...ui.tables import (
     ActivityParameterTable, DataBaseParameterTable, ExchangesTable,
     ProjectParameterTable, ScenarioTable
 )
-from ...ui.widgets import ChoiceSelectionDialog, ForceInputDialog
 from .base import BaseRightTab
 
 
@@ -393,40 +391,10 @@ class ParameterScenariosTab(BaseRightTab):
                 QMessageBox.Ok, QMessageBox.Ok
             )
 
-    @Slot(name="createPresamplesPackage")
+    @Slot(name="createParameterExport")
     def calculate_scenarios(self):
-        if not ps_utils.PresamplesParameterManager.has_parameterized_exchanges():
-            QMessageBox.warning(
-                self, "No parameterized exchanges",
-                "Please set formulas on exchanges to make use of scenario analysis.",
-                QMessageBox.Ok, QMessageBox.Ok
-            )
-            return
-        flow_scenarios = "Save as flow scenarios (excel)"
-        presamples = "Save as presamples package (presamples)"
-        choice_dlg = ChoiceSelectionDialog.get_choice(self, flow_scenarios, presamples)
-        if choice_dlg.exec_() != ChoiceSelectionDialog.Accepted:
-            return
-        if choice_dlg.choice == flow_scenarios:
-            df = self.build_flow_scenarios()
-            self.store_flows_to_file(df)
-        elif choice_dlg.choice == presamples:
-            dialog = ForceInputDialog.get_text(
-                self, "Add label", "Add a label to the calculated scenarios"
-            )
-            if dialog.exec_() == ForceInputDialog.Accepted:
-                result = dialog.output
-                if result in ps_utils.find_all_package_names():
-                    overwrite = QMessageBox.question(
-                        self, "Label already in use", "Overwrite the old calculations?",
-                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-                    )
-                    if overwrite == QMessageBox.Yes:
-                        older = ps_utils.get_package_path(result)
-                        ps_utils.remove_package(older)
-                        self.build_presamples_packages(safe_filename(result, False))
-                else:
-                    self.build_presamples_packages(safe_filename(result, False))
+        df = self.build_flow_scenarios()
+        self.store_flows_to_file(df)
 
     def build_flow_scenarios(self) -> pd.DataFrame:
         """Calculate exchange changes for each parameter scenario and construct
@@ -434,9 +402,9 @@ class ParameterScenariosTab(BaseRightTab):
         """
         from ...bwutils.superstructure import superstructure_from_arrays
 
-        ppm = ps_utils.PresamplesParameterManager()
+        pm = ParameterManager()
         names, data = zip(*self.tbl.iterate_scenarios())
-        samples, indices = ppm.arrays_from_scenarios(zip(names, data))
+        samples, indices = pm.arrays_from_scenarios(zip(names, data))
         df = superstructure_from_arrays(samples, indices, names)
         return df
 
@@ -457,13 +425,3 @@ class ParameterScenariosTab(BaseRightTab):
                     "if you are allowed to save files in that location:\n\n{}".format(e),
                     QMessageBox.Ok, QMessageBox.Ok
                 )
-
-    def build_presamples_packages(self, name: str):
-        """ Calculate and store presamples arrays from parameter scenarios.
-        """
-        ppm = ps_utils.PresamplesParameterManager()
-        names, data = zip(*self.tbl.iterate_scenarios())
-        ps_id, path = ppm.presamples_from_scenarios(name, zip(names, data))
-        description = "{}".format(tuple(names))
-        ppm.store_presamples_as_resource(name, path, description)
-        signals.presample_package_created.emit(name)
