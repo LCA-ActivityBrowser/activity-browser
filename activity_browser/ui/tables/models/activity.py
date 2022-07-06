@@ -106,7 +106,7 @@ class BaseExchangeModel(EditablePandasModel):
         exchanges = [self.get_exchange(p) for p in proxies]
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)
-        df.to_clipboard(excel=True)
+        df.to_clipboard(excel=True, index=False)
 
     @Slot(list, name="openActivities")
     def open_activities(self, proxies: list) -> None:
