@@ -57,6 +57,9 @@ class ProjectTab(QtWidgets.QWidget):
         """Splitter sizes need to be reset (for some reason this is buggy if not done like this)"""
         widgets = [self.databases_widget, self.activity_biosphere_widget]
         sizes = [x.sizeHint().height() for x in widgets]
+        tabheight = self.height()
+        if sum(sizes) > tabheight and sizes[1] > 0.75 * tabheight:
+            sizes[0] = sizes[1] // 3
         self.splitter.setSizes(sizes)
 
 
