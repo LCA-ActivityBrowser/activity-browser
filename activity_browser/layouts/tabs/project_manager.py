@@ -46,11 +46,11 @@ class ProjectTab(QtWidgets.QWidget):
     def update_widgets(self):
         """Update widgets when a new database has been selected or the project has been changed.
         Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
-        no_databases = self.activity_biosphere_widget.table.rowCount() == 0
+        empty_db = self.activity_biosphere_widget.table.database_name is None
 
         self.databases_widget.update_widget()
 
-        self.activity_biosphere_widget.setVisible(not no_databases)
+        self.activity_biosphere_widget.setVisible(not empty_db)
         self.resize_splitter()
 
     def resize_splitter(self):
@@ -181,7 +181,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.label_database = QtWidgets.QLabel("[]")
         self.header_layout.addWidget(self.label_database)
         signals.database_selected.connect(self.update_table)
-        signals.activity_modified.connect(self.testsignal)
 
         self.setup_search()
 
@@ -246,30 +245,26 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
         self.header_layout.addWidget(self.search_button)
         self.header_layout.addWidget(self.reset_search_button)
-        print("search set up")
 
     def update_table(self, db_name='biosphere3'): #TODO: Why the argument if self.table.database_name contains the same thing?
         olddb = self.curdb
         self.curdb = self.table.database_name
         if olddb is not None:
             self.searches[olddb] = (self.search_box.text(), self.search_box2.text(), self.logic_dropdown.currentText())
+        s0 = s1 = "" # defaults
+        s2 = "AND"
         if self.curdb in self.searches:
             s = self.searches[self.curdb]
-            self.search_box.setText(s[0])
-            self.search_box2.setText(s[1])
-            self.logic_dropdown.setCurrentText(s[2])
-        else:
-            self.search_box.setText("")
-            self.search_box2.setText("")
+            s0, s1, s2 = s # overwrite default empty string
+        self.search_box.setText(s0)
+        self.search_box2.setText(s1)
+        self.logic_dropdown.setCurrentText(s2)
         if self.curdb:
             self.show()
-        print(self.searches, self.curdb)
 
         update_and_shorten_label(self.label_database, db_name)
-        self.search_button.click() # perform search query on new database
-
-    def testsignal(self):
-        print("test signal fired")
+        if len(s0) > 0 and len(s1) > 0:
+            self.table.search(s0, s1, s2) # perform search query on new database if query is present
 
     def set_search_term(self):
         search_term = self.search_box.text()
