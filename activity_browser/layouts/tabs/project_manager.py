@@ -234,9 +234,9 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.reset_search_button = QtWidgets.QToolButton()
         self.reset_search_button.setIcon(qicons.delete)
         self.reset_search_button.setToolTip("Clear the search")
-        self.reset_search_button.clicked.connect(self.table.reset_search) #TODO: simply search with empty string
         self.reset_search_button.clicked.connect(self.search_box.clear)
         self.reset_search_button.clicked.connect(self.search_box2.clear)
+        self.reset_search_button.clicked.connect(self.table.reset_search)
 
         signals.project_selected.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
@@ -246,7 +246,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.header_layout.addWidget(self.search_button)
         self.header_layout.addWidget(self.reset_search_button)
 
-    def update_table(self, db_name='biosphere3'): #TODO: Why the argument if self.table.database_name contains the same thing?
+    def update_table(self, db_name='biosphere3'):
         olddb = self.curdb
         self.curdb = self.table.database_name
         if olddb is not None:
