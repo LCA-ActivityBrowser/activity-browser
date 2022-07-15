@@ -24,6 +24,7 @@ requirements:
     - python >=3.8,<3.10
     - arrow
     - brightway2 >=2.4.2
+    - pyperclip
     - eidl >=1.4.2
     - networkx
     - pyside2 >=5.13.1
