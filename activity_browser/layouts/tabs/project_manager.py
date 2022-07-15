@@ -39,6 +39,7 @@ class ProjectTab(QtWidgets.QWidget):
         signals.project_selected.connect(self.change_project)
         signals.database_selected.connect(self.update_widgets)
         signals.database_changed.connect(self.update_widgets)
+        self.activity_biosphere_widget.table.model.updated.connect(self.resize_splitter)
 
     def change_project(self):
         self.update_widgets()
@@ -49,6 +50,7 @@ class ProjectTab(QtWidgets.QWidget):
         empty_db = self.activity_biosphere_widget.table.database_name is None
 
         self.databases_widget.update_widget()
+        self.activity_biosphere_widget.set_search_term() # update search every time the widget updates
 
         self.activity_biosphere_widget.setVisible(not empty_db)
         self.resize_splitter()
@@ -61,7 +63,6 @@ class ProjectTab(QtWidgets.QWidget):
         if sum(sizes) > tabheight and sizes[1] > 0.75 * tabheight:
             sizes[0] = sizes[1] // 3
         self.splitter.setSizes(sizes)
-
 
 class ProjectsWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -164,7 +165,6 @@ class DatabaseWidget(QtWidgets.QWidget):
 
         self.table.setVisible(not no_databases)
         self.label_change_readonly.setVisible(not no_databases)
-
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, parent):
