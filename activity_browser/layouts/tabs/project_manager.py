@@ -181,6 +181,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.label_database = QtWidgets.QLabel("[]")
         self.header_layout.addWidget(self.label_database)
         signals.database_selected.connect(self.update_table)
+        signals.activity_modified.connect(self.testsignal)
 
         self.setup_search()
 
@@ -195,6 +196,10 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Preferred,
             QtWidgets.QSizePolicy.Maximum)
         )
+
+        # Keeping track of search filters per database
+        self.searches = {}
+        self.curdb = None
 
         self.connect_signals()
 
@@ -230,7 +235,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.reset_search_button = QtWidgets.QToolButton()
         self.reset_search_button.setIcon(qicons.delete)
         self.reset_search_button.setToolTip("Clear the search")
-        self.reset_search_button.clicked.connect(self.table.reset_search)
+        self.reset_search_button.clicked.connect(self.table.reset_search) #TODO: simply search with empty string
         self.reset_search_button.clicked.connect(self.search_box.clear)
         self.reset_search_button.clicked.connect(self.search_box2.clear)
 
@@ -241,12 +246,30 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
         self.header_layout.addWidget(self.search_button)
         self.header_layout.addWidget(self.reset_search_button)
+        print("search set up")
 
-    def update_table(self, db_name='biosphere3'):
-        if self.table.database_name:
+    def update_table(self, db_name='biosphere3'): #TODO: Why the argument if self.table.database_name contains the same thing?
+        olddb = self.curdb
+        self.curdb = self.table.database_name
+        if olddb is not None:
+            self.searches[olddb] = (self.search_box.text(), self.search_box2.text(), self.logic_dropdown.currentText())
+        if self.curdb in self.searches:
+            s = self.searches[self.curdb]
+            self.search_box.setText(s[0])
+            self.search_box2.setText(s[1])
+            self.logic_dropdown.setCurrentText(s[2])
+        else:
+            self.search_box.setText("")
+            self.search_box2.setText("")
+        if self.curdb:
             self.show()
+        print(self.searches, self.curdb)
 
         update_and_shorten_label(self.label_database, db_name)
+        self.search_button.click() # perform search query on new database
+
+    def testsignal(self):
+        print("test signal fired")
 
     def set_search_term(self):
         search_term = self.search_box.text()
