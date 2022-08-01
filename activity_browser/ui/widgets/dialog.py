@@ -54,6 +54,55 @@ class ForceInputDialog(QtWidgets.QDialog):
         return obj
 
 
+class ChoiceSelectionDialog(QtWidgets.QDialog):
+    """Given a number of options, select one of them."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.input_box = QtWidgets.QGroupBox(self)
+        self.input_box.setStyleSheet(style_group_box.border_title)
+        input_field_layout = QtWidgets.QVBoxLayout()
+        self.input_box.setLayout(input_field_layout)
+        self.group = QtWidgets.QButtonGroup(self)
+        self.group.setExclusive(True)
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.input_box)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def choice(self) -> str:
+        """Returns the name of the chosen option, allowing for a comparison"""
+        checked = self.group.checkedButton()
+        return checked.text()
+
+    @classmethod
+    def get_choice(cls, parent: QtWidgets.QWidget, *choices) -> 'ChoiceSelectionDialog':
+        assert len(choices) > 0, "Must give choices to choose from."
+
+        obj = cls(parent)
+        obj.setWindowTitle("Select the option")
+
+        iterable = iter(choices)
+        first = QtWidgets.QRadioButton(str(next(iterable)))
+        first.setChecked(True)
+        obj.group.addButton(first)
+        obj.input_box.layout().addWidget(first)
+        for choice in iterable:
+            btn = QtWidgets.QRadioButton(str(choice))
+            obj.group.addButton(btn)
+            obj.input_box.layout().addWidget(btn)
+        obj.input_box.updateGeometry()
+        return obj
+
+
 class TupleNameDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)

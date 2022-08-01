@@ -34,14 +34,11 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
         for i in range(10):
             value = sheet.cell(i + 1, 1).value
             if isinstance(value, str) and value.startswith("from activity name"):
-                wb.close()
                 return i
     except IndexError as e:
-        wb.close()
         raise IndexError("Expected headers not found in file").with_traceback(e.__traceback__)
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
-        wb.close()
     raise ValueError("Could not find required headers in given document sheet.")
 
 
@@ -59,7 +56,7 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
 
     Any '*' character used at the start of a row or will cause that row
     to be excluded from the import.
-    A '#' character at the start of a column will cause that column to be
+    A '#' charater at the start of a column will cause that column to be
     excluded from the import.
 
     'usecols' is used to exclude specific columns from the excel document.

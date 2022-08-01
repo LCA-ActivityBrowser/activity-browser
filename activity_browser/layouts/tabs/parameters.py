@@ -2,6 +2,7 @@
 from pathlib import Path
 
 import brightway2 as bw
+from bw2data.filesystem import safe_filename
 import pandas as pd
 from PySide2.QtCore import Slot, QSize
 from PySide2.QtWidgets import (
@@ -10,7 +11,7 @@ from PySide2.QtWidgets import (
 )
 from xlsxwriter.exceptions import FileCreateError
 
-from ...bwutils.manager import ParameterManager
+from ...bwutils import presamples as ps_utils
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
@@ -18,6 +19,7 @@ from ...ui.tables import (
     ActivityParameterTable, DataBaseParameterTable, ExchangesTable,
     ProjectParameterTable, ScenarioTable
 )
+from ...ui.widgets import ChoiceSelectionDialog, ForceInputDialog
 from .base import BaseRightTab
 
 
@@ -87,18 +89,9 @@ class ParameterDefinitionTab(BaseRightTab):
         self.database_header = header("Database:")
         self.new_database_param = QPushButton(qicons.add, "New")
         self.show_order = QCheckBox("Show order column", self)
-        self.show_database_params = QCheckBox("Database parameters", self)
-        self.show_database_params.setToolTip("Show/hide the database parameters")
+        self.show_database_params = QCheckBox("Show database parameters", self)
         self.show_database_params.setChecked(True)
-        self.activity_header = header("Activity:")
-        self.show_activity_params = QCheckBox("Activity parameters", self)
-        self.show_activity_params.setToolTip("Show/hide the activity parameters")
-        self.show_activity_params.setChecked(True)
-        self.comment_column = QCheckBox("Comments", self)
-        self.comment_column.setToolTip("Show/hide the comment column")
-        self.hide_comment_column()
-        self.uncertainty_columns = QCheckBox("Uncertainty", self)
-        self.uncertainty_columns.setToolTip("Show/hide the uncertainty columns")
+        self.uncertainty_columns = QCheckBox("Show uncertainty columns", self)
 
         self._construct_layout()
         self._connect_signals()
@@ -144,19 +137,12 @@ can be used within the formula!</p>
             lambda: signals.add_parameter.emit(("db", ""))
         )
         self.show_order.stateChanged.connect(self.activity_order_column)
-        self.show_database_params.toggled.connect(
-            self.hide_database_parameter
-        )
-        self.show_activity_params.toggled.connect(
-            self.hide_activity_parameter
-        )
-        self.comment_column.stateChanged.connect(
-            self.hide_comment_column
-        )
         self.uncertainty_columns.stateChanged.connect(
             self.hide_uncertainty_columns
         )
-
+        self.show_database_params.toggled.connect(
+            self.hide_database_parameter
+        )
 
     def _construct_layout(self):
         """ Construct the widget layout for the variable parameters tab
@@ -167,8 +153,6 @@ can be used within the formula!</p>
         row = QToolBar()
         row.addWidget(header("Parameters "))
         row.addWidget(self.show_database_params)
-        row.addWidget(self.show_activity_params)
-        row.addWidget(self.comment_column)
         row.addWidget(self.uncertainty_columns)
         row.addAction(
             qicons.question, "About brightway parameters",
@@ -192,7 +176,7 @@ can be used within the formula!</p>
         layout.addWidget(self.database_table)
 
         row = QHBoxLayout()
-        row.addWidget(self.activity_header)
+        row.addWidget(header("Activity:"))
         row.addWidget(self.show_order)
         row.addStretch(1)
         layout.addLayout(row)
@@ -220,12 +204,6 @@ can be used within the formula!</p>
             table.uncertainty_columns(show)
 
     @Slot()
-    def hide_comment_column(self):
-        show = self.comment_column.isChecked()
-        for table in self.tables.values():
-            table.comment_column(show)
-
-    @Slot()
     def activity_order_column(self) -> None:
         col = self.activity_table.model.order_col
         state = self.show_order.isChecked()
@@ -240,12 +218,6 @@ can be used within the formula!</p>
         self.database_header.setHidden(not toggled)
         self.new_database_param.setHidden(not toggled)
         self.database_table.setHidden(not toggled)
-
-    @Slot(bool)
-    def hide_activity_parameter(self, toggled: bool) -> None:
-        self.activity_header.setHidden(not toggled)
-        self.show_order.setHidden(not toggled)
-        self.activity_table.setHidden(not toggled)
 
 
 class ParameterExchangesTab(BaseRightTab):
@@ -421,10 +393,40 @@ class ParameterScenariosTab(BaseRightTab):
                 QMessageBox.Ok, QMessageBox.Ok
             )
 
-    @Slot(name="createParameterExport")
+    @Slot(name="createPresamplesPackage")
     def calculate_scenarios(self):
-        df = self.build_flow_scenarios()
-        self.store_flows_to_file(df)
+        if not ps_utils.PresamplesParameterManager.has_parameterized_exchanges():
+            QMessageBox.warning(
+                self, "No parameterized exchanges",
+                "Please set formulas on exchanges to make use of scenario analysis.",
+                QMessageBox.Ok, QMessageBox.Ok
+            )
+            return
+        flow_scenarios = "Save as flow scenarios (excel)"
+        presamples = "Save as presamples package (presamples)"
+        choice_dlg = ChoiceSelectionDialog.get_choice(self, flow_scenarios, presamples)
+        if choice_dlg.exec_() != ChoiceSelectionDialog.Accepted:
+            return
+        if choice_dlg.choice == flow_scenarios:
+            df = self.build_flow_scenarios()
+            self.store_flows_to_file(df)
+        elif choice_dlg.choice == presamples:
+            dialog = ForceInputDialog.get_text(
+                self, "Add label", "Add a label to the calculated scenarios"
+            )
+            if dialog.exec_() == ForceInputDialog.Accepted:
+                result = dialog.output
+                if result in ps_utils.find_all_package_names():
+                    overwrite = QMessageBox.question(
+                        self, "Label already in use", "Overwrite the old calculations?",
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                    )
+                    if overwrite == QMessageBox.Yes:
+                        older = ps_utils.get_package_path(result)
+                        ps_utils.remove_package(older)
+                        self.build_presamples_packages(safe_filename(result, False))
+                else:
+                    self.build_presamples_packages(safe_filename(result, False))
 
     def build_flow_scenarios(self) -> pd.DataFrame:
         """Calculate exchange changes for each parameter scenario and construct
@@ -432,9 +434,9 @@ class ParameterScenariosTab(BaseRightTab):
         """
         from ...bwutils.superstructure import superstructure_from_arrays
 
-        pm = ParameterManager()
+        ppm = ps_utils.PresamplesParameterManager()
         names, data = zip(*self.tbl.iterate_scenarios())
-        samples, indices = pm.arrays_from_scenarios(zip(names, data))
+        samples, indices = ppm.arrays_from_scenarios(zip(names, data))
         df = superstructure_from_arrays(samples, indices, names)
         return df
 
@@ -455,3 +457,13 @@ class ParameterScenariosTab(BaseRightTab):
                     "if you are allowed to save files in that location:\n\n{}".format(e),
                     QMessageBox.Ok, QMessageBox.Ok
                 )
+
+    def build_presamples_packages(self, name: str):
+        """ Calculate and store presamples arrays from parameter scenarios.
+        """
+        ppm = ps_utils.PresamplesParameterManager()
+        names, data = zip(*self.tbl.iterate_scenarios())
+        ps_id, path = ppm.presamples_from_scenarios(name, zip(names, data))
+        description = "{}".format(tuple(names))
+        ppm.store_presamples_as_resource(name, path, description)
+        signals.presample_package_created.emit(name)

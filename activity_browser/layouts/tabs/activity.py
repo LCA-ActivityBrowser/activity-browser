@@ -72,7 +72,7 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, key: tuple, parent=None, read_only=True):
+    def __init__(self, key: tuple, parent=None, read_only=False):
         super(ActivityTab, self).__init__(parent)
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
@@ -82,7 +82,7 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
-        self.checkbox_edit_act.setChecked(not self.read_only)
+        self.checkbox_edit_act.setChecked(self.read_only)
         self.checkbox_edit_act.toggled.connect(self.act_read_only_changed)
 
         # Activity Description
@@ -96,7 +96,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.checkbox_activity_description = QtWidgets.QCheckBox('Description', parent=self)
         self.checkbox_activity_description.clicked.connect(self.toggle_activity_description_visibility)
         # self.checkbox_description.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
-        self.checkbox_activity_description.setChecked(not self.read_only)
+        self.checkbox_activity_description.setChecked(self.read_only)
         self.checkbox_activity_description.setToolTip(
             "Show/hide the activity description"
         )
@@ -113,7 +113,7 @@ class ActivityTab(QtWidgets.QWidget):
         # Reveal/hide exchange comment columns
         self.checkbox_comment = QtWidgets.QCheckBox("Comments")
         self.checkbox_comment.setToolTip("Show/hide the comment column")
-        self.checkbox_comment.setChecked(False)
+        self.checkbox_comment.setChecked(True)
         self.checkbox_comment.toggled.connect(self.show_comments)
 
         # Toolbar Layout

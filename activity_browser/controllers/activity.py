@@ -62,18 +62,12 @@ class ActivityController(QObject):
         """Use the given data to delete one or more activities from brightway2."""
         activities = self._retrieve_activities(data)
 
-        text = ("One or more activities have downstream processes. "
-                "Deleting these activities will remove the exchange from the downstream processes, this can't be undone.\n\n"
-                "Are you sure you want to continue?")
-
         if any(len(act.upstream()) > 0 for act in activities):
-            choice = QtWidgets.QMessageBox.warning(self.window,
-                                                   "Activity/Activities has/have downstream processes",
-                                                   text,
-                                                   QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                                   QtWidgets.QMessageBox.No)
-            if choice == QtWidgets.QMessageBox.No:
-                return
+            text = ("Can't delete one or more activities. Some upstream process"
+                    " consumes their reference products. Please edit or delete "
+                    "these upstream exchanges first.")
+            QtWidgets.QMessageBox.warning(self.window, "Not possible.", text)
+            return
 
         # Iterate through the activities and:
         # - Close any open activity tabs,

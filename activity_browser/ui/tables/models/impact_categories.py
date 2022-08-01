@@ -154,15 +154,9 @@ class ImpactCategoryItem(TreeItem):
 
 
 class MethodsTreeModel(BaseTreeModel):
-    """Tree model for impact categories.
-
-    Tree is based on data in self._dataframe
-    self.setup_model_data() initializes data format
-    self._dataframe is converted to a nested dict, stored in self.tree_data
-    self.tree_data can be queried during sync, pruning the tree
-    finally, the ui side is built with self.build_tree()
-
-    for tree nested dict format see self.nest_data()
+    """
+    Tree model for impact categories.
+    Tree is auto generated in tables/impact_categories/MethodsTree
     """
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
@@ -186,6 +180,29 @@ class MethodsTreeModel(BaseTreeModel):
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 
+    def build_tree(self, data: dict, root: ImpactCategoryItem) -> None:
+        for key, value in data.items():
+            if isinstance(value, dict):
+                new_data = [key] + [""] * (self.columnCount() - 1)
+                new_root = root.build_item(new_data, root)
+                self.build_tree(value, new_root)
+            else:
+                ImpactCategoryItem.build_item(value, root)
+
+    @Slot(name="methodsAltered")
+    def setup_model_data(self) -> None:
+        """Construct a dataframe of impact categories and a complete nested
+        dict of the dataframe.
+
+        Trigger this at the start and when a method is added/deleted.
+        """
+        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+        self._dataframe = pd.DataFrame([
+            MethodsListModel.build_row(method_obj) for method_obj in sorted_names
+        ], columns=self.HEADERS)
+        self.method_col = self._dataframe.columns.get_loc("method")
+        self.tree_data = self.nest_data(self._dataframe)
+
     @Slot(name="clearSyncModel")
     @Slot(str, name="syncModel")
     def sync(self, query: str = None) -> None:
@@ -196,106 +213,14 @@ class MethodsTreeModel(BaseTreeModel):
             tree = deepcopy(self.tree_data)
             self._data, self.matches = self.search_tree(tree, self.query)
         else:
+            # TODO Temporary fix to clear the tree model. Might impact performance
+            self.setup_model_data()
+            # ________
+
             self._data = self.tree_data
         self.build_tree(self._data, self.root)
         self.endResetModel()
         self.updated.emit()
-
-    def build_tree(self, data: dict, root: ImpactCategoryItem) -> None:
-        """Assemble the tree ui."""
-        for key, value in data.items():
-            if isinstance(value, dict):
-                # this is a root or branch node
-                new_data = [key] + [""] * (self.columnCount() - 1)
-                new_root = root.build_item(new_data, root)
-                self.build_tree(value, new_root)
-            else:
-                # this is a leaf node
-                ImpactCategoryItem.build_item(value, root)
-
-    @Slot(name="methodsAltered")
-    def setup_model_data(self) -> None:
-        """Construct a dataframe of impact categories and a complete nested
-        dict of the dataframe.
-
-        Trigger this at init and when a method is added/deleted.
-        """
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
-        self._dataframe = pd.DataFrame([
-            MethodsListModel.build_row(method_obj) for method_obj in sorted_names
-        ], columns=self.HEADERS)
-        self.method_col = self._dataframe.columns.get_loc("method")
-        # get the complete nested dict for the dataframe:
-        self.tree_data = self.nest_data(self._dataframe)
-
-    @staticmethod
-    def nest_data(df: pd.DataFrame) -> dict:
-        """Convert impact category dataframe into nested dict format.
-        Tree can have arbitrary amount (0 or more) levels of branch depth.
-
-        Format is:
-        {root1: {branch1: (data),
-                          (data)},
-                {branch2: {branch3: (data),
-                                    (data)},
-                          {branch4: (data),
-                                    (data)},
-                          (data)}}
-        Where:
-        root#  : top level category (str) e.g.: CML 2001
-        branch#: sub level category (str) e.g.: climate change
-                 can be arbitrary amount of branches
-        data   : data (leaf node) of category (tuple) e.g.: ("GWP 100a",
-                                                             "kg CO2-Eq",
-                                                             160,
-                                                             "('CML 2001', 'climate change', 'GWP 100a')")
-                 Here each index of the tuple refers to the data in the self.HEADERS list of this class
-        """
-        data = np.empty(df.shape[0], dtype=object)
-
-        for idx, row in enumerate(df.to_numpy(dtype=object)):
-            split = list(row[3])  # convert tuple to list
-            split.append(tuple(row))
-            data[idx] = split
-            # data is np 1d array (list) of each dataframe row
-
-        # From https://stackoverflow.com/a/19900276 but changed -2 to -1
-        #  this version is ~2 orders of magnitude faster than the pandas
-        #  option in the same answer
-        simple_dict = {}
-        for row in data:
-            # row is e.g.: ['CML 2001',
-            #               'climate change',
-            #               'GWP 100a',
-            #               ('CML 2001, climate change, GWP 100a',
-            #                'kg CO2-Eq',
-            #                160,
-            #                ('CML 2001',
-            #                 'climate change',
-            #                 'GWP 100a'))]
-            # so: [str, str, str, tuple(str, str, str, tuple(str, str, str))]
-            temp_row = list(row[-1])  # temp_row = tuple(str, str, str, tuple(str, str, str))
-            temp_row[0] = temp_row[-1][-1]  # in the example this would be 'GWP 100a'
-            # temp_row[0] is taken from [-1][-1] and not from row[2] as there can be an arbitrary depth in the category
-
-            new_row = tuple(temp_row)
-            # new_row format: ('GWP 100a',
-            #                  'kg CO2-Eq',
-            #                  160,
-            #                  ('CML 2001',
-            #                   'climate change',
-            #                   'GWP 100a'))
-            # new_row is the leaf node, the format is based on self.HEADERS
-            here = simple_dict
-            for elem in row[:-2]:
-                if elem not in here:
-                    # add root or branch node if it doesn't exist yet
-                    here[elem] = {}
-                # otherwise append the root/branch
-                here = here[elem]
-            # finally, add the leaf node:
-            here[row[-1]] = new_row
-        return simple_dict
 
     def get_method(self, tree_level: tuple) -> tuple:
         """Retrieve method data"""
@@ -322,6 +247,93 @@ class MethodsTreeModel(BaseTreeModel):
     def filter_on_method(self, method: tuple) -> None:
         query = ", ".join(method)
         self.sync(query)
+
+    @staticmethod
+    def nest_data(df: pd.DataFrame) -> dict:
+        """Convert impact category dataframe into nested dict format.
+
+        Format is:
+        {root1: {branch1: {leaf1: data},
+                          {leaf2: data}},
+                {branch2: {branch3: {leaf3: data},
+                                    {leaf4: data}},
+                          {branch4: {leaf5: data},
+                                    {leaf6: data}},
+                          {leaf7: data}}}
+        Where:
+        rootx  : top level category (str) eg: CML 2001
+        branchx: sub level category (str) eg: climate change
+                 can be arbitrary amount of branches
+        leafx  : category level (str)     eg: GWP 100a
+                 leaves and branches can be mixed together under roots or other branches
+        data   : data of category (tuple) eg: ('CML 2001, climate change, GWP 100a',
+                                               'kg CO2-Eq',
+                                               160,
+                                               "('CML 2001', 'climate change', 'GWP 100a')")
+                 here each index of the tuple refers to the data in the HEADERS list of this class
+        """
+        data = np.empty(df.shape[0], dtype=object)
+
+        for idx, row in enumerate(df.to_numpy(dtype=object)):
+            split = list(row[3]) # convert tuple to list
+            split.append(tuple(row))
+            data[idx] = split
+
+        # From https://stackoverflow.com/a/19900276 but changed -2 to -1
+        #  this version is ~2 orders of magnitude faster than the pandas
+        #  option in the same answer
+        simple_dict = {}
+        for row in data:
+            tempRow = list(row[-1])
+            tempRow[0]= tempRow[-1][-1]
+            newRow = tuple(tempRow)
+            here = simple_dict
+            for elem in row[:-2]:
+                if elem not in here:
+                    here[elem] = {}
+                here = here[elem]
+            here[row[-1]] = newRow
+        return simple_dict
+
+#Work in progress
+    @staticmethod
+    def flatten_dict(deep_dict):
+        def do_flatten(deep_dict, current_key):
+            for key, value in deep_dict.items():
+                # the key will be a flattened tuple
+                # but the type of `key` is not touched
+                new_key = current_key + (key,)
+                # if we have a dict, we recurse
+                if isinstance(value, dict):
+                    yield from do_flatten(value, new_key)
+                else:
+                    yield (new_key, value)
+
+        return dict(do_flatten(deep_dict, ()))
+
+
+    @staticmethod
+    def simplify_dict(names_dict: dict) -> (dict, bool):
+        """Recursively flatten the given nested dictionary."""
+        clean_dict = {}
+        for key, value in names_dict.items():
+            if isinstance(value, dict):
+                # this is not the leaf node, go deeper to find leaf
+                tree, is_leaf = MethodsTreeModel.simplify_dict(value)
+                if not is_leaf and len(value) == 1:
+                    # 'tree' is not leaf (end node) and only one sub level
+                    # combine sublevel, then add to tree
+                    key_orig = next(iter(tree.keys()))
+                    key = "{}, {}".format(key, key_orig)
+                    clean_dict[key] = tree[key_orig]
+                else:
+                    # 'tree' is either a leaf or has more sublevels
+                    # add as dict entry
+                    clean_dict[key] = tree
+            else:
+                # this is a leaf node, return the key
+                return key, True
+        return clean_dict, False
 
     @staticmethod
     def search_tree(tree: dict, query: str, matches: int = 0) -> (dict, int):

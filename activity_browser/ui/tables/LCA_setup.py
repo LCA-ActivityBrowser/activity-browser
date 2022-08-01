@@ -35,16 +35,7 @@ class CSList(QtWidgets.QComboBox):
         return self.currentText()
 
 
-class CSGenericTable(ABDataFrameView):
-    """ Generic class to enable internal re-ordering of items in table.
-
-    Items commented out (blass below + first line of init) are intended to help
-    with showing a 'drop indicator' where the dragged item would end up.
-    This doesn't work yet
-    See also comments on PR here: https://github.com/LCA-ActivityBrowser/activity-browser/pull/719
-    See also this stackoverflow page: https://stackoverflow.com/questions/61387248/in-pyqt5-how-do-i-properly-move-rows-in-a-qtableview-using-dragdrop
-    """
-
+class CSActivityTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
@@ -54,24 +45,6 @@ class CSGenericTable(ABDataFrameView):
         self.setDragDropMode(QtWidgets.QTableView.InternalMove)
         self.setDragDropOverwriteMode(False)
 
-    def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
-        if event.button() == Qt.LeftButton:
-            if event.modifiers() & Qt.ControlModifier:
-                self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
-                self.setDragDropMode(QtWidgets.QTableView.DropOnly)
-            else:
-                self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-                self.setDragDropMode(QtWidgets.QTableView.InternalMove)
-        ABDataFrameView.mousePressEvent(self, event)
-
-    def dragMoveEvent(self, event) -> None:
-        pass
-
-
-class CSActivityTable(CSGenericTable):
-    def __init__(self, parent=None):
-        super().__init__(parent)
         self.model = CSActivityModel(self)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
@@ -124,6 +97,9 @@ class CSActivityTable(CSGenericTable):
                 or event.source() is self:
             event.accept()
 
+    def dragMoveEvent(self, event) -> None:
+        pass
+
     def dropEvent(self, event):
         event.accept()
         source = event.source()
@@ -142,9 +118,16 @@ class CSActivityTable(CSGenericTable):
                 self.model.relocateRow(from_index, to_index)
 
 
-class CSMethodsTable(CSGenericTable):
+class CSMethodsTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
+        self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QtWidgets.QTableView.InternalMove)
+        self.setDragDropOverwriteMode(False)
+
         self.model = CSMethodsModel(self)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -186,6 +169,9 @@ class CSMethodsTable(CSGenericTable):
         if isinstance(event.source(), (MethodsTable, MethodsTree))\
                 or event.source() is self:
             event.accept()
+
+    def dragMoveEvent(self, event) -> None:
+        pass
 
     def dropEvent(self, event):
         event.accept()

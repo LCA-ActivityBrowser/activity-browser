@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
@@ -39,7 +40,14 @@ class BaseExchangeTable(ABDataFrameView):
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, "Exchanges for scenario difference file", None
         )
+        self.copy_exchanges_for_activity_action = QtWidgets.QAction(
+            qicons.superstructure, "Exchanges for activity", None
+        )
 
+        self.paste_exchanges_for_activity_action = QtWidgets.QAction(
+            qicons.superstructure, "Exchanges for activity", None
+        )
+        
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
         self.downstream = False
@@ -60,6 +68,12 @@ class BaseExchangeTable(ABDataFrameView):
         )
         self.copy_exchanges_for_SDF_action.triggered.connect(
             lambda: self.model.copy_exchanges_for_SDF(self.selectedIndexes())
+        )
+        self.copy_exchanges_for_activity_action.triggered.connect(
+            lambda: self.model.copy_exchanges_for_activity(self.selectedIndexes())
+        )
+        self.paste_exchanges_for_activity_action.triggered.connect(
+            lambda: self.model.paste_exchanges_for_activity(self.selectedIndexes())
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -97,6 +111,12 @@ class BaseExchangeTable(ABDataFrameView):
         event.accept()
         signals.exchanges_add.emit(keys, self.key)
 
+    # def pasteEvent(self, event):
+    #     source_table = pd.read_clipboard()
+    #     keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+    #     event.accept()
+    #     signals.exchanges_add.emit(keys, self.key)
+
     def get_usable_parameters(self):
         return self.model.get_usable_parameters()
 
@@ -126,6 +146,7 @@ class ProductExchangeTable(BaseExchangeTable):
         submenu_copy.setTitle('Copy to clipboard')
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        submenu_copy.addAction(self.copy_exchanges_for_activity_action)
         menu.addMenu(submenu_copy)
 
         menu.exec_(event.globalPos())
@@ -185,11 +206,13 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
         menu.addAction(self.remove_uncertainty_action)
+        menu.addAction(self.paste_exchanges_for_activity_action)
         # Submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
         submenu_copy.setTitle('Copy to clipboard')
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        submenu_copy.addAction(self.copy_exchanges_for_activity_action)
         menu.addMenu(submenu_copy)
 
         menu.exec_(event.globalPos())
@@ -247,11 +270,14 @@ class BiosphereExchangeTable(BaseExchangeTable):
         menu.addAction(self.remove_formula_action)
         menu.addAction(self.remove_uncertainty_action)
 
+        menu.addAction(self.paste_exchanges_for_activity_action)
+
         # Submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
         submenu_copy.setTitle('Copy to clipboard')
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        submenu_copy.addAction(self.copy_exchanges_for_activity_action)
         menu.addMenu(submenu_copy)
 
         menu.exec_(event.globalPos())
