@@ -218,10 +218,29 @@ class ExchangeController(QObject):
         signals.exchange_uncertainty_modified.connect(self.modify_exchange_uncertainty)
         signals.exchange_pedigree_modified.connect(self.modify_exchange_pedigree)
 
+    # @Slot(list, tuple, name="addExchangesToKey")
+    # def add_exchanges(self, from_keys: Iterator[tuple], to_key: tuple) -> None:#from_keys=source database, self= exchanges to add, to_key = activity that the exchanges must be added to
+    #     activity = bw.get_activity(to_key)
+    #     for key in from_keys:
+    #         print(key[0])
+    #         technosphere_db = bc.is_technosphere_db(key[0])
+    #         exc = activity.new_exchange(input=key, amount=1)
+    #         if technosphere_db is True:
+    #             exc['type'] = 'technosphere'
+    #         elif technosphere_db is False:
+    #             exc['type'] = 'biosphere'
+    #         else:
+    #             exc['type'] = 'unknown'
+    #         exc.save()
+    #     bw.databases.set_modified(to_key[0])
+    #     AB_metadata.update_metadata(to_key)
+    #     signals.database_changed.emit(to_key[0])
     @Slot(list, tuple, name="addExchangesToKey")
-    def add_exchanges(self, from_keys: Iterator[tuple], to_key: tuple) -> None:
+    def add_exchanges(self, from_keys: Iterator[tuple], to_key: tuple) -> None:#from_keys=source activity, to_key = activity that the exchanges must be added to
         activity = bw.get_activity(to_key)
         for key in from_keys:
+            print(from_keys)
+            print(key[0])
             technosphere_db = bc.is_technosphere_db(key[0])
             exc = activity.new_exchange(input=key, amount=1)
             if technosphere_db is True:
@@ -234,7 +253,6 @@ class ExchangeController(QObject):
         bw.databases.set_modified(to_key[0])
         AB_metadata.update_metadata(to_key)
         signals.database_changed.emit(to_key[0])
-
     @Slot(list, name="deleteExchanges")
     def delete_exchanges(self, exchanges: Iterator[ExchangeProxyBase]) -> None:
         db_changed = set()

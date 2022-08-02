@@ -106,7 +106,25 @@ class BaseExchangeModel(EditablePandasModel):
         exchanges = [self.get_exchange(p) for p in proxies]
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)
-        df.to_clipboard(excel=True, index=False)
+        df.to_clipboard(excel=True)
+
+    @Slot(list, name="copyExchange")
+    def copy_exchanges_for_activity(self, proxies: list) -> None:
+        exchanges = [self.get_exchange(p) for p in proxies]
+        data = bc.get_exchanges_in_activity_notation(exchanges)
+        df = pd.DataFrame(data)
+        df.to_clipboard(excel=True)
+
+    @Slot(list, name="pasteExchange")
+    def paste_exchanges_for_activity(self,proxies: list) -> None:
+        source = pd.read_clipboard()
+        keys = source['key'].to_list()
+        #print(keys)
+        db_name = source['database'].to_list()
+        #print(db_name[0])
+        #signals.exchanges_add.emit(keys, db_name[0])
+        signals.exchanges_add.emit(keys,self.key)
+
 
     @Slot(list, name="openActivities")
     def open_activities(self, proxies: list) -> None:
