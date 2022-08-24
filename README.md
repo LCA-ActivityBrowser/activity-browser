@@ -63,6 +63,14 @@ conda activate ab
 activity-browser
 ```
 
+If you are on an ARM Mac, use this instead:
+
+```bash
+conda create -n ab -c conda-forge -c cmutel -c bsteubing activity-browser-arm
+conda activate ab
+activity-browser
+```
+
 ## Installation
 
 ### Conda
@@ -98,6 +106,12 @@ After configuring your conda channels, the activity browser can be installed wit
 
 ```bash
 conda create -n ab activity-browser
+```
+
+Unless you are on an ARM Mac, in which case use:
+
+```bash
+conda create -n ab activity-browser-arm
 ```
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
