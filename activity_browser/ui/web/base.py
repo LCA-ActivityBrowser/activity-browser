@@ -120,7 +120,7 @@ def to_svg(svg):
     if filepath:
         if not filepath.endswith('.svg'):
             filepath += '.svg'
-        svg_file = open(filepath, "w")
+        svg_file = open(filepath, "w", encoding="utf-8")
         svg_file.write(svg)
         svg_file.close()
 
