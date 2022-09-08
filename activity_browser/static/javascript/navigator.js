@@ -545,6 +545,12 @@ const cartographer = function() {
              // re-scale arrowheads to fit into edge (they become really big otherwise)
             markers = d3.selectAll("marker")
                 .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
+
+            // fix arrowhead urls
+            d3.selectAll("path").attr("marker-end", function(data) {
+                if (!this.attributes["marker-end"]) return null;
+                else return "url(" + /url\(.*?(#.*?)\)/.exec(this.attributes["marker-end"].textContent)[1] + ")";
+            });
         }
     };
 
