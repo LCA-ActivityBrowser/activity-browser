@@ -7,12 +7,6 @@ from heapq import heappush, heappop
 import numpy as np
 import warnings
 
-try:
-    from bw2data import databases
-except ImportError:
-    databases = {}
-
-
 class GraphTraversal(object):
     """
     Traverse a supply chain, following paths of greatest impact.
