@@ -330,7 +330,7 @@ class MethodsTreeModel(BaseTreeModel):
         for key, value in tree.items():
             if isinstance(value, tuple):
                 # this is a leaf node
-                if query.lower() not in value[0].lower():
+                if query.lower() not in ', '.join(value[-1]).lower():
                     # the query does not match
                     remove.append(key)
                 else:
