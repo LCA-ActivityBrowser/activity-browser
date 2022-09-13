@@ -27,7 +27,7 @@ Should be used by calling the ``calculate`` method.
 .. warning:: Graph traversal with multioutput processes only works when other inputs are substituted (see `Multioutput processes in LCA <http://chris.mutel.org/multioutput.html>`__ for a description of multiputput process math in LCA).
 
     """
-    def calculate(self, demand, method, cutoff=0.05, max_depth=10):
+    def calculate(self, demand, method, cutoff=0.005, max_depth=10):
         """
 Traverse the supply chain graph.
 
