@@ -35,7 +35,7 @@ Args:
     * *demand* (dict): The functional unit. Same format as in LCA class.
     * *method* (tuple): LCIA method. Same format as in LCA class.
     * *cutoff* (float, default=0.005): Cutoff criteria to stop LCA calculations. Relative score of total, i.e. 0.005 will cutoff if a dataset has a score less than 0.5 percent of the total.
-    * *max_calc* (int, default=10000): Maximum number of LCA calculations to perform.
+    * *max_depth* (int, default=10): Maximum depth of the iteration.
 
 Returns:
     Dictionary of nodes, edges, LCA object, and number of LCA calculations.
