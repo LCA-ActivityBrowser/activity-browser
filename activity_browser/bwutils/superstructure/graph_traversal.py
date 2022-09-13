@@ -152,10 +152,10 @@ class GraphTraversal(object):
         characterized_biosphere,
     ):
 
-        if depth > max_depth:
+        if depth >= max_depth:
             return
 
-        if self.counter > max_calc:
+        if self.counter >= max_calc:
             return
 
         scale_value = lca.technosphere_matrix[to_id, to_id]

@@ -59,6 +59,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.method_cb = QtWidgets.QComboBox()
         self.scenario_cb = QtWidgets.QComboBox()
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
+        self.max_depth_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()
         self.button_calculate = QtWidgets.QPushButton('Calculate')
         self.layout = QtWidgets.QVBoxLayout()
@@ -123,16 +124,25 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.cutoff_sb.setKeyboardTracking(False)
         grid_lay.addWidget(self.cutoff_sb, 2, 3)
 
-        # max-iterations of graph traversal
+        # max-depth of graph traversal
         grid_lay.addWidget(QtWidgets.QLabel('Calculation depth: '), 2, 4)
+        self.max_depth_sb.setRange(1, 100)
+        self.max_depth_sb.setSingleStep(1)
+        self.max_depth_sb.setDecimals(0)
+        self.max_depth_sb.setValue(10)
+        self.max_depth_sb.setKeyboardTracking(False)
+        grid_lay.addWidget(self.max_depth_sb, 2, 5)
+
+        # max-iterations of graph traversal
+        grid_lay.addWidget(QtWidgets.QLabel('Calculation count: '), 2, 6)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
         self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.max_calc_sb, 2, 5)
+        grid_lay.addWidget(self.max_calc_sb, 2, 7)
 
-        grid_lay.setColumnStretch(6, 1)
+        grid_lay.setColumnStretch(8, 1)
         hlay = QtWidgets.QHBoxLayout()
         hlay.addLayout(grid_lay)
 
@@ -220,13 +230,14 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             scenario_lca = True
             scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()
+        max_depth = self.max_depth_sb.value()
         max_calc = self.max_calc_sb.value()
         self.update_sankey(demand, method, scenario_lca=scenario_lca, scenario_index=scenario_index,
-                           method_index=method_index, cut_off=cutoff, max_calc=max_calc)
+                           method_index=method_index, cut_off=cutoff, max_depth=max_depth, max_calc=max_calc)
 
     def update_sankey(self, demand, method, scenario_index: int = None, method_index: int = None,
                       scenario_lca: bool = False, cut_off=0.05,
-                      max_calc=100) -> None:
+                      max_depth=10, max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
         print("Demand / Method: {} {}".format(demand, method))
         start = time.time()
@@ -234,9 +245,10 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_depth=10)
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off,
+                                                                              max_depth=max_depth, max_calc=max_calc)
             else:
-                data = GraphTraversal().calculate(demand, method, cutoff=cut_off, max_depth=10)
+                data = GraphTraversal().calculate(demand, method, cutoff=cut_off, max_depth=max_depth, max_calc=max_calc)
 
         except ValueError as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
