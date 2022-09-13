@@ -2,7 +2,7 @@
 from __future__ import print_function, unicode_literals, division
 
 from typing import Optional, Union
-from bw2calc import GraphTraversal
+from .graph_traversal import GraphTraversal
 from activity_browser.bwutils import MLCA, SuperstructureMLCA
 
 # TODO: This wont be required after migrating to brightway 2.5

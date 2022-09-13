@@ -12,6 +12,7 @@ from PySide2.QtWidgets import QComboBox
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
+from ...bwutils.superstructure.graph_traversal import GraphTraversal
 from ...signals import signals
 
 
@@ -233,9 +234,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_depth=10)
             else:
-                data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = GraphTraversal().calculate(demand, method, cutoff=cut_off, max_depth=10)
 
         except ValueError as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
@@ -282,10 +283,10 @@ class Graph(BaseGraph):
         reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
 
         build_json_node = Graph.compose_node_builder(lca_score, lcia_unit, demand[0])
-        build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
+        build_json_edge = Graph.compose_edge_builder(lca_score, lcia_unit)
 
         valid_nodes = (
-            (bw.get_activity(reverse_activity_dict[idx]), v)
+            (bw.get_activity(idx), v)
             for idx, v in data["nodes"].items() if idx != -1
         )
         valid_edges = (
@@ -333,7 +334,7 @@ class Graph(BaseGraph):
                 "id": act.key[1],
                 "product": act.get("reference product") or act.get("name"),
                 "name": act.get("name"),
-                "location": act.get("location"),
+                "location": act.get("location") or ", ".join(act.get("categories")),
                 "amount": values.get("amount"),
                 "LCIA_unit": lcia_unit,
                 "ind": values.get("ind"),
@@ -346,14 +347,14 @@ class Graph(BaseGraph):
         return build_json_node
 
     @staticmethod
-    def compose_edge_builder(reverse_dict: dict, lca_score: float, lcia_unit: str):
+    def compose_edge_builder(lca_score: float, lcia_unit: str):
         """Build a function which turns graph edges into valid JSON documents.
         """
 
         def build_json_edge(edge: dict) -> dict:
-            p = bw.get_activity(reverse_dict[edge["from"]])
-            from_key = reverse_dict[edge["from"]]
-            to_key = reverse_dict[edge["to"]]
+            p = bw.get_activity(edge["from"])
+            from_key = edge["from"]
+            to_key = edge["to"]
             return {
                 "source_id": from_key[1],
                 "target_id": to_key[1],

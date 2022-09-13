@@ -226,7 +226,10 @@ def build_activity_group_name(key: tuple, name: str = None) -> str:
 def identify_activity_type(activity):
     """Return the activity type based on its naming."""
     name = activity["name"]
-    if "treatment of" in name:
+    db = activity["database"]
+    if db == "biosphere3":
+        return "biosphere"
+    elif "treatment of" in name:
         return "treatment"
     elif "market for" in name:
         # if not "to generic" in name:  # these are not markets, but also transferring activities

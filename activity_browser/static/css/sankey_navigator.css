@@ -122,6 +122,10 @@ text {
   stroke-width: 3px;
 }
 
+.node.biosphere rect{
+  stroke: green; 
+}
+
 .node.demand {
   /*stroke: #333;  */
   font-weight: bold
