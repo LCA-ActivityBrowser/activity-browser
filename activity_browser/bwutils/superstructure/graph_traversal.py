@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals, division
-from eight import *
-
 from bw2calc import LCA
-from heapq import heappush, heappop
 import numpy as np
-import warnings
 
 class GraphTraversal(object):
     """
