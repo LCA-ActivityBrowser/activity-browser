@@ -18,8 +18,9 @@ class GraphTraversal(object):
     .. warning:: Graph traversal with multioutput processes only works when other inputs are substituted (see `Multioutput processes in LCA <http://chris.mutel.org/multioutput.html>`__ for a description of multiputput process math in LCA).
 
     """
+    counter = 0
 
-    def calculate(self, demand, method, cutoff=0.005, max_depth=10):
+    def calculate(self, demand, method, cutoff=0.005, max_depth=10, max_calc=10000):
         """
         Traverse the supply chain graph.
 
@@ -28,6 +29,7 @@ class GraphTraversal(object):
             * *method* (tuple): LCIA method. Same format as in LCA class.
             * *cutoff* (float, default=0.005): Cutoff criteria to stop LCA calculations. Relative score of total, i.e. 0.005 will cutoff if a dataset has a score less than 0.5 percent of the total.
             * *max_depth* (int, default=10): Maximum depth of the iteration.
+            * *max_calc* (int, default=10000): Maximum number of LCA calculation to perform.
 
         Returns:
             Dictionary of nodes, edges, LCA object, and number of LCA calculations.
@@ -63,11 +65,13 @@ class GraphTraversal(object):
                 "from_type": "technosphere",
             }
         ]
+        self.counter = 0
         self.traverse(
             to_id=from_id,
             to_amount=from_amount,
             depth=0,
             max_depth=max_depth,
+            max_calc=max_calc,
             abs_cutoff=abs(cutoff * score),
             edges=edges,
             lca=lca,
@@ -118,7 +122,7 @@ class GraphTraversal(object):
             "nodes": nodes,
             "edges": edges,
             "lca": lca,
-            "counter": None,
+            "counter": self.counter,
         }
 
     def build_lca(self, demand, method):
@@ -142,12 +146,16 @@ class GraphTraversal(object):
         lca,
         depth,
         max_depth,
+        max_calc,
         edges,
         abs_cutoff,
         characterized_biosphere,
     ):
 
         if depth > max_depth:
+            return
+
+        if self.counter > max_calc:
             return
 
         scale_value = lca.technosphere_matrix[to_id, to_id]
@@ -159,6 +167,7 @@ class GraphTraversal(object):
             unit_impact = lca.characterization_matrix[from_id, from_id]
             amount = to_amount * from_amount
             scaled_impact = unit_impact * amount
+            self.counter += 1
             if abs(scaled_impact) > abs_cutoff:
                 edges.append(
                     {
@@ -183,6 +192,7 @@ class GraphTraversal(object):
             )
             amount = to_amount * from_amount
             scaled_impact = unit_impact * amount
+            self.counter += 1
             if abs(scaled_impact) > abs_cutoff:
                 edges.append(
                     {
@@ -199,6 +209,7 @@ class GraphTraversal(object):
                     to_amount=amount,
                     depth=depth + 1,
                     max_depth=max_depth,
+                    max_calc=max_calc,
                     abs_cutoff=abs_cutoff,
                     edges=edges,
                     lca=lca,
