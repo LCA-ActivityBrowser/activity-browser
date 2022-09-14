@@ -18,7 +18,9 @@ class GraphTraversal(object):
     .. warning:: Graph traversal with multioutput processes only works when other inputs are substituted (see `Multioutput processes in LCA <http://chris.mutel.org/multioutput.html>`__ for a description of multiputput process math in LCA).
 
     """
-    counter = 0
+    
+    def __init__(self):
+        self.counter = 0
 
     def calculate(self, demand, method, cutoff=0.005, max_depth=10, max_calc=10000):
         """
