@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals, division
 from bw2calc import LCA
 import numpy as np
 
+
 class GraphTraversal(object):
     """
     Traverse a supply chain, following paths of greatest impact.
@@ -18,11 +19,13 @@ class GraphTraversal(object):
     .. warning:: Graph traversal with multioutput processes only works when other inputs are substituted (see `Multioutput processes in LCA <http://chris.mutel.org/multioutput.html>`__ for a description of multiputput process math in LCA).
 
     """
-    
+
     def __init__(self):
         self.counter = 0
 
-    def calculate(self, demand, method, cutoff=0.005, max_depth=10, max_calc=10000):
+    def calculate(
+        self, demand, method, cutoff=0.005, max_depth=10, max_calc=10000
+    ):
         """
         Traverse the supply chain graph.
 
@@ -155,9 +158,11 @@ class GraphTraversal(object):
     ):
 
         if depth >= max_depth:
+            print(f"Max. depth reached at activity id {to_id}")
             return
 
         if self.counter >= max_calc:
+            print(f"Max. number calculations reached at activity id {to_id}")
             return
 
         scale_value = lca.technosphere_matrix[to_id, to_id]
