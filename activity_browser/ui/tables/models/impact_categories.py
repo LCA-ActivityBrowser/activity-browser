@@ -179,12 +179,16 @@ class MethodsTreeModel(BaseTreeModel):
 
         self.setup_model_data()
 
-        signals.project_selected.connect(self.sync)
+        signals.project_selected.connect(self.setup_and_sync)
         signals.new_method.connect(self.setup_model_data)
         signals.new_method.connect(self.filter_on_method)
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
+
+    def setup_and_sync(self) -> None:
+        self.setup_model_data()
+        self.sync()
 
     @Slot(name="clearSyncModel")
     @Slot(str, name="syncModel")
