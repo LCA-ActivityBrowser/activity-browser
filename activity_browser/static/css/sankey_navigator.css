@@ -116,6 +116,10 @@ text {
     */
 }
 
+.node text{
+  text-anchor: middle;
+}
+
 .node rect {
   stroke: #333;
   fill: #fff;

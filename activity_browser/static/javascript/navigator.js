@@ -540,11 +540,39 @@ const cartographer = function() {
         });
 
         if(is_sankey_mode) {
-            edges.attr("stroke-width", function(d) { return graph.edge(d).weight; })
 
-             // re-scale arrowheads to fit into edge (they become really big otherwise)
-            markers = d3.selectAll("marker")
+            // change edge width based on impact
+            edges.attr("stroke-width", function (d) { return graph.edge(d).weight; })
+
+            // re-scale arrowheads to fit into edge (they become really big otherwise)
+            d3.selectAll("marker")
                 .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
+
+            // center node text
+            d3.selectAll(".label g").attr("transform", function () {
+
+                // helper function copied from https://stackoverflow.com/a/38230545/12267732
+                function getTranslation(transform) {
+                    // Create a dummy g for calculation purposes only. This will never
+                    // be appended to the DOM and will be discarded once this function 
+                    // returns.
+                    var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+                    // Set the transform attribute to the provided string value.
+                    g.setAttributeNS(null, "transform", transform);
+
+                    // consolidate the SVGTransformList containing all transformations
+                    // to a single SVGTransform of type SVG_TRANSFORM_MATRIX and get
+                    // its SVGMatrix. 
+                    var matrix = g.transform.baseVal.consolidate().matrix;
+
+                    // As per definition values e and f are the ones for the translation.
+                    return [matrix.e, matrix.f];
+                }
+
+                let t = getTranslation(d3.select(this).attr("transform"));
+                return "translate(0," + t[1] + ")";
+            })
         }
     };
 
