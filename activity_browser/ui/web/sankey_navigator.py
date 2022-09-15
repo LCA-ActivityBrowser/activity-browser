@@ -2,7 +2,7 @@
 import json
 import os
 import time
-from typing import List
+from typing import List, Dict
 
 import brightway2 as bw
 from PySide2 import QtWidgets
@@ -286,16 +286,35 @@ class Graph(BaseGraph):
         self.update()
 
     @staticmethod
+    def aggregate_pos_neg_edges(edges: List[Dict]) -> List[Dict]:
+        """
+        Aggregates a list of edges such that there are at most two edges between each pair of nodes:
+        one with negative impact and one with positive impact.
+        """
+        edge_account = {}
+        for e in edges:
+            is_pos = e["impact"] > 0
+            existing_edge = edge_account.get((e["to"], e["from"], is_pos))
+            if existing_edge:
+                existing_edge["impact"] += e["impact"]
+                existing_edge["amount"] += e["amount"]
+                existing_edge["exc_amount"] += e["exc_amount"]
+            else:
+                edge_account[(e["to"], e["from"], is_pos)] = e
+        return list(edge_account.values())
+
+    @staticmethod
     def get_json_data(data) -> str:
         """Transform bw.Graphtraversal() output to JSON data."""
         lca = data["lca"]
         lca_score = lca.score
         lcia_unit = bw.Method(lca.method).metadata["unit"]
         demand = list(lca.demand.items())[0]
-        reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
 
         build_json_node = Graph.compose_node_builder(lca_score, lcia_unit, demand[0])
         build_json_edge = Graph.compose_edge_builder(lca_score, lcia_unit)
+
+        data["edges"] = Graph.aggregate_pos_neg_edges(data["edges"])
 
         valid_nodes = (
             (bw.get_activity(idx), v)
