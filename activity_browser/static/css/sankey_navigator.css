@@ -124,6 +124,8 @@ text {
 
 .node.biosphere rect{
   stroke: green; 
+  rx: 100%;
+  ry: 100%;
 }
 
 .node.demand {
