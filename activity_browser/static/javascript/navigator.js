@@ -522,12 +522,18 @@ const cartographer = function() {
             });
 
             // change node fill based on impact
-            var node_rects = panCanvas.selectAll("g .node rect")
-            .on("click", handleMouseClick)
-            .style("fill", function(d) {
-                console.log(color(graph.node(d).ind_norm));
-                return color(graph.node(d).ind_norm);
-            });
+            panCanvas.selectAll("g .node rect")
+                .on("click", handleMouseClick)
+                .style("fill", function (d) {
+                    console.log(color(graph.node(d).ind_norm));
+                    return color(graph.node(d).ind_norm);
+                });
+            panCanvas.selectAll("g .node ellipse")
+                .on("click", handleMouseClick)
+                .style("fill", function (d) {
+                    console.log(color(graph.node(d).ind_norm));
+                    return color(graph.node(d).ind_norm);
+                });
         }
 
         // listener for mouse-hovers
@@ -583,6 +589,7 @@ const cartographer = function() {
             id: n['id'],
             database: n['db'],
             class: n['class'],
+            shape: n['class'] == "biosphere" ? "ellipse" : "rect",
         };
 
         if(is_sankey_mode) {

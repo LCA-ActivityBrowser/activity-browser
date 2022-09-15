@@ -120,16 +120,20 @@ text {
   text-anchor: middle;
 }
 
-.node rect {
+.node ellipse {
   stroke: #333;
   fill: #fff;
   stroke-width: 3px;
 }
 
-.node.biosphere rect{
+.node.biosphere ellipse{
   stroke: green; 
-  rx: 100%;
-  ry: 100%;
+}
+
+.node rect {
+  stroke: #333;
+  fill: #fff;
+  stroke-width: 3px;
 }
 
 .node.demand {
