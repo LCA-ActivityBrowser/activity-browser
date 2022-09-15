@@ -630,7 +630,7 @@ const cartographer = function() {
             edge_data.arrowhead = "vee";
         }
 
-        graph.setEdge(e['source_id'], e['target_id'], edge_data);
+        graph.setEdge(e['source_id'], e['target_id'], edge_data, graph.edgeCount().toString());
     };
 
     // Function called on click
