@@ -2,7 +2,7 @@
 from functools import partial
 from heapq import heappop, heappush
 from numbers import Real
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from bw2calc import LCA
@@ -90,15 +90,13 @@ class GTBiosphereNode(GTNode):
 
 
 class GTNodeSet:
-    def __init__(self):
-        self.nodes = set()
+    def __init__(self, nodes: Optional[Iterable[GTNode]] = ()):
+        self.nodes = set(nodes)
 
     def __contains__(self, node: GTNode) -> bool:
         return node in self.nodes
 
-    def get_by_index(
-        self, index: int
-    ) -> Optional[Union[GTBiosphereNode, GTTechnosphereNode]]:
+    def get_by_index(self, index: int) -> Optional[GTNode]:
         for node in self.nodes:
             if node.index == index:
                 return node
@@ -214,7 +212,8 @@ class GraphTraversal:
         self.rev_bio: Optional[Dict] = None
         self.fu_amount: Optional[Real] = None
         self.edge_list: Optional[GTEdgeList] = None
-        self.node_list: Optional[GTNodeSet] = None
+        self.bio_node_list: Optional[GTNodeSet] = None
+        self.techno_node_list: Optional[GTNodeSet] = None
         self.number_calcs: Optional[int] = None
 
         self.traverse: Callable = self.traverse_importance_first
@@ -252,8 +251,9 @@ class GraphTraversal:
 
         # initialize node list
         root = GTNode(index=-1, amount=1, cum=self.score, ind=0)
-        self.node_list = GTNodeSet()
-        self.node_list.add(root)
+        self.bio_node_list = GTNodeSet()
+        self.techno_node_list = GTNodeSet()
+        self.techno_node_list.add(root)
 
         # add functional unit node
         fu_key = list(demand.keys())[0]
@@ -261,7 +261,7 @@ class GraphTraversal:
         fu_node = GTTechnosphereNode(
             index=fu_index, lca=self.lca, cb=self.cb, supply=self.supply
         )
-        self.node_list.add(fu_node)
+        self.techno_node_list.add(fu_node)
 
         # initialize edge list
         self.fu_amount = demand[fu_key]
@@ -314,31 +314,31 @@ class GraphTraversal:
         )
 
         # filter nodes: only keep nodes contained in edge list
-        self.node_list.nodes = self.edge_list.get_unique_nodes()
+        node_list = GTNodeSet(self.edge_list.get_unique_nodes())
 
         # add node.key information
         use_keys = GraphTraversal.use_keys
         if use_keys:
-            self.node_list.add_node_keys(self.rev_act, self.rev_bio)
+            node_list.add_node_keys(self.rev_act, self.rev_bio)
 
         return {
-            "nodes": self.node_list.to_dict(use_keys),
+            "nodes": node_list.to_dict(use_keys),
             "edges": self.edge_list.to_list(use_keys),
             "lca": self.lca,
             "counter": self.number_calcs,
         }
 
     def _get_or_add_biosphere_node(self, index: int) -> GTBiosphereNode:
-        node = self.node_list.get_by_index(index)
+        node = self.bio_node_list.get_by_index(index)
         if not node:
             node = GTBiosphereNode(
                 index=index, lca=self.lca, fu_amount=self.fu_amount
             )
-            self.node_list.add(node)
+            self.bio_node_list.add(node)
         return node
 
     def _get_or_add_technosphere_node(self, index: int) -> GTTechnosphereNode:
-        node = self.node_list.get_by_index(index)
+        node = self.techno_node_list.get_by_index(index)
         if not node:
             node = GTTechnosphereNode(
                 index=index,
@@ -346,7 +346,7 @@ class GraphTraversal:
                 cb=self.cb,
                 supply=self.supply,
             )
-            self.node_list.add(node)
+            self.techno_node_list.add(node)
         return node
 
     def _add_edge_if_above_cutoff(
@@ -535,5 +535,11 @@ class GraphTraversal:
                 # add source to priority list if edge impact is above cutoff
                 if edge:
                     heappush(
-                        heap, (abs(1 / from_node.cum), from_node, edge.amount, depth + 1)
+                        heap,
+                        (
+                            abs(1 / from_node.cum),
+                            from_node,
+                            edge.amount,
+                            depth + 1,
+                        ),
                     )
