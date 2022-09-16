@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+from heapq import heappop, heappush
 from numbers import Real
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
@@ -23,6 +24,12 @@ class GTNode:
         self.amount = amount  # total amount of main product in LCI
         self.cum = cum  # total (direct+indirect) impact
         self.ind = ind  # individual (direct) impact
+
+    def __lt__(self, other):
+        """Compare two nodes based on the size of their individual impact.
+        This function guarantees that ordering in heapq algorithm doesn't
+        raise errors when two nodes have the same priority (cumulative impact)."""
+        return self.ind < other.ind
 
     def to_dict(self) -> Dict:
         return {"amount": self.amount, "cum": self.cum, "ind": self.ind}
@@ -209,8 +216,8 @@ class GraphTraversal:
         self.edge_list: Optional[GTEdgeList] = None
         self.node_list: Optional[GTNodeSet] = None
         self.number_calcs: Optional[int] = None
-        
-        self.traverse: Callable = self.traverse_depth_first
+
+        self.traverse: Callable = self.traverse_importance_first
 
     def reset(self, demand, method) -> GTTechnosphereNode:
 
@@ -321,7 +328,7 @@ class GraphTraversal:
             "counter": self.number_calcs,
         }
 
-    def _get_or_add_biosphere_node(self, index:int) -> GTBiosphereNode:
+    def _get_or_add_biosphere_node(self, index: int) -> GTBiosphereNode:
         node = self.node_list.get_by_index(index)
         if not node:
             node = GTBiosphereNode(
@@ -330,7 +337,7 @@ class GraphTraversal:
             self.node_list.add(node)
         return node
 
-    def _get_or_add_technosphere_node(self, index:int) -> GTTechnosphereNode:
+    def _get_or_add_technosphere_node(self, index: int) -> GTTechnosphereNode:
         node = self.node_list.get_by_index(index)
         if not node:
             node = GTTechnosphereNode(
@@ -451,70 +458,82 @@ class GraphTraversal:
         abs_cutoff: Real,
     ) -> None:
 
-        if depth >= max_depth:
-            print(f"Max. depth reached at activity id {to_node.index}")
-            return
+        heap = []
+        heappush(heap, (0, to_node, to_amount, depth))
 
-        if self.number_calcs >= max_calc:
-            print(
-                f"Max. number calculations reached at activity id {to_node.index}"
-            )
-            return
+        while heap:
 
-        scale_value = self.lca.technosphere_matrix[
-            to_node.index, to_node.index
-        ]
+            _, to_node, to_amount, depth = heappop(heap)
 
-        # add biosphere contributions
-        bio_inputs = self.lca.biosphere_matrix[:, to_node.index] / scale_value
-        indices = bio_inputs.nonzero()[0]
-        scaled_score_func = partial(GTBiosphereNode.scaled_score, lca=self.lca)
-        for from_index, from_amount in zip(indices, bio_inputs[indices].data):
-            from_node = self._get_or_add_biosphere_node(index=from_index)
-            self._add_edge_if_above_cutoff(
-                from_node=from_node,
-                from_amount=from_amount,
-                to_node=to_node,
-                to_amount=to_amount,
-                abs_cutoff=abs_cutoff,
-                scaled_score_func=scaled_score_func,
-            )
+            if self.number_calcs >= max_calc:
+                print(
+                    f"Max. number calculations reached at activity id {to_node.index}"
+                )
+                return
 
-        # add technosphere contributions
-        techno_inputs = (
-            -1 * self.lca.technosphere_matrix[:, to_node.index] / scale_value
-        )
-        indices = techno_inputs.nonzero()[0]
-        scaled_score_func = partial(
-            GTTechnosphereNode.scaled_score, lca=self.lca, cb=self.cb
-        )
-        for from_index, from_amount in zip(
-            indices, techno_inputs[indices].data
-        ):
-            # skip diagonal entries
-            if from_index == to_node.index:
+            if depth >= max_depth:
+                print(f"Max. depth reached at activity id {to_node.index}")
                 continue
 
-            # get node from node list or create new one if it doesn't exist
-            from_node = self._get_or_add_technosphere_node(index=from_index)
+            scale_value = self.lca.technosphere_matrix[
+                to_node.index, to_node.index
+            ]
 
-            # create new edge
-            edge = self._add_edge_if_above_cutoff(
-                from_node=from_node,
-                from_amount=from_amount,
-                to_node=to_node,
-                to_amount=to_amount,
-                abs_cutoff=abs_cutoff,
-                scaled_score_func=scaled_score_func,
+            # add biosphere contributions
+            bio_inputs = (
+                self.lca.biosphere_matrix[:, to_node.index] / scale_value
             )
-
-            # go deep if edge impact is above cutoff
-            if edge:
-                self.traverse(
-                    to_node=from_node,
-                    to_amount=edge.amount,
-                    depth=depth + 1,
-                    max_depth=max_depth,
-                    max_calc=max_calc,
+            indices = bio_inputs.nonzero()[0]
+            scaled_score_func = partial(
+                GTBiosphereNode.scaled_score, lca=self.lca
+            )
+            for from_index, from_amount in zip(
+                indices, bio_inputs[indices].data
+            ):
+                from_node = self._get_or_add_biosphere_node(index=from_index)
+                self._add_edge_if_above_cutoff(
+                    from_node=from_node,
+                    from_amount=from_amount,
+                    to_node=to_node,
+                    to_amount=to_amount,
                     abs_cutoff=abs_cutoff,
+                    scaled_score_func=scaled_score_func,
                 )
+
+            # add technosphere contributions
+            techno_inputs = (
+                -1
+                * self.lca.technosphere_matrix[:, to_node.index]
+                / scale_value
+            )
+            indices = techno_inputs.nonzero()[0]
+            scaled_score_func = partial(
+                GTTechnosphereNode.scaled_score, lca=self.lca, cb=self.cb
+            )
+            for from_index, from_amount in zip(
+                indices, techno_inputs[indices].data
+            ):
+                # skip diagonal entries
+                if from_index == to_node.index:
+                    continue
+
+                # get node from node list or create new one if it doesn't exist
+                from_node = self._get_or_add_technosphere_node(
+                    index=from_index
+                )
+
+                # create new edge
+                edge = self._add_edge_if_above_cutoff(
+                    from_node=from_node,
+                    from_amount=from_amount,
+                    to_node=to_node,
+                    to_amount=to_amount,
+                    abs_cutoff=abs_cutoff,
+                    scaled_score_func=scaled_score_func,
+                )
+
+                # add source to priority list if edge impact is above cutoff
+                if edge:
+                    heappush(
+                        heap, (abs(1 / from_node.cum), from_node, edge.amount, depth + 1)
+                    )
