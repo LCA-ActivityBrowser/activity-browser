@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, unicode_literals, division
-from bw2calc import LCA
-import numpy as np
-from typing import Optional, Union, List, Callable, Dict, Tuple, Set
-from numbers import Real
 from functools import partial
+from numbers import Real
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+
+import numpy as np
+from bw2calc import LCA
 
 
 class GTNode:
