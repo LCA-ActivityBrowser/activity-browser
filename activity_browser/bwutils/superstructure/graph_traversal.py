@@ -46,6 +46,8 @@ class GTTechnosphereNode(GTNode):
         key: Optional[tuple] = None,
     ):
         super().__init__(index, key)
+        self.unit_score = None
+        self._unit_score(lca=lca, cb=cb)
         amount = self._lci_amount(supply)
         self.amount = amount
         self.cum = self._cumulative_score(lca=lca, cb=cb, lci_amount=amount)
@@ -73,9 +75,11 @@ class GTTechnosphereNode(GTNode):
 
     def _unit_score(self, lca: LCA, cb: np.array) -> float:
         """Compute LCA score for one unit of a given technosphere activity"""
-        demand = np.zeros(lca.demand_array.shape)
-        demand[self.index] = 1
-        return float((cb * lca.solver(demand)).sum())
+        if not self.unit_score:
+            demand = np.zeros(lca.demand_array.shape)
+            demand[self.index] = 1
+            self.unit_score = float((cb * lca.solver(demand)).sum())
+        return self.unit_score
 
     def scaled_score(self, lca: LCA, cb: np.array, factor: Real) -> Real:
         return self._unit_score(lca, cb) * factor
@@ -90,6 +94,8 @@ class GTBiosphereNode(GTNode):
         key: Optional[tuple] = None,
     ):
         super().__init__(index, key)
+        self.unit_score = None
+        self._unit_score(lca=lca)
         amount = self._lci_amount(lca, fu_amount)
         unit_score = self._unit_score(lca)
         self.amount = amount
@@ -109,7 +115,9 @@ class GTBiosphereNode(GTNode):
 
     def _unit_score(self, lca: LCA) -> Real:
         """Compute LCA score for one unit of a given biosphere activity"""
-        return lca.characterization_matrix[self.index, self.index]
+        if not self.unit_score:
+            self.unit_score = lca.characterization_matrix[self.index, self.index]
+        return self.unit_score
 
     def scaled_score(self, lca: LCA, factor: Real) -> Real:
         return self._unit_score(lca) * factor
