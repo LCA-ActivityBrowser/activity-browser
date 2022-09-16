@@ -208,7 +208,9 @@ class GraphTraversal:
         self.fu_amount: Optional[Real] = None
         self.edge_list: Optional[GTEdgeList] = None
         self.node_list: Optional[GTNodeSet] = None
-        self.counter: Optional[int] = None
+        self.number_calcs: Optional[int] = None
+        
+        self.traverse: Callable = self.traverse_depth_first
 
     def reset(self, demand, method) -> GTTechnosphereNode:
 
@@ -266,7 +268,7 @@ class GraphTraversal:
         self.edge_list = GTEdgeList([edge])
 
         # reset calculation counter
-        self.counter = 0
+        self.number_calcs = 0
 
         return fu_node
 
@@ -305,8 +307,7 @@ class GraphTraversal:
         )
 
         # filter nodes: only keep nodes contained in edge list
-        keep_nodes = self.edge_list.get_unique_nodes()
-        self.node_list.nodes = keep_nodes
+        self.node_list.nodes = self.edge_list.get_unique_nodes()
 
         # add node.key information
         use_keys = GraphTraversal.use_keys
@@ -317,41 +318,41 @@ class GraphTraversal:
             "nodes": self.node_list.to_dict(use_keys),
             "edges": self.edge_list.to_list(use_keys),
             "lca": self.lca,
-            "counter": self.counter,
+            "counter": self.number_calcs,
         }
 
-    def _add_biosphere_node(self, index: int) -> GTBiosphereNode:
-        node = GTBiosphereNode(
-            index=index, lca=self.lca, fu_amount=self.fu_amount
-        )
-        self.node_list.add(node)
+    def _get_or_add_biosphere_node(self, index:int) -> GTBiosphereNode:
+        node = self.node_list.get_by_index(index)
+        if not node:
+            node = GTBiosphereNode(
+                index=index, lca=self.lca, fu_amount=self.fu_amount
+            )
+            self.node_list.add(node)
         return node
 
-    def _add_technosphere_node(self, index: int) -> GTTechnosphereNode:
-        node = GTTechnosphereNode(
-            index=index,
-            lca=self.lca,
-            cb=self.cb,
-            supply=self.supply,
-        )
-        self.node_list.add(node)
+    def _get_or_add_technosphere_node(self, index:int) -> GTTechnosphereNode:
+        node = self.node_list.get_by_index(index)
+        if not node:
+            node = GTTechnosphereNode(
+                index=index,
+                lca=self.lca,
+                cb=self.cb,
+                supply=self.supply,
+            )
+            self.node_list.add(node)
         return node
 
     def _add_edge_if_above_cutoff(
         self,
-        from_index: int,
+        from_node: GTNode,
         from_amount: Real,
         to_node: GTNode,
         to_amount: Real,
         abs_cutoff: Real,
         scaled_score_func: Callable,
-        node_add_func: Callable,
     ) -> Optional[GTEdge]:
-        from_node = self.node_list.get_by_index(from_index)
-        if not from_node:
-            from_node = node_add_func(from_index)
         amount = to_amount * from_amount
-        self.counter += 1
+        self.number_calcs += 1
         scaled_impact = scaled_score_func(self=from_node, factor=amount)
         if abs(scaled_impact) > abs_cutoff:
             edge = GTEdge(
@@ -362,7 +363,7 @@ class GraphTraversal:
         else:
             return None
 
-    def traverse(
+    def traverse_depth_first(
         self,
         to_node: GTNode,
         to_amount: Real,
@@ -376,7 +377,7 @@ class GraphTraversal:
             print(f"Max. depth reached at activity id {to_node.index}")
             return
 
-        if self.counter >= max_calc:
+        if self.number_calcs >= max_calc:
             print(
                 f"Max. number calculations reached at activity id {to_node.index}"
             )
@@ -391,14 +392,14 @@ class GraphTraversal:
         indices = bio_inputs.nonzero()[0]
         scaled_score_func = partial(GTBiosphereNode.scaled_score, lca=self.lca)
         for from_index, from_amount in zip(indices, bio_inputs[indices].data):
+            from_node = self._get_or_add_biosphere_node(index=from_index)
             self._add_edge_if_above_cutoff(
-                from_index=from_index,
+                from_node=from_node,
                 from_amount=from_amount,
                 to_node=to_node,
                 to_amount=to_amount,
                 abs_cutoff=abs_cutoff,
                 scaled_score_func=scaled_score_func,
-                node_add_func=self._add_biosphere_node,
             )
 
         # add technosphere contributions
@@ -416,20 +417,101 @@ class GraphTraversal:
             if from_index == to_node.index:
                 continue
 
+            # get node from node list or create new one if it doesn't exist
+            from_node = self._get_or_add_technosphere_node(index=from_index)
+
+            # create new edge
             edge = self._add_edge_if_above_cutoff(
-                from_index=from_index,
+                from_node=from_node,
                 from_amount=from_amount,
                 to_node=to_node,
                 to_amount=to_amount,
                 abs_cutoff=abs_cutoff,
                 scaled_score_func=scaled_score_func,
-                node_add_func=self._add_technosphere_node,
             )
 
-            # continue with edge source if edge is above cutoff
+            # go deep if edge impact is above cutoff
             if edge:
                 self.traverse(
-                    to_node=edge.from_node,
+                    to_node=from_node,
+                    to_amount=edge.amount,
+                    depth=depth + 1,
+                    max_depth=max_depth,
+                    max_calc=max_calc,
+                    abs_cutoff=abs_cutoff,
+                )
+
+    def traverse_importance_first(
+        self,
+        to_node: GTNode,
+        to_amount: Real,
+        depth: int,
+        max_depth: int,
+        max_calc: int,
+        abs_cutoff: Real,
+    ) -> None:
+
+        if depth >= max_depth:
+            print(f"Max. depth reached at activity id {to_node.index}")
+            return
+
+        if self.number_calcs >= max_calc:
+            print(
+                f"Max. number calculations reached at activity id {to_node.index}"
+            )
+            return
+
+        scale_value = self.lca.technosphere_matrix[
+            to_node.index, to_node.index
+        ]
+
+        # add biosphere contributions
+        bio_inputs = self.lca.biosphere_matrix[:, to_node.index] / scale_value
+        indices = bio_inputs.nonzero()[0]
+        scaled_score_func = partial(GTBiosphereNode.scaled_score, lca=self.lca)
+        for from_index, from_amount in zip(indices, bio_inputs[indices].data):
+            from_node = self._get_or_add_biosphere_node(index=from_index)
+            self._add_edge_if_above_cutoff(
+                from_node=from_node,
+                from_amount=from_amount,
+                to_node=to_node,
+                to_amount=to_amount,
+                abs_cutoff=abs_cutoff,
+                scaled_score_func=scaled_score_func,
+            )
+
+        # add technosphere contributions
+        techno_inputs = (
+            -1 * self.lca.technosphere_matrix[:, to_node.index] / scale_value
+        )
+        indices = techno_inputs.nonzero()[0]
+        scaled_score_func = partial(
+            GTTechnosphereNode.scaled_score, lca=self.lca, cb=self.cb
+        )
+        for from_index, from_amount in zip(
+            indices, techno_inputs[indices].data
+        ):
+            # skip diagonal entries
+            if from_index == to_node.index:
+                continue
+
+            # get node from node list or create new one if it doesn't exist
+            from_node = self._get_or_add_technosphere_node(index=from_index)
+
+            # create new edge
+            edge = self._add_edge_if_above_cutoff(
+                from_node=from_node,
+                from_amount=from_amount,
+                to_node=to_node,
+                to_amount=to_amount,
+                abs_cutoff=abs_cutoff,
+                scaled_score_func=scaled_score_func,
+            )
+
+            # go deep if edge impact is above cutoff
+            if edge:
+                self.traverse(
+                    to_node=from_node,
                     to_amount=edge.amount,
                     depth=depth + 1,
                     max_depth=max_depth,
