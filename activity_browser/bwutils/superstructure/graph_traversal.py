@@ -257,17 +257,18 @@ class GraphTraversal:
                 "Number activities in functional unit must be one. Aborting."
             )
 
+        # calculate lci, supply, score
         self.lca = LCA(demand, method)
         self.lca.lci()
+        self.supply = self.lca.supply_array
         self.lca.lcia()
         self.score = self.lca.score
 
         if self.score == 0:
             raise ValueError("Zero total LCA score makes traversal impossible")
 
-        # calculate technosphere life cycle inventory
+        # decompose technosphere to speed up later re-calculations
         self.lca.decompose_technosphere()
-        self.supply = self.lca.solve_linear_system()
 
         # Create matrix of LCIA CFs times biosphere flows, as these don't
         # change. This is also the unit score of each activity.
