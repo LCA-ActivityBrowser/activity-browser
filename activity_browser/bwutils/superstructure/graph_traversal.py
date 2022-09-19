@@ -1,35 +1,40 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
 from functools import partial
 from heapq import heappop, heappush
 from numbers import Real
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    SupportsInt,
+)
 
 import numpy as np
 from bw2calc import LCA
 
 
+@dataclass
 class GTNode:
-    def __init__(
-        self,
-        index: int,
-        key: Optional[tuple] = None,
-        amount: Optional[Real] = None,
-        cum: Optional[Real] = None,
-        ind: Optional[Real] = None,
-    ):
-        self.index = (
-            index  # matrix index of the technosphere or biosphere activity
-        )
-        self.key = key  # key of the technosphere or biosphere activity
-        self.amount = amount  # total amount of main product in LCI
-        self.cum = cum  # total (direct+indirect) impact
-        self.ind = ind  # individual (direct) impact
+    index: SupportsInt
+    amount: Optional[Real] = None
+    cum: Optional[Real] = None
+    ind: Optional[Real] = None
+    key: Optional[Tuple] = None
 
     def __lt__(self, other):
         """Compare two nodes based on the size of their individual impact.
         This function guarantees that ordering in heapq algorithm doesn't
         raise errors when two nodes have the same priority (cumulative impact)."""
         return self.ind < other.ind
+
+    def __hash__(self):
+        return hash((self.index, self.amount, self.cum, self.ind))
 
     def to_dict(self) -> Dict:
         return {"amount": self.amount, "cum": self.cum, "ind": self.ind}
@@ -45,7 +50,7 @@ class GTTechnosphereNode(GTNode):
         include_biosphere: bool,
         key: Optional[tuple] = None,
     ):
-        super().__init__(index, key)
+        super().__init__(index=index, key=key)
         self.unit_score = None
         self._unit_score(lca=lca, cb=cb)
         amount = self._lci_amount(supply)
@@ -93,7 +98,7 @@ class GTBiosphereNode(GTNode):
         fu_amount: Real,
         key: Optional[tuple] = None,
     ):
-        super().__init__(index, key)
+        super().__init__(index=index, key=key)
         self.unit_score = None
         self._unit_score(lca=lca)
         amount = self._lci_amount(lca, fu_amount)
@@ -116,7 +121,9 @@ class GTBiosphereNode(GTNode):
     def _unit_score(self, lca: LCA) -> Real:
         """Compute LCA score for one unit of a given biosphere activity"""
         if not self.unit_score:
-            self.unit_score = lca.characterization_matrix[self.index, self.index]
+            self.unit_score = lca.characterization_matrix[
+                self.index, self.index
+            ]
         return self.unit_score
 
     def scaled_score(self, lca: LCA, factor: Real) -> Real:
@@ -156,20 +163,13 @@ class GTNodeSet:
             return {n.index: n.to_dict() for n in self.nodes}
 
 
+@dataclass
 class GTEdge:
-    def __init__(
-        self,
-        to_node: GTNode,
-        from_node: GTNode,
-        amount: Real,
-        exc_amount: Real,
-        impact: Real,
-    ):
-        self.to_node = to_node
-        self.from_node = from_node
-        self.amount = amount
-        self.exc_amount = exc_amount
-        self.impact = impact
+    to_node: GTNode
+    from_node: GTNode
+    amount: Real
+    exc_amount: Real
+    impact: Real
 
     def to_dict(self, use_keys: bool = True) -> Dict:
         if use_keys:
@@ -241,6 +241,15 @@ class GraphTraversal:
         include_biosphere: bool = True,
         importance_first: bool = True,
     ):
+        # class options
+        self.use_keys: bool = use_keys
+        self.include_biosphere: bool = include_biosphere
+        if importance_first:
+            self.traverse: Callable = self.traverse_importance_first
+        else:
+            self.traverse: Callable = self.traverse_depth_first
+
+        # traversal helper variables
         self.lca: Optional[LCA] = None
         self.score: Optional[Real] = None
         self.supply: Optional[np.array] = None
@@ -252,13 +261,6 @@ class GraphTraversal:
         self.bio_node_list: Optional[GTNodeSet] = None
         self.techno_node_list: Optional[GTNodeSet] = None
         self.number_calcs: Optional[int] = None
-
-        self.use_keys: bool = use_keys
-        self.include_biosphere: bool = include_biosphere
-        if importance_first:
-            self.traverse: Callable = self.traverse_importance_first
-        else:
-            self.traverse: Callable = self.traverse_depth_first
 
     def reset(self, demand, method) -> GTTechnosphereNode:
 
