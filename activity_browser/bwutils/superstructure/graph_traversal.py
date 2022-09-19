@@ -134,17 +134,16 @@ class GTNodeSet:
     def __init__(self, nodes: Optional[Iterable[GTNode]] = ()):
         self.nodes = set(nodes)
 
-    def __contains__(self, node: GTNode) -> bool:
-        return node in self.nodes
+    def __getattr__(self, attr):
+        if attr in self.__dict__:
+            return getattr(self, attr)
+        return getattr(self.nodes, attr)
 
     def get_by_index(self, index: int) -> Optional[GTNode]:
         for node in self.nodes:
             if node.index == index:
                 return node
         return None
-
-    def add(self, node: GTNode) -> None:
-        self.nodes.add(node)
 
     def add_node_keys(self, rev_act: Dict, rev_bio: Dict) -> None:
         for n in self.nodes:
@@ -161,6 +160,9 @@ class GTNodeSet:
             return {n.key: n.to_dict() for n in self.nodes}
         else:
             return {n.index: n.to_dict() for n in self.nodes}
+
+    def __repr__(self):
+        return self.nodes.__repr__()
 
 
 @dataclass
@@ -194,8 +196,10 @@ class GTEdgeList:
     def __init__(self, edges: Optional[List[GTEdge]] = None):
         self.edges = edges
 
-    def __contains__(self, edge: GTEdge) -> bool:
-        return edge in self.edges
+    def __getattr__(self, attr):
+        if attr in self.__dict__:
+            return getattr(self, attr)
+        return getattr(self.edges, attr)
 
     def get(
         self,
@@ -207,9 +211,6 @@ class GTEdgeList:
                 return edge
         return None
 
-    def append(self, edge: GTEdge) -> None:
-        self.edges.append(edge)
-
     def to_list(self, use_keys: bool = True) -> List[Dict]:
         return [e.to_dict(use_keys) for e in self.edges]
 
@@ -217,6 +218,9 @@ class GTEdgeList:
         return set(
             [e.from_node for e in self.edges] + [e.to_node for e in self.edges]
         )
+
+    def __repr__(self):
+        return self.edges.__repr__()
 
 
 class GraphTraversal:
