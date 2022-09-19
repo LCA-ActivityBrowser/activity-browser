@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
-from functools import partial
 from heapq import heappop, heappush
 from numbers import Real
 from typing import (
@@ -10,9 +9,9 @@ from typing import (
     List,
     Optional,
     Set,
+    SupportsInt,
     Tuple,
     Union,
-    SupportsInt,
 )
 
 import numpy as np
@@ -46,30 +45,29 @@ class GTTechnosphereNode(GTNode):
         index: int,
         lca: LCA,
         cb: np.array,
-        supply: np.array,
         include_biosphere: bool,
         key: Optional[tuple] = None,
     ):
         super().__init__(index=index, key=key)
         self._unit_score = self.__unit_score(lca=lca, cb=cb)
-        amount = self._lci_amount(supply)
-        self.amount = amount
-        self.cum = self.scaled_score(factor=amount)
+        lci_amount = self._lci_amount(lca=lca)
+        self.amount = lci_amount
+        self.cum = self.scaled_score(factor=lci_amount)
         self.ind = self._individual_score(
-            cb=cb, supply=supply, include_biosphere=include_biosphere
+            lca=lca, cb=cb, include_biosphere=include_biosphere
         )
 
-    def _lci_amount(self, supply: np.array) -> Real:
-        return supply[self.index]
+    def _lci_amount(self, lca: LCA) -> Real:
+        return lca.supply_array[self.index]
 
     def _individual_score(
-        self, cb: np.array, supply: np.array, include_biosphere: bool
+        self, lca: LCA, cb: np.array, include_biosphere: bool
     ) -> float:
         """Compute the LCA impact caused by the direct emissions and resource consumption of a given activity"""
         if include_biosphere:
             return 0
         else:
-            return float(cb[self.index] * supply[self.index])
+            return float(cb[self.index] * lca.supply_array[self.index])
 
     def __unit_score(self, lca: LCA, cb: np.array) -> float:
         """Compute LCA score for one unit of a given technosphere activity"""
@@ -91,10 +89,10 @@ class GTBiosphereNode(GTNode):
     ):
         super().__init__(index=index, key=key)
         self._unit_score = self.__unit_score(lca=lca)
-        amount = self._lci_amount(lca, fu_amount)
-        self.amount = amount
-        self.cum = self._unit_score * amount
-        self.ind = self._unit_score * amount
+        lci_amount = self._lci_amount(lca, fu_amount)
+        self.amount = lci_amount
+        self.cum = self.scaled_score(factor=lci_amount)
+        self.ind = self._individual_score(lci_amount=lci_amount)
 
     def _lci_amount(self, lca: LCA, fu_amount: Real) -> Real:
         return lca.inventory.sum(axis=1)[self.index].sum() / fu_amount
@@ -105,9 +103,7 @@ class GTBiosphereNode(GTNode):
 
     def __unit_score(self, lca: LCA) -> Real:
         """Compute LCA score for one unit of a given biosphere activity"""
-        return lca.characterization_matrix[
-                self.index, self.index
-            ]
+        return lca.characterization_matrix[self.index, self.index]
 
     def scaled_score(self, factor: Real) -> Real:
         return self._unit_score * factor
@@ -239,7 +235,6 @@ class GraphTraversal:
         # traversal helper variables
         self.lca: Optional[LCA] = None
         self.score: Optional[Real] = None
-        self.supply: Optional[np.array] = None
         self.cb: Optional[np.array] = None
         self.rev_act: Optional[Dict] = None
         self.rev_bio: Optional[Dict] = None
@@ -260,7 +255,6 @@ class GraphTraversal:
         # calculate lci, supply, score
         self.lca = LCA(demand, method)
         self.lca.lci()
-        self.supply = self.lca.supply_array
         self.lca.lcia()
         self.score = self.lca.score
 
@@ -294,7 +288,6 @@ class GraphTraversal:
             index=fu_index,
             lca=self.lca,
             cb=self.cb,
-            supply=self.supply,
             include_biosphere=self.include_biosphere,
         )
         self.techno_node_list.add(fu_node)
@@ -379,7 +372,6 @@ class GraphTraversal:
                 index=index,
                 lca=self.lca,
                 cb=self.cb,
-                supply=self.supply,
                 include_biosphere=self.include_biosphere,
             )
             self.techno_node_list.add(node)
