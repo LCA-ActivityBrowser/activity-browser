@@ -177,7 +177,7 @@ class GTEdge:
 
 class GTEdgeList:
     def __init__(self, edges: Optional[List[GTEdge]] = None):
-        self.edges = edges
+        self.edges = edges or []
 
     def __getattr__(self, attr):
         if attr in self.__dict__:
