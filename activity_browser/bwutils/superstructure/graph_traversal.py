@@ -58,7 +58,10 @@ class GTTechnosphereNode(GTNode):
         )
 
     def _lci_amount(self, lca: LCA) -> Real:
-        return lca.supply_array[self.index]
+        return (
+            lca.supply_array[self.index]
+            * lca.technosphere_matrix[self.index, self.index]
+        )
 
     def _individual_score(
         self, lca: LCA, cb: np.array, include_biosphere: bool
@@ -84,18 +87,17 @@ class GTBiosphereNode(GTNode):
         self,
         index: int,
         lca: LCA,
-        fu_amount: Real,
         key: Optional[tuple] = None,
     ):
         super().__init__(index=index, key=key)
         self._unit_score = self.__unit_score(lca=lca)
-        lci_amount = self._lci_amount(lca, fu_amount)
+        lci_amount = self._lci_amount(lca=lca)
         self.amount = lci_amount
         self.cum = self.scaled_score(factor=lci_amount)
         self.ind = self._individual_score(lci_amount=lci_amount)
 
-    def _lci_amount(self, lca: LCA, fu_amount: Real) -> Real:
-        return lca.inventory.sum(axis=1)[self.index].sum() / fu_amount
+    def _lci_amount(self, lca: LCA) -> float:
+        return float(lca.inventory.sum(axis=1)[self.index])
 
     def _individual_score(self, lci_amount: Real) -> float:
         """Compute the LCA impact caused by the direct emissions and resource consumption of a given activity"""
@@ -359,9 +361,7 @@ class GraphTraversal:
     def _get_or_add_biosphere_node(self, index: int) -> GTBiosphereNode:
         node = self.bio_node_list.get_by_index(index)
         if not node:
-            node = GTBiosphereNode(
-                index=index, lca=self.lca, fu_amount=self.fu_amount
-            )
+            node = GTBiosphereNode(index=index, lca=self.lca)
             self.bio_node_list.add(node)
         return node
 
