@@ -369,9 +369,9 @@ class Graph(BaseGraph):
                 "amount": values.get("amount"),
                 "LCIA_unit": lcia_unit,
                 "ind": values.get("ind"),
-                "ind_norm": values.get("ind") / lca_score,
+                "ind_norm": values.get("ind") / abs(lca_score),
                 "cum": values.get("cum"),
-                "cum_norm": values.get("cum") / lca_score,
+                "cum_norm": values.get("cum") / abs(lca_score),
                 "class": "demand" if act == demand else identify_activity_type(act),
             }
 
@@ -392,12 +392,12 @@ class Graph(BaseGraph):
                 "amount": edge["amount"],
                 "product": p.get("reference product") or p.get("name"),
                 "impact": edge["impact"],
-                "ind_norm": edge["impact"] / lca_score,
+                "ind_norm": edge["impact"] / abs(lca_score),
                 "unit": lcia_unit,
                 "tooltip": '<b>{}</b> ({:.2g} {})'
                            '<br>{:.3g} {} ({:.2g}%) '.format(
                     lcia_unit, edge["amount"], p.get("unit"),
-                    edge["impact"], lcia_unit, edge["impact"] / lca_score * 100,
+                    edge["impact"], lcia_unit, edge["impact"] / abs(lca_score) * 100,
                 )
             }
 
