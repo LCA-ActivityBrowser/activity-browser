@@ -46,13 +46,12 @@ class GTTechnosphereNode(GTNode):
         lca: LCA,
         cb: np.array,
         include_biosphere: bool,
-        key: Optional[tuple] = None,
+        key: Optional[Tuple] = None,
     ):
         super().__init__(index=index, key=key)
         self._unit_score = self.__unit_score(lca=lca, cb=cb)
-        lci_amount = self._lci_amount(lca=lca)
-        self.amount = lci_amount
-        self.cum = self.scaled_score(factor=lci_amount)
+        self.amount = self._lci_amount(lca=lca)
+        self.cum = self.scaled_score(factor=self.amount)
         self.ind = self._individual_score(
             lca=lca, cb=cb, include_biosphere=include_biosphere
         )
@@ -66,7 +65,7 @@ class GTTechnosphereNode(GTNode):
     def _individual_score(
         self, lca: LCA, cb: np.array, include_biosphere: bool
     ) -> float:
-        """Compute the LCA impact caused by the direct emissions and resource consumption of a given activity"""
+        """Compute the direct impact caused by the emissions and resource consumption of a given activity"""
         if include_biosphere:
             return 0
         else:
@@ -99,8 +98,8 @@ class GTBiosphereNode(GTNode):
     def _lci_amount(self, lca: LCA) -> float:
         return float(lca.inventory.sum(axis=1)[self.index])
 
-    def _individual_score(self, lci_amount: Real) -> float:
-        """Compute the LCA impact caused by the direct emissions and resource consumption of a given activity"""
+    def _individual_score(self, lci_amount: Real) -> Real:
+        """Compute the direct impact caused by the emissions and resource consumption of a given activity"""
         return self._unit_score * lci_amount
 
     def __unit_score(self, lca: LCA) -> Real:
@@ -390,7 +389,11 @@ class GraphTraversal:
         scaled_impact = from_node.scaled_score(factor=amount)
         if abs(scaled_impact) > abs_cutoff:
             edge = GTEdge(
-                to_node, from_node, amount, from_amount, scaled_impact
+                to_node=to_node,
+                from_node=from_node,
+                amount=amount,
+                exc_amount=from_amount,
+                impact=scaled_impact,
             )
             self.edge_list.append(edge)
             return edge
@@ -501,14 +504,14 @@ class GraphTraversal:
                 print(f"Max. depth reached at activity id {to_node.index}")
                 continue
 
-            scale_value = self.lca.technosphere_matrix[
+            to_scale = self.lca.technosphere_matrix[
                 to_node.index, to_node.index
             ]
 
             # add biosphere contributions
             if self.include_biosphere:
                 bio_inputs = (
-                    self.lca.biosphere_matrix[:, to_node.index] / scale_value
+                    self.lca.biosphere_matrix[:, to_node.index] / to_scale
                 )
                 indices = bio_inputs.nonzero()[0]
                 for from_index, from_amount in zip(
@@ -527,9 +530,7 @@ class GraphTraversal:
 
             # add technosphere contributions
             techno_inputs = (
-                -1
-                * self.lca.technosphere_matrix[:, to_node.index]
-                / scale_value
+                -1 * self.lca.technosphere_matrix[:, to_node.index] / to_scale
             )
             indices = techno_inputs.nonzero()[0]
             for from_index, from_amount in zip(
