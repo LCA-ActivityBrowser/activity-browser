@@ -86,7 +86,7 @@ class GTBiosphereNode(GTNode):
         self,
         index: int,
         lca: LCA,
-        key: Optional[tuple] = None,
+        key: Optional[Tuple] = None,
     ):
         super().__init__(index=index, key=key)
         self._unit_score = self.__unit_score(lca=lca)
@@ -239,19 +239,12 @@ class GraphTraversal:
         self.cb: Optional[np.array] = None
         self.rev_act: Optional[Dict] = None
         self.rev_bio: Optional[Dict] = None
-        self.fu_amount: Optional[Real] = None
         self.edge_list: Optional[GTEdgeList] = None
         self.bio_node_list: Optional[GTNodeSet] = None
         self.techno_node_list: Optional[GTNodeSet] = None
         self.number_calcs: Optional[int] = None
 
-    def reset(self, demand, method) -> GTTechnosphereNode:
-
-        number_acts_in_fu = len(demand)
-        if number_acts_in_fu > 1:
-            raise ValueError(
-                "Number activities in functional unit must be one. Aborting."
-            )
+    def reset(self, demand, method) -> List[Tuple[GTTechnosphereNode, Real]]:
 
         # calculate lci, supply, score
         self.lca = LCA(demand, method)
@@ -276,43 +269,44 @@ class GraphTraversal:
         # make lookup dictionaries: matrix index -> activity key
         self.rev_act, _, self.rev_bio = self.lca.reverse_dict()
 
-        # initialize node list
+        # initialize node and edge list
         root = GTNode(index=-1, amount=1, cum=self.score, ind=0)
+        self.techno_node_list = GTNodeSet([root])
         self.bio_node_list = GTNodeSet()
-        self.techno_node_list = GTNodeSet()
-        self.techno_node_list.add(root)
+        self.edge_list = GTEdgeList()
 
-        # add functional unit node
-        fu_key = list(demand.keys())[0]
-        fu_index = self.lca.activity_dict[fu_key]
-        fu_node = GTTechnosphereNode(
-            index=fu_index,
-            lca=self.lca,
-            cb=self.cb,
-            include_biosphere=self.include_biosphere,
-        )
-        self.techno_node_list.add(fu_node)
+        # add functional unit nodes and edges
+        fu_node_amount = []
+        for fu_key, fu_amount in demand.items():
+            fu_index = self.lca.activity_dict[fu_key]
+            fu_node = GTTechnosphereNode(
+                index=fu_index,
+                lca=self.lca,
+                cb=self.cb,
+                include_biosphere=self.include_biosphere,
+            )
+            self.techno_node_list.add(fu_node)
 
-        # initialize edge list
-        self.fu_amount = demand[fu_key]
-        edge = GTEdge(
-            to_node=root,
-            from_node=fu_node,
-            amount=self.fu_amount,
-            exc_amount=self.fu_amount,
-            impact=self.score,
-        )
-        self.edge_list = GTEdgeList([edge])
+            edge = GTEdge(
+                to_node=root,
+                from_node=fu_node,
+                amount=fu_amount,
+                exc_amount=fu_amount,
+                impact=fu_node.scaled_score(fu_amount),
+            )
+            self.edge_list.append(edge)
+
+            fu_node_amount.append((fu_node, fu_amount))
 
         # reset calculation counter
         self.number_calcs = 0
 
-        return fu_node
+        return fu_node_amount
 
     def calculate(
         self,
         demand: Dict,
-        method: Tuple[str, str, str],
+        method: Tuple[str, ...],
         cutoff: Real = 0.005,
         max_depth: int = 10,
         max_calc: int = 10000,
@@ -332,16 +326,17 @@ class GraphTraversal:
 
         """
 
-        fu_node = self.reset(demand, method)
+        fu_node_amount = self.reset(demand, method)
 
-        self.traverse(
-            to_node=fu_node,
-            to_amount=self.fu_amount,
-            depth=0,
-            max_depth=max_depth,
-            max_calc=max_calc,
-            abs_cutoff=abs(cutoff * self.score),
-        )
+        for fu_node, fu_amount in fu_node_amount:
+            self.traverse(
+                to_node=fu_node,
+                to_amount=fu_amount,
+                depth=0,
+                max_depth=max_depth,
+                max_calc=max_calc,
+                abs_cutoff=abs(cutoff * self.score),
+            )
 
         # filter nodes: only keep nodes contained in edge list
         node_list = GTNodeSet(self.edge_list.get_unique_nodes())
