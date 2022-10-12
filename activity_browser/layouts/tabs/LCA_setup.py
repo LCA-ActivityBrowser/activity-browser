@@ -439,7 +439,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.
                 print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
-                df = pd.read_excel(path, sheet_name=idx, engine="openpyxl")
+                with open(path,'rb') as xcl:
+                    df = pd.read_excel(xcl, sheet_name=idx, engine="openpyxl")
                 include_default = True
                 if "default" not in df.columns:
                     query = QtWidgets.QMessageBox.question(

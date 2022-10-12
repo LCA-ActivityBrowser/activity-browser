@@ -208,7 +208,7 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, option, index) -> QtWidgets.QWidget:
         editor = QtWidgets.QWidget(parent)
         dialog = FormulaDialog(editor, QtCore.Qt.Window)
         dialog.accepted.connect(lambda: self.commitData.emit(editor))

@@ -101,12 +101,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.stacked.currentWidget() != self.debug_widget:
             self.last_widget = self.stacked.currentWidget()
             self.stacked.setCurrentWidget(self.debug_widget)
-            # print("Switching to debug window")
+            print("Switching to debug window")
         else:
-            # print("Switching back to last widget")
+            print("Switching back to last widget")
             if self.last_widget:
                 try:
-                    self.stacked.setCurrentWidget(self.last_widget)
+                    self.stacked.setCurrentWidget(self.main_widget)
                 except:
                     print("Previous Widget has been deleted in the meantime. Switching to main window.")
                     self.stacked.setCurrentWidget(self.main_widget)

@@ -188,7 +188,7 @@ class BaseTreeModel(QAbstractItemModel):
     def columnCount(self, parent: QModelIndex = None, *args, **kwargs) -> int:
         return len(self.HEADERS)
 
-    def data(self, index, role: int = Qt.DisplayRole):
+    def data(self, index : QModelIndex, role: int = Qt.DisplayRole):
         if not index.isValid():
             return None
 
@@ -238,7 +238,7 @@ class BaseTreeModel(QAbstractItemModel):
         parent = parent.internalPointer() if parent.isValid() else self.root
         return parent.childCount()
 
-    def flags(self, index):
+    def flags(self, index : QModelIndex):
         if not index.isValid():
             return Qt.NoItemFlags
 

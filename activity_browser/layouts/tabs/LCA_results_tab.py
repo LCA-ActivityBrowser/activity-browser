@@ -26,7 +26,7 @@ class LCAResultsTab(ABTab):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.lca_calculation.connect(self.generate_setup)
+        signals.lca_calculation.connect(self.generate_setup) # NEED TO FIND HOW THE DATA IS ADDED
         signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
