@@ -322,7 +322,7 @@ def perform_MonteCarlo_LCA(project='default', cs_name=None, iterations=10):
 
     # perform Monte Carlo simulation
     mc = MonteCarloLCA(cs_name)
-    mc.calculate(iterations=iterations) # FOR issue #850
+    mc.calculate(iterations=iterations)
     return mc
 
 

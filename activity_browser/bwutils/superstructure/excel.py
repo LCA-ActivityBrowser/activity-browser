@@ -66,9 +66,9 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1):
     'comment' is used to exclude specific rows from the excel document.
     """
     header_idx = get_header_index(document_path, import_sheet)
-    with open(path,'rb') as xcl:
+    with open(document_path,'rb') as xcl:
         data = pd.read_excel(
-            document_path, sheet_name=import_sheet, header=header_idx,
+            xcl, sheet_name=import_sheet, header=header_idx,
             usecols=valid_cols, comment="*", na_values="", keep_default_na=False,
             engine="openpyxl"
         )

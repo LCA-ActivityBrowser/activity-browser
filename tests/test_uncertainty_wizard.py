@@ -75,13 +75,14 @@ def test_graph_rebuild(qtbot, bw2test):
     # When programmatically changing values, no textEdited signal is emitted.
     with qtbot.assertNotEmitted(wizard.type.minimum.textEdited):
         wizard.type.minimum.setText("1")
-        wizard.type.generate_plot()
+        wizard.type.generate_plot()#
     assert not wizard.type.complete  # Still missing 'maximum'
     assert not wizard.button(QWizard.FinishButton).isEnabled()
 
     with qtbot.assertNotEmitted(wizard.type.minimum.textEdited):
         wizard.type.maximum.setText("5")
-        wizard.type.generate_plot()
+        wizard.type.generate_plot()# Creates an error from matplotlib
+        # is it possible that the figure is not properly set?
     assert wizard.type.complete
     assert wizard.button(QWizard.FinishButton).isEnabled()
 
