@@ -3,10 +3,11 @@ import itertools
 from typing import List
 
 import pandas as pd
+import brightway2 as bw
 
 from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_columns
-from .utils import guess_flow_type
+from .utils import guess_flow_type, SUPERSTRUCTURE
 
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
@@ -18,8 +19,8 @@ class SuperstructureManager(object):
     def __init__(self, df: pd.DataFrame, *dfs: pd.DataFrame):
         # Prepare dataframes for further processing
         self.frames: List[pd.DataFrame] = [
-            SuperstructureManager.remove_duplicates(df)
-        ] + [SuperstructureManager.remove_duplicates(f) for f in dfs]
+            SuperstructureManager.format_dataframe(df)
+        ] + [SuperstructureManager.format_dataframe(f) for f in dfs]
         self.is_multiple = len(self.frames) > 1
 
     def combined_data(self, kind: str = "product") -> pd.DataFrame:
@@ -101,12 +102,70 @@ class SuperstructureManager(object):
         return df
 
     @staticmethod
+    def format_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+        """Format the input superstructure dataframes.
+        If in the future more formatting functions are needed, they should be added here.
+        """
+        if not isinstance(df.index, pd.MultiIndex):
+            df.index = SuperstructureManager.build_index(df)
+        df = SuperstructureManager.remove_duplicates(df)
+        df = SuperstructureManager.merge_flows_to_self(df)
+
+        return df
+
+    @staticmethod
+    def merge_flows_to_self(df: pd.DataFrame) -> pd.DataFrame:
+        """Merge any 'technosphere' flows to and from the same key (a.k.a. flow to self).
+
+        This function checks if any flows to self exist and merges them with a production flow.
+        If no production flow exists, it is added.
+        """
+        # get all flows to self
+        flows_to_self = df.loc[df.apply(lambda x: True if x['from key'] == x['to key']
+                                                      and x['flow type'] == 'technosphere'
+        else False, axis=1), :]
+
+        if len(flows_to_self) > 0:
+            for idx in flows_to_self.index:
+                prod_idx = (idx[0], idx[1], 'production')
+                tech_idx = (idx[0], idx[1], 'technosphere')
+                scenario_cols = df.columns.difference(SUPERSTRUCTURE)
+                if not df.index.isin([prod_idx]).any():
+                    # this flow to self does not have a similar 'production' flow to self.
+                    # find the default production value and add it as a 'production' flow
+
+                    # WARNING: this way of getting the production amount only works for processes with
+                    # 1 reference flow (because we just take index 0 from list of production exchanges)
+                    # Once AB has support for multiple reference flows, we need to adjust this code to match the
+                    # right flow -something with looping over the flows and getting the right product or something-.
+                    prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
+
+                    # make a new df to edit the production, add the correct values/indices where needed
+                    # and concat to the main df
+                    new_prod = pd.DataFrame(df.loc[tech_idx, :])
+                    new_prod.loc[tech_idx, 'flow type'] = 'production'
+                    new_prod.loc[tech_idx, scenario_cols] = prod_amt
+                    new_prod.index = [prod_idx]
+                    df = pd.concat([df, new_prod], axis=0)
+
+                # subtract the 'technosphere' value from 'production' value and write to 'production'
+                prod = df.loc[prod_idx, scenario_cols]
+                tech = df.loc[tech_idx, scenario_cols]
+                vals = prod.values - tech.values
+
+                # write the corrected values to the right cells
+                # TODO figure out how to easily write 'per row' instead of 'per cell', but the below loop works for now
+                for i, elem in enumerate(vals.T):
+                    df.loc[prod_idx, scenario_cols[i]] = elem[0]
+            # drop the 'technosphere' flows
+            df.drop(flows_to_self.index, inplace=True)
+        return df
+
+    @staticmethod
     def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
         """Using the input/output index for a superstructure, drop duplicates
         where the last instance survives.
         """
-        if not isinstance(df.index, pd.MultiIndex):
-            df.index = SuperstructureManager.build_index(df)
         duplicates = df.index.duplicated(keep="last")
         if duplicates.any():
             print("Found and dropped {} duplicate exchanges.".format(duplicates.sum()))
