@@ -81,7 +81,7 @@ class ABDataFrameView(QTableView):
         caption = caption or "Choose location to save lca results"
         filepath, _ = QFileDialog.getSaveFileName(
             parent=self, caption=caption,
-            dir=os.path.join(ab_settings.data_dir, safe_name),
+            dir=os.path.join(ab_settings.data_dir, safe_name), # check to see if this is equivalent to ab_settings.custom_bw_dir
             filter=file_filter or self.ALL_FILTER,
         )
         # getSaveFileName can now weirdly return Path objects.

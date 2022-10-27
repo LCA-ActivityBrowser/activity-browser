@@ -180,7 +180,7 @@ class SuperstructureManager(object):
         - If any of the exchange key columns are missing keys, attempt to fill
         them. If filling them does not succeed, raise an assertion.
         """
-        if df.loc[:, EXCHANGE_KEYS].isna().any().all():
+        if df.loc[:, EXCHANGE_KEYS].isna().any().all():# What is the all() catching
             df = fill_df_keys_with_fields(df)
             _df = df.loc[:, EXCHANGE_KEYS].notna()
             assert _df.all().all(), "Cannot find all keys. {} of {} exchanges are broken.".format(len(df[_df]),

@@ -186,6 +186,8 @@ class ActivityTab(QtWidgets.QWidget):
             except DoesNotExist:
                 signals.close_activity_tab.emit(self.key)
                 return
+        print("Populating the tables for activity {}".format(self.activity.__str__()))
+
         self.populate_description_box()
 
         #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately

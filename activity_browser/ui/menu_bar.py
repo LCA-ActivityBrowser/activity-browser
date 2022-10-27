@@ -79,33 +79,15 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def update_windows_menu(self):
         """Clear and rebuild the menu for switching between tabs."""
-#        self.windows_menu.clear()
-        ## TODO This method doesn't work,
-        # it appears that the action is actually associated with the menu object
-        # not the object in the menu
-        main_window = self.window.stacked.widget(0)
-        self.windows_menu.addAction(
-            main_window.icon,
-            main_window.name,
-            lambda : self.window.stacked.setCurrentWidget(main_window)
+        self.windows_menu.clear()
+        for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
+            widget = self.window.stacked.widget(index)
+            self.windows_menu.addAction(
+                widget.icon,
+                widget.name,
+                lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
+                # Need to pass the widget as an argument, NOTE the argument will be assessed on instantiation
             )
-        debug_window = self.window.stacked.widget(1)
-        self.windows_menu.addAction(
-            debug_window.icon,
-            debug_window.name,
-            lambda : self.window.stacked.setCurrentWidget(debug_window)
-            )
-        
-        
-        
-#        for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
-#            widget = self.window.stacked.widget(index)
-#            print('{} - {}'.format(widget.name,index))
-#            self.windows_menu.addAction(
-#                widget.icon,
-#                widget.name,
-#                lambda: self.window.stacked.setCurrentWidget(widget),
-#            )
 
     def setup_help_menu(self) -> None:
         """Build the help menu for the menubar."""

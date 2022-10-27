@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import subprocess
 from pathlib import Path
 import shutil
 from typing import Optional
-
+import re
 import appdirs
 import brightway2 as bw
 
@@ -14,10 +15,10 @@ from .signals import signals
 class BaseSettings(object):
     """ Base Class for handling JSON settings files.
     """
-    def __init__(self, directory: str, filename: str = None):
+    def __init__(self, directory: str, filename : str = None):
         self.data_dir = directory
         self.filename = filename or "default_settings.json"
-        self.settings_file = os.path.join(self.data_dir, self.filename)
+        self.settings_file = os.path.join(self.data_dir,self.filename)
         self.settings: Optional[dict] = None
         self.initialize_settings()
 
@@ -37,6 +38,7 @@ class BaseSettings(object):
         """ Attempt to find and read the settings_file, creates a default
         if not found
         """
+
         if os.path.isfile(self.settings_file):
             self.load_settings()
         else:
@@ -51,19 +53,20 @@ class BaseSettings(object):
         with open(self.settings_file, "w") as outfile:
             json.dump(self.settings, outfile, indent=4, sort_keys=True)
 
-
 class ABSettings(BaseSettings):
     """
     Interface to the json settings file. Will create a userdata directory via appdirs if not
     already present.
+    todo Add an algorithm for searching for environments and the BRIGHTWAY2_DIR environmental
+    variable
     """
-    def __init__(self, filename: str):
-        ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
-        if not os.path.isdir(ab_dir.user_data_dir):
-            os.makedirs(ab_dir.user_data_dir, exist_ok=True)
-        self.move_old_settings(ab_dir.user_data_dir, filename)
-
-        super().__init__(ab_dir.user_data_dir, filename)
+    def __init__(self, ab_dir : str='BRIGHTWAY2_DIR'):
+#        ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
+#        if not os.path.isdir(ab_dir.user_data_dir):
+#            os.makedirs(ab_dir.user_data_dir, exist_ok=True)
+#        self.move_old_settings(ab_dir.user_data_dir, filename)
+        directories = self.get_conda_brightway2_var()
+        super().__init__(directories[0])
 
     @staticmethod
     def move_old_settings(directory: str, filename: str) -> None:
@@ -131,7 +134,39 @@ class ABSettings(BaseSettings):
             return next(iter(bw.projects)).name
         else:
             return None
+    @staticmethod
+    def get_conda_brightway2_var() -> list():
+        """ Executes the subprocess.run method to execute the conda env list command
+        extracting a list of brightway2 environmental variables from these environments
+        """
 
+        bw_environments = list()
+        def conda_environments(cmnd : list()) -> list():
+            """ Lists the available conda environments. These will still need to be
+            explored for having a BRIGHTWAY2_DIR variable being set"""
+            envs = []
+            try:
+                environments = os.environ
+                envs = subprocess.run(cmnd, capture_output=True,env=environments).stdout.decode().splitlines()
+            except Exception as e:
+                print(e)
+            conda_environments_list = []
+            for env in envs:
+                if not re.match(r"#", env):
+                    env_name = re.search(r'\s+([\/\w]+)$',env)
+                    if env_name != None:
+                        conda_environments_list.append(Path(env_name.group(1) + '/etc/conda/activate.d'))
+            return conda_environments_list
+        # Use the conda_environments to produce the directories that we then search through
+        # for the BRIGHTWAY2_DIR environment variable. If an environment contains this then
+        # this environment is considered relevant for the AB.
+        for directory_to_env in conda_environments(['conda','env','list']):
+            for script_file in directory_to_env.glob("*sh"):
+                with open(script_file,'r') as sf:
+                    for script_line in sf.readlines():
+                        bw_environment = re.search(r'BRIGHTWAY2_DIR=(\S+)', script_line)
+                        bw_environments.append(bw_environment.group(1).strip('"')) if bw_environment is not None else None
+        return bw_environments
 
 class ProjectSettings(BaseSettings):
     """
@@ -225,5 +260,5 @@ class ProjectSettings(BaseSettings):
         return (name for name, ro in iterator if not ro and name != "biosphere3")
 
 
-ab_settings = ABSettings("ABsettings.json")
+ab_settings = ABSettings()
 project_settings = ProjectSettings("AB_project_settings.json")
