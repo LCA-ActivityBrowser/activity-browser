@@ -57,17 +57,16 @@ class ABSettings(BaseSettings):
     """
     Interface to the json settings file. Will create a userdata directory via appdirs if not
     already present.
-    todo Add an algorithm for searching for environments and the BRIGHTWAY2_DIR environmental
     variable
     """
-    def __init__(self, ab_dir : str='BRIGHTWAY2_DIR'):
-#        ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
-#        if not os.path.isdir(ab_dir.user_data_dir):
-#            os.makedirs(ab_dir.user_data_dir, exist_ok=True)
-#        self.move_old_settings(ab_dir.user_data_dir, filename)
-        directories = self.get_conda_brightway2_var()
-        super().__init__(directories[0])
-
+    def __init__(self, bw_dir : str='BRIGHTWAY2_DIR'):
+        ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
+        if not os.path.isdir(ab_dir.user_data_dir):
+            os.makedirs(ab_dir.user_data_dir, exist_ok=True)
+        self.move_old_settings(ab_dir.user_data_dir, bw_dir)
+#        directories = self.get_conda_brightway2_var()
+#        super().__init__(directories[0])
+        super().__init__(ab_dir.user_data_dir,bw_dir)
     @staticmethod
     def move_old_settings(directory: str, filename: str) -> None:
         """ legacy code: This function is only required for compatibility
@@ -260,5 +259,5 @@ class ProjectSettings(BaseSettings):
         return (name for name, ro in iterator if not ro and name != "biosphere3")
 
 
-ab_settings = ABSettings()
+ab_settings = ABSettings("ABsettings.json")
 project_settings = ProjectSettings("AB_project_settings.json")

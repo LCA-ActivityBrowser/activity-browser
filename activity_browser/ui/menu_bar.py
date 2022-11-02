@@ -79,7 +79,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def update_windows_menu(self):
         """Clear and rebuild the menu for switching between tabs."""
-        self.windows_menu.clear()
+#        self.windows_menu.clear()
         for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
             widget = self.window.stacked.widget(index)
             self.windows_menu.addAction(

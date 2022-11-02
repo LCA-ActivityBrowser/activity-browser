@@ -120,8 +120,8 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
     def cleanup(self):
         if self.import_page.main_worker_thread.isRunning():
-            self.import_page.main_worker_thread.exit(1) # PLACEMARKER this should be fine and not cause
-        self.import_page.complete = False   # any issue
+            self.import_page.main_worker_thread.exit(1)
+        self.import_page.complete = False
         self.reject()
 
     @Slot(tuple, name="showMessage")
@@ -429,8 +429,7 @@ class ConfirmationPage(QtWidgets.QWizardPage):
                 'Ecoinvent version: <b>{}</b><br>Ecoinvent system model: <b>{}</b>'.format(
                     self.wizard.version, self.wizard.system_model))
 
-    def validatePage(self): # I am struggling to find the import_page attribute/method
-        # for the QWizardPage object
+    def validatePage(self):
         """
         while a worker thread is running, it's not possible to proceed to the import page.
         this is required because there is only one sentinel value for canceled imports

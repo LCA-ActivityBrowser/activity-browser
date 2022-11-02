@@ -107,7 +107,7 @@ def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
     safe_name = safe_filename(default, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         caption='Choose location to save svg',
-        dir=os.path.join(ab_settings.custom_bw_dir, safe_name),
+        dir=os.path.join(ab_settings.data_dir, safe_name),
         filter=file_filter,
     )
     return filepath
