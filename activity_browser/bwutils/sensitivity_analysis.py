@@ -416,13 +416,13 @@ class GlobalSensitivityAnalysis(object):
 
     def export_GSA_output(self):
         save_name = 'gsa_output_' + self.get_save_name()
-        self.df_final.to_excel(os.path.join(ab_settings.custom_bw_dir, save_name))
+        self.df_final.to_excel(os.path.join(ab_settings.data_dir, save_name))
 
     def export_GSA_input(self):
         """Export the input data to the GSA with a human readible index"""
         X_with_index = pd.DataFrame(self.X.T, index=self.metadata.index)
         save_name = 'gsa_input_' + self.get_save_name()
-        X_with_index.to_excel(os.path.join(ab_settings.custom_bw_dir, save_name))
+        X_with_index.to_excel(os.path.join(ab_settings.data_dir, save_name))
 
 if __name__ == "__main__":
     mc = perform_MonteCarlo_LCA(project='ei34', cs_name='kraft paper', iterations=20)
