@@ -30,6 +30,7 @@ requirements:
     - pyside2 >=5.13.1
     - salib >=1.4
     - seaborn
+    - bw2io ==0.8.7
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
