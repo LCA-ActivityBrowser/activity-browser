@@ -31,6 +31,7 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
     @QtCore.Slot(name="showHideTable")
     def showhide(self):
         self.widget.setVisible(self.isChecked())
+        signals.activity_table_toggled.emit()
 
     @QtCore.Slot(name="toggleEmptyTable")
     def toggle_empty_table(self) -> None:

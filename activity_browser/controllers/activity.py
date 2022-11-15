@@ -52,7 +52,7 @@ class ActivityController(QObject):
             production_exchange.save()
             bw.databases.set_modified(database_name)
             AB_metadata.update_metadata(new_act.key)
-            signals.open_activity_tab.emit(new_act.key)
+            signals.unsafe_open_activity_tab.emit(new_act.key)
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
 
@@ -129,7 +129,7 @@ class ActivityController(QObject):
                     product['input'] = new_act.key
             new_act.save()
             AB_metadata.update_metadata(new_act.key)
-            signals.open_activity_tab.emit(new_act.key)
+            signals.safe_open_activity_tab.emit(new_act.key)
 
         db = next(iter(activities)).get("database")
         bw.databases.set_modified(db)
@@ -165,7 +165,7 @@ class ActivityController(QObject):
             signals.database_changed.emit(target_db)
             signals.databases_changed.emit()
             for key in new_keys:
-                signals.open_activity_tab.emit(key)
+                signals.safe_open_activity_tab.emit(key)
 
     @Slot(str, object, name="copyActivityToDb")
     def duplicate_activity_to_db(self, target_db: str, activity: Activity):
@@ -176,7 +176,7 @@ class ActivityController(QObject):
         bw.databases.set_modified(target_db)
         signals.database_changed.emit(target_db)
         signals.databases_changed.emit()
-        signals.open_activity_tab.emit(new_key)
+        signals.safe_open_activity_tab.emit(new_key)
 
     @staticmethod
     def _copy_activity(target: str, act: Activity) -> tuple:

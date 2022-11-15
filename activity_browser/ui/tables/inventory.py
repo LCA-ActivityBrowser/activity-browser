@@ -180,13 +180,13 @@ class ActivitiesBiosphereTable(ABDataFrameView):
     @Slot(QtCore.QModelIndex, name="openActivityTab")
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
         key = self.model.get_key(proxy)
-        signals.open_activity_tab.emit(key)
+        signals.safe_open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
     @Slot(name="openActivityTabs")
     def open_activity_tabs(self) -> None:
         for key in (self.model.get_key(p) for p in self.selectedIndexes()):
-            signals.open_activity_tab.emit(key)
+            signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
 
     @Slot(name="deleteActivities")

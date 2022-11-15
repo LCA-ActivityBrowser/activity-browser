@@ -23,20 +23,21 @@ class ActivitiesTab(ABTab):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.open_activity_tab.connect(self.open_activity_tab)
+        signals.unsafe_open_activity_tab.connect(self.unsafe_open_activity_tab)
+        signals.safe_open_activity_tab.connect(self.safe_open_activity_tab)
         signals.activity_modified.connect(self.update_activity_name)
         self.tabCloseRequested.connect(self.close_tab)
         signals.close_activity_tab.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
 
     @Slot(tuple, name="openActivityTab")
-    def open_activity_tab(self, key: tuple) -> None:
+    def open_activity_tab(self, key: tuple, read_only: bool = True) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bw.get_activity(key)
             if not bc.is_technosphere_activity(act):
                 return
-            new_tab = ActivityTab(key)
+            new_tab = ActivityTab(key, read_only=read_only)
             self.tabs[key] = new_tab
             self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
@@ -45,6 +46,14 @@ class ActivitiesTab(ABTab):
 
         self.select_tab(self.tabs[key])
         signals.show_tab.emit("Activity Details")
+
+    @Slot(tuple,name="unsafeOpenActivityTab")
+    def unsafe_open_activity_tab(self, key: tuple) -> None:
+        self.open_activity_tab(key, False)
+
+    @Slot(tuple, name="safeOpenActivityTab")
+    def safe_open_activity_tab(self, key: tuple) -> None:
+        self.open_activity_tab(key)
 
     @Slot(tuple, str, object, name="updateActivityName")
     def update_activity_name(self, key, field, value):
@@ -71,6 +80,8 @@ class ActivityTab(QtWidgets.QWidget):
     The technosphere products (first table) of the visible activity are consumed by other activities downstream
     The final table of this tab lists these 'Downstream Consumers'
     """
+
+    open_table_toggles = []
 
     def __init__(self, key: tuple, parent=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
@@ -144,6 +155,9 @@ class ActivityTab(QtWidgets.QWidget):
             ("Downstream Consumers:", self.downstream),
         ]
         self.grouped_tables = [DetailsGroupBox(l, t) for l, t in self.exchange_tables]
+        if ActivityTab.open_table_toggles:
+            for i in range(len(self.grouped_tables)):
+                self.grouped_tables[i].setChecked(ActivityTab.open_table_toggles[i])
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
@@ -171,6 +185,10 @@ class ActivityTab(QtWidgets.QWidget):
         signals.database_changed.connect(self.populate)
         signals.parameters_changed.connect(self.populate)
         # signals.activity_modified.connect(self.update_activity_values)
+        signals.activity_table_toggled.connect(self.activity_tables)
+
+    def activity_tables(self) -> None:
+        ActivityTab.open_table_toggles = [table.isChecked() for table in self.grouped_tables]
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:
