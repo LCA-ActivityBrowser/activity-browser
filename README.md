@@ -74,11 +74,11 @@ activity-browser
 ## Installation
 
 ###  EcoInvent3.9 Compatibility and BrightWay2 
-| :warning: Brightway and activity-browser incompatibility with Ecoinvent 3.9                                                                                                                                           |
+| :warning: Brightway and activity-browser version conflicts regarding Ecoinvent 3.9                                                                                                                                           |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Unfortunately, as of the moment the activity-browser is not compatible with the latest EcoInvent version. To be able to use EcoInvent3.9 with the activity-browser a work-around is needed, which is described below. |
+| Unfortunately, as of the moment conflicts exist in bw2io versions in response to building compatibility with the latest EcoInvent versions. Consequently, a work-around is needed for some activity-browser use cases, these are described below. |
 
-To obtain and install EcoInvent3.9 the version 0.8.8 of the bw2io package is required, and an activity-browser environment with this version is required.
+To obtain and install EcoInvent 3.9 version 0.8.8 of the bw2io package is required, and an activity-browser environment with this version is required.
 
 #### Ecoinvent 3.9 (updating an old version)
 This is unfortunately not possible, to get EcoInvent 3.9 you will need to create a new environment for the activity browser and make sure the packages are recent bw2io == 0.8.8
