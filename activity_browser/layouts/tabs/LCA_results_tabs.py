@@ -375,7 +375,7 @@ class InventoryTab(NewAnalysisTab):
         button_layout = QHBoxLayout()
         self.radio_button_biosphere = QRadioButton("Biosphere flows")
         self.radio_button_biosphere.setChecked(True)
-        button_layout.addWidget(self.radio_button_biosphere)
+
         self.radio_button_technosphere = QRadioButton("Technosphere flows")
         self.remove_zeros_checkbox = QCheckBox("Remove '0' values")
         self.remove_zero_state = False
@@ -385,6 +385,7 @@ class InventoryTab(NewAnalysisTab):
                                               "When selected, '0' values are not shown.\n"
                                               "Rows are only removed when all reference flows are '0'.")
         self.scenario_label = QLabel("Scenario:")
+        button_layout.addWidget(self.radio_button_biosphere)
         button_layout.addWidget(self.radio_button_technosphere)
         button_layout.addWidget(self.scenario_label)
         button_layout.addWidget(self.scenario_box)

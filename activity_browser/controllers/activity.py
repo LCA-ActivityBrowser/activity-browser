@@ -52,9 +52,9 @@ class ActivityController(QObject):
             production_exchange.save()
             bw.databases.set_modified(database_name)
             AB_metadata.update_metadata(new_act.key)
-            signals.unsafe_open_activity_tab.emit(new_act.key)
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
+            signals.unsafe_open_activity_tab.emit(new_act.key)
 
     @Slot(tuple, name="deleteActivity")
     @Slot(list, name="deleteActivities")
