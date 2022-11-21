@@ -25,13 +25,12 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
             self.widget.itemChanged.connect(self.toggle_empty_table)
         # The model will have an 'updated' signal that is emitted whenever
         # a change is made to the underlying data.
-#        if hasattr(self.widget, "model"):
-#            self.widget.model.updated.connect(self.toggle_empty_table)
+        if hasattr(self.widget, "model"):
+            self.widget.model.updated.connect(self.toggle_empty_table)
 
     @QtCore.Slot(name="showHideTable")
     def showhide(self):
         self.widget.setVisible(self.isChecked())
-        signals.activity_table_toggled.emit(self.title(),self.isChecked())
 
     @QtCore.Slot(name="toggleEmptyTable")
     def toggle_empty_table(self) -> None:

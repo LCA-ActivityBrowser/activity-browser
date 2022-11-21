@@ -21,16 +21,7 @@ class ActivitiesTab(ABTab):
         super(ActivitiesTab, self).__init__(parent)
         self.setTabsClosable(True)
         self.connect_signals()
-        self.open_table_toggles = {
-            "Products:": True,
-            "Technosphere Flows:": True,
-            "Biosphere Flows:": True,
-            "Downstream Consumers:": False,
-        }
 
-    @Slot(name="updateActivityTablesState")
-    def update_activity_tables_state(self, key: str, value: bool) -> None:
-        self.open_table_toggles[key] = value
 
     def connect_signals(self):
         signals.unsafe_open_activity_tab.connect(self.unsafe_open_activity_tab)
@@ -39,18 +30,15 @@ class ActivitiesTab(ABTab):
         self.tabCloseRequested.connect(self.close_tab)
         signals.close_activity_tab.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
-        signals.activity_table_toggled.connect(self.update_activity_tables_state)
 
     @Slot(tuple, name="openActivityTab")
-    def open_activity_tab(self, key: tuple, read_only: bool = True, open_table_toggles: dict = None) -> None:
+    def open_activity_tab(self, key: tuple, read_only: bool = True) -> None:
         """Opens new tab or focuses on already open one."""
-        if not open_table_toggles:
-            open_table_toggles = self.open_table_toggles
         if key not in self.tabs:
             act = bw.get_activity(key)
             if not bc.is_technosphere_activity(act):
                 return
-            new_tab = ActivityTab(key, read_only=read_only,open_table_toggles=open_table_toggles)
+            new_tab = ActivityTab(key, read_only=read_only)
             self.tabs[key] = new_tab
             self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
@@ -62,7 +50,6 @@ class ActivitiesTab(ABTab):
 
     @Slot(tuple,name="unsafeOpenActivityTab")
     def unsafe_open_activity_tab(self, key: tuple) -> None:
-        table_toggles = {k: v if k in {"Downstream consumers"} else True for k, v in self.open_table_toggles.items()}
         self.open_activity_tab(key, False)
 
     @Slot(tuple, name="safeOpenActivityTab")
@@ -95,9 +82,7 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    open_table_toggles = []
-
-    def __init__(self, key: tuple, parent=None, read_only=True, open_table_toggles: dict ={}):
+    def __init__(self, key: tuple, parent=None, read_only=True):
         super(ActivityTab, self).__init__(parent)
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
@@ -185,8 +170,6 @@ class ActivityTab(QtWidgets.QWidget):
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
-        for i in range(len(self.grouped_tables)-1):
-            self.grouped_tables[i].setChecked(open_table_toggles[self.grouped_tables[i].title()])
         self.populate()
         # Hide the downstream table by default
         self.grouped_tables[-1].setChecked(False)

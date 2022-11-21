@@ -53,7 +53,6 @@ class Signals(QObject):
     # Activity editing
     edit_activity = Signal(str)  # db_name
     activity_modified = Signal(tuple, str, object)
-    activity_table_toggled = Signal(str, bool)
 
     # Exchanges
     exchanges_deleted = Signal(list)
