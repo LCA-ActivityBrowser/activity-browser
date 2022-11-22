@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 import pandas as pd
-
+import time
 
 # Different kinds of indexes, to allow for quick selection of data from
 # the Superstructure DataFrame.
@@ -31,3 +31,14 @@ def guess_flow_type(row: pd.Series) -> str:
         return "production"
     else:
         return "technosphere"
+
+def _time_it_(func):
+    """
+    For use as a wrapper to time the execution of functions using the python time library
+    """
+    def wrapper(*args):
+        now = time.time()
+        result = func(*args)
+        print(f"{func} -- " + str(time.time() - now))
+        return result
+    return wrapper

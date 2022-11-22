@@ -87,7 +87,7 @@ class DatabaseController(QObject):
         if ok and name:
             if name not in bw.databases:
                 bw.Database(name).register()
-                project_settings.add_db(name)
+                project_settings.add_db(name, False)
                 signals.databases_changed.emit()
                 signals.database_selected.emit(name)
             else:
@@ -108,7 +108,7 @@ class DatabaseController(QObject):
                 copy_progress = CopyDatabaseDialog(self.window)
                 copy_progress.show()
                 copy_progress.begin_copy(name, new_name)
-                project_settings.add_db(new_name)
+                project_settings.add_db(new_name, project_settings.db_is_readonly(name))
             except ValueError as e:
                 QtWidgets.QMessageBox.information(self.window, "Not possible", str(e))
 
