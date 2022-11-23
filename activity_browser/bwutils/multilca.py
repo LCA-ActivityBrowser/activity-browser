@@ -555,11 +555,14 @@ class Contributions(object):
         joined.reset_index(inplace=True, drop=True)
         return joined
 
-    def inventory_df(self, inventory_type: str):
+    def inventory_df(self, inventory_type: str, columns: set = {'name', 'database', 'code'}):
         """Returns an inventory dataframe with metadata of the given type.
         """
         try:
             data = self.inventory_data[inventory_type]
+            appending = columns.difference(set(data[3]))
+            for clmn in appending:
+                data[3].append(clmn)
         except KeyError:
             raise ValueError(
                 "Type must be either 'biosphere' or 'technosphere', "
@@ -772,3 +775,4 @@ class Contributions(object):
         )
         self.adjust_table_unit(labelled_df, method)
         return labelled_df
+
