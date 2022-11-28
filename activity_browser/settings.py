@@ -78,21 +78,23 @@ class ABSettings(BaseSettings):
             old_settings = os.path.join(package_dir, "ABsettings.json")
             if os.path.exists(old_settings):
                 shutil.copyfile(old_settings, file)
-        with open(file, "r") as current:
-            current_settings = json.load(current)
-        if 'current_bw_dir' not in current_settings:
-            new_settings_content = {'current_bw_dir' : current_settings['custom_bw_dir'],\
+        if os.path.isfile(file):
+            with open(file, "r") as current:
+                current_settings = json.load(current)
+            if 'current_bw_dir' not in current_settings:
+                new_settings_content = {'current_bw_dir' : current_settings['custom_bw_dir'],\
                                     'custom_bw_dirs' : [current_settings['custom_bw_dir']],\
                                     'startup_project' : current_settings['startup_project']}
-            with open(file, 'w') as new_file:
-                json.dump(new_settings_content, new_file)
+                with open(file, 'w') as new_file:
+                    json.dump(new_settings_content, new_file)
 
     @classmethod
     def get_default_settings(cls) -> dict:
         """ Using methods from the commontasks file to set default settings
         """
         return {
-            "custom_bw_dirs": {cls.get_default_directory()},
+            "current_bw_dir": {cls.get_default_directory()},
+            "custom_bw_dirs": [cls.get_default_directory()],
             "startup_project": cls.get_default_project_name(),
         }
 
