@@ -169,8 +169,6 @@ class SettingsPage(QtWidgets.QWizardPage):
         ab_settings.remove_custom_bw_dir(removed_dir)
 
     def bwdir_change(self, path: str):
-        self.bwdir_name.setText(path)
-        self.registerField('current_bw_dir', self.bwdir_name)
         self.change_bw_dir(path)
 
     def bwdir_browse(self):
@@ -195,6 +193,8 @@ class SettingsPage(QtWidgets.QWizardPage):
             if create_new_directory == QtWidgets.QMessageBox.Cancel:
                 return
             else:
+                self.bwdir_name.setText(path)
+                self.registerField('current_bw_dir', self.bwdir_name)
                 self.combobox_add_dir(self.bwdir, path)
                 bw.projects.set_current("default")
                 self.update_project_combo()
@@ -207,6 +207,8 @@ class SettingsPage(QtWidgets.QWizardPage):
                                                    'Would you like to switch to this directory now? \nThis will close your currently opened project. \nClick "Yes" to be able to choose the startup project.',
                                                    QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.No)
+            self.bwdir_name.setText(path)
+            self.registerField('current_bw_dir', self.bwdir_name)
             if path not in self.bwdir_variables:
                 self.combobox_add_dir(self.bwdir, path)
             ab_settings.current_bw_dir = path
