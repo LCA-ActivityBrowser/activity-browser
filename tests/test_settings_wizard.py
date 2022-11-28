@@ -14,7 +14,7 @@ def test_settings_wizard_simple(qtbot, bw2test):
 
     # Check that the default fields are default
     assert wizard.field("startup_project") == "default"
-    assert wizard.field("custom_bw_dir") == ""
+    assert wizard.field("current_bw_dir") == ""
     assert wizard.last_bwdir == bw.projects._base_data_dir
 
     # We can't click 'Save' from the start.
