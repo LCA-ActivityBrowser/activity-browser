@@ -93,7 +93,7 @@ class ABSettings(BaseSettings):
         """ Using methods from the commontasks file to set default settings
         """
         return {
-            "current_bw_dir": {cls.get_default_directory()},
+            "current_bw_dir": cls.get_default_directory(),
             "custom_bw_dirs": [cls.get_default_directory()],
             "startup_project": cls.get_default_project_name(),
         }
