@@ -397,8 +397,6 @@ class InventoryTab(NewAnalysisTab):
         self.scenario_label = QLabel("Scenario:")
 
         # Group the radio buttons into the appropriate groups for the window
-        self.bio_tech_button_group.addButton(self.radio_button_biosphere)
-        self.bio_tech_button_group.addButton(self.radio_button_technosphere)
         self.update_combobox(self.bio_categorisation_factor_group, self.categorisation_factor_filters)
         self.bio_categorisation_factor_group.setMaximumWidth(300)
         self.bio_categorisation_factor_group.setSizeAdjustPolicy(QComboBox.AdjustToContentsOnFirstShow)

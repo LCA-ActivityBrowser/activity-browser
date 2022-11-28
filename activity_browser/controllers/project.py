@@ -35,7 +35,7 @@ class ProjectController(QObject):
     def load_settings(self) -> None:
         if ab_settings.settings:
             print("Loading user settings:")
-            self.switch_brightway2_dir_path(dirpath=ab_settings.custom_bw_dir)
+            self.switch_brightway2_dir_path(dirpath=ab_settings.current_bw_dir)
             self.change_project(ab_settings.startup_project)
         print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         print('Brightway2 active project: {}'.format(bw.projects.current))
