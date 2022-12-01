@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import sys
 from pathlib import Path
+from shutil import rmtree
 import shutil
+import importlib
 from typing import Optional
 
 import appdirs
@@ -59,11 +62,23 @@ class ABSettings(BaseSettings):
     """
     def __init__(self, filename: str):
         ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
+        self.plugins_dir = os.path.join(ab_dir.user_data_dir, "plugins")
+
         if not os.path.isdir(ab_dir.user_data_dir):
             os.makedirs(ab_dir.user_data_dir, exist_ok=True)
         self.move_old_settings(ab_dir.user_data_dir, filename)
 
         super().__init__(ab_dir.user_data_dir, filename)
+
+        if "plugins_list" not in self.settings:
+            self.settings.update({"plugins_list":{}})
+            self.write_settings()
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        signals.delete_plugin.connect(self.remove_plugin)
+        signals.plugin_imported.connect(self.add_plugin)
 
     @staticmethod
     def move_old_settings(directory: str, filename: str) -> None:
@@ -77,13 +92,13 @@ class ABSettings(BaseSettings):
             if os.path.exists(old_settings):
                 shutil.copyfile(old_settings, file)
 
-    @classmethod
-    def get_default_settings(cls) -> dict:
+    def get_default_settings(self) -> dict:
         """ Using methods from the commontasks file to set default settings
         """
         return {
-            "custom_bw_dir": cls.get_default_directory(),
-            "startup_project": cls.get_default_project_name(),
+            "custom_bw_dir": self.get_default_directory(),
+            "startup_project": self.get_default_project_name(),
+            "plugins_list": {}
         }
 
     @property
@@ -132,6 +147,31 @@ class ABSettings(BaseSettings):
         else:
             return None
 
+    def add_plugin(self, plugin, name):
+        """ Add a plugin to settings
+        """
+        self.settings["plugins_list"][name] = plugin.infos
+        self.write_settings()
+        signals.plugins_changed.emit()
+
+    def remove_plugin(self, plugin_name: str) -> None:
+        """ When a plugin is deleted from a project, the settings are also deleted.
+        """
+        self.settings["plugins_list"].pop(plugin_name, None)
+        self.write_settings()
+        signals.plugins_changed.emit()
+
+    def get_plugins_list(self):
+        """ Return a list of plugins names
+        """
+        list = [ n for n in self.settings["plugins_list"].keys() ]
+        return list
+
+    def get_plugins(self):
+        """ Return the dictionary containing plugins infos
+        """
+        return self.settings["plugins_list"]
+
 
 class ProjectSettings(BaseSettings):
     """
@@ -162,18 +202,25 @@ class ProjectSettings(BaseSettings):
         if "read-only-databases" not in self.settings:
             self.settings.update(self.process_brightway_databases())
             self.write_settings()
+        if "plugins_list" not in self.settings:
+            self.settings.update({"plugins_list":[]})
+            self.write_settings()
 
     def connect_signals(self):
         """ Reload the project settings whenever a project switch occurs.
         """
         signals.project_selected.connect(self.reset_for_project_selection)
-        signals.delete_project.connect(self.reset_for_project_selection)
+        signals.plugin_selected.connect(self.add_plugin)
+        signals.delete_plugin.connect(self.remove_plugin)
+        signals.plugin_deselected.connect(self.remove_plugin)
 
     @classmethod
     def get_default_settings(cls) -> dict:
         """ Return default empty settings dictionary.
         """
-        return cls.process_brightway_databases()
+        settings = cls.process_brightway_databases()
+        settings["plugins_list"] = []
+        return settings
 
     @staticmethod
     def process_brightway_databases() -> dict:
@@ -223,6 +270,24 @@ class ProjectSettings(BaseSettings):
         """
         iterator = self.settings.get("read-only-databases", {}).items()
         return (name for name, ro in iterator if not ro and name != "biosphere3")
+
+    def add_plugin(self, name: str):
+        """ Add a plugin to settings
+        """
+        self.settings["plugins_list"].append(name)
+        self.write_settings()
+
+    def remove_plugin(self, name: str) -> None:
+        """ When a plugin is deselected from a project, remove it from settings
+        """
+        if name in self.settings["plugins_list"]:
+            self.settings["plugins_list"].remove(name)
+            self.write_settings()
+
+    def get_plugins_list(self):
+        """ Return a list of plugins names
+        """
+        return self.settings["plugins_list"]
 
 
 ab_settings = ABSettings("ABsettings.json")

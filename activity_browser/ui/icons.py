@@ -70,6 +70,10 @@ class Icons(object):
     welcome = create_path('main', 'welcome.png')
     main_window = create_path('main', 'home.png')
 
+    # plugins
+    plugin = create_path('main', 'plugin.png')
+    import_plugin = create_path('main', 'import_plugin.png')
+
     # other
     superstructure = create_path('main', 'superstructure.png')
     copy_to_clipboard = create_path('main', 'copy_to_clipboard.png')

@@ -16,6 +16,12 @@ class ABTab(QtWidgets.QTabWidget):
         signals.toggle_show_or_hide_tab.connect(self.toggle_tab_visibility)
         signals.hide_when_empty.connect(self.hide_when_empty)
 
+    def add_tab(self, obj, tab_name):
+        """Default addTab method and add item to self.tabs
+        """
+        self.tabs[tab_name] = obj
+        self.addTab(obj, tab_name)
+
     def select_tab(self, obj):
         """Brings tab to focus."""
         self.setCurrentIndex(self.indexOf(obj))

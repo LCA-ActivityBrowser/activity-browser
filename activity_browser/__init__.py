@@ -7,6 +7,7 @@ from PySide2.QtCore import QSysInfo, __version__ as qt_version
 from PySide2.QtWidgets import QApplication
 
 from .application import Application
+from .plugin import Plugin
 from .info import __version__
 
 

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import importlib.util
+import traceback
 import sys
+import shutil
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -9,15 +12,17 @@ from ..ui.statusbar import Statusbar
 from ..ui.style import header
 from ..ui.utils import StdRedirector
 from .panels import LeftPanel, RightPanel
+from ..signals import signals
 
 
 class MainWindow(QtWidgets.QMainWindow):
     DEFAULT_NO_METHOD = 'No method selected yet'
 
-    def __init__(self):
+    def __init__(self, parent):
         super(MainWindow, self).__init__(None)
 
         self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
+        self.parent = parent
 
         # Window title
         self.setWindowTitle("Activity Browser")
@@ -91,6 +96,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.connect_signals()
 
+    def closeEvent(self,event):
+        self.parent.close()
+
     def connect_signals(self):
         # Keyboard shortcuts
         self.shortcut_debug = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+D"), self)
@@ -115,7 +123,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def add_tab_to_panel(self, obj, label, side):
         panel = self.left_panel if side == 'left' else self.right_panel
-        panel.addTab(obj, label)
+        panel.add_tab(obj, label)
 
     def select_tab(self, obj, side):
         panel = self.left_panel if side == 'left' else self.right_panel
