@@ -185,13 +185,9 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.setup_search()
 
         # Overall Layout
-        self.filter = QtWidgets.QPushButton(qicons.filter_icon, 'FILTER!')
-        self.filter.clicked.connect(signals.temporary_signal.emit)
-
         self.v_layout = QtWidgets.QVBoxLayout()
         self.v_layout.setAlignment(QtCore.Qt.AlignTop)
         self.v_layout.addWidget(self.header_widget)
-        self.v_layout.addWidget(self.filter)
         self.v_layout.addWidget(self.table)
         self.setLayout(self.v_layout)
 

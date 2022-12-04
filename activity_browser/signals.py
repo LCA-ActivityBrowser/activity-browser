@@ -7,7 +7,6 @@ class Signals(QObject):
     While arguments can be passed to signals, it is good practice not to do this if possible. """
 
     # General Settings
-    temporary_signal = Signal()
 
     # bw2 directory
     switch_bw2_dir_path = Signal(str)

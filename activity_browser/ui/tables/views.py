@@ -4,12 +4,13 @@ from functools import wraps
 from typing import Optional
 
 from bw2data.filesystem import safe_filename
-from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot
-from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication
+from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint
+from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction
 from PySide2.QtGui import QKeyEvent
 
 from ...settings import ab_settings
 from ..widgets.dialog import TableFilterDialog
+from ..icons import qicons
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
 
@@ -132,7 +133,44 @@ class ABFilterableDataFrameView(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.horizontalHeader().setContextMenuPolicy(Qt.CustomContextMenu)
+        self.horizontalHeader().customContextMenuRequested.connect(self.headerContextMenuEvent)
+
         self.filters = None
+
+    def headerContextMenuEvent(self, local_pos: QPoint) -> None:
+        index = self.indexAt(local_pos)
+        column = int(index.column())
+        if index.row() == -1:
+            return
+
+        menu = QMenu(self)
+        # Show options for managing filters
+        menu.addAction(
+            qicons.add, 'Add Filter',
+            lambda: self.start_filter_dialog(column))
+        menu.addAction(
+            qicons.delete, 'Remove all filters in this column',
+            lambda: self.reset_column_filters(column))
+        menu.addAction(
+            qicons.delete, 'Remove all filters in this table',
+            lambda: self.reset_filters())
+
+        # Show existing filters for column
+        if isinstance(self.filters, dict) and self.filters.get(column, False):
+            sub_menu = QMenu(menu)
+            sub_menu.setTitle('Active filters on column')
+            filter_entries = []
+            for filter in self.filters[index.column()]['filters']:
+                filter_str = ': '.join([filter[0], filter[1]])
+                f_menu = QAction(qicons.filter_icon, filter_str)
+                f_menu.setEnabled(False)
+                filter_entries.append(f_menu)
+            for f_menu in filter_entries:
+                sub_menu.addAction(f_menu)
+            menu.addMenu(sub_menu)
+
+        menu.exec_(self.mapToGlobal(local_pos))
 
     @Slot(name="updateProxyModel")
     def update_proxy_model(self) -> None:
@@ -141,12 +179,12 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         self.setModel(self.proxy_model)
 
-    def start_filter_dialog(self) -> None:
+    def start_filter_dialog(self, selected_column: int = 0) -> None:
         # get right data
         column_names = self.model.visible_columns
 
         # show dialog
-        dialog = TableFilterDialog(column_names, self.filters, selected_column=0)
+        dialog = TableFilterDialog(column_names, self.filters, selected_column=selected_column)
         if dialog.exec_() == TableFilterDialog.Accepted:
             filters = dialog.get_filters
             self.filters = filters
@@ -158,6 +196,11 @@ class ABFilterableDataFrameView(ABDataFrameView):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         self.proxy_model.set_filters(self.filters)
         QApplication.restoreOverrideCursor()
+
+    def reset_column_filters(self, idx: int) -> None:
+        """Reset all filters for this column"""
+        self.filters.pop(idx)
+        self.apply_filters()
 
     def reset_filters(self) -> None:
         self.filters = None

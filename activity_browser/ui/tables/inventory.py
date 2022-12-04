@@ -174,7 +174,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
         signals.database_selected.connect(self.reset_filters)
-        signals.temporary_signal.connect(self.start_filter_dialog)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
