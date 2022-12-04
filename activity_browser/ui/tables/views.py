@@ -135,6 +135,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
     To use this table, the following can be set in the table view:
     - self.different_column_types: dict --> these columns require a different filter type than 'str'
+        e.g. self.different_column_types = {'col_name': 'num'}
     """
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -197,13 +198,17 @@ class ABFilterableDataFrameView(ABDataFrameView):
                                    column_types=self.different_column_types)
         if dialog.exec_() == TableFilterDialog.Accepted:
             filters = dialog.get_filters
-            self.filters = filters
+            self.write_filters(filters)
             self.apply_filters()
 
+    def write_filters(self, filters: dict) -> None:
+        self.filters = filters
+
     def apply_filters(self) -> None:
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        self.proxy_model.set_filters(self.filters)
-        QApplication.restoreOverrideCursor()
+        if self.filters:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            self.proxy_model.set_filters(self.filters)
+            QApplication.restoreOverrideCursor()
 
     def reset_column_filters(self, idx: int) -> None:
         """Reset all filters for this column"""
@@ -252,12 +257,22 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
         # ordered from most important to least important
         self.custom_column_order = None
 
+        # metric to keep track of successful matches on filter
+        self.matches = 0
+
+        # custom filter activation
+        self.activate_filter = False
+
     def set_filters(self, filters: dict) -> None:
         if filters.get('mode', False):
             self.filter_mode = filters['mode']
             filters.pop('mode')
             self.filters = filters
+            self.matches = 0
+            self.activate_filter = True
             self.invalidateFilter()
+            self.activate_filter = False
+            print('{} filter matches found'.format(self.matches))
             self.filters['mode'] = self.filter_mode
         else:
             print("WARNING: missing filter mode, assuming 'AND'")
@@ -332,6 +347,10 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
 
         Return a boolean whether or not to keep the row.
         """
+        # check if self.activate_filter is enabled, else return True
+        if not self.activate_filter:
+            return True
+
         # get the data of the row
         row_data = self.sourceModel().row_data(row)
 
@@ -346,18 +365,21 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
             if i in self.filters.keys():
                 col_data = row_data[i]
                 test = self.apply_filter_tests(idx=i, value=col_data)
-                if test and self.filter_mode == "AND":
+                if not test and self.filter_mode == "AND":
                     return False
                 tests.append(test)
 
         if self.filter_mode == 'AND':
-            return all(tests)
+            matched = all(tests)
+            if matched: self.matches += 1
         elif self.filter_mode == 'OR':
-            return any(tests)
+            matched = any(tests)
+            if matched: self.matches += 1
         else:
             print("WARNING: unknown filter mode >{}<, assuming 'AND'".format(self.filter_mode))
-            return all(tests)
-
+            matched = all(tests)
+            if matched: self.matches += 1
+        return matched
 
 class ABDictTreeView(QTreeView):
     def __init__(self, parent=None):
