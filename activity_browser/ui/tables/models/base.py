@@ -26,6 +26,7 @@ class PandasModel(QAbstractTableModel):
     def __init__(self, df: pd.DataFrame = None, parent=None):
         super().__init__(parent)
         self._dataframe: Optional[pd.DataFrame] = df
+        self.visible_columns = None
 
     def rowCount(self, parent=None, *args, **kwargs):
         return self._dataframe.shape[0]
@@ -66,6 +67,10 @@ class PandasModel(QAbstractTableModel):
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             return self._dataframe.index[section]
         return None
+
+    def row_data(self, index: int) -> list:
+        """Return the row at index as a list."""
+        return self._dataframe.iloc[index, :].tolist()
 
     def to_clipboard(self, rows, columns, include_header: bool = False):
         """ Copy the given rows and columns of the dataframe to clipboard

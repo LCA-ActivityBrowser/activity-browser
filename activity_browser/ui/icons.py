@@ -73,6 +73,7 @@ class Icons(object):
     # other
     superstructure = create_path('main', 'superstructure.png')
     copy_to_clipboard = create_path('main', 'copy_to_clipboard.png')
+    filter_icon = create_path('main', 'filter.png')
 
 
 class QIcons(Icons):

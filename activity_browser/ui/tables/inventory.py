@@ -7,7 +7,7 @@ from ...signals import signals
 from ..icons import qicons
 from .delegates import CheckboxDelegate
 from .models import DatabasesModel, ActivitiesBiosphereModel
-from .views import ABDataFrameView
+from .views import ABDataFrameView, ABFilterableDataFrameView
 
 
 class DatabasesTable(ABDataFrameView):
@@ -98,7 +98,7 @@ class DatabasesTable(ABDataFrameView):
         return self.model.get_db_name(self.currentIndex())
 
 
-class ActivitiesBiosphereTable(ABDataFrameView):
+class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.db_read_only = True
@@ -173,6 +173,8 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
+        signals.database_selected.connect(self.reset_filters)
+        signals.temporary_signal.connect(self.start_filter_dialog)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)

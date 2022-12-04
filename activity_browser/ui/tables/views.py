@@ -5,10 +5,11 @@ from typing import Optional
 
 from bw2data.filesystem import safe_filename
 from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot
-from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView
+from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication
 from PySide2.QtGui import QKeyEvent
 
 from ...settings import ab_settings
+from ..widgets.dialog import TableFilterDialog
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
 
@@ -123,6 +124,183 @@ class ABDataFrameView(QTableView):
                 rows = sorted(set(rows), key=rows.index)
                 columns = sorted(set(columns), key=columns.index)
                 self.model.to_clipboard(rows, columns, headers)
+
+
+class ABFilterableDataFrameView(ABDataFrameView):
+    """ Filterable base class for showing pandas dataframe objects as tables.
+            """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.filters = None
+
+    @Slot(name="updateProxyModel")
+    def update_proxy_model(self) -> None:
+        self.proxy_model = ABMultiColumnSortProxyModel(self)
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
+        self.setModel(self.proxy_model)
+
+    def start_filter_dialog(self) -> None:
+        # get right data
+        column_names = self.model.visible_columns
+
+        # show dialog
+        dialog = TableFilterDialog(column_names, self.filters, selected_column=0)
+        if dialog.exec_() == TableFilterDialog.Accepted:
+            filters = dialog.get_filters
+            self.filters = filters
+            self.apply_filters()
+
+    def apply_filters(self) -> None:
+        # if a column sort order is possible, use [key, activity, product, classification, location, unit]
+        # each option is less likely to cut out many options than the last one
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        self.proxy_model.set_filters(self.filters)
+        QApplication.restoreOverrideCursor()
+
+    def reset_filters(self) -> None:
+        self.filters = None
+
+
+class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
+    """ Subclass of QSortFilterProxyModel to enable sorting on multiple columns.
+
+    The main purpose of this subclass is to override def filterAcceptsRow().
+
+    Subclass based on various ideas from:
+    https://stackoverflow.com/questions/47201539/how-to-filter-multiple-column-in-qtableview
+    http://www.dayofthenewdan.com/2013/02/09/Qt_QSortFilterProxyModel.html
+    https://gist.github.com/dbridges/4732790
+    """
+    def __init__(self, parent=None):
+        super(ABMultiColumnSortProxyModel, self).__init__(parent)
+
+        # filter_mode should be AND or OR
+        # defines how filter on different columns is combined
+        self.filter_mode = 'AND'
+
+        # filters contains all filters used as a list per column
+        # example:
+        # self.filters = {
+        #     0: {'filters': [('contains', 'heat', False), ('contains', 'electricity', False)],
+        #         'mode': 'OR'},
+        #     1: {'filters': [('contains', 'market', False)]}
+        # }
+        # this would filter for heat OR electricity in column 0 (Products) and in column 1 (Activity) for market.
+        # filters is a required argument for each column that is filtered and is a list of tuples.
+        # list elements contain a tuple with the search mode, the search term and if searching on string,
+        # a boolean for case sensitive.
+        # mode is optional and regards how the filters are combined within a column and is either "AND" or "OR"
+        #
+        self.filters = {}
+
+        # custom_column_order can be used to optimize the order of columns being searched IF the filter_mode is AND
+        # custom_column_order should be written as list with column indices,
+        # ordered from most important to least important
+        self.custom_column_order = None
+
+    def set_filters(self, filters: dict) -> None:
+        if filters.get('mode', False):
+            self.filter_mode = filters['mode']
+            filters.pop('mode')
+            self.filters = filters
+            self.invalidateFilter()
+            self.filters['mode'] = self.filter_mode
+        else:
+            print("WARNING: missing filter mode, assuming 'AND'")
+            self.clear_filters()
+
+    def clear_filters(self) -> None:
+        self.filters = {}
+        self.invalidateFilter()
+
+    def tester(self, test_type: str, a, b) -> bool:
+        """Compare a and b on test_type.
+        a = filter term
+        b = column value
+        """
+        if test_type == 'equals' or test_type == '=':
+            return a == b
+        elif test_type == 'does not equal' or test_type == '!=':
+            return a != b
+        elif test_type == 'contains':
+            return a in b
+        elif test_type == 'does not contain':
+            return a not in b
+        elif test_type == 'starts with':
+            return b.startswith(a)
+        elif test_type == 'does not start with':
+            return not b.startswith(a)
+        elif test_type == 'ends with':
+            return b.endswith(a)
+        elif test_type == 'does not end with':
+            return not b.endswith(a)
+        elif test_type == '>=':
+            return b >= a
+        elif test_type == '<=':
+            return b >= a
+        else:
+            print("WARNING: unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
+            return a == b
+
+    def apply_filter_tests(self, idx: int, value) -> bool:
+        """Apply all filter tests in self.filters for column idx.
+
+        Return a boolean whether or not the tests for column idx pass
+        """
+        filter_tests = self.filters.get(idx)
+
+        # iterate over each test and call self.tester with the right data for each test
+        tests = []
+        for test in filter_tests['filters']:
+            test_type, filter_val = test[0], test[1]
+            if len(test) == 3 and not test[2]:
+                # test[2] is a bool for case sensitivity
+                filter_val, value = str(filter_val).lower(), str(value).lower()
+                test_result = self.tester(test_type, str(filter_val), str(value))
+            else:
+                test_result = self.tester(test_type, filter_val, value)
+            tests.append(test_result)
+
+        if len(tests) > 1:
+            if filter_tests['mode'] == "OR":
+                return any(tests)
+            else:
+                return all(tests)
+        return all(tests)
+
+    def filterAcceptsRow(self, row: int, parent) -> bool:
+        """Iterate over each column in the row and test the filters in self.filters for relevant columns.
+
+        Return a boolean whether or not to keep the row.
+        """
+        # get the data of the row
+        row_data = self.sourceModel().row_data(row)
+
+        # if a custom order is defined, use it, else just go from left to right
+        if isinstance(self.custom_column_order, dict):
+            column_order = self.custom_column_order
+        else:
+            column_order = [i for i in range(len(row_data))]
+
+        # iterate over each column in the row and apply filter tests
+        tests = []
+        for i in column_order:
+            if i in self.filters.keys():
+                col_data = row_data[i]
+                test = self.apply_filter_tests(idx=i, value=col_data)
+                if test == False and self.filter_mode == "AND":
+                    return False
+                tests.append(test)
+
+        if self.filter_mode == 'AND':
+            return all(tests)
+        elif self.filter_mode == 'OR':
+            return any(tests)
+        else:
+            print("WARNING: unknown filter mode >{}<, assuming 'AND'".format(self.filter_mode))
+            return all(tests)
 
 
 class ABDictTreeView(QTreeView):

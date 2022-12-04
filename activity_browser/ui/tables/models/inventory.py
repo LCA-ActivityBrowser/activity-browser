@@ -123,6 +123,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         df = self.df_from_metadata(db_name)
         self._dataframe = df.reset_index(drop=True)
+        self.visible_columns = self._dataframe.columns.to_list()
         QApplication.restoreOverrideCursor()
         self.updated.emit()
 
