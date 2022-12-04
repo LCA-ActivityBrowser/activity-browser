@@ -6,17 +6,18 @@ from PySide2.QtCore import QModelIndex, Slot
 
 from ...signals import signals
 from ..icons import qicons
-from .views import ABDataFrameView, ABDictTreeView
+from .views import ABDataFrameView, ABDictTreeView, ABFilterableDataFrameView
 from .models import CFModel, MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
 
 
-class MethodsTable(ABDataFrameView):
+class MethodsTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setDragEnabled(True)
-        self.setDragDropMode(ABDataFrameView.DragOnly)
+        self.setDragDropMode(ABFilterableDataFrameView.DragOnly)
         self.model = MethodsListModel(self)
+        self.different_column_types = self.model.different_column_types
 
         self.doubleClicked.connect(
             lambda p: signals.method_selected.emit(self.model.get_method(p))

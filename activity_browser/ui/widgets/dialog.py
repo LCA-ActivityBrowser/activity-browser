@@ -324,7 +324,8 @@ class TableFilterDialog(QtWidgets.QDialog):
     AND/OR for combining columns can also be chosen.
 
     Required inputs:
-    - column names: list --> the column names
+    - column names: dict --> the column names and their indices in the table
+        format: {'col_name': i}
     Optional inputs:
     - filters: dict --> pre-apply filters in the dialog (see format example below)
     - selected_column: int --> open the dialog with this column tab open
@@ -344,7 +345,7 @@ class TableFilterDialog(QtWidgets.QDialog):
             1: {'filters': [('contains', 'market', False)]}
         }
     """
-    def __init__(self, column_names: list,
+    def __init__(self, column_names: dict,
                  filters: dict = None,
                  selected_column: int = 0,
                  column_types: dict = {},
@@ -362,8 +363,7 @@ class TableFilterDialog(QtWidgets.QDialog):
         self.tab_widget = QtWidgets.QTabWidget()
         self.tabs = []
 
-        for i in range(len(column_names)):
-            col_name = column_names[i]
+        for col_name, i in column_names.items():
             tab = ColumnFilterTab(parent=self,
                                   state=self.filters.get(i, None),
                                   col_type=column_types.get(col_name, 'str')
@@ -393,6 +393,7 @@ class TableFilterDialog(QtWidgets.QDialog):
 
         # set the column that launched the dialog as the open tab
         self.tab_widget.setCurrentIndex(selected_column)
+        self.tabs[selected_column].filter_rows[-1].filter_query_line.setFocus()
 
     @property
     def get_filters(self) -> dict:
@@ -558,6 +559,7 @@ class FilterRow(QtWidgets.QWidget):
 
         # create the filter input line
         self.filter_query_line = QtWidgets.QLineEdit()
+        self.filter_query_line.setFocusPolicy(Qt.StrongFocus)
         layout.addWidget(self.filter_query_line)
 
         # if there's case-sensitive, add that
@@ -587,13 +589,21 @@ class FilterRow(QtWidgets.QWidget):
         # if valid, return a tuple with the state, otherwise, return None
         if query_line == '':
             return None
+
         selected_type = self.filter_type_box.currentText()
         selected_query = self.filter_query_line.text()
-        case_sensitive = self.filter_case_sensitive_check.isChecked()
-        return selected_type, selected_query, case_sensitive
+        if self.column_type == 'num':
+            state = selected_type, selected_query
+        else:
+            case_sensitive = self.filter_case_sensitive_check.isChecked()
+            state = selected_type, selected_query, case_sensitive
+        return state
 
     def set_state(self, state: tuple) -> None:
-        selected_type, selected_query, case_sensitive = state
+        if self.column_type == 'str':
+            selected_type, selected_query, case_sensitive = state
+        else:
+            selected_type, selected_query = state
         self.filter_type_box.setCurrentIndex(self.filter_type.index(selected_type))
         self.filter_query_line.setText(selected_query)
         if self.column_type == 'str':

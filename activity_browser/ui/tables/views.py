@@ -129,7 +129,13 @@ class ABDataFrameView(QTableView):
 
 class ABFilterableDataFrameView(ABDataFrameView):
     """ Filterable base class for showing pandas dataframe objects as tables.
-            """
+
+    To use this table, the following must be set in the table model:
+    - self.visible_columns: dict --> these columns are available for filtering
+
+    To use this table, the following can be set in the table view:
+    - self.different_column_types: dict --> these columns require a different filter type than 'str'
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -137,6 +143,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.horizontalHeader().customContextMenuRequested.connect(self.headerContextMenuEvent)
 
         self.filters = None
+        self.different_column_types = {}
 
     def headerContextMenuEvent(self, local_pos: QPoint) -> None:
         index = self.indexAt(local_pos)
@@ -147,7 +154,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         menu = QMenu(self)
         # Show options for managing filters
         menu.addAction(
-            qicons.add, 'Add Filter',
+            qicons.copy, 'Edit Filters',
             lambda: self.start_filter_dialog(column))
         menu.addAction(
             qicons.delete, 'Remove all filters in this column',
@@ -184,15 +191,16 @@ class ABFilterableDataFrameView(ABDataFrameView):
         column_names = self.model.visible_columns
 
         # show dialog
-        dialog = TableFilterDialog(column_names, self.filters, selected_column=selected_column)
+        dialog = TableFilterDialog(column_names,
+                                   self.filters,
+                                   selected_column=selected_column,
+                                   column_types=self.different_column_types)
         if dialog.exec_() == TableFilterDialog.Accepted:
             filters = dialog.get_filters
             self.filters = filters
             self.apply_filters()
 
     def apply_filters(self) -> None:
-        # if a column sort order is possible, use [key, activity, product, classification, location, unit]
-        # each option is less likely to cut out many options than the last one
         QApplication.setOverrideCursor(Qt.WaitCursor)
         self.proxy_model.set_filters(self.filters)
         QApplication.restoreOverrideCursor()
@@ -204,6 +212,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
     def reset_filters(self) -> None:
         self.filters = None
+        self.proxy_model.clear_filters()
 
 
 class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
@@ -254,6 +263,11 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
             print("WARNING: missing filter mode, assuming 'AND'")
             self.clear_filters()
 
+    def set_custom_column_order(self) -> None:
+        # if a custom order is defined, use it, else just go from left to right
+        if isinstance(self.custom_column_order, dict):
+            self.custom_column_order_list = [self.custom_column_order[i] for i in range(len(self.custom_column_order))]
+
     def clear_filters(self) -> None:
         self.filters = {}
         self.invalidateFilter()
@@ -280,9 +294,9 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
         elif test_type == 'does not end with':
             return not b.endswith(a)
         elif test_type == '>=':
-            return b >= a
+            return float(b) >= float(a)
         elif test_type == '<=':
-            return b >= a
+            return float(b) <= float(a)
         else:
             print("WARNING: unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
             return a == b
@@ -321,11 +335,10 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
         # get the data of the row
         row_data = self.sourceModel().row_data(row)
 
-        # if a custom order is defined, use it, else just go from left to right
-        if isinstance(self.custom_column_order, dict):
-            column_order = self.custom_column_order
+        if self.custom_column_order:
+            column_order = self.custom_column_order_list
         else:
-            column_order = [i for i in range(len(row_data))]
+            column_order = range(len(row_data))
 
         # iterate over each column in the row and apply filter tests
         tests = []
@@ -333,7 +346,7 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
             if i in self.filters.keys():
                 col_data = row_data[i]
                 test = self.apply_filter_tests(idx=i, value=col_data)
-                if test == False and self.filter_mode == "AND":
+                if test and self.filter_mode == "AND":
                     return False
                 tests.append(test)
 

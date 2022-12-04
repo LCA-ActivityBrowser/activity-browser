@@ -20,6 +20,7 @@ class MethodsListModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.method_col = 0
+        self.different_column_types = {'# CFs': 'num'}
         signals.project_selected.connect(self.sync)
         signals.new_method.connect(self.filter_on_method)
 
@@ -48,6 +49,7 @@ class MethodsListModel(DragPandasModel):
             self.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
         self.method_col = self._dataframe.columns.get_loc("method")
+        self.visible_columns = {col: i for i, col in enumerate(self.HEADERS) if i is not self.method_col}
         self.updated.emit()
 
     @staticmethod
