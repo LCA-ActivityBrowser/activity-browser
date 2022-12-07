@@ -1,4 +1,5 @@
-[![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser)
+[![conda-forge version](https://img.shields.io/conda/vn/conda-forge/activity-browser.svg)](https://anaconda.org/conda-forge/activity-browser)
+[![conda-forge version](https://img.shields.io/conda/vn/bsteubing/activity-browser.svg)](https://anaconda.org/bsteubing/activity-browser)
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser)
 ![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)
 ![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)
@@ -40,10 +41,11 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
 - [Quickstart](#Quickstart)
 - [Installation](#installation)
     - [Conda](#conda)
-    - [Configure conda channels](#configure-conda-channels)
     - [Install the activity browser](#install-the-activity-browser)
     - [Updating the activity browser](#updating-the-activity-browser)
     - [Development Version](#development-version)
+    - [Configure conda channels](#configure-conda-channels)
+    - [Install development version](#install-development-version)
 - [Getting started](#getting-started)
     - [Running the activity browser](#running-the-activity-browser)
     - [Importing an LCI database](#importing-an-lci-database)
@@ -58,15 +60,7 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
 You can install and start the activity-browser like this:
 
 ```bash
-conda create -n ab -c conda-forge -c cmutel -c bsteubing activity-browser
-conda activate ab
-activity-browser
-```
-
-If you are on an ARM Mac, use this instead:
-
-```bash
-conda create -n ab -c conda-forge -c cmutel -c bsteubing activity-browser-arm
+conda create -n ab -c conda-forge activity-browser
 conda activate ab
 activity-browser
 ```
@@ -95,39 +89,11 @@ We recommend that you use **conda** to manage your python installation. You can 
 
 Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update conda`.
 
-### Configure conda channels
-
-The activity-browser has many dependencies and you need to add three [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
-
-```bash
-conda config --prepend channels conda-forge
-conda config --append channels cmutel
-conda config --append channels bsteubing
-```
-
-You can check your channels with `conda config --show channels`. The output should look like this if everything is set up correctly:
-
-```bash
-channels:
-  - conda-forge
-  - defaults
-  - cmutel
-  - bsteubing
-```
-You can also edit your user's `.condarc` file and modify the channels there. If you prefer to not add these channels to your conda config permanently, you'll have to always explicitly list them for `conda install` and `conda update` commands (see example in [Quickstart](#Quickstart)).
-
 ### Install the activity browser
 
-After configuring your conda channels, the activity browser can be installed with this command:
 
 ```bash
 conda create -n ab activity-browser
-```
-
-Unless you are on an ARM Mac, in which case use:
-
-```bash
-conda create -n ab activity-browser-arm
 ```
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
@@ -154,7 +120,30 @@ This will update the activity-browser and all of its dependencies in the conda e
 
 The most recent version of the master branch is automatically uploaded to anaconda as the `activity-browser-dev` package and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
-Install the development version like this:
+### Configure conda channels
+
+The activity-browser has many dependencies and you need to add three [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
+
+```bash
+conda config --prepend channels conda-forge
+conda config --append channels cmutel
+conda config --append channels bsteubing
+```
+
+You can check your channels with `conda config --show channels`. The output should look like this if everything is set up correctly:
+
+```bash
+channels:
+  - conda-forge
+  - defaults
+  - cmutel
+  - bsteubing
+```
+You can also edit your user's `.condarc` file and modify the channels there. If you prefer to not add these channels to your conda config permanently, you'll have to always explicitly list them for `conda install` and `conda update` commands (see example in [Quickstart](#Quickstart)).
+
+### Install development version
+
+After configuring your conda channels, the activity browser can be installed with this command:
 
 ```bash
 conda create -n ab_dev activity-browser-dev
