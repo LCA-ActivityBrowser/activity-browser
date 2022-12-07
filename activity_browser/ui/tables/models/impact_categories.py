@@ -24,6 +24,9 @@ class MethodsListModel(DragPandasModel):
         signals.project_selected.connect(self.sync)
         signals.new_method.connect(self.filter_on_method)
 
+        # needed to trigger creation of self.filterable_columns, which relies on method_col existing
+        self.sync()
+
     def get_method(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.method_col]
@@ -49,7 +52,7 @@ class MethodsListModel(DragPandasModel):
             self.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
         self.method_col = self._dataframe.columns.get_loc("method")
-        self.visible_columns = {col: i for i, col in enumerate(self.HEADERS) if i is not self.method_col}
+        self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS) if i is not self.method_col}
         self.updated.emit()
 
     @staticmethod

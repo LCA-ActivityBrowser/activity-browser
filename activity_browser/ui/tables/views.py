@@ -4,9 +4,11 @@ from functools import wraps
 from typing import Optional
 
 from bw2data.filesystem import safe_filename
-from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint
-from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction
+from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint, Signal, QRect
+from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
+    QHeaderView, QStyle, QStyleOptionButton
 from PySide2.QtGui import QKeyEvent
+#from PySide2 import QtGui, QtCore, QtWidgets
 
 from ...settings import ab_settings
 from ..widgets.dialog import TableFilterDialog
@@ -130,27 +132,34 @@ class ABDataFrameView(QTableView):
 class ABFilterableDataFrameView(ABDataFrameView):
     """ Filterable base class for showing pandas dataframe objects as tables.
 
-    To use this table, the following must be set in the table model:
-    - self.visible_columns: dict --> these columns are available for filtering
+    To use this table, the following MUST be set in the table model:
+    - self.filterable_columns: dict
+        --> these columns are available for filtering
+
+    To use this table, the following MUST be set in the table view:
+    - self.header.column_indices = list(self.model.filterable_columns.values())
+        --> If not set, no filter buttons will appear.
+        --> Probably wise to set in a `if isinstance(self.model.filterable_columns, dict):`
+        --> This variable must be set any time the columns of the table change
 
     To use this table, the following can be set in the table view:
-    - self.different_column_types: dict --> these columns require a different filter type than 'str'
-        e.g. self.different_column_types = {'col_name': 'num'}
+    - self.different_column_types: dict
+        --> these columns require a different filter type than 'str'
+        --> e.g. self.different_column_types = {'col_name': 'num'}
     """
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.horizontalHeader().setContextMenuPolicy(Qt.CustomContextMenu)
-        self.horizontalHeader().customContextMenuRequested.connect(self.headerContextMenuEvent)
+        self.header = CustomHeader()
+        self.setHorizontalHeader(self.header)
+        self.setSortingEnabled(True)
 
         self.filters = None
         self.different_column_types = {}
+        self.header.clicked.connect(self.header_filter_button_clicked)
 
-    def headerContextMenuEvent(self, local_pos: QPoint) -> None:
-        index = self.indexAt(local_pos)
-        column = int(index.column())
-        if index.row() == -1:
-            return
+    def header_filter_button_clicked(self, column):
+        loc = self.header.event_pos
 
         menu = QMenu(self)
         # Show options for managing filters
@@ -169,8 +178,8 @@ class ABFilterableDataFrameView(ABDataFrameView):
             sub_menu = QMenu(menu)
             sub_menu.setTitle('Active filters on column')
             filter_entries = []
-            for filter in self.filters[index.column()]['filters']:
-                filter_str = ': '.join([filter[0], filter[1]])
+            for filter_data in self.filters[column]['filters']:
+                filter_str = ': '.join([filter_data[0], filter_data[1]])
                 f_menu = QAction(qicons.filter_icon, filter_str)
                 f_menu.setEnabled(False)
                 filter_entries.append(f_menu)
@@ -178,7 +187,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
                 sub_menu.addAction(f_menu)
             menu.addMenu(sub_menu)
 
-        menu.exec_(self.mapToGlobal(local_pos))
+        menu.exec_(self.mapToGlobal(loc))
 
     @Slot(name="updateProxyModel")
     def update_proxy_model(self) -> None:
@@ -189,7 +198,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
     def start_filter_dialog(self, selected_column: int = 0) -> None:
         # get right data
-        column_names = self.model.visible_columns
+        column_names = self.model.filterable_columns
 
         # show dialog
         dialog = TableFilterDialog(column_names,
@@ -218,6 +227,68 @@ class ABFilterableDataFrameView(ABDataFrameView):
     def reset_filters(self) -> None:
         self.filters = None
         self.proxy_model.clear_filters()
+
+
+class CustomHeader(QHeaderView):
+    """Header which has a filter button on each cell that can trigger a signal.
+
+    Largely based on https://stackoverflow.com/a/30938728
+    """
+    clicked = Signal(int)
+
+    _x_offset = 3
+    _y_offset = 0  # This value is calculated later, based on the height of the paint rect
+    _width = 20
+    _height = 20
+
+    def __init__(self, orientation=Qt.Horizontal, parent=None):
+        super(CustomHeader, self).__init__(orientation, parent)
+        self.setSectionsClickable(True)
+
+        self.column_indices = []
+        self.event_pos = None
+
+    def paintSection(self, painter, rect, logical_index):
+        """Paint the button onto the column header."""
+        painter.save()
+        super(CustomHeader, self).paintSection(painter, rect, logical_index)
+        painter.restore()
+
+        self._y_offset = int((rect.height() - self._width) / 2.)
+
+        if logical_index in self.column_indices:
+            option = QStyleOptionButton()
+            option.rect = QRect(rect.x() + self._x_offset, rect.y() + self._y_offset, self._width, self._height)
+            option.state = QStyle.State_Enabled | QStyle.State_Active
+
+            # put the filter icon onto the label
+            option.icon = qicons.filter_icon
+            option.iconSize = QSize(18, 18)
+
+            # set the settings to a PushButton
+            self.style().drawControl(QStyle.CE_PushButton, option, painter)
+
+    def mousePressEvent(self, event):
+        index = self.logicalIndexAt(event.pos())
+        if index in self.column_indices:
+            x = self.sectionPosition(index)
+            if x + self._x_offset < event.pos().x() < x + self._x_offset + self._width \
+                    and self._y_offset < event.pos().y() < self._y_offset + self._height:
+                # the button is clicked
+
+                # set the position of the lower left point of the filter button to spawn a menu
+                pos = QPoint()
+                pos.setX(x + self._x_offset + self._width)
+                pos.setY(self._y_offset + self._height)
+                self.event_pos = pos
+
+                self.clicked.emit(index)
+            else:
+                # pass the event to the header (for sorting)
+                super(CustomHeader, self).mousePressEvent(event)
+        else:
+            # pass the event to the header (for sorting)
+            super(CustomHeader, self).mousePressEvent(event)
 
 
 class ABMultiColumnSortProxyModel(QSortFilterProxyModel):

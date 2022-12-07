@@ -26,7 +26,7 @@ class PandasModel(QAbstractTableModel):
     def __init__(self, df: pd.DataFrame = None, parent=None):
         super().__init__(parent)
         self._dataframe: Optional[pd.DataFrame] = df
-        self.visible_columns = None
+        self.filterable_columns = None
 
     def rowCount(self, parent=None, *args, **kwargs):
         return self._dataframe.shape[0]

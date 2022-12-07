@@ -17,7 +17,11 @@ class MethodsTable(ABFilterableDataFrameView):
         self.setDragEnabled(True)
         self.setDragDropMode(ABFilterableDataFrameView.DragOnly)
         self.model = MethodsListModel(self)
+
+        # create variables for filtering
         self.different_column_types = self.model.different_column_types
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
 
         self.doubleClicked.connect(
             lambda p: signals.method_selected.emit(self.model.get_method(p))

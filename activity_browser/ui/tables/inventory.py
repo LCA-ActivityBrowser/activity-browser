@@ -173,19 +173,24 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
-        self.model.updated.connect(self.update_custom_column_order)
+        self.model.updated.connect(self.update_filter_settings)
         signals.database_selected.connect(self.reset_filters)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
 
-    def update_custom_column_order(self) -> None:
+    def update_filter_settings(self) -> None:
+        # Write the column indices so only those columns get filter button
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
+
+        # Set custom column order
         # custom search order can be relevant to speed up search in large (>10k) tables when using AND.
-        if self.technosphere and self.model.visible_columns:
+        if self.technosphere and self.model.filterable_columns:
             # each option is less likely to cut out many options than the last one
             sort_order = ['key', 'Activity', 'Product', 'Location', 'Unit']
-            vc = self.model.visible_columns
-            self.proxy_model.custom_column_order = {i: vc[c] for i, c in enumerate(sort_order) if c in vc.keys()}
+            fc = self.model.filterable_columns
+            self.proxy_model.custom_column_order = {i: fc[c] for i, c in enumerate(sort_order) if c in fc.keys()}
         else:
             self.proxy_model.custom_column_order = None
         self.proxy_model.set_custom_column_order()

@@ -31,6 +31,9 @@ class InventoryTable(ABFilterableDataFrameView):
 
         # update self.different_column_types
         self.different_column_types = self.model.different_column_types
+        # update the column header indices
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
         # apply the existing filters
         self.apply_filters()
 
