@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-from functools import wraps
 from typing import Optional
 
 from bw2data.filesystem import safe_filename
 from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint, Signal, QRect
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
-    QHeaderView, QStyle, QStyleOptionButton
+    QHeaderView, QStyle, QStyleOptionButton, QInputDialog
 from PySide2.QtGui import QKeyEvent
-#from PySide2 import QtGui, QtCore, QtWidgets
 
 from ...settings import ab_settings
 from ..widgets.dialog import TableFilterDialog
@@ -147,6 +145,15 @@ class ABFilterableDataFrameView(ABDataFrameView):
         --> these columns require a different filter type than 'str'
         --> e.g. self.different_column_types = {'col_name': 'num'}
     """
+
+    FILTER_TYPES = {
+        'str': ['contains', 'does not contain',
+                'equals', 'does not equal',
+                'starts with', 'does not start with',
+                'ends with', 'does not end with'],
+        'num': ['=', '!=', '>=', '<=']
+                    }
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -157,35 +164,55 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.filters = None
         self.different_column_types = {}
         self.header.clicked.connect(self.header_filter_button_clicked)
+        self.selected_column = 0
 
     def header_filter_button_clicked(self, column):
         loc = self.header.event_pos
-
+        self.selected_column = self.header.logicalIndexAt(loc)
         menu = QMenu(self)
-        # Show options for managing filters
+
+        # create quick filter submenu
+        qf_menu = QMenu(menu)
+        qf_menu.setIcon(qicons.filter_icon)
+        qf_menu.setTitle('Quick Filters')
+        col_type = self.different_column_types.get({v: k for k, v in
+                                                    self.model.filterable_columns.items()}[column],
+                                                   'str')
+        for f in self.FILTER_TYPES[col_type]:
+            qf_menu.addAction(f, self.quick_filter_dialog)
+        menu.addMenu(qf_menu)
+
+        # edit filters main menu
         menu.addAction(
-            qicons.copy, 'Edit Filters',
+            qicons.forward, 'Edit Filters',
             lambda: self.start_filter_dialog(column))
-        menu.addAction(
-            qicons.delete, 'Remove all filters in this column',
-            lambda: self.reset_column_filters(column))
-        menu.addAction(
-            qicons.delete, 'Remove all filters in this table',
-            lambda: self.reset_filters())
+
+        # delete column filters option
+        col_del = QAction(qicons.delete, 'Remove all filters in this column')
+        col_del.triggered.connect(lambda: self.reset_column_filters(column))
+        menu.addAction(col_del)
+        col_del.setEnabled(False)
+        if isinstance(self.filters, dict) and self.filters.get(self.selected_column, False):
+            col_del.setEnabled(True)
+        # delete all filters option
+        all_del = QAction(qicons.delete, 'Remove all filters in this table')
+        all_del.triggered.connect(lambda: self.reset_filters())
+        menu.addAction(all_del)
+        all_del.setEnabled(False)
+        if isinstance(self.filters, dict):
+            all_del.setEnabled(True)
 
         # Show existing filters for column
         if isinstance(self.filters, dict) and self.filters.get(column, False):
-            sub_menu = QMenu(menu)
-            sub_menu.setTitle('Active filters on column')
-            filter_entries = []
+            menu.addSeparator()
+            active_filters = QAction(qicons.filter_icon, 'Active filters on column:')
+            active_filters.setEnabled(False)
+            menu.addAction(active_filters)
             for filter_data in self.filters[column]['filters']:
                 filter_str = ': '.join([filter_data[0], filter_data[1]])
-                f_menu = QAction(qicons.filter_icon, filter_str)
-                f_menu.setEnabled(False)
-                filter_entries.append(f_menu)
-            for f_menu in filter_entries:
-                sub_menu.addAction(f_menu)
-            menu.addMenu(sub_menu)
+                f = QAction(text=filter_str)
+                f.setEnabled(False)
+                menu.addAction(f)
 
         menu.exec_(self.mapToGlobal(loc))
 
@@ -201,14 +228,59 @@ class ABFilterableDataFrameView(ABDataFrameView):
         column_names = self.model.filterable_columns
 
         # show dialog
-        dialog = TableFilterDialog(column_names,
-                                   self.filters,
+        dialog = TableFilterDialog(column_names=column_names,
+                                   filters=self.filters,
+                                   filter_types=self.FILTER_TYPES,
                                    selected_column=selected_column,
                                    column_types=self.different_column_types)
         if dialog.exec_() == TableFilterDialog.Accepted:
             filters = dialog.get_filters
             self.write_filters(filters)
             self.apply_filters()
+
+    def quick_filter_dialog(self) -> None:
+        f_type = self.sender().text()
+        col_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
+
+        text, ok = QInputDialog.getText(
+            self,
+            'Quick filter',
+            "Choose a filter value for '{}' for column '{}'".format(f_type, col_name))
+        if ok:
+            if x := self.different_column_types.get(col_name, False):
+                if x == 'num':
+                    new_filter = (f_type, text)
+                else:
+                    return
+            else:
+                new_filter = (f_type, text, False)
+            self.add_filter(new_filter)
+
+    def add_filter(self, new_filter: tuple) -> None:
+
+        print('++ filters before:', self.filters)
+        if isinstance(self.filters, dict):
+            # filters exist
+            all_filters = self.filters
+            if all_filters.get(self.selected_column, False):
+                # filters exist for this column
+                all_filters[self.selected_column]['filters'].append(new_filter)
+                if not all_filters[self.selected_column].get('mode', False) \
+                        and len(all_filters[self.selected_column]['filters']) > 1:
+                    # a mode does not exist, but there are multiple filters
+                    all_filters[self.selected_column]['mode'] = 'OR'
+            else:
+                # filters don't yet exist for this column:
+                all_filters[self.selected_column] = {'filters': [new_filter]}
+        else:
+            # no filters exist
+            all_filters = {self.selected_column: {'filters': [new_filter]},
+                           'mode': 'AND'}
+
+        self.write_filters(all_filters)
+        print('++ filters after :', self.filters)
+        self.apply_filters()
+
 
     def write_filters(self, filters: dict) -> None:
         self.filters = filters

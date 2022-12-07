@@ -9,7 +9,7 @@ from PySide2.QtCore import QRegExp, QThread, Qt, Signal, Slot
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
-from ..style import style_group_box
+from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
 
 
@@ -346,12 +346,14 @@ class TableFilterDialog(QtWidgets.QDialog):
         }
     """
     def __init__(self, column_names: dict,
+                 filter_types: dict,
                  filters: dict = None,
                  selected_column: int = 0,
                  column_types: dict = {},
                  parent=None):
         super().__init__(parent)
-        self.setWindowTitle('Set table filters')
+        self.setWindowIcon(qicons.filter_icon)
+        self.setWindowTitle('Manage table filters')
 
         # set given filters, if any
         if isinstance(filters, dict):
@@ -366,7 +368,8 @@ class TableFilterDialog(QtWidgets.QDialog):
         for col_name, i in column_names.items():
             tab = ColumnFilterTab(parent=self,
                                   state=self.filters.get(i, None),
-                                  col_type=column_types.get(col_name, 'str')
+                                  col_type=column_types.get(col_name, 'str'),
+                                  filter_types=filter_types
                                   )
             self.tabs.append(tab)
             self.tab_widget.addTab(tab, col_name)
@@ -421,8 +424,9 @@ class ColumnFilterTab(QtWidgets.QWidget):
     returns: dict
     - def set_state: Writes given state dict to UI elements (filter rows, AND/OR menu)
     """
-    def __init__(self, col_type: str = 'str', state: dict = {}, parent=None):
+    def __init__(self, filter_types: dict, col_type: str = 'str', state: dict = {}, parent=None):
         super().__init__(parent)
+        self.filter_types = filter_types
         self.col_type = col_type
 
         self.add = QtWidgets.QToolButton()
@@ -452,7 +456,11 @@ class ColumnFilterTab(QtWidgets.QWidget):
     def add_row(self, state: tuple = None) -> None:
         """Add a new row to the self.filter_rows."""
         idx = len(self.filter_rows)
-        new_filter_row = FilterRow(column_type=self.col_type, state=state, idx=idx, parent=self)
+        new_filter_row = FilterRow(column_type=self.col_type,
+                                   state=state,
+                                   idx=idx,
+                                   filter_types=self.filter_types,
+                                   parent=self)
         self.filter_rows.append(new_filter_row)
         self.filter_widget_layout.addWidget(new_filter_row)
         self.show_hide_and_or()
@@ -527,28 +535,20 @@ class FilterRow(QtWidgets.QWidget):
     returns: tuple
     - def set_state: Writes given state tuple to UI elements (filter type, query, case sensitive)
     """
-
-    STR_FILTER_TYPES = ['contains', 'does not contain',
-                        'equals', 'does not equal',
-                        'starts with', 'does not start with',
-                        'ends with', 'does not end with']
-    NUM_FILTER_TYPES = ['=', '!=', '>=', '<=']
-
-    def __init__(self, idx: int, column_type='str', state: tuple = None, parent=None):
+    def __init__(self, idx: int, filter_types: dict, column_type='str', state: tuple = None, parent=None):
         super().__init__(parent)
 
         self.idx = idx
+        self.filter_types = filter_types
         self.parent = parent
 
         self.column_type = column_type
 
-        if self.column_type == 'str':
-            self.filter_type = self.STR_FILTER_TYPES
-        elif self.column_type == 'num':
-            self.filter_type = self.NUM_FILTER_TYPES
+        if self.filter_types.get(self.column_type, False):
+            self.filter_type = self.filter_types[self.column_type]
         else:
             print('WARNING: unknown column type {}, assuming string formatting'.format(self.column_type))
-            self.filter_type = self.STR_FILTER_TYPES
+            self.filter_type = self.filter_types['str']
 
         layout = QtWidgets.QHBoxLayout()
 
@@ -563,12 +563,13 @@ class FilterRow(QtWidgets.QWidget):
         layout.addWidget(self.filter_query_line)
 
         # if there's case-sensitive, add that
-        if column_type != 'num':
+        if column_type == 'str':
             self.case_sensitive_text = QtWidgets.QLabel('Case Sensitive:')
             self.filter_case_sensitive_check = QtWidgets.QCheckBox()
             layout.addWidget(self.case_sensitive_text)
             layout.addWidget(self.filter_case_sensitive_check)
 
+        layout.addWidget(vertical_line())
         # add buttons to remove the row
         self.remove = QtWidgets.QToolButton()
         self.remove.setIcon(qicons.delete)
