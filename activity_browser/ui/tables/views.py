@@ -5,11 +5,11 @@ from typing import Optional
 from bw2data.filesystem import safe_filename
 from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint, Signal, QRect
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
-    QHeaderView, QStyle, QStyleOptionButton, QInputDialog
+    QHeaderView, QStyle, QStyleOptionButton
 from PySide2.QtGui import QKeyEvent
 
 from ...settings import ab_settings
-from ..widgets.dialog import TableFilterDialog
+from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 from ..icons import qicons
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
@@ -151,7 +151,15 @@ class ABFilterableDataFrameView(ABDataFrameView):
                 'equals', 'does not equal',
                 'starts with', 'does not start with',
                 'ends with', 'does not end with'],
-        'num': ['=', '!=', '>=', '<=']
+        'str_tt': ['values in the column contain', 'values in the column do not contain',
+                   'values in the column equal', 'values in the column do not equal',
+                   'values in the column start with', 'values in the column do not start with',
+                   'values in the column end with', 'values in the column do not end with'],
+        'num': ['=', '!=', '>=', '<=', '<= x <='],
+        'num_tt': ['values in the column equal', 'values in the column do not equal',
+                   'values in the column are greater than or equal to',
+                   'values in the column are smaller than or equal to',
+                   'values in the column are between']
                     }
 
     def __init__(self, parent=None):
@@ -166,54 +174,73 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.header.clicked.connect(self.header_filter_button_clicked)
         self.selected_column = 0
 
-    def header_filter_button_clicked(self, column):
-        loc = self.header.event_pos
-        self.selected_column = self.header.logicalIndexAt(loc)
+    def header_filter_button_clicked(self, column: int, button: str) -> None:
+        self.selected_column = column
+        # this function is separate from the context menu in case we want to add right-click options later
+        if button == 'LeftButton':
+            self.header_context_menu()
+
+    def header_context_menu(self) -> None:
         menu = QMenu(self)
+        menu.setToolTipsVisible(True)
 
-        # create quick filter submenu
-        qf_menu = QMenu(menu)
-        qf_menu.setIcon(qicons.filter_icon)
-        qf_menu.setTitle('Quick Filters')
+        # add filter
+        filter_add = QAction(qicons.add, 'Add filter')
+        filter_add.triggered.connect(self.simple_filter_dialog)
+        filter_add.setToolTip('Add a new filter')
+        menu.addAction(filter_add)
+        # More filters submenu
+        mf_menu = QMenu(menu)
+        mf_menu.setToolTipsVisible(True)
+        mf_menu.setIcon(qicons.filter_icon)
+        mf_menu.setTitle('More filters')
         col_type = self.different_column_types.get({v: k for k, v in
-                                                    self.model.filterable_columns.items()}[column],
+                                                    self.model.filterable_columns.items()}[self.selected_column],
                                                    'str')
-        for f in self.FILTER_TYPES[col_type]:
-            qf_menu.addAction(f, self.quick_filter_dialog)
-        menu.addMenu(qf_menu)
-
+        filter_actions = []
+        for i, f in enumerate(self.FILTER_TYPES[col_type]):
+            fa = QAction(text=f)
+            fa.setToolTip(self.FILTER_TYPES[col_type + '_tt'][i])
+            fa.triggered.connect(self.simple_filter_dialog_w_preset)
+            filter_actions.append(fa)
+        for fa in filter_actions:
+            mf_menu.addAction(fa)
+        menu.addMenu(mf_menu)
         # edit filters main menu
-        menu.addAction(
-            qicons.forward, 'Edit Filters',
-            lambda: self.start_filter_dialog(column))
-
+        filter_man = QAction(qicons.edit, 'Manage filters')
+        filter_man.triggered.connect(self.filter_manager_dialog)
+        filter_man.setToolTip("Open the 'manage filters' dialog")
+        menu.addAction(filter_man)
         # delete column filters option
-        col_del = QAction(qicons.delete, 'Remove all filters in this column')
-        col_del.triggered.connect(lambda: self.reset_column_filters(column))
+        col_del = QAction(qicons.delete, 'Remove column filters')
+        col_del.triggered.connect(self.reset_column_filters)
+        col_del.setToolTip('Remove all filters on this column')
         menu.addAction(col_del)
         col_del.setEnabled(False)
         if isinstance(self.filters, dict) and self.filters.get(self.selected_column, False):
             col_del.setEnabled(True)
         # delete all filters option
-        all_del = QAction(qicons.delete, 'Remove all filters in this table')
-        all_del.triggered.connect(lambda: self.reset_filters())
+        all_del = QAction(qicons.delete, 'Remove all filters')
+        all_del.triggered.connect(self.reset_filters)
+        all_del.setToolTip('Remove all filters in this table')
         menu.addAction(all_del)
         all_del.setEnabled(False)
         if isinstance(self.filters, dict):
             all_del.setEnabled(True)
 
         # Show existing filters for column
-        if isinstance(self.filters, dict) and self.filters.get(column, False):
+        if isinstance(self.filters, dict) and self.filters.get(self.selected_column, False):
             menu.addSeparator()
-            active_filters = QAction(qicons.filter_icon, 'Active filters on column:')
+            active_filters = QAction(qicons.filter_icon, 'Active column filters:')
             active_filters.setEnabled(False)
             menu.addAction(active_filters)
-            for filter_data in self.filters[column]['filters']:
+            for filter_data in self.filters[self.selected_column]['filters']:
                 filter_str = ': '.join([filter_data[0], filter_data[1]])
                 f = QAction(text=filter_str)
                 f.setEnabled(False)
                 menu.addAction(f)
 
+        loc = self.header.event_pos
         menu.exec_(self.mapToGlobal(loc))
 
     @Slot(name="updateProxyModel")
@@ -223,42 +250,44 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         self.setModel(self.proxy_model)
 
-    def start_filter_dialog(self, selected_column: int = 0) -> None:
+    def filter_manager_dialog(self) -> None:
         # get right data
         column_names = self.model.filterable_columns
 
         # show dialog
-        dialog = TableFilterDialog(column_names=column_names,
-                                   filters=self.filters,
-                                   filter_types=self.FILTER_TYPES,
-                                   selected_column=selected_column,
-                                   column_types=self.different_column_types)
-        if dialog.exec_() == TableFilterDialog.Accepted:
+        dialog = FilterManagerDialog(column_names=column_names,
+                                     filters=self.filters,
+                                     filter_types=self.FILTER_TYPES,
+                                     selected_column=self.selected_column,
+                                     column_types=self.different_column_types)
+        if dialog.exec_() == FilterManagerDialog.Accepted:
+            # set the filters
             filters = dialog.get_filters
             self.write_filters(filters)
             self.apply_filters()
 
-    def quick_filter_dialog(self) -> None:
-        f_type = self.sender().text()
-        col_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
+    def simple_filter_dialog(self, preset_type: str = None) -> None:
+        # get right data
+        column_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
+        col_type = self.different_column_types.get(column_name, 'str')
 
-        text, ok = QInputDialog.getText(
-            self,
-            'Quick filter',
-            "Choose a filter value for '{}' for column '{}'".format(f_type, col_name))
-        if ok:
-            if x := self.different_column_types.get(col_name, False):
-                if x == 'num':
-                    new_filter = (f_type, text)
-                else:
-                    return
-            else:
-                new_filter = (f_type, text, False)
-            self.add_filter(new_filter)
+        # show dialog
+        dialog = SimpleFilterDialog(column_name=column_name,
+                                    filter_types=self.FILTER_TYPES,
+                                    column_type=col_type,
+                                    preset_type=preset_type)
+        if dialog.exec_() == SimpleFilterDialog.Accepted:
+            new_filter = dialog.get_filter
+            # add the filter to existing filters
+            if new_filter:
+                self.add_filter(new_filter)
+                self.apply_filters()
+
+    def simple_filter_dialog_w_preset(self) -> None:
+        self.simple_filter_dialog(self.sender().text())
 
     def add_filter(self, new_filter: tuple) -> None:
-
-        print('++ filters before:', self.filters)
+        """Add a single filter to self.filters."""
         if isinstance(self.filters, dict):
             # filters exist
             all_filters = self.filters
@@ -278,12 +307,10 @@ class ABFilterableDataFrameView(ABDataFrameView):
                            'mode': 'AND'}
 
         self.write_filters(all_filters)
-        print('++ filters after :', self.filters)
-        self.apply_filters()
-
 
     def write_filters(self, filters: dict) -> None:
         self.filters = filters
+        self.header.has_active_filters = list(self.filters.keys())
 
     def apply_filters(self) -> None:
         if self.filters:
@@ -291,13 +318,16 @@ class ABFilterableDataFrameView(ABDataFrameView):
             self.proxy_model.set_filters(self.filters)
             QApplication.restoreOverrideCursor()
 
-    def reset_column_filters(self, idx: int) -> None:
-        """Reset all filters for this column"""
-        self.filters.pop(idx)
+    def reset_column_filters(self) -> None:
+        """Reset all filters for this column."""
+        self.filters.pop(self.selected_column)
+        self.header.has_active_filters = list(self.filters.keys())
         self.apply_filters()
 
     def reset_filters(self) -> None:
+        """Reset all filters for this entire table."""
         self.filters = None
+        self.header.has_active_filters = []
         self.proxy_model.clear_filters()
 
 
@@ -306,18 +336,19 @@ class CustomHeader(QHeaderView):
 
     Largely based on https://stackoverflow.com/a/30938728
     """
-    clicked = Signal(int)
+    clicked = Signal(int, str)
 
-    _x_offset = 3
+    _x_offset = 4
     _y_offset = 0  # This value is calculated later, based on the height of the paint rect
-    _width = 20
-    _height = 20
+    _width = 18
+    _height = 18
 
     def __init__(self, orientation=Qt.Horizontal, parent=None):
         super(CustomHeader, self).__init__(orientation, parent)
         self.setSectionsClickable(True)
 
         self.column_indices = []
+        self.has_active_filters = []
         self.event_pos = None
 
     def paintSection(self, painter, rect, logical_index):
@@ -334,11 +365,15 @@ class CustomHeader(QHeaderView):
             option.state = QStyle.State_Enabled | QStyle.State_Active
 
             # put the filter icon onto the label
-            option.icon = qicons.filter_icon
-            option.iconSize = QSize(18, 18)
+            if logical_index in self.has_active_filters:
+                option.icon = qicons.down_fill
+            else:
+                option.icon = qicons.down_open
+            option.iconSize = QSize(16, 16)
 
             # set the settings to a PushButton
             self.style().drawControl(QStyle.CE_PushButton, option, painter)
+            self.viewport().update()
 
     def mousePressEvent(self, event):
         index = self.logicalIndexAt(event.pos())
@@ -354,7 +389,8 @@ class CustomHeader(QHeaderView):
                 pos.setY(self._y_offset + self._height)
                 self.event_pos = pos
 
-                self.clicked.emit(index)
+                # emit the column index and the button (left/right) pressed
+                self.clicked.emit(index, str(event.button()).split('.')[-1])
             else:
                 # pass the event to the header (for sorting)
                 super(CustomHeader, self).mousePressEvent(event)
@@ -455,6 +491,8 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
             return float(b) >= float(a)
         elif test_type == '<=':
             return float(b) <= float(a)
+        elif test_type == '<= x <=':
+            return float(a[0]) <= float(b) and float(b) <= float(a[1])
         else:
             print("WARNING: unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
             return a == b
@@ -523,6 +561,7 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
             matched = all(tests)
             if matched: self.matches += 1
         return matched
+
 
 class ABDictTreeView(QTreeView):
     def __init__(self, parent=None):

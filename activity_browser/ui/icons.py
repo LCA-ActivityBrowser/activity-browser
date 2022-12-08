@@ -43,6 +43,8 @@ class Icons(object):
     left = create_path('main', 'left.png')
     forward = create_path('main', 'forward.png')
     backward = create_path('main', 'backward.png')
+    down_open = create_path('main', 'down_open.png')
+    down_fill = create_path('main', 'down_filled.png')
 
     # Simple actions
     delete = create_path('context', 'delete.png')

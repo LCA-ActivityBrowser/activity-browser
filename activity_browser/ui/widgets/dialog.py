@@ -315,7 +315,7 @@ class DefaultBiosphereThread(QThread):
             bw.create_core_migrations()
 
 
-class TableFilterDialog(QtWidgets.QDialog):
+class FilterManagerDialog(QtWidgets.QDialog):
     """Set filters for a table.
 
     Dialog has 1 tab per given column. Each tab has rows for filters,
@@ -407,6 +407,49 @@ class TableFilterDialog(QtWidgets.QDialog):
                 state[i] = tab_state
         state['mode'] = self.and_or_buttons.get_state
         return state
+
+
+class SimpleFilterDialog(QtWidgets.QDialog):
+    """Add one filter to a column.
+
+    Related to FilterManagerDialog.
+    """
+    def __init__(self, column_name: dict,
+                 filter_types: dict,
+                 column_type: str = 'str',
+                 preset_type: str = None,
+                 parent=None):
+        super().__init__(parent)
+        self.setWindowIcon(qicons.filter_icon)
+        self.setWindowTitle('Add filter')
+
+        # Create filter label and buttons
+        label = QtWidgets.QLabel("Define a filter for column '{}'".format(column_name))
+        self.filter_row = FilterRow(column_type=column_type,
+                                    idx=0,
+                                    filter_types=filter_types,
+                                    remove_option=False,
+                                    preset_type=preset_type,
+                                    parent=self)
+        self.filter_row.filter_query_line.setFocus()
+
+        # create OK/cancel buttons
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label)
+        layout.addWidget(self.filter_row)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def get_filter(self) -> tuple:
+        if self.filter_row.get_state:
+            return self.filter_row.get_state
 
 
 class ColumnFilterTab(QtWidgets.QWidget):
@@ -520,7 +563,7 @@ class ColumnFilterTab(QtWidgets.QWidget):
 class FilterRow(QtWidgets.QWidget):
     """Convenience class for managing a filter input row.
 
-    This class is purely intended for TableFilterDialog and children and should not be used elsewhere.
+    This class is purely intended for FilterManagerDialog and related, take this into account if using elsewhere.
 
     Required inputs:
     - idx: int --> integer index in self.filter_rows of parent. Used as ID in parent
@@ -535,7 +578,13 @@ class FilterRow(QtWidgets.QWidget):
     returns: tuple
     - def set_state: Writes given state tuple to UI elements (filter type, query, case sensitive)
     """
-    def __init__(self, idx: int, filter_types: dict, column_type='str', state: tuple = None, parent=None):
+    def __init__(self, idx: int,
+                 filter_types: dict,
+                 column_type='str',
+                 state: tuple = None,
+                 remove_option: bool = True,
+                 preset_type: str = None,
+                 parent=None):
         super().__init__(parent)
 
         self.idx = idx
@@ -549,13 +598,28 @@ class FilterRow(QtWidgets.QWidget):
         else:
             print('WARNING: unknown column type {}, assuming string formatting'.format(self.column_type))
             self.filter_type = self.filter_types['str']
+            self.column_type = 'str'
 
         layout = QtWidgets.QHBoxLayout()
+
+        # add an input line in case 'between' ('<= x <=') is selected
+        if self.column_type == 'num':
+            self.filter_query_line0 = QtWidgets.QLineEdit()
+            self.filter_query_line0.hide()
+            layout.addWidget(self.filter_query_line0)
 
         # create a 'filter type' combobox
         self.filter_type_box = QtWidgets.QComboBox()
         self.filter_type_box.addItems(self.filter_type)
         layout.addWidget(self.filter_type_box)
+        # set a preset type if given
+        if isinstance(preset_type, str):
+            self.filter_type_box.setCurrentIndex(self.filter_type.index(preset_type))
+            if self.column_type == 'num':
+                self.set_extra_input_visible()
+        # add tooltip for every type option
+        for i, tt in enumerate(self.filter_types[self.column_type + '_tt']):
+            self.filter_type_box.setItemData(i, tt, Qt.ToolTipRole)
 
         # create the filter input line
         self.filter_query_line = QtWidgets.QLineEdit()
@@ -563,19 +627,23 @@ class FilterRow(QtWidgets.QWidget):
         layout.addWidget(self.filter_query_line)
 
         # if there's case-sensitive, add that
-        if column_type == 'str':
+        if self.column_type == 'str':
             self.case_sensitive_text = QtWidgets.QLabel('Case Sensitive:')
             self.filter_case_sensitive_check = QtWidgets.QCheckBox()
             layout.addWidget(self.case_sensitive_text)
             layout.addWidget(self.filter_case_sensitive_check)
 
-        layout.addWidget(vertical_line())
-        # add buttons to remove the row
-        self.remove = QtWidgets.QToolButton()
-        self.remove.setIcon(qicons.delete)
-        self.remove.setToolTip('Remove this filter')
-        self.remove.clicked.connect(self.self_destruct)
-        layout.addWidget(self.remove)
+        if remove_option:
+            # add buttons to remove the row
+            layout.addWidget(vertical_line())
+            self.remove = QtWidgets.QToolButton()
+            self.remove.setIcon(qicons.delete)
+            self.remove.setToolTip('Remove this filter')
+            self.remove.clicked.connect(self.self_destruct)
+            layout.addWidget(self.remove)
+
+        if self.column_type == 'num':
+            self.filter_type_box.currentIndexChanged.connect(self.set_extra_input_visible)
 
         self.setLayout(layout)
 
@@ -594,6 +662,8 @@ class FilterRow(QtWidgets.QWidget):
         selected_type = self.filter_type_box.currentText()
         selected_query = self.filter_query_line.text()
         if self.column_type == 'num':
+            if self.filter_type_box.currentText() == '<= x <=':
+                selected_query = (self.filter_query_line0.text(), self.filter_query_line.text())
             state = selected_type, selected_query
         else:
             case_sensitive = self.filter_case_sensitive_check.isChecked()
@@ -605,10 +675,17 @@ class FilterRow(QtWidgets.QWidget):
             selected_type, selected_query, case_sensitive = state
         else:
             selected_type, selected_query = state
+            self.set_extra_input_visible()
         self.filter_type_box.setCurrentIndex(self.filter_type.index(selected_type))
         self.filter_query_line.setText(selected_query)
         if self.column_type == 'str':
             self.filter_case_sensitive_check.setChecked(case_sensitive)
+
+    def set_extra_input_visible(self) -> None:
+        if self.filter_type_box.currentText() == '<= x <=':
+            self.filter_query_line0.show()
+        else:
+            self.filter_query_line0.hide()
 
     def self_destruct(self) -> None:
         """Remove this FilterRow object from parent."""
@@ -618,7 +695,7 @@ class FilterRow(QtWidgets.QWidget):
 class AndOrRadioButtons(QtWidgets.QWidget):
     """Convenience class for managing AND/OR buttons.
 
-    This class is purely intended for TableFilterDialog and children and should not be used elsewhere.
+    This class is purely intended for FilterManagerDialog and related, take this into account if using elsewhere.
 
     Required inputs:
     - None
@@ -645,6 +722,8 @@ class AndOrRadioButtons(QtWidgets.QWidget):
         layout.addWidget(self.AND)
         layout.addWidget(self.OR)
         self.setLayout(layout)
+        self.setToolTip('Choose how filters combine with each other.\n'
+                        'AND must satisfy all filters, OR must satisfy at least one filter.')
 
         # set the state if one was given, otherwise, assume AND
         if isinstance(state, str):
