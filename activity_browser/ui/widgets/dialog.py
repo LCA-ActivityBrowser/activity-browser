@@ -642,14 +642,14 @@ class FilterRow(QtWidgets.QWidget):
             self.remove.clicked.connect(self.self_destruct)
             layout.addWidget(self.remove)
 
-        if self.column_type == 'num':
-            self.filter_type_box.currentIndexChanged.connect(self.set_extra_input_visible)
-
         self.setLayout(layout)
 
         # set the state if one was given
         if isinstance(state, tuple):
             self.set_state(state)
+
+        self.filter_type_box.currentIndexChanged.connect(self.set_input_changes)
+        self.set_input_changes()
 
     @property
     def get_state(self) -> tuple:
@@ -681,11 +681,16 @@ class FilterRow(QtWidgets.QWidget):
         if self.column_type == 'str':
             self.filter_case_sensitive_check.setChecked(case_sensitive)
 
-    def set_extra_input_visible(self) -> None:
-        if self.filter_type_box.currentText() == '<= x <=':
-            self.filter_query_line0.show()
-        else:
-            self.filter_query_line0.hide()
+    def set_input_changes(self) -> None:
+        # enable whether the extra input line is visible
+        if self.column_type == 'num':
+            if self.filter_type_box.currentText() == '<= x <=':
+                self.filter_query_line0.show()
+            else:
+                self.filter_query_line0.hide()
+        # set tooltip to currently selected item
+        tt = self.filter_types[self.column_type + '_tt'][self.filter_type_box.currentIndex()]
+        self.filter_type_box.setToolTip(tt)
 
     def self_destruct(self) -> None:
         """Remove this FilterRow object from parent."""

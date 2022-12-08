@@ -209,7 +209,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         # edit filters main menu
         filter_man = QAction(qicons.edit, 'Manage filters')
         filter_man.triggered.connect(self.filter_manager_dialog)
-        filter_man.setToolTip("Open the 'manage filters' dialog")
+        filter_man.setToolTip("Open the filter management menu")
         menu.addAction(filter_man)
         # delete column filters option
         col_del = QAction(qicons.delete, 'Remove column filters')
