@@ -616,7 +616,7 @@ class FilterRow(QtWidgets.QWidget):
         if isinstance(preset_type, str):
             self.filter_type_box.setCurrentIndex(self.filter_type.index(preset_type))
             if self.column_type == 'num':
-                self.set_extra_input_visible()
+                self.set_input_changes()
         # add tooltip for every type option
         for i, tt in enumerate(self.filter_types[self.column_type + '_tt']):
             self.filter_type_box.setItemData(i, tt, Qt.ToolTipRole)
@@ -675,9 +675,13 @@ class FilterRow(QtWidgets.QWidget):
             selected_type, selected_query, case_sensitive = state
         else:
             selected_type, selected_query = state
-            self.set_extra_input_visible()
+            self.set_input_changes()
         self.filter_type_box.setCurrentIndex(self.filter_type.index(selected_type))
-        self.filter_query_line.setText(selected_query)
+        if self.column_type == 'num' and selected_type == '<= x <=':
+            self.filter_query_line0.setText(selected_query[0])
+            self.filter_query_line.setText(selected_query[1])
+        else:
+            self.filter_query_line.setText(selected_query)
         if self.column_type == 'str':
             self.filter_case_sensitive_check.setChecked(case_sensitive)
 
