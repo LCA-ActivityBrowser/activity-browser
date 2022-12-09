@@ -184,17 +184,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         if isinstance(self.model.filterable_columns, dict):
             self.header.column_indices = list(self.model.filterable_columns.values())
 
-        # Set custom column order
-        # custom search order can be relevant to speed up search in large (>10k) tables when using AND.
-        if self.technosphere and self.model.filterable_columns:
-            # each option is less likely to cut out many options than the last one
-            sort_order = ['key', 'Activity', 'Product', 'Location', 'Unit']
-            fc = self.model.filterable_columns
-            self.proxy_model.custom_column_order = {i: fc[c] for i, c in enumerate(sort_order) if c in fc.keys()}
-        else:
-            self.proxy_model.custom_column_order = None
-        self.proxy_model.set_custom_column_order()
-
     @Slot(QtCore.QModelIndex, name="openActivityTab")
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
         key = self.model.get_key(proxy)

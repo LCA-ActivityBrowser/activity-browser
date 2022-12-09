@@ -27,6 +27,7 @@ class PandasModel(QAbstractTableModel):
         super().__init__(parent)
         self._dataframe: Optional[pd.DataFrame] = df
         self.filterable_columns = None
+        self.different_column_types = {}
 
     def rowCount(self, parent=None, *args, **kwargs):
         return self._dataframe.shape[0]
@@ -98,6 +99,91 @@ class PandasModel(QAbstractTableModel):
         if not hasattr(model, "mapToSource"):
             return proxy  # Proxy is actually the PandasModel
         return model.mapToSource(proxy)
+
+    def test_query_on_column(self, test_type: str, col_data: pd.Series, query) -> pd.Series:
+        """Compare query and col_data on test_type, return array with boolean test results."""
+        if test_type == 'equals' or test_type == '=':
+            return col_data == query
+        elif test_type == 'does not equal' or test_type == '!=':
+            return col_data != query
+        elif test_type == 'contains':
+            print('++ col data\n', col_data)
+            print('++ col filt\n', col_data.astype(str).str.contains(query))
+            return col_data.str.contains(query)
+        elif test_type == 'does not contain':
+            return ~col_data.str.str.contains(query)
+        elif test_type == 'starts with':
+            return col_data.str.startswith(query)
+        elif test_type == 'does not start with':
+            return ~col_data.str.startswith(query)
+        elif test_type == 'ends with':
+            return col_data.str.endswith(query)
+        elif test_type == 'does not end with':
+            return ~col_data.str.endswith(query)
+        elif test_type == '>=':
+            return col_data.astype(float) >= float(query)
+        elif test_type == '<=':
+            return col_data.astype(float) <= float(query)
+        elif test_type == '<= x <=':
+            return (float(query[0]) <= col_data.astype(float)) \
+                   & (col_data.astype(float) <= float(query[1]))
+        else:
+            print("WARNING: unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
+            return col_data == query
+
+    def get_filter_mask(self, filters: dict) -> pd.Series:
+        """Generate a filter mask of the dataframe based on the filters.
+
+        Returns a pd.Series of boolean results (the mask).
+        """
+        # get the column name from index
+        fc_rev = {v: k for k, v in self.filterable_columns.items()}
+
+        all_mode = filters['mode']
+        all_mask = None
+        # iterate over columns
+        for col_idx, col_filters in filters.items():
+            if col_idx == 'mode':
+                continue
+            col_name = fc_rev[col_idx]
+            col_data = self._dataframe[col_name]
+            col_mode = col_filters.get('mode', False)
+            col_mask = None
+            # iterate over filters within column
+            for col_filt in col_filters['filters']:
+                if self.different_column_types.get(col_name, False):
+                    # this is a 'num' column
+                    filt_type, query = col_filt
+                    col_data_ = col_data
+                else:
+                    # this is a 'str' column
+                    filt_type, query, case_sensitive = col_filt
+                    if case_sensitive:
+                        col_data_ = col_data.astype(str)
+                    else:
+                        col_data_ = col_data.astype(str).str.upper()
+                        query = query.upper()
+
+                print('+++ Q', col_name, col_filt)
+                # run the test
+                new_mask = self.test_query_on_column(filt_type, col_data_, query)
+
+                # create or combine new mask within column
+                if isinstance(col_mask, pd.Series) and col_mode == 'AND':
+                    col_mask = col_mask & new_mask
+                elif isinstance(col_mask, pd.Series) and col_mode == 'OR':
+                    col_mask = col_mask + new_mask
+                else:
+                    col_mask = new_mask
+
+            # create or combine new mask on columns
+            if isinstance(all_mask, pd.Series) and all_mode == 'AND':
+                all_mask = all_mask & col_mask
+            elif isinstance(all_mask, pd.Series) and all_mode == 'OR':
+                all_mask = all_mask + col_mask
+            else:
+                all_mask = col_mask
+        return all_mask
 
 
 class EditablePandasModel(PandasModel):

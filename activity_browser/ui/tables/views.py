@@ -310,23 +310,31 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
     def write_filters(self, filters: dict) -> None:
         self.filters = filters
-        self.header.has_active_filters = list(self.filters.keys())
 
     def apply_filters(self) -> None:
         if self.filters:
             QApplication.setOverrideCursor(Qt.WaitCursor)
-            self.proxy_model.set_filters(self.filters)
+            self.proxy_model.set_filters(self.model.get_filter_mask(self.filters))
+            self.header.has_active_filters = list(self.filters.keys())
             QApplication.restoreOverrideCursor()
+        else:
+            self.header.has_active_filters = []
 
     def reset_column_filters(self) -> None:
         """Reset all filters for this column."""
-        self.filters.pop(self.selected_column)
-        self.header.has_active_filters = list(self.filters.keys())
-        self.apply_filters()
+        f = self.filters
+        f.pop(self.selected_column)
+        self.write_filters(f)
+        if len(self.filters) == 1 and self.filters.get('mode'):
+            # the only thing in filters remaining is the mode --> there are no filters
+            self.reset_filters()
+        else:
+            self.header.has_active_filters = list(self.filters.keys())
+            self.apply_filters()
 
     def reset_filters(self) -> None:
         """Reset all filters for this entire table."""
-        self.filters = None
+        self.write_filters(None)
         self.header.has_active_filters = []
         self.proxy_model.clear_filters()
 
@@ -338,7 +346,7 @@ class CustomHeader(QHeaderView):
     """
     clicked = Signal(int, str)
 
-    _x_offset = 4
+    _x_offset = 0
     _y_offset = 0  # This value is calculated later, based on the height of the paint rect
     _width = 18
     _height = 18
@@ -348,7 +356,7 @@ class CustomHeader(QHeaderView):
         self.setSectionsClickable(True)
 
         self.column_indices = []
-        self.has_active_filters = []
+        self.has_active_filters = []  # list of column indices that have filters active
         self.event_pos = None
 
     def paintSection(self, painter, rect, logical_index):
@@ -357,7 +365,7 @@ class CustomHeader(QHeaderView):
         super(CustomHeader, self).paintSection(painter, rect, logical_index)
         painter.restore()
 
-        self._y_offset = int((rect.height() - self._width) / 2.)
+        self._y_offset = int(rect.height() - self._width)
 
         if logical_index in self.column_indices:
             option = QStyleOptionButton()
@@ -412,29 +420,8 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
     def __init__(self, parent=None):
         super(ABMultiColumnSortProxyModel, self).__init__(parent)
 
-        # filter_mode should be AND or OR
-        # defines how filter on different columns is combined
-        self.filter_mode = 'AND'
-
-        # filters contains all filters used as a list per column
-        # example:
-        # self.filters = {
-        #     0: {'filters': [('contains', 'heat', False), ('contains', 'electricity', False)],
-        #         'mode': 'OR'},
-        #     1: {'filters': [('contains', 'market', False)]}
-        # }
-        # this would filter for heat OR electricity in column 0 (Products) and in column 1 (Activity) for market.
-        # filters is a required argument for each column that is filtered and is a list of tuples.
-        # list elements contain a tuple with the search mode, the search term and if searching on string,
-        # a boolean for case sensitive.
-        # mode is optional and regards how the filters are combined within a column and is either "AND" or "OR"
-        #
-        self.filters = {}
-
-        # custom_column_order can be used to optimize the order of columns being searched IF the filter_mode is AND
-        # custom_column_order should be written as list with column indices,
-        # ordered from most important to least important
-        self.custom_column_order = None
+        # the filter mask, an iterable array with boolean values on whether or not to keep the row
+        self.mask = None
 
         # metric to keep track of successful matches on filter
         self.matches = 0
@@ -442,124 +429,25 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
         # custom filter activation
         self.activate_filter = False
 
-    def set_filters(self, filters: dict) -> None:
-        if filters.get('mode', False):
-            self.filter_mode = filters['mode']
-            filters.pop('mode')
-            self.filters = filters
-            self.matches = 0
-            self.activate_filter = True
-            self.invalidateFilter()
-            self.activate_filter = False
-            print('{} filter matches found'.format(self.matches))
-            self.filters['mode'] = self.filter_mode
-        else:
-            print("WARNING: missing filter mode, assuming 'AND'")
-            self.clear_filters()
-
-    def set_custom_column_order(self) -> None:
-        # if a custom order is defined, use it, else just go from left to right
-        if isinstance(self.custom_column_order, dict):
-            self.custom_column_order_list = [self.custom_column_order[i] for i in range(len(self.custom_column_order))]
+    def set_filters(self, mask) -> None:
+        self.mask = mask
+        self.matches = 0
+        self.activate_filter = True
+        self.invalidateFilter()
+        self.activate_filter = False
+        print('{} filter matches found'.format(self.matches))
 
     def clear_filters(self) -> None:
-        self.filters = {}
+        self.mask = None
         self.invalidateFilter()
 
-    def tester(self, test_type: str, a, b) -> bool:
-        """Compare a and b on test_type.
-        a = filter term
-        b = column value
-        """
-        if test_type == 'equals' or test_type == '=':
-            return a == b
-        elif test_type == 'does not equal' or test_type == '!=':
-            return a != b
-        elif test_type == 'contains':
-            return a in b
-        elif test_type == 'does not contain':
-            return a not in b
-        elif test_type == 'starts with':
-            return b.startswith(a)
-        elif test_type == 'does not start with':
-            return not b.startswith(a)
-        elif test_type == 'ends with':
-            return b.endswith(a)
-        elif test_type == 'does not end with':
-            return not b.endswith(a)
-        elif test_type == '>=':
-            return float(b) >= float(a)
-        elif test_type == '<=':
-            return float(b) <= float(a)
-        elif test_type == '<= x <=':
-            return float(a[0]) <= float(b) and float(b) <= float(a[1])
-        else:
-            print("WARNING: unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
-            return a == b
-
-    def apply_filter_tests(self, idx: int, value) -> bool:
-        """Apply all filter tests in self.filters for column idx.
-
-        Return a boolean whether or not the tests for column idx pass
-        """
-        filter_tests = self.filters.get(idx)
-
-        # iterate over each test and call self.tester with the right data for each test
-        tests = []
-        for test in filter_tests['filters']:
-            test_type, filter_val = test[0], test[1]
-            if len(test) == 3 and not test[2]:
-                # test[2] is a bool for case sensitivity
-                filter_val, value = str(filter_val).lower(), str(value).lower()
-                test_result = self.tester(test_type, str(filter_val), str(value))
-            else:
-                test_result = self.tester(test_type, filter_val, value)
-            tests.append(test_result)
-
-        if len(tests) > 1:
-            if filter_tests['mode'] == "OR":
-                return any(tests)
-            else:
-                return all(tests)
-        return all(tests)
-
     def filterAcceptsRow(self, row: int, parent) -> bool:
-        """Iterate over each column in the row and test the filters in self.filters for relevant columns.
-
-        Return a boolean whether or not to keep the row.
-        """
         # check if self.activate_filter is enabled, else return True
         if not self.activate_filter:
             return True
-
-        # get the data of the row
-        row_data = self.sourceModel().row_data(row)
-
-        if self.custom_column_order:
-            column_order = self.custom_column_order_list
-        else:
-            column_order = range(len(row_data))
-
-        # iterate over each column in the row and apply filter tests
-        tests = []
-        for i in column_order:
-            if i in self.filters.keys():
-                col_data = row_data[i]
-                test = self.apply_filter_tests(idx=i, value=col_data)
-                if not test and self.filter_mode == "AND":
-                    return False
-                tests.append(test)
-
-        if self.filter_mode == 'AND':
-            matched = all(tests)
-            if matched: self.matches += 1
-        elif self.filter_mode == 'OR':
-            matched = any(tests)
-            if matched: self.matches += 1
-        else:
-            print("WARNING: unknown filter mode >{}<, assuming 'AND'".format(self.filter_mode))
-            matched = all(tests)
-            if matched: self.matches += 1
+        # get the right index from the mask
+        matched = self.mask.iloc[row]
+        if matched: self.matches += 1
         return matched
 
 
