@@ -1,6 +1,6 @@
 [![conda-forge version](https://img.shields.io/conda/vn/conda-forge/activity-browser.svg)](https://anaconda.org/conda-forge/activity-browser)
 [![bsteubing version](https://img.shields.io/conda/vn/bsteubing/activity-browser.svg)](https://anaconda.org/bsteubing/activity-browser)
-[![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser)
+[![Downloads](https://anaconda.org/conda-forge/activity-browser/badges/downloads.svg)](https://anaconda.org/conda-forge/activity-browser)
 ![linux](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/linux.png)
 ![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)
 ![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)
