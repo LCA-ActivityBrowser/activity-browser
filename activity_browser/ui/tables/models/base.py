@@ -107,8 +107,6 @@ class PandasModel(QAbstractTableModel):
         elif test_type == 'does not equal' or test_type == '!=':
             return col_data != query
         elif test_type == 'contains':
-            print('++ col data\n', col_data)
-            print('++ col filt\n', col_data.astype(str).str.contains(query))
             return col_data.str.contains(query)
         elif test_type == 'does not contain':
             return ~col_data.str.str.contains(query)
@@ -164,7 +162,6 @@ class PandasModel(QAbstractTableModel):
                         col_data_ = col_data.astype(str).str.upper()
                         query = query.upper()
 
-                print('+++ Q', col_name, col_filt)
                 # run the test
                 new_mask = self.test_query_on_column(filt_type, col_data_, query)
 
