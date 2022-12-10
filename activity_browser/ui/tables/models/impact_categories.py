@@ -75,6 +75,8 @@ class CFModel(PandasModel):
         super().__init__(parent=parent)
         self.cf_column = 0
         self.method: Optional[bw.Method] = None
+        self.different_column_types = {k: 'num' for k in self.UNCERTAINTY + ['Amount']}
+        self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
         signals.method_modified.connect(self.sync)
 
     @property
@@ -142,6 +144,13 @@ class CFModel(PandasModel):
             uncertainty["amount"] = data[1]
             data[1] = uncertainty
         signals.edit_method_cf.emit(tuple(data), self.method.name)
+
+    def set_filterable_columns(self, hide: bool) -> None:
+        filterable_cols = {col: i for i, col in enumerate(self.HEADERS[:-1])}
+        if not hide:
+            # also add the uncertainty columns
+            filterable_cols.update({col: i for col, i in zip(self.UNCERTAINTY, self.uncertain_cols)})
+        self.filterable_columns = filterable_cols
 
 
 class ImpactCategoryItem(TreeItem):

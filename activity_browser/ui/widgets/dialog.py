@@ -365,9 +365,13 @@ class FilterManagerDialog(QtWidgets.QDialog):
         self.tab_widget = QtWidgets.QTabWidget()
         self.tabs = []
 
-        for col_name, i in column_names.items():
+        # we need this dict as we may have hidden columns (e.g. CFTable)
+        self.col_id_2_tab_id = {}
+        for tab_id, col_data in enumerate(column_names.items()):
+            col_name, col_id = col_data
+            self.col_id_2_tab_id[col_id] = tab_id
             tab = ColumnFilterTab(parent=self,
-                                  state=self.filters.get(i, None),
+                                  state=self.filters.get(col_id, None),
                                   col_type=column_types.get(col_name, 'str'),
                                   filter_types=filter_types
                                   )
@@ -395,16 +399,17 @@ class FilterManagerDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
         # set the column that launched the dialog as the open tab
-        self.tab_widget.setCurrentIndex(selected_column)
+        self.tab_widget.setCurrentIndex(self.col_id_2_tab_id[selected_column])
         self.tabs[selected_column].filter_rows[-1].filter_query_line.setFocus()
 
     @property
     def get_filters(self) -> dict:
         state = {}
-        for i, tab in enumerate(self.tabs):
+        t2c = {v: k for k, v in self.col_id_2_tab_id.items()}
+        for tab_id, tab in enumerate(self.tabs):
             tab_state = tab.get_state
             if isinstance(tab_state, dict):
-                state[i] = tab_state
+                state[t2c[tab_id]] = tab_state
         state['mode'] = self.and_or_buttons.get_state
         return state
 

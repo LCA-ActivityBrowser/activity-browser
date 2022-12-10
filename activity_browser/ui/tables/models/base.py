@@ -102,9 +102,9 @@ class PandasModel(QAbstractTableModel):
 
     def test_query_on_column(self, test_type: str, col_data: pd.Series, query) -> pd.Series:
         """Compare query and col_data on test_type, return array with boolean test results."""
-        if test_type == 'equals' or test_type == '=':
+        if test_type == 'equals':
             return col_data == query
-        elif test_type == 'does not equal' or test_type == '!=':
+        elif test_type == 'does not equal':
             return col_data != query
         elif test_type == 'contains':
             return col_data.str.contains(query)
@@ -118,6 +118,10 @@ class PandasModel(QAbstractTableModel):
             return col_data.str.endswith(query)
         elif test_type == 'does not end with':
             return ~col_data.str.endswith(query)
+        elif test_type == '=':
+            return col_data.astype(float) == float(query)
+        elif test_type == '!=':
+            return col_data.astype(float) != float(query)
         elif test_type == '>=':
             return col_data.astype(float) >= float(query)
         elif test_type == '<=':

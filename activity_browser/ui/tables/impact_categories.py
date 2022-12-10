@@ -6,7 +6,7 @@ from PySide2.QtCore import QModelIndex, Slot
 
 from ...signals import signals
 from ..icons import qicons
-from .views import ABDataFrameView, ABDictTreeView, ABFilterableDataFrameView
+from .views import ABDictTreeView, ABFilterableDataFrameView
 from .models import CFModel, MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
 
@@ -19,7 +19,6 @@ class MethodsTable(ABFilterableDataFrameView):
         self.model = MethodsListModel(self)
 
         # create variables for filtering
-        self.different_column_types = self.model.different_column_types
         if isinstance(self.model.filterable_columns, dict):
             self.header.column_indices = list(self.model.filterable_columns.values())
 
@@ -162,7 +161,7 @@ class MethodsTree(ABDictTreeView):
         self.model.copy_method(self.tree_level())
 
 
-class CFTable(ABDataFrameView):
+class CFTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.model = CFModel(parent=self)
@@ -175,6 +174,7 @@ class CFTable(ABDataFrameView):
         self.setItemDelegateForColumn(10, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.set_filter_data)
 
     @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
@@ -188,6 +188,12 @@ class CFTable(ABDataFrameView):
     def hide_uncertain(self, hide: bool = True) -> None:
         for i in self.model.uncertain_cols:
             self.setColumnHidden(i, hide)
+        self.model.set_filterable_columns(hide)
+        self.set_filter_data()
+
+    def set_filter_data(self):
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:

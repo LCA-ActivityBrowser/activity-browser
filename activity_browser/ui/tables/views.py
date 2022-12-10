@@ -133,6 +133,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
     To use this table, the following MUST be set in the table model:
     - self.filterable_columns: dict
         --> these columns are available for filtering
+        --> key is column name, value is column index
 
     To use this table, the following MUST be set in the table view:
     - self.header.column_indices = list(self.model.filterable_columns.values())
@@ -140,7 +141,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         --> Probably wise to set in a `if isinstance(self.model.filterable_columns, dict):`
         --> This variable must be set any time the columns of the table change
 
-    To use this table, the following can be set in the table view:
+    To use this table, the following can be set in the table model:
     - self.different_column_types: dict
         --> these columns require a different filter type than 'str'
         --> e.g. self.different_column_types = {'col_name': 'num'}
@@ -194,9 +195,9 @@ class ABFilterableDataFrameView(ABDataFrameView):
         mf_menu.setToolTipsVisible(True)
         mf_menu.setIcon(qicons.filter_icon)
         mf_menu.setTitle('More filters')
-        col_type = self.different_column_types.get({v: k for k, v in
-                                                    self.model.filterable_columns.items()}[self.selected_column],
-                                                   'str')
+        col_type = self.model.different_column_types.get(
+            {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column],
+            'str')
         filter_actions = []
         for i, f in enumerate(self.FILTER_TYPES[col_type]):
             fa = QAction(text=f)
@@ -235,7 +236,11 @@ class ABFilterableDataFrameView(ABDataFrameView):
             active_filters.setEnabled(False)
             menu.addAction(active_filters)
             for filter_data in self.filters[self.selected_column]['filters']:
-                filter_str = ': '.join([filter_data[0], filter_data[1]])
+                if filter_data[0] == '<= x <=':
+                    q = ' and '.join(filter_data[1])
+                else:
+                    q = filter_data[1]
+                filter_str = ': '.join([filter_data[0], q])
                 f = QAction(text=filter_str)
                 f.setEnabled(False)
                 menu.addAction(f)
@@ -259,7 +264,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
                                      filters=self.filters,
                                      filter_types=self.FILTER_TYPES,
                                      selected_column=self.selected_column,
-                                     column_types=self.different_column_types)
+                                     column_types=self.model.different_column_types)
         if dialog.exec_() == FilterManagerDialog.Accepted:
             # set the filters
             filters = dialog.get_filters
@@ -269,7 +274,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
     def simple_filter_dialog(self, preset_type: str = None) -> None:
         # get right data
         column_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
-        col_type = self.different_column_types.get(column_name, 'str')
+        col_type = self.model.different_column_types.get(column_name, 'str')
 
         # show dialog
         dialog = SimpleFilterDialog(column_name=column_name,
@@ -314,8 +319,9 @@ class ABFilterableDataFrameView(ABDataFrameView):
     def apply_filters(self) -> None:
         if self.filters:
             QApplication.setOverrideCursor(Qt.WaitCursor)
-            self.proxy_model.set_filters(self.model.get_filter_mask(self.filters))
-            self.header.has_active_filters = list(self.filters.keys())
+            filters = {k: v for k, v in self.filters.items() if k in list(self.model.filterable_columns.values()) + ['mode']}
+            self.proxy_model.set_filters(self.model.get_filter_mask(filters))
+            self.header.has_active_filters = list(filters.keys())
             QApplication.restoreOverrideCursor()
         else:
             self.header.has_active_filters = []
