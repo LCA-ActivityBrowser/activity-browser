@@ -3,9 +3,9 @@ import os
 from typing import Optional
 
 from bw2data.filesystem import safe_filename
-from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint, Signal, QRect
+from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint, Signal, QRect, QTimer
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
-    QHeaderView, QStyle, QStyleOptionButton
+    QHeaderView, QStyle, QStyleOptionButton,QLineEdit, QWidgetAction, QWidget, QHBoxLayout, QToolButton
 from PySide2.QtGui import QKeyEvent
 
 from ...settings import ab_settings
@@ -175,6 +175,13 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.header.clicked.connect(self.header_filter_button_clicked)
         self.selected_column = 0
 
+        # quick-filter setup:
+        self.prev_quick_filter = {}
+        self.debounce_quick_filter = QTimer()
+        self.debounce_quick_filter.setInterval(300)
+        self.debounce_quick_filter.setSingleShot(True)
+        self.debounce_quick_filter.timeout.connect(self.quick_filter)
+
     def header_filter_button_clicked(self, column: int, button: str) -> None:
         self.selected_column = column
         # this function is separate from the context menu in case we want to add right-click options later
@@ -185,11 +192,30 @@ class ABFilterableDataFrameView(ABDataFrameView):
         menu = QMenu(self)
         menu.setToolTipsVisible(True)
 
-        # add filter
-        filter_add = QAction(qicons.add, 'Add filter')
-        filter_add.triggered.connect(self.simple_filter_dialog)
-        filter_add.setToolTip('Add a new filter')
-        menu.addAction(filter_add)
+        # quick-filter bar
+        self.input_line = QLineEdit()
+        self.input_line.setFocusPolicy(Qt.StrongFocus)
+        search = QToolButton()
+        search.setIcon(qicons.search)
+        search.clicked.connect(menu.close)
+        quick_filter_layout = QHBoxLayout()
+        quick_filter_layout.addWidget(self.input_line)
+        quick_filter_layout.addWidget(search)
+        quick_filter_widget = QWidget()
+        quick_filter_widget.setLayout(quick_filter_layout)
+        quick_filter_widget.setToolTip("Filter this column on the input,\n"
+                                       "press 'enter' or the search button to filter")
+        # write previous filter to the quick-filter input if we have one
+        if prev_filter := self.prev_quick_filter.get(self.selected_column, False):
+            self.input_line.setText(prev_filter[1])
+        else:
+            self.input_line.setPlaceholderText('Quick filter ...')
+        self.input_line.textChanged.connect(self.debounce_quick_filter.start)
+        self.input_line.returnPressed.connect(menu.close)
+        QAline = QWidgetAction(self)
+        QAline.setDefaultWidget(quick_filter_widget)
+        menu.addAction(QAline)
+
         # More filters submenu
         mf_menu = QMenu(menu)
         mf_menu.setToolTipsVisible(True)
@@ -245,6 +271,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
                 f.setEnabled(False)
                 menu.addAction(f)
 
+        self.input_line.setFocus()
         loc = self.header.event_pos
         menu.exec_(self.mapToGlobal(loc))
 
@@ -254,6 +281,36 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         self.setModel(self.proxy_model)
+
+    def quick_filter(self) -> None:
+        query = self.input_line.text()
+
+        # convert to filter
+        col_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
+        if self.model.different_column_types.get(col_name):
+            # column is type 'num'
+            filt = ('=', query)
+        else:
+            # column is type 'str'
+            filt = ('contains', query, False)
+        # check if quick filter exists for this col, if so; remove from self.filters
+        if prev_filter := self.prev_quick_filter.get(self.selected_column, False):
+            self.filters[self.selected_column]['filters'].remove(prev_filter)
+
+        # place the filter in self.prev_quick_search for next quick filter on this column
+        self.prev_quick_filter[self.selected_column] = filt
+
+        # apply the right filters
+        if query != '':
+            # the query is not empty, add it to the filters and apply them
+            self.add_filter(filt)
+            self.apply_filters()
+        elif len(self.filters[self.selected_column]['filters']) > 0:
+            # the query is empty, but there are still filters for this column, so apply the filters
+            self.apply_filters()
+        else:
+            # the query is empty, and there are no more filters for this column, reset this filter.
+            self.reset_column_filters()
 
     def filter_manager_dialog(self) -> None:
         # get right data
@@ -330,6 +387,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         """Reset all filters for this column."""
         f = self.filters
         f.pop(self.selected_column)
+        self.prev_quick_search.pop(self.selected_column)
         self.write_filters(f)
         if len(self.filters) == 1 and self.filters.get('mode'):
             # the only thing in filters remaining is the mode --> there are no filters
@@ -342,6 +400,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         """Reset all filters for this entire table."""
         self.write_filters(None)
         self.header.has_active_filters = []
+        self.prev_quick_search = {}
         self.proxy_model.clear_filters()
 
 
