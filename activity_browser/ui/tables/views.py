@@ -287,7 +287,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
     def quick_filter(self) -> None:
         # remove weird whitespace from input
-        query = self.input_line.text().translate(str.maketrans('', '', ' \n\t\r'))
+        query = self.input_line.text().translate(str.maketrans('', '', '\n\t\r'))
 
         # convert to filter
         col_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
