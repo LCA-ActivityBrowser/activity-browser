@@ -109,7 +109,7 @@ class PandasModel(QAbstractTableModel):
         elif test_type == 'contains':
             return col_data.str.contains(query)
         elif test_type == 'does not contain':
-            return ~col_data.str.str.contains(query)
+            return ~col_data.str.contains(query)
         elif test_type == 'starts with':
             return col_data.str.startswith(query)
         elif test_type == 'does not start with':
