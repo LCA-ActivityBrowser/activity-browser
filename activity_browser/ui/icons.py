@@ -43,8 +43,6 @@ class Icons(object):
     left = create_path('main', 'left.png')
     forward = create_path('main', 'forward.png')
     backward = create_path('main', 'backward.png')
-    down_open = create_path('main', 'down_open.png')
-    down_fill = create_path('main', 'down_filled.png')
 
     # Simple actions
     delete = create_path('context', 'delete.png')
@@ -54,6 +52,8 @@ class Icons(object):
     calculate = create_path('main', 'calculate.png')
     question = create_path('context', 'question.png')
     search = create_path('main', 'search.png')
+    filter = create_path('main', 'filter.png')
+    filter_outline = create_path('main', 'filter_outline.png')
 
     # database
     import_db = create_path('main', 'import_database.png')
@@ -75,7 +75,6 @@ class Icons(object):
     # other
     superstructure = create_path('main', 'superstructure.png')
     copy_to_clipboard = create_path('main', 'copy_to_clipboard.png')
-    filter_icon = create_path('main', 'filter.png')
 
 
 class QIcons(Icons):

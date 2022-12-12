@@ -225,7 +225,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         # More filters submenu
         mf_menu = QMenu(menu)
         mf_menu.setToolTipsVisible(True)
-        mf_menu.setIcon(qicons.filter_icon)
+        mf_menu.setIcon(qicons.filter)
         mf_menu.setTitle('More filters')
         filter_actions = []
         for i, f in enumerate(self.FILTER_TYPES[col_type]):
@@ -261,7 +261,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         # Show existing filters for column
         if isinstance(self.filters, dict) and self.filters.get(self.selected_column, False):
             menu.addSeparator()
-            active_filters = QAction(qicons.filter_icon, 'Active column filters:')
+            active_filters = QAction(qicons.filter, 'Active column filters:')
             active_filters.setEnabled(False)
             menu.addAction(active_filters)
             for filter_data in self.filters[self.selected_column]['filters']:
@@ -443,9 +443,9 @@ class CustomHeader(QHeaderView):
 
             # put the filter icon onto the label
             if logical_index in self.has_active_filters:
-                option.icon = qicons.down_fill
+                option.icon = qicons.filter
             else:
-                option.icon = qicons.down_open
+                option.icon = qicons.filter_outline
             option.iconSize = QSize(16, 16)
 
             # set the settings to a PushButton

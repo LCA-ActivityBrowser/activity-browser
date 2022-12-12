@@ -352,7 +352,7 @@ class FilterManagerDialog(QtWidgets.QDialog):
                  column_types: dict = {},
                  parent=None):
         super().__init__(parent)
-        self.setWindowIcon(qicons.filter_icon)
+        self.setWindowIcon(qicons.filter)
         self.setWindowTitle('Manage table filters')
 
         # set given filters, if any
@@ -427,7 +427,7 @@ class SimpleFilterDialog(QtWidgets.QDialog):
                  preset_type: str = None,
                  parent=None):
         super().__init__(parent)
-        self.setWindowIcon(qicons.filter_icon)
+        self.setWindowIcon(qicons.filter)
         self.setWindowTitle('Add filter')
 
         # Create filter label and buttons
