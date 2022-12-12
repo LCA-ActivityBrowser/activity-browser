@@ -11,7 +11,6 @@ from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from ..style import style_group_box
 
-
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
     nothing is entered, we have this.
@@ -272,6 +271,61 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
         label = "Customize database links for exchanges in the imported database."
         return cls.construct_dialog(label, options, parent)
 
+class DatabaseLinkingResultsDialog(QtWidgets.QDialog):
+    """ To be used when relinking a database, this dialog will pop up if
+    some of the exchanges in the database fail to be linked to the new
+    database.
+    Up to five of the unlinked activities are printed on the screen,
+    TODO Provide links so that the activities can be opened
+
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Relinking database results")
+
+        button = QtWidgets.QDialogButtonBox.Ok
+        self.buttonBox = QtWidgets.QDialogButtonBox(button)
+        self.buttonBox.accepted.connect(self.accept)
+        self.databases_relinked = QtWidgets.QVBoxLayout()
+
+        self.activityToOpen = set()
+
+        self.exchangesUnlinked = QtWidgets.QVBoxLayout()
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout.addLayout(self.databases_relinked)
+        self.layout.addLayout(self.exchangesUnlinked)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+
+    @classmethod
+    def construct_results_dialog(cls, parent: QtWidgets.QWidget = None, link_results: dict = None, unlinked_exchanges: dict = None) -> 'DatabaseLinkingResultsDialog':
+        obj = cls(parent)
+        for k, results in link_results.items():
+            obj.databases_relinked.addWidget(QtWidgets.QLabel(f"{k} = {results[1]} successfully linked"))
+            obj.databases_relinked.addWidget(QtWidgets.QLabel(f"{k} = {results[0]} flows failed to link"))
+
+        obj.exchangesUnlinked.addWidget(QtWidgets.QLabel("Up to 5 unlinked exchanges (click to open)"))
+        for act, key in unlinked_exchanges.items():
+            button = QtWidgets.QPushButton(act.as_dict()['name'])
+            button.clicked.connect(lambda: signals.safe_open_activity_tab.emit(act.key))
+            obj.exchangesUnlinked.addWidget(button)
+        obj.updateGeometry()
+
+        return obj
+
+    @classmethod
+    def present_relinking_results(cls, parent: QtWidgets.QWidget = None, link_results: dict = None, unlinked_exchanges : dict = None) -> 'DatabaseLinkingResultsDialog':
+        return cls.construct_results_dialog(parent, link_results, unlinked_exchanges)
+
+    def select_activity_to_open(self, actvty: tuple) -> None:
+        if actvty in self.activityToOpen:
+            self.activityToOpen.discard(actvty)
+        self.activityToOpen.add(actvty)
+
+    def open_activity(self):
+        return self.activityToOpen
 
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def __init__(self, parent=None):
