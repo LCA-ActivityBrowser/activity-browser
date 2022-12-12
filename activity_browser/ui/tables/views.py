@@ -6,7 +6,7 @@ from bw2data.filesystem import safe_filename
 from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint, Signal, QRect, QTimer
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
     QHeaderView, QStyle, QStyleOptionButton,QLineEdit, QWidgetAction, QWidget, QHBoxLayout, QToolButton
-from PySide2.QtGui import QKeyEvent
+from PySide2.QtGui import QKeyEvent, QDoubleValidator
 
 from ...settings import ab_settings
 from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
@@ -192,9 +192,15 @@ class ABFilterableDataFrameView(ABDataFrameView):
         menu = QMenu(self)
         menu.setToolTipsVisible(True)
 
+        col_type = self.model.different_column_types.get(
+            {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column],
+            'str')
+
         # quick-filter bar
         self.input_line = QLineEdit()
         self.input_line.setFocusPolicy(Qt.StrongFocus)
+        if col_type == 'num':
+            self.input_line.setValidator(QDoubleValidator())
         search = QToolButton()
         search.setIcon(qicons.search)
         search.clicked.connect(menu.close)
@@ -221,9 +227,6 @@ class ABFilterableDataFrameView(ABDataFrameView):
         mf_menu.setToolTipsVisible(True)
         mf_menu.setIcon(qicons.filter_icon)
         mf_menu.setTitle('More filters')
-        col_type = self.model.different_column_types.get(
-            {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column],
-            'str')
         filter_actions = []
         for i, f in enumerate(self.FILTER_TYPES[col_type]):
             fa = QAction(text=f)
@@ -283,7 +286,8 @@ class ABFilterableDataFrameView(ABDataFrameView):
         self.setModel(self.proxy_model)
 
     def quick_filter(self) -> None:
-        query = self.input_line.text()
+        # remove weird whitespace from input
+        query = self.input_line.text().translate(str.maketrans('', '', ' \n\t\r'))
 
         # convert to filter
         col_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
@@ -297,7 +301,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         if prev_filter := self.prev_quick_filter.get(self.selected_column, False):
             self.filters[self.selected_column]['filters'].remove(prev_filter)
 
-        # place the filter in self.prev_quick_search for next quick filter on this column
+        # place the filter in self.prev_quick_filter for next quick filter on this column
         self.prev_quick_filter[self.selected_column] = filt
 
         # apply the right filters
@@ -381,13 +385,13 @@ class ABFilterableDataFrameView(ABDataFrameView):
             self.header.has_active_filters = list(filters.keys())
             QApplication.restoreOverrideCursor()
         else:
-            self.header.has_active_filters = []
+            self.reset_filters()
 
     def reset_column_filters(self) -> None:
         """Reset all filters for this column."""
         f = self.filters
         f.pop(self.selected_column)
-        self.prev_quick_search.pop(self.selected_column)
+        self.prev_quick_filter.pop(self.selected_column)
         self.write_filters(f)
         if len(self.filters) == 1 and self.filters.get('mode'):
             # the only thing in filters remaining is the mode --> there are no filters
@@ -400,7 +404,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         """Reset all filters for this entire table."""
         self.write_filters(None)
         self.header.has_active_filters = []
-        self.prev_quick_search = {}
+        self.prev_quick_filter = {}
         self.proxy_model.clear_filters()
 
 

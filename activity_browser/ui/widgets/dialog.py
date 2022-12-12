@@ -410,6 +410,8 @@ class FilterManagerDialog(QtWidgets.QDialog):
             tab_state = tab.get_state
             if isinstance(tab_state, dict):
                 state[t2c[tab_id]] = tab_state
+        if len(state) == 0:
+            return
         state['mode'] = self.and_or_buttons.get_state
         return state
 
@@ -430,12 +432,23 @@ class SimpleFilterDialog(QtWidgets.QDialog):
 
         # Create filter label and buttons
         label = QtWidgets.QLabel("Define a filter for column '{}'".format(column_name))
-        self.filter_row = FilterRow(column_type=column_type,
-                                    idx=0,
-                                    filter_types=filter_types,
-                                    remove_option=False,
-                                    preset_type=preset_type,
-                                    parent=self)
+
+        if column_type == 'num':
+            self.filter_row = NumFilterRow(
+                idx=0,
+                filter_types=filter_types,
+                remove_option=False,
+                preset_type=preset_type,
+                parent=self)
+        else:
+            # if none of the above types, assume str
+            self.filter_row = StrFilterRow(
+                idx=0,
+                filter_types=filter_types,
+                remove_option=False,
+                preset_type=preset_type,
+                parent=self)
+
         self.filter_row.filter_query_line.setFocus()
 
         # create OK/cancel buttons
@@ -504,11 +517,21 @@ class ColumnFilterTab(QtWidgets.QWidget):
     def add_row(self, state: tuple = None) -> None:
         """Add a new row to the self.filter_rows."""
         idx = len(self.filter_rows)
-        new_filter_row = FilterRow(column_type=self.col_type,
-                                   state=state,
-                                   idx=idx,
-                                   filter_types=self.filter_types,
-                                   parent=self)
+
+        if self.col_type == 'num':
+            new_filter_row = NumFilterRow(
+                idx=0,
+                state=state,
+                filter_types=self.filter_types,
+                parent=self)
+        else:
+            # if none of the above types, assume str
+            new_filter_row = StrFilterRow(
+                idx=0,
+                state=state,
+                filter_types=self.filter_types,
+                parent=self)
+
         self.filter_rows.append(new_filter_row)
         self.filter_widget_layout.addWidget(new_filter_row)
         self.show_hide_and_or()
@@ -573,9 +596,8 @@ class FilterRow(QtWidgets.QWidget):
     Required inputs:
     - idx: int --> integer index in self.filter_rows of parent. Used as ID in parent
     idx is the index position of this FilterRow in the list of rows in parent.
+    - filter_types: dict --> the types of filter available
     Optional inputs:
-    - col_type: str --> the type of column, either 'str' or 'num'. defines the search type options.
-    defaults to 'str'
     - state: tuple --> tuple of existing filter state that should be re-created in UI.
 
     Interaction:
@@ -585,8 +607,6 @@ class FilterRow(QtWidgets.QWidget):
     """
     def __init__(self, idx: int,
                  filter_types: dict,
-                 column_type='str',
-                 state: tuple = None,
                  remove_option: bool = True,
                  preset_type: str = None,
                  parent=None):
@@ -594,34 +614,17 @@ class FilterRow(QtWidgets.QWidget):
 
         self.idx = idx
         self.filter_types = filter_types
+        self.filter_type = self.filter_types[self.column_type]
         self.parent = parent
 
-        self.column_type = column_type
-
-        if self.filter_types.get(self.column_type, False):
-            self.filter_type = self.filter_types[self.column_type]
-        else:
-            print('WARNING: unknown column type {}, assuming string formatting'.format(self.column_type))
-            self.filter_type = self.filter_types['str']
-            self.column_type = 'str'
-
-        layout = QtWidgets.QHBoxLayout()
-
-        # add an input line in case 'between' ('<= x <=') is selected
-        if self.column_type == 'num':
-            self.filter_query_line0 = QtWidgets.QLineEdit()
-            self.filter_query_line0.hide()
-            layout.addWidget(self.filter_query_line0)
+        self.row_layout = QtWidgets.QHBoxLayout()
 
         # create a 'filter type' combobox
         self.filter_type_box = QtWidgets.QComboBox()
         self.filter_type_box.addItems(self.filter_type)
-        layout.addWidget(self.filter_type_box)
         # set a preset type if given
         if isinstance(preset_type, str):
             self.filter_type_box.setCurrentIndex(self.filter_type.index(preset_type))
-            if self.column_type == 'num':
-                self.set_input_changes()
         # add tooltip for every type option
         for i, tt in enumerate(self.filter_types[self.column_type + '_tt']):
             self.filter_type_box.setItemData(i, tt, Qt.ToolTipRole)
@@ -629,25 +632,56 @@ class FilterRow(QtWidgets.QWidget):
         # create the filter input line
         self.filter_query_line = QtWidgets.QLineEdit()
         self.filter_query_line.setFocusPolicy(Qt.StrongFocus)
-        layout.addWidget(self.filter_query_line)
-
-        # if there's case-sensitive, add that
-        if self.column_type == 'str':
-            self.case_sensitive_text = QtWidgets.QLabel('Case Sensitive:')
-            self.filter_case_sensitive_check = QtWidgets.QCheckBox()
-            layout.addWidget(self.case_sensitive_text)
-            layout.addWidget(self.filter_case_sensitive_check)
 
         if remove_option:
             # add buttons to remove the row
-            layout.addWidget(vertical_line())
             self.remove = QtWidgets.QToolButton()
             self.remove.setIcon(qicons.delete)
             self.remove.setToolTip('Remove this filter')
             self.remove.clicked.connect(self.self_destruct)
-            layout.addWidget(self.remove)
 
-        self.setLayout(layout)
+    @property
+    def get_state(self) -> tuple:
+        raise NotImplementedError
+
+    def set_state(self, state: tuple) -> None:
+        raise NotImplementedError
+
+    def set_input_changes(self) -> None:
+        raise NotImplementedError
+
+    def self_destruct(self) -> None:
+        """Remove this FilterRow object from parent."""
+        self.parent.remove_row(self.idx)
+
+
+class StrFilterRow(FilterRow):
+    """Convenience class for managing a filter input row for 'str' type."""
+    def __init__(self, idx: int,
+                 filter_types: dict,
+                 state: tuple = None,
+                 remove_option: bool = True,
+                 preset_type: str = None,
+                 parent=None):
+
+        self.column_type = 'str'
+        super().__init__(idx, filter_types, remove_option, preset_type, parent)
+
+        # create case-sensitive box
+        self.case_sensitive_text = QtWidgets.QLabel('Case Sensitive:')
+        self.filter_case_sensitive_check = QtWidgets.QCheckBox()
+
+        # assemble the layout
+        self.row_layout.addWidget(self.filter_type_box)
+        self.row_layout.addWidget(self.filter_query_line)
+        self.row_layout.addWidget(self.case_sensitive_text)
+        self.row_layout.addWidget(self.filter_case_sensitive_check)
+        if remove_option:
+            # add button to remove the row
+            self.row_layout.addWidget(vertical_line())
+            self.row_layout.addWidget(self.remove)
+
+        self.setLayout(self.row_layout)
 
         # set the state if one was given
         if isinstance(state, tuple):
@@ -658,7 +692,7 @@ class FilterRow(QtWidgets.QWidget):
 
     @property
     def get_state(self) -> tuple:
-        # check if input is valid
+        # remove weird whitespace from input
         query_line = self.filter_query_line.text().translate(str.maketrans('', '', ' \n\t\r'))
         # if valid, return a tuple with the state, otherwise, return None
         if query_line == '':
@@ -666,44 +700,92 @@ class FilterRow(QtWidgets.QWidget):
 
         selected_type = self.filter_type_box.currentText()
         selected_query = self.filter_query_line.text()
-        if self.column_type == 'num':
-            if self.filter_type_box.currentText() == '<= x <=':
-                selected_query = (self.filter_query_line0.text(), self.filter_query_line.text())
-            state = selected_type, selected_query
-        else:
-            case_sensitive = self.filter_case_sensitive_check.isChecked()
-            state = selected_type, selected_query, case_sensitive
-        return state
+        case_sensitive = self.filter_case_sensitive_check.isChecked()
+        return selected_type, selected_query, case_sensitive
 
     def set_state(self, state: tuple) -> None:
-        if self.column_type == 'str':
-            selected_type, selected_query, case_sensitive = state
-        else:
-            selected_type, selected_query = state
-            self.set_input_changes()
+        selected_type, selected_query, case_sensitive = state
         self.filter_type_box.setCurrentIndex(self.filter_type.index(selected_type))
-        if self.column_type == 'num' and selected_type == '<= x <=':
-            self.filter_query_line0.setText(selected_query[0])
-            self.filter_query_line.setText(selected_query[1])
-        else:
-            self.filter_query_line.setText(selected_query)
-        if self.column_type == 'str':
-            self.filter_case_sensitive_check.setChecked(case_sensitive)
+        self.filter_query_line.setText(selected_query)
+        self.filter_case_sensitive_check.setChecked(case_sensitive)
 
     def set_input_changes(self) -> None:
-        # enable whether the extra input line is visible
-        if self.column_type == 'num':
-            if self.filter_type_box.currentText() == '<= x <=':
-                self.filter_query_line0.show()
-            else:
-                self.filter_query_line0.hide()
         # set tooltip to currently selected item
         tt = self.filter_types[self.column_type + '_tt'][self.filter_type_box.currentIndex()]
         self.filter_type_box.setToolTip(tt)
 
-    def self_destruct(self) -> None:
-        """Remove this FilterRow object from parent."""
-        self.parent.remove_row(self.idx)
+
+class NumFilterRow(FilterRow):
+    """Convenience class for managing a filter input row for 'num' type."""
+    def __init__(self, idx: int,
+                 filter_types: dict,
+                 state: tuple = None,
+                 remove_option: bool = True,
+                 preset_type: str = None,
+                 parent=None):
+
+        self.column_type = 'num'
+        super().__init__(idx, filter_types, remove_option, preset_type, parent)
+
+        # add an input line in case 'between' ('<= x <=') is selected
+        self.filter_query_line0 = QtWidgets.QLineEdit()
+        self.filter_query_line0.hide()
+
+        # set 'double' validator for input lines
+        self.filter_query_line0.setValidator(QtGui.QDoubleValidator())
+        self.filter_query_line.setValidator(QtGui.QDoubleValidator())
+
+        # assemble the layout
+        self.row_layout.addWidget(self.filter_query_line0)
+        self.row_layout.addWidget(self.filter_type_box)
+        self.row_layout.addWidget(self.filter_query_line)
+        if remove_option:
+            # add button to remove the row
+            self.row_layout.addWidget(vertical_line())
+            self.row_layout.addWidget(self.remove)
+
+        self.setLayout(self.row_layout)
+
+        # set the state if one was given
+        if isinstance(state, tuple):
+            self.set_state(state)
+
+        self.filter_type_box.currentIndexChanged.connect(self.set_input_changes)
+        self.set_input_changes()
+
+    @property
+    def get_state(self) -> tuple:
+        # remove weird whitespace from input
+        query_line = self.filter_query_line.text().translate(str.maketrans('', '', ' \n\t\r'))
+        # if valid, return a tuple with the state, otherwise, return None
+        if query_line == '':
+            return None
+
+        selected_type = self.filter_type_box.currentText()
+        selected_query = self.filter_query_line.text()
+        if self.filter_type_box.currentText() == '<= x <=':
+            selected_query = (self.filter_query_line0.text(), self.filter_query_line.text())
+        return selected_type, selected_query
+
+    def set_state(self, state: tuple) -> None:
+        selected_type, selected_query = state
+        self.set_input_changes()
+        self.filter_type_box.setCurrentIndex(self.filter_type.index(selected_type))
+        if selected_type == '<= x <=':
+            self.filter_query_line0.setText(selected_query[0])
+            self.filter_query_line.setText(selected_query[1])
+        else:
+            self.filter_query_line.setText(selected_query)
+
+    def set_input_changes(self) -> None:
+        # enable whether the extra input line is visible
+        if self.filter_type_box.currentText() == '<= x <=':
+            self.filter_query_line0.show()
+        else:
+            self.filter_query_line0.hide()
+        # set tooltip to currently selected item
+        tt = self.filter_types[self.column_type + '_tt'][self.filter_type_box.currentIndex()]
+        self.filter_type_box.setToolTip(tt)
 
 
 class AndOrRadioButtons(QtWidgets.QWidget):
