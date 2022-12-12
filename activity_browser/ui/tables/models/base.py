@@ -43,7 +43,7 @@ class PandasModel(QAbstractTableModel):
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
                 value = float(value)
-            elif isinstance(value, np.bool_):
+            elif isinstance(value, bool):
                 value = value.item()
             elif isinstance(value, np.int64):
                 value = value.item()

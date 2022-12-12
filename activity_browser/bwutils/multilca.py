@@ -672,26 +672,30 @@ class Contributions(object):
             return self.act_fields if contribution == self.ACT else self.ef_fields
         return aggregator if isinstance(aggregator, list) else [aggregator]
 
+    def _correct_method_index(self, mthd_indx):
+        """ A method for amending the tuples for impact method labels so
+        that all tuples are fully printed.
+
+        NOTE THE AMENDED TUPLES ARE COPIED, THIS SHOULD NOT BE USED TO
+        ASSIGN OR MODIFY THE UNDERLYING DATA STRUCTURES!
+
+        mthd_indx: a list of tuples for the impact method names
+        """
+        method_tuple_length = max([len(k) for k in mthd_indx])
+        conv_dict = dict()
+        for v, mthd in enumerate(mthd_indx):
+            if len(mthd) < method_tuple_length:
+                _l = list(mthd)
+                for i in range(len(mthd), method_tuple_length):
+                    _l.append('')
+                mthd = tuple(_l)
+            conv_dict[mthd] = v
+        return conv_dict
+
     def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
         if kwargs.get("method") is not None:
             return self.mlca.fu_index, self.act_fields
-        def _correct_method_index(mthd_indx):
-            """ tuples make this awkward, consequently we need to use a loop to
-            append some nonsense strings (pandas assumes the MultiIndexes are
-            of uniform length)
-            """
-            method_tuple_length = max([len(k) for k in mthd_indx])
-            conv_dict = dict()
-            for v, mthd in enumerate(mthd_indx):
-                if len(mthd) < method_tuple_length:
-                    _l = list(mthd)
-                    for i in range(len(mthd), method_tuple_length):
-                        _l.append('')
-                    mthd = tuple(_l)
-                conv_dict[mthd] = v
-            return conv_dict
-        self.mlca.method_index = _correct_method_index(self.mlca.methods)
-        return self.mlca.method_index, None
+        return self._correct_method_index(self.mlca.methods), None
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None,
                                           aggregator=None, limit=5, normalize=False,
