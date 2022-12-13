@@ -309,7 +309,7 @@ class DatabaseLinkingResultsDialog(QtWidgets.QDialog):
         obj.exchangesUnlinked.addWidget(QtWidgets.QLabel("Up to 5 unlinked exchanges (click to open)"))
         for act, key in unlinked_exchanges.items():
             button = QtWidgets.QPushButton(act.as_dict()['name'])
-            button.clicked.connect(lambda: signals.safe_open_activity_tab.emit(act.key))
+            button.clicked.connect(lambda: signals.unsafe_open_activity_tab.emit(act.key))
             obj.exchangesUnlinked.addWidget(button)
         obj.updateGeometry()
 
