@@ -122,6 +122,9 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
         df = self.df_from_metadata(db_name)
+        # remove empty columns
+        df.replace('', np.nan, inplace=True)
+        df.dropna(how='all', axis=1, inplace=True)
         self._dataframe = df.reset_index(drop=True)
         QApplication.restoreOverrideCursor()
         self.updated.emit()
