@@ -107,9 +107,9 @@ class PandasModel(QAbstractTableModel):
         elif test_type == 'does not equal':
             return col_data != query
         elif test_type == 'contains':
-            return col_data.str.contains(query)
+            return col_data.str.contains(query, regex=False)
         elif test_type == 'does not contain':
-            return ~col_data.str.contains(query)
+            return ~col_data.str.contains(query, regex=False)
         elif test_type == 'starts with':
             return col_data.str.startswith(query)
         elif test_type == 'does not start with':
@@ -168,6 +168,9 @@ class PandasModel(QAbstractTableModel):
 
                 # run the test
                 new_mask = self.test_query_on_column(filt_type, col_data_, query)
+                if not any(new_mask):
+                    # no matches for this mask, let user know:
+                    print("There were no matches for filter: {}: '{}'".format(col_filt[0], col_filt[1]))
 
                 # create or combine new mask within column
                 if isinstance(col_mask, pd.Series) and col_mode == 'AND':

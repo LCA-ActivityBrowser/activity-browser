@@ -520,14 +520,14 @@ class ColumnFilterTab(QtWidgets.QWidget):
 
         if self.col_type == 'num':
             new_filter_row = NumFilterRow(
-                idx=0,
+                idx=idx,
                 state=state,
                 filter_types=self.filter_types,
                 parent=self)
         else:
             # if none of the above types, assume str
             new_filter_row = StrFilterRow(
-                idx=0,
+                idx=idx,
                 state=state,
                 filter_types=self.filter_types,
                 parent=self)

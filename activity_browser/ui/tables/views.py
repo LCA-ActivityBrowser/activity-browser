@@ -231,7 +231,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         for i, f in enumerate(self.FILTER_TYPES[col_type]):
             fa = QAction(text=f)
             fa.setToolTip(self.FILTER_TYPES[col_type + '_tt'][i])
-            fa.triggered.connect(self.simple_filter_dialog_w_preset)
+            fa.triggered.connect(self.simple_filter_dialog)
             filter_actions.append(fa)
         for fa in filter_actions:
             mf_menu.addAction(fa)
@@ -261,9 +261,11 @@ class ABFilterableDataFrameView(ABDataFrameView):
         # Show existing filters for column
         if isinstance(self.filters, dict) and self.filters.get(self.selected_column, False):
             menu.addSeparator()
-            active_filters = QAction(qicons.filter, 'Active column filters:')
-            active_filters.setEnabled(False)
-            menu.addAction(active_filters)
+            active_filters_label = QAction(qicons.filter, 'Active column filters:')
+            active_filters_label.setEnabled(False)
+            menu.addAction(active_filters_label)
+            print('++ filters', self.filters[self.selected_column])
+            active_filters = []
             for filter_data in self.filters[self.selected_column]['filters']:
                 if filter_data[0] == '<= x <=':
                     q = ' and '.join(filter_data[1])
@@ -272,6 +274,8 @@ class ABFilterableDataFrameView(ABDataFrameView):
                 filter_str = ': '.join([filter_data[0], q])
                 f = QAction(text=filter_str)
                 f.setEnabled(False)
+                active_filters.append(f)
+            for f in active_filters:
                 menu.addAction(f)
 
         self.input_line.setFocus()
@@ -329,10 +333,22 @@ class ABFilterableDataFrameView(ABDataFrameView):
         if dialog.exec_() == FilterManagerDialog.Accepted:
             # set the filters
             filters = dialog.get_filters
-            self.write_filters(filters)
-            self.apply_filters()
+            if filters != self.filters:
+                # the filters returned from the dialog are different, actually apply the filters
+                rm = []
+                for col, qf in self.prev_quick_filter.items():
+                    # check if quickfilters exist for these columns, otherwise remove them
+                    if (filters.get(col, False) and qf not in filters[col]['filters']) or not filters.get(col, False):
+                        rm.append(col)
+                for col in rm:
+                    self.prev_quick_filter.pop(col)
+                self.write_filters(filters)
+                self.apply_filters()
 
     def simple_filter_dialog(self, preset_type: str = None) -> None:
+        if not preset_type:
+            preset_type = self.sender().text()
+
         # get right data
         column_name = {v: k for k, v in self.model.filterable_columns.items()}[self.selected_column]
         col_type = self.model.different_column_types.get(column_name, 'str')
@@ -348,9 +364,6 @@ class ABFilterableDataFrameView(ABDataFrameView):
             if new_filter:
                 self.add_filter(new_filter)
                 self.apply_filters()
-
-    def simple_filter_dialog_w_preset(self) -> None:
-        self.simple_filter_dialog(self.sender().text())
 
     def add_filter(self, new_filter: tuple) -> None:
         """Add a single filter to self.filters."""
@@ -380,6 +393,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
     def apply_filters(self) -> None:
         if self.filters:
             QApplication.setOverrideCursor(Qt.WaitCursor)
+            # only allow filters that are for columns that may be filtered on
             filters = {k: v for k, v in self.filters.items() if k in list(self.model.filterable_columns.values()) + ['mode']}
             self.proxy_model.set_filters(self.model.get_filter_mask(filters))
             self.header.has_active_filters = list(filters.keys())
