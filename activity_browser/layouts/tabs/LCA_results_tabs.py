@@ -485,7 +485,6 @@ class InventoryTab(NewAnalysisTab):
         self.clear_tables()
         super().update_tab()
 
-
     def elementary_flows_contributing_to_IA_methods(self, contributary: bool = True, bios: pd.DataFrame = None) -> pd.DataFrame:
         """Returns a biosphere dataframe filtered for the presence in the impact assessment methods
         Requires a boolean argument for whether those flows included in the impact assessment method
