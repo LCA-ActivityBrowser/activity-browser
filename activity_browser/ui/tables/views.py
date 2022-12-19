@@ -168,7 +168,6 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
         self.header = CustomHeader()
         self.setHorizontalHeader(self.header)
-        self.setSortingEnabled(True)
 
         self.filters = None
         self.different_column_types = {}
@@ -264,7 +263,6 @@ class ABFilterableDataFrameView(ABDataFrameView):
             active_filters_label = QAction(qicons.filter, 'Active column filters:')
             active_filters_label.setEnabled(False)
             menu.addAction(active_filters_label)
-            print('++ filters', self.filters[self.selected_column])
             active_filters = []
             for filter_data in self.filters[self.selected_column]['filters']:
                 if filter_data[0] == '<= x <=':
@@ -403,9 +401,11 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
     def reset_column_filters(self) -> None:
         """Reset all filters for this column."""
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         f = self.filters
         f.pop(self.selected_column)
-        self.prev_quick_filter.pop(self.selected_column)
+        if self.prev_quick_filter.get(self.selected_column, False):
+            self.prev_quick_filter.pop(self.selected_column)
         self.write_filters(f)
         if len(self.filters) == 1 and self.filters.get('mode'):
             # the only thing in filters remaining is the mode --> there are no filters
@@ -413,13 +413,16 @@ class ABFilterableDataFrameView(ABDataFrameView):
         else:
             self.header.has_active_filters = list(self.filters.keys())
             self.apply_filters()
+        QApplication.restoreOverrideCursor()
 
     def reset_filters(self) -> None:
         """Reset all filters for this entire table."""
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.write_filters(None)
         self.header.has_active_filters = []
         self.prev_quick_filter = {}
         self.proxy_model.clear_filters()
+        QApplication.restoreOverrideCursor()
 
 
 class CustomHeader(QHeaderView):
