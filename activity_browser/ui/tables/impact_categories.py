@@ -9,13 +9,14 @@ from ..icons import qicons
 from .views import ABDataFrameView, ABDictTreeView
 from .models import CFModel, MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
+from .inventory import ActivitiesBiosphereTable
 
 
 class MethodsTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setDragEnabled(True)
-        self.setDragDropMode(ABDataFrameView.DragOnly)
+        self.setDragEnabled(False)
+        self.setDragDropMode(ABDataFrameView.DragDrop)
         self.model = MethodsListModel(self)
 
         self.doubleClicked.connect(
@@ -99,8 +100,8 @@ class MethodsTree(ABDictTreeView):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu(self)
+        menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
         if self.tree_level()[0] == 'leaf':
-            menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
             menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
         else:
             menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
@@ -162,6 +163,7 @@ class CFTable(ABDataFrameView):
         super().__init__(parent)
         self.model = CFModel(parent=self)
         self.setVisible(False)
+        self.setItemDelegateForColumn(2, FloatDelegate(self))
         self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
         self.setItemDelegateForColumn(6, FloatDelegate(self))
         self.setItemDelegateForColumn(7, FloatDelegate(self))
@@ -170,6 +172,10 @@ class CFTable(ABDataFrameView):
         self.setItemDelegateForColumn(10, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
+        self.read_only = True
+        self.setAcceptDrops(not self.read_only)
+
+        signals.set_uncertainty.connect(self.modify_uncertainty)
 
     @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
@@ -183,14 +189,17 @@ class CFTable(ABDataFrameView):
     def hide_uncertain(self, hide: bool = True) -> None:
         for i in self.model.uncertain_cols:
             self.setColumnHidden(i, hide)
+        # TODO: editability of the table is not correctly updated after toggling this checkbox!
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu(self)
-        menu.addAction(qicons.edit, "Modify uncertainty", self.modify_uncertainty)
+        edit = menu.addAction(qicons.edit, "Modify uncertainty", self.modify_uncertainty)
+        edit.setEnabled(not self.read_only)
         menu.addSeparator()
-        menu.addAction(qicons.delete, "Remove uncertainty", self.remove_uncertainty)
+        remove = menu.addAction(qicons.delete, "Remove uncertainty", self.remove_uncertainty)
+        remove.setEnabled(not self.read_only)
         menu.exec_(event.globalPos())
 
     @Slot(name="modifyCFUncertainty")
@@ -200,3 +209,21 @@ class CFTable(ABDataFrameView):
     @Slot(name="removeCFUncertainty")
     def remove_uncertainty(self) -> None:
         self.model.remove_uncertainty(self.selectedIndexes())
+
+    def dragMoveEvent(self, event) -> None:
+        """ Check if drops are allowed when dragging something over.
+        """
+        source_table = event.source()
+        if not isinstance(source_table, ActivitiesBiosphereTable):
+            # never allow drops from something other than biosphere databases
+            self.setAcceptDrops(False)
+        self.setAcceptDrops(not self.read_only)
+
+    def dropEvent(self, event):
+        source_table = event.source()
+        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+        if not isinstance(source_table, ActivitiesBiosphereTable):
+            return
+        print('Got event', source_table, keys, event.pos, event.posF, self.model.method.name)
+        event.accept()
+        signals.add_cf_method.emit(keys[0], self.model.method.name)

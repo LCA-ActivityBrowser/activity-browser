@@ -200,6 +200,7 @@ class ImpactCategoryController(QObject):
         signals.copy_method.connect(self.copy_method)
         signals.edit_method_cf.connect(self.modify_method_with_cf)
         signals.remove_cf_uncertainties.connect(self.remove_uncertainty)
+        signals.add_cf_method.connect(self.add_method_to_cf)
 
     @Slot(tuple, name="copyMethod")
     def copy_method(self, method: tuple) -> None:
@@ -256,5 +257,24 @@ class ImpactCategoryController(QObject):
             cfs.append(cf)
         else:
             cfs[idx] = cf
+        method.write(cfs)
+        signals.method_modified.emit(method.name)
+
+    @Slot(tuple, tuple, name="addMethodToCF")
+    def add_method_to_cf(self, cf: tuple, method: tuple):
+        method = bw.Method(method)
+        cfs = method.load()
+        # fill in default values for a new cf row
+        cfdata = (cf, {
+            'uncertainty type': 0,
+            'loc': float('nan'),
+            'scale': float('nan'),
+            'shape': float('nan'),
+            'minimum': float('nan'),
+            'maximum': float('nan'),
+            'negative': False,
+            'amount': 0
+        })
+        cfs.append(cfdata)
         method.write(cfs)
         signals.method_modified.emit(method.name)

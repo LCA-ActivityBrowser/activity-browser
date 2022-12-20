@@ -11,7 +11,7 @@ from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser.signals import signals
 from ...wizards import UncertaintyWizard
-from .base import PandasModel, DragPandasModel, TreeItem, BaseTreeModel
+from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
 
 class MethodsListModel(DragPandasModel):
@@ -61,7 +61,7 @@ class MethodsListModel(DragPandasModel):
         }
 
 
-class CFModel(PandasModel):
+class CFModel(EditablePandasModel):
     COLUMNS = ["name", "categories", "amount", "unit"]
     HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertainty"] + ["cf"]
     UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
@@ -299,6 +299,8 @@ class MethodsTreeModel(BaseTreeModel):
 
     def get_method(self, tree_level: tuple) -> tuple:
         """Retrieve method data"""
+        if tree_level[0] == 'branch':
+            return tuple(tree_level[1])
         name = ", ".join(tree_level[1])
         methods = self._dataframe.loc[self._dataframe["Name"] == name, "method"]
         return next(iter(methods))

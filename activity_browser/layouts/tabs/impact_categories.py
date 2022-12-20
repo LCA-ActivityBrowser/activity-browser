@@ -15,10 +15,17 @@ class CFsTab(QtWidgets.QWidget):
         self.panel = parent
         # Not visible when instantiated
         self.cf_table = CFTable(self)
+        self.cf_table.setAcceptDrops(True)
         self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
         self.hide_uncertainty.setChecked(True)
+        self.read_only = True
+        self.editable = QtWidgets.QCheckBox("Edit Characterization Factors")
+        self.editable.setToolTip("Make this impact category editable.\n"
+                                 "Please make a duplicate of this CF before modifying it.")
+        self.editable.toggled.connect(self.cf_read_only_changed)
         toolbar = QtWidgets.QToolBar(self)
         toolbar.addWidget(self.hide_uncertainty)
+        toolbar.addWidget(self.editable)
         container = QtWidgets.QVBoxLayout()
         container.addWidget(header("Method: " + " - ".join(method)))
         container.addWidget(horizontal_line())
@@ -39,6 +46,16 @@ class CFsTab(QtWidgets.QWidget):
             lambda: self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
         )
 
+    def cf_read_only_changed(self, editable: bool) -> None:
+        """ When read_only=False specific data fields in the tables below become user-editable
+                When read_only=True these same fields become read-only"""
+        self.cf_table.read_only = self.read_only = not editable
+        self.cf_table.setAcceptDrops(editable)  # also re-evaluated when dragging something over the table
+        if editable:
+            self.cf_table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
+        else:
+            self.cf_table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
+        print(self.read_only)
 
 class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):
