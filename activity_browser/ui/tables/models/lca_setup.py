@@ -148,7 +148,7 @@ class CSActivityModel(CSGenericModel):
             k, v = zip(*fu.items())
             data.append(self.build_row(k[0], v[0]))
         if data:
-            self._dataframe = self._dataframe.append(data, ignore_index=True)
+            self._dataframe = pd.concat([self._dataframe,pd.DataFrame(data)], ignore_index=True)
             self.updated.emit()
             signals.calculation_setup_changed.emit()
 
@@ -198,7 +198,7 @@ class CSMethodsModel(CSGenericModel):
         old_methods = set(self.methods)
         data = [self.build_row(m) for m in new_methods if m not in old_methods]
         if data:
-            self._dataframe = self._dataframe.append(data, ignore_index=True)
+            self._dataframe = pd.concat([self._dataframe, pd.DataFrame(data)], ignore_index=True)
             self.updated.emit()
             signals.calculation_setup_changed.emit()
 

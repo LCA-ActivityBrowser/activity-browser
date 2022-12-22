@@ -73,15 +73,15 @@ activity-browser
 
 ## Installation
 
-###  EcoInvent3.9 Compatibility and BrightWay2 
+###  Ecoinvent 3.9 Compatibility and BrightWay2 
 | :warning: Brightway and activity-browser version conflicts regarding Ecoinvent 3.9                                                                                                                                           |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Unfortunately, as of the moment conflicts exist in bw2io versions in response to building compatibility with the latest EcoInvent versions. Consequently, a work-around is needed for some activity-browser use cases, these are described below. |
+| Unfortunately, as of the moment conflicts exist in bw2io versions in response to building compatibility with the latest Ecoinvent versions. Consequently, a work-around is needed for some activity-browser use cases, these are described below. |
 
-To obtain and install EcoInvent 3.9 version 0.8.8 of the bw2io package is required, and an activity-browser environment with this version is required.
+To obtain and install Ecoinvent 3.9 version 0.8.8 of the bw2io package is required, and an activity-browser environment with this version is required.
 
 #### Ecoinvent 3.9 (updating an old version)
-This is unfortunately not possible, to get EcoInvent 3.9 you will need to create a new environment for the activity browser and make sure the packages are recent bw2io == 0.8.8
+This is unfortunately not possible, to get Ecoinvent 3.9 you will need to create a new environment for the activity browser and make sure the packages are recent bw2io == 0.8.8
 #### Ecoinvent 3.9 (new installation)
 On a new installation of the activity-browser this should work as intended. If however there are problems first check for the version of bw2io (using ```conda list bw2io```) if it is less than 0.8.8 then it is necessary to update the version (using```conda install bw2io=0.8.8```), this will also update brightway2 as a co-dependency.
 #### Ecoinvent <=3.8 (new installation)

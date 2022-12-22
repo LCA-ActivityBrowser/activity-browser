@@ -215,7 +215,7 @@ class CorrelationPlot(Plot):
 
         corr = df.corr()
         # Generate a mask for the upper triangle
-        mask = np.zeros_like(corr, dtype=np.bool)
+        mask = np.zeros_like(corr, dtype=bool)
         mask[np.triu_indices_from(mask)] = True
         # Draw the heatmap with the mask and correct aspect ratio
         vmax = np.abs(corr.values[~mask]).max()
