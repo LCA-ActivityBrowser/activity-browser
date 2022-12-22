@@ -126,6 +126,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
         df.replace('', np.nan, inplace=True)
         df.dropna(how='all', axis=1, inplace=True)
         self._dataframe = df.reset_index(drop=True)
+        self.filterable_columns = {col: i for i, col in enumerate(self._dataframe.columns.to_list())}
         QApplication.restoreOverrideCursor()
         self.updated.emit()
 

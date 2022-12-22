@@ -52,6 +52,8 @@ class Icons(object):
     calculate = create_path('main', 'calculate.png')
     question = create_path('context', 'question.png')
     search = create_path('main', 'search.png')
+    filter = create_path('main', 'filter.png')
+    filter_outline = create_path('main', 'filter_outline.png')
 
     # database
     import_db = create_path('main', 'import_database.png')
