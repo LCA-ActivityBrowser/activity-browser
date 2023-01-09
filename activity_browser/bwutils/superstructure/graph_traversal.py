@@ -244,7 +244,7 @@ class GraphTraversal:
         self.techno_node_list: Optional[GTNodeSet] = None
         self.number_calcs: Optional[int] = None
 
-    def reset(self, demand, method) -> List[Tuple[GTTechnosphereNode, Real]]:
+    def reset(self, demand: Dict, method: Tuple) -> List[Tuple[GTTechnosphereNode, Real]]:
 
         # calculate lci, supply, score
         self.lca = LCA(demand, method)
@@ -317,7 +317,7 @@ class GraphTraversal:
         Args:
             * *demand* (dict): The functional unit. Same format as in LCA class.
             * *method* (tuple): LCIA method. Same format as in LCA class.
-            * *cutoff* (float, default=0.005): Cutoff criteria to stop LCA calculations. Relative score of total, i.e. 0.005 will cutoff if a dataset has a score less than 0.5 percent of the total.
+            * *cutoff* (float, default=0.005): Cutoff criterion to stop LCA calculations. Relative score of total, i.e. 0.005 will cutoff if a dataset has a score less than 0.5 percent of the total.
             * *max_depth* (int, default=10): Maximum depth of the iteration.
             * *max_calc* (int, default=10000): Maximum number of LCA calculation to perform.
 
