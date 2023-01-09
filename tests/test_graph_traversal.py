@@ -2,7 +2,7 @@ from activity_browser.bwutils.superstructure.graph_traversal import GraphTravers
 from bw2data import Database, Method, databases
 
 
-def init_database():
+def init_database_no_loops():
     biosphere = Database("biosphere")
     biosphere.register()
     biosphere.write({
@@ -57,7 +57,8 @@ def delete_database():
     del databases['biosphere']
     Method(("a method",)).deregister()
 
-def test_single_activity_graph_traversal():
+
+def test_single_activity_graph_traversal_no_loop():
     nodes_expected = {
         -1: {'amount': 1, 'cum': -0.5, 'ind': 0},
         ('test', 'C'): {'amount': 0.5, 'cum': -0.5, 'ind': 0},
@@ -109,7 +110,7 @@ def test_single_activity_graph_traversal():
     assert actual["edges"] == edges_expected
 
 
-def test_multi_activity_graph_traversal():
+def test_multi_activity_graph_traversal_no_loop():
     nodes_expected = {
         -1: {'amount': 1, 'cum': -1.5, 'ind': 0},
         ('test', 'C'): {'amount': 0.5, 'cum': -0.5, 'ind': 0},
@@ -130,7 +131,7 @@ def test_multi_activity_graph_traversal():
 
     A = [a for a in Database("test") if a._data["name"] == "A"][0]
     D = [a for a in Database("test") if a._data["name"] == "D"][0]
-    demand = {A: -1, D:-1}
+    demand = {A: -1, D: -1}
 
     gt = GraphTraversal(use_keys=True, include_biosphere=True, importance_first=True)
     actual = gt.calculate(demand, ("a method",))
@@ -140,9 +141,97 @@ def test_multi_activity_graph_traversal():
     return
 
 
+def init_database_incl_loops():
+    biosphere = Database("biosphere")
+    biosphere.register()
+    biosphere.write({
+        ("biosphere", "CO2"): {
+            'categories': ['things'],
+            'exchanges': [],
+            'name': 'an emission',
+            'type': 'emission',
+            'unit': 'kg'
+        }})
+
+    db = Database("test")
+    db.register()
+    db.write({
+        ('test', 'A'): {
+            'name': 'coal mining',
+            'exchanges': [
+                {'input': ('biosphere', 'CO2'), 'amount': 0.05, 'type': 'biosphere'},
+                {'input': ('test', 'A'), 'amount': 1, 'type': 'production'},
+                {'input': ('test', 'E'), 'amount': 0.1, 'type': 'technosphere'}  # hot rolling
+            ]
+        },
+        ('test', 'B'): {
+            'name': 'steel smelting',
+            'exchanges': [
+                {'input': ('biosphere', 'CO2'), 'amount': 1.1, 'type': 'biosphere'},
+                {'input': ('test', 'B'), 'amount': 1, 'type': 'production'},
+                {'input': ('test', 'A'), 'amount': 1, 'type': 'technosphere'},
+                {'input': ('test', 'C'), 'amount': 0.5, 'type': 'technosphere'},  # electricity
+                {'input': ('test', 'D'), 'amount': 2, 'type': 'technosphere'}  # ore mining
+            ]
+        },
+        ('test', 'C'): {
+            'name': 'electricity production',
+            'exchanges': [
+                {'input': ('biosphere', 'CO2'), 'amount': 1, 'type': 'biosphere'},
+                {'input': ('test', 'C'), 'amount': 1, 'type': 'production'},
+                {'input': ('test', 'A'), 'amount': 1, 'type': 'technosphere'}
+            ]
+        },
+        ('test', 'D'): {
+            'name': 'iron ore mining',
+            'exchanges': [
+                {'input': ('test', 'D'), 'amount': 1, 'type': 'production'},
+                {'input': ('test', 'C'), 'amount': 0.5, 'type': 'technosphere'},
+                {'input': ('test', 'E'), 'amount': 0.1, 'type': 'technosphere'}
+            ]
+        },
+        ('test', 'E'): {
+            'name': 'hot-rolling',
+            'exchanges': [
+                {'input': ('biosphere', 'CO2'), 'amount': 0.1, 'type': 'biosphere'},
+                {'input': ('test', 'E'), 'amount': 1, 'type': 'production'},
+                {'input': ('test', 'C'), 'amount': 0.5, 'type': 'technosphere'},
+                {'input': ('test', 'B'), 'amount': 1, 'type': 'technosphere'},
+            ]
+        }
+    })
+
+    method = Method(("a method",))
+    method.register()
+    method.write([(("biosphere", "CO2"), 1)])
+
+    return db, biosphere, method
+
+
+def test_single_activity_graph_traversal_incl_loop():
+    nodes_expected = {
+        # todo
+    }
+    edges_expected = [
+        # todo
+    ]
+
+    act = [a for a in Database("test") if a._data["name"] == "hot-rolling"][0]
+    demand = {act: 1}
+
+    gt = GraphTraversal(use_keys=True, include_biosphere=True, importance_first=True)
+    actual = gt.calculate(demand, ("a method",))
+    assert actual["nodes"] == nodes_expected
+    assert actual["edges"] == edges_expected
+
+
 if __name__ == "__main__":
-    init_database()
-    test_single_activity_graph_traversal()
-    test_multi_activity_graph_traversal()
+    # init_database_no_loops()
+    # test_single_activity_graph_traversal()
+    # test_multi_activity_graph_traversal()
+    # delete_database()
+
+    init_database_incl_loops()
+    test_single_activity_graph_traversal_incl_loop()
     delete_database()
     pass
