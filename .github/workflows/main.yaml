@@ -65,7 +65,7 @@ jobs:
         run: |
           sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 \
-            libxcb-xfixes0 xvfb x11-utils;
+            libxcb-xfixes0 xvfb x11-utils glibc-tools;
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
           --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 \
           1920x1200x24 -ac +extension GLX +render -noreset;
@@ -132,3 +132,49 @@ jobs:
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload --force \
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload ci/conda-envs/ab_dev.yml
+
+
+  deploy-arm:
+    # Make sure to only run a deploy if all tests pass.
+    needs:
+      - tests
+    # And only on a push event, not a pull_request.
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    env:
+      PKG_NAME: "activity-browser-arm"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and deploy 3.8
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: 3.8
+          activate-environment: build
+          environment-file: ci/conda-envs/build.yml
+      - name: Export version
+        run: |
+          echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+      - name: Patch recipe with run requirements from stable
+        uses: mikefarah/yq@master
+        # Adds the run dependencies from the stable recipe to the arm recipe
+        # drop brightway2, but add brightway2_nosolver and scikit-umfpack
+        # Also adds the dependecies to the ab_arm environment file
+        with:
+          cmd: |
+            yq e '.requirements.run.[] | select(. != "brightway2*") | [.]' ci/recipe/stable/meta.yaml > arm_requirements.yaml
+            yq e -i '. += ["brightway2_nosolver", "scikit-umfpack"]' arm_requirements.yaml
+            yq eval-all -i 'select(fi == 0).requirements.run += select(fi == 1) | select(fi == 0)' ci/recipe/arm/meta.yaml arm_requirements.yaml
+            yq eval-all -i 'select(fi == 0).dependencies += select(fi == 1) | select(fi == 0)' ci/conda-envs/ab_arm.yml arm_requirements.yaml
+      - name: Show patched arm recipe
+        run: cat ci/recipe/arm/meta.yaml
+      - name: Build development package
+        run: |
+          conda build ci/recipe/arm
+      - name: Upload the activity-browser-arm package and env
+        run: |
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload --force \
+          /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload ci/conda-envs/ab_arm.yml

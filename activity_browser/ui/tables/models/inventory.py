@@ -56,7 +56,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.database_name = None
-        self.act_fields = lambda: AB_metadata.get_existing_fields(["reference product", "name", "location", "unit"])
+        self.act_fields = lambda: AB_metadata.get_existing_fields(["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"])
         self.ef_fields = lambda: AB_metadata.get_existing_fields(["name", "categories", "type", "unit"])
         self.technosphere = True
         signals.database_selected.connect(self.sync)
@@ -122,7 +122,11 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
         df = self.df_from_metadata(db_name)
+        # remove empty columns
+        df.replace('', np.nan, inplace=True)
+        df.dropna(how='all', axis=1, inplace=True)
         self._dataframe = df.reset_index(drop=True)
+        self.filterable_columns = {col: i for i, col in enumerate(self._dataframe.columns.to_list())}
         QApplication.restoreOverrideCursor()
         self.updated.emit()
 
@@ -203,4 +207,4 @@ class ActivitiesBiosphereModel(DragPandasModel):
                                                                as_keys=True)
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)
-        df.to_clipboard(excel=True)
+        df.to_clipboard(excel=True, index=False)

@@ -36,7 +36,7 @@ setup(
     description='A graphical user interface for brightway2',
     entry_points={
         'console_scripts': [
-            'activity-browser = activity_browser.app:run_activity_browser',
+            'activity-browser = activity_browser:run_activity_browser',
         ]
     },
     classifiers=[

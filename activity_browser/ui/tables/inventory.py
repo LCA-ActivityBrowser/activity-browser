@@ -7,7 +7,7 @@ from ...signals import signals
 from ..icons import qicons
 from .delegates import CheckboxDelegate
 from .models import DatabasesModel, ActivitiesBiosphereModel
-from .views import ABDataFrameView
+from .views import ABDataFrameView, ABFilterableDataFrameView
 
 
 class DatabasesTable(ABDataFrameView):
@@ -98,7 +98,7 @@ class DatabasesTable(ABDataFrameView):
         return self.model.get_db_name(self.currentIndex())
 
 
-class ActivitiesBiosphereTable(ABDataFrameView):
+class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.db_read_only = True
@@ -173,20 +173,27 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
+        self.model.updated.connect(self.update_filter_settings)
+        signals.database_selected.connect(self.reset_filters)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
 
+    def update_filter_settings(self) -> None:
+        # Write the column indices so only those columns get filter button
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
+
     @Slot(QtCore.QModelIndex, name="openActivityTab")
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
         key = self.model.get_key(proxy)
-        signals.open_activity_tab.emit(key)
+        signals.safe_open_activity_tab.emit(key)
         signals.add_activity_to_history.emit(key)
 
     @Slot(name="openActivityTabs")
     def open_activity_tabs(self) -> None:
         for key in (self.model.get_key(p) for p in self.selectedIndexes()):
-            signals.open_activity_tab.emit(key)
+            signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
 
     @Slot(name="deleteActivities")

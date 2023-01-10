@@ -545,6 +545,12 @@ const cartographer = function() {
              // re-scale arrowheads to fit into edge (they become really big otherwise)
             markers = d3.selectAll("marker")
                 .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
+
+            // fix arrowhead urls
+            d3.selectAll("path").attr("marker-end", function(data) {
+                if (!this.attributes["marker-end"]) return null;
+                else return "url(" + /url\(.*?(#.*?)\)/.exec(this.attributes["marker-end"].textContent)[1] + ")";
+            });
         }
     };
 
@@ -652,30 +658,33 @@ d3.select("#resetButtonqPWKOg").on("click", function() {
 });
 
 d3.select("#downloadSVGtButtonqPWKOg").on("click", function() {
+
+    // create new svg element
+    var clone = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+    // copy figure content to new svg element
+    var inner_graphic = document.getElementsByClassName("inner")[0]
+    clone.innerHTML = inner_graphic.outerHTML;
+
+    // edit new svg element
     var parentTag = document.getElementById("canvasqPWKOg");
     var svg = parentTag.firstChild
     var svg_rect = svg.getBBox(); // get the bounding rectangle
-    var clone = document.createElement('svg');
-    clone.setAttribute("xmlns","http://www.w3.org/2000/svg")
-    clone.setAttribute("xmlns:xlink","http://www.w3.org/1999/xlink")
-    clone.setAttribute("width",String(svg_rect.width))
-    clone.setAttribute("height",String(svg_rect.height))
-    clone.insertAdjacentHTML('afterbegin', window.style_element_text)
-    var inner_graphic = document.getElementsByClassName("inner")[0]
+    clone.setAttribute("width", String(svg_rect.width));
+    clone.setAttribute("height", String(svg_rect.height));
 
-    const parser = new DOMParser();
-    const new_doc = parser.parseFromString(inner_graphic.outerHTML, "text/html");
-
-    var inner_graphic_staging = new_doc.getElementsByClassName("inner")[0]
+    var inner_graphic_staging = clone.getElementsByClassName("inner")[0]
     panCanvasElem = inner_graphic_staging.getElementsByClassName("panCanvas")[0]
     panCanvasElem.removeAttribute("width")
     panCanvasElem.removeAttribute("height")
     panCanvasElem.removeAttribute("transform")
     var rect_elem = inner_graphic_staging.getElementsByClassName("background")[0]
     inner_graphic_staging.removeChild(rect_elem);
-    clone.appendChild(inner_graphic_staging);
 
-    //get svg source.
+    // insert style info
+    clone.insertAdjacentHTML('afterbegin', window.style_element_text)
+
+    //get svg source
     var serializer = new XMLSerializer();
     var source = serializer.serializeToString(clone);
 

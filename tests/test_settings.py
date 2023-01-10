@@ -40,11 +40,11 @@ def test_ab_default_keys(ab_settings):
     """ Test that default setting are only created for the given keys.
     """
     defaults = ab_settings.get_default_settings()
-    assert not {"custom_bw_dir", "startup_project"}.symmetric_difference(defaults)
+    assert not {"current_bw_dir", "custom_bw_dirs", "startup_project"}.symmetric_difference(defaults)
 
 
 def test_ab_default_settings(ab_settings):
-    assert ABSettings.get_default_directory() == ab_settings.custom_bw_dir
+    assert ABSettings.get_default_directory() == ab_settings.custom_bw_dir[0]
     assert ABSettings.get_default_project_name() == ab_settings.startup_project
 
 

@@ -6,7 +6,7 @@ import pandas as pd
 
 from ...bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
-    SUPERSTRUCTURE,
+    SUPERSTRUCTURE, _time_it_
 )
 from ...signals import signals
 from ...ui.icons import qicons
@@ -424,6 +424,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             )
             self.remove_btn.clicked.connect(parent.can_add_table)
 
+
+    @_time_it_
     @Slot(name="loadScenarioFile")
     def load_action(self) -> None:
         dialog = ExcelReadDialog(self)
@@ -456,6 +458,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 self.scenario_name.setToolTip(path.name)
             QtWidgets.QApplication.restoreOverrideCursor()
 
+    @_time_it_
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         # TODO: Move the 'scenario_df' into the model itself.
         self.scenario_df = df

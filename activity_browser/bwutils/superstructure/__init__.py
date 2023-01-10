@@ -5,4 +5,4 @@ from .dataframe import (
 from .excel import import_from_excel, get_sheet_names
 from .manager import SuperstructureManager
 from .mlca import SuperstructureMLCA, SuperstructureContributions
-from .utils import SUPERSTRUCTURE
+from .utils import SUPERSTRUCTURE, _time_it_

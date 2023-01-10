@@ -6,18 +6,22 @@ from PySide2.QtCore import QModelIndex, Slot
 
 from ...signals import signals
 from ..icons import qicons
-from .views import ABDataFrameView, ABDictTreeView
+from .views import ABDictTreeView, ABFilterableDataFrameView, ABDataFrameView
 from .models import CFModel, MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
 from .inventory import ActivitiesBiosphereTable
 
 
-class MethodsTable(ABDataFrameView):
+class MethodsTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setDragEnabled(False)
-        self.setDragDropMode(ABDataFrameView.DragDrop)
+        self.setDragEnabled(True)
+        self.setDragDropMode(ABFilterableDataFrameView.DragDrop)
         self.model = MethodsListModel(self)
+
+        # create variables for filtering
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
 
         self.doubleClicked.connect(
             lambda p: signals.method_selected.emit(self.model.get_method(p))
@@ -158,7 +162,7 @@ class MethodsTree(ABDictTreeView):
         self.model.copy_method(self.tree_level())
 
 
-class CFTable(ABDataFrameView):
+class CFTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.model = CFModel(parent=self)
@@ -172,6 +176,7 @@ class CFTable(ABDataFrameView):
         self.setItemDelegateForColumn(10, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.set_filter_data)
         self.read_only = True
         self.setAcceptDrops(not self.read_only)
 
@@ -189,7 +194,13 @@ class CFTable(ABDataFrameView):
     def hide_uncertain(self, hide: bool = True) -> None:
         for i in self.model.uncertain_cols:
             self.setColumnHidden(i, hide)
+        self.model.set_filterable_columns(hide)
+        self.set_filter_data()
         # TODO: editability of the table is not correctly updated after toggling this checkbox!
+
+    def set_filter_data(self):
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -224,6 +235,6 @@ class CFTable(ABDataFrameView):
         keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
         if not isinstance(source_table, ActivitiesBiosphereTable):
             return
-        print('Got event', source_table, keys, event.pos, event.posF, self.model.method.name)
         event.accept()
         signals.add_cf_method.emit(keys[0], self.model.method.name)
+        # TODO: Resize the view if the table did not already take up the full height.

@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 import brightway2 as bw
 from bw2data.parameters import ActivityParameter, Group, ParameterBase
 from PySide2.QtCore import QObject, Slot
-from PySide2.QtWidgets import QInputDialog, QMessageBox
+from PySide2.QtWidgets import QInputDialog, QMessageBox, QErrorMessage
 
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.signals import signals
@@ -36,6 +36,11 @@ class ParameterController(QObject):
             selection = wizard.selected
             data = wizard.param_data
             name = data.get("name")
+            if name[0] in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '#'):
+                error = QErrorMessage()
+                error.showMessage("<p>Parameter names must not start with a digit, hyphen, or hash character</p>")
+                error.exec_()
+                return
             amount = str(data.get("amount"))
             p_type = "project"
             if selection == 0:

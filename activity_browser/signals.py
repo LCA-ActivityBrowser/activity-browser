@@ -42,6 +42,8 @@ class Signals(QObject):
     duplicate_activity_to_db = Signal(str, object)
     duplicate_to_db_interface = Signal(tuple, str)
     duplicate_to_db_interface_multiple = Signal(list, str)
+    safe_open_activity_tab = Signal(tuple)
+    unsafe_open_activity_tab = Signal(tuple)
     open_activity_tab = Signal(tuple)
     close_activity_tab = Signal(tuple)
     open_activity_graph_tab = Signal(tuple)

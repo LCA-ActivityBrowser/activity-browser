@@ -197,7 +197,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         ]
         self.methods = bw.calculation_setups[self.cs]['ia']
         self.func_unit_cb.clear()
-        self.func_unit_cb.addItems([repr(list(fu.keys())[0]) for fu in self.func_units])
+        fu_acts = [list(fu.keys())[0] for fu in self.func_units]
+        self.func_unit_cb.addItems([f"{repr(a)} | {a._data.get('database')}" for a in fu_acts])
         self.configure_scenario()
         self.method_cb.clear()
         self.method_cb.addItems([repr(m) for m in self.methods])
