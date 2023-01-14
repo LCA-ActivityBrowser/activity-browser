@@ -3,10 +3,10 @@ from pathlib import Path
 
 import brightway2 as bw
 import pandas as pd
-from PySide2.QtCore import Slot, QSize
+from PySide2.QtCore import Slot, QSize, Qt
 from PySide2.QtWidgets import (
     QCheckBox, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QToolBar,
-    QStyle, QVBoxLayout, QTabWidget
+    QStyle, QVBoxLayout, QTabWidget, QSplitter, QWidget, QAbstractButton
 )
 from xlsxwriter.exceptions import FileCreateError
 
@@ -16,7 +16,7 @@ from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
 from ...ui.tables import (
     ActivityParameterTable, DataBaseParameterTable, ExchangesTable,
-    ProjectParameterTable, ScenarioTable
+    ProjectParameterTable, ScenarioTable, BaseParameterTable
 )
 from .base import BaseRightTab
 
@@ -59,6 +59,89 @@ class ParametersTab(QTabWidget):
         signals.show_tab.emit("Parameters")
 
 
+class ABParameterTable(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.table = None
+
+    def create_layout(self, title: str = None, bttn: QAbstractButton = None, table: BaseParameterTable = None):
+        headerLayout = QHBoxLayout()
+        headerLayout.addWidget(header(title))
+        headerLayout.addWidget(bttn)
+        headerLayout.addStretch(1)
+
+        layout = QVBoxLayout()
+        layout.addLayout(headerLayout)
+        layout.addWidget(table)
+        layout.addStretch(1)
+        return layout
+
+    def get_table(self):
+        return self.table
+
+
+class ABProjectParameter(ABParameterTable):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.newParameter = QPushButton(qicons.add, "New")
+        self.header = "Project:"
+        self.table = ProjectParameterTable(self)
+
+        self.setLayout(self.create_layout(self.header, self.newParameter, self.table))
+        self._connect_signal()
+
+    def _connect_signal(self):
+        self.newParameter.clicked.connect(
+            lambda: signals.add_parameter.emit(None)
+        )
+
+
+class ABDatabaseParameter(ABParameterTable):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.header = "Database:"
+        self.newParameter = QPushButton(qicons.add, "New")
+        self.table = DataBaseParameterTable(self)
+
+        self.setLayout(self.create_layout(self.header, self.newParameter, self.table))
+        self._connect_signal()
+
+    def _connect_signal(self):
+        self.newParameter.clicked.connect(
+            lambda: signals.add_parameter.emit(("db", ""))
+        )
+
+    def set_enabled(self, trigger):
+        if not bw.databases:
+            self.newParameter.setEnabled(False)
+        else:
+            self.newParameter.setEnabled(True)
+
+
+class ABActivityParameter(ABParameterTable):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.header="Activity:"
+        self.parameter = QCheckBox("Show order column", self)
+        self.table = ActivityParameterTable(self)
+
+        self.setLayout(self.create_layout(self.header, self.parameter, self.table))
+        self._connect_signal()
+
+    def _connect_signal(self):
+        self.parameter.stateChanged.connect(self.activity_order_column)
+
+    @Slot()
+    def activity_order_column(self) -> None:
+        col = self.table.model.order_col
+        state = self.parameter.isChecked()
+        if not state:
+            self.table.setColumnHidden(col, True)
+        else:
+            self.table.setColumnHidden(col, False)
+            self.table.resizeColumnToContents(col)
+
+
 class ParameterDefinitionTab(BaseRightTab):
     """ Parameter definitions tab.
 
@@ -73,24 +156,24 @@ class ParameterDefinitionTab(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.project_table = ProjectParameterTable(self)
-        self.database_table = DataBaseParameterTable(self)
-        self.activity_table = ActivityParameterTable(self)
+        self.project_table = ABProjectParameter(self)
+        self.database_table = ABDatabaseParameter(self)
+        self.activity_table = ABActivityParameter(self)
         self.tables = {
-            "project": self.project_table, "database": self.database_table,
-            "activity": self.activity_table,
+            "project": self.project_table.get_table(), "database": self.database_table.get_table(),
+            "activity": self.activity_table.get_table(),
         }
         for t in self.tables.values():
             t.model.sync()
 
-        self.new_project_param = QPushButton(qicons.add, "New")
-        self.database_header = header("Database:")
-        self.new_database_param = QPushButton(qicons.add, "New")
-        self.show_order = QCheckBox("Show order column", self)
+#        self.new_project_param = QPushButton(qicons.add, "New")
+#        self.database_header = header("Database:")
+#        self.new_database_param = QPushButton(qicons.add, "New")
+#        self.show_order = QCheckBox("Show order column", self)
         self.show_database_params = QCheckBox("Database parameters", self)
         self.show_database_params.setToolTip("Show/hide the database parameters")
         self.show_database_params.setChecked(True)
-        self.activity_header = header("Activity:")
+#        self.activity_header = header("Activity:")
         self.show_activity_params = QCheckBox("Activity parameters", self)
         self.show_activity_params.setToolTip("Show/hide the activity parameters")
         self.show_activity_params.setChecked(True)
@@ -137,13 +220,13 @@ can be used within the formula!</p>
     def _connect_signals(self):
         signals.project_selected.connect(self.build_tables)
         signals.parameters_changed.connect(self.build_tables)
-        self.new_project_param.clicked.connect(
-            lambda: signals.add_parameter.emit(None)
-        )
-        self.new_database_param.clicked.connect(
-            lambda: signals.add_parameter.emit(("db", ""))
-        )
-        self.show_order.stateChanged.connect(self.activity_order_column)
+#        self.new_project_param.clicked.connect(
+#            lambda: signals.add_parameter.emit(None)
+#        )
+#        self.new_database_param.clicked.connect(
+#            lambda: signals.add_parameter.emit(("db", ""))
+#        )
+#        self.show_order.stateChanged.connect(self.activity_order_column)
         self.show_database_params.toggled.connect(
             self.hide_database_parameter
         )
@@ -177,27 +260,29 @@ can be used within the formula!</p>
         layout.addWidget(row)
         layout.addWidget(horizontal_line())
 
-        row = QHBoxLayout()
-        row.addWidget(header("Project:"))
-        row.addWidget(self.new_project_param)
-        row.addStretch(1)
-        layout.addLayout(row)
-        layout.addWidget(self.project_table)
+        tables = QSplitter(Qt.Vertical)
+#        row = QHBoxLayout()
+#        row.addWidget(header("Project:"))
+#        row.addWidget(self.new_project_param)
+#        row.addStretch(1)
+#        layout.addLayout(row)
+        tables.addWidget(self.project_table)
 
-        row = QHBoxLayout()
-        row.addWidget(self.database_header)
-        row.addWidget(self.new_database_param)
-        row.addStretch(1)
-        layout.addLayout(row)
-        layout.addWidget(self.database_table)
+#        row = QHBoxLayout()
+#        row.addWidget(self.database_header)
+#        row.addWidget(self.new_database_param)
+#        row.addStretch(1)
+#        layout.addLayout(row)
+        tables.addWidget(self.database_table)
 
-        row = QHBoxLayout()
-        row.addWidget(self.activity_header)
-        row.addWidget(self.show_order)
-        row.addStretch(1)
-        layout.addLayout(row)
-        layout.addWidget(self.activity_table)
+#        row = QHBoxLayout()
+#        row.addWidget(self.activity_header)
+#        row.addWidget(self.show_order)
+#        row.addStretch(1)
+#        layout.addLayout(row)
+        tables.addWidget(self.activity_table)
 
+        layout.addWidget(tables)
         layout.addStretch(1)
         self.setLayout(layout)
 
@@ -206,12 +291,12 @@ can be used within the formula!</p>
         """ Read parameters from brightway and build dataframe tables
         """
         self.hide_uncertainty_columns()
-        self.activity_order_column()
+#        self.activity_order_column()
         # Cannot create database parameters without databases
         if not bw.databases:
-            self.new_database_param.setEnabled(False)
+            self.database_table.set_enabled(False)
         else:
-            self.new_database_param.setEnabled(True)
+            self.database_table.set_enabled(True)
 
     @Slot()
     def hide_uncertainty_columns(self):
@@ -224,27 +309,27 @@ can be used within the formula!</p>
         show = self.comment_column.isChecked()
         for table in self.tables.values():
             table.comment_column(show)
-
-    @Slot()
-    def activity_order_column(self) -> None:
-        col = self.activity_table.model.order_col
-        state = self.show_order.isChecked()
-        if not state:
-            self.activity_table.setColumnHidden(col, True)
-        else:
-            self.activity_table.setColumnHidden(col, False)
-            self.activity_table.resizeColumnToContents(col)
+#
+#    @Slot()
+#    def activity_order_column(self) -> None:
+#        col = self.activity_table.model.order_col
+#        state = self.show_order.isChecked()
+#        if not state:
+#            self.activity_table.setColumnHidden(col, True)
+#        else:
+#            self.activity_table.setColumnHidden(col, False)
+#            self.activity_table.resizeColumnToContents(col)
 
     @Slot(bool, name="hideDatabaseParameterTable")
     def hide_database_parameter(self, toggled: bool) -> None:
-        self.database_header.setHidden(not toggled)
-        self.new_database_param.setHidden(not toggled)
+#        self.database_header.setHidden(not toggled)
+#        self.database_table.se.setHidden(not toggled)
         self.database_table.setHidden(not toggled)
 
     @Slot(bool)
     def hide_activity_parameter(self, toggled: bool) -> None:
-        self.activity_header.setHidden(not toggled)
-        self.show_order.setHidden(not toggled)
+#        self.activity_header.setHidden(not toggled)
+#        self.show_order.setHidden(not toggled)
         self.activity_table.setHidden(not toggled)
 
 
