@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import itertools
 from typing import List
+import numpy as np
 
 import pandas as pd
 import brightway2 as bw
@@ -121,6 +122,7 @@ class SuperstructureManager(object):
         If no production flow exists, it is added.
         """
         # get all flows to self
+
         flows_to_self = df.loc[df.apply(lambda x: True if x['from key'] == x['to key']
                                                       and x['flow type'] == 'technosphere'
         else False, axis=1), :]
@@ -130,7 +132,8 @@ class SuperstructureManager(object):
                 prod_idx = (idx[0], idx[1], 'production')
                 tech_idx = (idx[0], idx[1], 'technosphere')
                 scenario_cols = df.columns.difference(SUPERSTRUCTURE)
-                if not df.index.isin([prod_idx]).any():
+                tech = df.loc[tech_idx, scenario_cols]
+                if not prod_idx not in df.index:
                     # this flow to self does not have a similar 'production' flow to self.
                     # find the default production value and add it as a 'production' flow
 
@@ -138,27 +141,30 @@ class SuperstructureManager(object):
                     # 1 reference flow (because we just take index 0 from list of production exchanges)
                     # Once AB has support for multiple reference flows, we need to adjust this code to match the
                     # right flow -something with looping over the flows and getting the right product or something-.
-                    prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
+                    prod_vals = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
 
                     # make a new df to edit the production, add the correct values/indices where needed
                     # and concat to the main df
                     new_prod = pd.DataFrame(df.loc[tech_idx, :])
                     new_prod.loc[tech_idx, 'flow type'] = 'production'
-                    new_prod.loc[tech_idx, scenario_cols] = prod_amt
+                    new_prod.loc[tech_idx, scenario_cols] = (np.array(prod_vals) - tech.values).tolist()[0]
                     new_prod.index = [prod_idx]
-                    df = pd.concat([df, new_prod], axis=0)
+                    df.loc[tech_idx] = new_prod.iloc[0]
+                else:
+                    prod_vals = (df.loc[prod_idx, scenario_cols].values - tech.values).tolist()[0]
+                    df.loc[prod_idx, scenario_cols] = prod_vals
+#                    df = pd.concat([df, new_prod], axis=0)
 
                 # subtract the 'technosphere' value from 'production' value and write to 'production'
-                prod = df.loc[prod_idx, scenario_cols]
-                tech = df.loc[tech_idx, scenario_cols]
-                vals = prod.values - tech.values
+#                prod = df.loc[prod_idx, scenario_cols]
+#                vals = prod_vals - tech.values
 
                 # write the corrected values to the right cells
-                # TODO figure out how to easily write 'per row' instead of 'per cell', but the below loop works for now
-                for i, elem in enumerate(vals.T):
-                    df.loc[prod_idx, scenario_cols[i]] = elem[0]
+                # TODO test this assignment of multiple cells simultaneously
+#                for i, elem in enumerate(vals.T):
+#                df.loc[prod_idx, scenario_cols] = vals.tolist()[0]
             # drop the 'technosphere' flows
-            df.drop(flows_to_self.index, inplace=True)
+            df.drop(flows_to_self.index, inplace=True, errors="ignore")
         return df
 
     @staticmethod
