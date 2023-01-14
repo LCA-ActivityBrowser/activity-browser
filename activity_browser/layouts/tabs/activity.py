@@ -159,9 +159,11 @@ class ActivityTab(QtWidgets.QWidget):
         layout.addWidget(toolbar)
         layout.addWidget(self.activity_data_grid)
         layout.addWidget(self.activity_description)
+        grouped_tables = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        # TODO Include a Qt.QSplitter object for allowing users to redefine the space between tables
         for group_box in self.grouped_tables:
-            layout.addWidget(group_box)
-
+            grouped_tables.addWidget(group_box)
+        layout.addWidget(grouped_tables)
         self.exchange_tables_read_only_changed()
 
         layout.addStretch()
