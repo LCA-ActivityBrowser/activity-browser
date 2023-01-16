@@ -85,7 +85,7 @@ class MenuBar(QtWidgets.QMenuBar):
             self.windows_menu.addAction(
                 widget.icon,
                 widget.name,
-                lambda: self.window.stacked.setCurrentWidget(widget),
+                lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
             )
 
     def setup_help_menu(self) -> None:
@@ -110,13 +110,9 @@ Activity Browser - a graphical interface for Brightway2.<br><br>
 Application version: <b>{}</b><br><br>
 All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
 Main developers:<br>
-- Bernhard Steubing (CML Leiden University, b.steubing@cml.leidenuniv.nl)<br>
-- Chris Mutel (Paul Scherer Institut, cmutel@gmail.com)<br>
-- Adrian Haas (ETH Zurich, haasad@ethz.ch)<br>
-- Daniel de Koning (CML Leiden University, d.g.de.koning@cml.leidenuniv.nl<br><br>
-Copyright (c) 2015, Bernhard Steubing and ETH Zurich<br>
-Copyright (c) 2016, Chris Mutel and Paul Scherrer Institut<br>
-Copyright (c) 2017, Adrian Haas (ETH Zurich) and Bernhard Steubing (Leiden University)<br>
+- Bernhard Steubing (CML Leiden University)<br>
+- Jonathan Kidner (CML Leiden University)<br><br>
+For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser>github</a>.<br><br>
 <br>
 LICENSE:<br>
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>

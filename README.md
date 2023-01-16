@@ -63,7 +63,31 @@ conda activate ab
 activity-browser
 ```
 
+If you are on an ARM Mac, use this instead:
+
+```bash
+conda create -n ab -c conda-forge -c cmutel -c bsteubing activity-browser-arm
+conda activate ab
+activity-browser
+```
+
 ## Installation
+
+###  Ecoinvent 3.9 Compatibility and BrightWay2 
+| :warning: Brightway and activity-browser version conflicts regarding Ecoinvent 3.9                                                                                                                                           |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Unfortunately, as of the moment conflicts exist in bw2io versions in response to building compatibility with the latest Ecoinvent versions. Consequently, a work-around is needed for some activity-browser use cases, these are described below. |
+
+To obtain and install Ecoinvent 3.9 version 0.8.8 of the bw2io package is required, and an activity-browser environment with this version is required.
+
+#### Ecoinvent 3.9 (updating an old version)
+This is unfortunately not possible, to get Ecoinvent 3.9 you will need to create a new environment for the activity browser and make sure the packages are recent bw2io == 0.8.8
+#### Ecoinvent 3.9 (new installation)
+On a new installation of the activity-browser this should work as intended. If however there are problems first check for the version of bw2io (using ```conda list bw2io```) if it is less than 0.8.8 then it is necessary to update the version (using```conda install bw2io=0.8.8```), this will also update brightway2 as a co-dependency.
+#### Ecoinvent <=3.8 (new installation)
+For a new installation the normal installation procedure should be followed. After this is successfully executed, however, the following command needs to be given within the environment ```conda install bw2io=0.8.7```, this will downgrade both bw2io and your brightway installation.
+
+One additional problem in this instance is if the biosphere3 database has already been installed with the bw2io version 0.8.8. If this is the case you will need to remove/delete this database and reinstall it, either using brightway2, or the activity-browser.
 
 ### Conda
 
@@ -98,6 +122,12 @@ After configuring your conda channels, the activity browser can be installed wit
 
 ```bash
 conda create -n ab activity-browser
+```
+
+Unless you are on an ARM Mac, in which case use:
+
+```bash
+conda create -n ab activity-browser-arm
 ```
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
