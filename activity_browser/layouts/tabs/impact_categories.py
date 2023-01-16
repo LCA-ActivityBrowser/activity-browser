@@ -15,7 +15,7 @@ class CFsTab(QtWidgets.QWidget):
         self.panel = parent
         # Not visible when instantiated
         self.cf_table = CFTable(self)
-        self.cf_table.setAcceptDrops(True)
+        self.cf_read_only_changed(False)  # don't accept drops, don't allow editing.
         self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
         self.hide_uncertainty.setChecked(True)
         self.read_only = True
@@ -42,9 +42,11 @@ class CFsTab(QtWidgets.QWidget):
 
     def connect_signals(self) -> None:
         self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
-        self.cf_table.model.updated.connect(
-            lambda: self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
-        )
+        self.cf_table.model.updated.connect(self.cf_uncertain_changed)
+
+    def cf_uncertain_changed(self):
+        self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
+        self.cf_read_only_changed(self.editable.isChecked())
 
     def cf_read_only_changed(self, editable: bool) -> None:
         """ When read_only=False specific data fields in the tables below become user-editable
