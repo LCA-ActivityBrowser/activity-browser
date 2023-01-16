@@ -200,8 +200,8 @@ def test_create_activity_param(qtbot):
     # Open the order column just because we can
     col = table.model.order_col
     assert table.isColumnHidden(col)
-    with qtbot.waitSignal(project_db_tab.activity_table.parameter.show_order.stateChanged, timeout=1000):
-        qtbot.mouseClick(project_db_tab.activity_table.parameter.show_order, QtCore.Qt.LeftButton)
+    with qtbot.waitSignal(project_db_tab.activity_table.parameter.stateChanged, timeout=1000):
+        qtbot.mouseClick(project_db_tab.activity_table.parameter, QtCore.Qt.LeftButton)
     assert not table.isColumnHidden(col)
 
     # Create multiple parameters for a single activity
