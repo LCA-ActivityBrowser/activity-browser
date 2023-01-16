@@ -328,12 +328,14 @@ can be used within the formula!</p>
         self.database_table.header.setHidden(not toggled)
         self.database_table.newParameter.setHidden(not toggled)
         self.database_table.table.setHidden(not toggled)
+        self.database_table.setHidden(not toggled)
 
     @Slot(bool)
     def hide_activity_parameter(self, toggled: bool) -> None:
         self.activity_table.header.setHidden(not toggled)
         self.activity_table.parameter.setHidden(not toggled)
         self.activity_table.table.setHidden(not toggled)
+        self.activity_table.setHidden(not toggled)
 
 
 class ParameterExchangesTab(BaseRightTab):
