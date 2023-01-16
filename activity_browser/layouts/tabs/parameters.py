@@ -283,7 +283,7 @@ can be used within the formula!</p>
         tables.addWidget(self.activity_table)
 
         layout.addWidget(tables)
-        layout.addStretch(1)
+#        layout.addStretch(1)
         self.setLayout(layout)
 
     @Slot(name="rebuildParameterTables")
@@ -291,7 +291,7 @@ can be used within the formula!</p>
         """ Read parameters from brightway and build dataframe tables
         """
         self.hide_uncertainty_columns()
-#        self.activity_order_column()
+        self.activity_order_column()
         # Cannot create database parameters without databases
         if not bw.databases:
             self.database_table.set_enabled(False)
@@ -309,27 +309,27 @@ can be used within the formula!</p>
         show = self.comment_column.isChecked()
         for table in self.tables.values():
             table.comment_column(show)
-#
-#    @Slot()
-#    def activity_order_column(self) -> None:
-#        col = self.activity_table.model.order_col
-#        state = self.show_order.isChecked()
-#        if not state:
-#            self.activity_table.setColumnHidden(col, True)
-#        else:
-#            self.activity_table.setColumnHidden(col, False)
-#            self.activity_table.resizeColumnToContents(col)
+
+    @Slot()
+    def activity_order_column(self) -> None:
+        col = self.activity_table.get_table().model.order_col
+        state = self.activity_table.parameter.isChecked()
+        if not state:
+            self.activity_table.get_table().setColumnHidden(col, True)
+        else:
+            self.activity_table.get_table().setColumnHidden(col, False)
+            self.activity_table.get_table().resizeColumnToContents(col)
 
     @Slot(bool, name="hideDatabaseParameterTable")
     def hide_database_parameter(self, toggled: bool) -> None:
-#        self.database_header.setHidden(not toggled)
-#        self.database_table.se.setHidden(not toggled)
+        self.database_header.setHidden(not toggled)
+        self.database_table.se.setHidden(not toggled)
         self.database_table.setHidden(not toggled)
 
     @Slot(bool)
     def hide_activity_parameter(self, toggled: bool) -> None:
-#        self.activity_header.setHidden(not toggled)
-#        self.show_order.setHidden(not toggled)
+        self.activity_header.setHidden(not toggled)
+        self.show_order.setHidden(not toggled)
         self.activity_table.setHidden(not toggled)
 
 

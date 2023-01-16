@@ -101,10 +101,10 @@ def test_create_database_params(qtbot):
     table = project_db_tab.database_table.get_table()
 
     # Open the database foldout
-    assert not table.isHidden()
+    assert not project_db_tab.database_table.isHidden()
     with qtbot.waitSignal(project_db_tab.show_database_params.stateChanged, timeout=1000):
         qtbot.mouseClick(project_db_tab.show_database_params, QtCore.Qt.LeftButton)
-    assert table.isHidden()
+    assert project_db_tab.database_table.isHidden()
     project_db_tab.show_database_params.toggle()
 
     # Generate a few database parameters
@@ -159,7 +159,7 @@ def test_delete_database_params(qtbot):
     project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_tables()
-    table = project_db_tab.database_table
+    table = project_db_tab.database_table.get_table()
 
     # Check that we can delete the parameter and remove it.
     proxy = table.proxy_model.index(1, 0)
