@@ -63,10 +63,13 @@ class ABParameterTable(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.table = None
+        self.header = None
 
     def create_layout(self, title: str = None, bttn: QAbstractButton = None, table: BaseParameterTable = None):
         headerLayout = QHBoxLayout()
-        headerLayout.addWidget(header(title))
+        self.header = header(title)
+
+        headerLayout.addWidget(self.header)
         headerLayout.addWidget(bttn)
         headerLayout.addStretch(1)
 
@@ -322,15 +325,15 @@ can be used within the formula!</p>
 
     @Slot(bool, name="hideDatabaseParameterTable")
     def hide_database_parameter(self, toggled: bool) -> None:
-        self.database_header.setHidden(not toggled)
-        self.database_table.se.setHidden(not toggled)
-        self.database_table.setHidden(not toggled)
+        self.database_table.header.setHidden(not toggled)
+        self.database_table.newParameter.setHidden(not toggled)
+        self.database_table.table.setHidden(not toggled)
 
     @Slot(bool)
     def hide_activity_parameter(self, toggled: bool) -> None:
-        self.activity_header.setHidden(not toggled)
-        self.show_order.setHidden(not toggled)
-        self.activity_table.setHidden(not toggled)
+        self.activity_table.header.setHidden(not toggled)
+        self.activity_table.parameter.setHidden(not toggled)
+        self.activity_table.table.setHidden(not toggled)
 
 
 class ParameterExchangesTab(BaseRightTab):
