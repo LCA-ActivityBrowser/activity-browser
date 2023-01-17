@@ -100,7 +100,8 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
             elif isinstance(value, numbers.Number):
                 sheet.write_number(row_index, col_index, value, frmt(value))
             else:
-                sheet.write_string(row_index, col_index, frmt_str(value), frmt(value))
+                sheet.write(row_index, col_index, value, frmt(value))
+#               sheet.write_string(row_index, col_index, frmt_str(value), frmt(value))
 
     workbook.close()
 

@@ -236,7 +236,7 @@ class ActivityParameterTable(BaseParameterTable):
         """
         for proxy in self.selectedIndexes():
             key = self.get_key(proxy)
-            signals.open_activity_tab.emit(key)
+            signals.safe_open_activity_tab.emit(key)
 
     def uncertainty_columns(self, show: bool):
         for i in range(10, 16):

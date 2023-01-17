@@ -1,0 +1,34 @@
+{
+    "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
+    "categories": [
+        {
+          "title": "## 🚧 Breaking Changes",
+            "labels": ["breaking"]
+        },
+        {
+            "title": "## 🚀 Features",
+            "labels": ["feature", "enhancement"]
+        },
+        {
+            "title": "## 🖱 User Interface",
+            "labels": ["ui"]
+        },
+        {
+            "title": "## 🛠️  Changes",
+            "labels": ["change"]
+        },
+        {
+            "title": "## 🐛 Bug Fixes",
+            "labels": ["bug"]
+        },
+        {
+            "title": "## 📄 Documentation",
+            "labels": ["documentation"]
+        },
+        {
+            "title": "## 🚚 CI and Packaging",
+            "labels": ["ci"]
+        }
+    ],
+    "template": "${{CATEGORIZED_COUNT}} changes since ${{FROM_TAG}}\n\n${{CHANGELOG}}"
+}

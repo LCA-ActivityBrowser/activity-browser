@@ -48,7 +48,7 @@ class ScenarioModel(PandasModel):
                 missing = len(data) - df.shape[0]
                 if missing != 0:
                     nan_data = pd.DataFrame(index=pd.RangeIndex(missing), columns=df.columns)
-                    df = df.append(nan_data, ignore_index=True)
+                    df = pd.concat([df, nan_data], ignore_index=True)
                 self._dataframe = df.set_index("Name")
         self.updated.emit()
 

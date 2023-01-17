@@ -50,5 +50,5 @@ class ActivitiesHistoryModel(PandasModel):
     def open_tab_event(self, proxy: QModelIndex) -> None:
         idx = self.proxy_to_source(proxy)
         key = self._dataframe.iat[idx.row(), self.key_col]
-        signals.open_activity_tab.emit(key)
+        signals.safe_open_activity_tab.emit(key)
         self.add_activity(key)

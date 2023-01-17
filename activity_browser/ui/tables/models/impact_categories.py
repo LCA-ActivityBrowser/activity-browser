@@ -20,8 +20,12 @@ class MethodsListModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.method_col = 0
+        self.different_column_types = {'# CFs': 'num'}
         signals.project_selected.connect(self.sync)
         signals.new_method.connect(self.filter_on_method)
+
+        # needed to trigger creation of self.filterable_columns, which relies on method_col existing
+        self.sync()
 
     def get_method(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
@@ -48,6 +52,7 @@ class MethodsListModel(DragPandasModel):
             self.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
         self.method_col = self._dataframe.columns.get_loc("method")
+        self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS) if i is not self.method_col}
         self.updated.emit()
 
     @staticmethod
@@ -70,6 +75,8 @@ class CFModel(PandasModel):
         super().__init__(parent=parent)
         self.cf_column = 0
         self.method: Optional[bw.Method] = None
+        self.different_column_types = {k: 'num' for k in self.UNCERTAINTY + ['Amount']}
+        self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
         signals.method_modified.connect(self.sync)
 
     @property
@@ -138,6 +145,13 @@ class CFModel(PandasModel):
             data[1] = uncertainty
         signals.edit_method_cf.emit(tuple(data), self.method.name)
 
+    def set_filterable_columns(self, hide: bool) -> None:
+        filterable_cols = {col: i for i, col in enumerate(self.HEADERS[:-1])}
+        if not hide:
+            # also add the uncertainty columns
+            filterable_cols.update({col: i for col, i in zip(self.UNCERTAINTY, self.uncertain_cols)})
+        self.filterable_columns = filterable_cols
+
 
 class ImpactCategoryItem(TreeItem):
     """ Item in MethodsTreeModel."""
@@ -179,12 +193,16 @@ class MethodsTreeModel(BaseTreeModel):
 
         self.setup_model_data()
 
-        signals.project_selected.connect(self.sync)
+        signals.project_selected.connect(self.setup_and_sync)
         signals.new_method.connect(self.setup_model_data)
         signals.new_method.connect(self.filter_on_method)
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
+
+    def setup_and_sync(self) -> None:
+        self.setup_model_data()
+        self.sync()
 
     @Slot(name="clearSyncModel")
     @Slot(str, name="syncModel")
@@ -330,7 +348,7 @@ class MethodsTreeModel(BaseTreeModel):
         for key, value in tree.items():
             if isinstance(value, tuple):
                 # this is a leaf node
-                if query.lower() not in value[0].lower():
+                if query.lower() not in ', '.join(value[-1]).lower():
                     # the query does not match
                     remove.append(key)
                 else:

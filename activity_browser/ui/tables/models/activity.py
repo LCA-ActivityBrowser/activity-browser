@@ -114,7 +114,7 @@ class BaseExchangeModel(EditablePandasModel):
         """
         keys = (self.get_key(p) for p in proxies)
         for key in keys:
-            signals.open_activity_tab.emit(key)
+            signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
 
     def setData(self, index: QModelIndex, value, role=Qt.EditRole):

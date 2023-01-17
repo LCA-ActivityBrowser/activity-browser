@@ -90,7 +90,7 @@ class CSActivityTable(CSGenericTable):
     def open_activities(self) -> None:
         for proxy in self.selectedIndexes():
             act = self.model.get_key(proxy)
-            signals.open_activity_tab.emit(act)
+            signals.safe_open_activity_tab.emit(act)
             signals.add_activity_to_history.emit(act)
 
     @Slot(name="deleteRows")
