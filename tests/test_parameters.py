@@ -25,7 +25,7 @@ def test_create_project_param(qtbot):
     project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_tables()
-    table = project_db_tab.project_table
+    table = project_db_tab.project_table.get_table()
 
     bw.parameters.new_project_parameters([
         {"name": "param_1", "amount": 1.0},
@@ -98,13 +98,13 @@ def test_create_database_params(qtbot):
     project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_tables()
-    table = project_db_tab.database_table
+    table = project_db_tab.database_table.get_table()
 
     # Open the database foldout
-    assert not table.isHidden()
+    assert not project_db_tab.database_table.isHidden()
     with qtbot.waitSignal(project_db_tab.show_database_params.stateChanged, timeout=1000):
         qtbot.mouseClick(project_db_tab.show_database_params, QtCore.Qt.LeftButton)
-    assert table.isHidden()
+    assert project_db_tab.database_table.isHidden()
     project_db_tab.show_database_params.toggle()
 
     # Generate a few database parameters
@@ -159,7 +159,7 @@ def test_delete_database_params(qtbot):
     project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_tables()
-    table = project_db_tab.database_table
+    table = project_db_tab.database_table.get_table()
 
     # Check that we can delete the parameter and remove it.
     proxy = table.proxy_model.index(1, 0)
@@ -195,13 +195,13 @@ def test_create_activity_param(qtbot):
     project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_tables()
-    table = project_db_tab.activity_table
+    table = project_db_tab.activity_table.get_table()
 
     # Open the order column just because we can
     col = table.model.order_col
     assert table.isColumnHidden(col)
-    with qtbot.waitSignal(project_db_tab.show_order.stateChanged, timeout=1000):
-        qtbot.mouseClick(project_db_tab.show_order, QtCore.Qt.LeftButton)
+    with qtbot.waitSignal(project_db_tab.activity_table.parameter.stateChanged, timeout=1000):
+        qtbot.mouseClick(project_db_tab.activity_table.parameter, QtCore.Qt.LeftButton)
     assert not table.isColumnHidden(col)
 
     # Create multiple parameters for a single activity
@@ -298,7 +298,7 @@ def test_open_activity_tab(qtbot, ab_app):
 
     # Select an activity
     tab = param_tab.tabs["Definitions"]
-    table = tab.activity_table
+    table = tab.activity_table.get_table()
     rect = table.visualRect(table.proxy_model.index(0, 3))
     qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
 
@@ -319,7 +319,7 @@ def test_delete_activity_param(qtbot):
     project_db_tab = ParameterDefinitionTab()
     qtbot.addWidget(project_db_tab)
     project_db_tab.build_tables()
-    table = project_db_tab.activity_table
+    table = project_db_tab.activity_table.get_table()
 
     rect = table.visualRect(table.proxy_model.index(0, 0))
     qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
