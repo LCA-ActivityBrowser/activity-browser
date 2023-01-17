@@ -166,7 +166,7 @@ class ActivityTab(QtWidgets.QWidget):
         layout.addWidget(grouped_tables)
         self.exchange_tables_read_only_changed()
 
-        layout.addStretch()
+#        layout.addStretch() # Commented out so that the grouped_tables splitter can utilize the entire window
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
