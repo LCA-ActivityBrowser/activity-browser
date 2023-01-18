@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 import itertools
 from typing import List
-
+import numpy as np
+import time
 import pandas as pd
+
 import brightway2 as bw
 
 from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_columns
-from .utils import guess_flow_type, SUPERSTRUCTURE
+from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
 
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
@@ -109,7 +111,7 @@ class SuperstructureManager(object):
         if not isinstance(df.index, pd.MultiIndex):
             df.index = SuperstructureManager.build_index(df)
         df = SuperstructureManager.remove_duplicates(df)
-        df = SuperstructureManager.merge_flows_to_self(df)
+        df = SuperstructureManager.romain_merge_flows_to_self(df)
 
         return df
 
@@ -122,43 +124,47 @@ class SuperstructureManager(object):
         """
         # get all flows to self
         flows_to_self = df.loc[df.apply(lambda x: True if x['from key'] == x['to key']
-                                                      and x['flow type'] == 'technosphere'
+                                                          and x['flow type'] == 'technosphere'
         else False, axis=1), :]
 
+        list_exc = []
+        for idx, row in df.loc[flows_to_self.index].iterrows():
+
+            prod_idx = (idx[0], idx[1], 'production')
+            tech_idx = (idx[0], idx[1], 'technosphere')
+
+            scenario_cols = df.columns.difference(SUPERSTRUCTURE)
+
+            if not df.index.isin([prod_idx]).any():
+                # this flow to self does not have a similar 'production' flow to self.
+                # find the default production value and add it as a 'production' flow
+
+                # WARNING: this way of getting the production amount only works for processes with
+                # 1 reference flow (because we just take index 0 from list of production exchanges)
+                # Once AB has support for multiple reference flows, we need to adjust this code to match the
+                # right flow -something with looping over the flows and getting the right product or something-.
+                prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
+
+                # make a new df to edit the production, add the correct values/indices where needed
+                # and concat to the main df
+                new_prod = df.loc[tech_idx]
+                new_prod.loc['flow type'] = 'production'
+                new_prod.loc[scenario_cols] = prod_amt
+                list_exc.append(new_prod)
+            else:
+                list_exc.append(df.loc[prod_idx])
         if len(flows_to_self) > 0:
-            for idx in flows_to_self.index:
-                prod_idx = (idx[0], idx[1], 'production')
-                tech_idx = (idx[0], idx[1], 'technosphere')
-                scenario_cols = df.columns.difference(SUPERSTRUCTURE)
-                if not df.index.isin([prod_idx]).any():
-                    # this flow to self does not have a similar 'production' flow to self.
-                    # find the default production value and add it as a 'production' flow
+            prod_idxs = [(x[0], x[1], "production") for x in flows_to_self.index]
+            tech_idxs = [(x[0], x[1], "technosphere") for x in flows_to_self.index]
 
-                    # WARNING: this way of getting the production amount only works for processes with
-                    # 1 reference flow (because we just take index 0 from list of production exchanges)
-                    # Once AB has support for multiple reference flows, we need to adjust this code to match the
-                    # right flow -something with looping over the flows and getting the right product or something-.
-                    prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
+            extra_df = pd.DataFrame(list_exc)
+            extra_df.index = prod_idxs
 
-                    # make a new df to edit the production, add the correct values/indices where needed
-                    # and concat to the main df
-                    new_prod = pd.DataFrame(df.loc[tech_idx, :])
-                    new_prod.loc[tech_idx, 'flow type'] = 'production'
-                    new_prod.loc[tech_idx, scenario_cols] = prod_amt
-                    new_prod.index = [prod_idx]
-                    df = pd.concat([df, new_prod], axis=0)
+            extra_df.loc[:, scenario_cols] -= df.loc[tech_idxs, scenario_cols].values
 
-                # subtract the 'technosphere' value from 'production' value and write to 'production'
-                prod = df.loc[prod_idx, scenario_cols]
-                tech = df.loc[tech_idx, scenario_cols]
-                vals = prod.values - tech.values
-
-                # write the corrected values to the right cells
-                # TODO figure out how to easily write 'per row' instead of 'per cell', but the below loop works for now
-                for i, elem in enumerate(vals.T):
-                    df.loc[prod_idx, scenario_cols[i]] = elem[0]
             # drop the 'technosphere' flows
-            df.drop(flows_to_self.index, inplace=True)
+            df = df.drop(flows_to_self.index)
+            df = pd.concat([df, extra_df], axis=0)
         return df
 
     @staticmethod
