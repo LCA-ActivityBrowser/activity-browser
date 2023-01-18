@@ -85,7 +85,7 @@ class MenuBar(QtWidgets.QMenuBar):
             self.windows_menu.addAction(
                 widget.icon,
                 widget.name,
-                lambda widget=widget: self.window.stacked.setCurrentWidget(widget),
+                self.window.toggle_debug_window,
             )
 
     def setup_help_menu(self) -> None:
