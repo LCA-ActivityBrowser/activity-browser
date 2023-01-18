@@ -37,7 +37,6 @@ class MetaDataStore(object):
     def __init__(self):
         self.dataframe = pd.DataFrame()
         self.databases = set()
-        self.unpacked_columns = {}
 
     def add_metadata(self, db_names_list: list) -> None:
         """"Include data from the brightway databases.
@@ -74,6 +73,17 @@ class MetaDataStore(object):
             df = pd.DataFrame(bw.Database(db_name))
             df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
             df.index = pd.MultiIndex.from_tuples(df["key"])
+
+            # add unpacked classifications columns if classifications are present
+            if "classifications" in df.columns:
+                # Options for reading classification systems from ecoinvent databases are
+                # - ISIC rev.4 ecoinvent
+                # - CPC
+                # - EcoSpold01Categories
+                # To show these columns in `ActivitiesBiosphereModel`,
+                # add them to `self.act_fields` there and `systems` below
+                systems = ["ISIC rev.4 ecoinvent"]
+                df = self.unpack_classifications(df, systems)
 
             # In a new 'biosphere3' database, some categories values are lists
             if "categories" in df.columns:
@@ -205,48 +215,47 @@ class MetaDataStore(object):
             db_name
         ))
 
-    def unpack_tuple_column(self, colname: str, new_colnames: list=None) -> None:
-        """Takes the given column in the dataframe and unpack it.
+    def unpack_classifications(self, df: pd.DataFrame, systems: list) -> pd.DataFrame:
+        """Unpack classifications column to a new column for every classification system in 'systems'.
 
-        To allow for quick aggregation, we:
-        - Take the given column (eg: 'categories')
-        - Find the max amount of values present for any row in that column,
-          this is the amount of additional columns to generate.
-        - Unpack the tuples of each row into separate column (using pd.Series)
-        - Append the newly created columns to the MetaData dataframe
+        Will return dataframe with added column.
         """
-        amount_columns = self.dataframe[colname].apply(len).max()
+        def unpacker(classifications: list, system: str) -> list:
+            """Iterate over all 'c' lists in 'classifications'
+            and add those matching 'system' to list 'x', when no matches, add empty string.
+            If 'c' is not a list, add empty string.
 
-        if new_colnames is None:
-            new_colnames = ["{}_{}".format(colname, x) for x in range(amount_columns)]
+            Always returns a list 'x' where len(x) == len(classifications).
 
-        # Check that the dataframe does not already contain the names
-        # If this fails, print a warning and return.
-        if colname in self.unpacked_columns:
-            print("WARNING: Decomposed columns of {} already exist, aborting merge".format(colname))
-            return
+            Testing showed that converting to list and doing the checks on a list is ~5x faster than keeping
+            data in DF and using a df.apply() function, we we do this now (difference was ~0.4s vs ~2s).
+            """
+            x = []
+            for c in classifications:
+                cls = ''
+                if type(c) != list:
+                    x.append(cls)
+                    continue
+                for s in c:
+                    if s[0] == system:
+                        cls = s[1]
+                x.append(cls)
+            return x
 
-        # Generate a dataframe where the tuple is expanded to a series and
-        # NaN values become empty strings
-        unpacked = self.dataframe[colname].apply(
-            lambda x: pd.Series([item for item in x])
-        ).fillna('')
+        classifications = list(df['classifications'].values)
+        system_cols = []
+        for system in systems:
+            system_cols.append(unpacker(classifications, system))
+        # creating the DF rotated is easier so we do that and then transpose
+        unpacked = pd.DataFrame(system_cols, columns=df.index, index=systems).T
 
-        # Give the columns the correct names
-        unpacked.rename(
-            columns={
-                unpacked.columns[x]: new_colnames[x] for x in unpacked.columns
-            }, inplace=True
-        )
-
-        # Finally, merge self.dataframe with the decomposed dataframe
-        # using indexes
-        self.dataframe = pd.merge(
-            self.dataframe, unpacked, how='inner', left_index=True,
+        # Finally, merge the df with the new unpacked df using indexes
+        df = pd.merge(
+            df, unpacked, how='inner', left_index=True,
             right_index=True, sort=False
         )
 
-        self.unpacked_columns[colname] = new_colnames
+        return df
 
 
 AB_metadata = MetaDataStore()
