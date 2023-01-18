@@ -106,10 +106,14 @@ class ProjectController(QObject):
             self.window,
             'Confirm project deletion',
             ("Are you sure you want to delete project '{}'? It has {} databases" +
-             " and {} LCI methods").format(
+             " and {} LCI methods.\n\n" +
+             "Note the actual data will not be removed from the hard disk.\n" +
+             "Delete dir: {}\n" +
+             "To delete the data from your hard disk.").format(
                 bw.projects.current,
                 len(bw.databases),
-                len(bw.methods)
+                len(bw.methods),
+                bw.projects.dir
             )
         )
         if reply == QtWidgets.QMessageBox.Yes:
