@@ -47,14 +47,15 @@ class ProjectController(QObject):
         the current project.
         """
 #        assert name, "No project name given."
+        name = "default" if not name else name
         if name not in bw.projects:
-            print("Project does not exist: {}".format(name))
-            return
+            print("Project does not exist: {}, creating!".format(name))
+            bw.projects.create_project(name)
 
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
-            signals.project_selected.emit()
-            print("Loaded project:", name)
+        signals.project_selected.emit()
+        print("Loaded project:", name)
 
     @Slot(name="createProject")
     def new_project(self, name=None):

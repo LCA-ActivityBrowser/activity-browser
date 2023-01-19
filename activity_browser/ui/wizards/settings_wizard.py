@@ -33,8 +33,9 @@ class SettingsWizard(QtWidgets.QWizard):
             print("Saved startup brightway directory as: ", custom_bw_dir)
 
         # project
+        field_project = self.field("startup_project")
         current_startup_project = ab_settings.startup_project
-        if self.field('startup_project') != current_startup_project:
+        if self.field('startup_project') and self.field('startup_project') != current_startup_project:
             new_startup_project = self.field('startup_project')
             ab_settings.startup_project = new_startup_project
             print("Saved startup project as: ", new_startup_project)
@@ -166,7 +167,7 @@ class SettingsPage(QtWidgets.QWizardPage):
                 self.bwdir_name.setText(path)
                 self.registerField('current_bw_dir', self.bwdir_name)
                 self.combobox_add_dir(self.bwdir, path)
-                ab_settings.current_bw_dir = path
+#                ab_settings.current_bw_dir = path
                 ab_settings.startup_project = ""
                 self.bwdir.blockSignals(True)
                 self.bwdir.setCurrentText(self.bwdir_name.text())
@@ -184,13 +185,14 @@ class SettingsPage(QtWidgets.QWizardPage):
             if reply == QtWidgets.QMessageBox.Yes:
                 self.bwdir_name.setText(path)
                 self.registerField('current_bw_dir', self.bwdir_name)
-                ab_settings.current_bw_dir = path
+#                ab_settings.current_bw_dir = path
                 self.update_project_combo()
             else:
                 prev_env_index = self.bwdir.findText(self.bwdir_name.text(), QtCore.Qt.MatchFixedString)
                 self.bwdir.blockSignals(True)
                 self.bwdir.setCurrentIndex(prev_env_index)
                 self.bwdir.blockSignals(False)
+                self.changed()
 
     def update_project_combo(self):
         """
@@ -202,12 +204,13 @@ class SettingsPage(QtWidgets.QWizardPage):
             self.startup_project_combobox.addItems(self.project_names)
         else:
             print("Warning: No projects found in this directory.")
-            return
+#            return
         if ab_settings.startup_project in self.project_names:
             self.startup_project_combobox.setCurrentText(ab_settings.startup_project)
         else:
             ab_settings.startup_project = ""
             self.startup_project_combobox.setCurrentIndex(-1)
+        self.changed()
 
 
     def combobox_add_dir(self, box: QtWidgets.QComboBox, path: str) -> None:
