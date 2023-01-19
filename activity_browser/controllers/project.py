@@ -46,7 +46,7 @@ class ProjectController(QObject):
         """Change the project, this clears all tabs and metadata related to
         the current project.
         """
-        assert name, "No project name given."
+#        assert name, "No project name given."
         if name not in bw.projects:
             print("Project does not exist: {}".format(name))
             return

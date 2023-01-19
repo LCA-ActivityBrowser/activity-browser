@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtCore
 import os
 import re
 
@@ -109,37 +109,6 @@ class SettingsPage(QtWidgets.QWizardPage):
                 projects.append(project.group(1))
         return projects
 
-    def combobox_add_dir(self, box: QtWidgets.QComboBox, path: str) -> None:
-        """ Adds a single directory to the QComboBox."""
-        box.blockSignals(True)
-        box.addItems([path])
-        box.blockSignals(False)
-        if path not in self.bwdir_variables:
-            self.bwdir_variables.add(path)
-            ab_settings.custom_bw_dir = path
-
-    def update_combobox(self, box: QtWidgets.QComboBox, labels: list) -> None:
-        """Update the combobox menu."""
-        correct_settings = False
-        current_dir = ab_settings.current_bw_dir
-        for i,dir in enumerate(ab_settings.custom_bw_dir):
-            self.bwdir_variables.add(dir)
-            if dir == current_dir:
-                box.blockSignals(True)
-                box.clear()
-                box.insertItems(0, labels)
-                box.blockSignals(False)
-                box.setCurrentIndex(i)
-                correct_settings = True
-        if correct_settings:
-            return
-        QtWidgets.QMessageBox.warning(self,
-                                      "Discrepancy in the ABsettings.json file",
-                                      "The value provided for the current brightway directory does not exist\n"
-                                      "in the available list of directories. Please check the settings file.",
-                                      QtWidgets.QMessageBox.Ok,
-                                      )
-
     def restore_defaults(self):
         self.change_bw_dir(ab_settings.get_default_directory())
         self.startup_project_combobox.setCurrentText(ab_settings.get_default_project_name())
@@ -163,7 +132,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         removed_dir = self.bwdir.currentText()
         removed_index = self.bwdir.currentIndex()
         self.bwdir.blockSignals(True)
-        self.bwdir.setCurrentIndex(0)
+        self.bwdir.setCurrentIndex(-1)
         self.bwdir.removeItem(removed_index)
         self.bwdir.blockSignals(False)
         self.bwdir_variables.remove(removed_dir)
@@ -197,15 +166,11 @@ class SettingsPage(QtWidgets.QWizardPage):
                 self.bwdir_name.setText(path)
                 self.registerField('current_bw_dir', self.bwdir_name)
                 self.combobox_add_dir(self.bwdir, path)
-#                ab_settings.custom_bw_dir = path
                 ab_settings.current_bw_dir = path
-                ab_settings.startup_project = "default"
-                if bc.switch_brightway2_dir(ab_settings.current_bw_dir):
-                    bw.projects.create_project("default")
-                    bw.projects.set_current("default")
-                else:
-                    pass
-                    # TODO should print an error message stating that the bw_dir and environment cannot be set
+                ab_settings.startup_project = ""
+                self.bwdir.blockSignals(True)
+                self.bwdir.setCurrentText(self.bwdir_name.text())
+                self.bwdir.blockSignals(False)
                 self.update_project_combo()
         else:  # a project already exists in this directory
             # ask user if to switch directory (which will update the project combobox correctly)
@@ -214,36 +179,67 @@ class SettingsPage(QtWidgets.QWizardPage):
                                                    'Would you like to switch to this directory now? \nThis will close your currently opened project. \nClick "Yes" to be able to choose the startup project.',
                                                    QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.No)
-            self.bwdir_name.setText(path)
-            self.registerField('current_bw_dir', self.bwdir_name)
             if path not in self.bwdir_variables:
                 self.combobox_add_dir(self.bwdir, path)
-            ab_settings.current_bw_dir = path
             if reply == QtWidgets.QMessageBox.Yes:
+                self.bwdir_name.setText(path)
+                self.registerField('current_bw_dir', self.bwdir_name)
+                ab_settings.current_bw_dir = path
                 self.update_project_combo()
             else:
-                self.update_project_combo(set_to_default=True)
+                prev_env_index = self.bwdir.findText(self.bwdir_name.text(), QtCore.Qt.MatchFixedString)
+                self.bwdir.blockSignals(True)
+                self.bwdir.setCurrentIndex(prev_env_index)
+                self.bwdir.blockSignals(False)
 
-    def update_project_combo(self, set_to_default=False):
+    def update_project_combo(self):
         """
         Updates the project combobox when loading a new brightway environment
         """
         self.startup_project_combobox.clear()
-        if not set_to_default:  # normal behaviour
-            default_project = ab_settings.startup_project
-            if default_project:
-                self.project_names = self.bw_projects(ab_settings.current_bw_dir)
-                if self.project_names:
-                    self.startup_project_combobox.addItems(self.project_names)
-                if not default_project in self.project_names:
-                    self.startup_project_combobox.addItems(default_project)
-                index = self.project_names.index(default_project)
-                self.startup_project_combobox.setCurrentIndex(index)
-            else:
-                print("Warning: No projects found in this directory.")
-        else:  # set project to "default" when project list cannot be obtained as user is in different directory
-            self.startup_project_combobox.addItems(["default"])
-            self.startup_project_combobox.setCurrentIndex(0)
+        self.project_names = self.bw_projects(ab_settings.current_bw_dir)
+        if self.project_names:
+            self.startup_project_combobox.addItems(self.project_names)
+        else:
+            print("Warning: No projects found in this directory.")
+            return
+        if ab_settings.startup_project in self.project_names:
+            self.startup_project_combobox.setCurrentText(ab_settings.startup_project)
+        else:
+            ab_settings.startup_project = ""
+            self.startup_project_combobox.setCurrentIndex(-1)
+
+
+    def combobox_add_dir(self, box: QtWidgets.QComboBox, path: str) -> None:
+        """ Adds a single directory to the QComboBox."""
+        box.blockSignals(True)
+        box.addItems([path])
+        box.blockSignals(False)
+        if path not in self.bwdir_variables:
+            self.bwdir_variables.add(path)
+            ab_settings.custom_bw_dir = path
+
+    def update_combobox(self, box: QtWidgets.QComboBox, labels: list) -> None:
+        """Update the combobox menu."""
+        correct_settings = False
+        current_dir = ab_settings.current_bw_dir
+        for i,dir in enumerate(ab_settings.custom_bw_dir):
+            self.bwdir_variables.add(dir)
+            if dir == current_dir:
+                box.blockSignals(True)
+                box.clear()
+                box.insertItems(0, labels)
+                box.blockSignals(False)
+                box.setCurrentIndex(i)
+                correct_settings = True
+        if correct_settings:
+            return
+        QtWidgets.QMessageBox.warning(self,
+                                      "Discrepancy in the ABsettings.json file",
+                                      "The value provided for the current brightway directory does not exist\n"
+                                      "in the available list of directories. Please check the settings file.",
+                                      QtWidgets.QMessageBox.Ok,
+                                      )
 
     def changed(self):
         self.wizard.button(QtWidgets.QWizard.BackButton).hide()
