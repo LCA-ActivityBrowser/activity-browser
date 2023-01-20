@@ -82,7 +82,8 @@ def update_and_shorten_label(label, text, length=15, enable=True) -> None:
 
 # Switch brightway directory
 def switch_brightway2_dir(dirpath):
-    if dirpath == bw.projects._base_data_dir:
+    bw_base = bw.projects._base_data_dir
+    if dirpath == bw_base:
         print('dirpath already loaded')
         return False
     try:

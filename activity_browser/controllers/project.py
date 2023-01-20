@@ -46,15 +46,16 @@ class ProjectController(QObject):
         """Change the project, this clears all tabs and metadata related to
         the current project.
         """
-        assert name, "No project name given."
+#        assert name, "No project name given."
+        name = "default" if not name else name
         if name not in bw.projects:
-            print("Project does not exist: {}".format(name))
-            return
+            print("Project does not exist: {}, creating!".format(name))
+            bw.projects.create_project(name)
 
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
-            signals.project_selected.emit()
-            print("Loaded project:", name)
+        signals.project_selected.emit()
+        print("Loaded project:", name)
 
     @Slot(name="createProject")
     def new_project(self, name=None):
@@ -106,10 +107,14 @@ class ProjectController(QObject):
             self.window,
             'Confirm project deletion',
             ("Are you sure you want to delete project '{}'? It has {} databases" +
-             " and {} LCI methods").format(
+             " and {} LCI methods.\n\n" +
+             "Note the actual data will not be removed from the hard disk.\n" +
+             "Delete dir: {}\n" +
+             "To delete the data from your hard disk.").format(
                 bw.projects.current,
                 len(bw.databases),
-                len(bw.methods)
+                len(bw.methods),
+                bw.projects.dir
             )
         )
         if reply == QtWidgets.QMessageBox.Yes:
