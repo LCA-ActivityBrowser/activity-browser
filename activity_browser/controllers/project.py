@@ -109,8 +109,8 @@ class ProjectController(QObject):
             ("Are you sure you want to delete project '{}'? It has {} databases" +
              " and {} LCI methods.\n\n" +
              "Note the actual data will not be removed from the hard disk.\n" +
-             "Delete dir: {}\n" +
-             "To delete the data from your hard disk.").format(
+             "To delete the data remove the following directory from your hard disk.\n" +
+             "  {}").format(
                 bw.projects.current,
                 len(bw.databases),
                 len(bw.methods),
