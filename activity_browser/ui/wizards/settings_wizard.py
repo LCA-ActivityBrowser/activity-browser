@@ -140,9 +140,22 @@ class SettingsPage(QtWidgets.QWizardPage):
         ab_settings.remove_custom_bw_dir(removed_dir)
 
     def bwdir_change(self, path: str):
+        """
+        Executes on emission of a signal from changes to the QComboBox holding bw2 environments
+        Scope: Limited to
+            SettingsPage class - can create new environments and bw.projects (exceptions are permitted), will update
+                contents of the Project QComboBox
+            settings::ABSettings - uses but doesn't set bw2 variables, sets variables in the settings file
+        """
         self.change_bw_dir(path)
 
     def bwdir_browse(self):
+        """
+        Executes on emission of a signal from the browse button
+        Scope: Limited to
+            SettingsPage class - provides a file path as a string to the QComboBox holding
+                bw2 environments
+        """
         path = QtWidgets.QFileDialog.getExistingDirectory(
             self, "Select a brightway2 database folder"
         )
