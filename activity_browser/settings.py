@@ -138,7 +138,7 @@ class ABSettings(BaseSettings):
         project = self.settings.get(
             "startup_project", self.get_default_project_name()
         )
-        if project or project not in bw.projects:
+        if project and project not in bw.projects:
             project = self.get_default_project_name()
         return project
 

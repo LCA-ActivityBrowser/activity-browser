@@ -27,21 +27,21 @@ class SettingsWizard(QtWidgets.QWizard):
         # directory
         current_bw_dir = ab_settings.current_bw_dir
         field = self.field('current_bw_dir')
-        if self.field('current_bw_dir') and self.field('current_bw_dir') != current_bw_dir:
-            custom_bw_dir = self.field('current_bw_dir')
-            ab_settings.custom_bw_dir = custom_bw_dir
-            print("Saved startup brightway directory as: ", custom_bw_dir)
+        if field and field != current_bw_dir:
+            ab_settings.custom_bw_dir = field
+            ab_settings.current_bw_dir = field
+            print("Saved startup brightway directory as: ", field)
 
         # project
         field_project = self.field("startup_project")
         current_startup_project = ab_settings.startup_project
-        if self.field('startup_project') and self.field('startup_project') != current_startup_project:
-            new_startup_project = self.field('startup_project')
+        if field_project and field_project != current_startup_project:
+            new_startup_project = field_project
             ab_settings.startup_project = new_startup_project
             print("Saved startup project as: ", new_startup_project)
 
         ab_settings.write_settings()
-        signals.switch_bw2_dir_path.emit(self.field('current_bw_dir'))
+        signals.switch_bw2_dir_path.emit(field)
 
     def cancel(self):
         print("Going back to before settings were changed.")
@@ -185,7 +185,7 @@ class SettingsPage(QtWidgets.QWizardPage):
                 self.bwdir.blockSignals(True)
                 self.bwdir.setCurrentText(self.bwdir_name.text())
                 self.bwdir.blockSignals(False)
-                self.update_project_combo()
+                self.update_project_combo(path=self.bwdir_name.text())
         else:  # a project already exists in this directory
             # ask user if to switch directory (which will update the project combobox correctly)
             reply = QtWidgets.QMessageBox.question(self,
@@ -199,7 +199,7 @@ class SettingsPage(QtWidgets.QWizardPage):
                 self.bwdir_name.setText(path)
                 self.registerField('current_bw_dir', self.bwdir_name)
 #                ab_settings.current_bw_dir = path
-                self.update_project_combo()
+                self.update_project_combo(path=self.bwdir_name.text())
             else:
                 prev_env_index = self.bwdir.findText(self.bwdir_name.text(), QtCore.Qt.MatchFixedString)
                 self.bwdir.blockSignals(True)
@@ -207,12 +207,15 @@ class SettingsPage(QtWidgets.QWizardPage):
                 self.bwdir.blockSignals(False)
                 self.changed()
 
-    def update_project_combo(self):
+    def update_project_combo(self, initialization: bool = True, path: str = None):
         """
         Updates the project combobox when loading a new brightway environment
         """
         self.startup_project_combobox.clear()
-        self.project_names = self.bw_projects(ab_settings.current_bw_dir)
+        if path:
+            self.project_names = self.bw_projects(path)
+        else:
+            self.project_names = self.bw_projects(ab_settings.current_bw_dir)
         if self.project_names:
             self.startup_project_combobox.addItems(self.project_names)
         else:
@@ -223,7 +226,8 @@ class SettingsPage(QtWidgets.QWizardPage):
         else:
             ab_settings.startup_project = ""
             self.startup_project_combobox.setCurrentIndex(-1)
-        self.changed()
+        if not initialization:
+            self.changed()
 
 
     def combobox_add_dir(self, box: QtWidgets.QComboBox, path: str) -> None:
