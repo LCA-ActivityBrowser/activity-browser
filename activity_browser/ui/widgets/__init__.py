@@ -7,7 +7,8 @@ from .database_copy import CopyDatabaseDialog
 from .dialog import (
     ForceInputDialog, TupleNameDialog, ExcelReadDialog,
     DatabaseLinkingDialog, DefaultBiosphereDialog,
-    DatabaseLinkingResultsDialog
+    DatabaseLinkingResultsDialog, ActivityLinkingDialog,
+    ActivityLinkingResultsDialog
 )
 from .line_edit import (SignalledPlainTextEdit, SignalledComboEdit,
                         SignalledLineEdit)
