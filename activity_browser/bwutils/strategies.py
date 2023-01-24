@@ -93,37 +93,14 @@ def rename_db_bw2package(data: dict, old: str, new: str) -> dict:
         new_data[new_key] = value
     return new_data
 
-
-def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) -> None:
-    """Relink exchanges after the database has been created/written.
-
-    This means possibly doing a lot of sqlite update calls.
-    """
-    if old == other.name:
-        print("No point relinking to same database.")
-        return
-    assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
-    assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
-
-    duplicates, candidates = {}, {}
+def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tuple:
     altered = 0
     remainder = 0
-    unlinked_exchanges = dict()
-
-    for ds in other:
-        key = activity_hash(ds, DEFAULT_FIELDS)
-        if key in candidates:
-            duplicates.setdefault(key, []).append(ds)
-        else:
-            candidates[key] = ds.key
-
+    unlinked_exchanges = {}
     with sqlite3_lci_db.transaction() as transaction:
         try:
             # Only do relinking on external biosphere/technosphere exchanges.
-            for i, exc in enumerate(
-                    exc for act in db for exc in act.exchanges()
-                    if exc.get("type") in {"biosphere", "technosphere"} and exc.input[0] == old
-            ):
+            for (i, exc) in exchanges:
                 # Use the input activity to generate the hash.
                 key = activity_hash(exc.input, DEFAULT_FIELDS)
                 if key in duplicates:
@@ -142,8 +119,34 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
         except (StrategyError, ValidityError) as e:
             print(e)
             transaction.rollback()
+    return (remainder, altered, unlinked_exchanges)
+
+def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) -> tuple:
+    """Relink exchanges after the database has been created/written.
+
+    This means possibly doing a lot of sqlite update calls.
+    """
+    if old == other.name:
+        print("No point relinking to same database.")
+        return
+    assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
+    assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
+
+    duplicates, candidates = {}, {}
+
+    for ds in other:
+        key = activity_hash(ds, DEFAULT_FIELDS)
+        if key in candidates:
+            duplicates.setdefault(key, []).append(ds)
+        else:
+            candidates[key] = ds.key
+
+    exchanges = [(i, exc) for i, exc in enumerate(exc for act in db for exc in act.exchanges() if exc.get("type") in
+                                                  {"biosphere", "technosphere"} and exc.input[0] == old)]
+
     # Process the database after the transaction is complete.
     #  this updates the 'depends' in metadata
+    (remainder, altered, unlinked_exchanges) = relink_exchanges(exchanges, candidates, duplicates)
     db.process()
     print(
         "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
@@ -151,6 +154,35 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
         )
     )
     return (remainder,altered, unlinked_exchanges)
+
+def relink_activity_exchanges(act, old: str, other: bw.Database) -> tuple:
+    if old == other.name:
+        print("No point relinking to same database.")
+        return
+    db = bw.Database(act.key[0])
+    assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
+    assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
+
+    duplicates, candidates = {}, {}
+
+    for ds in other:
+        key = activity_hash(ds, DEFAULT_FIELDS)
+        if key in candidates:
+            duplicates.setdefault(key, []).append(ds)
+        else:
+            candidates[key] = ds.key
+    exchanges = [(i, e) for i, e in enumerate(exc for exc in act.exchanges() if exc.get("type") in
+                                              {"technosphere", "biosphere"} and exc.input[0] == old)]
+
+    (remainder, altered, unlinked_exchanges) = relink_exchanges(exchanges, candidates, duplicates)
+    db.process()
+    print(
+        "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
+            db.name, altered, old, other.name
+        )
+    )
+    return (remainder, altered, unlinked_exchanges)
+
 
 def alter_database_name(data: list, old: str, new: str) -> list:
     """For ABExcelImporter, go through data and replace all instances
