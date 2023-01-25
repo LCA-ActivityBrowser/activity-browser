@@ -120,7 +120,7 @@ class TupleNameDialog(QtWidgets.QDialog):
 
 
 class ExcelReadDialog(QtWidgets.QDialog):
-    SUFFIXES = {".xls", ".xlsx", ".hd5", ".bz2", ".zip",".tar",".csv", ".pkl", ".feather"}
+    SUFFIXES = {".xls", ".xlsx", ".bz2", ".zip", ".gz", ".xz", ".tar", ".csv", ".feather"}
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -136,7 +136,7 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.import_sheet.addItems(["-----"])
         self.import_sheet.setEnabled(False)
         self.compression_type = QtWidgets.QComboBox()
-        self.compression_type.addItems(["-", "bz2", "zip", "bz", "tar", "xz"])
+        self.compression_type.addItems(["-", "bz2", "zip", "gz", "tar", "xz"])
         self.compression_type.setEnabled(False)
         self.field_separator = QtWidgets.QComboBox()
         self.field_separator.addItems([";", ","])
@@ -173,7 +173,7 @@ class ExcelReadDialog(QtWidgets.QDialog):
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             parent=self, caption="Select scenario template file",
-            filter="Excel (*.xlsx);; Pickle (*.pkl);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)"
+            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)"
         )
         if path:
             self.path_line.setText(path)

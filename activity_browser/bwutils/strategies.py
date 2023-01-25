@@ -10,7 +10,7 @@ from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_b
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
 from .commontasks import clean_activity_name
-
+from ..bwutils.errors import ExchangeErrorValues
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
 
@@ -93,6 +93,7 @@ def rename_db_bw2package(data: dict, old: str, new: str) -> dict:
         new_data[new_key] = value
     return new_data
 
+
 def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tuple:
     altered = 0
     remainder = 0
@@ -120,6 +121,7 @@ def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tup
             print(e)
             transaction.rollback()
     return (remainder, altered, unlinked_exchanges)
+
 
 def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) -> tuple:
     """Relink exchanges after the database has been created/written.
@@ -154,6 +156,7 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
         )
     )
     return (remainder,altered, unlinked_exchanges)
+
 
 def relink_activity_exchanges(act, old: str, other: bw.Database) -> tuple:
     if old == other.name:
@@ -222,4 +225,13 @@ def csv_rewrite_product_key(data):
     for ds in data:
         for exc in (e for e in ds.get("exchanges", []) if "product" in e):
             exc["reference product"] = exc.pop("product")
+    return data
+
+
+def excel_error_detection(data: Collection):
+    for ds in data:
+        for exc in ds.get("exchanges", []):
+            if 'amount' not in exc:
+                raise ExchangeErrorValues(f"An Exception has occurred for activity {ds['name']}" +
+                    "with errors in the exchange flows")
     return data

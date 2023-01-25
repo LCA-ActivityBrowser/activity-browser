@@ -5,7 +5,7 @@ from .utils import _time_it_
 from typing import Optional, Union
 from ..errors import (
     ImportCanceledError, ActivityProductionValueError, IncompatibleDatabaseNamingError,
-    InvalidSDFEntryValue
+    InvalidSDFEntryValue, ExchangeErrorValues
 )
 
 
@@ -42,10 +42,14 @@ class ABFileImporter(ABC):
         The source and destination keys are provided for the first exchange where
         this error occurs.
         """
-        for ds in zip(data['from database'], data['from key'], data['to database'], data['to key'], data['from activity name'], data['to activity name']):
-            if ds[0] != ds[1].split(',')[0][2:-1] or ds[2] != ds[3].split(',')[0][2:-1]:
-                raise IncompatibleDatabaseNamingError(
-                    "Error in importing file with activity {} and {}".format(ds[4], ds[5]))
+        try:
+            for ds in zip(data['from database'], data['from key'], data['to database'], data['to key'], data['from activity name'], data['to activity name']):
+                if ds[0] != ds[1].split(',')[0][2:-1] or ds[2] != ds[3].split(',')[0][2:-1]:
+                    msg = "Error in importing file with activity {} and {}".format(ds[4], ds[5])
+                    raise IncompatibleDatabaseNamingError()
+        except IncompatibleDatabaseNamingError as e:
+            print(msg)
+            raise e
 
     @staticmethod
     def production_process_check(data: pd.DataFrame, scenario_names: list) -> None:
@@ -55,10 +59,15 @@ class ABFileImporter(ABC):
         exchanges being provided
         """
         failed = pd.DataFrame({})
-        for scenario in scenario_names:
-            failed = pd.concat([data.loc[(data.loc[:, 'flow type'] == 'production') & (data.loc[:, scenario] == 0.0)], failed])
-        if not failed.empty:
-            raise ActivityProductionValueError("Error with the production value in the exchange between activity {} and {}".format(failed['from activity name'], failed['to activity name']))
+        try:
+            for scenario in scenario_names:
+                failed = pd.concat([data.loc[(data.loc[:, 'flow type'] == 'production') & (data.loc[:, scenario] == 0.0)], failed])
+            if not failed.empty:
+                msg = "Error with the production value in the exchange between activity {} and {}".format(failed['from activity name'], failed['to activity name'])
+                raise ActivityProductionValueError()
+        except ActivityProductionValueError as e:
+            print(msg)
+            raise e
 
     @staticmethod
     def na_value_check(data: pd.DataFrame, fields: list) -> None:
@@ -69,10 +78,24 @@ class ABFileImporter(ABC):
         of the exchange
         """
         hasNA = pd.DataFrame({})
-        for field in fields:
-            hasNA = pd.concat([data.loc[data[field].isna()], hasNA])
-        if not hasNA.empty:
-            raise InvalidSDFEntryValue("Error with NA's in the exchange between activity {} and {}".format(hasNA['from activity name'], hasNA['to activity name']))
+        try:
+            for field in fields:
+                hasNA = pd.concat([data.loc[data[field].isna()], hasNA])
+            if not hasNA.empty:
+                msg = "Error with NA's in the exchange between activity {} and {}".format(hasNA['from activity name'], hasNA['to activity name'])
+                raise InvalidSDFEntryValue()
+        except InvalidSDFEntryValue as e:
+            print(msg)
+            raise e
+
+    @staticmethod
+    def check_for_calculation_errors(data: pd.DataFrame) -> None:
+        scen_cols = set(data.columns).difference(ABFileImporter.ABStandardProcessColumns.union(ABFileImporter.ABStandardBiosphereColumns))
+        for scen in scen_cols:
+            error = data.loc[(data[scen] == '#DIV/0!') | (data[scen] == '#VALUE!')]
+            if not error.empty:
+                msg = "Error with values for the exchanges between {} and {}".format(data.loc[0,'from activity name'], data.loc[0, 'to activity name'])
+            raise ExchangeErrorValues(msg)
 
     @staticmethod
     def fill_nas(data: pd.DataFrame) -> pd.DataFrame:
@@ -90,16 +113,13 @@ class ABFileImporter(ABC):
         return pd.concat([non_bio, bio])
 
     @staticmethod
-    def check_for_calculation_errors(data: pd.DataFrame) -> None:
-        pass
-
-    @staticmethod
     def all_checks(data: pd.DataFrame, fields: set, scenario_names: list) -> None:
         ABFileImporter.fill_nas(data)
         ABFileImporter.database_and_key_check(data)
         # Check all following uses of fields has the same requirements
         ABFileImporter.na_value_check(data, list(fields) + scenario_names)
         ABFileImporter.production_process_check(data, scenario_names)
+        ABFileImporter.check_for_calculation_errors(data)
 
     @staticmethod
     def scenario_names(data: pd.DataFrame) -> list:
@@ -132,7 +152,7 @@ class ABCSVImporter(ABFileImporter):
             separator = kwargs['sep']
         else:
             separator = ";"
-        df = pd.read_csv(path, compression=compression, sep=separator, index_col=0)
+        df = pd.read_csv(path, compression=compression, sep=separator, index_col=False)
         # ... execute code
         ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
         return df
