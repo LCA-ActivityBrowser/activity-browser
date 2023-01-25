@@ -8,9 +8,11 @@ from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
 from activity_browser.bwutils import AB_metadata, commontasks as bc
+from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
+from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog
 from .parameter import ParameterController
 
 
@@ -28,6 +30,7 @@ class ActivityController(QObject):
         signals.duplicate_to_db_interface_multiple.connect(self.show_duplicate_to_db_interface)
         signals.activity_modified.connect(self.modify_activity)
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
+        signals.relink_activity.connect(self.relink_activity_exchange)
 
     @Slot(str, name="createNewActivity")
     def new_activity(self, database_name: str) -> None:
@@ -204,6 +207,26 @@ class ActivityController(QObject):
         return [bw.get_activity(data)] if isinstance(data, tuple) else [
             bw.get_activity(k) for k in data
         ]
+
+    @Slot(tuple, name="relinkActivityExchanges")
+    def relink_activity_exchange(self, key: tuple) -> None:
+        db = bw.Database(key[0])
+        actvty = db.get(key[1])
+        depends = db.find_dependents()
+        options = [(depend, bw.databases.list) for depend in depends]
+        dialog = ActivityLinkingDialog.relink_sqlite(actvty['name'], options, self.window)
+        relinking_results = {}
+        if dialog.exec_() == ActivityLinkingDialog.Accepted:
+            for old, new in dialog.relink.items():
+                other = bw.Database(new)
+                failed, succeeded, examples = relink_activity_exchanges(actvty, old, other)
+                relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
+            if failed > 0:
+                relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
+                relinking_dialog.exec_()
+                activity = relinking_dialog.open_activity()
+            signals.database_changed.emit(actvty['name'])
+            signals.databases_changed.emit()
 
 
 class ExchangeController(QObject):

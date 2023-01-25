@@ -6,7 +6,7 @@ from PySide2 import QtWidgets
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.settings import ab_settings
 from activity_browser.signals import signals
-from activity_browser.ui.widgets import TupleNameDialog
+from activity_browser.ui.widgets import TupleNameDialog, ProjectDeletionDialog
 
 
 class ProjectController(QObject):
@@ -46,15 +46,16 @@ class ProjectController(QObject):
         """Change the project, this clears all tabs and metadata related to
         the current project.
         """
-        assert name, "No project name given."
+#        assert name, "No project name given."
+        name = "default" if not name else name
         if name not in bw.projects:
-            print("Project does not exist: {}".format(name))
-            return
+            print("Project does not exist: {}, creating!".format(name))
+            bw.projects.create_project(name)
 
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
-            signals.project_selected.emit()
-            print("Loaded project:", name)
+        signals.project_selected.emit()
+        print("Loaded project:", name)
 
     @Slot(name="createProject")
     def new_project(self, name=None):
@@ -102,20 +103,18 @@ class ProjectController(QObject):
                 self.window, "Not possible", "Can't delete last project."
             )
             return
-        reply = QtWidgets.QMessageBox.question(
-            self.window,
-            'Confirm project deletion',
-            ("Are you sure you want to delete project '{}'? It has {} databases" +
-             " and {} LCI methods").format(
-                bw.projects.current,
-                len(bw.databases),
-                len(bw.methods)
-            )
-        )
-        if reply == QtWidgets.QMessageBox.Yes:
-            bw.projects.delete_project(bw.projects.current, delete_dir=False)
-            self.change_project(ab_settings.startup_project, reload=True)
-            signals.projects_changed.emit()
+
+        delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(self.window, bw.projects.current)
+
+        if delete_dialog.exec_() == ProjectDeletionDialog.Accepted:
+            if delete_dialog.deletion_warning_checked():
+                bw.projects.delete_project(bw.projects.current, delete_dir=True)
+                self.change_project(ab_settings.startup_project, reload=True)
+                signals.projects_changed.emit()
+            else:
+                bw.projects.delete_project(bw.projects.current, delete_dir=False)
+                self.change_project(ab_settings.startup_project, reload=True)
+                signals.projects_changed.emit()
 
 
 class CSetupController(QObject):

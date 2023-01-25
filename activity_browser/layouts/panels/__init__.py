@@ -2,4 +2,4 @@
 from .panel import ABTab
 from .left import LeftPanel
 from .right import RightPanel
-
+from .bottom import BottomPanel

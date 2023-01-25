@@ -72,7 +72,6 @@ class ABSettings(BaseSettings):
         with the old settings file and can be removed in a future release
         """
         file = os.path.join(directory, filename)
-        json_settings = None
         if not os.path.exists(file):
             package_dir = Path(__file__).resolve().parents[1]
             old_settings = os.path.join(package_dir, "ABsettings.json")
@@ -139,7 +138,7 @@ class ABSettings(BaseSettings):
         project = self.settings.get(
             "startup_project", self.get_default_project_name()
         )
-        if project not in bw.projects:
+        if project and project not in bw.projects:
             project = self.get_default_project_name()
         return project
 
