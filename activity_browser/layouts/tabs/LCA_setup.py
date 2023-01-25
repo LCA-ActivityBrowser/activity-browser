@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Optional, Union
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
@@ -6,7 +8,7 @@ import pandas as pd
 
 from ...bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
-    SUPERSTRUCTURE, _time_it_
+    SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter
 )
 from ...signals import signals
 from ...ui.icons import qicons
@@ -432,11 +434,19 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if dialog.exec_() == ExcelReadDialog.Accepted:
             path = dialog.path
             idx = dialog.import_sheet.currentIndex()
+            file_type_suffix = dialog.path.suffix
+            compression_type = dialog.compression_type.currentText()
+            separator = dialog.field_separator.currentText()
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             print('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
-                df = import_from_excel(path, idx)
+                if file_type_suffix == ".feather":
+                    df = ABFeatherImporter.read_file(path)
+                elif file_type_suffix.startswith(".xls"):
+                    df = import_from_excel(path, idx)
+                else:
+                    df = ABCSVImporter.read_file(path, compression=compression_type, sep=separator)
                 self.sync_superstructure(df)
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.

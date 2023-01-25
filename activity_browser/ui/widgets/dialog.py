@@ -120,11 +120,11 @@ class TupleNameDialog(QtWidgets.QDialog):
 
 
 class ExcelReadDialog(QtWidgets.QDialog):
-    SUFFIXES = {".xls", ".xlsx"}
+    SUFFIXES = {".xls", ".xlsx", ".bz2", ".zip", ".gz", ".xz", ".tar", ".csv", ".feather"}
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Select excel file to read")
+        self.setWindowTitle("Select file to read")
 
         self.path = None
         self.path_line = QtWidgets.QLineEdit()
@@ -135,6 +135,12 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.import_sheet = QtWidgets.QComboBox()
         self.import_sheet.addItems(["-----"])
         self.import_sheet.setEnabled(False)
+        self.compression_type = QtWidgets.QComboBox()
+        self.compression_type.addItems(["-", "bz2", "zip", "gz", "tar", "xz"])
+        self.compression_type.setEnabled(False)
+        self.field_separator = QtWidgets.QComboBox()
+        self.field_separator.addItems([";", ","])
+        self.field_separator.setEnabled(False)
         self.complete = False
 
         self.buttons = QtWidgets.QDialogButtonBox(
@@ -151,6 +157,10 @@ class ExcelReadDialog(QtWidgets.QDialog):
         grid.addWidget(self.path_btn, 0, 3, 1, 1)
         grid.addWidget(QtWidgets.QLabel("Excel sheet name"), 1, 0, 1, 1)
         grid.addWidget(self.import_sheet, 1, 1, 2, 1)
+        grid.addWidget(QtWidgets.QLabel("Compression type"), 3, 0, 1, 1)
+        grid.addWidget(self.compression_type, 3, 1, 2, 1)
+        grid.addWidget(QtWidgets.QLabel("Separator for csv"), 5, 0, 1, 1)
+        grid.addWidget(self.field_separator, 5, 1, 2, 1)
 
         input_box = QtWidgets.QGroupBox(self)
         input_box.setStyleSheet(style_group_box.border_title)
@@ -163,7 +173,7 @@ class ExcelReadDialog(QtWidgets.QDialog):
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             parent=self, caption="Select scenario template file",
-            filter="Excel (*.xlsx);; All Files (*.*)"
+            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)"
         )
         if path:
             self.path_line.setText(path)
@@ -184,8 +194,14 @@ class ExcelReadDialog(QtWidgets.QDialog):
             self.path.exists(), self.path.is_file(),
             self.path.suffix in self.SUFFIXES
         ])
-        if self.complete:
+        if self.complete and self.path.suffix.startswith(".xls"):
             self.update_combobox(self.path)
+        elif self.complete and self.path.suffix.startswith(".pkl"):
+            self.compression_type.setEnabled(True)
+        elif self.complete and self.path.suffix in {".csv", ".zip", ".tar", ".bz2", ".gz", ".xz"}:
+            self.compression_type.setEnabled(True)
+            self.field_separator.setEnabled(True)
+            self.field_separator.setEditable(True)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
 
 
