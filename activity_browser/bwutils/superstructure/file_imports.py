@@ -90,12 +90,16 @@ class ABFileImporter(ABC):
 
     @staticmethod
     def check_for_calculation_errors(data: pd.DataFrame) -> None:
+        """
+        Will check for calculation errors in the scenario exchanges columns indicate the first elements in the
+        scenario difference file that contain an ERROR value (only deals with divide by zero and NaN manipulations).
+        """
         scen_cols = set(data.columns).difference(ABFileImporter.ABStandardProcessColumns.union(ABFileImporter.ABStandardBiosphereColumns))
         for scen in scen_cols:
             error = data.loc[(data[scen] == '#DIV/0!') | (data[scen] == '#VALUE!')]
             if not error.empty:
                 msg = "Error with values for the exchanges between {} and {}".format(data.loc[0,'from activity name'], data.loc[0, 'to activity name'])
-            raise ExchangeErrorValues(msg)
+                raise ExchangeErrorValues(msg)
 
     @staticmethod
     def fill_nas(data: pd.DataFrame) -> pd.DataFrame:
