@@ -75,7 +75,7 @@ class ABFileImporter(ABC):
             raise InvalidSDFEntryValue("Error with NA's in the exchange between activity {} and {}".format(hasNA['from activity name'], hasNA['to activity name']))
 
     @staticmethod
-    def fill_nas(data: pd.DataFrame):
+    def fill_nas(data: pd.DataFrame) -> pd.DataFrame:
         """ Will replace NaNs in the dataframe with a string holding "NA" for the following subsection of columns:
             'from activity name', 'from reference product', 'to reference product', 'to location',
             'from location', 'to activity name', 'from database', 'to database', 'from unit', 'to unit',
@@ -90,6 +90,10 @@ class ABFileImporter(ABC):
         return pd.concat([non_bio, bio])
 
     @staticmethod
+    def check_for_calculation_errors(data: pd.DataFrame) -> None:
+        pass
+
+    @staticmethod
     def all_checks(data: pd.DataFrame, fields: set, scenario_names: list) -> None:
         ABFileImporter.fill_nas(data)
         ABFileImporter.database_and_key_check(data)
@@ -101,20 +105,6 @@ class ABFileImporter(ABC):
     def scenario_names(data: pd.DataFrame) -> list:
         return list(set(data.columns).difference(ABFileImporter.ABStandardProcessColumns.union(ABFileImporter.ABStandardBiosphereColumns)))
 
-class ABPickleImporter(ABFileImporter):
-    def __init__(self):
-        super(ABPickleImporter, self).__init__(self)
-
-    @staticmethod
-    def read_file(path: Optional[Union[str, Path]], **kwargs):
-        if kwargs['compression'] != '-':
-            df = pd.read_pickle(path, compresion=kwargs['compression'])
-        else:
-            df = pd.read_pickle(path)
-        # ... execute code
-        ABPickleImporter.all_checks(df, ABPickleImporter.ABScenarioColumnsErrorIfNA, ABPickleImporter.scenario_names(df))
-        return df
-
 
 class ABFeatherImporter(ABFileImporter):
     def __init__(self):
@@ -124,7 +114,7 @@ class ABFeatherImporter(ABFileImporter):
     def read_file(path: Optional[Union[str, Path]], **kwargs):
         df = pd.read_feather(path)
         # ... execute code
-        ABPickleImporter.all_checks(df, ABPickleImporter.ABScenarioColumnsErrorIfNA, ABPickleImporter.scenario_names(df))
+        ABFeatherImporter.all_checks(df, ABFeatherImporter.ABScenarioColumnsErrorIfNA, ABFeatherImporter.scenario_names(df))
         return df
 
 
@@ -144,32 +134,5 @@ class ABCSVImporter(ABFileImporter):
             separator = ";"
         df = pd.read_csv(path, compression=compression, sep=separator, index_col=0)
         # ... execute code
-        ABPickleImporter.all_checks(df, ABPickleImporter.ABScenarioColumnsErrorIfNA, ABPickleImporter.scenario_names(df))
+        ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
         return df
-
-
-class FileImports(object):
-    def __init__(self):
-        pass
-
-    @staticmethod
-    @_time_it_
-    def pickle(file: Optional[Union[str, Path]]) -> pd.DataFrame:
-        return pd.read_pickle(file)
-
-    @staticmethod
-    @_time_it_
-    def hd5(file: Optional[Union[str, Path]], key: Optional[Union[str, None]]) -> pd.DataFrame:
-        return pd.read_hdf(file, key=key)
-
-    @staticmethod
-    @_time_it_
-    def csv_zipped(file: Optional[Union[str, Path]], sep: str = ';') -> pd.DataFrame:
-        return pd.read_csv(file, sep=sep)
-
-    @staticmethod
-    @_time_it_
-    def feather(file: Optional[Union[str, Path]], compression: str = None) -> pd.DataFrame:
-        if not compression:
-            return pd.read_feather(file)
-        return pd.read_feather(file, compression=compression)
