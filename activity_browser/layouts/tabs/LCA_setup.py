@@ -8,7 +8,7 @@ import pandas as pd
 
 from ...bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
-    SUPERSTRUCTURE, _time_it_, ABPickleImporter, ABCSVImporter, ABFeatherImporter
+    SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter
 )
 from ...signals import signals
 from ...ui.icons import qicons
@@ -441,9 +441,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             print('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
-                if file_type_suffix == ".pkl":
-                    df = ABPickleImporter.read_file(path, compression=compression_type)
-                elif file_type_suffix == ".feather":
+                if file_type_suffix == ".feather":
                     df = ABFeatherImporter.read_file(path)
                 elif file_type_suffix.startswith(".xls"):
                     df = import_from_excel(path, idx)
