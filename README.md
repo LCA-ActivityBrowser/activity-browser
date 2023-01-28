@@ -89,12 +89,22 @@ We recommend that you use **conda** to manage your python installation. You can 
 
 Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update conda`.
 
+
+### Configure conda channels
+
+The activity-browser has many dependencies that are managed by the conda-forge [channel](https://conda.io/docs/user-guide/tasks/manage-channels.html). Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following:
+
+```bash
+conda config --prepend channels conda-forge
+```
+
 ### Install the activity browser
 
 
 ```bash
 conda create -n ab activity-browser
 ```
+
 
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
 
@@ -115,6 +125,7 @@ This will update the activity-browser and all of its dependencies in the conda e
 |---|
 | You should re-install if you have an older installation of the activity browser which doesn't use `python >= 3.8` (you can check with `conda list` or `python --version` in your conda environment). You can remove your existing environment with `conda remove -n ab --all` or choose a new environment name (instead of `ab`). Re-installing will not affect your activity-browser/brightway projects. |
 
+<!--
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
 
@@ -155,6 +166,7 @@ Or update like this if you already have a dev environment:
 conda activate ab_dev
 conda update activity-browser-dev
 ```
+
 
 ---
 

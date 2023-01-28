@@ -4,7 +4,7 @@ from pathlib import Path
 import warnings
 
 import brightway2 as bw
-from bw2io import ExcelImporter
+from bw2io import ExcelImporter, CSVImporter
 from bw2io.errors import InvalidPackage, StrategyError
 from bw2io.strategies import (
     csv_restore_tuples, csv_restore_booleans, csv_numerize,
@@ -43,6 +43,7 @@ class ABExcelImporter(ExcelImporter):
         """Handle a lot of the customizable things that can happen
         when doing an import in a script or notebook.
         """
+
         obj = cls(filepath)
         obj.strategies = [
             functools.partial(
@@ -108,7 +109,6 @@ class ABExcelImporter(ExcelImporter):
         if has_params:
             bw.parameters.recalculate()
         return [db]
-
 
 class ABPackage(bw.BW2Package):
     """ Inherits from brightway2 `BW2Package` and handles importing BW2Packages.

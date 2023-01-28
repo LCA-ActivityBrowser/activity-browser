@@ -9,7 +9,7 @@ from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
 from ..ui.widgets import (
     CopyDatabaseDialog, DatabaseLinkingDialog, DefaultBiosphereDialog,
-    BiosphereUpdater,
+    BiosphereUpdater, DatabaseLinkingResultsDialog
 )
 from ..ui.wizards.db_export_wizard import DatabaseExportWizard
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
@@ -133,10 +133,16 @@ class DatabaseController(QObject):
         depends = db.find_dependents()
         options = [(depend, bw.databases.list) for depend in depends]
         dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, self.window)
+        relinking_results = dict()
         if dialog.exec_() == DatabaseLinkingDialog.Accepted:
             # Now, start relinking.
             for old, new in dialog.relink.items():
                 other = bw.Database(new)
-                relink_exchanges_existing_db(db, old, other)
+                failed, succeeded, examples = relink_exchanges_existing_db(db, old, other)
+                relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
+            if failed > 0:
+                relinking_dialog = DatabaseLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
+                relinking_dialog.exec_()
+                activity = relinking_dialog.open_activity()
             signals.database_changed.emit(db_name)
             signals.databases_changed.emit()

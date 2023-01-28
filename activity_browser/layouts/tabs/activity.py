@@ -112,8 +112,6 @@ class ActivityTab(QtWidgets.QWidget):
         )
         self.toggle_activity_description_visibility()
 
-        self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
-
         # Reveal/hide uncertainty columns
         self.checkbox_uncertainty = QtWidgets.QCheckBox("Uncertainty")
         self.checkbox_uncertainty.setToolTip("Show/hide the uncertainty columns")
@@ -137,10 +135,6 @@ class ActivityTab(QtWidgets.QWidget):
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
 
-
-        # activity-specific data displayed and editable near the top of the tab
-        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
-
         # 4 data tables displayed after the activity data
         self.production = ProductExchangeTable(self)
         self.technosphere = TechnosphereExchangeTable(self)
@@ -155,18 +149,24 @@ class ActivityTab(QtWidgets.QWidget):
         ]
         self.grouped_tables = [DetailsGroupBox(l, t) for l, t in self.exchange_tables]
 
+        # activity-specific data displayed and editable near the top of the tab
+        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
+        self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
+
         # arrange activity data and exchange data into vertical layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
         layout.addWidget(toolbar)
         layout.addWidget(self.activity_data_grid)
         layout.addWidget(self.activity_description)
+        grouped_tables = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        # TODO Include a Qt.QSplitter object for allowing users to redefine the space between tables
         for group_box in self.grouped_tables:
-            layout.addWidget(group_box)
-
+            grouped_tables.addWidget(group_box)
+        layout.addWidget(grouped_tables)
         self.exchange_tables_read_only_changed()
 
-        layout.addStretch()
+#        layout.addStretch() # Commented out so that the grouped_tables splitter can utilize the entire window
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 

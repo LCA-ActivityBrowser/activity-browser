@@ -485,7 +485,6 @@ class InventoryTab(NewAnalysisTab):
         self.clear_tables()
         super().update_tab()
 
-
     def elementary_flows_contributing_to_IA_methods(self, contributary: bool = True, bios: pd.DataFrame = None) -> pd.DataFrame:
         """Returns a biosphere dataframe filtered for the presence in the impact assessment methods
         Requires a boolean argument for whether those flows included in the impact assessment method
@@ -505,6 +504,7 @@ class InventoryTab(NewAnalysisTab):
     def update_table(self):
         """Update the table."""
         inventory = "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
+        self.table.showing = inventory
         # We handle both 'df_biosphere' and 'df_technosphere' variables here.
         attr_name = "df_{}".format(inventory)
         if getattr(self, attr_name) is None or self.remove_zero_state != self.last_remove_zero_state \

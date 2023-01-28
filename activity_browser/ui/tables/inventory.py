@@ -7,7 +7,7 @@ from ...signals import signals
 from ..icons import qicons
 from .delegates import CheckboxDelegate
 from .models import DatabasesModel, ActivitiesBiosphereModel
-from .views import ABDataFrameView
+from .views import ABDataFrameView, ABFilterableDataFrameView
 
 
 class DatabasesTable(ABDataFrameView):
@@ -98,7 +98,7 @@ class DatabasesTable(ABDataFrameView):
         return self.model.get_db_name(self.currentIndex())
 
 
-class ActivitiesBiosphereTable(ABDataFrameView):
+class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.db_read_only = True
@@ -119,7 +119,6 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, "Exchanges for scenario difference file", None
         )
-
         self.connect_signals()
 
     @property
@@ -147,6 +146,10 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         menu.addAction(self.duplicate_activity_action)
         menu.addAction(self.delete_activity_action)
         menu.addAction(
+            qicons.edit, "Relink the activity exchanges",
+            self.relink_activity_exchanges
+        )
+        menu.addAction(
             qicons.duplicate_to_other_database, "Duplicate to other database",
             self.duplicate_activities_to_db
         )
@@ -162,7 +165,6 @@ class ActivitiesBiosphereTable(ABDataFrameView):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
-
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database_name)
         )
@@ -173,9 +175,16 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
+        self.model.updated.connect(self.update_filter_settings)
+        signals.database_selected.connect(self.reset_filters)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
+
+    def update_filter_settings(self) -> None:
+        # Write the column indices so only those columns get filter button
+        if isinstance(self.model.filterable_columns, dict):
+            self.header.column_indices = list(self.model.filterable_columns.values())
 
     @Slot(QtCore.QModelIndex, name="openActivityTab")
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
@@ -188,6 +197,11 @@ class ActivitiesBiosphereTable(ABDataFrameView):
         for key in (self.model.get_key(p) for p in self.selectedIndexes()):
             signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
+
+    @Slot(name="relinkActivityExchanges")
+    def relink_activity_exchanges(self) -> None:
+        for key in (self.model.get_key(a) for a in self.selectedIndexes()):
+            signals.relink_activity.emit(key)
 
     @Slot(name="deleteActivities")
     def delete_activities(self) -> None:
