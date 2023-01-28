@@ -154,6 +154,19 @@ This will update the activity-browser and all of its dependencies in the conda e
 The most recent version of the master branch is automatically uploaded to anaconda as the `activity-browser-dev` package and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
 
 
+Install the development version like this:
+
+```bash
+conda create -n ab_dev activity-browser-dev
+```
+
+Or update like this if you already have a dev environment:
+
+```bash
+conda activate ab_dev
+conda update activity-browser-dev
+```
+
 ---
 
 ## Getting started
