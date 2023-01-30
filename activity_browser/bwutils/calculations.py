@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+from PySide2.QtWidgets import QMessageBox, QApplication
+
 from ..bwutils import (
     Contributions, MonteCarloLCA, MLCA,
     SuperstructureContributions, SuperstructureMLCA,
 )
-
 from bw2calc.errors import BW2CalcError
+import brightway2 as bw
 
+from .errors import ReferenceFlowValueError
 
 def do_LCA_calculations(data: dict):
     """Perform the MLCA calculation."""

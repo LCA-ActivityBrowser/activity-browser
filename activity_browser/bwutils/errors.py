@@ -30,3 +30,9 @@ class ExchangeErrorValues(Exception):
     """In Brightway2 if there is an error in an exchange calculation the 'amount' field is not available for the
         Exchange"""
     pass
+
+
+class ReferenceFlowValueError(Warning):
+    """While a user can technically perform a calculation with the reference flows all set to 0, such a calculation
+     makes no logical sense and will lead to downstream errors (due to 0 results)."""
+    pass
