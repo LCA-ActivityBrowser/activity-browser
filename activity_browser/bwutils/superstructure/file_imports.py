@@ -117,7 +117,11 @@ class ABFileImporter(ABC):
         return pd.concat([non_bio, bio])
 
     @staticmethod
-    def all_checks(data: pd.DataFrame, fields: set, scenario_names: list) -> None:
+    def all_checks(data: pd.DataFrame, fields: set = None, scenario_names: list = None) -> None:
+        if fields == None:
+            fields = ABFeatherImporter.ABScenarioColumnsErrorIfNA
+        if scenario_names == None:
+            scenario_names = ABFeatherImporter.scenario_names(data)
         ABFileImporter.fill_nas(data)
         ABFileImporter.database_and_key_check(data)
         # Check all following uses of fields has the same requirements
@@ -135,10 +139,10 @@ class ABFeatherImporter(ABFileImporter):
         super(ABFeatherImporter, self).__init__(self)
 
     @staticmethod
+    @_time_it_
     def read_file(path: Optional[Union[str, Path]], **kwargs):
         df = pd.read_feather(path)
         # ... execute code
-        ABFeatherImporter.all_checks(df, ABFeatherImporter.ABScenarioColumnsErrorIfNA, ABFeatherImporter.scenario_names(df))
         return df
 
 
@@ -147,16 +151,13 @@ class ABCSVImporter(ABFileImporter):
         super(ABCSVImporter, self).__init__(self)
 
     @staticmethod
+    @_time_it_
     def read_file(path: Optional[Union[str, Path]], **kwargs):
-        if kwargs['compression'] != '-':
-            compression = kwargs['compression']
-        else:
-            compression = 'infer'
         if 'sep' in kwargs:
             separator = kwargs['sep']
         else:
             separator = ";"
-        df = pd.read_csv(path, compression=compression, sep=separator, index_col=False)
+        df = pd.read_csv(path, compression='infer', sep=separator, index_col=False)
         # ... execute code
-        ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
+#        ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
         return df

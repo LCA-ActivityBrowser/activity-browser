@@ -435,7 +435,6 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             path = dialog.path
             idx = dialog.import_sheet.currentIndex()
             file_type_suffix = dialog.path.suffix
-            compression_type = dialog.compression_type.currentText()
             separator = dialog.field_separator.currentText()
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             print('Loading Scenario file. This may take a while for large files')
@@ -446,7 +445,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 elif file_type_suffix.startswith(".xls"):
                     df = import_from_excel(path, idx)
                 else:
-                    df = ABCSVImporter.read_file(path, compression=compression_type, sep=separator)
+                    df = ABCSVImporter.read_file(path, separator)
                 self.sync_superstructure(df)
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.
@@ -466,7 +465,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             finally:
                 self.scenario_name.setText(path.name)
                 self.scenario_name.setToolTip(path.name)
-            QtWidgets.QApplication.restoreOverrideCursor()
+                QtWidgets.QApplication.restoreOverrideCursor()
 
     @_time_it_
     def sync_superstructure(self, df: pd.DataFrame) -> None:

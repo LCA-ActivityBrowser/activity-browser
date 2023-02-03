@@ -126,21 +126,39 @@ class ExcelReadDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Select file to read")
 
+        self.path_layout = QtWidgets.QGridLayout()
         self.path = None
         self.path_line = QtWidgets.QLineEdit()
         self.path_line.setReadOnly(True)
         self.path_line.textChanged.connect(self.changed)
         self.path_btn = QtWidgets.QPushButton("Browse")
         self.path_btn.clicked.connect(self.browse)
+        self.path_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
+        self.path_layout.addWidget(self.path_line, 0, 1, 1, 2)
+        self.path_layout.addWidget(self.path_btn, 0, 3, 1, 1)
+        self.path = QtWidgets.QWidget()
+        self.path.setLayout(self.path_layout)
+
+        self.excel_option = QtWidgets.QGridLayout()
         self.import_sheet = QtWidgets.QComboBox()
         self.import_sheet.addItems(["-----"])
-        self.import_sheet.setEnabled(False)
-        self.compression_type = QtWidgets.QComboBox()
-        self.compression_type.addItems(["-", "bz2", "zip", "gz", "tar", "xz"])
-        self.compression_type.setEnabled(False)
+        self.import_sheet.setEnabled(True)
+        self.excel_option.addWidget(QtWidgets.QLabel("Excel sheet name"), 0, 0, 1, 1)
+        self.excel_option.addWidget(self.import_sheet, 0, 1, 2, 1)
+        self.excel_sheet = QtWidgets.QWidget()
+        self.excel_sheet.setLayout(self.excel_option)
+        self.excel_sheet.setVisible(False)
+
+        self.csv_option = QtWidgets.QGridLayout()
         self.field_separator = QtWidgets.QComboBox()
-        self.field_separator.addItems([";", ","])
-        self.field_separator.setEnabled(False)
+        self.field_separator.addItems([";", ",", "\t"])
+        self.field_separator.setEnabled(True)
+        self.csv_option.addWidget(QtWidgets.QLabel("Separator for csv"), 0, 0, 1, 1)
+        self.csv_option.addWidget(self.field_separator, 0, 1, 2, 1)
+        self.csv_separator = QtWidgets.QWidget()
+        self.csv_separator.setLayout(self.csv_option)
+        self.csv_separator.setVisible(False)
+
         self.complete = False
 
         self.buttons = QtWidgets.QDialogButtonBox(
@@ -151,16 +169,10 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout()
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
-        grid.addWidget(self.path_line, 0, 1, 1, 2)
-        grid.addWidget(self.path_btn, 0, 3, 1, 1)
-        grid.addWidget(QtWidgets.QLabel("Excel sheet name"), 1, 0, 1, 1)
-        grid.addWidget(self.import_sheet, 1, 1, 2, 1)
-        grid.addWidget(QtWidgets.QLabel("Compression type"), 3, 0, 1, 1)
-        grid.addWidget(self.compression_type, 3, 1, 2, 1)
-        grid.addWidget(QtWidgets.QLabel("Separator for csv"), 5, 0, 1, 1)
-        grid.addWidget(self.field_separator, 5, 1, 2, 1)
+        grid = QtWidgets.QVBoxLayout()
+        grid.addWidget(self.path)
+        grid.addWidget(self.excel_sheet)
+        grid.addWidget(self.csv_separator)
 
         input_box = QtWidgets.QGroupBox(self)
         input_box.setStyleSheet(style_group_box.border_title)
@@ -183,7 +195,6 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.import_sheet.clear()
         names = get_sheet_names(file_path)
         self.import_sheet.addItems(names)
-        self.import_sheet.setEnabled(self.import_sheet.count() > 0)
         self.import_sheet.blockSignals(False)
 
     @Slot(name="pathChanged")
@@ -196,12 +207,14 @@ class ExcelReadDialog(QtWidgets.QDialog):
         ])
         if self.complete and self.path.suffix.startswith(".xls"):
             self.update_combobox(self.path)
-        elif self.complete and self.path.suffix.startswith(".pkl"):
-            self.compression_type.setEnabled(True)
+            self.excel_sheet.setVisible(self.import_sheet.count() > 0)
+
         elif self.complete and self.path.suffix in {".csv", ".zip", ".tar", ".bz2", ".gz", ".xz"}:
-            self.compression_type.setEnabled(True)
-            self.field_separator.setEnabled(True)
-            self.field_separator.setEditable(True)
+            self.csv_separator.setVisible(True)
+            self.excel_sheet.setVisible(False)
+        else:
+            self.csv_separator.setVisible(False)
+            self.excel_sheet.setVisible(False)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
 
 
