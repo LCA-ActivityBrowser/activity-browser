@@ -63,7 +63,7 @@ conda activate ab
 activity-browser
 ```
 
-<!--
+
 If you are on an ARM Mac, use this instead:
 
 ```bash
@@ -71,7 +71,7 @@ conda create -n ab -c conda-forge -c cmutel -c bsteubing activity-browser-arm
 conda activate ab
 activity-browser
 ```
--->
+
 ## Installation
 
 ###  Ecoinvent 3.9 Compatibility and BrightWay2 
@@ -121,13 +121,13 @@ After configuring your conda channels, the activity browser can be installed wit
 conda create -n ab activity-browser
 ```
 
-<!--
+
 Unless you are on an ARM Mac, in which case use:
 
 ```bash
 conda create -n ab activity-browser-arm
 ```
--->
+
 This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
 
 It is recommended that you have a separate conda environment for the activity browser like explained above, but you can also install the activity browser in your root, brightway2 or other existing conda environment if you prefer. Having separate environments for different projects generally reduces unwanted side-effects and incompatibilities between packages. You can still access the same brightway-projects even if you work with different conda environments.
@@ -147,12 +147,25 @@ This will update the activity-browser and all of its dependencies in the conda e
 |---|
 | You should re-install if you have an older installation of the activity browser which doesn't use `python >= 3.8` (you can check with `conda list` or `python --version` in your conda environment). You can remove your existing environment with `conda remove -n ab --all` or choose a new environment name (instead of `ab`). Re-installing will not affect your activity-browser/brightway projects. |
 
-<!--
+
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
 
 The most recent version of the master branch is automatically uploaded to anaconda as the `activity-browser-dev` package and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
--->
+
+
+Install the development version like this:
+
+```bash
+conda create -n ab_dev activity-browser-dev
+```
+
+Or update like this if you already have a dev environment:
+
+```bash
+conda activate ab_dev
+conda update activity-browser-dev
+```
 
 ---
 
