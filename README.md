@@ -65,6 +65,7 @@ conda activate ab
 activity-browser
 ```
 
+
 ## Installation
 
 ###  Ecoinvent 3.9 Compatibility and BrightWay2 
@@ -125,7 +126,7 @@ This will update the activity-browser and all of its dependencies in the conda e
 |---|
 | You should re-install if you have an older installation of the activity browser which doesn't use `python >= 3.8` (you can check with `conda list` or `python --version` in your conda environment). You can remove your existing environment with `conda remove -n ab --all` or choose a new environment name (instead of `ab`). Re-installing will not affect your activity-browser/brightway projects. |
 
-<!--
+
 ## Development Version
 [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
 
