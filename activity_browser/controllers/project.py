@@ -198,9 +198,11 @@ class ImpactCategoryController(QObject):
         self.window = parent
 
         signals.copy_method.connect(self.copy_method)
+        signals.delete_method.connect(self.delete_method)
         signals.edit_method_cf.connect(self.modify_method_with_cf)
         signals.remove_cf_uncertainties.connect(self.remove_uncertainty)
         signals.add_cf_method.connect(self.add_method_to_cf)
+        signals.delete_cf_method.connect(self.delete_method_from_cf)
 
     @Slot(tuple, name="copyMethod")
     def copy_method(self, method: tuple) -> None:
@@ -218,6 +220,24 @@ class ImpactCategoryController(QObject):
             method.copy(new_name)
             print("Copied method {} into {}".format(str(method.name), str(new_name)))
             signals.new_method.emit(new_name)
+
+    @Slot(tuple, name="deleteMethod")
+    def delete_method(self, method: tuple) -> None:
+        """Call delete on the (first) selected method and present confirmation dialog."""
+        method = bw.Method(method)
+        dialog = QtWidgets.QMessageBox()
+        dialog.setWindowTitle("Are you sure you want to delete this method?")
+        dialog.setText("You are about to PERMANENTLY delete the following method:\n("
+                       +", ".join(method.name)+
+                       ")\nAre you sure you want to continue?")
+        dialog.setIcon(QtWidgets.QMessageBox.Warning)
+        dialog.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        dialog.setDefaultButton(QtWidgets.QMessageBox.No)
+        if dialog.exec_() == QtWidgets.QMessageBox.Yes:
+            method.deregister()
+            print("Deleted method {}".format(str(method.name)))
+            # TODO: ensure the method no longer shows up anywhere.
+            signals.method_deleted.emit(method)
 
     @Slot(list, tuple, name="removeCFUncertainty")
     def remove_uncertainty(self, removed: list, method: tuple) -> None:
@@ -276,5 +296,20 @@ class ImpactCategoryController(QObject):
             'amount': 0
         })
         cfs.append(cfdata)
+        method.write(cfs)
+        signals.method_modified.emit(method.name)
+
+    @Slot(tuple, tuple, name="deleteMethodFromCF")
+    def delete_method_from_cf(self, to_delete: tuple, method: tuple):
+        method = bw.Method(method)
+        cfs = method.load()
+        delete_list = []
+        for i in cfs:
+            for d in to_delete:
+                if i[0][0] == d[0][0] and i[0][1] == d[0][1]:
+                    delete_list.append(i)
+                    print('yep same')
+        for d in delete_list:
+            cfs.remove(d)
         method.write(cfs)
         signals.method_modified.emit(method.name)

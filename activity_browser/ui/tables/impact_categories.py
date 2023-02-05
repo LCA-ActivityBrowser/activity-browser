@@ -52,6 +52,10 @@ class MethodsTable(ABFilterableDataFrameView):
             qicons.copy, "Duplicate Impact Category",
             lambda: self.model.copy_method(self.currentIndex())
         )
+        menu.addAction(
+            qicons.delete, "Delete Impact Category",
+            lambda: self.model.delete_method(self.currentIndex())
+        )
         menu.exec_(event.globalPos())
 
 
@@ -105,6 +109,7 @@ class MethodsTree(ABDictTreeView):
             return
         menu = QtWidgets.QMenu(self)
         menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
+        menu.addAction(qicons.delete, "Delete Impact Category", self.delete_method)
         if self.tree_level()[0] == 'leaf':
             menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
         else:
@@ -161,6 +166,12 @@ class MethodsTree(ABDictTreeView):
         """Call copy on the (first) selected method and present rename dialog."""
         self.model.copy_method(self.tree_level())
 
+    @Slot(name="deleteMethod")
+    def delete_method(self) -> None:
+        """Call copy on the (first) selected method and present rename dialog."""
+        self.model.delete_method(self.tree_level())
+
+
 
 class CFTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
@@ -196,7 +207,6 @@ class CFTable(ABFilterableDataFrameView):
             self.setColumnHidden(i, hide)
         self.model.set_filterable_columns(hide)
         self.set_filter_data()
-        # TODO: editability of the table is not correctly updated after toggling this checkbox!
 
     def set_filter_data(self):
         if isinstance(self.model.filterable_columns, dict):
@@ -209,17 +219,24 @@ class CFTable(ABFilterableDataFrameView):
         edit = menu.addAction(qicons.edit, "Modify uncertainty", self.modify_uncertainty)
         edit.setEnabled(not self.read_only)
         menu.addSeparator()
-        remove = menu.addAction(qicons.delete, "Remove uncertainty", self.remove_uncertainty)
+        remove = menu.addAction(qicons.clear, "Remove uncertainty", self.remove_uncertainty)
         remove.setEnabled(not self.read_only)
+        delete = menu.addAction(qicons.delete, "Delete impact category", self.delete_cf)
+        delete.setEnabled(not self.read_only)
         menu.exec_(event.globalPos())
 
     @Slot(name="modifyCFUncertainty")
-    def modify_uncertainty(self) -> None:
-        self.model.modify_uncertainty(self.currentIndex())
+    def modify_uncertainty(self, index) -> None:
+        if index.internalId() == self.currentIndex().internalId():
+            self.model.modify_uncertainty(self.currentIndex())
 
     @Slot(name="removeCFUncertainty")
     def remove_uncertainty(self) -> None:
         self.model.remove_uncertainty(self.selectedIndexes())
+
+    @Slot(name="deleteCF")
+    def delete_cf(self) -> None:
+        self.model.delete_cf(self.selectedIndexes())
 
     def dragMoveEvent(self, event) -> None:
         """ Check if drops are allowed when dragging something over.

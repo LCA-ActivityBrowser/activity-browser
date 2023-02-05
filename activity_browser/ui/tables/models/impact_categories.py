@@ -8,6 +8,7 @@ import brightway2 as bw
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
+from PySide2.QtWidgets import QMessageBox
 
 from activity_browser.signals import signals
 from ...wizards import UncertaintyWizard
@@ -22,7 +23,7 @@ class MethodsListModel(DragPandasModel):
         self.method_col = 0
         self.different_column_types = {'# CFs': 'num'}
         signals.project_selected.connect(self.sync)
-        signals.new_method.connect(self.filter_on_method)
+        # signals.new_method.connect(self.filter_on_method) # TODO: reload filter
 
         # needed to trigger creation of self.filterable_columns, which relies on method_col existing
         self.sync()
@@ -35,6 +36,10 @@ class MethodsListModel(DragPandasModel):
     def copy_method(self, proxy: QModelIndex) -> None:
         method = self.get_method(proxy)
         signals.copy_method.emit(method)
+
+    def delete_method(self, proxy: QModelIndex) -> None:
+        method = self.get_method(proxy)
+        signals.delete_method.emit(method)
 
     @Slot(tuple, name="filterOnMethod")
     def filter_on_method(self, method: tuple) -> None:
@@ -132,6 +137,20 @@ class CFModel(EditablePandasModel):
         to_be_modified = [self.get_cf(p) for p in proxy_indexes]
         signals.remove_cf_uncertainties.emit(to_be_modified, self.method.name)
 
+    @Slot(list, name="deleteCF")
+    def delete_cf(self, proxy_indexes: Iterator[QModelIndex]) -> None:
+        to_delete = [self.get_cf(p) for p in proxy_indexes]
+        print(to_delete)
+        confirm = QMessageBox()
+        confirm.setIcon(QMessageBox.Warning)
+        confirm.setWindowTitle("Confirm deletion")
+        confirm.setText("Are you sure you want to delete "+str(len(to_delete))+" Characterization Factor(s) from this IC?")
+        confirm.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        confirmed = confirm.exec()
+        if confirmed == QMessageBox.Ok:
+            print("Deleting CF(s):", to_delete)
+            signals.delete_cf_method.emit(to_delete, self.method.name)
+
     @Slot(tuple, object, name="modifyCf")
     def modify_cf(self, cf: tuple, uncertainty: dict) -> None:
         """Update the CF with new uncertainty information, possibly converting
@@ -195,7 +214,7 @@ class MethodsTreeModel(BaseTreeModel):
 
         signals.project_selected.connect(self.setup_and_sync)
         signals.new_method.connect(self.setup_model_data)
-        signals.new_method.connect(self.filter_on_method)
+        # signals.new_method.connect(self.filter_on_method) # TODO: Reload interface
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
@@ -337,6 +356,11 @@ class MethodsTreeModel(BaseTreeModel):
     def copy_method(self, level: tuple) -> None:
         method = self.get_method(level)
         signals.copy_method.emit(method)
+
+    @Slot(QModelIndex, name="deleteMethod")
+    def delete_method(self, level: tuple) -> None:
+        method = self.get_method(level)
+        signals.delete_method.emit(method)
 
     @Slot(tuple, name="filterOnMethod")
     def filter_on_method(self, method: tuple) -> None:

@@ -99,14 +99,17 @@ class Signals(QObject):
 
     # Impact Categories & Characterization Factors
     new_method = Signal(tuple)
+    method_deleted = Signal(tuple)
     copy_method = Signal(tuple)
+    delete_method = Signal(tuple)
     edit_method_cf = Signal(tuple, tuple)
     remove_cf_uncertainties = Signal(list, tuple)
     method_modified = Signal(tuple)
     method_selected = Signal(tuple)
     method_tabs_changed = Signal()
-    set_uncertainty = Signal()
+    set_uncertainty = Signal(tuple)
     add_cf_method = Signal(tuple, tuple)
+    delete_cf_method = Signal(tuple, tuple)
 
     # Monte Carlo LCA
     monte_carlo_finished = Signal()

@@ -143,9 +143,10 @@ class MethodsTab(QtWidgets.QWidget):
 
     @QtCore.Slot(tuple, name="searchCopiedMethod")
     def method_copied(self, method: tuple) -> None:
-        """If a method is successfully copied, sync and filter for new name."""
-        query = ", ".join(method)
-        self.search_box.setText(query)
+        """If a method is successfully copied, we might want to filter, but for now do nothing."""
+        # """If a method is successfully copied, sync and filter for new name."""
+        # query = ", ".join(method)
+        # self.search_box.setText(query)
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
