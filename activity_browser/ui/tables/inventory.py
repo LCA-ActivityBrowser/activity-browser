@@ -119,7 +119,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, "Exchanges for scenario difference file", None
         )
-
         self.connect_signals()
 
     @property
@@ -147,6 +146,10 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         menu.addAction(self.duplicate_activity_action)
         menu.addAction(self.delete_activity_action)
         menu.addAction(
+            qicons.edit, "Relink the activity exchanges",
+            self.relink_activity_exchanges
+        )
+        menu.addAction(
             qicons.duplicate_to_other_database, "Duplicate to other database",
             self.duplicate_activities_to_db
         )
@@ -162,7 +165,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
-
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database_name)
         )
@@ -196,6 +198,11 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
 
+    @Slot(name="relinkActivityExchanges")
+    def relink_activity_exchanges(self) -> None:
+        for key in (self.model.get_key(a) for a in self.selectedIndexes()):
+            signals.relink_activity.emit(key)
+
     @Slot(name="deleteActivities")
     def delete_activities(self) -> None:
         self.model.delete_activities(self.selectedIndexes())
@@ -224,9 +231,9 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         else:
             self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
-    def search(self, pattern1: str = None, pattern2: str = None,
-               logic='AND') -> None:
-        self.model.search(pattern1, pattern2, logic)
+    def search(self, pattern1: str = None) -> None:
+        self.model.search(pattern1)
+        self.apply_filters()
 
     @Slot(name="resetSearch")
     def reset_search(self) -> None:

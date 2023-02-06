@@ -8,7 +8,7 @@ from ..ui.menu_bar import MenuBar
 from ..ui.statusbar import Statusbar
 from ..ui.style import header
 from ..ui.utils import StdRedirector
-from .panels import LeftPanel, RightPanel
+from .panels import LeftPanel, RightPanel, BottomPanel
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -45,9 +45,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.left_panel = LeftPanel(self)
         self.right_panel = RightPanel(self)
+        self.bottom_panel = BottomPanel(self)
 
         #Sets the minimum width for the right panel so scaling on Mac Screens doesnt go out of bounds
         self.right_panel.setMinimumWidth(100)
+        self.bottom_panel.setMinimumHeight(100)
 
         self.splitter_horizontal = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter_horizontal.addWidget(self.left_panel)
@@ -55,15 +57,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter_horizontal.setStretchFactor(0, 1)
         self.splitter_horizontal.setStretchFactor(1, 3)
         self.main_horizontal_box.addWidget(self.splitter_horizontal)
+        self.main_window = QtWidgets.QWidget()
+        self.main_window.setLayout(self.main_horizontal_box)
 
         self.vertical_container = QtWidgets.QVBoxLayout()
-        self.vertical_container.addLayout(self.main_horizontal_box)
+        self.splitter_vertical = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.splitter_vertical.addWidget(self.main_window)
+        self.splitter_vertical.addWidget(self.bottom_panel)
+        self.vertical_container.addWidget(self.splitter_vertical)
 
         self.main_widget = QtWidgets.QWidget()
         self.main_widget.icon = qicons.main_window
         self.main_widget.name = "&Main Window"
         self.main_widget.setLayout(self.vertical_container)
 
+        """
         # Debug/working... stack
         self.log = QtWidgets.QTextEdit(self)
         sys.stdout = StdRedirector(self.log, sys.stdout, None)
@@ -72,16 +80,17 @@ class MainWindow(QtWidgets.QMainWindow):
         working_layout = QtWidgets.QVBoxLayout()
         working_layout.addWidget(header("Program output:"))
         working_layout.addWidget(self.log)
-
-        self.debug_widget = QtWidgets.QWidget()
-        self.debug_widget.icon = qicons.debug
-        self.debug_widget.name = "&Debug Window"
-        self.debug_widget.setLayout(working_layout)
+        """
+        # Debug/... window stack
+        self.debug = QtWidgets.QWidget()
+        self.debug.icon = qicons.debug
+        self.debug.name = "&Debug Window"
 
         self.stacked = QtWidgets.QStackedWidget()
-        self.stacked.addWidget(self.main_widget)
-        self.stacked.addWidget(self.debug_widget)
-        self.setCentralWidget(self.stacked)
+        self.stacked.addWidget(self.debug)
+        # End of Debug/... window stack
+
+        self.setCentralWidget(self.main_widget)
 
         # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
@@ -90,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setStatusBar(self.status_bar)
 
         self.connect_signals()
+        self.debug_window = False
 
     def connect_signals(self):
         # Keyboard shortcuts
@@ -97,21 +107,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.shortcut_debug.activated.connect(self.toggle_debug_window)
 
     def toggle_debug_window(self):
-        """Toggle between any window and the debug window."""
-        if self.stacked.currentWidget() != self.debug_widget:
-            self.last_widget = self.stacked.currentWidget()
-            self.stacked.setCurrentWidget(self.debug_widget)
-            # print("Switching to debug window")
-        else:
-            # print("Switching back to last widget")
-            if self.last_widget:
-                try:
-                    self.stacked.setCurrentWidget(self.main_widget)
-                except:
-                    print("Previous Widget has been deleted in the meantime. Switching to main window.")
-                    self.stacked.setCurrentWidget(self.main_widget)
-            else:  # switch to main window
-                self.stacked.setCurrentWidget(self.main_widget)
+        """Toggle the bottom debug window"""
+        self.debug_window = not self.debug_window
+        self.bottom_panel.setVisible(self.debug_window)
 
     def add_tab_to_panel(self, obj, label, side):
         panel = self.left_panel if side == 'left' else self.right_panel

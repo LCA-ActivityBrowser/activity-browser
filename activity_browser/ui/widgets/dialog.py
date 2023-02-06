@@ -120,21 +120,45 @@ class TupleNameDialog(QtWidgets.QDialog):
 
 
 class ExcelReadDialog(QtWidgets.QDialog):
-    SUFFIXES = {".xls", ".xlsx"}
+    SUFFIXES = {".xls", ".xlsx", ".bz2", ".zip", ".gz", ".xz", ".tar", ".csv", ".feather"}
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Select excel file to read")
+        self.setWindowTitle("Select file to read")
 
+        self.path_layout = QtWidgets.QGridLayout()
         self.path = None
         self.path_line = QtWidgets.QLineEdit()
         self.path_line.setReadOnly(True)
         self.path_line.textChanged.connect(self.changed)
         self.path_btn = QtWidgets.QPushButton("Browse")
         self.path_btn.clicked.connect(self.browse)
+        self.path_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
+        self.path_layout.addWidget(self.path_line, 0, 1, 1, 2)
+        self.path_layout.addWidget(self.path_btn, 0, 3, 1, 1)
+        self.path = QtWidgets.QWidget()
+        self.path.setLayout(self.path_layout)
+
+        self.excel_option = QtWidgets.QGridLayout()
         self.import_sheet = QtWidgets.QComboBox()
         self.import_sheet.addItems(["-----"])
-        self.import_sheet.setEnabled(False)
+        self.import_sheet.setEnabled(True)
+        self.excel_option.addWidget(QtWidgets.QLabel("Excel sheet name"), 0, 0, 1, 1)
+        self.excel_option.addWidget(self.import_sheet, 0, 1, 2, 1)
+        self.excel_sheet = QtWidgets.QWidget()
+        self.excel_sheet.setLayout(self.excel_option)
+        self.excel_sheet.setVisible(False)
+
+        self.csv_option = QtWidgets.QGridLayout()
+        self.field_separator = QtWidgets.QComboBox()
+        self.field_separator.addItems([";", ",", "\t"])
+        self.field_separator.setEnabled(True)
+        self.csv_option.addWidget(QtWidgets.QLabel("Separator for csv"), 0, 0, 1, 1)
+        self.csv_option.addWidget(self.field_separator, 0, 1, 2, 1)
+        self.csv_separator = QtWidgets.QWidget()
+        self.csv_separator.setLayout(self.csv_option)
+        self.csv_separator.setVisible(False)
+
         self.complete = False
 
         self.buttons = QtWidgets.QDialogButtonBox(
@@ -145,12 +169,10 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout()
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
-        grid.addWidget(self.path_line, 0, 1, 1, 2)
-        grid.addWidget(self.path_btn, 0, 3, 1, 1)
-        grid.addWidget(QtWidgets.QLabel("Excel sheet name"), 1, 0, 1, 1)
-        grid.addWidget(self.import_sheet, 1, 1, 2, 1)
+        grid = QtWidgets.QVBoxLayout()
+        grid.addWidget(self.path)
+        grid.addWidget(self.excel_sheet)
+        grid.addWidget(self.csv_separator)
 
         input_box = QtWidgets.QGroupBox(self)
         input_box.setStyleSheet(style_group_box.border_title)
@@ -163,7 +185,7 @@ class ExcelReadDialog(QtWidgets.QDialog):
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             parent=self, caption="Select scenario template file",
-            filter="Excel (*.xlsx);; All Files (*.*)"
+            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)"
         )
         if path:
             self.path_line.setText(path)
@@ -173,7 +195,6 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.import_sheet.clear()
         names = get_sheet_names(file_path)
         self.import_sheet.addItems(names)
-        self.import_sheet.setEnabled(self.import_sheet.count() > 0)
         self.import_sheet.blockSignals(False)
 
     @Slot(name="pathChanged")
@@ -184,8 +205,16 @@ class ExcelReadDialog(QtWidgets.QDialog):
             self.path.exists(), self.path.is_file(),
             self.path.suffix in self.SUFFIXES
         ])
-        if self.complete:
+        if self.complete and self.path.suffix.startswith(".xls"):
             self.update_combobox(self.path)
+            self.excel_sheet.setVisible(self.import_sheet.count() > 0)
+
+        elif self.complete and self.path.suffix in {".csv", ".zip", ".tar", ".bz2", ".gz", ".xz"}:
+            self.csv_separator.setVisible(True)
+            self.excel_sheet.setVisible(False)
+        else:
+            self.csv_separator.setVisible(False)
+            self.excel_sheet.setVisible(False)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.complete)
 
 
@@ -277,7 +306,6 @@ class DatabaseLinkingResultsDialog(QtWidgets.QDialog):
     some of the exchanges in the database fail to be linked to the new
     database.
     Up to five of the unlinked activities are printed on the screen,
-    TODO Provide links so that the activities can be opened
 
     """
     def __init__(self, parent=None):
@@ -327,6 +355,135 @@ class DatabaseLinkingResultsDialog(QtWidgets.QDialog):
 
     def open_activity(self):
         return self.activityToOpen
+
+
+class ActivityLinkingDialog(QtWidgets.QDialog):
+    """
+    Displays the possible databases for relinking the exchanges for a given activity
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Activity linking")
+
+        self.db_label = QtWidgets.QLabel()
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Database links:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.db_label)
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @property
+    def links(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+        }
+
+    @classmethod
+    def construct_dialog(cls, label: str, options: List[Tuple[str, List[str]]],
+                         parent: QtWidgets.QWidget = None) -> 'ActivityLinkingDialog':
+        obj = cls(parent)
+        obj.db_label.setText(label)
+        # Start at 1 because row 0 is taken up by the db_label
+        for i, item in enumerate(options):
+            label = QtWidgets.QLabel(item[0])
+            combo = QtWidgets.QComboBox()
+            combo.addItems(item[1])
+            combo.setCurrentText(item[0])
+            obj.label_choices.append((label, combo))
+            obj.grid.addWidget(label, i, 0, 1, 2)
+            obj.grid.addWidget(combo, i, 2, 1, 2)
+        obj.updateGeometry()
+        return obj
+
+    @classmethod
+    def relink_sqlite(cls, act: str, options: List[Tuple[str, List[str]]],
+                      parent=None) -> 'ActivityLinkingDialog':
+        label = "Relinking exchanges from activity '{}'.".format(act)
+        return cls.construct_dialog(label, options, parent)
+
+
+class ActivityLinkingResultsDialog(QtWidgets.QDialog):
+    """
+    Provides a summary from a relinking of activity exchanges for the relinking of a
+    single activity.
+    A simple design layout based on the DatabaseLinkingResultsDialog
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Relinking database results")
+
+        button = QtWidgets.QDialogButtonBox.Ok
+        self.buttonBox = QtWidgets.QDialogButtonBox(button)
+        self.buttonBox.accepted.connect(self.accept)
+        self.databases_relinked = QtWidgets.QVBoxLayout()
+
+        self.activityToOpen = set()
+
+        self.exchangesUnlinked = QtWidgets.QVBoxLayout()
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout.addLayout(self.databases_relinked)
+        self.layout.addLayout(self.exchangesUnlinked)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+
+    @classmethod
+    def construct_results_dialog(cls, parent: QtWidgets.QWidget = None, link_results: dict = None,
+                                 unlinked_exchanges: dict = None) -> 'ActivityLinkingResultsDialog':
+        obj = cls(parent)
+        for k, results in link_results.items():
+            obj.databases_relinked.addWidget(QtWidgets.QLabel(f"{k} = {results[1]} successfully linked"))
+            obj.databases_relinked.addWidget(QtWidgets.QLabel(f"{k} = {results[0]} flows failed to link"))
+
+        obj.exchangesUnlinked.addWidget(QtWidgets.QLabel("Up to 5 unlinked exchanges (click to open)"))
+        for act, key in unlinked_exchanges.items():
+            button = QtWidgets.QPushButton(act.as_dict()['name'])
+            button.clicked.connect(lambda: signals.unsafe_open_activity_tab.emit(act.key))
+            obj.exchangesUnlinked.addWidget(button)
+        obj.updateGeometry()
+
+        return obj
+
+    @classmethod
+    def present_relinking_results(cls, parent: QtWidgets.QWidget = None, link_results: dict = None,
+                                  unlinked_exchanges: dict = None) -> 'ActivityLinkingResultsDialog':
+        return cls.construct_results_dialog(parent, link_results, unlinked_exchanges)
+
+    def select_activity_to_open(self, actvty: tuple) -> None:
+        if actvty in self.activityToOpen:
+            self.activityToOpen.discard(actvty)
+        self.activityToOpen.add(actvty)
+
+    def open_activity(self):
+        return self.activityToOpen
+
 
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def __init__(self, parent=None):
@@ -891,3 +1048,41 @@ class AndOrRadioButtons(QtWidgets.QWidget):
             x = False
         self.AND.setChecked(x)
         self.OR.setChecked(not x)
+
+
+class ProjectDeletionDialog(QtWidgets.QDialog):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.title = "Confirm project deletion"
+        self.label = QtWidgets.QLabel('Final confirmation to remove data from the hard disk.\n' +
+                                      'Warning: Non reversible process!')
+        self.check = QtWidgets.QVBoxLayout()
+        self.bttn = QtWidgets.QCheckBox()
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        self.setWindowTitle(self.title)
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout.addWidget(self.label)
+        self.layout.addLayout(self.check)
+        self.layout.addWidget(self.buttons)
+
+        self.setLayout(self.layout)
+
+    @classmethod
+    def construct_project_deletion_dialog(cls, parent: QtWidgets.QWidget = None, prjctName: str = None) -> 'ProjectDeletionDialog':
+        obj = cls(parent)
+        obj.title = f"Confirm deletion of {prjctName}"
+        obj.setWindowTitle(obj.title)
+        obj.bttn = QtWidgets.QCheckBox(f"Remove {prjctName} from the hard disk")
+        obj.bttn.setChecked(False)
+        obj.check.addWidget(obj.bttn)
+        obj.updateGeometry()
+        return obj
+
+    def deletion_warning_checked(self, parent: QtWidgets.QWidget = None):
+        return self.bttn.isChecked()
