@@ -115,6 +115,7 @@ class MLCA(object):
             msg.setText('Sum of reference flows equals 0')
             msg.setInformativeText('A value greater than 0 must be provided for at least one reference flow.\n' +
                                    'Please enter a valid value before calculating LCA results again.')
+            msg.setIcon(QMessageBox.Warning)
             QApplication.restoreOverrideCursor()
             msg.exec_()
             raise ReferenceFlowValueError("Sum of reference flows == 0")
