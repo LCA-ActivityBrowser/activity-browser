@@ -221,7 +221,7 @@ class CFTable(ABFilterableDataFrameView):
         menu.addSeparator()
         remove = menu.addAction(qicons.clear, "Remove uncertainty", self.remove_uncertainty)
         remove.setEnabled(not self.read_only)
-        delete = menu.addAction(qicons.delete, "Delete impact category", self.delete_cf)
+        delete = menu.addAction(qicons.delete, "Delete", self.delete_cf)
         delete.setEnabled(not self.read_only)
         menu.exec_(event.globalPos())
 

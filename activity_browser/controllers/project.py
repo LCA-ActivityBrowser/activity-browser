@@ -226,7 +226,7 @@ class ImpactCategoryController(QObject):
         method = bw.Method(method)
         dialog = QtWidgets.QMessageBox()
         dialog.setWindowTitle("Are you sure you want to delete this method?")
-        dialog.setText("You are about to PERMANENTLY delete the following method:\n("
+        dialog.setText("You are about to PERMANENTLY delete the following Impact Category:\n("
                        +", ".join(method.name)+
                        ")\nAre you sure you want to continue?")
         dialog.setIcon(QtWidgets.QMessageBox.Warning)
