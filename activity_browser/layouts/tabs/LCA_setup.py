@@ -435,17 +435,22 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             path = dialog.path
             idx = dialog.import_sheet.currentIndex()
             file_type_suffix = dialog.path.suffix
-            separator = dialog.field_separator.currentText()
+            separator = dialog.field_separator.currentData()
+            print("separator == '{}'".format(separator))
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             print('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
                 if file_type_suffix == ".feather":
                     df = ABFeatherImporter.read_file(path)
+#                    ABFeatherImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
+
                 elif file_type_suffix.startswith(".xls"):
                     df = import_from_excel(path, idx)
                 else:
-                    df = ABCSVImporter.read_file(path, separator)
+                    df = ABCSVImporter.read_file(path, separator=separator)
+#                    ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
+
                 self.sync_superstructure(df)
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.
