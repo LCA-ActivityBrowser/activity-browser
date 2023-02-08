@@ -139,7 +139,6 @@ class ABFeatherImporter(ABFileImporter):
         super(ABFeatherImporter, self).__init__(self)
 
     @staticmethod
-    @_time_it_
     def read_file(path: Optional[Union[str, Path]], **kwargs):
         df = pd.read_feather(path)
         # ... execute code
@@ -151,13 +150,11 @@ class ABCSVImporter(ABFileImporter):
         super(ABCSVImporter, self).__init__(self)
 
     @staticmethod
-    @_time_it_
     def read_file(path: Optional[Union[str, Path]], **kwargs):
-        if 'sep' in kwargs:
-            separator = kwargs['sep']
+        if 'separator' in kwargs:
+            separator = kwargs['separator']
         else:
             separator = ";"
         df = pd.read_csv(path, compression='infer', sep=separator, index_col=False)
         # ... execute code
-#        ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
         return df

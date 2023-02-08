@@ -139,22 +139,23 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.path = QtWidgets.QWidget()
         self.path.setLayout(self.path_layout)
 
-        self.excel_option = QtWidgets.QGridLayout()
+        self.excel_option = QtWidgets.QHBoxLayout()
         self.import_sheet = QtWidgets.QComboBox()
         self.import_sheet.addItems(["-----"])
         self.import_sheet.setEnabled(True)
-        self.excel_option.addWidget(QtWidgets.QLabel("Excel sheet name"), 0, 0, 1, 1)
-        self.excel_option.addWidget(self.import_sheet, 0, 1, 2, 1)
+        self.excel_option.addWidget(QtWidgets.QLabel("Excel sheet name"))#, 0, 0, 1, 1)
+        self.excel_option.addWidget(self.import_sheet)#, 0, 1, 2, 1)
         self.excel_sheet = QtWidgets.QWidget()
         self.excel_sheet.setLayout(self.excel_option)
         self.excel_sheet.setVisible(False)
 
-        self.csv_option = QtWidgets.QGridLayout()
+        self.csv_option = QtWidgets.QHBoxLayout()
         self.field_separator = QtWidgets.QComboBox()
-        self.field_separator.addItems([";", ",", "\t"])
+        for l, s in {';': ';', ',': ',', 'tab': '\t'}.items():
+            self.field_separator.addItem(l,s)
         self.field_separator.setEnabled(True)
-        self.csv_option.addWidget(QtWidgets.QLabel("Separator for csv"), 0, 0, 1, 1)
-        self.csv_option.addWidget(self.field_separator, 0, 1, 2, 1)
+        self.csv_option.addWidget(QtWidgets.QLabel("Separator for csv"))#, 0, 0, 1, 1)
+        self.csv_option.addWidget(self.field_separator)#, 0, 1, 2, 1)
         self.csv_separator = QtWidgets.QWidget()
         self.csv_separator.setLayout(self.csv_option)
         self.csv_separator.setVisible(False)
@@ -208,7 +209,7 @@ class ExcelReadDialog(QtWidgets.QDialog):
         if self.complete and self.path.suffix.startswith(".xls"):
             self.update_combobox(self.path)
             self.excel_sheet.setVisible(self.import_sheet.count() > 0)
-
+            self.csv_separator.setVisible(False)
         elif self.complete and self.path.suffix in {".csv", ".zip", ".tar", ".bz2", ".gz", ".xz"}:
             self.csv_separator.setVisible(True)
             self.excel_sheet.setVisible(False)
