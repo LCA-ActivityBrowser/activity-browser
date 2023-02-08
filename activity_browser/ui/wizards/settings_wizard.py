@@ -186,6 +186,7 @@ class SettingsPage(QtWidgets.QWizardPage):
                 self.bwdir.setCurrentText(self.bwdir_name.text())
                 self.bwdir.blockSignals(False)
                 self.update_project_combo(path=self.bwdir_name.text())
+                self.changed()
         else:  # a project already exists in this directory
             # ask user if to switch directory (which will update the project combobox correctly)
             reply = QtWidgets.QMessageBox.question(self,
