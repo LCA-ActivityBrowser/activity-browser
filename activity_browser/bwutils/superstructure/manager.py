@@ -111,7 +111,7 @@ class SuperstructureManager(object):
         if not isinstance(df.index, pd.MultiIndex):
             df.index = SuperstructureManager.build_index(df)
         df = SuperstructureManager.remove_duplicates(df)
-        df = SuperstructureManager.romain_merge_flows_to_self(df)
+        df = SuperstructureManager.merge_flows_to_self(df)
 
         return df
 
