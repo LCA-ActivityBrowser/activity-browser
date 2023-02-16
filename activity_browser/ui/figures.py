@@ -251,12 +251,11 @@ class MonteCarloPlot(Plot):
 
     def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
-
-        for col in df.columns:
+        for col in range(len(df.columns)):
             color = self.ax._get_lines.get_next_color()
-            df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color, alpha=0.5)  # , histtype="step")
+            df.iloc[:, col].hist(ax=self.ax, figure=self.figure, label=df.columns[col], density=True, color=color, alpha=0.5)  # , histtype="step")
             # self.ax.axvline(df[col].median(), color=color)
-            self.ax.axvline(df[col].mean(), color=color)
+            self.ax.axvline(df.iloc[:, col].mean(), color=color)
 
         self.ax.set_xlabel(bw.methods[method]["unit"])
         self.ax.set_ylabel('Probability')

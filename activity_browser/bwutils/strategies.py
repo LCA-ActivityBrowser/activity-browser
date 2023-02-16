@@ -122,14 +122,12 @@ def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tup
             transaction.rollback()
     return (remainder, altered, unlinked_exchanges)
 
-
 def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) -> tuple:
     """Relink exchanges after the database has been created/written.
 
     This means possibly doing a lot of sqlite update calls.
     """
     if old == other.name:
-        print("No point relinking to same database.")
         return
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
     assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
@@ -160,14 +158,12 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
 
 def relink_activity_exchanges(act, old: str, other: bw.Database) -> tuple:
     if old == other.name:
-        print("No point relinking to same database.")
         return
     db = bw.Database(act.key[0])
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
     assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
 
     duplicates, candidates = {}, {}
-
     for ds in other:
         key = activity_hash(ds, DEFAULT_FIELDS)
         if key in candidates:

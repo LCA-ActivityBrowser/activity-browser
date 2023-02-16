@@ -123,8 +123,7 @@ class MLCA(object):
         # reference flows and related indexes
         self.func_units = cs['inv']
         self.fu_activity_keys = [list(fu.keys())[0] for fu in self.func_units]
-        self.fu_index = {k: i for i, k in enumerate(self.fu_activity_keys)}
-        self.rev_fu_index = {v: k for k, v in self.fu_index.items()}
+        self.fu_index = [(k, i) for i, k in enumerate(self.fu_activity_keys)]
 
         # Methods and related indexes
         self.methods = cs['ia']
@@ -150,7 +149,7 @@ class MLCA(object):
         # Technosphere product flows for a given reference flow
         self.technosphere_flows = dict()
         # Life cycle inventory (biosphere flows) by reference flow
-        self.inventory = dict()
+        self.inventory = list()
         # Inventory (biosphere flows) for specific reference flow (e.g. 2000x15000) and impact category.
         self.inventories = dict()
         # Inventory multiplied by scaling (relative impact on environment) per impact category.
@@ -197,9 +196,9 @@ class MLCA(object):
             self.technosphere_flows.update({
                 str(func_unit): np.multiply(self.lca.supply_array, self.lca.technosphere_matrix.diagonal())
             })
-            self.inventory.update({
-                str(func_unit): np.array(self.lca.inventory.sum(axis=1)).ravel()
-            })
+            self.inventory.append((
+                str(func_unit), np.array(self.lca.inventory.sum(axis=1)).ravel()
+            ))
             self.inventories.update({
                 str(func_unit): self.lca.inventory
             })
@@ -357,16 +356,15 @@ class Contributions(object):
         scores = abs(contribution_array).sum(axis=1, keepdims=True)
         return contribution_array / scores
 
-    def _build_dict(self, C, FU_M_index, rev_dict, limit, limit_type):
+    def _build_frame(self, C, FU_M_index, rev_dict, limit, limit_type):
         """Sort the given contribution array on method or reference flow column.
 
         Parameters
         ----------
         C : `numpy.ndarray`
             A 2-dimensional contribution array
-        FU_M_index : dict
-            Dictionary which maps the reference flows or methods to their
-            matching columns
+        FU_M_index : list of tuples
+            Each tuple contains first the key and second the index
         rev_dict : dict
             'reverse' dictionary used to map correct activity/method to
             its value
@@ -378,12 +376,12 @@ class Contributions(object):
 
         Returns
         -------
-        dict
+        list: [tuples]
             Top-contributing flows per method or activity
 
         """
-        topcontribution_dict = dict()
-        for fu_or_method, col in FU_M_index.items():
+        topcontribution_dict = list()
+        for fu_or_method, col in FU_M_index:
             top_contribution = ca.sort_array(C[col, :], limit=limit, limit_type=limit_type)
             cont_per = dict()
             cont_per.update({
@@ -392,9 +390,8 @@ class Contributions(object):
                 })
             for value, index in top_contribution:
                 cont_per.update({rev_dict[index]: value})
-            topcontribution_dict.update({fu_or_method: cont_per})
+            topcontribution_dict.append((fu_or_method, cont_per))
         return topcontribution_dict
-
 
     @staticmethod
     def get_labels(key_list, fields=None, separator=' | ',
@@ -491,13 +488,13 @@ class Contributions(object):
         joined.index = cls.get_labels(joined.index, fields=x_fields)
         return joined
 
-    def get_labelled_contribution_dict(self, cont_dict, x_fields=None,
+    def get_labelled_contribution_frame(self, cont_dict, x_fields=None,
                                        y_fields=None, mask=None):
         """Annotate the contribution dict with metadata.
 
         Parameters
         ----------
-        cont_dict : dict
+        cont_dict : list[tuples]
             Holds the contribution data connected to the functions of methods
         x_fields : list
             X-axis fieldnames, these are usually the indexes/keys of specific
@@ -515,18 +512,18 @@ class Contributions(object):
 
         """
         dfs = (
-            pd.DataFrame(v.values(), index=list(v.keys()), columns=[k])
-            for k, v in cont_dict.items()
+            pd.DataFrame(s[1].values(), index=list(s[1].keys()), columns=[s[0]])
+            for s in cont_dict
         )
         df = pd.concat(dfs, sort=False, axis=1)
         # If the cont_dict has tuples for keys, coerce df.columns into MultiIndex
-        if all(isinstance(k, tuple) for k in cont_dict.keys()):
+        if all(isinstance(k[0], tuple) for k in cont_dict):
             df.columns = pd.MultiIndex.from_tuples(df.columns)
         special_keys = [('Total', ''), ('Rest', '')]
 
-        # replace all 0 values with NaN and drop all rows with only NaNs
-        df = df.replace(0, np.nan).dropna(how='all')
-
+        # replace all 0 values with NaN /[and drop all rows with only NaNs]
+        df = df.replace(0, np.nan)# removed the dropping of rows with all NaNs otherwise the dataframe is empty
+        # and causes problems for plotting "empty" figures.
         if not mask:
             joined = self.join_df_with_metadata(
                 df, x_fields=x_fields, y_fields=y_fields,
@@ -557,9 +554,9 @@ class Contributions(object):
         return df
 
     @staticmethod
-    def _build_inventory(inventory: dict, indices: dict, columns: list,
+    def _build_inventory(inventory: list, indices: dict, columns: list,
                          fields: list) -> pd.DataFrame:
-        df = pd.DataFrame(inventory)
+        df = pd.DataFrame(list(zip(*[i[1] for i in inventory])), columns=[c[0] for c in inventory]) # get just the numpy arrays for expansion
         df.index = pd.MultiIndex.from_tuples(indices.values())
         df.columns = Contributions.get_labels(columns, max_length=30)
         metadata = AB_metadata.get_metadata(list(indices.values()), fields)
@@ -694,20 +691,21 @@ class Contributions(object):
         mthd_indx: a list of tuples for the impact method names
         """
         method_tuple_length = max([len(k) for k in mthd_indx])
-        conv_dict = dict()
+        conv_frame = list()
         for v, mthd in enumerate(mthd_indx):
             if len(mthd) < method_tuple_length:
                 _l = list(mthd)
                 for i in range(len(mthd), method_tuple_length):
                     _l.append('')
                 mthd = tuple(_l)
-            conv_dict[mthd] = v
-        return conv_dict
+            conv_frame.append(tuple([mthd, v]))
+        return conv_frame
 
     def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
         if kwargs.get("method") is not None:
             return self.mlca.fu_index, self.act_fields
         return self._correct_method_index(self.mlca.methods), None
+
 
     def top_elementary_flow_contributions(self, functional_unit=None, method=None,
                                           aggregator=None, limit=5, normalize=False,
@@ -751,9 +749,8 @@ class Contributions(object):
         # Normalise if required
         if normalize:
             C = self.normalize(C)
-
-        top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
-        labelled_df = self.get_labelled_contribution_dict(
+        top_cont_dict = self._build_frame(C, index, rev_index, limit, limit_type)
+        labelled_df = self.get_labelled_contribution_frame(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
         self.adjust_table_unit(labelled_df, method)
@@ -801,8 +798,8 @@ class Contributions(object):
         if normalize:
             C = self.normalize(C)
 
-        top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
-        labelled_df = self.get_labelled_contribution_dict(
+        top_cont_dict = self._build_frame(C, index, rev_index, limit, limit_type)
+        labelled_df = self.get_labelled_contribution_frame(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
         self.adjust_table_unit(labelled_df, method)

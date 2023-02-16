@@ -54,7 +54,6 @@ class MonteCarloLCA(object):
         # previously: self.rev_method_index = {v: k for k, v in self.method_index.items()}
         # self.rev_method_index = {v: k for k, v in self.method_index.items()}
 
-        # todo: get rid of the below
         self.func_unit_translation_dict = {str(bw.get_activity(list(func_unit.keys())[0])): func_unit
                                            for func_unit in self.func_units}
         if len(self.func_unit_translation_dict) != len(self.func_units):

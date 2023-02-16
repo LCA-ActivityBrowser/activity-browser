@@ -52,7 +52,7 @@ class SuperstructureMLCA(MLCA):
 
         # Construct an index dictionary similar to fu_index and method_index
         self._current_index = 0
-        self.scenario_index = {k: i for i, k in enumerate(self.scenario_names)}
+        self.scenario_index = [(k, i) for i, k in enumerate(self.scenario_names)]
 
         # Rebuild numpy arrays with scenario dimension included.
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods), self.total))
@@ -143,9 +143,10 @@ class SuperstructureMLCA(MLCA):
                         self.lca.supply_array, self.lca.technosphere_matrix.diagonal()
                     )
                 })
-                self.inventory.update({
-                    (str(func_unit), ps_col): np.array(self.lca.inventory.sum(axis=1)).ravel()
-                })
+
+                self.inventory.append((
+                    (str(func_unit), ps_col), np.array(self.lca.inventory.sum(axis=1)).ravel()
+                ))
                 self.inventories.update({
                     (str(func_unit), ps_col): self.lca.inventory
                 })
@@ -181,7 +182,7 @@ class SuperstructureMLCA(MLCA):
         """
         data = self.lca_scores[:, index, :]
         return pd.DataFrame(
-            data, index=self.func_key_list, columns=self.scenario_names
+            data, index=self.fu_activity_keys, columns=self.scenario_names
         )
 
     def _get_steps_to_index(self, index: int) -> list:
@@ -236,7 +237,7 @@ class SuperstructureContributions(Contributions):
 
     def _build_inventory(self, inventory: dict, indices: dict, columns: list,
                          fields: list) -> pd.DataFrame:
-        inventory = {k[0]: v for k, v in inventory.items() if k[1] == self.mlca.current}
+        inventory = [(k[0], k[1]) for k in inventory if k[0][1] == self.mlca.current]
         return super()._build_inventory(inventory, indices, columns, fields)
 
     def lca_scores_df(self, normalized: bool = False) -> pd.DataFrame:
