@@ -1,6 +1,8 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
 import pandas as pd
+import ast
+
 from .utils import _time_it_
 from typing import Optional, Union
 from ..errors import (
@@ -142,6 +144,8 @@ class ABFeatherImporter(ABFileImporter):
     def read_file(path: Optional[Union[str, Path]], **kwargs):
         df = pd.read_feather(path)
         # ... execute code
+        for i in ['to key', 'from key']:
+            df.loc[:, i] = df.loc[:, i].apply(ast.literal_eval)
         return df
 
 
@@ -155,6 +159,6 @@ class ABCSVImporter(ABFileImporter):
             separator = kwargs['separator']
         else:
             separator = ";"
-        df = pd.read_csv(path, compression='infer', sep=separator, index_col=False)
+        df = pd.read_csv(path, compression='infer', sep=separator, index_col=False, converters={'from key': ast.literal_eval, 'to key': ast.literal_eval})
         # ... execute code
         return df
