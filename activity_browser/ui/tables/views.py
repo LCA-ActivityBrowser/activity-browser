@@ -467,7 +467,6 @@ class CustomHeader(QHeaderView):
 
             # set the settings to a PushButton
             self.style().drawControl(QStyle.CE_PushButton, option, painter)
-            self.viewport().update()
 
     def mousePressEvent(self, event):
         index = self.logicalIndexAt(event.pos())
@@ -491,6 +490,7 @@ class CustomHeader(QHeaderView):
         else:
             # pass the event to the header (for sorting)
             super(CustomHeader, self).mousePressEvent(event)
+        self.viewport().update()
 
 
 class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
