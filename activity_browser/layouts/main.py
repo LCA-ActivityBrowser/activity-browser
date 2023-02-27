@@ -37,6 +37,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.icon = qicons.ab
         self.setWindowIcon(self.icon)
 
+        self.setStyleSheet('''
+            QMainWindow { background-color: #f0f0f0; }
+            %QTabBar::tab:selected { background: #bababa; border-color: black; }
+            QTabWidget>QWidget>QWidget { background: white; }
+        ''')
+
         # Layout
         # The top level element is `central_widget`.
         # Inside is a vertical layout `vertical_container`.
