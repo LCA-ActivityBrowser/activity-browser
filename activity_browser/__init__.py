@@ -41,6 +41,7 @@ def run_activity_browser():
 #            QWidget>QTableWidget { background-color: #FFFFFF; color: #101010 }
 #        '''
 #    )
+
     application = Application()
     application.show()
     log.info("Qt Version:", qt_version)
