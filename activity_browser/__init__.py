@@ -25,6 +25,14 @@ if QSysInfo.productType() == "osx":
 def run_activity_browser():
     qapp = QApplication(sys.argv)
     # qapp.setFont(default_font)
+    qapp.setStyleSheet(
+        '''
+            * { background-color: #f0f0f0; color #101010}
+            QWidget>QWidget>QWidget>QWidget>QWidget>QWidget { background-color: #FFFFFF; color: #101010 }
+            QWidget>QTableView { background-color: #FFFFFF; color: #101010 }
+            QWidget>QTableWidget { background-color: #FFFFFF; color: #101010 } 
+        '''
+    )
     application = Application()
     application.show()
     print("Qt Version:", qt_version)
