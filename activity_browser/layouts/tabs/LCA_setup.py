@@ -262,13 +262,23 @@ class ScenarioImportPanel(BaseRightTab):
         super().__init__(parent)
 
         self.explain_text = """
-        <p>You can import two different scenario types here:</p>
-        <p>1. <b>flow-scenarios</b>: flow scenarios are alternative values for exchanges (flows between processes or between processes and the environment)</p>
-        <p>2. <b>parameter-scenarios</b>: alternative values for parameters you use within a project</p>
-        <p>If you do not know how such files look like, you can go to the Parameters --> Scenarios tab.
-         Then click "Export parameter-scenarios" to obtain a parameter-scenarios file or  
-         "Export as flow-scenarios" to obtain a flow-scenarios file. 
-         Note that you need to have at least one parameterized activity to obtain flow-scenarios</p>
+        <p>You can import <b>two types of scenario files</b> here:</h4>
+        <p>1. <b>Flow-scenarios</b>: alternative values for exchanges (technosphere/biosphere flows) 
+        (<i>scenario difference files</i>)</p>
+        <p>2. <b>Parameter-scenarios</b>: alternative values for parameters <i>(parameter scenarios files)</i></p>
+        
+        Further information is provided in this <a href="https://www.youtube.com/watch?v=3LPcpV1G_jg">video</a>. 
+        
+        <p>If you need a template for these files, you can go to the <i>Parameters > Scenarios tab</i>. 
+        Then click <i>Export parameter-scenarios</i> to obtain a parameter-scenarios file or   
+        <i>Export as flow-scenarios</i> to obtain a flow-scenarios file 
+        (you need at least one parameterized activity for the latter).</p> 
+        
+        <br> <p> You can also work with <b>multiple scenario files</b> for which there are with two options:</p>
+        <p>1. <b>Combine scenarios</b>: this yields all possible scenario combinations 
+        (e.g. file 1: <i>S1, S2</i> and file 2: <i>A, B</i> yields <i>S1-A, S1-B, S2-A, S2-B</i>)</p>
+        <p>2. <b>Extend scenarios</b>: scenarios from file 2 extend scenarios of file 1 
+        (only possible if scenario names are identical in all files, e.g. everywhere <i>S1, S2</i>).</p> 
         """
 
         self.tables = []
@@ -277,19 +287,17 @@ class ScenarioImportPanel(BaseRightTab):
         self.scenario_tables = QtWidgets.QHBoxLayout()
         self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
 
-        self.combine_label = QtWidgets.QLabel("Combine tables by:")
         self.group_box = QtWidgets.QGroupBox()
         self.group_box.setStyleSheet(style_group_box.border_title)
         input_field_layout = QtWidgets.QHBoxLayout()
         self.group_box.setLayout(input_field_layout)
         self.combine_group = QtWidgets.QButtonGroup()
         self.combine_group.setExclusive(True)
-        self.product_choice = QtWidgets.QCheckBox("Product")
+        self.product_choice = QtWidgets.QCheckBox("Combine scenarios")
         self.product_choice.setChecked(True)
-        self.addition_choice = QtWidgets.QCheckBox("Addition")
+        self.addition_choice = QtWidgets.QCheckBox("Extend scenarios")
         self.combine_group.addButton(self.product_choice)
         self.combine_group.addButton(self.addition_choice)
-        input_field_layout.addWidget(self.combine_label)
         input_field_layout.addWidget(self.product_choice)
         input_field_layout.addWidget(self.addition_choice)
         self.group_box.setHidden(True)
