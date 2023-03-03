@@ -124,14 +124,12 @@ jobs:
             yq eval-all -i 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' ci/conda-envs/ab_dev.yml ci/recipe/stable/meta.yaml
       - name: Show patched dev recipe
         run: cat ci/recipe/dev/meta.yaml
+      - name: Set Conda build to upload
+        run: conda config --set anaconda_upload yes
       - name: Build development package
         run: |
-          conda build ci/recipe/dev
-      - name: Upload the activity-browser-dev package and env
-        run: |
-          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload --force \
-          /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
-          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload ci/conda-envs/ab_dev.yml
+          conda build --token ${{ secrets.CONDA_UPLOAD_TOKEN }} ci/recipe/dev
+
 
 
   deploy-arm:
