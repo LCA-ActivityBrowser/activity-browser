@@ -37,9 +37,11 @@ jobs:
           python-version: 3.8
           activate-environment: build
           environment-file: ci/conda-envs/build.yml
-      - name: Set Conda build to upload
-        run: conda config --set anaconda_upload yes
       - name: Build activity-browser stable
         run: |
-          conda build --token ${{ secrets.CONDA_UPLOAD_TOKEN }} ci/recipe/stable
-
+          conda build ci/recipe/stable
+      - name: Upload to anaconda.org
+        run: |
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
+          /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload ci/conda-envs/ab.yml
