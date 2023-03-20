@@ -41,10 +41,11 @@ Watch our videos on [youtube](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1
 - [Quickstart](#Quickstart)
 - [Installation](#installation)
     - [Conda](#conda)
-    - [Install the activity browser](#install-the-activity-browser)
+    - [Configure conda channels](#add-the-conda-forge-channel)
+    - [Install the activity browser with Ecoinvent >=3.9](#install-activity-browser-with-ecoinvent-39)
+    - [Install the activity browser with Ecoinvent <3.9](#install-activity-browser-with-older-ecoinvent-versions-39)
+    - [Recommendations for setting up environments](#recommendations-for-environmental-setups)
     - [Updating the activity browser](#updating-the-activity-browser)
-    - [Development Version](#development-version)
-    - [Configure conda channels](#configure-conda-channels)
     - [Install development version](#install-development-version)
 - [Getting started](#getting-started)
     - [Running the activity browser](#running-the-activity-browser)
@@ -68,48 +69,43 @@ activity-browser
 
 ## Installation
 
-###  Ecoinvent 3.9 Compatibility and BrightWay2 
-| :warning: Brightway and activity-browser version conflicts regarding Ecoinvent 3.9                                                                                                                                           |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Unfortunately, as of the moment conflicts exist in bw2io versions in response to building compatibility with the latest Ecoinvent versions. Consequently, a work-around is needed for some activity-browser use cases, these are described below. |
-
-To obtain and install Ecoinvent 3.9 version 0.8.8 of the bw2io package is required, and an activity-browser environment with this version is required.
-
-#### Ecoinvent 3.9 (updating an old version)
-This is unfortunately not possible, to get Ecoinvent 3.9 you will need to create a new environment for the activity browser and make sure the packages are recent bw2io == 0.8.8
-#### Ecoinvent 3.9 (new installation)
-On a new installation of the activity-browser this should work as intended. If however there are problems first check for the version of bw2io (using ```conda list bw2io```) if it is less than 0.8.8 then it is necessary to update the version (using```conda install bw2io=0.8.8```), this will also update brightway2 as a co-dependency.
-#### Ecoinvent <=3.8 (new installation)
-For a new installation the normal installation procedure should be followed. After this is successfully executed, however, the following command needs to be given within the environment ```conda install bw2io=0.8.7```, this will downgrade both bw2io and your brightway installation.
-
-One additional problem in this instance is if the biosphere3 database has already been installed with the bw2io version 0.8.8. If this is the case you will need to remove/delete this database and reinstall it, either using brightway2, or the activity-browser.
-
 ### Conda
 
 We recommend that you use **conda** to manage your python installation. You can install [Anaconda](https://www.anaconda.com/products/individual) or the more compact [miniconda](https://conda.io/miniconda.html) (Python 3 of course) for your operating system. Installation instructions for miniconda can be found [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html). See also the [conda user guide](https://docs.conda.io/projects/conda/en/latest/user-guide/index.html) or the [Conda cheat sheet](https://docs.conda.io/projects/conda/en/latest/_downloads/843d9e0198f2a193a3484886fa28163c/conda-cheatsheet.pdf).
 
 Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update conda`.
 
-
-### Configure conda channels
-
+#### Add the Conda-Forge channel
 The activity-browser has many dependencies that are managed by the conda-forge [channel](https://conda.io/docs/user-guide/tasks/manage-channels.html). Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following:
 
 ```bash
 conda config --prepend channels conda-forge
 ```
-
-### Install the activity browser
-
+### Install Activity-Browser with Ecoinvent >=3.9
+After prepending the Conda-Forge channel the following line should be executed within the command prompt/terminal to install the Activity-Browser and it's dependencies.
 
 ```bash
 conda create -n ab activity-browser
 ```
+This will install the Activity-Browser with the latest version of the Brightway2 libraries (currently excluding Brightway2.5 libraries).
 
+### Install Activity-Browser with older Ecoinvent versions (<3.9)
+For a new installation from the conda-forge repository the same initial steps need to be made: Prepending the Conda-Forge repository in the channels, and installing the Activity-Browser and dependencies. After the successful installation, however, two further commands need to be executed before running the Activity-Browser: <i>1)</i> Remove the latest version of the Brightway2 Input-Output library, <i>2)</i> Install an older version of the Brightway2 Input-Output library.
 
-This will install the activity-browser and all of its dependencies in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. Installing for the first time will take a few minutes.
+```bash
+conda remove --force bw2io
+conda install bw2io=0.8.7
+```
 
-It is recommended that you have a separate conda environment for the activity browser like explained above, but you can also install the activity browser in your root, brightway2 or other existing conda environment if you prefer. Having separate environments for different projects generally reduces unwanted side-effects and incompatibilities between packages. You can still access the same brightway-projects even if you work with different conda environments.
+### Activity-Browser is installed
+
+At this point the activity-browser and all of its dependencies will be installed in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you. (Note, Installing for the first time will take a few minutes).
+
+### Recommendations for environmental setups
+It is recommended that you have a separate conda environment for the activity browser as explained above, but you can also install the activity browser in your root, brightway2 or other existing conda environment if you prefer. Having separate environments for different projects generally reduces unwanted side-effects and incompatibilities between packages. You can still access the same brightway-projects even if you work with different conda environments.
+
+### Biosphere3 linking issues
+If you want to run the Activity-Browser with older versions of Ecoinvent (<3.9) and the Biosphere3 database is already installed, then there will be exchanges in the biosphere3 database that are not compatible with the desired Ecoinvent versions. These Biosphere3 databases will then need to be removed and reinstalled (after changing the bw2io package version) before trying to load the Ecoinvent and other dependent databases back into the Activity-Browser.
 
 ### Updating the activity browser
 
@@ -125,48 +121,6 @@ This will update the activity-browser and all of its dependencies in the conda e
 | :warning: The activity browser has dropped support for python versions below `3.8`|
 |---|
 | You should re-install if you have an older installation of the activity browser which doesn't use `python >= 3.8` (you can check with `conda list` or `python --version` in your conda environment). You can remove your existing environment with `conda remove -n ab --all` or choose a new environment name (instead of `ab`). Re-installing will not affect your activity-browser/brightway projects. |
-
-
-## Development Version
-[![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/version.svg)](https://anaconda.org/bsteubing/activity-browser-dev) [![Anaconda-Server Badge](https://anaconda.org/bsteubing/activity-browser-dev/badges/downloads.svg)](https://anaconda.org/bsteubing/activity-browser-dev)
-
-The most recent version of the master branch is automatically uploaded to anaconda as the `activity-browser-dev` package and generally available via conda ~5 minutes after being committed. Installation is the same as for the stable releases of the activity browser. It is highly advisable to not install the development version in the same conda environment as the stable release (the command `activity-browser` will always start the most recently installed version in a given environment).
-
-### Configure conda channels
-
-The activity-browser has many dependencies and you need to add three [conda channels](https://conda.io/docs/user-guide/tasks/manage-channels.html) to your configuration file so conda can find all of them. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following (order is important):
-
-```bash
-conda config --prepend channels conda-forge
-conda config --append channels cmutel
-conda config --append channels bsteubing
-```
-
-You can check your channels with `conda config --show channels`. The output should look like this if everything is set up correctly:
-
-```bash
-channels:
-  - conda-forge
-  - defaults
-  - cmutel
-  - bsteubing
-```
-You can also edit your user's `.condarc` file and modify the channels there. If you prefer to not add these channels to your conda config permanently, you'll have to always explicitly list them for `conda install` and `conda update` commands (see example in [Quickstart](#Quickstart)).
-
-### Install development version
-
-After configuring your conda channels, the activity browser can be installed with this command:
-
-```bash
-conda create -n ab_dev activity-browser-dev
-```
-
-Or update like this if you already have a dev environment:
-
-```bash
-conda activate ab_dev
-conda update activity-browser-dev
-```
 
 
 ---
