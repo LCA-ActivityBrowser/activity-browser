@@ -21,6 +21,9 @@ if QSysInfo.productType() == "osx":
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
         print("Info: GPU hardware acceleration disabled")
 
+if QSysInfo.productType() in ["arch","nixos"]:
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
+    print("Info: QtWebEngine sandbox disabled")
 
 def run_activity_browser():
     qapp = QApplication(sys.argv)
