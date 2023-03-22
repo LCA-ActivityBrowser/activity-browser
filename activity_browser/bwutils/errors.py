@@ -36,3 +36,9 @@ class ReferenceFlowValueError(Warning):
     """While a user can technically perform a calculation with the reference flows all set to 0, such a calculation
      makes no logical sense and will lead to downstream errors (due to 0 results)."""
     pass
+
+
+class DuplicatedScenarioExchangeWarning(Warning):
+    """Will warn the user that a loaded scenario table contains duplicate exchanges. Only the last added exchange value
+    will be used."""
+    pass

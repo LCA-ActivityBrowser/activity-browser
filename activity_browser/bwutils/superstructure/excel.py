@@ -6,7 +6,7 @@ from typing import List, Union
 import openpyxl
 import pandas as pd
 
-from .utils import SUPERSTRUCTURE, _time_it_
+from .utils import SUPERSTRUCTURE
 
 
 def convert_tuple_str(x):
@@ -23,7 +23,6 @@ def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
     except UnicodeDecodeError as e:
         print("Given document uses an unknown encoding: {}".format(e))
 
-@_time_it_
 def get_header_index(document_path: Union[str, Path], import_sheet: int):
     """Retrieves the line index for the column headers, will raise an
     exception if not found in the first 10 rows.
@@ -49,7 +48,6 @@ def valid_cols(name: str) -> bool:
     """Callable which evaluates if a specific column should be used."""
     return False if name.startswith("#") else True
 
-@_time_it_
 def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1) -> pd.DataFrame:
     """Import all of the exchanges and their scenario amounts from a given
     document and sheet index.
