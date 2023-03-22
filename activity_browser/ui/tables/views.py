@@ -29,7 +29,7 @@ class ABDataFrameView(QTableView):
         self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
-        self.setStyleSheet("alternate-background-color: #efefef; background-color: #fcfcfc; opacity: 1;")
+#        self.setStyleSheet("alternate-background-color: #efefef; background-color: #fcfcfc; opacity: 1;")
         self.setSortingEnabled(True)
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         self.verticalHeader().setVisible(True)
