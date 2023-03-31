@@ -404,7 +404,8 @@ class ABFilterableDataFrameView(ABDataFrameView):
         """Reset all filters for this column."""
         QApplication.setOverrideCursor(Qt.WaitCursor)
         f = self.filters
-        f.pop(self.selected_column)
+        if f.get(self.selected_column, False):
+            f.pop(self.selected_column)
         if self.prev_quick_filter.get(self.selected_column, False):
             self.prev_quick_filter.pop(self.selected_column)
         self.write_filters(f)
