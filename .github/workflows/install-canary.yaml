@@ -10,6 +10,7 @@ on:
 jobs:
   canary-installs:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
