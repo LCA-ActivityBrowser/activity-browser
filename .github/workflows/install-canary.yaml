@@ -1,4 +1,4 @@
-name: tests and development release
+name: canary installation
 on:
   schedule:
     # Run the tests once every 24 hours to catch dependency problems early
