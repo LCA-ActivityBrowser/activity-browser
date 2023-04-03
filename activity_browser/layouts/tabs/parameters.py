@@ -251,13 +251,15 @@ can be used within the formula!</p>
 
         self.uncertainty_columns.setChecked(False)
         row = QToolBar()
-        row.addWidget(header("Parameters "))
+        _header = header("Parameters ")
+        _header.setToolTip("Left click on the question mark for help")
+        row.addWidget(_header)
         row.addWidget(self.show_database_params)
         row.addWidget(self.show_activity_params)
         row.addWidget(self.comment_column)
         row.addWidget(self.uncertainty_columns)
         row.addAction(
-            qicons.question, "About brightway parameters",
+            qicons.question, "Left click for help on brightway parameters",
             self.explanation
         )
         layout.addWidget(row)
@@ -359,6 +361,9 @@ class ParameterExchangesTab(BaseRightTab):
 
         self.explain_text = """
 <p>This tab lists all exchanges within the selected project that are calculated via parameters.</p>
+<p>The Project level parameters are shown above the database and activity parameters.</p>
+<p>To see the different database and activity parameters in the Project click on the arrows to expand the trees</p>
+
 <p>For more information on this topic see also the 
 <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
 """
@@ -372,10 +377,12 @@ class ParameterExchangesTab(BaseRightTab):
         """
         layout = QVBoxLayout()
         row = QToolBar()
-        row.addWidget(header("Overview of parameterized exchanges"))
+        _header = header("Overview of parameterized exchanges")
+        _header.setToolTip("Left click on the question mark for help")
+        row.addWidget(_header)
         row.setIconSize(QSize(24, 24))
         row.addAction(
-            qicons.question, "About parameters overview",
+            qicons.question, "Left click for help on parameters",
             self.explanation
         )
         layout.addWidget(row)
@@ -455,9 +462,11 @@ class ParameterScenariosTab(BaseRightTab):
         layout = QVBoxLayout()
 
         row = QToolBar()
-        row.addWidget(header("Parameter Scenarios"))
+        _header = header("Parameter Scenarios")
+        _header.setToolTip("Click on the question mark for help")
+        row.addWidget(_header)
         row.addAction(
-            qicons.question, "About parameters scenarios",
+            qicons.question, "Left click for help on parameters scenarios",
             self.explanation
         )
         layout.addWidget(row)

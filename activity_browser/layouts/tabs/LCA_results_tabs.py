@@ -1074,8 +1074,10 @@ class MonteCarloTab(NewAnalysisTab):
         super(MonteCarloTab, self).__init__(parent)
         self.parent: LCAResultsSubTab = parent
         header_ = QToolBar()
-        header_.addWidget(header("Monte Carlo Simulation"))
-        header_.addAction(qicons.question, "About Monte Carlo analysis", self.explanation)
+        _header = header("Monte Carlo Simulation")
+        _header.setToolTip("Left click on the question mark for help")
+        header_.addWidget(_header)
+        header_.addAction(qicons.question, "Left click for help on Monte Carlo analysis", self.explanation)
         self.layout.addWidget(header_)
         self.scenario_label = QLabel("Scenario:")
         self.include_box = QGroupBox("Include uncertainty for:", self)
@@ -1361,8 +1363,10 @@ class GSATab(NewAnalysisTab):
         self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
 
         header_ = QToolBar()
-        header_.addWidget(header("Global Sensitivity Analysis"))
-        header_.addAction(qicons.question, "About Global Sensitivity Analysis", self.explanation)
+        _header = header("Global Sensitivity Analysis")
+        _header.setToolTip("Left click on the question mark for help")
+        header_.addWidget(_header)
+        header_.addAction(qicons.question, "Left click for help on Global Sensitivity Analysis", self.explanation)
 
         self.layout.addWidget(header_)
         self.scenario_box = None

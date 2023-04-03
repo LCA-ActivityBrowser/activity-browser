@@ -314,9 +314,11 @@ class ScenarioImportPanel(BaseRightTab):
         self.group_box.setHidden(True)
 
         row = QtWidgets.QToolBar()
-        row.addWidget(header("Scenarios:"))
+        _header = header("Scenarios:")
+        _header.setToolTip("Left click on the question mark for help")
+        row.addWidget(_header)
         row.addAction(
-            qicons.question, "Scenarios help",
+            qicons.question, "Left click for help on Scenarios",
             self.explanation
         )
         row.addWidget(self.table_btn)
