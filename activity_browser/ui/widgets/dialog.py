@@ -1087,3 +1087,55 @@ class ProjectDeletionDialog(QtWidgets.QDialog):
 
     def deletion_warning_checked(self, parent: QtWidgets.QWidget = None):
         return self.bttn.isChecked()
+
+
+class ScenarioDatabaseDialog(QtWidgets.QDialog):
+    """
+    Displays the possible databases for relinking the exchanges for a given activity
+    """
+    def __init__(self, parent=None):
+        super().__init__()
+        self.setWindowTitle("Linking scenario databases")
+
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Databases:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @classmethod
+    def construct_dialog(cls, parent: QtWidgets.QWidget = None, options: list = None) -> 'ScenarioDatabaseDialog':
+        obj = cls(parent)
+        # Start at 1 because row 0 is taken up by the db_label
+        for i, item in enumerate(options):
+            label = QtWidgets.QLabel(item[0])
+            combo = QtWidgets.QComboBox()
+            combo.addItems(item[1])
+            combo.setCurrentIndex(0)
+            obj.label_choices.append((label, combo))
+            obj.grid.addWidget(label, i, 0, 1, 2)
+            obj.grid.addWidget(combo, i, 2, 1, 2)
+        obj.updateGeometry()
+        return obj

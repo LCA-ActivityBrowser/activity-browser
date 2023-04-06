@@ -6,10 +6,12 @@ from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
 import pandas as pd
 
+import brightway2 as bw
+
 from ...bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
     SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
-    ABFileImporter
+    ABFileImporter, scenario_replace_databases
 )
 from ...signals import signals
 from ...ui.icons import qicons
@@ -17,7 +19,7 @@ from ...ui.style import horizontal_line, header, style_group_box
 from ...ui.tables import (
     CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
 )
-from ...ui.widgets import ExcelReadDialog
+from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
 from .base import BaseRightTab
 
 import logging
@@ -508,10 +510,28 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @_time_it_
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         # TODO: Move the 'scenario_df' into the model itself.
+        df = self.scenario_db_check(df)
         self.scenario_df = df
         cols = scenario_names_from_df(self.scenario_df)
         self.table.model.sync(cols)
         self._parent.combined_dataframe()
+
+    @_time_it_
+    def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
+        dbs = set(df.loc[:, 'from database']).union(set(df.loc[:, 'to database']))
+        unlinkable = dbs.difference(bw.databases)
+        db_lst = list(bw.databases)
+        relink = []
+        for db in unlinkable:
+            relink.append((db, db_lst))
+        if unlinkable:
+            dialog = ScenarioDatabaseDialog.construct_dialog(self._parent.window, relink)
+            if dialog.exec_() == dialog.Accepted:
+                # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
+                return scenario_replace_databases(df, dialog.relink)
+            else:
+                return df
+                # generate the required dialog
 
     @property
     def dataframe(self) -> pd.DataFrame:

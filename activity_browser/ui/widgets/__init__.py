@@ -8,7 +8,8 @@ from .dialog import (
     ForceInputDialog, TupleNameDialog, ExcelReadDialog,
     DatabaseLinkingDialog, DefaultBiosphereDialog,
     DatabaseLinkingResultsDialog, ActivityLinkingDialog,
-    ActivityLinkingResultsDialog, ProjectDeletionDialog
+    ActivityLinkingResultsDialog, ProjectDeletionDialog,
+    ScenarioDatabaseDialog
 )
 from .line_edit import (SignalledPlainTextEdit, SignalledComboEdit,
                         SignalledLineEdit)

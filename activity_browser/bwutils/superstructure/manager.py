@@ -153,7 +153,6 @@ class SuperstructureManager(object):
                 # Once AB has support for multiple reference flows, we need to adjust this code to match the
                 # right flow -something with looping over the flows and getting the right product or something-.
                 prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
-
                 # make a new df to edit the production, add the correct values/indices where needed
                 # and concat to the main df
                 new_prod = df.loc[tech_idx].copy()
