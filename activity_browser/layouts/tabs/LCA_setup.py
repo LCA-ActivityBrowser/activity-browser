@@ -5,14 +5,16 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
 import pandas as pd
+import re
 
 import brightway2 as bw
-
+from bw2data.filesystem import safe_filename
 from ...bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
     SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
     ABFileImporter, scenario_replace_databases
 )
+from ...settings import ab_settings
 from ...bwutils.errors import CriticalScenarioExtensionError
 from ...signals import signals
 from ...ui.icons import qicons
@@ -327,9 +329,9 @@ class ScenarioImportPanel(BaseRightTab):
             self.explanation
         )
         row.addWidget(self.table_btn)
-        row.addWidget(self.save_scenario)
         tool_row = QtWidgets.QHBoxLayout()
         tool_row.addWidget(row)
+        tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)
         tool_row.addStretch(1)
         layout.addLayout(tool_row)
@@ -342,6 +344,7 @@ class ScenarioImportPanel(BaseRightTab):
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
+        self.save_scenario.clicked.connect(self.save_action)
         signals.project_selected.connect(self.clear_tables)
         signals.project_selected.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
@@ -424,13 +427,30 @@ class ScenarioImportPanel(BaseRightTab):
         table = self.tables[table_idx]
         table.sync_superstructure(df)
 
-    @Slot(name="SaveScenarioDataframe")
-    def save_action(self) -> None:
-        pass
+    @Slot(int, name="SaveScenarioDataframe")
+    def save_action(self, idx) -> None:
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self, caption="Choose location to save the scenario file",
+            dir=ab_settings.data_dir,
+            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
+        )
+        scenarios = self._scenario_dataframe.columns.difference(['input', 'output', 'flow'])
+        superstructure = SUPERSTRUCTURE.tolist()
+        cols = superstructure + scenarios.tolist()
+
+        df__ = pd.DataFrame(index=self._scenario_dataframe.index, columns=cols)
+        for table in self.tables:
+            indices = df__.index.intersection(table.scenario_df.index)
+            df__.loc[indices, superstructure] = table.scenario_df.loc[indices, superstructure]
+            df__.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
+        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
+            df__.to_excel(filepath)
+        else: # assumed to be a csv
+            df__.to_csv(filepath)
 
     def save_button(self, visible: bool):
         self.save_scenario.setHidden(not visible)
-        self.save_scenario.show()
+        self.show()
         self.updateGeometry()
 
 

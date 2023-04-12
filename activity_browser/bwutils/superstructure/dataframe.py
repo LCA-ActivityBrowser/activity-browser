@@ -111,6 +111,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             If so use the key-value pair within the replacements dictionary to replace the dictionary names
             and obtain the correct activity key
         """
+        critical = list()
         for i, fields in enumerate([FROM_FIELDS, TO_FIELDS]):
             db_name = ds[['from database', 'to database'][i]]
             if db_name not in replacements.keys():
@@ -119,11 +120,11 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
              #TODO update this following section to use get_node from bw2data.utils when updating to bw2.5
             activities = db.search(ds[fields[0]])
             if not activities:
-                critical = ABPopup()
-                msg = f"An activity from {db_name} could not be located in {replacements[db_name]}. The activity from {db_name} will be retained if you wish to proceed (press ok), otherwise press cancel"
-                response = critical.abCritical("Activity not found", msg, QMessageBox.Ok, QMessageBox.Cancel)
-                if critical.Cancel == response:
-                    raise Exception()
+ #               critical = ABPopup()
+ #               msg = f"An activity from {db_name} could not be located in {replacements[db_name]}. The activity from {db_name} will be retained if you wish to proceed (press ok), otherwise press cancel"
+ #               response = critical.abCritical("Activity not found", msg, QMessageBox.Ok, QMessageBox.Cancel)
+ #               if critical.Cancel == response:
+ #                   raise Exception()
                 break
             filtered = [act for act in activities if filter(act, ds, fields)]
             if len(filtered) > 0:
