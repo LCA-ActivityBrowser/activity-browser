@@ -4,6 +4,7 @@ from typing import List
 import numpy as np
 import time
 import pandas as pd
+from PySide2.QtWidgets import QMessageBox
 
 import brightway2 as bw
 
@@ -17,6 +18,8 @@ from activity_browser.logger import ABHandler
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
 
+from .file_imports import ABPopup
+from ..errors import CriticalScenarioExtensionError
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
@@ -61,11 +64,18 @@ class SuperstructureManager(object):
         elif kind == "addition":
             # Find the intersection subset of scenarios.
             cols = self._combine_columns_intersect()
+            if cols.empty:
+                critical = ABPopup()
+                msg = "While attempting to combine the scenario files an error was detected. No scenario columns were found in common between the files. For combining scenarios by extension at least one scenario needs to be found in common."
+                critical.abCritical("Combining scenario files.", msg, QMessageBox.Cancel)
+                raise CriticalScenarioExtensionError
             df = SuperstructureManager.addition_combine_frames(
                 self.frames, combo_idx, cols
             )
-#            if check_duplicates is not None:
-#                df = check_duplicates(df)
+            # Note the dataframe is built with a common index built from all files.
+            # So no duplicates will be present in the DataFrame (df), eliminating checks
+            # additionally the DataFrame does not contain the correct format at this point
+            # for duplicate checks.
         else:
             df = pd.DataFrame([], index=combo_idx)
 

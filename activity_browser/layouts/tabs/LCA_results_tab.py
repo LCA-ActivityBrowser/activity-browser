@@ -65,7 +65,7 @@ class LCAResultsTab(ABTab):
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])
             signals.show_tab.emit("LCA results")
-        except BW2CalcError as e:
+        except (BW2CalcError, ABError) as e:
             initial, *other = e.args
             log.error(traceback.format_exc())
             msg = QMessageBox(

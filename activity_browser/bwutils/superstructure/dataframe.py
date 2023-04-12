@@ -124,7 +124,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                 response = critical.abCritical("Activity not found", msg, QMessageBox.Ok, QMessageBox.Cancel)
                 if critical.Cancel == response:
                     raise Exception()
-                continue
+                break
             filtered = [act for act in activities if filter(act, ds, fields)]
             if len(filtered) > 0:
                 for j, col in enumerate([['from key', 'from database'], ['to key', 'to database']][i]):
