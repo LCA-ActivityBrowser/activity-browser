@@ -1097,6 +1097,10 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
         super().__init__()
         self.setWindowTitle("Linking scenario databases")
 
+        self.label = QtWidgets.QLabel("The following database(s) in the scenario file cannot be found in your local environment.\n\n"
+                                      "Either signify the corresponding database in the local environment (and press 'Okay') or\n"
+                                      "cancel the import (press 'Cancel'). (Warning: For large files this process may take a long time)")
+
         self.label_choices = []
         self.grid_box = QtWidgets.QGroupBox("Databases:")
         self.grid = QtWidgets.QGridLayout()
@@ -1109,6 +1113,7 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.label)
         layout.addWidget(self.grid_box)
         layout.addWidget(self.buttons)
         self.setLayout(layout)

@@ -63,28 +63,36 @@ class ABPopup(QMessageBox):
             self.setDetailedText(self.dataframe_to_str())
         return self.exec_()
 
-    def abWarning(self, title, message, button1, button2=None) -> QMessageBox:
+    def abWarning(self, title, message, button1, button2=None, default=1) -> QMessageBox:
         self.setWindowTitle(title)
         self.setText(message)
         self.setIcon(QMessageBox.Warning)
+        if default == 1:
+            default = button1
+        else:
+            default = button2
         if button2:
             self.setStandardButtons(button1 | button2)
         else:
             self.setStandardButtons(button1)
-        self.setDefaultButton(button1)
+        self.setDefaultButton(default)
         if self.data_frame is not None:
             self.setDetailedText(self.dataframe_to_str())
         return self.exec_()
 
-    def abCritical(self, title, message, button1, button2=None) -> QMessageBox:
+    def abCritical(self, title, message, button1, button2=None, default=1) -> QMessageBox:
         self.setWindowTitle(title)
         self.setText(message)
         self.setIcon(QMessageBox.Critical)
+        if default == 1:
+            default = button1
+        else:
+            default = button2
         if button2:
             self.setStandardButtons(button1 | button2)
         else:
             self.setStandardButtons(button1)
-        self.setDefaultButton(button1)
+        self.setDefaultButton(default)
         if self.data_frame is not None:
             self.setDetailedText(self.dataframe_to_str())
         return self.exec_()

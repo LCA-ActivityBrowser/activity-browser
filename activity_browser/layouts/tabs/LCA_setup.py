@@ -429,6 +429,11 @@ class ScenarioImportPanel(BaseRightTab):
 
     @Slot(int, name="SaveScenarioDataframe")
     def save_action(self, idx) -> None:
+        """ Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
+        merged. Will not contain duplicates. Will not contain self-referential technosphere flows.
+
+        Triggered by a signal from ScenarioImportPanel save button, uses a dummy input argument.
+        """
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self, caption="Choose location to save the scenario file",
             dir=ab_settings.data_dir,
@@ -504,20 +509,22 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 log.info("separator == '{}'".format(separator))
                 QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
                 log.info('Loading Scenario file. This may take a while for large files')
-# Try and read as a superstructure file
+                # Try and read as a superstructure file
+                # Choose a different routine for reading the file dependent on file type
                 if file_type_suffix == ".feather":
                     df = ABFeatherImporter.read_file(path)
-
                 elif file_type_suffix.startswith(".xls"):
                     df = import_from_excel(path, idx)
                 else:
                     df = ABCSVImporter.read_file(path, separator=separator)
+                # Read in the file as a scenario flow table if the file is arranged as one
                 if len(df.columns.intersection(SUPERSTRUCTURE)) >= 12:
                     df = ABFileImporter.check_duplicates(df)
                     if df is None:
                         QtWidgets.QApplication.restoreOverrideCursor()
                         return
                     self.sync_superstructure(df)
+                # Read the file as a parameter scenario file if it is correspondingly arranged
                 elif len(df.columns.intersection({'Name', 'Group'})) == 2:
                     # Try and read as parameter scenario file.
                     log.error("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
@@ -533,7 +540,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                             include_default = False
                     signals.parameter_scenario_sync.emit(self.index, df, include_default)
             except CriticalScenarioExtensionError as e:
-                # This is triggered when combining different scenario files by extension
+                # Triggered when combining different scenario files by extension leads to no scenario columns
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             self.scenario_name.setText(path.name)
@@ -545,6 +552,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         # TODO: Move the 'scenario_df' into the model itself.
         df = self.scenario_db_check(df)
+        # If we've cancelled the import then we don't want to load the dataframe
+        if df.empty:
+            return
         self.scenario_df = df
         cols = scenario_names_from_df(self.scenario_df)
         self.table.model.sync(cols)
@@ -558,6 +568,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         relink = []
         for db in unlinkable:
             relink.append((db, db_lst))
+        # check for databases in the scenario dataframe that cannot be linked to
         if unlinkable:
             dialog = ScenarioDatabaseDialog.construct_dialog(self._parent.window, relink)
             if dialog.exec_() == dialog.Accepted:

@@ -152,8 +152,10 @@ class DatabaseController(QObject):
                 relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
             QtWidgets.QApplication.restoreOverrideCursor()
             if failed > 0:
+                QtWidgets.QApplication.restoreOverrideCursor()
                 relinking_dialog = DatabaseLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
                 relinking_dialog.exec_()
                 activity = relinking_dialog.open_activity()
+            QtWidgets.QApplication.restoreOverrideCursoqr()
             signals.database_changed.emit(db_name)
             signals.databases_changed.emit()
