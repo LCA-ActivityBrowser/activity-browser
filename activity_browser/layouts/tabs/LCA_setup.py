@@ -390,6 +390,8 @@ class ScenarioImportPanel(BaseRightTab):
         w = self.tables.pop(idx)
         self.scenario_tables.removeWidget(w)
         w.deleteLater()
+        if not self.tables:
+            self.save_scenario.setHidden(True)
         self.updateGeometry()
         # Do not forget to update indexes!
         for i, w in enumerate(self.tables):
@@ -403,6 +405,7 @@ class ScenarioImportPanel(BaseRightTab):
             self.scenario_tables.removeWidget(w)
             w.deleteLater()
         self.tables = []
+        self.save_scenario.setHidden(True)
         self.updateGeometry()
         self.combined_dataframe()
 
@@ -436,22 +439,22 @@ class ScenarioImportPanel(BaseRightTab):
         """
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self, caption="Choose location to save the scenario file",
-            dir=ab_settings.data_dir,
+#            dir=ab_settings.data_dir,
             filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
         )
         scenarios = self._scenario_dataframe.columns.difference(['input', 'output', 'flow'])
         superstructure = SUPERSTRUCTURE.tolist()
         cols = superstructure + scenarios.tolist()
 
-        df__ = pd.DataFrame(index=self._scenario_dataframe.index, columns=cols)
+        savedf = pd.DataFrame(index=self._scenario_dataframe.index, columns=cols)
         for table in self.tables:
-            indices = df__.index.intersection(table.scenario_df.index)
-            df__.loc[indices, superstructure] = table.scenario_df.loc[indices, superstructure]
-            df__.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
+            indices = savedf.index.intersection(table.scenario_df.index)
+            savedf.loc[indices, superstructure] = table.scenario_df.loc[indices, superstructure]
+            savedf.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
         if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
-            df__.to_excel(filepath)
+            savedf.to_excel(filepath, index=False)
         else: # assumed to be a csv
-            df__.to_csv(filepath)
+            savedf.to_csv(filepath, index=False)
 
     def save_button(self, visible: bool):
         self.save_scenario.setHidden(not visible)
