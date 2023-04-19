@@ -58,3 +58,5 @@ class CriticalCalculationError(ABError):
 class CriticalScenarioExtensionError(ABError):
     """Should be raised when combinging multiple scenario files by extension leads to zero scenario columns. Due to no
     scenario columns being found in common between the scenario files."""
+
+
