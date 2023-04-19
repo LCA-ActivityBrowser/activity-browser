@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 from typing import List, Tuple
 from PySide2.QtWidgets import QMessageBox
+import sys
 
 import brightway2 as bw
 import numpy as np
 import pandas as pd
 
+from ..commontasks import AB_names_to_bw_keys
+from ..metadata import AB_metadata
 from ..utils import Index
 from .activities import data_from_index
 from .utils import SUPERSTRUCTURE
 from .file_imports import ABPopup
+from ..errors import ABError
 
 def superstructure_from_arrays(samples: np.ndarray, indices: np.ndarray, names: List[str] = None) -> pd.DataFrame:
     """Process indices into the superstructure itself, the samples represent
@@ -66,6 +70,7 @@ def scenario_names_from_df(df: pd.DataFrame) -> List[str]:
         str(x).replace("\n", " ").replace("\r", "") for x in cols
     ]
 
+
 def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.DataFrame:
     """ For a provided dataframe the function will check for the presence of a unidentified database for all rows.
     If an unidentified database is found as a key in the replacements argument the corresponding value provided is used
@@ -92,30 +97,15 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     TO_FIELDS = pd.Index(["to activity name", "to categories",
                           "to reference product", "to location"
     ])
-    FILTER_FIELDS = ['name', 'categories', 'reference product', 'location']
+    DB_FIELDS = ['name', 'categories', 'reference product', 'location']
     critical = {'from database': [], 'from activity name': [], 'to database': [], 'to activity name': []}  # To be used in the exchange_replace_database internal method scope
+    changes = ['from database', 'from key', 'to database', 'to key']
     # this variable will accumulate the activity names and databases for the activities in both
     # directions
+    # for those databases not loaded into the metadata load them
+    AB_metadata.add_metadata(replacements.values())
+    metadata = AB_metadata.dataframe
 
-    # TODO the following method can be removed on updating to bw2.5
-    def filter(_activity, values, fields):
-        """ Return True if the _activity matches the input (values) from the data series, based on the fields (Used to
-        determine the direction ('to', or 'from'))
-        """
-        for i in range(len(FILTER_FIELDS)):
-            try:
-                # first do we need to check all the elements in the categories tuple
-                if FILTER_FIELDS[i] == 'categories' and _activity['categories']:
-                    value = values[fields[i]]
-                    for j, c in enumerate(value[1: -1].split(', ') if isinstance(value, str) else enumerate(value)):
-                        if _activity[FILTER_FIELDS[i]][j] != c[1:-1]:
-                            return 0
-                # otherwise run a simple equality check for the scalar fields
-                elif _activity[FILTER_FIELDS[i]] != values[fields[i]]:
-                    return 0
-            except (KeyError, IndexError) as e:
-                pass
-        return 1
     def exchange_replace_database(ds: pd.Series, replacements: dict, critical: list) -> tuple:
         """  For a row in the scenario dataframe check the databases involved for whether replacement is required.
             If so use the key-value pair within the replacements dictionary to replace the dictionary names
@@ -126,24 +116,30 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             # check to see whether we can skip the activity, or not
             if db_name not in replacements.keys():
                 continue
-            db = bw.Database(replacements[db_name])
-             #TODO update this following section to use get_node from bw2data.utils when updating to bw2.5
-            activities = db.search(ds[fields[0]])
             # if we can't link the activity then we
-            if not activities:
-                if len(critical) <= 5:
+            try:
+                if isinstance(ds[fields[1]], float):
+                    key = metadata[(metadata[DB_FIELDS[0]] == ds[fields[0]]) &
+                                                (metadata[DB_FIELDS[2]] == ds[fields[2]]) &
+                                                (metadata[DB_FIELDS[3]] == ds[fields[3]])].copy()
+                else:
+                    key = metadata[(metadata[DB_FIELDS[0]] == ds[fields[0]]) &
+                                    (metadata[DB_FIELDS[1]] == ds[fields[1]])].copy()
+                for j, col in enumerate([['from key', 'from database'], ['to key', 'to database']][i]):
+                    ds.loc[ds[col]] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
+
+            except:
+                if len(critical['from database']) <= 5:
                     critical['from database'].append(ds['from database'])
                     critical['from activity name'].append(ds['from activity name'])
                     critical['to database'].append(ds['to database'])
                     critical['to activity name'].append(ds['to activity name'])
-            filtered = [act for act in activities if filter(act, ds, fields)]
-            # check whether there is an activity to be replaced
-            if len(filtered) > 0:
-                for j, col in enumerate([['from key', 'from database'], ['to key', 'to database']][i]):
-                    ds[col] = (filtered[0]['database'], filtered[0]['code']) if j == 0 else filtered[0]['database']
         return ds
     # actual replacement of the activities in the main method
-    df = df.apply(lambda row: exchange_replace_database(row, replacements, critical), axis=1)
+    for idx in df.index:
+        df.loc[idx, changes] = exchange_replace_database(df.loc[idx, :], replacements, critical)[changes]
+        sys.stdout.write("\r{}".format(idx/df.shape[0]))
+        sys.stdout.flush()
     # prepare a warning message in case unlinkable activities were found in the scenario dataframe
     if critical['from database']:
         critical_message = ABPopup()
@@ -153,12 +149,15 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             msg = f"Multiple activities in the exchange flows could not be linked. The first five of these are provided.\n\n" \
                   f"If you want to proceed with the import then press 'Ok' (doing so will enable you to save the dataframe\n" \
                   f"to either .csv, or .xlsx formats), otherwise press 'Cancel'"
-            response = critical_message.abCritical("Activities not found", msg, QMessageBox.Ok, QMessageBox.Cancel, default=2)
+            response = critical_message.abCritical("Activities not found", msg, QMessageBox.Save, QMessageBox.Cancel, default=2)
         else:
             msg = f"An activity in the exchange flows could not been linked (See below for the activity).\n\nIf you want to" \
                   f"proceed with the import then press 'Ok' (doing so will enable you to save the dataframe to\n either .csv," \
                   f"or .xlsx formats), otherwise press 'Cancel'"
-            response = critical_message.abCritical("Activity not found", msg, QMessageBox.Ok, QMessageBox.Cancel, default=2)
+            response = critical_message.abCritical("Activity not found", msg, QMessageBox.Save, QMessageBox.Cancel, default=2)
         if response == critical_message.Cancel:
             return pd.DataFrame({}, columns=df.columns)
+        else:
+            critical_message.save_dataframe(df)
+            raise ABError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
     return df

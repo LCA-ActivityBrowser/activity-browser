@@ -439,7 +439,6 @@ class ScenarioImportPanel(BaseRightTab):
         """
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self, caption="Choose location to save the scenario file",
-#            dir=ab_settings.data_dir,
             filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
         )
         scenarios = self._scenario_dataframe.columns.difference(['input', 'output', 'flow'])
