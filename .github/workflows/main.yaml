@@ -87,9 +87,9 @@ jobs:
         # https://github.com/TheKevJames/coveralls-python/issues/252
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          #          COVERALLS_SERVICE_NAME: github
+          COVERALLS_SERVICE_NAME: github-actions
         run: |
-          coveralls --service=github-actions
+          coveralls
 
   deploy-development:
     # Make sure to only run a deploy if all tests pass.
