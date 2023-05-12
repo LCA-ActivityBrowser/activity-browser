@@ -89,7 +89,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_SERVICE_NAME: github
         run: |
-          coveralls
+          coveralls --service=github-actions
 
   deploy-development:
     # Make sure to only run a deploy if all tests pass.
