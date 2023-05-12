@@ -86,8 +86,9 @@ jobs:
         # https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
         # https://github.com/TheKevJames/coveralls-python/issues/252
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_SERVICE_NAME: github-actions
+            #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_SERVICE_NAME: github
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
           coveralls
 
