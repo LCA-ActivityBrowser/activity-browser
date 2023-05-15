@@ -69,7 +69,10 @@ jobs:
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
           --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 \
           1920x1200x24 -ac +extension GLX +render -noreset;
-          conda install -q -y coveralls coverage pytest-cov
+      - name: Install coveralls and coverage
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          conda install -q -y coveralls=3.3.1 coverage pytest-cov
       - name: Run linux tests
         if: ${{ matrix.os == 'ubuntu-latest' }}
         env:
