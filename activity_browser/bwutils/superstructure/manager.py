@@ -150,7 +150,7 @@ class SuperstructureManager(object):
 
                 # make a new df to edit the production, add the correct values/indices where needed
                 # and concat to the main df
-                new_prod = df.loc[tech_idx]
+                new_prod = df.loc[tech_idx].copy()
                 new_prod.loc['flow type'] = 'production'
                 new_prod.loc[scenario_cols] = prod_amt
                 list_exc.append(new_prod)
