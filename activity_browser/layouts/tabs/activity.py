@@ -39,6 +39,13 @@ class ActivitiesTab(ABTab):
             if not bc.is_technosphere_activity(act):
                 return
             new_tab = ActivityTab(key, read_only=read_only)
+
+            # If this is a new or duplicated activity then we want to exit it
+            # ditto check the Technosphere and Biosphere tables
+            if not read_only:
+                for table in new_tab.grouped_tables:
+                    if table.title() in ("Technosphere Flows:", "Biosphere Flows:"):
+                        table.setChecked(True)
             self.tabs[key] = new_tab
             self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
@@ -176,6 +183,10 @@ class ActivityTab(QtWidgets.QWidget):
         self.update_tooltips()
         self.update_style()
         self.connect_signals()
+
+        # Make the activity tab editable in case it's new
+        if not self.read_only:
+            self.act_read_only_changed(True)
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
