@@ -58,8 +58,8 @@ class SuperstructureManager(object):
             df = SuperstructureManager.addition_combine_frames(
                 self.frames, combo_idx, cols
             )
-            if check_duplicates is not None:
-                df = check_duplicates(df)
+#            if check_duplicates is not None:
+#                df = check_duplicates(df)
         else:
             df = pd.DataFrame([], index=combo_idx)
 
