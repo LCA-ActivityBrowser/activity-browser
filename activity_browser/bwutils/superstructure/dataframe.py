@@ -116,7 +116,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             # check to see whether we can skip the activity, or not
             if db_name not in replacements.keys():
                 continue
-            # if we can't link the activity then we
+            # if we can't link the activity key then we try to find it
             try:
                 if isinstance(ds[fields[1]], float):
                     key = metadata[(metadata[DB_FIELDS[0]] == ds[fields[0]]) &
@@ -127,7 +127,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                                     (metadata[DB_FIELDS[1]] == ds[fields[1]])].copy()
                 for j, col in enumerate([['from key', 'from database'], ['to key', 'to database']][i]):
                     ds.loc[ds[col]] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
-
+            # if the key is not discoverable then we add an exception that we can handle later
             except:
                 if len(critical['from database']) <= 5:
                     critical['from database'].append(ds['from database'])
