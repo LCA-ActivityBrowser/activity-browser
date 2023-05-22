@@ -105,7 +105,7 @@ class ABPopup(QMessageBox):
         if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
             dataframe.to_excel(filepath, index=False)
         else:
-            dataframe.to_csv(filepath, index=False)
+            dataframe.to_csv(filepath, index=False, sep=';')
 
 
 class ABFileImporter(ABC):

@@ -88,8 +88,10 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
 
     replacements : a dictionary of key-value pairs where the key corresponds to the database in the supplied dataframe
             and the value corresponds to the respective database in the local brightway environment
+
+    bw_dbs : a list of Brightway databases held locally
     """
-    df = df_.copy(True)
+    df = df_.loc[(df_['from database'].isin(replacements.keys())) | (df_['to database'].isin(replacements.keys()))].copy(True)
     FROM_FIELDS = pd.Index([
         "from activity name", "from categories",
         "from reference product", "from location",
@@ -126,9 +128,10 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                     key = metadata[(metadata[DB_FIELDS[0]] == ds[fields[0]]) &
                                     (metadata[DB_FIELDS[1]] == ds[fields[1]])].copy()
                 for j, col in enumerate([['from key', 'from database'], ['to key', 'to database']][i]):
-                    ds.loc[ds[col]] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
+#                    ds.loc[ds[col]] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
+                    ds.loc[col] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
             # if the key is not discoverable then we add an exception that we can handle later
-            except:
+            except Exception as e:
                 if len(critical['from database']) <= 5:
                     critical['from database'].append(ds['from database'])
                     critical['from activity name'].append(ds['from activity name'])
@@ -160,4 +163,6 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
         else:
             critical_message.save_dataframe(df)
             raise ABError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
-    return df
+    else:
+        df_.loc[df.index] = df
+    return df_
