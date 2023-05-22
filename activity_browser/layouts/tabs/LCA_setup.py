@@ -15,7 +15,7 @@ from ...bwutils.superstructure import (
     ABFileImporter, scenario_replace_databases
 )
 from ...settings import ab_settings
-from ...bwutils.errors import CriticalScenarioExtensionError
+from ...bwutils.errors import CriticalScenarioExtensionError, BadSDFLookupValuesError
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -543,6 +543,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                     signals.parameter_scenario_sync.emit(self.index, df, include_default)
             except CriticalScenarioExtensionError as e:
                 # Triggered when combining different scenario files by extension leads to no scenario columns
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except BadSDFLookupValuesError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             self.scenario_name.setText(path.name)

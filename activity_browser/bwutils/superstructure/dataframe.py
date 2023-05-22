@@ -13,7 +13,7 @@ from ..utils import Index
 from .activities import data_from_index
 from .utils import SUPERSTRUCTURE
 from .file_imports import ABPopup
-from ..errors import ABError
+from ..errors import BadSDFLookupValuesError
 
 def superstructure_from_arrays(samples: np.ndarray, indices: np.ndarray, names: List[str] = None) -> pd.DataFrame:
     """Process indices into the superstructure itself, the samples represent
@@ -100,7 +100,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                           "to reference product", "to location"
     ])
     DB_FIELDS = ['name', 'categories', 'reference product', 'location']
-    critical = {'from database': [], 'from activity name': [], 'to database': [], 'to activity name': []}  # To be used in the exchange_replace_database internal method scope
+    critical = {'index': [], 'from database': [], 'from activity name': [], 'to database': [], 'to activity name': []}  # To be used in the exchange_replace_database internal method scope
     changes = ['from database', 'from key', 'to database', 'to key']
     # this variable will accumulate the activity names and databases for the activities in both
     # directions
@@ -108,7 +108,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     AB_metadata.add_metadata(replacements.values())
     metadata = AB_metadata.dataframe
 
-    def exchange_replace_database(ds: pd.Series, replacements: dict, critical: list) -> tuple:
+    def exchange_replace_database(ds: pd.Series, replacements: dict, critical: list, idx: pd.Index) -> tuple:
         """  For a row in the scenario dataframe check the databases involved for whether replacement is required.
             If so use the key-value pair within the replacements dictionary to replace the dictionary names
             and obtain the correct activity key
@@ -133,6 +133,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             # if the key is not discoverable then we add an exception that we can handle later
             except Exception as e:
                 if len(critical['from database']) <= 5:
+                    critical['index'].append(idx)
                     critical['from database'].append(ds['from database'])
                     critical['from activity name'].append(ds['from activity name'])
                     critical['to database'].append(ds['to database'])
@@ -140,7 +141,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
         return ds
     # actual replacement of the activities in the main method
     for idx in df.index:
-        df.loc[idx, changes] = exchange_replace_database(df.loc[idx, :], replacements, critical)[changes]
+        df.loc[idx, changes] = exchange_replace_database(df.loc[idx, :], replacements, critical, idx)[changes]
         sys.stdout.write("\r{}".format(idx/df.shape[0]))
         sys.stdout.flush()
     # prepare a warning message in case unlinkable activities were found in the scenario dataframe
@@ -161,8 +162,8 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
         if response == critical_message.Cancel:
             return pd.DataFrame({}, columns=df.columns)
         else:
-            critical_message.save_dataframe(df)
-            raise ABError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
+            critical_message.save_dataframe(df.loc[critical['index']])
+            raise BadSDFLookupValuesError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
     else:
         df_.loc[df.index] = df
     return df_

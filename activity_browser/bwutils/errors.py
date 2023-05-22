@@ -64,3 +64,8 @@ class CriticalCalculationError(ABError):
 class CriticalScenarioExtensionError(ABError):
     """Should be raised when combinging multiple scenario files by extension leads to zero scenario columns. Due to no
     scenario columns being found in common between the scenario files."""
+
+
+class BadSDFLookupValuesError(ABError):
+    """Should be raised when looking up one of the processes in an SDF file and the values used don't match those
+    present in the local AB/BW databases."""
