@@ -57,7 +57,7 @@ class SuperstructureMLCA(MLCA):
             """
             response = error_message.abCritical("Scenario exchanges not found", msg, QMessageBox.Save)
             if response == error_message.Save:
-                error_message.save_dataframe(errors)
+                error_message.save_dataframe(errors_df)
             raise ScenarioExchangeError()
 
         # Side-note on presamples: Presamples was used in AB for calculating scenarios,
