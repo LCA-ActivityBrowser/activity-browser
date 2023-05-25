@@ -266,4 +266,4 @@ class SuperstructureManager(object):
             response = error_message.abCritical("Scenario exchanges not found", msg, QMessageBox.Save)
             if response == error_message.Save:
                 error_message.save_dataframe(df_)
-            raise ScenarioExchangeError()
+            raise SDFKeyLookupError("A key provided in the scenario file is not valid for the available database, consult the respective output.")

@@ -15,7 +15,7 @@ from ...bwutils.superstructure import (
     ABFileImporter, scenario_replace_databases
 )
 from ...settings import ab_settings
-from ...bwutils.errors import CriticalScenarioExtensionError, BadSDFLookupValuesError
+from ...bwutils.errors import CriticalScenarioExtensionError, BadSDFLookupValuesError, SDFKeyLookupError
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -545,6 +545,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             except BadSDFLookupValuesError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except SDFKeyLookupError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             self.scenario_name.setText(path.name)
