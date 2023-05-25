@@ -44,7 +44,7 @@ def process_ad_flow(row) -> tuple:
     return match, key
 
 
-def constuct_ad_data(row) -> tuple:
+def construct_ad_data(row) -> tuple:
     """Take a namedtuple from the method below and convert it into two tuples.
 
     Used to fill out missing information in the superstructure.
@@ -64,8 +64,8 @@ def data_from_index(index: tuple) -> dict:
     from it.
     """
     from_key, to_key = index[0], index[1]
-    from_key, from_data = constuct_ad_data(ActivityDataset.get(database=from_key[0], code=from_key[1]))
-    to_key, to_data = constuct_ad_data(ActivityDataset.get(database=to_key[0], code=to_key[1]))
+    from_key, from_data = construct_ad_data(ActivityDataset.get(database=from_key[0], code=from_key[1]))
+    to_key, to_data = construct_ad_data(ActivityDataset.get(database=to_key[0], code=to_key[1]))
     return {
         "from activity name": from_data[0],
         "from reference product": from_data[1],
@@ -123,7 +123,6 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
     flows = dict(map(process_ad_flow, query.iterator()))
     return flows
 
-
 def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
     def build_match(row):
         if row.iat[4] == bw.config.biosphere:
@@ -142,3 +141,28 @@ def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
     matches.update(get_relevant_activities(df, "to"))
     df["to key"] = match_fields_for_key(df.loc[:, TO_ALL], matches)
     return df
+
+def get_activities_from_keys(df: pd.DataFrame, db: str = bw.config.biosphere) -> pd.DataFrame:
+    data_f = df.loc[(df['from database'] == db)]
+    data_t = df.loc[(df['to database'] == db)]
+    flows = set()
+    if not data_f.empty:
+        f_db, f_keys = zip(*data_f.loc[:, 'from key'])#.apply(set, axis=0))
+        fqry = (ActivityDataset
+                .select(ActivityDataset.code, ActivityDataset.database)
+                .where((ActivityDataset.database==db) &
+                    (ActivityDataset.code.in_(set(f_keys)))).namedtuples())
+        flows.update(set(map(lambda row: (row.database, row.code), fqry.iterator())))
+    if not data_t.empty:
+        t_db, t_keys = zip(*data_t.loc[:, 'to key'])#.apply(set, axis=0))
+        tqry = (ActivityDataset
+             .select(ActivityDataset.code, ActivityDataset.database)
+             .where((ActivityDataset.database==db) &
+                    (ActivityDataset.code.in_(set(t_keys)))).namedtuples())
+
+        flows.update(set(map(lambda row: (row.database, row.code), tqry.iterator())))
+    absent = pd.concat([data_f.loc[~(data_f['from key'].isin(flows)) & (data_f['from database'] == db)],
+                        data_t.loc[~(data_t['to key'].isin(flows)) & (data_t['to database'] == db)]], ignore_index=False, axis=0)
+    return absent
+
+

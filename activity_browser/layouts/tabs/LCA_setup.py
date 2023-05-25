@@ -521,7 +521,6 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                     df = ABCSVImporter.read_file(path, separator=separator)
                 # Read in the file as a scenario flow table if the file is arranged as one
                 if len(df.columns.intersection(SUPERSTRUCTURE)) >= 12:
-                    df = ABFileImporter.check_duplicates(df)
                     if df is None:
                         QtWidgets.QApplication.restoreOverrideCursor()
                         return
@@ -555,8 +554,14 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     @_time_it_
     def sync_superstructure(self, df: pd.DataFrame) -> None:
+        """synchronizes the contents of either a single, or multiple scenario files to create a single scenario
+        dataframe"""
         # TODO: Move the 'scenario_df' into the model itself.
+        df = ABFileImporter.check_duplicates(df)
         df = self.scenario_db_check(df)
+        df = SuperstructureManager.fill_empty_process_keys_in_exchanges(df)
+        SuperstructureManager.verify_scenario_process_keys(df)
+        # TODO add the key checks here and field checks here.
         # If we've cancelled the import then we don't want to load the dataframe
         if df.empty:
             return

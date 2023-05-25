@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QMessageBox
 
 import brightway2 as bw
 
-from .activities import fill_df_keys_with_fields
+from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns
 from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
 
@@ -19,7 +19,7 @@ logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
 
 from .file_imports import ABPopup
-from ..errors import CriticalScenarioExtensionError
+from ..errors import CriticalScenarioExtensionError, SDFKeyLookupError, ScenarioExchangeError
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
@@ -128,7 +128,7 @@ class SuperstructureManager(object):
         """
         if not isinstance(df.index, pd.MultiIndex):
             df.index = SuperstructureManager.build_index(df)
-        df = SuperstructureManager.remove_duplicates(df)
+        # all import checks should take place before merge_flows_to_self
         df = SuperstructureManager.merge_flows_to_self(df)
 
         return df
@@ -205,11 +205,6 @@ class SuperstructureManager(object):
         - If any of the exchange key columns are missing keys, attempt to fill
         them. If filling them does not succeed, raise an assertion.
         """
-        if df.loc[:, EXCHANGE_KEYS].isna().any().all():
-            df = fill_df_keys_with_fields(df)
-            _df = df.loc[:, EXCHANGE_KEYS].notna()
-            assert _df.all().all(), "Cannot find all keys. {} of {} exchanges are broken.".format(len(df[_df]),
-                                                                                                  len(df))
         unknown_flows = df.loc[:, "flow type"].isna()
         if unknown_flows.any():
             log.warning("Not all flow types are known, guessing {} flows".format(
@@ -221,3 +216,54 @@ class SuperstructureManager(object):
             df.loc[:, INDEX_KEYS].apply(tuple, axis=1),
             names=["input", "output", "flow"]
         )
+
+    @staticmethod
+    def fill_empty_process_keys_in_exchanges(df: pd.DataFrame) -> pd.DataFrame:
+        """identifies those exchanges in the input dataframe that are missing keys.
+         If the keys cannot be found in the available databases then an Exception is
+         raised
+
+         Input
+         ------
+         df: the input dataframe containing scenario data with exchanges that need to be
+         checked for the presence of a key
+         """
+        if df.loc[:, EXCHANGE_KEYS].isna().any().any():
+            df = fill_df_keys_with_fields(df)
+            _df = df.loc[df.loc[:, EXCHANGE_KEYS].isna().any(axis=1)]
+            if not _df.empty:
+                sdf_keys = ABPopup()
+                msg = "<p>Within the scenario difference file some exchanges contained processes without keys.</p>" \
+                      "<p>While trying to fetch these keys from the local databases, some of these keys could not be identified. This has caused for some of the exchanges in the scenario to be incomplete and the AB cannot proceed.</p>" \
+                      "<p>If you wish to continue you will need to correct the key fields for these exchanges (you can save a file containing the incomplete exchanges below).</p>"
+                response = sdf_keys.abCritical("Activity Keys could not be found", msg, QMessageBox.Save, QMessageBox.Cancel)
+                if response == sdf_keys.Save:
+                    sdf_keys.save_dataframe(_df)
+                raise SDFKeyLookupError("Cannot find key(s) in local databases.")
+        return df
+
+    @staticmethod
+    def verify_scenario_process_keys(df: pd.DataFrame) -> pd.DataFrame:
+        """Checks all process keys in the scenario file and does not provide alternative keys based on exchange
+        metadata.
+
+        Input:
+        -------
+        df: the dataframe with process keys that need to be verified"""
+        dbs = set(df.loc[:, 'from database']).union(df.loc[:, 'to database'])
+        df_ = pd.DataFrame({}, columns=df.columns)
+        for db in dbs:
+            _ = get_activities_from_keys(df, db)
+            df_ = pd.concat([df_, _], axis=0, ignore_index=False)
+        if not df_.empty:
+            errors_df = pd.DataFrame(df_, index=None, columns=['from key', 'to key', 'flow type'])
+            error_message = ABPopup()
+            error_message.dataframe(errors_df, errors_df.columns)
+            msg = """<p>Some exchanges in the scenario difference file could not be found in the local databases. For the calculation to proceed all exchanges in the scenario file <b>must</b> be linkable to the local database(s).</p>
+        
+            <p>The exchanges that could not be found in the local databases can be saved to a file, these can then be corrected (checked) in your original SDF(s), which should then be ready for importing.</p>
+            """
+            response = error_message.abCritical("Scenario exchanges not found", msg, QMessageBox.Save)
+            if response == error_message.Save:
+                error_message.save_dataframe(df_)
+            raise ScenarioExchangeError()

@@ -186,7 +186,8 @@ class ExcelReadDialog(QtWidgets.QDialog):
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             parent=self, caption="Select scenario template file",
-            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)"
+            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)",
+            selectedFilter="All Files (*.*)"
         )
         if path:
             self.path_line.setText(path)
