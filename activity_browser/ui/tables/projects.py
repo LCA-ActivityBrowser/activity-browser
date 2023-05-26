@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from bw2data import projects
 from PySide2.QtWidgets import QComboBox
-
+from PySide2.QtCore import Qt
 from ...signals import signals
 
 
@@ -20,6 +20,8 @@ class ProjectListWidget(QComboBox):
         self.clear()
         self.project_names = sorted([project.name for project in projects])
         self.addItems(self.project_names)
+        for i, name in enumerate(self.project_names):
+            self.setItemData(i, name, Qt.ToolTipRole)
         index = self.project_names.index(projects.current)
         self.setCurrentIndex(index)
 
