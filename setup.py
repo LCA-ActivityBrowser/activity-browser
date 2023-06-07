@@ -19,6 +19,8 @@ for dirpath, dirnames, filenames in os.walk('activity_browser'):
 
 if 'VERSION' in os.environ:
     version = os.environ['VERSION']
+elif 'PKG_VERSION' in os.environ:
+    version = os.environ['PKG_VERSION']
 else:
     version = os.environ.get('GIT_DESCRIBE_TAG', '0.0.0')
 

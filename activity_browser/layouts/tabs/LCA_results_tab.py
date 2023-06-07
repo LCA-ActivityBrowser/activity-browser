@@ -3,11 +3,12 @@ import traceback
 
 from bw2calc.errors import BW2CalcError
 from PySide2.QtCore import Qt, Slot
-from PySide2.QtWidgets import QMessageBox, QVBoxLayout
+from PySide2.QtWidgets import QMessageBox, QVBoxLayout, QApplication
 
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
 from ...signals import signals
+from ...bwutils.errors import ABError
 
 
 class LCAResultsTab(ABTab):
@@ -69,3 +70,6 @@ class LCAResultsTab(ABTab):
             if other:
                 msg.setDetailedText("\n".join(other))
             msg.exec_()
+        except ABError as e:
+            QApplication.restoreOverrideCursor()
+

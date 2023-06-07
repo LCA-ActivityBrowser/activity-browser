@@ -21,18 +21,21 @@ if QSysInfo.productType() == "osx":
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
         print("Info: GPU hardware acceleration disabled")
 
+if QSysInfo.productType() in ["arch","nixos"]:
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
+    print("Info: QtWebEngine sandbox disabled")
 
 def run_activity_browser():
     qapp = QApplication(sys.argv)
     # qapp.setFont(default_font)
-    qapp.setStyleSheet(
-        '''
-            * { background-color: #f0f0f0; color #101010}
-            QWidget>QWidget>QWidget>QWidget>QWidget>QWidget { background-color: #FFFFFF; color: #101010 }
-            QWidget>QTableView { background-color: #FFFFFF; color: #101010 }
-            QWidget>QTableWidget { background-color: #FFFFFF; color: #101010 } 
-        '''
-    )
+#    qapp.setStyleSheet(
+#        '''
+#            * { background-color: #f0f0f0; color #101010}
+#            QWidget>QWidget>QWidget>QWidget>QWidget>QWidget { background-color: #FFFFFF; color: #101010 }
+#            QWidget>QTableView { background-color: #FFFFFF; color: #101010 }
+#            QWidget>QTableWidget { background-color: #FFFFFF; color: #101010 }
+#        '''
+#    )
     application = Application()
     application.show()
     print("Qt Version:", qt_version)
