@@ -8,6 +8,7 @@ from PySide2.QtWidgets import QApplication
 
 from .application import Application
 from .info import __version__
+from .plugin import Plugin
 
 
 # https://bugreports.qt.io/browse/QTBUG-87014

@@ -124,5 +124,9 @@ class Signals(QObject):
     # Metadata
     metadata_changed = Signal(tuple)  # key
 
+    # Plugins
+    plugin_selected = Signal(str)
+    plugin_deselected = Signal(str)
+    manage_plugins = Signal()
 
 signals = Signals()
