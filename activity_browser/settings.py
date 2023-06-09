@@ -239,6 +239,10 @@ class ProjectSettings(BaseSettings):
         print("Reset project settings directory to:", bw.projects.dir)
         self.settings_file = os.path.join(bw.projects.dir, self.filename)
         self.initialize_settings()
+        # create a plugins_list entry for old projects
+        if "plugins_list" not in self.settings:
+            self.settings.update({"plugins_list": []})
+            self.write_settings()
 
     def add_db(self, db_name: str, read_only: bool = True) -> None:
         """ Store new databases and relevant settings here when created/imported
