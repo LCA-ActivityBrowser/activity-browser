@@ -142,6 +142,7 @@ def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
     df["to key"] = match_fields_for_key(df.loc[:, TO_ALL], matches)
     return df
 
+
 def get_activities_from_keys(df: pd.DataFrame, db: str = bw.config.biosphere) -> pd.DataFrame:
     data_f = df.loc[(df['from database'] == db)]
     data_t = df.loc[(df['to database'] == db)]

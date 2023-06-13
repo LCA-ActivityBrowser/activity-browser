@@ -66,11 +66,11 @@ class CriticalScenarioExtensionError(ABError):
     scenario columns being found in common between the scenario files."""
 
 
-class BadSDFLookupValuesError(ABError):
+class UnlinkableScenarioDatabaseError(ABError):
     """Should be raised when looking up one of the processes in an SDF file and the values used don't match those
     present in the local AB/BW databases."""
 
 
-class SDFKeyLookupError(ABError):
+class UnlinkableScenarioExchangeError(ABError):
     """Should be raised when looking up a process key from the metadata in a scenario difference file, if THAT process
     key cannot be located in the local databases."""

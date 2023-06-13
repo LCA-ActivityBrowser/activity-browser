@@ -15,7 +15,8 @@ from ...bwutils.superstructure import (
     ABFileImporter, scenario_replace_databases
 )
 from ...settings import ab_settings
-from ...bwutils.errors import CriticalScenarioExtensionError, BadSDFLookupValuesError, SDFKeyLookupError
+from ...bwutils.errors import (CriticalScenarioExtensionError, UnlinkableScenarioExchangeError,
+                               UnlinkableScenarioDatabaseError)
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -357,7 +358,7 @@ class ScenarioImportPanel(BaseRightTab):
             return []
         return scenario_names_from_df(self.tables[idx])
 
-    def combined_dataframe(self) -> pd.DataFrame:
+    def combined_dataframe(self, skip_checks: bool = False) -> pd.DataFrame:
         """Return a dataframe that combines the scenarios of multiple tables.
         """
         if not self.tables:
@@ -374,7 +375,7 @@ class ScenarioImportPanel(BaseRightTab):
             kind = "addition"
         else:
             kind = "none"
-        self._scenario_dataframe = manager.combined_data(kind, ABFileImporter.check_duplicates)
+        self._scenario_dataframe = manager.combined_data(kind, skip_checks)
 
     @Slot(name="addTable")
     def add_table(self) -> None:
@@ -383,7 +384,7 @@ class ScenarioImportPanel(BaseRightTab):
         self.tables.append(widget)
         self.scenario_tables.addWidget(widget)
         self.updateGeometry()
-        self.combined_dataframe()
+        self.combined_dataframe(skip_checks=True)
 
     @Slot(int, name="removeTable")
     def remove_table(self, idx: int) -> None:
@@ -396,7 +397,7 @@ class ScenarioImportPanel(BaseRightTab):
         # Do not forget to update indexes!
         for i, w in enumerate(self.tables):
             w.index = i
-        self.combined_dataframe()
+        self.combined_dataframe(skip_checks=True)
 
     @Slot(name="clearTables")
     def clear_tables(self) -> None:
@@ -544,10 +545,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 # Triggered when combining different scenario files by extension leads to no scenario columns
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
-            except BadSDFLookupValuesError as e:
+            except UnlinkableScenarioDatabaseError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
-            except SDFKeyLookupError as e:
+            except UnlinkableScenarioExchangeError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             self.scenario_name.setText(path.name)
@@ -560,10 +561,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         """synchronizes the contents of either a single, or multiple scenario files to create a single scenario
         dataframe"""
         # TODO: Move the 'scenario_df' into the model itself.
-        df = ABFileImporter.check_duplicates(df)
         df = self.scenario_db_check(df)
         df = SuperstructureManager.fill_empty_process_keys_in_exchanges(df)
         SuperstructureManager.verify_scenario_process_keys(df)
+        df = SuperstructureManager.check_duplicates(df)
         # TODO add the key checks here and field checks here.
         # If we've cancelled the import then we don't want to load the dataframe
         if df.empty:

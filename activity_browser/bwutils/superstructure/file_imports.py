@@ -2,7 +2,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import pandas as pd
 import ast
-from PySide2.QtWidgets import QMessageBox, QFileDialog
+from PySide2.QtWidgets import QMessageBox, QFileDialog, QCheckBox
 
 from typing import Optional, Union
 from ..errors import (
@@ -26,6 +26,7 @@ class ABPopup(QMessageBox):
         self.data_frame = None
         self.message = None
         self.topic = None
+        self.save = None
 
     def dataframe(self, data: pd.DataFrame, columns: list = None):
         self.data_frame = data
@@ -53,6 +54,32 @@ class ABPopup(QMessageBox):
             conversion = conversion + '\n'
         return conversion
 
+    def save_options(self, msg: str = None):
+        self.check_box = QCheckBox(self)
+        self.check_box.setTristate(True)
+        self.check_box.setText("Excerpt")
+        self.check_box.setToolTip("If left unchecked the entire file is written with an additional column indicating "
+                             "the status of the exchange data in the scenario file.<br> Check to save a smaller "
+                             "excerpt of the file, containing only those exchanges that failed."
+                             )
+        self.check_box.setChecked(False)
+        self.setCheckBox(self.check_box)
+
+    def save_dataframe(self, dataframe: pd.DataFrame, flags: pd.Index=None) -> None:
+        if self.check_box.isChecked():
+            dataframe = dataframe.loc[flags]
+        else:
+            dataframe['Failed'] = [False for i in dataframe.index]
+            dataframe.loc[flags, 'Failed'] = True
+        filepath, _ = QFileDialog.getSaveFileName(
+            parent=self, caption="Choose the location to save the dataframe",
+            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
+        )
+        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
+            dataframe.to_excel(filepath, index=False)
+        else:
+            dataframe.to_csv(filepath, index=False, sep=';')
+
     def abQuestion(self, title, message, button1, button2) -> QMessageBox:
         self.setWindowTitle(title)
         self.setText(message)
@@ -61,7 +88,7 @@ class ABPopup(QMessageBox):
         self.setDefaultButton(button1)
         if self.data_frame is not None:
             self.setDetailedText(self.dataframe_to_str())
-        return self.exec_()
+#        return self
 
     def abWarning(self, title, message, button1, button2=None, default=1) -> QMessageBox:
         self.setWindowTitle(title)
@@ -78,7 +105,7 @@ class ABPopup(QMessageBox):
         self.setDefaultButton(default)
         if self.data_frame is not None:
             self.setDetailedText(self.dataframe_to_str())
-        return self.exec_()
+#        return self
 
     def abCritical(self, title, message, button1, button2=None, default=1) -> QMessageBox:
         self.setWindowTitle(title)
@@ -95,17 +122,7 @@ class ABPopup(QMessageBox):
         self.setDefaultButton(default)
         if self.data_frame is not None:
             self.setDetailedText(self.dataframe_to_str())
-        return self.exec_()
-
-    def save_dataframe(self, dataframe: pd.DataFrame) -> None:
-        filepath, _ = QFileDialog.getSaveFileName(
-            parent=self, caption="Choose the location to save the dataframe",
-            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
-        )
-        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
-            dataframe.to_excel(filepath, index=False)
-        else:
-            dataframe.to_csv(filepath, index=False, sep=';')
+#        return self
 
 
 class ABFileImporter(ABC):
@@ -187,6 +204,7 @@ class ABFileImporter(ABC):
             log.error(msg)
             raise e
 
+
     @staticmethod
     def check_for_calculation_errors(data: pd.DataFrame) -> None:
         """
@@ -200,27 +218,6 @@ class ABFileImporter(ABC):
                 msg = "Error with values for the exchanges between {} and {}".format(data.loc[0,'from activity name'], data.loc[0, 'to activity name'])
                 raise ExchangeErrorValues(msg)
 
-    @staticmethod
-    def check_duplicates(data: pd.DataFrame, index: list=['to key', 'from key', 'flow type']) -> pd.DataFrame:
-        """
-        Checks three fields to identify whether a scenario difference file contains duplicate exchanges:
-        'from key', 'to key' and 'flow type'
-        Produces a warning
-        """
-        duplicates = data.duplicated(index, keep=False)
-        if duplicates.any():
-            warning = ABPopup()
-            msg = """
-            Duplicates have been found in the provided file. The Activity Browser cannot handle duplicate entries in the scenario files. Duplicate entries are discarded, only the last found instance of a duplicated entry will be used.
-            
-            If you want to proceed without changing the file contents please press 'ok', otherwise press 'cancel'.
-            """
-            warning.dataframe(data.loc[duplicates], index)
-            response = warning.abWarning('Duplicate flow exchanges', msg, QMessageBox.Ok, QMessageBox.Cancel)
-            if response == warning.Cancel:
-                return None
-            return data.drop_duplicates(index, keep='last', inplace=False)
-        return data
 
     @staticmethod
     def fill_nas(data: pd.DataFrame) -> pd.DataFrame:
@@ -236,6 +233,7 @@ class ABFileImporter(ABC):
         non_bio = data.loc[data.loc[:, 'flow type'] != 'biosphere'].fillna(dict.fromkeys(not_bio_cols, 'NA'))
         bio = data.loc[data.loc[:, 'flow type'] == 'biosphere'].fillna(dict.fromkeys(bio_cols, 'NA'))
         return pd.concat([non_bio, bio])
+
 
     @staticmethod
     def all_checks(data: pd.DataFrame, fields: set = None, scenario_names: list = None) -> None:
