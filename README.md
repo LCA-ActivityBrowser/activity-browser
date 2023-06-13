@@ -141,20 +141,22 @@ Then simply run `activity-browser` and the application will open.
 - [Modular LCA paper](https://link.springer.com/article/10.1007/s11367-015-1015-3); [documentation modular LCA](http://activity-browser.readthedocs.io/en/latest/index.html); re-implementation of modular LCA into the AB is [ongoing](https://github.com/marc-vdm/activity-browser/tree/mLCA)
 
 # Plugins
+| :warning: DISCLAIMER                                                                                                                                                                  |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Plugins are not necessarily developed by Activity Browser maintainers. Below are listed plugins from people we trust but we do not check plugins code. **Use them at your own risk**. |
+| The plugin system is still in development so keep in mind that things may change at any point.                                                                                        |
 
 Since the `2.8 release` a plugin system has been added to the AB. Plugins are a flexible way to add new functionalities to the AB without modifying the software itself.
 
-| :warning: DISCLAIMER |
-|---|
-| Plugins are not necessarily developped by Activity Browser maintainers. Below are listed plugins from people we trust but we do not check plugins code. **Use them at your own risk**. |
-| The plugin system is still in developement so keep in mind that things may change at any point. |
+The plugin code has been designed and written by Remy le Calloch (supported by [G-SCOP laboratories](https://g-scop.grenoble-inp.fr/en/laboratory/g-scop-laboratory)) with revisions from the AB-team.
 
-## Existing plugins
 
-These are plugins we know about. To add your plugin to the list open an issue or a pull request.
+## Available plugins
 
-| Name | Description | Links | Author |
-|------|-------------|-------|--------|
+These are the plugins that we know about. To add your plugin to this list either open an issue, or a pull request. All submitted plugins will be reviewed, although all risks associated with their use shall be born by the user.
+
+| Name     | Description | Links | Author |
+|:---------|-------------|-------|--------|
 | template | An empty plugin to start from | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/activity-browser-plugin-template) | Rémy Le Calloch |
 | Notebook | Use Jupyter notebooks from AB | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/ab-plugin-Notebook) | Rémy Le Calloch |
 | ReSICLED | Evaluating the recyclability of electr(on)ic product for improving product design | [anaconda](https://anaconda.org/pan6ora/ab-plugin-resicled), [github](https://github.com/Pan6ora/ab-plugin-ReSICLED) | G-SCOP Laboratory |
@@ -163,7 +165,7 @@ These are plugins we know about. To add your plugin to the list open an issue or
 
 ### detailed instructions
 
-Every plugin's Github page should have a **Get this plugin** section with installation instructions.
+Every plugin's Github page (links are provided in the above table) should have a **Get this plugin** section with installation instructions.
 
 ### general instructions
 
@@ -192,7 +194,7 @@ Close the plugin manager. New tabs should have appeared in the AB (each plugin c
 
 Disable a plugin the same way you activated it.
 
-**:warning: Keep in mind that every data created by the plugin in a project could be erased when you disable it.**
+**:warning: Keep in mind that all data created by the plugin in a project could be erased when you disable it.**
 
 ## Development
 
@@ -219,6 +221,7 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - Chris Mutel (cmutel@gmail.com)
 - Daniel de Koning (d.g.de.koning@cml.leidenuniv.nl)
 - Marc van der Meide (m.t.van.der.meide@cml.leidenuniv.nl)
+- [Remy le Calloch](https://remy.lecalloch.net)
 
 # Copyright
 - 2016-2023: Bernhard Steubing (Leiden University)
