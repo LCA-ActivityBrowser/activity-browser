@@ -525,7 +525,9 @@ class Contributions(object):
         special_keys = [('Total', ''), ('Rest', '')]
 
         # replace all 0 values with NaN and drop all rows with only NaNs
-        df = df.replace(0, np.nan).dropna(how='all')
+        # EXCEPT for the special keys
+        index = df.loc[df.index.difference(special_keys)].replace(0, np.nan).dropna(how='all').index.union(special_keys)
+        df = df.loc[index]
 
         if not mask:
             joined = self.join_df_with_metadata(
