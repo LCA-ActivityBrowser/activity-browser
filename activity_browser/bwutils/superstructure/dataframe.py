@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import List, Tuple
-from PySide2.QtWidgets import QMessageBox
+from PySide2.QtWidgets import QMessageBox, QApplication
+from PySide2.QtCore import Qt
 import sys
 import ast
 
@@ -97,35 +98,36 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             If so use the key-value pair within the replacements dictionary to replace the dictionary names
             and obtain the correct activity key
         """
+        ds_ = ds.copy()
         for i, fields in enumerate([FROM_FIELDS, TO_FIELDS]):
-            db_name = ds[['from database', 'to database'][i]]
+            db_name = ds_[['from database', 'to database'][i]]
             # check to see whether we can skip the activity, or not
             if db_name not in replacements.keys():
                 continue
             # if we can't link the activity key then we try to find it
             try:
-                if isinstance(ds[fields[1]], float):
-                    key = metadata[(metadata[DB_FIELDS[0]] == ds[fields[0]]) &
-                                                (metadata[DB_FIELDS[2]] == ds[fields[2]]) &
-                                                (metadata[DB_FIELDS[3]] == ds[fields[3]])].copy()
+                if isinstance(ds_[fields[1]], float):
+                    key = metadata[(metadata[DB_FIELDS[0]] == ds_[fields[0]]) &
+                                                (metadata[DB_FIELDS[2]] == ds_[fields[2]]) &
+                                                (metadata[DB_FIELDS[3]] == ds_[fields[3]])].copy()
                 else:
-                    if isinstance(ds[fields[1]], str):
-                        categories = ast.literal_eval(ds[fields[1]])
+                    if isinstance(ds_[fields[1]], str):
+                        categories = ast.literal_eval(ds_[fields[1]])
                     else:
-                        categories = ds[fields[1]]
-                    key = metadata[(metadata[DB_FIELDS[0]] == ds[fields[0]]) &
+                        categories = ds_[fields[1]]
+                    key = metadata[(metadata[DB_FIELDS[0]] == ds_[fields[0]]) &
                                     (metadata[DB_FIELDS[1]] == categories)].copy()
                 for j, col in enumerate([['from key', 'from database'], ['to key', 'to database']][i]):
-                    ds.loc[col] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
+                    ds_.loc[col] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
             # if the key is not discoverable then we add an exception that we can handle later
             except Exception as e:
                 if len(critical['from database']) <= 5:
                     critical['index'].append(idx)
-                    critical['from database'].append(ds['from database'])
-                    critical['from activity name'].append(ds['from activity name'])
-                    critical['to database'].append(ds['to database'])
-                    critical['to activity name'].append(ds['to activity name'])
-        return ds
+                    critical['from database'].append(ds_['from database'])
+                    critical['from activity name'].append(ds_['from activity name'])
+                    critical['to database'].append(ds_['to database'])
+                    critical['to activity name'].append(ds_['to activity name'])
+        return ds_
 
     df = df_.loc[(df_['from database'].isin(replacements.keys())) | (df_['to database'].isin(replacements.keys()))].copy(True)
     FROM_FIELDS = pd.Index([
@@ -154,6 +156,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
         critical_message = ABPopup()
         critical_message.dataframe(pd.DataFrame(critical),
                 ['from database', 'from activity name', 'to database', 'to activity name'])
+        QApplication.restoreOverrideCursor()
         if len(critical['from database']) > 1:
             msg = f"Multiple activities could not be \"relinked\" to the local database.<br> The first five are provided. " \
                   f"If you want to save the dataframe you can either save those scenario exchanges where relinking failed "\
@@ -171,9 +174,11 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             critical_message.save_options()
             response = critical_message.exec_()
         if response == critical_message.Cancel:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             return pd.DataFrame({}, columns=df.columns)
         else:
             critical_message.save_dataframe(df_, critical['index'])
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             raise UnlinkableScenarioDatabaseError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
     else:
         df_.loc[df.index] = df

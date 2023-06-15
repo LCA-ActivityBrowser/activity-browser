@@ -4,7 +4,8 @@ from typing import List
 import numpy as np
 import time
 import pandas as pd
-from PySide2.QtWidgets import QMessageBox
+from PySide2.QtWidgets import QMessageBox, QApplication
+from PySide2.QtCore import Qt
 from typing import Union, Optional
 
 import brightway2 as bw
@@ -274,9 +275,11 @@ class SuperstructureManager(object):
             if not _df.empty:
                 sdf_keys = SuperstructureManager.exchangesPopup()
                 sdf_keys.save_options()
+                QApplication.restoreOverrideCursor()
                 response = sdf_keys.exec_()
                 if response == sdf_keys.Save:
                     sdf_keys.save_dataframe(df, _df.index)
+                QApplication.setOverrideCursor(Qt.WaitCursor)
                 raise UnlinkableScenarioExchangeError("Cannot find key(s) in local databases.")
         return df
 
@@ -298,9 +301,11 @@ class SuperstructureManager(object):
             sdf_keys = SuperstructureManager.exchangesPopup()
             sdf_keys.save_options()
             sdf_keys.dataframe(errors_df, errors_df.columns)
+            QApplication.restoreOverrideCursor()
             response = sdf_keys.exec_()
             if response == sdf_keys.Save:
                 sdf_keys.save_dataframe(df, df_.index)
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             raise UnlinkableScenarioExchangeError("A key provided in the scenario file is not valid for the available database, consult the respective output.")
 
     @staticmethod
@@ -339,7 +344,10 @@ class SuperstructureManager(object):
                 for file, frame in duplicated.items():
                     frame.insert(0, 'File', file, allow_duplicates=True)
                 warning.dataframe(pd.concat([file for file in duplicated.values()]), index)
-                response = warning.abWarning('Duplicate flow exchanges', msg, QMessageBox.Ok, QMessageBox.Cancel).exec()
+                warning.abWarning('Duplicate flow exchanges', msg, QMessageBox.Ok, QMessageBox.Cancel)
+                QApplication.restoreOverrideCursor()
+                response = warning.exec_()
+                QApplication.setOverrideCursor(Qt.WaitCursor)
                 if response == warning.Cancel:
                     return None
             return data
@@ -373,7 +381,10 @@ class SuperstructureManager(object):
             """
             warning.dataframe(df.loc[duplicates], index)
             warning.abWarning('Duplicate flow exchanges', msg, QMessageBox.Ok, QMessageBox.Cancel)
+
+            QApplication.restoreOverrideCursor()
             response = warning.exec_()
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             if response == warning.Cancel:
                 return
             data.drop_duplicates(index, keep='last', inplace=True)

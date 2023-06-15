@@ -561,7 +561,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         """synchronizes the contents of either a single, or multiple scenario files to create a single scenario
         dataframe"""
         # TODO: Move the 'scenario_df' into the model itself.
+        QtWidgets.QApplication.restoreOverrideCursor()
         df = self.scenario_db_check(df)
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
         df = SuperstructureManager.fill_empty_process_keys_in_exchanges(df)
         SuperstructureManager.verify_scenario_process_keys(df)
         df = SuperstructureManager.check_duplicates(df)
@@ -586,6 +588,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if unlinkable:
             dialog = ScenarioDatabaseDialog.construct_dialog(self._parent.window, relink)
             if dialog.exec_() == dialog.Accepted:
+
                 # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
                 return scenario_replace_databases(df, dialog.relink)
                 # generate the required dialog
