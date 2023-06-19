@@ -30,8 +30,8 @@ class PluginController(QObject):
 
     @Slot(name="openManagerWizard")
     def manage_plugins_wizard(self) -> None:
-        wizard = PluginsManagerWizard(self.window)
-        wizard.show()
+        self.wizard = PluginsManagerWizard(self.window)
+        self.wizard.show()
 
     def load_plugins(self):
         names = self.discover_plugins()
