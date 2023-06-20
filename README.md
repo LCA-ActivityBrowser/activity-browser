@@ -37,6 +37,11 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
     - [Running the AB](#running-the-ab)
     - [Importing LCI databases](#importing-lci-databases)
     - [Additional Resources](#additional-resources)
+- [Plugins](#plugins)
+    - [Existing plugins](#existing-plugins)
+    - [Installation](#installation-1)
+    - [Usage](#usage)
+    - [Development](#development)
 - [Contributing](#contributing)
 - [Developers](#developers)
 - [Copyright](#copyright)
@@ -135,6 +140,66 @@ Then simply run `activity-browser` and the application will open.
 - [Global Sensitiviy Analysis paper](https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194) describing GSA as implemented in the AB; see also our [wiki](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis)
 - [Modular LCA paper](https://link.springer.com/article/10.1007/s11367-015-1015-3); [documentation modular LCA](http://activity-browser.readthedocs.io/en/latest/index.html); re-implementation of modular LCA into the AB is [ongoing](https://github.com/marc-vdm/activity-browser/tree/mLCA)
 
+# Plugins
+| :warning: DISCLAIMER                                                                                                                                                                  |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Plugins are not necessarily developed by Activity Browser maintainers. Below are listed plugins from people we trust but we do not check plugins code. **Use them at your own risk**. |
+| The plugin system is still in development so keep in mind that things may change at any point.                                                                                        |
+
+Since the `2.8 release` a plugin system has been added to the AB. Plugins are a flexible way to add new functionalities to the AB without modifying the software itself.
+
+The plugin code has been designed and written by Remy le Calloch (supported by [G-SCOP laboratories](https://g-scop.grenoble-inp.fr/en/laboratory/g-scop-laboratory)) with revisions from the AB-team.
+
+
+## Available plugins
+
+These are the plugins that we know about. To add your plugin to this list either open an issue, or a pull request. All submitted plugins will be reviewed, although all risks associated with their use shall be born by the user.
+
+| Name     | Description | Links | Author |
+|:---------|-------------|-------|--------|
+| template | An empty plugin to start from | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/activity-browser-plugin-template) | Rémy Le Calloch |
+| Notebook | Use Jupyter notebooks from AB | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/ab-plugin-Notebook) | Rémy Le Calloch |
+| ReSICLED | Evaluating the recyclability of electr(on)ic product for improving product design | [anaconda](https://anaconda.org/pan6ora/ab-plugin-resicled), [github](https://github.com/Pan6ora/ab-plugin-ReSICLED) | G-SCOP Laboratory |
+
+## Installation
+
+### detailed instructions
+
+Every plugin's Github page (links are provided in the above table) should have a **Get this plugin** section with installation instructions.
+
+### general instructions
+
+Plugins are conda packages (like the Activity Browser). To add a plugin simply install it in your conda environment from the Anaconda repos.
+
+_Nb: add `-c conda-forge` to the install command like below to avoid problems with dependencies._
+
+Ex: 
+
+```
+conda activate ab
+conda install -c pan6ora -c conda-forge ab-plugin-notebook
+```
+
+## Usage
+
+Once a new plugin is installed restart the Activity Browser.
+
+### enabling a plugin
+
+Plugins are enabled **per-project**. Simply open the plugin manager in the `Tools > Plugins` menu. 
+
+Close the plugin manager. New tabs should have appeared in the AB (each plugin can spawn one tab on each left/right panel).
+
+### disabling a plugin
+
+Disable a plugin the same way you activated it.
+
+**:warning: Keep in mind that all data created by the plugin in a project could be erased when you disable it.**
+
+## Development
+
+The best place to start to create new plugins is the [plugin template](https://github.com/Pan6ora/activity-browser-plugin-template). Its code and README will help you to understand how to create a plugin.
+
 # Contributing
 
 **The Activity Browser is a community project. Your contribution counts!**
@@ -156,6 +221,7 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - Chris Mutel (cmutel@gmail.com)
 - Daniel de Koning (d.g.de.koning@cml.leidenuniv.nl)
 - Marc van der Meide (m.t.van.der.meide@cml.leidenuniv.nl)
+- [Remy le Calloch](https://remy.lecalloch.net)
 
 # Copyright
 - 2016-2023: Bernhard Steubing (Leiden University)
