@@ -39,6 +39,7 @@ var max_edge_width = 40;
 
 var globalWidth = null;
 var globalHeight = null;
+var globalMinWidth = null;
 
 // initialize panCanvas (container actually displaying graph) globally, to enable node-info extraction on-click
 var panCanvas = {};
@@ -70,9 +71,18 @@ d3.demo.canvas = function() {
         minimapScale    = 0.1; //reduced minimap scale to (help) prevent graph to exceed panel size
 
     //introduced function to reset width/height according to new window sizes
-    updateDimensions = function() {
+    updateDimensions = function(minWidth) {
         getWindowSize();
-        width           = globalWidth*0.99;
+        if (arguments.length) {
+            if (minWidth < globalWidth * 0.99) {
+                minWidth = globalWidth * 0.99; // -1% to avoid using scroll bars when not necessary
+            } else {
+                globalMinWidth = minWidth + 20; // +20px to compensate for the scroll bar width
+            }
+        } else {
+            minWidth = globalMinWidth;
+        }
+        width           = minWidth;
         height          = globalHeight*(is_sankey_mode?0.6:0.65);
     }
 
@@ -232,11 +242,15 @@ d3.demo.canvas = function() {
             // get panCanvas width here?
             // pan to node (implement here)
             minimap.render();
+
+            updateDimensions(minimap.width());
+            canvas.render();
+            canvas.reset();
         };
 
         /** RENDER **/
         canvas.render = function() {
-        updateDimensions(); //added call to update window sizes
+            updateDimensions(); //added call to update window sizes
             svgDefs
                 .select(".clipPath .background")
                 .attr("width", width)
@@ -407,7 +421,7 @@ d3.demo.minimap = function() {
             d3.select(node).attr("transform", "translate(0,0)");
             // keep the minimap's viewport (frame) sized to match the current visualization viewport dimensions
             frame.select(".background")
-                .attr("width", width)
+                .attr("width", minimap.width())
                 .attr("height", height);
             frame.node().parentNode.appendChild(frame.node());
         };
@@ -422,7 +436,9 @@ d3.demo.minimap = function() {
 
 
     minimap.width = function(value) {
-        if (!arguments.length) return width;
+        var bBox = this.node.getBBox();
+        var w = bBox.width * minimapScale;
+        if (!arguments.length) return w;
         width = parseInt(value, 10);
         return this;
     };
