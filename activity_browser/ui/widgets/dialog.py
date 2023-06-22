@@ -1094,8 +1094,8 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
     """
     Displays the possible databases for relinking the exchanges for a given activity
     """
-    def __init__(self, parent=None):
-        super().__init__()
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
         self.setWindowTitle("Linking scenario databases")
 
         self.label = QtWidgets.QLabel("The following database(s) in the scenario file cannot be found in your project.\n\n"

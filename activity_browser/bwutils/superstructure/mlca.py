@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional
-from PySide2.QtWidgets import QMessageBox
+from PySide2.QtWidgets import QPushButton
 
 from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
 import numpy as np
@@ -9,13 +9,12 @@ import pandas as pd
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
 from ..utils import Index
-from .utils import _time_it_
 from ..errors import UnlinkableScenarioExchangeError
 from .dataframe import (
     scenario_names_from_df, arrays_from_indexed_superstructure,
     filter_databases_indexed_superstructure
 )
-from .file_imports import ABPopup
+from .file_dialogs import ABPopup
 
 class SuperstructureMLCA(MLCA):
     """Subclass of the `MLCA` class which adds another dimension in the form
@@ -116,9 +115,8 @@ class SuperstructureMLCA(MLCA):
             except (ValueError, KeyError) as e:
                 # This is to be used as a fail safe for the case where we don't catch a bad exchange during the import
                 # process, or if something else causes an issue with the exchange
-                critical = ABPopup()
                 msg = f"One of the activities in the exchange between ({index.input.database}, {index.input.code}) and ({index.output.database}, {index.output.code}) from the scenario file is not present within the designated database. Please check both keys for this exchange within your scenario file with the corresponding databases."
-                critical.abCritical("Scenario Key Error", msg, QMessageBox.Cancel)
+                critical = ABPopup.abCritical("Scenario Key Error", msg, QPushButton('Cancel'))
                 critical.exec_()
                 raise UnlinkableScenarioExchangeError
 

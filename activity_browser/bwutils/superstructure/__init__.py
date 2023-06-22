@@ -4,7 +4,7 @@ from .dataframe import (
     scenario_replace_databases
 )
 from .file_imports import (
-    ABFeatherImporter, ABCSVImporter, ABFileImporter, ABPopup
+    ABFeatherImporter, ABCSVImporter, ABFileImporter
 )
 from .excel import import_from_excel, get_sheet_names
 from .manager import SuperstructureManager

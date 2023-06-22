@@ -74,3 +74,4 @@ class UnlinkableScenarioDatabaseError(ABError):
 class UnlinkableScenarioExchangeError(ABError):
     """Should be raised when looking up a process key from the metadata in a scenario difference file, if THAT process
     key cannot be located in the local databases."""
+

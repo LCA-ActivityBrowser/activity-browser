@@ -2,7 +2,6 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import pandas as pd
 import ast
-from PySide2.QtWidgets import QMessageBox, QFileDialog, QCheckBox
 
 from typing import Optional, Union
 from ..errors import (
@@ -15,114 +14,6 @@ from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
-
-
-class ABPopup(QMessageBox):
-    """
-    Holds AB defined message boxes to enable a more consistent popup message structure
-    """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.data_frame = None
-        self.message = None
-        self.topic = None
-        self.save = None
-
-    def dataframe(self, data: pd.DataFrame, columns: list = None):
-        self.data_frame = data
-        self.data_frame = self.data_frame.loc[:, columns]
-        self.data_frame.index = self.data_frame.index.astype(str)
-#        for column in columns:
-#            self.data_frame[column] = pd.Series(self.data_frame[column].values.flatten())
-
-    def dataframe_to_str(self, double: set = {'to key', 'from key'} ):
-
-        #define a function to write the lines
-        separator = lambda output, _type='': str('\t'*2) + output if _type in double else (
-            str(' '*8) + output if len(output) < 20 else '\t' + output[0:19] + '...'
-        )
-        #Writes out the header line
-        conversion = 'index'
-        for column in range(0, len(self.data_frame.columns)):
-            conversion = conversion + separator(self.data_frame.columns[column], self.data_frame.columns[column])
-        conversion = conversion + '\n'
-        #writes out the table body
-        for row in self.data_frame.index:
-            conversion = conversion + row
-            for column in self.data_frame.columns:
-                conversion = conversion + separator(str(self.data_frame.loc[row, column]))
-            conversion = conversion + '\n'
-        return conversion
-
-    def save_options(self, msg: str = None):
-        self.check_box = QCheckBox(self)
-        self.check_box.setTristate(True)
-        self.check_box.setText("Excerpt")
-        self.check_box.setToolTip("If left unchecked the entire file is written with an additional column indicating "
-                             "the status of the exchange data in the scenario file.<br> Check to save a smaller "
-                             "excerpt of the file, containing only those exchanges that failed."
-                             )
-        self.check_box.setChecked(False)
-        self.setCheckBox(self.check_box)
-
-    def save_dataframe(self, dataframe: pd.DataFrame, flags: pd.Index=None) -> None:
-        if self.check_box.isChecked():
-            dataframe = dataframe.loc[flags]
-        else:
-            dataframe['Failed'] = [False for i in dataframe.index]
-            dataframe.loc[flags, 'Failed'] = True
-        filepath, _ = QFileDialog.getSaveFileName(
-            parent=self, caption="Choose the location to save the dataframe",
-            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
-        )
-        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
-            dataframe.to_excel(filepath, index=False)
-        else:
-            dataframe.to_csv(filepath, index=False, sep=';')
-
-    def abQuestion(self, title, message, button1, button2) -> QMessageBox:
-        self.setWindowTitle(title)
-        self.setText(message)
-        self.setIcon(QMessageBox.Question)
-        self.setStandardButtons(button1 | button2)
-        self.setDefaultButton(button1)
-        if self.data_frame is not None:
-            self.setDetailedText(self.dataframe_to_str())
-#        return self
-
-    def abWarning(self, title, message, button1, button2=None, default=1) -> QMessageBox:
-        self.setWindowTitle(title)
-        self.setText(message)
-        self.setIcon(QMessageBox.Warning)
-        if default == 1:
-            default = button1
-        else:
-            default = button2
-        if button2:
-            self.setStandardButtons(button1 | button2)
-        else:
-            self.setStandardButtons(button1)
-        self.setDefaultButton(default)
-        if self.data_frame is not None:
-            self.setDetailedText(self.dataframe_to_str())
-#        return self
-
-    def abCritical(self, title, message, button1, button2=None, default=1) -> QMessageBox:
-        self.setWindowTitle(title)
-        self.setText(message)
-        self.setIcon(QMessageBox.Critical)
-        if default == 1:
-            default = button1
-        else:
-            default = button2
-        if button2:
-            self.setStandardButtons(button1 | button2)
-        else:
-            self.setStandardButtons(button1)
-        self.setDefaultButton(default)
-        if self.data_frame is not None:
-            self.setDetailedText(self.dataframe_to_str())
-#        return self
 
 
 class ABFileImporter(ABC):

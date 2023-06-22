@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 from typing import List, Tuple
-from PySide2.QtWidgets import QMessageBox, QApplication
+from PySide2.QtWidgets import QApplication, QPushButton
 from PySide2.QtCore import Qt
 import sys
 import ast
 
-import brightway2 as bw
 import numpy as np
 import pandas as pd
 
-from ..commontasks import AB_names_to_bw_keys
 from ..metadata import AB_metadata
 from ..utils import Index
 from .activities import data_from_index
 from .utils import SUPERSTRUCTURE
-from .file_imports import ABPopup
+from .file_dialogs import ABPopup
 from ..errors import UnlinkableScenarioDatabaseError
 
 def superstructure_from_arrays(samples: np.ndarray, indices: np.ndarray, names: List[str] = None) -> pd.DataFrame:
@@ -153,33 +151,31 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
         sys.stdout.flush()
     # prepare a warning message in case unlinkable activities were found in the scenario dataframe
     if critical['from database']:
-        critical_message = ABPopup()
-        critical_message.dataframe(pd.DataFrame(critical),
-                ['from database', 'from activity name', 'to database', 'to activity name'])
         QApplication.restoreOverrideCursor()
         if len(critical['from database']) > 1:
             msg = f"Multiple activities could not be \"relinked\" to the local database.<br> The first five are provided. " \
                   f"If you want to save the dataframe you can either save those scenario exchanges where relinking failed "\
                   f"(check the excerpt box), or save the entire dataframe with a new column indicating failed relinking."\
                   f"<br> To abort the process press \'Cancel\'"
-            critical_message.abCritical("Activities not found", msg, QMessageBox.Save, QMessageBox.Cancel, default=2)
+            critical_message = ABPopup.abCritical("Activities not found", msg, QPushButton('Save'), QPushButton('Cancel'), default=2)
             critical_message.save_options()
+            critical_message.dataframe(pd.DataFrame(critical),
+                                       ['from database', 'from activity name', 'to database', 'to activity name'])
+            critical_message.dataframe_to_file(df_, critical['index'])
             response = critical_message.exec_()
         else:
             msg = f"An activity could not be \"relinked\" to the local database.<br> Some additional information is " \
                   f"provided. If you want to save the dataframe you can either save those scenario exchanges where " \
                   f"relinking failed (check the excerpt box), or save the entire dataframe with a new column indicating" \
                   f" failed relinking.<br>To abort the process press \'Cancel\'"
-            critical_message.abCritical("Activity not found", msg, QMessageBox.Save, QMessageBox.Cancel, default=2)
+            critical_message = ABPopup.abCritical("Activity not found", msg, QPushButton('Save'), QPushButton('Cancel'), default=2)
             critical_message.save_options()
+            critical_message.dataframe(pd.DataFrame(critical),
+                                       ['from database', 'from activity name', 'to database', 'to activity name'])
+            critical_message.dataframe_to_file(df_, critical['index'])
             response = critical_message.exec_()
-        if response == critical_message.Cancel:
-            QApplication.setOverrideCursor(Qt.WaitCursor)
-            return pd.DataFrame({}, columns=df.columns)
-        else:
-            critical_message.save_dataframe(df_, critical['index'])
-            QApplication.setOverrideCursor(Qt.WaitCursor)
-            raise UnlinkableScenarioDatabaseError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        raise UnlinkableScenarioDatabaseError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
     else:
         df_.loc[df.index] = df
     return df_

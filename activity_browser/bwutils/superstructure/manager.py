@@ -2,9 +2,8 @@
 import itertools
 from typing import List
 import numpy as np
-import time
 import pandas as pd
-from PySide2.QtWidgets import QMessageBox, QApplication
+from PySide2.QtWidgets import QApplication, QPushButton
 from PySide2.QtCore import Qt
 from typing import Union, Optional
 
@@ -20,8 +19,10 @@ from activity_browser.logger import ABHandler
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
 
-from .file_imports import ABPopup
-from ..errors import CriticalScenarioExtensionError, UnlinkableScenarioExchangeError
+from .file_dialogs import ABPopup
+from ..errors import (CriticalScenarioExtensionError, UnlinkableScenarioExchangeError,
+                      ImportCanceledError,
+                      )
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
@@ -71,9 +72,8 @@ class SuperstructureManager(object):
             # Find the intersection subset of scenarios.
             cols = self._combine_columns_intersect()
             if cols.empty:
-                critical = ABPopup()
                 msg = "While attempting to combine the scenario files an error was detected. No scenario columns were found in common between the files. For combining scenarios by extension at least one scenario needs to be found in common."
-                critical.abCritical("Combining scenario files.", msg, QMessageBox.Cancel)
+                critical = ABPopup.abCritical("Combining scenario files.", msg, QPushButton('Cancel'))
                 critical.exec_()
                 raise CriticalScenarioExtensionError
             df = SuperstructureManager.addition_combine_frames(
@@ -89,7 +89,23 @@ class SuperstructureManager(object):
         return df
 
     def _combine_columns(self) -> pd.MultiIndex:
+        def test_column_names(cols):
+            col_set = set()
+            cols_len = 0
+            for col in cols:
+                col_set.union(col)
+                cols_len += len(col)
+            if cols_len != len(col_set):
+                msg = "While attempting to combine the scenario files an error was detected. The scenario "\
+                "files are being extended through combinations, this requires the scenario names to be "\
+                "unique. Some scenario names between files were found to be non-unique.<br> To correct "\
+                "this please make sure that the scenario names between the files are unique, before trying "\
+                "again"
+                critical  = ABPopup.abCritical("Combining scenario files", msg, QPushButton('Cancel'))
+                critical.exec_()
+                raise CriticalScenarioExtensionError()
         cols = [scenario_columns(df).to_list() for df in self.frames]
+        test_column_names(cols)
         return pd.MultiIndex.from_tuples(list(itertools.product(*cols)))
 
     def _combine_columns_intersect(self) -> pd.Index:
@@ -113,21 +129,28 @@ class SuperstructureManager(object):
         dataframe with duplicate indexes being resolved using a 'last one wins'
         logic.
         """
+        def combine(one, two):
+            """ Should hopefully provide a failsafe approach to combining the different scenario combinations,
+            by using a simple vector - vector assignment approach.
+            """
+            for col_two in SUPERSTRUCTURE.symmetric_difference(two.columns):
+                for idx in one.columns:
+                    if col_two in set(idx):
+                        one.loc[two.index, idx] = two.loc[:, col_two]
         base_scenario_data = pd.DataFrame([], index=index, columns=SUPERSTRUCTURE)
         scenarios_data = pd.DataFrame([], index=index, columns=cols)
         if not skip_checks:
             tmp_df = SuperstructureManager.check_duplicates(data)
             for idx, f in enumerate(tmp_df):
-                scenarios_data.loc[f.index] = f.loc[:, cols.get_level_values(idx)]
-                scenarios_data.columns = cols.to_flat_index()
+                combine(scenarios_data, f)
                 base_scenario_data.loc[f.index, :] = f.loc[:, SUPERSTRUCTURE]
         else:
             for idx, f in enumerate(data):
                 f = SuperstructureManager.remove_duplicates(f)
-                scenarios_data.loc[f.index] = f.loc[:, cols.get_level_values(idx)]
-                scenarios_data.columns = cols.to_flat_index()
+                combine(scenarios_data, f)
                 base_scenario_data.loc[f.index, :] = f.loc[:, SUPERSTRUCTURE]
 
+        scenarios_data.columns = cols.to_flat_index()
         df = pd.concat([base_scenario_data, scenarios_data], axis=1)
         df = SuperstructureManager.merge_flows_to_self(df)
         df.replace(np.nan, 0, inplace=True)
@@ -249,12 +272,11 @@ class SuperstructureManager(object):
 
     @staticmethod
     def exchangesPopup() -> ABPopup:
-        pop = ABPopup()
         msg = "<p>One, or several, exchanges (rows) in the scenario file could not be found in the database (meaning:"\
               " a part or all of the exchange information, i.e. input or output product/activity/unit/geography, or the"\
             " key, have no match in the project databases).</p> <p>It is not possible to proceed at this point."\
-            " you may save the scenario file with an additional column indicating the problematic exchanges."
-        pop.abCritical("Exchange(s) not found", msg, QMessageBox.Save, QMessageBox.Cancel)
+            " you may save the scenario file with an additional column indicating the problematic exchanges.</p>"
+        pop = ABPopup.abCritical("Exchange(s) not found", msg, QPushButton('Save'), QPushButton('Cancel'))
         pop.save_options()
         return pop
 
@@ -275,11 +297,9 @@ class SuperstructureManager(object):
             if not _df.empty:
                 sdf_keys = SuperstructureManager.exchangesPopup()
                 sdf_keys.save_options()
+                sdf_keys.dataframe_to_file(df, _df.index)
                 QApplication.restoreOverrideCursor()
-                response = sdf_keys.exec_()
-                if response == sdf_keys.Save:
-                    sdf_keys.save_dataframe(df, _df.index)
-                QApplication.setOverrideCursor(Qt.WaitCursor)
+                sdf_keys.exec_()
                 raise UnlinkableScenarioExchangeError("Cannot find key(s) in local databases.")
         return df
 
@@ -301,11 +321,9 @@ class SuperstructureManager(object):
             sdf_keys = SuperstructureManager.exchangesPopup()
             sdf_keys.save_options()
             sdf_keys.dataframe(errors_df, errors_df.columns)
+            sdf_keys.dataframe_to_file(df, df_.index)
             QApplication.restoreOverrideCursor()
-            response = sdf_keys.exec_()
-            if response == sdf_keys.Save:
-                sdf_keys.save_dataframe(df, df_.index)
-            QApplication.setOverrideCursor(Qt.WaitCursor)
+            sdf_keys.exec_()
             raise UnlinkableScenarioExchangeError("A key provided in the scenario file is not valid for the available database, consult the respective output.")
 
     @staticmethod
@@ -334,22 +352,19 @@ class SuperstructureManager(object):
                 if not duplicates.empty:
                     duplicated[count] = duplicates
             if duplicated:
-                warning = ABPopup()
-                msg = """
-                    Duplicate have been found, meaning that there are several rows in the scenario file describing
-                    scenarios for the same flow. The AB can deal with this by discarding all but the last row for this 
-                    exchange.
-                    Press 'Ok' to proceed, press 'Cancel' to abort.
-                """
+
+                msg = "<p>Duplicates have been found, meaning that there are several rows in the scenario file describing"\
+                "scenarios for the same flow. The AB can deal with this by discarding all but the last row for this "\
+                "exchange.</p> <p>Press 'Ok' to proceed, press 'Cancel' to abort.</p>"
                 for file, frame in duplicated.items():
                     frame.insert(0, 'File', file, allow_duplicates=True)
+                warning = ABPopup.abWarning('Duplicate flow exchanges', msg, QPushButton('Ok'), QPushButton('Cancel'))
                 warning.dataframe(pd.concat([file for file in duplicated.values()]), index)
-                warning.abWarning('Duplicate flow exchanges', msg, QMessageBox.Ok, QMessageBox.Cancel)
                 QApplication.restoreOverrideCursor()
                 response = warning.exec_()
                 QApplication.setOverrideCursor(Qt.WaitCursor)
-                if response == warning.Cancel:
-                    return None
+                if response == warning.Rejected:
+                    raise ImportCanceledError
             return data
 
     @staticmethod
@@ -373,20 +388,17 @@ class SuperstructureManager(object):
         df.index = pd.Index([str(i) for i in range(df.shape[0])])
         duplicates = df.duplicated(index, keep=False)
         if duplicates.any():
-            warning = ABPopup()
-            msg = """
-            Duplicates have been found in the provided file. The Activity Browser cannot handle duplicate entries in the scenario files. Duplicate entries are discarded, only the last found instance of a duplicated entry will be used.
-
-            Click 'ok' to proceed, otherwise press 'cancel'.
-            """
+            msg = "<p>Duplicates have been found, meaning that there are several rows in the scenario file describing" \
+                  "scenarios for the same flow. The AB can deal with this by discarding all but the last row for this " \
+                  "exchange.</p> <p>Press 'Ok' to proceed, press 'Cancel' to abort.</p>"
+            warning = ABPopup.abWarning('Duplicate flow exchanges', msg, QPushButton('Ok'), QPushButton('Cancel'))
             warning.dataframe(df.loc[duplicates], index)
-            warning.abWarning('Duplicate flow exchanges', msg, QMessageBox.Ok, QMessageBox.Cancel)
 
             QApplication.restoreOverrideCursor()
             response = warning.exec_()
             QApplication.setOverrideCursor(Qt.WaitCursor)
-            if response == warning.Cancel:
-                return
+            if response == warning.Rejected:
+                raise ImportCanceledError
             data.drop_duplicates(index, keep='last', inplace=True)
         return data
 

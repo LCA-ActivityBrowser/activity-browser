@@ -16,7 +16,7 @@ from ...bwutils.superstructure import (
 )
 from ...settings import ab_settings
 from ...bwutils.errors import (CriticalScenarioExtensionError, UnlinkableScenarioExchangeError,
-                               UnlinkableScenarioDatabaseError)
+                               UnlinkableScenarioDatabaseError, ImportCanceledError)
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -551,6 +551,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             except UnlinkableScenarioExchangeError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
+            except ImportCanceledError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
             self.scenario_name.setText(path.name)
             self.scenario_name.setToolTip(path.name)
             self._parent.save_button(True)
@@ -586,11 +589,11 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             relink.append((db, db_lst))
         # check for databases in the scenario dataframe that cannot be linked to
         if unlinkable:
-            dialog = ScenarioDatabaseDialog.construct_dialog(self._parent.window, relink)
+            dialog = ScenarioDatabaseDialog.construct_dialog(self._parent, relink)
             if dialog.exec_() == dialog.Accepted:
 
                 # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
-                return scenario_replace_databases(df, dialog.relink)
+                return scenario_replace_databases(self._parent, df, dialog.relink)
                 # generate the required dialog
         return df
 
