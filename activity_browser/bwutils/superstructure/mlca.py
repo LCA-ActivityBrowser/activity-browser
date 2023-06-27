@@ -119,6 +119,8 @@ class SuperstructureMLCA(MLCA):
                 critical = ABPopup.abCritical("Scenario Key Error", msg, QPushButton('Cancel'))
                 critical.exec_()
                 raise UnlinkableScenarioExchangeError
+            except Exception as e:
+                continue
 
     def update_matrices(self) -> None:
         """A Simplified version of the `PackagesDataLoader.update_matrices` method.

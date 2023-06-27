@@ -55,6 +55,8 @@ class SuperstructureManager(object):
                 df = SuperstructureManager.remove_duplicates(df)
             else:
                 SuperstructureManager.check_duplicates(df)
+            df = SuperstructureManager.merge_flows_to_self(df)
+            df.replace(np.nan, 0, inplace=True)
             cols = scenario_columns(df)
             return pd.DataFrame(
                 data=df.loc[:, cols], index=df.index, columns=cols

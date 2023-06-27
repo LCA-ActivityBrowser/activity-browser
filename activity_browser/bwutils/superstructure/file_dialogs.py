@@ -62,6 +62,8 @@ class ProblemDataFrame(QtWidgets.QTableView):
         self.proxy = QtCore.QIdentityProxyModel(self)
         self.proxy.setSourceModel(self.model)
         self.setModel(self.proxy)
+
+
 class ABPopup(QtWidgets.QDialog):
     """
     Holds AB defined message boxes to enable a more consistent popup message structure
@@ -214,7 +216,7 @@ class ABPopup(QtWidgets.QDialog):
         obj.label = QtWidgets.QLabel(message)
         obj.label.setWordWrap(True)
         obj.layout.addWidget(obj.label)
-#        obj.setWindowIcon(qicons.critical)
+        obj.setWindowIcon(qicons.critical)
 
         # add the interactive elements
         obj.button1 = button1

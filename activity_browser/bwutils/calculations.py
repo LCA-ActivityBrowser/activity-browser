@@ -6,6 +6,10 @@ from ..bwutils import (
     SuperstructureContributions, SuperstructureMLCA,
 )
 from bw2calc.errors import BW2CalcError
+from .errors import UnlinkableScenarioExchangeError
+
+from .errors import CriticalCalculationError
+
 
 import logging
 from activity_browser.logger import ABHandler
@@ -13,7 +17,6 @@ from activity_browser.logger import ABHandler
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
 
-from .errors import CriticalCalculationError
 
 def do_LCA_calculations(data: dict):
     """Perform the MLCA calculation."""
@@ -49,6 +52,9 @@ def do_LCA_calculations(data: dict):
         except CriticalCalculationError as e:
             QApplication.restoreOverrideCursor()
             raise Exception(e)
+        except UnlinkableScenarioExchangeError as e:
+            QApplication.restoreOverrideCursor()
+            raise CriticalCalculationError
     else:
         log.error('Calculation type must be: simple or scenario. Given:', cs_name)
         raise ValueError
