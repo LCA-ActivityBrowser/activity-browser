@@ -95,7 +95,7 @@ class SuperstructureManager(object):
             col_set = set()
             cols_len = 0
             for col in cols:
-                col_set.union(col)
+                col_set = col_set.union(col)
                 cols_len += len(col)
             if cols_len != len(col_set):
                 msg = "While attempting to combine the scenario files an error was detected. The scenario "\
