@@ -87,8 +87,10 @@ class SuperstructureManager(object):
             # for duplicate checks.
         else:
             df = pd.DataFrame([], index=combo_idx)
-
-        return df
+        cols = scenario_columns(df)
+        return pd.DataFrame(
+            data=df.loc[:, cols], index=df.index, columns=cols
+        )
 
     def _combine_columns(self) -> pd.MultiIndex:
         def test_column_names(cols):
