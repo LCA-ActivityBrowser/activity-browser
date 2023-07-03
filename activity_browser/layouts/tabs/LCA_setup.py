@@ -593,7 +593,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             if dialog.exec_() == dialog.Accepted:
 
                 # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
-                return scenario_replace_databases(self._parent, df, dialog.relink)
+                return scenario_replace_databases(df, dialog.relink)
                 # generate the required dialog
         return df
 
