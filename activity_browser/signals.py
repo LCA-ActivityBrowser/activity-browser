@@ -114,6 +114,7 @@ class Signals(QObject):
     # Qt Windows
     update_windows = Signal()
     new_statusbar_message = Signal(str)
+    restore_cursor = Signal()
 
     # Tabs
     toggle_show_or_hide_tab = Signal(str)
@@ -125,7 +126,7 @@ class Signals(QObject):
     metadata_changed = Signal(tuple)  # key
 
     # Plugins
-    plugin_selected = Signal(str)
+    plugin_selected = Signal(str, bool)
     plugin_deselected = Signal(str)
     manage_plugins = Signal()
 

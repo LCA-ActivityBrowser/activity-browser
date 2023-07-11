@@ -62,15 +62,22 @@ class PluginController(QObject):
         # Close plugin tabs
         self.close_plugin_tabs(self.plugins[name])
 
-    def add_plugin(self, name):
+    def add_plugin(self, name, select: bool = True):
         """ add or reload tabs of the given plugin
         """
-        plugin = self.plugins[name]
-        # Apply pluin load() function
-        plugin.load()
-        # Add plugins tabs
-        for tab in plugin.tabs:
-            self.window.add_tab_to_panel(tab, plugin.infos["name"], tab.panel)
+        if select:
+            plugin = self.plugins[name]
+            # Apply plugin load() function
+            plugin.load()
+            # Add plugins tabs
+            for tab in plugin.tabs:
+                self.window.add_tab_to_panel(tab, plugin.infos["name"], tab.panel)
+            return
+        print("Removing plugin {}".format(name))
+        # Apply plugin remove() function
+        self.plugins[name].remove()
+        # Close plugin tabs
+        self.close_plugin_tabs(self.plugins[name])
 
     def close_plugin_tabs(self, plugin):
         for panel in (self.window.left_panel, self.window.right_panel):
