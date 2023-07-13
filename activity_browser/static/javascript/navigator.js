@@ -31,6 +31,9 @@ function getWindowSize() {
 
     globalWidth = x;
     globalHeight = y;
+    if (!globalMinWidth) {
+        globalMinWidth = globalWidth * 0.99;
+    }
     return {x,y};
 };
 
@@ -242,7 +245,6 @@ d3.demo.canvas = function() {
             // get panCanvas width here?
             // pan to node (implement here)
             minimap.render();
-
             updateDimensions(minimap.width());
             canvas.render();
             canvas.reset();
@@ -421,7 +423,7 @@ d3.demo.minimap = function() {
             d3.select(node).attr("transform", "translate(0,0)");
             // keep the minimap's viewport (frame) sized to match the current visualization viewport dimensions
             frame.select(".background")
-                .attr("width", minimap.width())
+                .attr("width", Math.max(minimap.width(), globalWidth))
                 .attr("height", height);
             frame.node().parentNode.appendChild(frame.node());
         };
