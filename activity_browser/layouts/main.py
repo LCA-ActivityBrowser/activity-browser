@@ -113,6 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Keyboard shortcuts
         self.shortcut_debug = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+D"), self)
         self.shortcut_debug.activated.connect(self.toggle_debug_window)
+        signals.restore_cursor.connect(self.restore_user_control)
 
     def toggle_debug_window(self):
         """Toggle the bottom debug window"""
@@ -152,3 +153,6 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.No
         )
         return response == QtWidgets.QMessageBox.Yes
+
+    def restore_user_control(self):
+        QtWidgets.QApplication.restoreOverrideCursor()

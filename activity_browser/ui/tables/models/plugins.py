@@ -21,11 +21,15 @@ class PluginsModel(PandasModel):
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), 1]
 
-    def sync(self):
+    def sync(self, index: QModelIndex = None, value: bool = None):
         data = []
-        for name, plugin in ab_settings.plugins.items() :
+        if index is None:
+            switches = [name in project_settings.get_plugins_list() for name in ab_settings.plugins.keys()]
+        else:
+            switches = [switch if j != index.row() else value for j, switch in enumerate(self._dataframe['use'])]
+        for i, (name, plugin) in enumerate(ab_settings.plugins.items()):
             infos = {
-                "use": name in project_settings.get_plugins_list(),
+                "use": switches[i],
                 "name": name,
                 "author": metadata.metadata(name)["Author"],
                 "version": metadata.version(name),
@@ -34,3 +38,6 @@ class PluginsModel(PandasModel):
 
         self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
         self.updated.emit()
+
+    def selected(self):
+        return self._dataframe.loc[:, ['use', 'name']]

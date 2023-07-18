@@ -275,11 +275,17 @@ class ProjectSettings(BaseSettings):
         iterator = self.settings.get("read-only-databases", {}).items()
         return (name for name, ro in iterator if not ro and name != "biosphere3")
 
-    def add_plugin(self, name: str):
+    def add_plugin(self, name: str, select: bool = True):
         """ Add a plugin to settings
         """
-        self.settings["plugins_list"].append(name)
-        self.write_settings()
+        if select:
+            self.settings["plugins_list"].append(name)
+            self.write_settings()
+            return
+        if name in self.settings["plugins_list"]:
+            self.settings["plugins_list"].remove(name)
+            self.write_settings()
+
 
     def remove_plugin(self, name: str) -> None:
         """ When a plugin is deselected from a project, remove it from settings
