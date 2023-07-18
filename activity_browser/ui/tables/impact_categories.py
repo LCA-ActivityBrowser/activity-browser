@@ -58,6 +58,10 @@ class MethodsTable(ABFilterableDataFrameView):
             qicons.delete, "Delete Impact Category",
             lambda: self.model.delete_method(self.currentIndex())
         )
+        menu.addAction(
+            qicons.edit, "Inspect Impact Category",
+            lambda: signals.method_selected.emit(self.model.get_method(self.currentIndex()))
+        )
         menu.exec_(event.globalPos())
 
 
