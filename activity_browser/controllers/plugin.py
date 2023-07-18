@@ -47,7 +47,7 @@ class PluginController(QObject):
 
     def load_plugin(self, name):
         try:
-            print("Loading plugin {}".format(name))
+            print("Importing plugin {}".format(name))
             plugin_lib = importlib.import_module(name)
             importlib.reload(plugin_lib)
             return plugin_lib.Plugin()
@@ -72,6 +72,7 @@ class PluginController(QObject):
             # Add plugins tabs
             for tab in plugin.tabs:
                 self.window.add_tab_to_panel(tab, plugin.infos["name"], tab.panel)
+            print("Loaded tab {}".format(name))
             return
         print("Removing plugin {}".format(name))
         # Apply plugin remove() function
