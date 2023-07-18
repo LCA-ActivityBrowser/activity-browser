@@ -23,7 +23,9 @@ class BaseParameterTable(ABDataFrameView):
         self.setSelectionMode(ABDataFrameView.SingleSelection)
 
         self.model = self.MODEL(self)
-
+        self.doubleClicked.connect(
+            lambda: self.model.handle_double_click(self.currentIndex())
+        )
         self.delete_action = QAction(qicons.delete, "Delete parameter", None)
         self.delete_action.triggered.connect(
             lambda: self.model.delete_parameter(self.currentIndex())

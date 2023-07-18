@@ -71,6 +71,13 @@ class BaseExchangeModel(EditablePandasModel):
         exchange = self.get_exchange(proxy)
         return exchange.input.key
 
+    def edit_cell(self, proxy: QModelIndex) -> None:
+        col = proxy.column()
+        if self._dataframe.columns[col] in {'Uncertainty', 'pedigree', 'loc', 'scale',
+                                            'shape', 'minimum', 'maximum'}:
+            self.modify_uncertainty(proxy)
+
+
     @Slot(list, name="deleteExchanges")
     def delete_exchanges(self, proxies: list) -> None:
         """ Remove all of the selected exchanges from the activity."""
