@@ -14,37 +14,6 @@ from activity_browser.bwutils.uncertainty import (
 from activity_browser.ui.tables.delegates import UncertaintyDelegate
 from activity_browser.ui.tables.parameters import ProjectParameterTable
 
-
-def test_table_uncertainty_delegate(qtbot, bw2test, monkeypatch):
-    """ Open the uncertainty delegate to test all related methods within the table.
-    """
-    table = ProjectParameterTable()
-    qtbot.addWidget(table)
-    bw.parameters.new_project_parameters([{"name": "project_1", "amount": 1.0}], False)
-    table.model.sync()
-
-    assert isinstance(table.itemDelegateForColumn(4), UncertaintyDelegate)
-
-    delegate = UncertaintyDelegate(table)
-    option = QtWidgets.QStyleOptionViewItem()
-    option.rect = QtCore.QRect(0, 0, 100, 100)
-    index = table.proxy_model.index(0, 4)
-    rect = table.visualRect(index)
-    qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
-    editor = delegate.createEditor(table, option, index)
-    qtbot.addWidget(editor)
-
-    # Test displayText
-    assert delegate.displayText("1", None) == "No uncertainty"
-    assert delegate.displayText("nan", None) == "Undefined or unknown uncertainty"
-
-    delegate.setEditorData(editor, index)
-    delegate.setModelData(editor, table.proxy_model, index)
-
-    monkeypatch.setattr(QtCore.QModelIndex, "data", lambda *args, **kwargs: "nan")
-    delegate.setEditorData(editor, index)
-
-
 def test_exchange_interface(qtbot, ab_app):
     flow = bw.Database(bw.config.biosphere).random()
     db = bw.Database("testdb")

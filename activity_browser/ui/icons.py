@@ -46,6 +46,7 @@ class Icons(object):
 
     # Simple actions
     delete = create_path('context', 'delete.png')
+    clear = create_path('context', 'clear.png')
     copy = create_path('context', 'copy.png')
     add = create_path('context', 'add.png')
     edit = create_path('main', 'edit.png')

@@ -4,21 +4,28 @@ from PySide2 import QtCore, QtWidgets
 from ...ui.icons import qicons
 
 from ...ui.style import header, horizontal_line
-from ...ui.tables import CFTable, MethodsTable, MethodsTree
+from ...ui.tables import MethodCharacterizationFactorsTable, MethodsTable, MethodsTree
 from ...signals import signals
 from ..panels import ABTab
 
 
-class CFsTab(QtWidgets.QWidget):
+class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
     def __init__(self, parent, method):
         super().__init__(parent)
         self.panel = parent
         # Not visible when instantiated
-        self.cf_table = CFTable(self)
+        self.cf_table = MethodCharacterizationFactorsTable(self)
+        self.cf_read_only_changed(False)  # don't accept drops, don't allow editing.
         self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
         self.hide_uncertainty.setChecked(True)
+        self.read_only = True
+        self.editable = QtWidgets.QCheckBox("Edit Characterization Factors")
+        self.editable.setToolTip("Make this impact category editable.\n"
+                                 "Please make a duplicate of this CF before modifying it.")
+        self.editable.toggled.connect(self.cf_read_only_changed)
         toolbar = QtWidgets.QToolBar(self)
         toolbar.addWidget(self.hide_uncertainty)
+        toolbar.addWidget(self.editable)
         container = QtWidgets.QVBoxLayout()
         container.addWidget(header("Method: " + " - ".join(method)))
         container.addWidget(horizontal_line())
@@ -35,10 +42,22 @@ class CFsTab(QtWidgets.QWidget):
 
     def connect_signals(self) -> None:
         self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
-        self.cf_table.model.updated.connect(
-            lambda: self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
-        )
+        self.cf_table.model.updated.connect(self.cf_uncertain_changed)
 
+    def cf_uncertain_changed(self):
+        self.cf_table.hide_uncertain(self.hide_uncertainty.isChecked())
+        self.cf_read_only_changed(self.editable.isChecked())
+
+    def cf_read_only_changed(self, editable: bool) -> None:
+        """ When read_only=False specific data fields in the tables below become user-editable
+                When read_only=True these same fields become read-only"""
+        self.cf_table.read_only = self.read_only = not editable
+        self.cf_table.setAcceptDrops(editable)  # also re-evaluated when dragging something over the table
+        if editable:
+            self.cf_table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
+        else:
+            self.cf_table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
+        print(self.read_only)
 
 class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -99,7 +118,6 @@ class MethodsTab(QtWidgets.QWidget):
         container.setAlignment(QtCore.Qt.AlignTop)
         container.addWidget(mode_layout_container)
         container.addWidget(search_layout_container)
-        # container.addWidget(horizontal_line())
         container.addWidget(self.tree)
         container.addWidget(self.table)
         self.table.setVisible(False)
@@ -115,8 +133,6 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.returnPressed.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
 
         signals.project_selected.connect(self.search_box.clear)
-        signals.new_method.connect(self.method_copied)
-
         self.connect_signals()
 
     def connect_signals(self):
@@ -124,9 +140,10 @@ class MethodsTab(QtWidgets.QWidget):
 
     @QtCore.Slot(tuple, name="searchCopiedMethod")
     def method_copied(self, method: tuple) -> None:
-        """If a method is successfully copied, sync and filter for new name."""
-        query = ", ".join(method)
-        self.search_box.setText(query)
+        """If a method is successfully copied, we might want to filter, but for now do nothing."""
+        # """If a method is successfully copied, sync and filter for new name."""
+        # query = ", ".join(method)
+        # self.search_box.setText(query)
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
@@ -148,7 +165,7 @@ class CharacterizationFactorsTab(ABTab):
 
     def open_method_tab(self, method):
         if method not in self.tabs:
-            new_tab = CFsTab(self, method)
+            new_tab = MethodCharacterizationFactorsTab(self, method)
             full_tab_label = ' '.join(method)
             label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
             self.tabs[method] = new_tab

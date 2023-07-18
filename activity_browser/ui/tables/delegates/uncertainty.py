@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
-
+from ....signals import signals
 
 class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
     """A combobox containing the sorted list of possible uncertainties
@@ -27,31 +27,14 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
             return uc[0].description
 
     def createEditor(self, parent, option, index):
-        """Create a list of descriptions of the uncertainties we have.
-
-        Note that the `choices` attribute of uncertainty_choices is already
-        sorted by id.
+        """Simply use the wizard for updating uncertainties. Send a signal.
         """
-        editor = QtWidgets.QComboBox(parent)
-        items = sorted(self.choices, key=self.choices.get)
-        editor.insertItems(0, items)
-        return editor
+        signals.set_uncertainty.emit(index)
 
     def setEditorData(self, editor: QtWidgets.QComboBox, index: QtCore.QModelIndex):
-        """Lookup the description text set in the model using the reverse
-        dictionary for the uncertainty choices.
-
-        Note that the model presents the integer value as a string (the
-        description of the uncertainty distribution), so we cannot simply
-        take the value and set the index in that way.
+        """Simply use the wizard for updating uncertainties.
         """
-        value = index.data(QtCore.Qt.DisplayRole)
-        try:
-            value = int(value) if value is not None else 0
-        except ValueError as e:
-            print("{}, using 0 instead".format(str(e)))
-            value = 0
-        editor.setCurrentIndex(uc.choices.index(uc[value]))
+        pass
 
     def setModelData(self, editor: QtWidgets.QComboBox, model: QtCore.QAbstractItemModel,
                      index: QtCore.QModelIndex):
