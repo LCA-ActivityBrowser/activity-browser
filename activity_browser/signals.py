@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtCore import QObject, Signal
+from PySide2.QtCore import QObject, Signal, QModelIndex
 
 
 class Signals(QObject):
@@ -100,10 +100,10 @@ class Signals(QObject):
     lca_results_tabs_changed = Signal()
 
     # Impact Categories & Characterization Factors
-    new_method = Signal(tuple)
-    method_deleted = Signal(tuple)
-    copy_method = Signal(tuple)
-    delete_method = Signal(tuple)
+    new_method = Signal()
+    method_deleted = Signal()
+    copy_method = Signal(tuple, str)
+    delete_method = Signal(tuple, str)
     edit_method_cf = Signal(tuple, tuple)
     remove_cf_uncertainties = Signal(list, tuple)
     method_modified = Signal(tuple)

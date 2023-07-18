@@ -204,25 +204,36 @@ class ImpactCategoryController(QObject):
         signals.delete_cf_method.connect(self.delete_method_from_cf)
 
     @Slot(tuple, name="copyMethod")
-    def copy_method(self, method: tuple) -> None:
-        """Call copy on the (first) selected method and present rename dialog."""
-        method = bw.Method(method)
+    def copy_method(self, method: tuple, level: str = None) -> None:
+        """Calls copy depending on the level, if level is 'leaf', or None,
+        then a single method is copied. Otherwise sets are used to identify
+        the appropriate methods"""
+        if level is not None and level != 'leaf':
+            methods = [bw.Method(mthd) for mthd in bw.methods if set(method).issubset(mthd)]
+        else:
+            methods = [bw.Method(method)]
         dialog = TupleNameDialog.get_combined_name(
-            self.window, "Impact category name", "Combined name:", method.name, "Copy"
+            self.window, "Impact category name", "Combined name:", method, "Copy"
         )
         if dialog.exec_() == TupleNameDialog.Accepted:
             new_name = dialog.result_tuple
-            if new_name in bw.methods:
-                warn = "Impact Category with name '{}' already exists!".format(new_name)
-                QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
-                return
-            method.copy(new_name)
-            print("Copied method {} into {}".format(str(method.name), str(new_name)))
-            signals.new_method.emit(new_name)
+            for mthd in methods:
+                new_method = new_name + mthd.name[len(new_name)-1:]
+                if new_method in bw.methods:
+                    warn = "Impact Category with name '{}' already exists!".format(new_method)
+                    QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
+                    return
+                mthd.copy(new_method)
+                print("Copied method {} into {}".format(str(mthd.name), str(new_method)))
+            signals.new_method.emit()
 
     @Slot(tuple, name="deleteMethod")
-    def delete_method(self, method: tuple) -> None:
+    def delete_method(self, method: tuple, level:str = None) -> None:
         """Call delete on the (first) selected method and present confirmation dialog."""
+        if level is not None and level != 'leaf':
+            methods = [bw.Method(mthd) for mthd in bw.methods if set(method).issubset(mthd)]
+        else:
+            methods = [bw.Method(method)]
         method = bw.Method(method)
         dialog = QtWidgets.QMessageBox()
         dialog.setWindowTitle("Are you sure you want to delete this method?")
@@ -233,10 +244,11 @@ class ImpactCategoryController(QObject):
         dialog.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         dialog.setDefaultButton(QtWidgets.QMessageBox.No)
         if dialog.exec_() == QtWidgets.QMessageBox.Yes:
-            method.deregister()
-            print("Deleted method {}".format(str(method.name)))
+            for mthd in methods:
+                mthd.deregister()
+                print("Deleted method {}".format(str(mthd.name)))
             # TODO: ensure the method no longer shows up anywhere.
-            signals.method_deleted.emit(method)
+            signals.method_deleted.emit()
 
     @Slot(list, tuple, name="removeCFUncertainty")
     def remove_uncertainty(self, removed: list, method: tuple) -> None:

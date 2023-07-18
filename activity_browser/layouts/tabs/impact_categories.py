@@ -4,17 +4,17 @@ from PySide2 import QtCore, QtWidgets
 from ...ui.icons import qicons
 
 from ...ui.style import header, horizontal_line
-from ...ui.tables import CFTable, MethodsTable, MethodsTree
+from ...ui.tables import MethodCharacterizationFactorsTable, MethodsTable, MethodsTree
 from ...signals import signals
 from ..panels import ABTab
 
 
-class CFsTab(QtWidgets.QWidget):
+class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
     def __init__(self, parent, method):
         super().__init__(parent)
         self.panel = parent
         # Not visible when instantiated
-        self.cf_table = CFTable(self)
+        self.cf_table = MethodCharacterizationFactorsTable(self)
         self.cf_read_only_changed(False)  # don't accept drops, don't allow editing.
         self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
         self.hide_uncertainty.setChecked(True)
@@ -118,7 +118,6 @@ class MethodsTab(QtWidgets.QWidget):
         container.setAlignment(QtCore.Qt.AlignTop)
         container.addWidget(mode_layout_container)
         container.addWidget(search_layout_container)
-        # container.addWidget(horizontal_line())
         container.addWidget(self.tree)
         container.addWidget(self.table)
         self.table.setVisible(False)
@@ -134,8 +133,6 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.returnPressed.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
 
         signals.project_selected.connect(self.search_box.clear)
-        signals.new_method.connect(self.method_copied)
-
         self.connect_signals()
 
     def connect_signals(self):
@@ -168,7 +165,7 @@ class CharacterizationFactorsTab(ABTab):
 
     def open_method_tab(self, method):
         if method not in self.tabs:
-            new_tab = CFsTab(self, method)
+            new_tab = MethodCharacterizationFactorsTab(self, method)
             full_tab_label = ' '.join(method)
             label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
             self.tabs[method] = new_tab

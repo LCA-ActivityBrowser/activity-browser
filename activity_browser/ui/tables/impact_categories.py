@@ -7,7 +7,7 @@ from PySide2.QtCore import QModelIndex, Slot
 from ...signals import signals
 from ..icons import qicons
 from .views import ABDictTreeView, ABFilterableDataFrameView, ABDataFrameView
-from .models import CFModel, MethodsListModel, MethodsTreeModel
+from .models import MethodCharacterizationFactorsModel, MethodsListModel, MethodsTreeModel
 from .delegates import FloatDelegate, UncertaintyDelegate
 from .inventory import ActivitiesBiosphereTable
 
@@ -28,6 +28,8 @@ class MethodsTable(ABFilterableDataFrameView):
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
+        signals.new_method.connect(self.sync)
+        signals.method_deleted.connect(self.sync)
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""
@@ -60,6 +62,29 @@ class MethodsTable(ABFilterableDataFrameView):
 
 
 class MethodsTree(ABDictTreeView):
+    # TODO Current approach uses a complete regeneration of the tree including
+    # TODO the root and all branch and leaf nodes. This conflicts with the fundamental
+    # TODO structure of these models using links between parent and child nodes as new
+    # TODO addresses are provided, invalidating provided indexes
+    """
+    The TreeView object for the Tree model of the AB used for the impact categories:
+
+    NOTE: A limitation with the current implementation means that there is a limit
+    to the names for the Impact categories (IC): This is as follows
+
+    Assume an Impact category exists as:
+    ('USEtox w-o LT', 'human toxicity w/o LT', 'carcinogenic w/o LT')
+    Then any of the following cannot exist:
+    ('human toxicity w/o LT', 'USEtox w-o LT', 'carcinogenic w/o LT')
+    ('human toxicity w/o LT', 'carcinogenic w/o LT', 'USEtox w-o LT')
+    ('USEtox w-o LT', 'carcinogenic w/o LT', 'human toxicity w/o LT')
+    ('carcinogenic w/o LT', 'USEtox w-o LT', 'human toxicity w/o LT')
+    ('carcinogenic w/o LT', 'human toxicity w/o LT', 'USEtox w-o LT')
+    Due to the use of sets for comparisons the IC's cannot use identical names in
+    a different order for a new IC.
+
+
+    """
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
     def __init__(self, parent=None):
@@ -78,10 +103,12 @@ class MethodsTree(ABDictTreeView):
     def _connect_signals(self):
         super()._connect_signals()
         self.doubleClicked.connect(self.method_selected)
+        signals.new_method.connect(self.open_method)
+        signals.method_deleted.connect(self.open_method)
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:
-        self.model.sync(query)
+        self.model.sync()
 
     @Slot(name="optionalExpandAll")
     def optional_expand(self) -> None:
@@ -96,6 +123,21 @@ class MethodsTree(ABDictTreeView):
         if self.model.query and self.model.matches <= 285:
             self.expandAll()
 
+    @Slot(name="openMethod")
+    def open_method(self):
+        """'Opens' the method tree, dependent on the previous state this method will
+        generate a new tree and then expand all the nodes that were previously expanded.
+        """
+        expands = self.expanded_list()
+        self.model.setup_model_data()
+        self.model.sync()
+        iter = self.model.iterator(None)
+        while iter != None:
+            item = self.build_path(iter)
+            if item in expands:
+                self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
+            iter = self.model.iterator(iter)
+
     @Slot(QModelIndex, name="methodSelection")
     def method_selected(self):
         tree_level = self.tree_level()
@@ -108,8 +150,12 @@ class MethodsTree(ABDictTreeView):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu(self)
-        menu.addAction(qicons.copy, "Duplicate Impact Category", self.copy_method)
-        menu.addAction(qicons.delete, "Delete Impact Category", self.delete_method)
+        menu.addAction(qicons.copy, "Duplicate Impact Category",
+                       lambda: self.copy_method()
+                       )
+        menu.addAction(qicons.delete, "Delete Impact Category",
+                       lambda: self.delete_method()
+                       )
         if self.tree_level()[0] == 'leaf':
             menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
         else:
@@ -171,12 +217,31 @@ class MethodsTree(ABDictTreeView):
         """Call copy on the (first) selected method and present rename dialog."""
         self.model.delete_method(self.tree_level())
 
+    def expanded_list(self):
+        it = self.model.iterator(None)
+        expanded_items = []
+        while it != None:
+            if self.isExpanded(self.model.createIndex(it.row(), 0, it)):
+                expanded_items.append(self.build_path(it))
+            it = self.model.iterator(it)
+        return expanded_items
+
+    def build_path(self, iter):
+        """Given an iterator of the TreeItem type build the path back to the
+        root ancestor. This is intended for testing membership of expanded
+        entries."""
+        item = set()
+        p = iter
+        while p != self.model.root:
+            item.add(p.data(0))
+            p = p.parent()
+        return item
 
 
-class CFTable(ABFilterableDataFrameView):
+class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.model = CFModel(parent=self)
+        self.model = MethodCharacterizationFactorsModel(parent=self)
         self.setVisible(False)
         self.setItemDelegateForColumn(2, FloatDelegate(self))
         self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
