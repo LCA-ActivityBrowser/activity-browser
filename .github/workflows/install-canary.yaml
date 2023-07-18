@@ -1,0 +1,40 @@
+name: canary installation
+on:
+  schedule:
+    # Run the tests once every 24 hours to catch dependency problems early
+    - cron: '0 7 * * *'
+  push:
+    branches:
+      - install-canary
+
+jobs:
+  canary-installs:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.9']
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Setup python ${{ matrix.python-version }} conda environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install activity-browser
+        run: |
+          conda create -y -n ab -c conda-forge activity-browser python=${{ matrix.python-version }}
+      - name: Environment info
+        run: |
+          conda activate ab
+          conda list
+          conda env export
+          conda env export -f env.yaml
+      - name: Upload final environment as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: env-${{ matrix.os }}-${{ matrix.python-version }}
+          path: env.yaml

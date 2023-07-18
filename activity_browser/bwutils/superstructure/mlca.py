@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional
+from PySide2.QtWidgets import QMessageBox
 
 from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
 import numpy as np
@@ -8,6 +9,9 @@ import pandas as pd
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
 from ..utils import Index
+from .utils import _time_it_
+from .file_imports import ABPopup
+from ..errors import ScenarioExchangeError
 from .dataframe import (
     scenario_names_from_df, arrays_from_indexed_superstructure,
     filter_databases_indexed_superstructure
@@ -42,6 +46,20 @@ class SuperstructureMLCA(MLCA):
         # biosphere_dict ('rows') while the 'output' keys are matched
         # to the activity_dict ('cols').
 
+        errors = self.indices_check()
+        if errors:
+            errors_df = pd.DataFrame(errors, index=None, columns=['from key', 'to key', 'flow type'])
+            error_message = ABPopup()
+            error_message.dataframe(errors_df, errors_df.columns)
+            msg = """<p>Some exchanges in the scenario difference file could not be found in the local databases. For the calculation to proceed all exchanges in the scenario file <b>must</b> be linkable to the local database(s).</p>
+
+            <p>The exchanges that could not be found in the local databases can be saved to a file, these can then be corrected (checked) in your original SDF(s), which should then be ready for importing.</p>
+            """
+            response = error_message.abCritical("Scenario exchanges not found", msg, QMessageBox.Save)
+            if response == error_message.Save:
+                error_message.save_dataframe(errors_df)
+            raise ScenarioExchangeError()
+
         # Side-note on presamples: Presamples was used in AB for calculating scenarios,
         # presamples was superseded by this implementation. For more reading:
         # https://presamples.readthedocs.io/en/latest/use_with_bw2.html
@@ -74,6 +92,20 @@ class SuperstructureMLCA(MLCA):
         """ Ensure current index is looped to 0 if end of array is reached.
         """
         self._current_index = current if current < self.total else 0
+
+    @_time_it_
+    def indices_check(self) -> list:
+        """ Check the indices of the scenario dataframe against the processes in the dataframes for the BW databases"""
+        errors = []
+        for idx in self.indices:
+            in_dict = self.lca.biosphere_dict if idx.flow_type == "biosphere" else self.lca.product_dict
+            i = in_dict.get(idx.input, idx.input)
+            j = self.lca.activity_dict.get(idx.output, idx.output)
+            if not isinstance(i, int):
+                errors.append((idx.input, idx.output, idx.flow_type))
+            if not isinstance(j, int):
+                errors.append((idx.input, idx.output, idx.flow_type))
+        return errors
 
     def next_scenario(self):
         self.update_matrices()

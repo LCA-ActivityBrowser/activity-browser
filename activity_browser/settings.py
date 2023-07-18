@@ -64,6 +64,12 @@ class ABSettings(BaseSettings):
             os.makedirs(ab_dir.user_data_dir, exist_ok=True)
         self.update_old_settings(ab_dir.user_data_dir, filename)
 
+        # Currently loaded plugins objects as:
+        # {plugin_name: <plugin_object>, ...}
+        # this list is generated at startup and never writen in settings.
+        # it is filled by the plugin controller
+        self.plugins = {}
+
         super().__init__(ab_dir.user_data_dir, filename)
 
     @staticmethod
@@ -197,18 +203,24 @@ class ProjectSettings(BaseSettings):
         if "read-only-databases" not in self.settings:
             self.settings.update(self.process_brightway_databases())
             self.write_settings()
+        if "plugins_list" not in self.settings:
+            self.settings.update({"plugins_list":[]})
+            self.write_settings()
 
     def connect_signals(self):
         """ Reload the project settings whenever a project switch occurs.
         """
         signals.project_selected.connect(self.reset_for_project_selection)
-        signals.delete_project.connect(self.reset_for_project_selection)
+        signals.plugin_selected.connect(self.add_plugin)
+        signals.plugin_deselected.connect(self.remove_plugin)
 
     @classmethod
     def get_default_settings(cls) -> dict:
         """ Return default empty settings dictionary.
         """
-        return cls.process_brightway_databases()
+        settings = cls.process_brightway_databases()
+        settings["plugins_list"] = []
+        return settings
 
     @staticmethod
     def process_brightway_databases() -> dict:
@@ -227,6 +239,10 @@ class ProjectSettings(BaseSettings):
         print("Reset project settings directory to:", bw.projects.dir)
         self.settings_file = os.path.join(bw.projects.dir, self.filename)
         self.initialize_settings()
+        # create a plugins_list entry for old projects
+        if "plugins_list" not in self.settings:
+            self.settings.update({"plugins_list": []})
+            self.write_settings()
 
     def add_db(self, db_name: str, read_only: bool = True) -> None:
         """ Store new databases and relevant settings here when created/imported
@@ -258,6 +274,24 @@ class ProjectSettings(BaseSettings):
         """
         iterator = self.settings.get("read-only-databases", {}).items()
         return (name for name, ro in iterator if not ro and name != "biosphere3")
+
+    def add_plugin(self, name: str):
+        """ Add a plugin to settings
+        """
+        self.settings["plugins_list"].append(name)
+        self.write_settings()
+
+    def remove_plugin(self, name: str) -> None:
+        """ When a plugin is deselected from a project, remove it from settings
+        """
+        if name in self.settings["plugins_list"]:
+            self.settings["plugins_list"].remove(name)
+            self.write_settings()
+
+    def get_plugins_list(self):
+        """ Return a list of plugins names
+        """
+        return self.settings["plugins_list"]
 
 
 ab_settings = ABSettings("ABsettings.json")

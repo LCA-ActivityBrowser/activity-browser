@@ -17,7 +17,6 @@ class ProjectController(QObject):
         super().__init__(parent)
         self.window = parent
 
-        signals.project_selected.emit()
         self.load_settings()
 
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)

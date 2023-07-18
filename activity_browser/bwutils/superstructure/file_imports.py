@@ -1,12 +1,106 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
 import pandas as pd
-from .utils import _time_it_
+import ast
+from PySide2.QtWidgets import QMessageBox, QFileDialog
+
 from typing import Optional, Union
 from ..errors import (
     ImportCanceledError, ActivityProductionValueError, IncompatibleDatabaseNamingError,
     InvalidSDFEntryValue, ExchangeErrorValues
 )
+
+
+class ABPopup(QMessageBox):
+    """
+    Holds AB defined message boxes to enable a more consistent popup message structure
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data_frame = None
+        self.message = None
+        self.topic = None
+
+    def dataframe(self, data: pd.DataFrame, columns: list = None):
+        self.data_frame = data
+        self.data_frame = self.data_frame.loc[:, columns]
+        self.data_frame.index = self.data_frame.index.astype(str)
+#        for column in columns:
+#            self.data_frame[column] = pd.Series(self.data_frame[column].values.flatten())
+
+    def dataframe_to_str(self, double: set = {'to key', 'from key'} ):
+
+        #define a function to write the lines
+        separator = lambda output, _type='': str('\t'*2) + output if _type in double else (
+            str(' '*8) + output if len(output) < 20 else '\t' + output[0:19] + '...'
+        )
+        #Writes out the header line
+        conversion = 'index'
+        for column in range(0, len(self.data_frame.columns)):
+            conversion = conversion + separator(self.data_frame.columns[column], self.data_frame.columns[column])
+        conversion = conversion + '\n'
+        #writes out the table body
+        for row in self.data_frame.index:
+            conversion = conversion + row
+            for column in self.data_frame.columns:
+                conversion = conversion + separator(str(self.data_frame.loc[row, column]))
+            conversion = conversion + '\n'
+        return conversion
+
+    def abQuestion(self, title, message, button1, button2) -> QMessageBox:
+        self.setWindowTitle(title)
+        self.setText(message)
+        self.setIcon(QMessageBox.Question)
+        self.setStandardButtons(button1 | button2)
+        self.setDefaultButton(button1)
+        if self.data_frame is not None:
+            self.setDetailedText(self.dataframe_to_str())
+        return self.exec_()
+
+
+    def abWarning(self, title, message, button1, button2=None, default=1) -> QMessageBox:
+        self.setWindowTitle(title)
+        self.setText(message)
+        self.setIcon(QMessageBox.Warning)
+        if default == 1:
+            default = button1
+        else:
+            default = button2
+        if button2:
+            self.setStandardButtons(button1 | button2)
+        else:
+            self.setStandardButtons(button1)
+        self.setDefaultButton(default)
+        if self.data_frame is not None:
+            self.setDetailedText(self.dataframe_to_str())
+        return self.exec_()
+
+    def abCritical(self, title, message, button1, button2=None, default=1) -> QMessageBox:
+        self.setWindowTitle(title)
+        self.setText(message)
+        self.setIcon(QMessageBox.Critical)
+        if default == 1:
+            default = button1
+        else:
+            default = button2
+        if button2:
+            self.setStandardButtons(button1 | button2)
+        else:
+            self.setStandardButtons(button1)
+        self.setDefaultButton(default)
+        if self.data_frame is not None:
+            self.setDetailedText(self.dataframe_to_str())
+        return self.exec_()
+
+    def save_dataframe(self, dataframe: pd.DataFrame) -> None:
+        filepath, _ = QFileDialog.getSaveFileName(
+            parent=self, caption="Choose the location to save the dataframe",
+            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
+        )
+        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
+            dataframe.to_excel(filepath, index=False)
+        else:
+            dataframe.to_csv(filepath, index=False)
 
 
 class ABFileImporter(ABC):
@@ -102,6 +196,28 @@ class ABFileImporter(ABC):
                 raise ExchangeErrorValues(msg)
 
     @staticmethod
+    def check_duplicates(data: pd.DataFrame, index: list=['to key', 'from key', 'flow type']) -> pd.DataFrame:
+        """
+        Checks three fields to identify whether a scenario difference file contains duplicate exchanges:
+        'from key', 'to key' and 'flow type'
+        Produces a warning
+        """
+        duplicates = data.duplicated(index, keep=False)
+        if duplicates.any():
+            warning = ABPopup()
+            msg = """
+            Duplicates have been found in the provided file. The Activity Browser cannot handle duplicate entries in the scenario files. Duplicate entries are discarded, only the last found instance of a duplicated entry will be used.
+            
+            If you want to proceed without changing the file contents please press 'ok', otherwise press 'cancel'.
+            """
+            warning.dataframe(data.loc[duplicates], index)
+            response = warning.abWarning('Duplicate flow exchanges', msg, QMessageBox.Ok, QMessageBox.Cancel)
+            if response == warning.Cancel:
+                return None
+            return data.drop_duplicates(index, keep='last', inplace=False)
+        return data
+
+    @staticmethod
     def fill_nas(data: pd.DataFrame) -> pd.DataFrame:
         """ Will replace NaNs in the dataframe with a string holding "NA" for the following subsection of columns:
             'from activity name', 'from reference product', 'to reference product', 'to location',
@@ -139,10 +255,11 @@ class ABFeatherImporter(ABFileImporter):
         super(ABFeatherImporter, self).__init__(self)
 
     @staticmethod
-    @_time_it_
     def read_file(path: Optional[Union[str, Path]], **kwargs):
         df = pd.read_feather(path)
         # ... execute code
+        for i in ['to key', 'from key']:
+            df.loc[:, i] = df.loc[:, i].apply(ast.literal_eval)
         return df
 
 
@@ -151,13 +268,12 @@ class ABCSVImporter(ABFileImporter):
         super(ABCSVImporter, self).__init__(self)
 
     @staticmethod
-    @_time_it_
     def read_file(path: Optional[Union[str, Path]], **kwargs):
-        if 'sep' in kwargs:
-            separator = kwargs['sep']
+        if 'separator' in kwargs:
+            separator = kwargs['separator']
         else:
             separator = ";"
-        df = pd.read_csv(path, compression='infer', sep=separator, index_col=False)
+        df = pd.read_csv(path, compression='infer', sep=separator, index_col=False,
+                         converters={'from key': ast.literal_eval, 'to key': ast.literal_eval})
         # ... execute code
-#        ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
         return df

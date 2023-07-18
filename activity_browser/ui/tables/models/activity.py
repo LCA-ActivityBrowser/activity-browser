@@ -103,7 +103,15 @@ class BaseExchangeModel(EditablePandasModel):
 
     @Slot(list, name="copyFlowInformation")
     def copy_exchanges_for_SDF(self, proxies: list) -> None:
-        exchanges = [self.get_exchange(p) for p in proxies]
+        exchanges = []
+        prev = None
+        for p in proxies:
+            e = self.get_exchange(p)
+            if e is prev:
+                continue  # exact duplicate entry into clipboard
+            prev = e
+            exchanges.append(e)
+            print(exchanges)
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)
         df.to_clipboard(excel=True, index=False)

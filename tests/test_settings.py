@@ -75,7 +75,7 @@ def test_ab_unknown_startup(ab_settings):
 
 def test_project_default_keys(project_settings):
     defaults = project_settings.get_default_settings()
-    assert not {"read-only-databases"}.symmetric_difference(defaults)
+    assert not {"plugins_list", "read-only-databases"}.symmetric_difference(defaults)
 
 
 def test_project_add_dbs(project_settings):

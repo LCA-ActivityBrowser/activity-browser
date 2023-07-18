@@ -29,6 +29,7 @@ class ABDataFrameView(QTableView):
         self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
+#        self.setStyleSheet("alternate-background-color: #efefef; background-color: #fcfcfc; opacity: 1;")
         self.setSortingEnabled(True)
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         self.verticalHeader().setVisible(True)
@@ -403,7 +404,8 @@ class ABFilterableDataFrameView(ABDataFrameView):
         """Reset all filters for this column."""
         QApplication.setOverrideCursor(Qt.WaitCursor)
         f = self.filters
-        f.pop(self.selected_column)
+        if f.get(self.selected_column, False):
+            f.pop(self.selected_column)
         if self.prev_quick_filter.get(self.selected_column, False):
             self.prev_quick_filter.pop(self.selected_column)
         self.write_filters(f)
@@ -467,7 +469,6 @@ class CustomHeader(QHeaderView):
 
             # set the settings to a PushButton
             self.style().drawControl(QStyle.CE_PushButton, option, painter)
-            self.viewport().update()
 
     def mousePressEvent(self, event):
         index = self.logicalIndexAt(event.pos())
@@ -491,6 +492,7 @@ class CustomHeader(QHeaderView):
         else:
             # pass the event to the header (for sorting)
             super(CustomHeader, self).mousePressEvent(event)
+        self.viewport().update()
 
 
 class ABMultiColumnSortProxyModel(QSortFilterProxyModel):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Union
-
+from PySide2.QtWidgets import QMessageBox, QApplication
 import numpy as np
 import pandas as pd
 import brightway2 as bw
@@ -10,6 +10,7 @@ ca = ContributionAnalysis()
 
 from .commontasks import wrap_text
 from .metadata import AB_metadata
+from .errors import ReferenceFlowValueError
 
 
 class MLCA(object):
@@ -108,6 +109,17 @@ class MLCA(object):
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
+
+        if sum([v for rf in cs['inv'] for v in rf.values()]) == 0:
+            msg = QMessageBox()
+            msg.setText('Sum of reference flows equals 0')
+            msg.setInformativeText('A value greater than 0 must be provided for at least one reference flow.\n' +
+                                   'Please enter a valid value before calculating LCA results again.')
+            msg.setIcon(QMessageBox.Warning)
+            QApplication.restoreOverrideCursor()
+            msg.exec_()
+            raise ReferenceFlowValueError("Sum of reference flows == 0")
+
         # reference flows and related indexes
         self.func_units = cs['inv']
         self.fu_activity_keys = [list(fu.keys())[0] for fu in self.func_units]
@@ -513,7 +525,9 @@ class Contributions(object):
         special_keys = [('Total', ''), ('Rest', '')]
 
         # replace all 0 values with NaN and drop all rows with only NaNs
-        df = df.replace(0, np.nan).dropna(how='all')
+        # EXCEPT for the special keys
+        index = df.loc[df.index.difference(special_keys)].replace(0, np.nan).dropna(how='all').index.union(special_keys)
+        df = df.loc[index]
 
         if not mask:
             joined = self.join_df_with_metadata(

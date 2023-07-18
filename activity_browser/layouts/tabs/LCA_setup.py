@@ -8,7 +8,8 @@ import pandas as pd
 
 from ...bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
-    SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter
+    SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
+    ABFileImporter
 )
 from ...signals import signals
 from ...ui.icons import qicons
@@ -208,7 +209,7 @@ class LCASetupTab(QtWidgets.QWidget):
             data = {
                 'cs_name': self.list_widget.name,
                 'calculation_type': 'scenario',
-                'data': self.scenario_panel.combined_dataframe(),
+                'data': self.scenario_panel.scenario_dataframe(),
             }
         else:
             return
@@ -262,13 +263,27 @@ class ScenarioImportPanel(BaseRightTab):
         super().__init__(parent)
 
         self.explain_text = """
-        <p>You can import two different scenario types here:</p>
-        <p>1. <b>flow-scenarios</b>: flow scenarios are alternative values for exchanges (flows between processes or between processes and the environment)</p>
-        <p>2. <b>parameter-scenarios</b>: alternative values for parameters you use within a project</p>
-        <p>If you do not know how such files look like, you can go to the Parameters --> Scenarios tab.
-         Then click "Export parameter-scenarios" to obtain a parameter-scenarios file or  
-         "Export as flow-scenarios" to obtain a flow-scenarios file. 
-         Note that you need to have at least one parameterized activity to obtain flow-scenarios</p>
+        <p>You can import <b>two types of scenario files</b> here:</h4>
+        <p>1. <b>Flow-scenarios</b>: alternative values for exchanges (technosphere/biosphere flows) 
+        (<i>scenario difference files</i>)</p>
+        <p>2. <b>Parameter-scenarios</b>: alternative values for parameters <i>(parameter scenarios files)</i></p>
+        
+        Further information is provided in this <a href="https://www.youtube.com/watch?v=3LPcpV1G_jg">video</a>. 
+        
+        <p>If you need a template for these files, you can go to the <i>Parameters > Scenarios tab</i>. 
+        Then click <i>Export parameter-scenarios</i> to obtain a parameter-scenarios file or   
+        <i>Export as flow-scenarios</i> to obtain a flow-scenarios file 
+        (you need at least one parameterized activity for the latter).</p> 
+        
+        <br> <p> You can also work with <b>multiple scenario files</b> for which there are with two options:</p>
+        <p>1. <b>Combine scenarios</b>: this yields all possible scenario combinations 
+        (e.g. file 1: <i>S1, S2</i> and file 2: <i>A, B</i> yields <i>S1-A, S1-B, S2-A, S2-B</i>) 
+        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_product_combination.png"> here </a>
+        for an example</p>
+        <p>2. <b>Extend scenarios</b>: scenarios from file 2 extend scenarios of file 1 
+        (only possible if scenario names are identical in all files, e.g. everywhere <i>S1, S2</i>).
+        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_addtion_combinations.png"> here
+        </a> for an example</p> 
         """
 
         self.tables = []
@@ -277,19 +292,17 @@ class ScenarioImportPanel(BaseRightTab):
         self.scenario_tables = QtWidgets.QHBoxLayout()
         self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
 
-        self.combine_label = QtWidgets.QLabel("Combine tables by:")
         self.group_box = QtWidgets.QGroupBox()
         self.group_box.setStyleSheet(style_group_box.border_title)
         input_field_layout = QtWidgets.QHBoxLayout()
         self.group_box.setLayout(input_field_layout)
         self.combine_group = QtWidgets.QButtonGroup()
         self.combine_group.setExclusive(True)
-        self.product_choice = QtWidgets.QCheckBox("Product")
+        self.product_choice = QtWidgets.QCheckBox("Combine scenarios")
         self.product_choice.setChecked(True)
-        self.addition_choice = QtWidgets.QCheckBox("Addition")
+        self.addition_choice = QtWidgets.QCheckBox("Extend scenarios")
         self.combine_group.addButton(self.product_choice)
         self.combine_group.addButton(self.addition_choice)
-        input_field_layout.addWidget(self.combine_label)
         input_field_layout.addWidget(self.product_choice)
         input_field_layout.addWidget(self.addition_choice)
         self.group_box.setHidden(True)
@@ -310,6 +323,7 @@ class ScenarioImportPanel(BaseRightTab):
         layout.addStretch(1)
         self.setLayout(layout)
         self._connect_signals()
+        self._scenario_dataframe = None
 
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
@@ -317,6 +331,9 @@ class ScenarioImportPanel(BaseRightTab):
         signals.project_selected.connect(self.clear_tables)
         signals.project_selected.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
+
+    def scenario_dataframe(self):
+        return self._scenario_dataframe
 
     def scenario_names(self, idx: int) -> list:
         if idx > len(self.tables):
@@ -340,7 +357,7 @@ class ScenarioImportPanel(BaseRightTab):
             kind = "addition"
         else:
             kind = "none"
-        return manager.combined_data(kind)
+        self._scenario_dataframe = manager.combined_data(kind, ABFileImporter.check_duplicates)
 
     @Slot(name="addTable")
     def add_table(self) -> None:
@@ -349,6 +366,7 @@ class ScenarioImportPanel(BaseRightTab):
         self.tables.append(widget)
         self.scenario_tables.addWidget(widget)
         self.updateGeometry()
+        self.combined_dataframe()
 
     @Slot(int, name="removeTable")
     def remove_table(self, idx: int) -> None:
@@ -359,6 +377,7 @@ class ScenarioImportPanel(BaseRightTab):
         # Do not forget to update indexes!
         for i, w in enumerate(self.tables):
             w.index = i
+        self.combined_dataframe()
 
     @Slot(name="clearTables")
     def clear_tables(self) -> None:
@@ -368,6 +387,7 @@ class ScenarioImportPanel(BaseRightTab):
             w.deleteLater()
         self.tables = []
         self.updateGeometry()
+        self.combined_dataframe()
 
     def updateGeometry(self):
         self.group_box.setHidden(len(self.tables) <= 1)
@@ -394,7 +414,7 @@ class ScenarioImportPanel(BaseRightTab):
 class ScenarioImportWidget(QtWidgets.QWidget):
     def __init__(self, index: int, parent=None):
         super().__init__(parent)
-
+        self._parent = parent
         self.index = index
         self.scenario_name = QtWidgets.QLabel("<filename>", self)
         self.load_btn = QtWidgets.QPushButton(qicons.import_db, "Load")
@@ -435,17 +455,25 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             path = dialog.path
             idx = dialog.import_sheet.currentIndex()
             file_type_suffix = dialog.path.suffix
-            separator = dialog.field_separator.currentText()
+            separator = dialog.field_separator.currentData()
+            print("separator == '{}'".format(separator))
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             print('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
                 if file_type_suffix == ".feather":
                     df = ABFeatherImporter.read_file(path)
+#                    ABFeatherImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
+
                 elif file_type_suffix.startswith(".xls"):
                     df = import_from_excel(path, idx)
                 else:
-                    df = ABCSVImporter.read_file(path, separator)
+                    df = ABCSVImporter.read_file(path, separator=separator)
+#                    ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
+                df = ABFileImporter.check_duplicates(df)
+                if df is None:
+                    QtWidgets.QApplication.restoreOverrideCursor()
+                    return
                 self.sync_superstructure(df)
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.
@@ -463,6 +491,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                         include_default = False
                 signals.parameter_scenario_sync.emit(self.index, df, include_default)
             finally:
+                # TODO Move the scenario exchanges check with the local databases here and keep all the scenario
+                # TODO checks within the scenario import procedures
                 self.scenario_name.setText(path.name)
                 self.scenario_name.setToolTip(path.name)
                 QtWidgets.QApplication.restoreOverrideCursor()
@@ -473,6 +503,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.scenario_df = df
         cols = scenario_names_from_df(self.scenario_df)
         self.table.model.sync(cols)
+        self._parent.combined_dataframe()
 
     @property
     def dataframe(self) -> pd.DataFrame:

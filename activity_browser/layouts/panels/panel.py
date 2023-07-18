@@ -16,6 +16,12 @@ class ABTab(QtWidgets.QTabWidget):
         signals.toggle_show_or_hide_tab.connect(self.toggle_tab_visibility)
         signals.hide_when_empty.connect(self.hide_when_empty)
 
+    def add_tab(self, obj, tab_name):
+        """Default addTab method and add item to self.tabs
+        """
+        self.tabs[tab_name] = obj
+        self.addTab(obj, tab_name)
+
     def select_tab(self, obj):
         """Brings tab to focus."""
         self.setCurrentIndex(self.indexOf(obj))
@@ -76,10 +82,10 @@ class ABTab(QtWidgets.QTabWidget):
         widget = self.widget(index)
         tab_name = self.get_tab_name(widget)
         # print("Closing tab:", tab_name)
-        assert widget in self.tabs.values()
-        del self.tabs[tab_name]
-        widget.deleteLater()
-        self.removeTab(index)
+        if widget in self.tabs.values():
+            del self.tabs[tab_name]
+            widget.deleteLater()
+            self.removeTab(index)
         signals.hide_when_empty.emit()  # needs to be a signal as we want the super-tab to receive this...
 
     def close_tab_by_tab_name(self, tab_name):

@@ -7,3 +7,4 @@ from .project_manager import ProjectTab
 from .LCA_results_tab import LCAResultsTab
 from .parameters import ParametersTab
 from .debug import DebugTab
+from .plugin import PluginTab

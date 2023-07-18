@@ -10,4 +10,5 @@ from .parameters import (ActivityParameterTable, DataBaseParameterTable,
                          ExchangesTable, ProjectParameterTable, BaseParameterTable)
 from .projects import ProjectListWidget
 from .scenarios import ScenarioTable
+from .plugins import PluginsTable
 
