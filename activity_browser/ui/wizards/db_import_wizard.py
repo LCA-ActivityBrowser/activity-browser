@@ -856,7 +856,6 @@ class MainWorkerThread(QtCore.QThread):
         except StrategyError as e:
             # Excel import failed because extra databases were found, relink
             log.error("Could not link exchanges, here are 10 examples.:") # THREAD UNSAFE FUNCTIONS
-#            pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
         except LinkingFailed as e:
