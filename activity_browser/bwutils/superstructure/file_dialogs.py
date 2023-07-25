@@ -7,7 +7,7 @@ from ...ui.icons import qicons
     The basic premise of this module is to contain a series of different popup menus that will allow the user
     to make a choice that can help them to resolve an issue with their use of the AB.
     
-    To this end there are two supporting classes (for a table) and the actual Popup.
+    To this end there are two small supporting classes (for a table) and the actual Popup.
     
     The first use case is with scenario files (hence the current location of this module in 
     bwutils.superstructure
@@ -16,6 +16,9 @@ from ...ui.icons import qicons
 
 
 class ProblemDataModel(QtCore.QAbstractTableModel):
+    """
+    A simple table model for use in popup windows.
+    """
     updated = QtCore.Signal()
     def __init__(self):
         super().__init__()
@@ -32,6 +35,7 @@ class ProblemDataModel(QtCore.QAbstractTableModel):
         v = None
         if role == QtCore.Qt.DisplayRole:
             v = self._dataframe.iloc[index.row(), index.column()]
+            # if the data is a tuple force the conversion to strings
             if isinstance(v, tuple):
                 v = str(v)
         return v
@@ -45,15 +49,14 @@ class ProblemDataModel(QtCore.QAbstractTableModel):
 
 
 class ProblemDataFrame(QtWidgets.QTableView):
+    """
+    A simple view class to provide required functionality for the QDialog
+    """
     def __init__(self, parent: QtWidgets.QWidget, dataframe: pd.DataFrame, cols: pd.Index):
         super().__init__(parent)
         self.model = ProblemDataModel()
         self.model.updated.connect(self.update_proxy)
         self.model.sync(dataframe=dataframe, columns=cols)
-#        self.setSizePolicy(QtWidgets.QSizePolicy(
-#            QtWidgets.QSizePolicy.Preferred,
-#            QtWidgets.QSizePolicy.Maximum
-#        ))
 
     def update(self, dataframe:pd.DataFrame, cols: pd.Index):
         self.model.sync(dataframe=dataframe, columns=cols)
@@ -66,7 +69,9 @@ class ProblemDataFrame(QtWidgets.QTableView):
 
 class ABPopup(QtWidgets.QDialog):
     """
-    Holds AB defined message boxes to enable a more consistent popup message structure
+    Holds AB defined message boxes to enable a more consistent popup message structure for errors.
+
+    This is primarily for use for the creation of errors for the purposes of scenario file imports
     """
     def __init__(self):
         super().__init__()
@@ -102,7 +107,7 @@ class ABPopup(QtWidgets.QDialog):
 
     def save_options(self, msg: str = None):
         self.check_box.setVisible(True)
-        self.check_box.setTristate(True)
+        self.check_box.setTristate(False)
         self.check_box.setText("Excerpt")
         self.check_box.setToolTip("If left unchecked the entire file is written with an additional column indicating "
                              "the status of the exchange data in the scenario file.<br> Check to save a smaller "
@@ -145,7 +150,6 @@ class ABPopup(QtWidgets.QDialog):
     @QtCore.Slot(name='rejection')
     def rejection(self):
         self.reject()
-    # TODO switch the buttons to the dialog buttons
     # TODO set a max_width to the windows
 
     @staticmethod
@@ -207,7 +211,6 @@ class ABPopup(QtWidgets.QDialog):
         obj.updateGeometry()
         return obj
 
-# TODO try turning off random features
     @staticmethod
     def abCritical(title, message, button1, button2=None, default=1):
         obj = ABPopup()
