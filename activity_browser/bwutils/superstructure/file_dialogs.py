@@ -134,12 +134,14 @@ class ABPopup(QtWidgets.QDialog):
             parent=self, caption="Choose the location to save the dataframe",
             filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
         )
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         if not filepath.strip():
             return False
         if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
             self._dataframe.to_excel(filepath, index=False)
         else:
             self._dataframe.to_csv(filepath, index=False, sep=';')
+        QtWidgets.QApplication.restoreOverrideCursor()
         return True
 
     @QtCore.Slot(name='affirmative')

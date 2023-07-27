@@ -56,7 +56,7 @@ class SuperstructureManager(object):
             else:
                 SuperstructureManager.check_duplicates(df)
             df = SuperstructureManager.merge_flows_to_self(df)
-            df.replace(np.nan, 0, inplace=True)
+            #df.replace(np.nan, 0, inplace=True)
             cols = scenario_columns(df)
             return pd.DataFrame(
                 data=df.loc[:, cols], index=df.index, columns=cols
@@ -235,7 +235,10 @@ class SuperstructureManager(object):
 
             extra_df = pd.DataFrame(list_exc)
             extra_df.index = prod_idxs
-            extra_df.loc[:, scenario_cols] = extra_df.loc[:, scenario_cols] / (extra_df.loc[:, scenario_cols] + df.loc[tech_idxs, scenario_cols].values)
+            denominator = (extra_df.loc[:, scenario_cols] + df.loc[tech_idxs, scenario_cols].values)
+            extra_df.loc[:, scenario_cols] = extra_df.loc[:, scenario_cols] / denominator
+            # if we did divide by 0 then replace these nans by 0
+            extra_df.loc[:, scenario_cols] = extra_df.loc[:, scenario_cols].fillna(0)
 
             # drop the 'technosphere' flows
             df = df.drop(flows_to_self.index)

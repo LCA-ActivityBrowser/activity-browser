@@ -152,8 +152,8 @@ class ABFeatherImporter(ABFileImporter):
     def read_file(path: Optional[Union[str, Path]], **kwargs):
         df = pd.read_feather(path)
         # ... execute code
-        for i in ['to key', 'from key']:
-            df.loc[:, i] = df.loc[:, i].apply(ast.literal_eval)
+        df.loc[:, 'from key'] = df.loc[:, 'from key'].apply(tuple)
+        df.loc[:, 'to key'] = df.loc[:, 'to key'].apply(tuple)
         return df
 
 
