@@ -15,7 +15,7 @@ from activity_browser.bwutils import (
 )
 from activity_browser.signals import signals
 from .base import EditablePandasModel
-
+from ....logger import log
 
 class BaseExchangeModel(EditablePandasModel):
     COLUMNS = []
@@ -59,7 +59,7 @@ class BaseExchangeModel(EditablePandasModel):
             return row
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
-            print("Broken exchange: {}, removing.".format(e))
+            log.info("Broken exchange: {}, removing.".format(e))
             signals.exchanges_deleted.emit([exchange])
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
@@ -118,7 +118,6 @@ class BaseExchangeModel(EditablePandasModel):
                 continue  # exact duplicate entry into clipboard
             prev = e
             exchanges.append(e)
-            print(exchanges)
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)
         df.to_clipboard(excel=True, index=False)
@@ -200,7 +199,7 @@ class BaseExchangeModel(EditablePandasModel):
         if act:
             interpreter.symtable.update(ActivityParameter.static(act.group, full=True))
         else:
-            print("No parameter found for {}, creating one on formula save".format(self.key))
+            log.info("No parameter found for {}, creating one on formula save".format(self.key))
             interpreter.symtable.update(ProjectParameter.static())
             interpreter.symtable.update(DatabaseParameter.static(self.key[0]))
         return interpreter
@@ -255,7 +254,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
             })
             return row
         except DoesNotExist as e:
-            print("Exchange was deleted, continue.")
+            log.info("Exchange was deleted, continue.")
             return {}
 
 
@@ -297,7 +296,7 @@ class BiosphereExchangeModel(BaseExchangeModel):
             })
             return row
         except DoesNotExist as e:
-            print("Exchange was deleted, continue.")
+            log.info("Exchange was deleted, continue.")
             return {}
 
 

@@ -10,7 +10,7 @@ from PySide2.QtCore import QModelIndex, Slot, Qt
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.signals import signals
 from .base import EditablePandasModel, PandasModel
-
+from ....logger import log
 
 class CSGenericModel(EditablePandasModel):
     """ Intermediate class to enable internal move functionality for the
@@ -130,7 +130,7 @@ class CSActivityModel(CSGenericModel):
             row.update({"Amount": amount, "key": key})
             return row
         except (TypeError, ActivityDataset.DoesNotExist):
-            print("Could not load key in Calculation Setup: ", key)
+            log.error("Could not load key in Calculation Setup: ", key)
             return {}
 
     @Slot(name="deleteRows")

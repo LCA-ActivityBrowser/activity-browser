@@ -19,6 +19,7 @@ from ...ui.tables import (
 )
 from ...ui.widgets import ExcelReadDialog
 from .base import BaseRightTab
+from ...logger import log
 
 """
 Lifecycle of a calculation setup
@@ -456,9 +457,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             idx = dialog.import_sheet.currentIndex()
             file_type_suffix = dialog.path.suffix
             separator = dialog.field_separator.currentData()
-            print("separator == '{}'".format(separator))
+            log.info("separator == '{}'".format(separator))
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
-            print('Loading Scenario file. This may take a while for large files')
+            log.info('Loading Scenario file. This may take a while for large files')
             try:
                 # Try and read as a superstructure file
                 if file_type_suffix == ".feather":
@@ -477,7 +478,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 self.sync_superstructure(df)
             except (IndexError, ValueError) as e:
                 # Try and read as parameter scenario file.
-                print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
+                log.error("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
                 df = pd.read_excel(path, sheet_name=idx, engine="openpyxl")
                 include_default = True
                 if "default" not in df.columns:
@@ -508,5 +509,5 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @property
     def dataframe(self) -> pd.DataFrame:
         if self.scenario_df.empty:
-            print("No data in scenario table {}, skipping".format(self.index + 1))
+            log.warning("No data in scenario table {}, skipping".format(self.index + 1))
         return self.scenario_df

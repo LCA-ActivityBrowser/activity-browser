@@ -15,10 +15,12 @@ from ..ui.wizards.db_export_wizard import DatabaseExportWizard
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
 from ..settings import project_settings
 from ..signals import signals
+from ..logger import log
 from .project import ProjectController
 
 
 class DatabaseController(QObject):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window = parent
@@ -53,7 +55,7 @@ class DatabaseController(QObject):
         @LegacyCode?
         """
         if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
-            print("creating missing sqlite indices")
+            log.info("creating missing sqlite indices")
             bw.Database(list(bw.databases)[-1])._add_indices()
 
     @Slot(name="bw2Setup")

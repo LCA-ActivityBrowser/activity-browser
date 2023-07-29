@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QLabel, QStatusBar
 import brightway2 as bw
 
 from ..signals import signals
-
+from ..logger import log
 
 class Statusbar(QStatusBar):
     def __init__(self, window):
@@ -27,7 +27,7 @@ class Statusbar(QStatusBar):
 
     @Slot(str, name="statusLeft")
     def left(self, message: str) -> None:
-        print(message)  # for console output
+        log.info(message)  # for console output
         if isinstance(message, str):
             self.status_message_left.setText(message)
 

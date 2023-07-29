@@ -15,6 +15,7 @@ from ..tabs import (
 )
 from ...bwutils.commontasks import get_activity_name
 from ...signals import signals
+from ...logger import log
 
 
 class RightPanel(ABTab):
@@ -49,7 +50,7 @@ class RightPanel(ABTab):
         """
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
-            print("+showing tab:", tab_name)
+            log.info("+showing tab:", tab_name)
             tab.setVisible(True)
             self.insertTab(self.tab_order[tab_name], tab, tab_name)
             self.select_tab(tab)
@@ -77,7 +78,7 @@ class GraphExplorerTab(ABTab):
     def add_tab(self, key, select=True):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
-            print("adding graph tab")
+            log.info("adding graph tab")
             new_tab = GraphNavigatorWidget(self, key=key)
             self.tabs[key] = new_tab
             self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))

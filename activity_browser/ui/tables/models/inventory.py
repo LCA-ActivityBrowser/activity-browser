@@ -14,6 +14,7 @@ from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from .base import PandasModel, DragPandasModel
+from ....logger import log
 
 
 class DatabasesModel(PandasModel):
@@ -109,7 +110,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
-            print("Pandas Dataframe passed to sync.", df.shape)
+            log.info("Pandas Dataframe passed to sync.", df.shape)
             self._dataframe = df
             self.updated.emit()
             return

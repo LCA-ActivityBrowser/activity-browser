@@ -14,6 +14,7 @@ from ... import utils
 from ...settings import ab_settings
 from ...ui.icons import qicons
 from ...signals import signals
+from ...logger import log
 
 
 class BaseNavigatorWidget(QtWidgets.QWidget):
@@ -140,7 +141,7 @@ class Bridge(QObject):
         """
         click_dict = json.loads(click_text)
         click_dict["key"] = (click_dict["database"], click_dict["id"])  # since JSON does not know tuples
-        print("Click information: ", click_dict)
+        log.info("Click information: ", click_dict) # TODO click_dict needs correcting
         self.update_graph.emit(click_dict)
 
     @Slot(str, name="download_triggered")

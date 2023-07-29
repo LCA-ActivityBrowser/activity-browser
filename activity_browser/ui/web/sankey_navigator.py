@@ -13,6 +13,7 @@ from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
 from ...signals import signals
+from ...logger import log
 
 
 # TODO:
@@ -208,7 +209,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.method_cb.blockSignals(False)
 
     def new_sankey(self) -> None:
-        print("New Sankey for CS: ", self.cs)
+        log.info("New Sankey for CS: ", self.cs)
         demand_index = self.func_unit_cb.currentIndex()
         method_index = self.method_cb.currentIndex()
 
@@ -228,7 +229,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                       scenario_lca: bool = False, cut_off=0.05,
                       max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
-        print("Demand / Method: {} {}".format(demand, method))
+        log.info("Demand / Method: {} {}".format(demand, method))
         start = time.time()
 
         try:
@@ -240,7 +241,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         except ValueError as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
-        print("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
+        log.info("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
 
         self.graph.new_graph(data)
         self.has_sankey = bool(self.graph.json_data)

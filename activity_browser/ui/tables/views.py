@@ -9,6 +9,7 @@ from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, 
 from PySide2.QtGui import QKeyEvent, QDoubleValidator
 
 from ...settings import ab_settings
+from ...logger import log
 from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 from ..icons import qicons
 from .delegates import ViewOnlyDelegate
@@ -523,7 +524,7 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
         self.activate_filter = True
         self.invalidateFilter()
         self.activate_filter = False
-        print('{} filter matches found'.format(self.matches))
+        log.info('{} filter matches found'.format(self.matches))
 
     def clear_filters(self) -> None:
         self.mask = None

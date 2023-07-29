@@ -12,6 +12,7 @@ import seaborn as sns
 
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
+from ..logger import log
 
 
 # todo: sizing of the figures needs to be improved and systematized...
@@ -273,7 +274,7 @@ class SimpleDistributionPlot(Plot):
         try:
             sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
         except RuntimeError as e:
-            print("Runtime error: {}\nPlotting without KDE.".format(e))
+            log.error("Runtime error: {}\nPlotting without KDE.".format(e))
             sns.histplot(data.T, kde=False, stat="density", ax=self.ax, edgecolor="none")
         self.ax.set_xlabel(label)
         self.ax.set_ylabel("Probability density")

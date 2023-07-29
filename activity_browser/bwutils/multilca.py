@@ -11,6 +11,7 @@ ca = ContributionAnalysis()
 from .commontasks import wrap_text
 from .metadata import AB_metadata
 from .errors import ReferenceFlowValueError
+from ..logger import log
 
 
 class MLCA(object):
@@ -487,7 +488,7 @@ class Contributions(object):
                 complete_index = special_keys + keys
                 joined = joined.reindex(complete_index, axis="index", fill_value=0.)
             except:
-                print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
+                log.error('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
         joined.index = cls.get_labels(joined.index, fields=x_fields)
         return joined
 

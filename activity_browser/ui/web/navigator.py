@@ -13,6 +13,7 @@ from PySide2.QtCore import Slot
 from .base import BaseGraph, BaseNavigatorWidget
 from ...signals import signals
 from ...bwutils.commontasks import identify_activity_type
+from ...logger import log
 
 # TODO:
 # save graph as image
@@ -154,12 +155,12 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     def toggle_navigation_mode(self):
         mode = next(self.navigation_label)
         self.button_navigation_mode.setText(mode)
-        print("Switched to:", mode)
+        log.info("Switched to:", mode)
         self.checkbox_remove_orphaned_nodes.setVisible(self.is_expansion_mode)
         self.checkbox_direct_only.setVisible(self.is_expansion_mode)
 
     def new_graph(self, key: tuple) -> None:
-        print("New Graph for key: ", key)
+        log.info("New Graph for key: ", key)
         self.graph.new_graph(key)
         self.send_json()
 
@@ -188,15 +189,15 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
             self.new_graph(key)
         else:
             if keyboard["alt"]:  # delete node
-                print("Deleting node: ", key)
+                log.info("Deleting node: ", key)
                 self.graph.reduce_graph(key)
             else: # expansion mode
-                print("Expanding graph: ", key)
+                log.info("Expanding graph: ", key)
                 if keyboard["shift"]:  # downstream expansion
-                    print("Adding downstream nodes.")
+                    log.info("Adding downstream nodes.")
                     self.graph.expand_graph(key, down=True)
                 else:  # upstream expansion
-                    print("Adding upstream nodes.")
+                    log.info("Adding upstream nodes.")
                     self.graph.expand_graph(key, up=True)
             self.send_json()
 
@@ -332,7 +333,7 @@ class Graph(BaseGraph):
         Can lead to orphaned nodes, which can be removed or kept.
         """
         if key == self.central_activity.key:
-            print("Cannot remove central activity.")
+            log.warning("Cannot remove central activity.")
             return
         act = bw.get_activity(key)
         self.nodes.remove(act)
@@ -376,9 +377,9 @@ class Graph(BaseGraph):
         count = 1
         for count, key in enumerate(orphaned_node_ids, 1):
             act = bw.get_activity(key)
-            print(act["name"], act["location"])
+            log.info(act["name"], act["location"])
             self.nodes.remove(act)
-        print("\nRemoved ORPHANED nodes:", count)
+        log.info("\nRemoved ORPHANED nodes:", count)
 
         # update edges again to remove those that link to nodes that have been deleted
         self.remove_outside_exchanges()
@@ -394,7 +395,7 @@ class Graph(BaseGraph):
             A JSON representation of this.
             """
         if not self.nodes:
-            print("Graph has no nodes (activities).")
+            log.info("Graph has no nodes (activities).")
             return
 
         data = {

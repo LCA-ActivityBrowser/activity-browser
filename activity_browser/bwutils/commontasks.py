@@ -8,6 +8,7 @@ import brightway2 as bw
 from bw2data import databases
 from bw2data.proxies import ActivityProxyBase
 from bw2data.project import ProjectDataset, SubstitutableDatabase
+from ..logger import log
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
@@ -84,7 +85,7 @@ def update_and_shorten_label(label, text, length=15, enable=True) -> None:
 def switch_brightway2_dir(dirpath):
     bw_base = bw.projects._base_data_dir
     if dirpath == bw_base:
-        print('dirpath already loaded')
+        log.info('dirpath already loaded')
         return False
     try:
         assert os.path.isdir(dirpath)
@@ -98,10 +99,10 @@ def switch_brightway2_dir(dirpath):
             os.path.join(bw.projects._base_data_dir, "projects.db"),
             [ProjectDataset]
         )
-        print('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        log.info('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
         return True
     except AssertionError:
-        print('Could not access BW_DIR as specified in settings.py')
+        log.error('Could not access BW_DIR as specified in settings.py')
         return False
 
 
@@ -111,7 +112,7 @@ def cleanup_deleted_bw_projects() -> None:
     NOTE: This cannot be done from within the AB.
     """
     n_dir = bw.projects.purge_deleted_directories()
-    print('Deleted {} unused project directories!'.format(n_dir))
+    log.info('Deleted {} unused project directories!'.format(n_dir))
 
 
 # Database
@@ -155,7 +156,7 @@ def count_database_records(name: str) -> int:
     try:
         return len(db)
     except TypeError as e:
-        print("{}. Counting manually".format(e))
+        log.error("{}. Counting manually".format(e))
         return sum(1 for _ in db)
 
 
@@ -269,7 +270,7 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
 
         except:
             # The input activity does not exist. remove the exchange.
-            print("Something did not work with the following exchange: {}. It was removed from the list.".format(exc))
+            log.error("Something did not work with the following exchange: {}. It was removed from the list.".format(exc))
     return data
 
 

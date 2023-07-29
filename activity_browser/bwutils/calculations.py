@@ -6,9 +6,7 @@ from ..bwutils import (
     SuperstructureContributions, SuperstructureMLCA,
 )
 from bw2calc.errors import BW2CalcError
-import brightway2 as bw
-
-from .errors import ReferenceFlowValueError
+from ..logger import log
 
 def do_LCA_calculations(data: dict):
     """Perform the MLCA calculation."""
@@ -39,7 +37,7 @@ def do_LCA_calculations(data: dict):
         except KeyError as e:
             raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
     else:
-        print('Calculation type must be: simple or scenario. Given:', cs_name)
+        log.error('Calculation type must be: simple or scenario. Given:', cs_name)
         raise ValueError
 
     mlca.calculate()

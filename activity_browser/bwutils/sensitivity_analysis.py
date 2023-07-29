@@ -16,6 +16,7 @@ import os
 
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 from ..settings import ab_settings
+from ..logger import log
 
 
 def get_lca(fu, method):
@@ -23,7 +24,7 @@ def get_lca(fu, method):
     lca = bw.LCA(fu, method=method)
     lca.lci()
     lca.lcia()
-    print('Non-stochastic LCA score:', lca.score)
+    log.info('Non-stochastic LCA score:', lca.score)
 
     # add reverse dictionaries
     lca.activity_dict_rev, lca.product_dict_rev, lca.biosphere_dict_rev = lca.reverse_dict()
@@ -42,7 +43,7 @@ def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1e4):
     for e in res['edges']:
         if e['to'] != -1:  # filter out head introduced in graph traversal
             technosphere_exchange_indices.append((e['from'], e['to']))
-    print('TECHNOSPHERE {} filtering resulted in {} of {} exchanges and took {} iterations in {} seconds.'.format(
+    log.info('TECHNOSPHERE {} filtering resulted in {} of {} exchanges and took {} iterations in {} seconds.'.format(
         res['lca'].technosphere_matrix.shape,
         len(technosphere_exchange_indices),
         res['lca'].technosphere_matrix.getnnz(),
@@ -57,16 +58,11 @@ def filter_biosphere_exchanges(lca, cutoff=0.005):
     category in a non-stochastic LCA."""
     start = time()
 
-    # print('LCA score:', lca.score)
     inv = lca.characterized_inventory
-    # print('Characterized inventory:', inv.shape, inv.nnz)
     finv = inv.multiply(abs(inv) > abs(lca.score/(1/cutoff)))
-    # print('Filtered characterized inventory:', finv.shape, finv.nnz)
     biosphere_exchange_indices = list(zip(*finv.nonzero()))
-    # print(biosphere_indices[:2])
     explained_fraction = finv.sum() / lca.score
-    # print('Explained fraction of LCA score:', explained_fraction)
-    print('BIOSPHERE {} filtering resulted in {} of {} exchanges ({}% of total impact) and took {} seconds.'.format(
+    log.info('BIOSPHERE {} filtering resulted in {} of {} exchanges ({}% of total impact) and took {} seconds.'.format(
         inv.shape,
         finv.nnz,
         inv.nnz,
@@ -122,7 +118,7 @@ def drop_no_uncertainty_exchanges(excs, indices):
         if exc.get('uncertainty type') and exc.get('uncertainty type') >= 1:
             excs_no.append(exc)
             indices_no.append(ind)
-    print('Dropping {} exchanges of {} with no uncertainty. {} remaining.'.format(
+    log.info('Dropping {} exchanges of {} with no uncertainty. {} remaining.'.format(
         len(excs) - len(excs_no), len(excs), len(excs_no)
     ))
     return excs_no, indices_no
@@ -192,7 +188,7 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
         data[params_index]['index'] = cf_index
         data[params_index]['GSA name'] = "CF: " + bio_act['name'] + str(bio_act['categories'])
 
-    print('CHARACTERIZATION FACTORS filtering resulted in including {} of {} characteriation factors.'.format(
+    log.info('CHARACTERIZATION FACTORS filtering resulted in including {} of {} characteriation factors.'.format(
         len(data),
         len(lca.cf_params),
     ))
@@ -206,10 +202,10 @@ def get_parameters_DF(mc):
     if bool(mc.parameter_data):  # returns False if dict is empty
         dfp = pd.DataFrame(mc.parameter_data).T
         dfp['GSA name'] = "P: " + dfp['name']
-        print('PARAMETERS:', len(dfp))
+        log.info('PARAMETERS:', len(dfp))
         return dfp
     else:
-        print('PARAMETERS: None included.')
+        log.info('PARAMETERS: None included.')
         return pd.DataFrame()  # return emtpy df
 
 
@@ -299,10 +295,10 @@ class GlobalSensitivityAnalysis(object):
         except Exception as e:
             traceback.print_exc()
             # todo: QMessageBox.warning(self, 'Could not perform Delta analysis', str(e))
-            print('Initializing the GSA failed.')
+            log.error('Initializing the GSA failed.')
             return None
 
-        print('-- GSA --\n Project:', bw.projects.current, 'CS:', self.mc.cs_name,
+        log.info('-- GSA --\n Project:', bw.projects.current, 'CS:', self.mc.cs_name,
               'Activity:', self.activity, 'Method:', self.method)
 
         # get non-stochastic LCA object with reverse dictionaries
@@ -378,12 +374,12 @@ class GlobalSensitivityAnalysis(object):
         #     self.Y = np.log(np.abs(self.Y))  # this makes it more robust for very uneven distributions of LCA results
         if np.all(self.Y > 0):  # all positive numbers
             self.Y = np.log(np.abs(self.Y))
-            print('All positive LCA scores. Log-transformation performed.')
+            log.info('All positive LCA scores. Log-transformation performed.')
         elif np.all(self.Y < 0):  # all negative numbers
             self.Y = -np.log(np.abs(self.Y))
-            print('All negative LCA scores. Log-transformation performed.')
+            log.info('All negative LCA scores. Log-transformation performed.')
         else:  # mixed positive and negative numbers
-            print('Log-transformation cannot be applied as LCA scores overlap zero.')
+            log.warning('Log-transformation cannot be applied as LCA scores overlap zero.')
 
         # print('Filtering took {} seconds'.format(np.round(time() - start, 2)))
 
@@ -395,7 +391,7 @@ class GlobalSensitivityAnalysis(object):
         # perform delta analysis
         time_delta = time()
         self.Si = delta.analyze(self.problem, self.X, self.Y, print_to_console=False)
-        print('Delta analysis took {} seconds'.format(np.round(time() - time_delta, 2), ))
+        log.info('Delta analysis took {} seconds'.format(np.round(time() - time_delta, 2), ))
 
         # put GSA results in to dataframe
         self.dfgsa = pd.DataFrame(self.Si, index=self.names).sort_values(by='delta', ascending=False)
@@ -406,7 +402,7 @@ class GlobalSensitivityAnalysis(object):
         self.df_final.reset_index(inplace=True)
         self.df_final['pedigree'] = [str(x) for x in self.df_final['pedigree']]
 
-        print('GSA took {} seconds'.format(np.round(time() - start, 2)))
+        log.info('GSA took {} seconds'.format(np.round(time() - start, 2)))
 
     def get_save_name(self):
         save_name = self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity['name'] + \

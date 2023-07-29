@@ -11,6 +11,7 @@ from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
 from .commontasks import clean_activity_name
 from ..bwutils.errors import ExchangeErrorValues
+from ..logger import log
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
 
@@ -118,7 +119,7 @@ def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tup
                     # Commit changes every 10k exchanges.
                     transaction.commit()
         except (StrategyError, ValidityError) as e:
-            print(e)
+            log.error(e)
             transaction.rollback()
     return (remainder, altered, unlinked_exchanges)
 
@@ -129,7 +130,7 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
     This means possibly doing a lot of sqlite update calls.
     """
     if old == other.name:
-        print("No point relinking to same database.")
+        log.info("No point relinking to same database.")
         return
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
     assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
@@ -150,7 +151,7 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
     #  this updates the 'depends' in metadata
     (remainder, altered, unlinked_exchanges) = relink_exchanges(exchanges, candidates, duplicates)
     db.process()
-    print(
+    log.info(
         "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
             db.name, altered, old, other.name
         )
@@ -160,7 +161,7 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
 
 def relink_activity_exchanges(act, old: str, other: bw.Database) -> tuple:
     if old == other.name:
-        print("No point relinking to same database.")
+        log.info("No point relinking to same database.")
         return
     db = bw.Database(act.key[0])
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
@@ -179,7 +180,7 @@ def relink_activity_exchanges(act, old: str, other: bw.Database) -> tuple:
 
     (remainder, altered, unlinked_exchanges) = relink_exchanges(exchanges, candidates, duplicates)
     db.process()
-    print(
+    log.info(
         "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
             db.name, altered, old, other.name
         )

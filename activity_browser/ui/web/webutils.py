@@ -4,7 +4,6 @@ import os
 
 # type "localhost:3999" in Chrome for DevTools of AB web content
 from activity_browser.utils import get_base_path
-
 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '3999'
 
 

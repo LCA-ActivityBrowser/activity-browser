@@ -9,6 +9,7 @@ from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
+from ...logger import log
 
 
 class CSList(QtWidgets.QComboBox):
@@ -128,7 +129,7 @@ class CSActivityTable(CSGenericTable):
         event.accept()
         source = event.source()
         if getattr(event.source(), "technosphere", False):
-            print('Dropevent from:', source)
+            log.info('Dropevent from:', source)
             self.model.include_activities(
                 {source.get_key(p): 1.0} for p in source.selectedIndexes()
             )

@@ -10,7 +10,7 @@ from stats_arrays import MCRandomNumberGenerator
 from collections import defaultdict
 
 from .manager import MonteCarloParameterManager
-
+from ..logger import log
 
 class MonteCarloLCA(object):
     """A Monte Carlo LCA for multiple reference flows and methods loaded from a calculation setup."""
@@ -228,7 +228,7 @@ class MonteCarloLCA(object):
                     self.lca.lcia_calculation()
                     self.results[iteration, row, col] = self.lca.score
 
-        print('Monte Carlo LCA: finished {} iterations for {} reference flows and {} methods in {} seconds.'.format(
+        log.info('Monte Carlo LCA: finished {} iterations for {} reference flows and {} methods in {} seconds.'.format(
             iterations,
             len(self.func_units),
             len(self.methods),
@@ -254,10 +254,10 @@ class MonteCarloLCA(object):
 
         if act_key:
             act_index = self.activity_index.get(act_key)
-            print('Activity key provided:', act_key, act_index)
+            log.info('Activity key provided:', act_key, act_index)
         if method:
             method_index = self.method_index.get(method)
-            print('Method provided', method, method_index)
+            log.info('Method provided', method, method_index)
 
         if not act_key and not method:
             return self.results
@@ -266,7 +266,7 @@ class MonteCarloLCA(object):
         elif method and not act_key:
             return np.squeeze(self.results[:, :, method_index])
         elif method and act_key:
-            print(act_index, method_index)
+            log.info(act_index, method_index)
             return np.squeeze(self.results[:, act_index, method_index])
 
     def get_results_dataframe(self, act_key=None, method=None, labelled=True):
@@ -317,7 +317,7 @@ class MonteCarloLCA(object):
 def perform_MonteCarlo_LCA(project='default', cs_name=None, iterations=10):
     """Performs Monte Carlo LCA based on a calculation setup and returns the
     Monte Carlo LCA object."""
-    print('-- Monte Carlo LCA --\n Project:', project, 'CS:', cs_name)
+    log.info('-- Monte Carlo LCA --\n Project:', project, 'CS:', cs_name)
     bw.projects.set_current(project)
 
     # perform Monte Carlo simulation
@@ -330,14 +330,14 @@ if __name__ == "__main__":
     mc = perform_MonteCarlo_LCA(project='ei34', cs_name='kraft paper', iterations=15)
 
     # test the get_results_by() method
-    print('\nTesting the get_results_by() method')
+#    print('\nTesting the get_results_by() method')
     act_key = mc.activity_keys[0]
     method = mc.methods[0]
-    print(mc.get_results_by(act_key=act_key, method=method))
+#    print(mc.get_results_by(act_key=act_key, method=method))
     #    print(mc.get_results_by(act_key=act_key, method=None))
     #    print(mc.get_results_by(act_key=None, method=method))
     #    print(mc.get_results_by(act_key=None, method=None))
 
     # testing the dataframe output
-    print(mc.get_results_dataframe(method=mc.methods[0]))
-    print(mc.get_results_dataframe(act_key=mc.activity_keys[0]))
+#    print(mc.get_results_dataframe(method=mc.methods[0]))
+#    print(mc.get_results_dataframe(act_key=mc.activity_keys[0]))

@@ -7,6 +7,7 @@ import re
 from activity_browser.bwutils import commontasks as bc
 from ...settings import ab_settings
 from ...signals import signals
+from ...logger import log
 
 
 class SettingsWizard(QtWidgets.QWizard):
@@ -30,7 +31,7 @@ class SettingsWizard(QtWidgets.QWizard):
         if field and field != current_bw_dir:
             ab_settings.custom_bw_dir = field
             ab_settings.current_bw_dir = field
-            print("Saved startup brightway directory as: ", field)
+            log.info("Saved startup brightway directory as: ", field)
 
         # project
         field_project = self.field("startup_project")
@@ -38,13 +39,13 @@ class SettingsWizard(QtWidgets.QWizard):
         if field_project and field_project != current_startup_project:
             new_startup_project = field_project
             ab_settings.startup_project = new_startup_project
-            print("Saved startup project as: ", new_startup_project)
+            log.info("Saved startup project as: ", new_startup_project)
 
         ab_settings.write_settings()
         signals.switch_bw2_dir_path.emit(field)
 
     def cancel(self):
-        print("Going back to before settings were changed.")
+        log.info("Going back to before settings were changed.")
         if bw.projects._base_data_dir != self.last_bwdir:
             signals.switch_bw2_dir_path.emit(self.last_bwdir)
             signals.change_project.emit(self.last_project)  # project changes only if directory is changed
@@ -220,7 +221,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         if self.project_names:
             self.startup_project_combobox.addItems(self.project_names)
         else:
-            print("Warning: No projects found in this directory.")
+            log.warning("No projects found in this directory.")
 #            return
         if ab_settings.startup_project in self.project_names:
             self.startup_project_combobox.setCurrentText(ab_settings.startup_project)

@@ -2,7 +2,7 @@
 from PySide2 import QtWidgets
 
 from ...signals import signals
-
+from ...logger import log
 
 class ABTab(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
@@ -40,7 +40,7 @@ class ABTab(QtWidgets.QTabWidget):
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
             if self.indexOf(tab) != -1:
-                print("-hiding tab:", tab_name)
+                log.info("-hiding tab:", tab_name)
                 tab.setVisible(False)
                 # Only explicitly alter the tab index if we're hiding the
                 # current tab itself.
@@ -52,7 +52,7 @@ class ABTab(QtWidgets.QTabWidget):
         """Makes existing tab visible."""
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
-            print("+showing tab:", tab_name)
+            log.info("+showing tab:", tab_name)
             tab.setVisible(True)
             self.addTab(tab, tab_name)
             self.select_tab(tab)
@@ -63,15 +63,12 @@ class ABTab(QtWidgets.QTabWidget):
         if len(tab_names) == 1:
             return tab_names[0]
         else:
-            print("Warning: found", len(tab_names), "occurences of this object.")
+            log.warning("found", len(tab_names), "occurences of this object.")
 
     def hide_when_empty(self):
         """Show tab if it has sub-tabs (not empty) or hide if it has no sub-tabs (empty)."""
-        # print("\nChecking for empty tabs:")
         for tab_name, tab in self.tabs.items():
-            # print("Tab:", self.get_tab_name(tab), "...")
             if hasattr(tab, "tabs"):
-                # print("Subtabs:", tab.tabs.keys())
                 if not tab.tabs:
                     self.hide_tab(tab_name)
                 # else:  # leads to strange behaviour of setCurrentIndex/select_tab
@@ -81,7 +78,6 @@ class ABTab(QtWidgets.QTabWidget):
         """Close tab by index."""
         widget = self.widget(index)
         tab_name = self.get_tab_name(widget)
-        # print("Closing tab:", tab_name)
         if widget in self.tabs.values():
             del self.tabs[tab_name]
             widget.deleteLater()

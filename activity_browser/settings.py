@@ -10,6 +10,7 @@ import appdirs
 import brightway2 as bw
 
 from .signals import signals
+from .logger import log
 
 
 class BaseSettings(object):
@@ -236,7 +237,7 @@ class ProjectSettings(BaseSettings):
         """ On switching project, attempt to read the settings for the new
         project.
         """
-        print("Reset project settings directory to:", bw.projects.dir)
+        log.info("Reset project settings directory to:", bw.projects.dir)
         self.settings_file = os.path.join(bw.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects

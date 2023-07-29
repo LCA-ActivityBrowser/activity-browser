@@ -7,7 +7,7 @@ import openpyxl
 import pandas as pd
 
 from .utils import SUPERSTRUCTURE
-
+from ...logger import log
 
 def convert_tuple_str(x):
     try:
@@ -21,7 +21,7 @@ def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
         wb = openpyxl.load_workbook(filename=document_path, read_only=True)
         return wb.sheetnames
     except UnicodeDecodeError as e:
-        print("Given document uses an unknown encoding: {}".format(e))
+        log.error("Given document uses an unknown encoding: {}".format(e))
 
 def get_header_index(document_path: Union[str, Path], import_sheet: int):
     """Retrieves the line index for the column headers, will raise an
