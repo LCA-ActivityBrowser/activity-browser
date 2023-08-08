@@ -144,18 +144,28 @@ def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_activities_from_keys(df: pd.DataFrame, db: str = bw.config.biosphere) -> pd.DataFrame:
+    """
+    Uses the BW SQL database to generate a list of Activities from the input dataframe.
+    Returns a pandas dataframe that contains any keys that do not identify to an Activity in BW.
+
+    parameters
+    ----------
+    df: pandas dataframe for a scenario
+
+    db: the database name to check the Activities from the dataframe to
+    """
     data_f = df.loc[(df['from database'] == db)]
     data_t = df.loc[(df['to database'] == db)]
     flows = set()
     if not data_f.empty:
-        f_db, f_keys = zip(*data_f.loc[:, 'from key'])#.apply(set, axis=0))
+        f_db, f_keys = zip(*data_f.loc[:, 'from key'])# extract just the key, avoiding the database
         fqry = (ActivityDataset
                 .select(ActivityDataset.code, ActivityDataset.database)
                 .where((ActivityDataset.database==db) &
-                    (ActivityDataset.code.in_(set(f_keys)))).namedtuples())
+                    (ActivityDataset.code.in_(set(f_keys)))).namedtuples()) # produces an iterator for the activities
         flows.update(set(map(lambda row: (row.database, row.code), fqry.iterator())))
     if not data_t.empty:
-        t_db, t_keys = zip(*data_t.loc[:, 'to key'])#.apply(set, axis=0))
+        t_db, t_keys = zip(*data_t.loc[:, 'to key'])# look at the above code block
         tqry = (ActivityDataset
              .select(ActivityDataset.code, ActivityDataset.database)
              .where((ActivityDataset.database==db) &
@@ -164,6 +174,7 @@ def get_activities_from_keys(df: pd.DataFrame, db: str = bw.config.biosphere) ->
         flows.update(set(map(lambda row: (row.database, row.code), tqry.iterator())))
     absent = pd.concat([data_f.loc[~(data_f['from key'].isin(flows)) & (data_f['from database'] == db)],
                         data_t.loc[~(data_t['to key'].isin(flows)) & (data_t['to database'] == db)]], ignore_index=False, axis=0)
+    # absent includes those exchanges where one of the keys was not found in the respective database
     return absent
 
 

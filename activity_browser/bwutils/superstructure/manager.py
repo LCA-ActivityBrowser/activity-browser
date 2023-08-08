@@ -132,6 +132,17 @@ class SuperstructureManager(object):
         """Iterate through the dataframes, filling data into the combined
         dataframe with duplicate indexes being resolved using a 'last one wins'
         logic.
+
+        parameters
+        ----------
+        data: A List of dataframes, each dataframe corresponding to a dataframe from a single scenario difference file
+
+        index: The combined Multi-index for the final merged dataframe
+
+        cols: A Multi-index object that contains all of the levels (scenario names) from the different scenario files)
+                this is used to create a combined set of scenario names
+
+        skip_checks: a boolean that triggers the use of duplicate checks (not required when removing scenario files)
         """
         def combine(one, two):
             """ Should hopefully provide a failsafe approach to combining the different scenario combinations,
@@ -162,6 +173,20 @@ class SuperstructureManager(object):
 
     @staticmethod
     def addition_combine_frames(data: List[pd.DataFrame], index: pd.MultiIndex, cols: pd.Index, skip_checks: bool = False) -> pd.DataFrame:
+        """
+        Iterates through the combined dataframes to produce a single merged dataframe where duplicates are resolved
+        with a "last one wins" approach
+
+        parameters
+        ----------
+        data: list of input dataframes from the scenario difference files
+
+        index: pandas Multi-Index used to create the x-index from the merged indexes of the data input
+
+        cols: the list of scenario columns from the scenario difference files
+
+        skip_checks: a simple boolean used to avoid the duplicate checks (when removing a scenario file)
+        """
         columns = data.columns if isinstance(data, pd.DataFrame) else data[0].columns
         df = pd.DataFrame([], index=index, columns=columns)
         if not skip_checks:
@@ -293,7 +318,7 @@ class SuperstructureManager(object):
          If the keys cannot be found in the available databases then an Exception is
          raised
 
-         Input
+         parameters
          ------
          df: the input dataframe containing scenario data with exchanges that need to be
          checked for the presence of a key
@@ -315,9 +340,11 @@ class SuperstructureManager(object):
         """Checks all process keys in the scenario file and does not provide alternative keys based on exchange
         metadata.
 
-        Input:
+        parameters
         -------
-        df: the dataframe with process keys that need to be verified"""
+        df: the dataframe with process keys that need to be verified
+
+        """
         dbs = set(df.loc[:, 'from database']).union(df.loc[:, 'to database'])
         df_ = pd.DataFrame({}, columns=df.columns)
         for db in dbs:
@@ -340,6 +367,12 @@ class SuperstructureManager(object):
         Checks three fields to identify whether a scenario difference file contains duplicate exchanges:
         'from key', 'to key' and 'flow type'
         Produces a warning
+
+        parameters
+        data: a pandas dataframe or list of pandas dataframes that will be checked for containing duplicates
+
+        index: nominally required, but probably best to avoid overwriting the default values. Used to indicate the
+            columns to check for duplication of an exchange
         """
         if isinstance(data, pd.DataFrame):
             return SuperstructureManager._check_duplicate(data, index)
@@ -347,8 +380,6 @@ class SuperstructureManager(object):
             # Each time the frames are gathered into a list
             # and we are always checking the last file
             # So only comparisons with the last file are required
-            # TODO Needs to go through each dataframe and drop duplicates
-            # TODO Not across all dataframes
             count = 1
             df = data[-count]
             duplicated = {}
@@ -377,7 +408,8 @@ class SuperstructureManager(object):
     @staticmethod
     def _check_duplicates(dfp: pd.DataFrame, pdf: pd.DataFrame,
                           index: list = ['to key', 'from key', 'flow type']) -> pd.DataFrame:
-        # First save the original index and create a new one that can help the user identify problems in their files
+        """ NOT TO BE USED OUTSIDE OF CALLING METHOD check_duplicates """
+        # First save the original index and create a new one that can help the user identify duplicates in their files
         d_idx = dfp.index
         dfp.index = pd.Index([str(i) for i in range(dfp.shape[0])])
         p_idx = pdf.index
@@ -391,6 +423,7 @@ class SuperstructureManager(object):
 
     @staticmethod
     def _check_duplicate(data: pd.DataFrame, index: list = ['to key', 'from key', 'flow type']) -> pd.DataFrame:
+        """ NOT TO BE USED OUTSIDE OF CALLING METHOD check_duplicates """
         df = data.copy()
         df.index = pd.Index([str(i) for i in range(df.shape[0])])
         duplicates = df.duplicated(index, keep=False)

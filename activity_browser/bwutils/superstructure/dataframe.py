@@ -92,33 +92,47 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     bw_dbs : a list of Brightway databases held locally
     """
     def exchange_replace_database(ds: pd.Series, replacements: dict, critical: list, idx: pd.Index) -> tuple:
-        """  For a row in the scenario dataframe check the databases involved for whether replacement is required.
+        """
+            For a row in the scenario dataframe check the databases involved for whether replacement is required.
             If so use the key-value pair within the replacements dictionary to replace the dictionary names
             and obtain the correct activity key
+
+            Parameters
+            ----------
+            ds: dataseries from a pandas dataframe containing the data from the scenario difference file
+
+            replacements: a key -- value pair containing the old -- new database names
+
+            critical: an initially empty list that is filled with dataseries that fail in the relinking process
+
+            idx: the index for the dataseries object, in the "parent" dataframe
         """
         ds_ = ds.copy()
-        for i, fields in enumerate([FROM_FIELDS, TO_FIELDS]):
+        for i, field in enumerate([FROM_FIELDS, TO_FIELDS]):
             db_name = ds_[['from database', 'to database'][i]]
-            # check to see whether we can skip the activity, or not
+            # check for the relevance of the particular field
             if db_name not in replacements.keys():
                 continue
-            # if we can't link the activity key then we try to find it
             try:
-                if isinstance(ds_[fields[1]], float):
-                    key = metadata[(metadata[DB_FIELDS[0]] == ds_[fields[0]]) &
-                                                (metadata[DB_FIELDS[2]] == ds_[fields[2]]) &
-                                                (metadata[DB_FIELDS[3]] == ds_[fields[3]])].copy()
+                # try to find the matching records (after loaded into the metadata)
+                if isinstance(ds_[field[1]], float):
+                    # try to find a technosphere record
+                    key = metadata[(metadata[DB_FIELDS[0]] == ds_[field[0]]) &
+                                                (metadata[DB_FIELDS[2]] == ds_[field[2]]) &
+                                                (metadata[DB_FIELDS[3]] == ds_[field[3]])].copy()
                 else:
-                    if isinstance(ds_[fields[1]], str):
-                        categories = ast.literal_eval(ds_[fields[1]])
+                    # try to find a biosphere record
+                    if isinstance(ds_[field[1]], str):
+                        categories = ast.literal_eval(ds_[field[1]])
                     else:
-                        categories = ds_[fields[1]]
-                    key = metadata[(metadata[DB_FIELDS[0]] == ds_[fields[0]]) &
+                        categories = ds_[field[1]]
+                    key = metadata[(metadata[DB_FIELDS[0]] == ds_[field[0]]) &
                                     (metadata[DB_FIELDS[1]] == categories)].copy()
+                # replace the records that can be found
                 for j, col in enumerate([['from key', 'from database'], ['to key', 'to database']][i]):
                     ds_.loc[col] = (key['database'][0], key['code'][0]) if j == 0 else key['database'][0]
-            # if the key is not discoverable then we add an exception that we can handle later
             except Exception as e:
+                # if the record cannot be found add an exception (to a maximum of five)
                 if len(critical['from database']) <= 5:
                     critical['index'].append(idx)
                     critical['from database'].append(ds_['from database'])
@@ -127,7 +141,11 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                     critical['to activity name'].append(ds_['to activity name'])
         return ds_
 
+    # Create a new database from those records in the scenario files that include exchanges where a replacement database
+    # is required
     df = df_.loc[(df_['from database'].isin(replacements.keys())) | (df_['to database'].isin(replacements.keys()))].copy(True)
+
+    # A LIST OF FIELDS FOR ITERATION
     FROM_FIELDS = pd.Index([
         "from activity name", "from categories",
         "from reference product", "from location",
@@ -136,21 +154,22 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                           "to reference product", "to location"
     ])
     DB_FIELDS = ['name', 'categories', 'reference product', 'location']
+
+    # setting up the variables in case some exchanges cannot be relinked
     critical = {'index': [], 'from database': [], 'from activity name': [], 'to database': [], 'to activity name': []}  # To be used in the exchange_replace_database internal method scope
     changes = ['from database', 'from key', 'to database', 'to key']
-    # this variable will accumulate the activity names and databases for the activities in both
-    # directions
-    # for those databases not loaded into the metadata load them
+
+    # Load all required databases into the metadata
     AB_metadata.add_metadata(replacements.values())
     metadata = AB_metadata.dataframe
 
-    # actual replacement of the activities in the main method
     for idx in df.index:
         df.loc[idx, changes] = exchange_replace_database(df.loc[idx, :], replacements, critical, idx)[changes]
-        sys.stdout.write("\r{}".format(idx/df.shape[0]))
+        sys.stdout.write("\r{}".format(idx/df.shape[0]))# TODO check adaptation for the logger
         sys.stdout.flush()
-    # prepare a warning message in case unlinkable activities were found in the scenario dataframe
+
     if critical['from database']:
+        # prepare a warning message in case unlinkable activities were found in the scenario dataframe
         QApplication.restoreOverrideCursor()
         if len(critical['from database']) > 1:
             msg = f"Multiple activities could not be \"relinked\" to the local database.<br> The first five are provided. " \
