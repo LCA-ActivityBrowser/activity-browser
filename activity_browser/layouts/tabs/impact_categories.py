@@ -169,7 +169,8 @@ class CharacterizationFactorsTab(ABTab):
             full_tab_label = ' '.join(method)
             label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
             self.tabs[method] = new_tab
-            self.addTab(new_tab, label)
+            index = self.addTab(new_tab, label)
+            self.setTabToolTip(index, full_tab_label)
 
         self.select_tab(self.tabs[method])
         signals.show_tab.emit("Characterization Factors")
