@@ -103,6 +103,13 @@ class BaseParameterModel(EditablePandasModel):
         param = self.get_parameter(proxy)
         signals.parameter_uncertainty_modified.emit(param, uc.EMPTY_UNCERTAINTY)
 
+    def handle_double_click(self, proxy: QModelIndex) -> None:
+        column = proxy.column()
+        if self._dataframe.columns[column] in BaseParameterModel.UNCERTAINTY:
+            self.modify_uncertainty(proxy)
+        elif self._dataframe.columns[column] == 'name':
+            self.handle_parameter_rename(proxy)
+
 
 class ProjectParameterModel(BaseParameterModel):
     COLUMNS = ["name", "amount", "formula", "comment"]
