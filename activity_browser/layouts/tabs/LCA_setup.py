@@ -282,7 +282,7 @@ class ScenarioImportPanel(BaseRightTab):
         for an example</p>
         <p>2. <b>Extend scenarios</b>: scenarios from file 2 extend scenarios of file 1 
         (only possible if scenario names are identical in all files, e.g. everywhere <i>S1, S2</i>).
-        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_addtion_combinations.png"> here
+        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_addition_combinations.png"> here
         </a> for an example</p> 
         """
 
