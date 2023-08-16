@@ -26,7 +26,7 @@ def test_wizard_fail(qtbot):
 
 
 @pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
-def test_uncertainty_wizard_simple(qtbot, bw2test, capsys):
+def test_uncertainty_wizard_simple(qtbot, bw2test, caplog):
     """Use extremely simple text to open the wizard and go to all the pages."""
     param = ProjectParameter.create(name="test1", amount=3)
     wizard = UncertaintyWizard(param, None)
@@ -42,7 +42,7 @@ def test_uncertainty_wizard_simple(qtbot, bw2test, capsys):
         wizard.type.pedigree.click()
 
     # Pedigree is empty, so complaint is issued.
-    captured = capsys.readouterr()
+    captured = caplog.text()
     assert "Could not extract pedigree data" in captured.out
 
     # Now go back for giggles.

@@ -1,6 +1,7 @@
 from PySide2.QtCore import Slot
 import logging
-import os
+import os, time
+import random, string
 
 
 from .signals import signals
@@ -12,22 +13,42 @@ class Logger(logging.Logger):
 
     Returns the logging device
     """
+    file_handler = None
     def __init__(self, name: str):
         super().__init__(name)
         self.setLevel(logging.INFO)
-        file_path = os.getcwd() + name + '.log'
 
         self.stream_handler = logging.StreamHandler()
         self.stream_handler.setLevel(logging.INFO)
-        self.file_handler = logging.FileHandler(file_path)
-        self.file_handler.setLevel(logging.WARNING)
+        # Threads have their own Logger, but these refer to the sessions log file
+        if Logger.file_handler is None:
+            dir_path = os.getcwd() + "/.logs"
+            os.makedirs(dir_path, exist_ok=True)
+            Logger.cleanDirectory(dir_path)
+            name = name + "_" + Logger.uniqueString(8) + '.log'
+            file_path = dir_path + "/" + name
+            Logger.file_handler = logging.FileHandler(file_path)
+        Logger.file_handler.setLevel(logging.WARNING)
 
         self.log_format = logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s")
         self.stream_handler.setFormatter(self.log_format)
-        self.file_handler.setFormatter(self.log_format)
+        Logger.file_handler.setFormatter(self.log_format)
 
         self.addHandler(self.stream_handler)
-        self.addHandler(self.file_handler)
+        self.addHandler(Logger.file_handler)
+
+    @staticmethod
+    def uniqueString(n: int) -> str:
+        """Returns a random string of length n, to avoid issues with non-unique log files"""
+        return ''.join(random.choice(string.ascii_letters) for i in range(n))
+
+    @staticmethod
+    def cleanDirectory(dirpath: str) -> None:
+        time_limit = time.time() - 24*3600*7
+        for file in os.listdir(dirpath):
+            filepath = dirpath + '/' + file
+            if os.stat(filepath).st_mtime < time_limit:
+                os.remove(filepath)
 
     @classmethod
     def getLogger(cls, name: str = None):
