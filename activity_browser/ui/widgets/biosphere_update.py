@@ -8,10 +8,9 @@ from bw2io.data import (
 )
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
-import logging
 
 from ...signals import signals
-from ...logger import Logger, ABLogHandler
+from ...logger import log
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
@@ -58,17 +57,11 @@ class UpdateBiosphereThread(QtCore.QThread):
         super().__init__(parent)
         self.total_patches = len(self.PATCHES)
 
-        # logging management for safety
-        self.log = Logger('Biosphere_worker')
-        self.handler = ABLogHandler()
-        self.handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s"))
-        self.log.addHandler(self.handler)
-
     def run(self):
         try:
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)
                 patch()
         except ValidityError as e:
-            self.log.error("Could not patch biosphere: {}".format(str(e)))
+            log.error("Could not patch biosphere: {}".format(str(e)))
             self.exit(1)

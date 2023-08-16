@@ -22,7 +22,7 @@ from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
-from ...logger import log, Logger, ABLogHandler
+from ...logger import log
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -680,12 +680,6 @@ class MainWorkerThread(QtCore.QThread):
         self.use_local = None
         self.relink = {}
 
-        # log management for safety
-        self.log = Logger("Import_worker")
-        self.handler = ABLogHandler()
-        self.handler.setFormatter(logging.Formatter('%(module)s - %(levelname)s - %(asctime)s - %(message)s'))
-        self.log.addHandler(self.handler)
-
     def update(self, db_name: str, archive_path=None, datasets_path=None,
                use_forwast=False, use_local=False, relink=None) -> None:
         self.db_name = db_name
@@ -831,7 +825,7 @@ class MainWorkerThread(QtCore.QThread):
                 # With the changes to the ABExcelImporter and ABPackage classes
                 # this should not really trigger for data exported from AB.
                 if db.name != self.db_name:
-                    self.log.warning("renaming database '{}' to '{}', parameters lost.".format(
+                    log.warning("renaming database '{}' to '{}', parameters lost.".format(
                         db.name, self.db_name))
                     db.rename(self.db_name)
                 import_signals.db_progress.emit(1, 1)
@@ -857,7 +851,7 @@ class MainWorkerThread(QtCore.QThread):
             )
         except StrategyError as e:
             # Excel import failed because extra databases were found, relink
-            self.log.error("Could not link exchanges, here are 10 examples.:") # THREAD UNSAFE FUNCTIONS
+            log.error("Could not link exchanges, here are 10 examples.:") # THREAD UNSAFE FUNCTIONS
 #            pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
@@ -878,7 +872,7 @@ class MainWorkerThread(QtCore.QThread):
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
             del bw.databases[self.db_name]
-            self.log.info(f'Database {self.db_name} deleted!')
+            log.info(f'Database {self.db_name} deleted!')
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):

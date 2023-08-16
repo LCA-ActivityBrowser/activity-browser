@@ -5,7 +5,7 @@ import random, string
 
 
 from .signals import signals
-class Logger(logging.Logger):
+class ABLogger(object):
     """
     Creates two logging streams, one to the console (with >=INFORMATION logs)
     the second to a file specified with the name argument (with >=WARNING logs)
@@ -14,28 +14,26 @@ class Logger(logging.Logger):
     Returns the logging device
     """
     file_handler = None
-    def __init__(self, name: str):
-        super().__init__(name)
-        self.setLevel(logging.INFO)
+    def __init__(self, name: str): # TODO use the logging.getABLogger() method
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.INFO)
 
+        dir_path = os.getcwd() + "/.logs"
+        os.makedirs(dir_path, exist_ok=True)
+        ABLogger.cleanDirectory(dir_path)
+        name = name + "_" + ABLogger.uniqueString(8) + '.log'
+        file_path = dir_path + "/" + name
         self.stream_handler = logging.StreamHandler()
         self.stream_handler.setLevel(logging.INFO)
-        # Threads have their own Logger, but these refer to the sessions log file
-        if Logger.file_handler is None:
-            dir_path = os.getcwd() + "/.logs"
-            os.makedirs(dir_path, exist_ok=True)
-            Logger.cleanDirectory(dir_path)
-            name = name + "_" + Logger.uniqueString(8) + '.log'
-            file_path = dir_path + "/" + name
-            Logger.file_handler = logging.FileHandler(file_path)
-        Logger.file_handler.setLevel(logging.WARNING)
+        ABLogger.file_handler = logging.FileHandler(file_path)
+        ABLogger.file_handler.setLevel(logging.WARNING)
 
         self.log_format = logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s")
         self.stream_handler.setFormatter(self.log_format)
-        Logger.file_handler.setFormatter(self.log_format)
+        ABLogger.file_handler.setFormatter(self.log_format)
 
-        self.addHandler(self.stream_handler)
-        self.addHandler(Logger.file_handler)
+        self.logger.addHandler(self.stream_handler)
+        self.logger.addHandler(ABLogger.file_handler)
 
     @staticmethod
     def uniqueString(n: int) -> str:
@@ -50,12 +48,7 @@ class Logger(logging.Logger):
             if os.stat(filepath).st_mtime < time_limit:
                 os.remove(filepath)
 
-    @classmethod
-    def getLogger(cls, name: str = None):
-        assert name is not None
-        return cls(name)
-
-    def message(self, *args):
+    def message(self, *args) -> str:
         _str = ''
         for arg in args:
             if not isinstance(arg, str):
@@ -64,20 +57,32 @@ class Logger(logging.Logger):
                 _str += arg
         return _str
 
-    def info(self, msg , *args):
+    def info(self, msg , *args) -> None:
         if args:
             msg = self.message(msg, *args)
-        super().info(msg)
+        self.logger.info(msg)
 
-    def warning(self, msg, *args):
+    def warning(self, msg, *args) -> None:
         if args:
             msg = self.message(msg, *args)
-        super().warning(msg)
+        self.logger.warning(msg)
 
-    def error(self, msg, *args):
+    def error(self, msg, *args) -> None:
         if args:
             msg = self.message(msg, *args)
-        super().error(msg)
+        self.logger.error(msg)
+
+    def addHandler(self, handler) -> None:
+        self.logger.addHandler(handler)
+
+    def propagate(self, true: bool) -> None:
+        self.logger.propagate = true
+
+    def setLevel(self, level, root: bool = False) -> None:
+        if root:
+            self.logger.root.setLevel(level)
+        else:
+            self.logger.setLevel(level)
 
 
 class ABLogHandler(logging.Handler):
@@ -94,5 +99,7 @@ class ABLogHandler(logging.Handler):
 
 handler = ABLogHandler()
 handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s"))
-log = Logger('ab_logs')
+log = ABLogger('ab_logs')
 log.addHandler(handler)
+log.addHandler(logging.NullHandler())
+log.propagate(True)

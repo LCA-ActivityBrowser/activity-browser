@@ -8,7 +8,6 @@ from collections import namedtuple
 import traceback
 from typing import List, Optional, Union
 import pandas as pd
-import logging
 
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
@@ -36,7 +35,7 @@ from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from ...ui.web import SankeyNavigatorWidget
 from .base import BaseRightTab
-from ...logger import Logger, ABLogHandler
+from ...logger import log
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
     vlayout = QVBoxLayout()
@@ -1546,21 +1545,17 @@ class MonteCarloWorkerThread(QtCore.QThread):
     So this is for future reference in case this issue is solved... """
 
     def __init__(self):
-        # for managing the logs for thread safety
-        self.log = logging.getLogger("MC_worker")
-        self.handler = ABLogHandler()
-        self.handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s"))
-        self.log.addHandler(self.handler)
+        pass
 
     def set_mc(self, mc, iterations=20):
         self.mc = mc
         self.iterations = iterations
 
     def run(self):
-        self.log.info('Starting new Worker Thread. Iterations:', self.iterations)
+        log.info('Starting new Worker Thread. Iterations:', self.iterations)
         self.mc.calculate(iterations=self.iterations)
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
-        self.log.info('in thread {}'.format(QtCore.QThread.currentThread()))
+        log.info('in thread {}'.format(QtCore.QThread.currentThread()))
         signals.monte_carlo_ready.emit(self.mc.cs_name)
 
 

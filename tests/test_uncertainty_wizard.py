@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import logging
 import sys
+from activity_browser.logger import log
+
 
 from bw2data.parameters import ProjectParameter
 import numpy as np
@@ -17,6 +20,9 @@ from activity_browser.signals import signals
 Mess around with the uncertainty wizard.
 """
 
+log.setLevel(logging.INFO, True)
+log.propagate(True)
+
 @pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_wizard_fail(qtbot):
     """Can't create a wizard if no uncertainty interface exists."""
@@ -28,6 +34,7 @@ def test_wizard_fail(qtbot):
 @pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_uncertainty_wizard_simple(qtbot, bw2test, caplog):
     """Use extremely simple text to open the wizard and go to all the pages."""
+    caplog.set_level(logging.INFO)
     param = ProjectParameter.create(name="test1", amount=3)
     wizard = UncertaintyWizard(param, None)
     qtbot.addWidget(wizard)
@@ -42,8 +49,8 @@ def test_uncertainty_wizard_simple(qtbot, bw2test, caplog):
         wizard.type.pedigree.click()
 
     # Pedigree is empty, so complaint is issued.
-    captured = caplog.text()
-    assert "Could not extract pedigree data" in captured.out
+    captured = caplog.text
+    assert "Could not extract pedigree data" in captured
 
     # Now go back for giggles.
     with qtbot.waitSignal(wizard.currentIdChanged, timeout=100):
