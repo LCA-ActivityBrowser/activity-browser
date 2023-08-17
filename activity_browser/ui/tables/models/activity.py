@@ -15,7 +15,13 @@ from activity_browser.bwutils import (
 )
 from activity_browser.signals import signals
 from .base import EditablePandasModel
-from ....logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class BaseExchangeModel(EditablePandasModel):
     COLUMNS = []

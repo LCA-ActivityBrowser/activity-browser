@@ -7,7 +7,12 @@ import re
 from activity_browser.bwutils import commontasks as bc
 from ...settings import ab_settings
 from ...signals import signals
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger)
 
 
 class SettingsWizard(QtWidgets.QWizard):

@@ -10,7 +10,12 @@ from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 from ...signals import signals
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger)
 
 
 class UncertaintyWizard(QtWidgets.QWizard):

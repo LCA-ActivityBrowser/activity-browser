@@ -12,7 +12,12 @@ import seaborn as sns
 
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
-from ..logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 # todo: sizing of the figures needs to be improved and systematized...

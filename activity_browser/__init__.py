@@ -9,8 +9,11 @@ from PySide2.QtWidgets import QApplication
 from .application import Application
 from .info import __version__
 from .plugin import Plugin
-from .logger import log
+import logging
+from .logger import ABHandler
 
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 # https://bugreports.qt.io/browse/QTBUG-87014
 # https://bugreports.qt.io/browse/QTBUG-85546

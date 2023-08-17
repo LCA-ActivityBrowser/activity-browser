@@ -8,7 +8,12 @@ import brightway2 as bw
 from bw2data import databases
 from bw2data.proxies import ActivityProxyBase
 from bw2data.project import ProjectDataset, SubstitutableDatabase
-from ..logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 

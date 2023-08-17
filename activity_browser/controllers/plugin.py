@@ -10,7 +10,13 @@ from PySide2.QtCore import QObject, Slot
 from ..ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 from ..signals import signals
 from ..settings import project_settings, ab_settings
-from ..logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class PluginController(QObject):
 
@@ -52,8 +58,7 @@ class PluginController(QObject):
             importlib.reload(plugin_lib)
             return plugin_lib.Plugin()
         except Exception as e:
-            log.error("Error: Import of plugin {} failed".format(name))
-            log.error(e, exc_info=True)
+            log.error("Error: Import of plugin {} failed".format(name), error=e)
 
     def remove_plugin(self, name):
         log.info("Removing plugin {}".format(name))

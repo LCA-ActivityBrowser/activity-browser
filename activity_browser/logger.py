@@ -1,39 +1,81 @@
 from PySide2.QtCore import Slot
 import logging
-import os, time
+import os, time, appdirs
 import random, string
 
-
 from .signals import signals
-class ABLogger(object):
+
+
+class ABHandler(object):
     """
     Creates two logging streams, one to the console (with >=INFORMATION logs)
     the second to a file specified with the name argument (with >=WARNING logs)
-    and attaches these to a logger.
+    and attaches these to a logger created in the calling modules.
 
-    Returns the logging device
+    Provides the formats and initialization procedures for the logging streams.
     """
+    log = None
+    file_path = None
+    stream_handler = None
     file_handler = None
-    def __init__(self, name: str): # TODO use the logging.getABLogger() method
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
+    qt_handler = None
 
-        dir_path = os.getcwd() + "/.logs"
+    def __init__(self, name: str = None):
+        self.module_name = name
+
+    @staticmethod
+    def initialize_with_logger(logger: logging.Logger):
+        """
+        Will initialize the handlers for the logging streams and check that the file handler
+        is properly setup before linking to the passed Logger object.
+
+        Parameters
+        ----------
+        logger: an object of type logging.Logger obtained in the calling module with getLogger()
+        """
+        name = logger.name + ABHandler.timestamp() + '.log'
+        dir_path = appdirs.user_log_dir('Activity-Browser', 'pylca')
         os.makedirs(dir_path, exist_ok=True)
-        ABLogger.cleanDirectory(dir_path)
-        name = name + "_" + ABLogger.uniqueString(8) + '.log'
-        file_path = dir_path + "/" + name
-        self.stream_handler = logging.StreamHandler()
-        self.stream_handler.setLevel(logging.INFO)
-        ABLogger.file_handler = logging.FileHandler(file_path)
-        ABLogger.file_handler.setLevel(logging.WARNING)
+        ABHandler.cleanDirectory(dir_path)
+        ABHandler.file_path = dir_path + "/" + name
+        ABHandler.stream_handler = logging.StreamHandler()
+        ABHandler.file_handler = logging.FileHandler(ABHandler.file_path)
 
-        self.log_format = logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s")
-        self.stream_handler.setFormatter(self.log_format)
-        ABLogger.file_handler.setFormatter(self.log_format)
+        log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s - ")
+        ABHandler.stream_handler.setFormatter(log_format)
+        ABHandler.file_handler.setFormatter(log_format)
 
-        self.logger.addHandler(self.stream_handler)
-        self.logger.addHandler(ABLogger.file_handler)
+        ABHandler.stream_handler.setLevel(logging.INFO)
+        ABHandler.file_handler.setLevel(logging.DEBUG)
+
+        ABHandler.qt_handler = ABLogHandler()
+        ABHandler.qt_handler.setFormatter(log_format)
+
+        return ABHandler.setup_with_logger(logger)
+
+    @classmethod
+    def setup_with_logger(cls, logger: logging.Logger = None, module: str = None):
+        """
+        Links the logger object to the different stream handlers. This avoids the process of
+        creating new handlers and should be the general method to call for linking the
+        logging.Logger objects.
+
+        Parameters
+        ----------
+        logger: an object of type logging.Logger requiring setup with logging.Handlers
+        """
+
+        ABHandler.log = logger
+        assert ABHandler.log is not None
+
+        ABHandler.log.addHandler(ABHandler.stream_handler)
+        ABHandler.log.addHandler(ABHandler.file_handler)
+        ABHandler.log.addHandler(ABHandler.qt_handler)
+        ABHandler.log.setLevel(logging.INFO)
+
+        if module is not None:
+            return ABHandler(module)
+        return ABHandler()
 
     @staticmethod
     def uniqueString(n: int) -> str:
@@ -41,8 +83,16 @@ class ABLogger(object):
         return ''.join(random.choice(string.ascii_letters) for i in range(n))
 
     @staticmethod
+    def timestamp() -> str:
+        """Returns a timestamped string, the format provided is:
+        day of the month _ month _ year - hour _ minute _ second"""
+        stmp = time.localtime()
+        return f"-{stmp.tm_mday}_{stmp.tm_mon}_{stmp.tm_year}-{stmp.tm_hour}_{stmp.tm_min}_{stmp.tm_sec}"
+
+    @staticmethod
     def cleanDirectory(dirpath: str) -> None:
-        time_limit = time.time() - 24*3600*7
+        """Cleans the Activity-Browser/log directory of all files older than 365 days"""
+        time_limit = time.time() - 24*3600*365
         for file in os.listdir(dirpath):
             filepath = dirpath + '/' + file
             if os.stat(filepath).st_mtime < time_limit:
@@ -57,32 +107,41 @@ class ABLogger(object):
                 _str += arg
         return _str
 
+    def debug(self, msg , *args) -> None:
+        ABHandler.log.debug(self.module_name + " == " + self.message(msg, *args))
+
     def info(self, msg , *args) -> None:
-        if args:
-            msg = self.message(msg, *args)
-        self.logger.info(msg)
+        ABHandler.log.info(self.module_name + " == " + self.message(msg, *args))
 
     def warning(self, msg, *args) -> None:
-        if args:
-            msg = self.message(msg, *args)
-        self.logger.warning(msg)
+        ABHandler.log.warning(self.module_name + " == " + self.message(msg, *args))
 
-    def error(self, msg, *args) -> None:
-        if args:
-            msg = self.message(msg, *args)
-        self.logger.error(msg)
+    def error(self, msg, *args, **kwargs) -> None:
+        """ Provides a wrapper for the Logger.error method. This is to keep the logging messages
+        consistent with previous practices. Exception handling is provided through the use of
+        kwargs
+        Parameters:
+            msg, *args: strings that form the logging message, multiple strings allowed
+            **kwargs: provided for the handling of stack traces, the two arguments taken here are:
+                error=''
+                exc_info=bool
+        """
+        ABHandler.log.error(self.module_name + " == " + self.message(msg, *args))
+
+        exc_info = True # TODO Move this error handling with the use of kwargs into a single error message
+        if kwargs and 'error' in kwargs:
+            if 'exc_info' in kwargs:
+                exc_info = kwargs['exc_info']
+            ABHandler.log.error(kwargs['error'], exc_info=exc_info)
 
     def addHandler(self, handler) -> None:
-        self.logger.addHandler(handler)
-
-    def propagate(self, true: bool) -> None:
-        self.logger.propagate = true
+        ABHandler.log.addHandler(handler)
 
     def setLevel(self, level, root: bool = False) -> None:
         if root:
-            self.logger.root.setLevel(level)
+            ABHandler.log.root.setLevel(level)
         else:
-            self.logger.setLevel(level)
+            ABHandler.log.setLevel(level)
 
 
 class ABLogHandler(logging.Handler):
@@ -97,9 +156,12 @@ class ABLogHandler(logging.Handler):
         signals.log.emit(msg)
 
 
-handler = ABLogHandler()
-handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s"))
-log = ABLogger('ab_logs')
-log.addHandler(handler)
-log.addHandler(logging.NullHandler())
-log.propagate(True)
+logger = logging.getLogger('ab_logs')
+log = ABHandler.initialize_with_logger(logger)
+
+#handler = ABLogHandler()
+#handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s"))
+#log = ABHandler('ab_logs')
+#log.addHandler(handler)
+#log.propagate = True
+#logging.setLoggerClass(ABHandler)

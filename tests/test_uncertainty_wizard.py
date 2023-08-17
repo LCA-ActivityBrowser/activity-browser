@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import sys
-from activity_browser.logger import log
 
 
 from bw2data.parameters import ProjectParameter
@@ -20,8 +19,10 @@ from activity_browser.signals import signals
 Mess around with the uncertainty wizard.
 """
 
+log = logging.getLogger('ab_logs')
+
 log.setLevel(logging.INFO, True)
-log.propagate(True)
+log.propagate = True
 
 @pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_wizard_fail(qtbot):

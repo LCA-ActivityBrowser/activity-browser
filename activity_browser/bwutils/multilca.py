@@ -11,7 +11,12 @@ ca = ContributionAnalysis()
 from .commontasks import wrap_text
 from .metadata import AB_metadata
 from .errors import ReferenceFlowValueError
-from ..logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class MLCA(object):

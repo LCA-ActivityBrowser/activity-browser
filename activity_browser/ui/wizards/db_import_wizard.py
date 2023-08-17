@@ -4,7 +4,6 @@ from pathlib import Path
 import subprocess
 import tempfile
 import zipfile
-import logging
 
 import eidl
 import requests
@@ -22,7 +21,12 @@ from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger)
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.

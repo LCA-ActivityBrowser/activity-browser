@@ -10,12 +10,17 @@ import appdirs
 import brightway2 as bw
 
 from .signals import signals
-from .logger import log
+import logging
+from .logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BaseSettings(object):
     """ Base Class for handling JSON settings files.
     """
+
     def __init__(self, directory: str, filename: str = None):
         self.data_dir = directory
         self.filename = filename or "default_settings.json"

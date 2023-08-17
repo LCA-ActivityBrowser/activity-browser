@@ -19,7 +19,12 @@ from ...ui.tables import (
 )
 from ...ui.widgets import ExcelReadDialog
 from .base import BaseRightTab
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 """
 Lifecycle of a calculation setup

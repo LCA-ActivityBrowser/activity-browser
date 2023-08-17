@@ -7,7 +7,13 @@ import openpyxl
 import pandas as pd
 
 from .utils import SUPERSTRUCTURE
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 def convert_tuple_str(x):
     try:

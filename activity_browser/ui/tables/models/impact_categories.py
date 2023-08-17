@@ -12,8 +12,13 @@ from PySide2.QtWidgets import QMessageBox
 
 from activity_browser.signals import signals
 from ...wizards import UncertaintyWizard
-from ....logger import log
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class MethodsListModel(DragPandasModel):

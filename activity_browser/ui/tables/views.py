@@ -9,11 +9,16 @@ from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, 
 from PySide2.QtGui import QKeyEvent, QDoubleValidator
 
 from ...settings import ab_settings
-from ...logger import log
 from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 from ..icons import qicons
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class ABDataFrameView(QTableView):

@@ -9,7 +9,13 @@ from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
 from ...signals import signals
 from ...bwutils.errors import ABError
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class LCAResultsTab(ABTab):
     """Tab that contains subtabs for each calculation setup."""

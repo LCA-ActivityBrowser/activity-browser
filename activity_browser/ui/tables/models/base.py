@@ -10,7 +10,13 @@ from PySide2.QtGui import QBrush
 
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.style import style_item
-from ....logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class PandasModel(QAbstractTableModel):
     """ Abstract pandas table model adapted from
@@ -30,10 +36,10 @@ class PandasModel(QAbstractTableModel):
         self.different_column_types = {}
 
     def rowCount(self, parent=None, *args, **kwargs):
-        return self._dataframe.shape[0]
+        return 0 if self._dataframe is None else self._dataframe.shape[0]
 
     def columnCount(self, parent=None, *args, **kwargs):
-        return self._dataframe.shape[1]
+        return 0 if self._dataframe is None else self._dataframe.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():

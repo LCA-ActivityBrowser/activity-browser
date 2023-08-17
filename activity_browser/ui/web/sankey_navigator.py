@@ -13,7 +13,12 @@ from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
 from ...signals import signals
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 # TODO:

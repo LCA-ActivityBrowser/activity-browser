@@ -14,7 +14,13 @@ from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
-from ....logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class BaseParameterModel(EditablePandasModel):
     COLUMNS = []

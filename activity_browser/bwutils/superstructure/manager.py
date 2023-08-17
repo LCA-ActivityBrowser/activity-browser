@@ -10,7 +10,12 @@ import brightway2 as bw
 from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_columns
 from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])

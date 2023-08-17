@@ -35,7 +35,13 @@ from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from ...ui.web import SankeyNavigatorWidget
 from .base import BaseRightTab
-from ...logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
     vlayout = QVBoxLayout()

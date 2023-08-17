@@ -7,7 +7,12 @@ from activity_browser.bwutils import commontasks as bc
 from activity_browser.settings import ab_settings
 from activity_browser.signals import signals
 from activity_browser.ui.widgets import TupleNameDialog, ProjectDeletionDialog
-from ..logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class ProjectController(QObject):
@@ -226,13 +231,13 @@ class ImpactCategoryController(QObject):
             signals.new_method.emit()
 
     @Slot(tuple, name="deleteMethod")
-    def delete_method(self, method: tuple, level:str = None) -> None:
+    def delete_method(self, method_: tuple, level:str = None) -> None:
         """Call delete on the (first) selected method and present confirmation dialog."""
         if level is not None and level != 'leaf':
-            methods = [bw.Method(mthd) for mthd in bw.methods if set(method).issubset(mthd)]
+            methods = [bw.Method(mthd) for mthd in bw.methods if set(method_).issubset(mthd)]
         else:
-            methods = [bw.Method(method)]
-        method = bw.Method(method)
+            methods = [bw.Method(method_)]
+        method = bw.Method(method_)
         dialog = QtWidgets.QMessageBox()
         dialog.setWindowTitle("Are you sure you want to delete this method?")
         dialog.setText("You are about to PERMANENTLY delete the following Impact Category:\n("

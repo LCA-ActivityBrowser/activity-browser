@@ -14,7 +14,12 @@ from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from .base import PandasModel, DragPandasModel
-from ....logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class DatabasesModel(PandasModel):

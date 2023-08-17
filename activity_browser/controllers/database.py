@@ -15,8 +15,14 @@ from ..ui.wizards.db_export_wizard import DatabaseExportWizard
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
 from ..settings import project_settings
 from ..signals import signals
-from ..logger import log
 from .project import ProjectController
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 
 class DatabaseController(QObject):

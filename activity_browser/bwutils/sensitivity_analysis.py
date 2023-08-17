@@ -16,7 +16,12 @@ import os
 
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 from ..settings import ab_settings
-from ..logger import log
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 def get_lca(fu, method):
