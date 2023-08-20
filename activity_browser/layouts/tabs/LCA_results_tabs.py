@@ -1215,8 +1215,8 @@ class MonteCarloTab(NewAnalysisTab):
             log.info('SEED: ', self.seed.text())
             try:
                 seed = int(self.seed.text())
-            except ValueError:
-                log.error(traceback.print_exc())
+            except ValueError as e:
+                log.error('Seed value must be an integer number or left empty.', error=e)
                 QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
                 self.seed.setText('')
                 return
@@ -1234,7 +1234,7 @@ class MonteCarloTab(NewAnalysisTab):
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
-            log.error(traceback.print_exc())
+            log.error(error=e)
             QMessageBox.warning(self, 'Could not perform Monte Carlo simulation', str(e))
         QApplication.restoreOverrideCursor()
 
@@ -1484,7 +1484,7 @@ class GSATab(NewAnalysisTab):
                                  cutoff_technosphere=cutoff_technosphere, cutoff_biosphere=cutoff_biosphere)
             # self.update_mc()
         except Exception as e:  # Catch any error...
-            log.error(traceback.print_exc())
+            log.error(error=e)
             message = str(e)
             message_addition = ''
             if message == 'singular matrix':

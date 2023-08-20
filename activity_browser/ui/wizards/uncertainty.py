@@ -23,9 +23,6 @@ class UncertaintyWizard(QtWidgets.QWizard):
     distribution (and related values) for their activity/process exchanges.
 
     Note that this can also be used for setting uncertainties on parameters
-
-    TODO An error occurs with some calculations at present as having the loc == max
-    TODO seems to be permitted in the AB, but is not permitted in the stats_arrays library
     """
     TYPE = 0
     PEDIGREE = 1
@@ -196,7 +193,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.field_box.setStyleSheet(style_group_box.border_title)
         self.locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
         self.locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
-        self.validator = QtGui.QDoubleValidator() # TODO create one's own validator
+        self.validator = QtGui.QDoubleValidator()
         self.validator.setLocale(self.locale)
         self.loc = QtWidgets.QLineEdit()
         self.loc.setValidator(self.validator)

@@ -136,7 +136,7 @@ class CSActivityModel(CSGenericModel):
             row.update({"Amount": amount, "key": key})
             return row
         except (TypeError, ActivityDataset.DoesNotExist):
-            log.error("Could not load key in Calculation Setup: ", key)
+            log.error("Could not load key '{}' in Calculation Setup '{}'".format(str(key), self.current_cs))
             return {}
 
     @Slot(name="deleteRows")

@@ -75,7 +75,7 @@ class ABHandler(object):
 
         if module is not None:
             return ABHandler(module)
-        return ABHandler()
+        return ABHandler("root")
 
     @staticmethod
     def uniqueString(n: int) -> str:
@@ -107,16 +107,16 @@ class ABHandler(object):
                 _str += arg
         return _str
 
-    def debug(self, msg , *args) -> None:
+    def debug(self, msg: str, *args) -> None:
         ABHandler.log.debug(self.module_name + " == " + self.message(msg, *args))
 
-    def info(self, msg , *args) -> None:
+    def info(self, msg: str, *args) -> None:
         ABHandler.log.info(self.module_name + " == " + self.message(msg, *args))
 
-    def warning(self, msg, *args) -> None:
+    def warning(self, msg: str, *args) -> None:
         ABHandler.log.warning(self.module_name + " == " + self.message(msg, *args))
 
-    def error(self, msg, *args, **kwargs) -> None:
+    def error(self, msg: str = None, *args, **kwargs) -> None:
         """ Provides a wrapper for the Logger.error method. This is to keep the logging messages
         consistent with previous practices. Exception handling is provided through the use of
         kwargs
@@ -126,7 +126,8 @@ class ABHandler(object):
                 error=''
                 exc_info=bool
         """
-        ABHandler.log.error(self.module_name + " == " + self.message(msg, *args))
+        if msg is not None:
+            ABHandler.log.error(self.module_name + " == " + self.message(msg, *args))
 
         exc_info = True # TODO Move this error handling with the use of kwargs into a single error message
         if kwargs and 'error' in kwargs:

@@ -15,11 +15,14 @@ from stats_arrays.distributions import (
 from activity_browser.ui.wizards import UncertaintyWizard
 from activity_browser.signals import signals
 
+from activity_browser.logger import ABHandler
+
 """
 Mess around with the uncertainty wizard.
 """
 
-log = logging.getLogger('ab_logs')
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, "uncertainty_wizard_test")
 
 log.setLevel(logging.INFO, True)
 log.propagate = True

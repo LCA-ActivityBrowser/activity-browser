@@ -360,7 +360,7 @@ class ParameterItem(TreeItem):
                 parent.appendChild(item)
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
-                log.info("Broken exchange: {}, removing.".format(e))
+                log.warning("Broken exchange: {}, removing.".format(e))
                 signals.exchanges_deleted.emit([exc])
 
 
