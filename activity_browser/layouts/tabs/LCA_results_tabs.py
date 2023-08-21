@@ -217,13 +217,12 @@ class NewAnalysisTab(BaseRightTab):
         )
         if invertable:
             self.plot_table = PlotTableCheck(QCheckBox("Plot"), QCheckBox("Table"), QCheckBox("Invert"))
+            self.plot_table.invert.setChecked(False)
+            self.plot_table.invert.stateChanged.connect(self.invert_plot)
         self.plot_table.plot.setChecked(True)
         self.plot_table.table.setChecked(True)
         self.plot_table.table.stateChanged.connect(self.space_check)
         self.plot_table.plot.stateChanged.connect(self.space_check)
-        if invertable:
-            self.plot_table.invert.setChecked(False)
-            self.plot_table.invert.stateChanged.connect(self.invert_plot)
 
         # Assemble option row
         row = QHBoxLayout()
