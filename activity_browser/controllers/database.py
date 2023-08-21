@@ -3,7 +3,7 @@ import brightway2 as bw
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.parameters import Group
 from PySide2 import QtWidgets
-from PySide2.QtCore import QObject, Slot
+from PySide2.QtCore import QObject, Slot, Qt
 
 from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
@@ -136,10 +136,12 @@ class DatabaseController(QObject):
         relinking_results = dict()
         if dialog.exec_() == DatabaseLinkingDialog.Accepted:
             # Now, start relinking.
+            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             for old, new in dialog.relink.items():
                 other = bw.Database(new)
                 failed, succeeded, examples = relink_exchanges_existing_db(db, old, other)
                 relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
+            QtWidgets.QApplication.restoreOverrideCursor()
             if failed > 0:
                 relinking_dialog = DatabaseLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
                 relinking_dialog.exec_()
