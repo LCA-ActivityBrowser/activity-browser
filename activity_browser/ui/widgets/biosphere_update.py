@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from bw2data.errors import ValidityError
-from bw2io.data import (
-    add_ecoinvent_33_biosphere_flows, add_ecoinvent_34_biosphere_flows,
-    add_ecoinvent_35_biosphere_flows, add_ecoinvent_36_biosphere_flows, add_ecoinvent_37_biosphere_flows,
-    add_ecoinvent_38_biosphere_flows,
-)
+import bw2io.data as data
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
@@ -40,16 +36,9 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
 
 
 class UpdateBiosphereThread(QtCore.QThread):
-    PATCHES = (
-        add_ecoinvent_33_biosphere_flows,
-        add_ecoinvent_34_biosphere_flows,
-        add_ecoinvent_35_biosphere_flows,
-        add_ecoinvent_36_biosphere_flows,
-        add_ecoinvent_37_biosphere_flows,
-        add_ecoinvent_38_biosphere_flows,
-    )
+    PATCHES = [patch for patch in dir(data) if patch.startswith('add_ecoinvent') and patch.endswith('biosphere_flows')]
     progress = Signal(int)
-
+    data = __import__('bw2io.data')
     def __init__(self, parent=None):
         super().__init__(parent)
         self.total_patches = len(self.PATCHES)
@@ -58,7 +47,8 @@ class UpdateBiosphereThread(QtCore.QThread):
         try:
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)
-                patch()
+                update_bio = getattr(UpdateBiosphereThread.data, patch)
+                update_bio()
         except ValidityError as e:
             print("Could not patch biosphere: {}".format(str(e)))
             self.exit(1)
