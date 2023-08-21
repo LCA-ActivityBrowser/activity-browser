@@ -34,7 +34,7 @@ class ABHandler(object):
         logger: an object of type logging.Logger obtained in the calling module with getLogger()
         """
         name = logger.name + ABHandler.timestamp() + '.log'
-        dir_path = appdirs.user_log_dir('Activity-Browser', 'pylca')
+        dir_path = appdirs.user_log_dir('ActivityBrowser', 'ActivityBrowser')
         os.makedirs(dir_path, exist_ok=True)
         ABHandler.cleanDirectory(dir_path)
         ABHandler.file_path = dir_path + "/" + name
