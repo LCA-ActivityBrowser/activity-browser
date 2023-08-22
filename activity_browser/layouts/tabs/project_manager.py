@@ -11,9 +11,6 @@ from ...ui.tables import (
 )
 from ...signals import signals
 
-from ...bwutils.commontasks import update_and_shorten_label
-
-
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ProjectTab, self).__init__(parent)
