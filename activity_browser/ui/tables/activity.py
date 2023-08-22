@@ -42,9 +42,14 @@ class BaseExchangeTable(ABDataFrameView):
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
         self.downstream = False
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers |
+                             QtWidgets.QAbstractItemView.DoubleClicked)
         self._connect_signals()
 
     def _connect_signals(self):
+        self.doubleClicked.connect(
+            lambda: self.model.edit_cell(self.currentIndex())
+        )
         self.delete_exchange_action.triggered.connect(
             lambda: self.model.delete_exchanges(self.selectedIndexes())
         )

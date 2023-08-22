@@ -2,7 +2,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 import numpy as np
-from stats_arrays import uncertainty_choices as uc
+from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
 from ..figures import SimpleDistributionPlot
@@ -171,7 +171,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
         box1.setStyleSheet(style_group_box.border_title)
         self.distribution = QtWidgets.QComboBox(box1)
-        self.distribution.addItems([ud.description for ud in uc.choices])
+        self.distribution.addItems([ud.description for ud in uncertainty.choices])
         self.distribution.currentIndexChanged.connect(self.distribution_selection)
         self.registerField("uncertainty type", self.distribution, "currentIndex")
         self.pedigree = QtWidgets.QPushButton("Use pedigree")
@@ -339,7 +339,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         See https://stats-arrays.readthedocs.io/en/latest/index.html for which
         fields to show and hide.
         """
-        self.dist = uc.id_dict[self.distribution.currentIndex()]
+        self.dist = uncertainty.id_dict[self.distribution.currentIndex()]
 
         # Huge if/elif tree to ensure the correct fields are shown.
         if self.dist.id in {0, 1}:
@@ -359,19 +359,24 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.special_distribution_handling()
         self.generate_plot()
 
-    @property
-    def active_fields(self) -> tuple:
-        """Returns anywhere from 0 to 3 fields"""
+    def completed_active_fields(self) -> bool:
+        """Returns a boolean value based on the distribution id.
+        If the distribution contains an average, minimum and maximum this forces the
+        average to exist exclusively within these bounds"""
+        completed = False
         if self.dist.id in {0, 1}:
-            return ()
+            completed = True
         elif self.dist.id in {2, 3}:
-            return self.loc, self.scale
+            completed = all([field.hasAcceptableInput() and field.text() for field in (self.loc, self.scale)])
         elif self.dist.id in {4, 7}:
-            return self.minimum, self.maximum
+            completed = all([field.hasAcceptableInput() and field.text() for field in (self.minimum, self.maximum)])
         elif self.dist.id in {5, 6}:
-            return self.loc, self.minimum, self.maximum
+            completed = all([field.hasAcceptableInput() and field.text() for field in (self.minimum, self.maximum,
+                    self.loc)]) and (float(self.minimum.text()) < float(self.loc.text()) < float(self.maximum.text()))
         elif self.dist.id in {8, 9, 10, 11, 12}:
-            return self.loc, self.scale, self.shape
+            completed = all([field.hasAcceptableInput() and field.text() for field in (self.scale, self.shape,
+                                                                                               self.loc)])
+        return completed
 
     @Slot(name="locToMean")
     def balance_mean_with_loc(self):
@@ -424,10 +429,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
         Also tests if all of the visible QLineEdit fields have valid values.
         """
-        self.complete = all(
-            (field.hasAcceptableInput() and field.text())
-            for field in self.active_fields
-        )
+        self.complete = self.completed_active_fields()
         no_dist = self.dist.id in {UndefinedUncertainty.id, NoUncertainty.id}
         if self.complete or no_dist:
             array = self.dist.from_dicts(self.wizard().uncertainty_info)

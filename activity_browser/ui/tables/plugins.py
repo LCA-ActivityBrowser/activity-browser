@@ -37,18 +37,18 @@ class PluginsTable(ABDataFrameView):
             proxy = self.indexAt(e.pos())
             if proxy.column() == 0:
                 new_value = not bool(proxy.data())  
-                plugin_name = self.model.get_plugin_name(proxy) #
+#                plugin_name = self.model.get_plugin_name(proxy)
                 if not new_value:
                     msgBox = QMessageBox()
                     msgBox.setText("Remove plugin from project ?")
-                    msgBox.setInformativeText("This will removed all data created by the plugin.")
+                    msgBox.setInformativeText("This will remove all data created by the plugin.")
                     msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
                     msgBox.setDefaultButton(QMessageBox.Cancel)
                     ret = msgBox.exec_()
                     if ret == QMessageBox.Cancel:
                         new_value = not new_value
-                self.model.sync(proxy, new_value) # TODO check this usage it is currently employed to ensure synchronization
-        super().mousePressEvent(e) # TODO but this may not be required
+                self.model.sync(proxy, new_value)
+        super().mousePressEvent(e)
 
     @property
     def selected_plugin(self) -> str:

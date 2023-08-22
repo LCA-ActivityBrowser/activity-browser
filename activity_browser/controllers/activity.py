@@ -4,7 +4,7 @@ import uuid
 
 import brightway2 as bw
 from bw2data.backends.peewee.proxies import Activity, ExchangeProxyBase
-from PySide2.QtCore import QObject, Slot
+from PySide2.QtCore import QObject, Slot, Qt
 from PySide2 import QtWidgets
 
 from activity_browser.bwutils import AB_metadata, commontasks as bc
@@ -217,10 +217,12 @@ class ActivityController(QObject):
         dialog = ActivityLinkingDialog.relink_sqlite(actvty['name'], options, self.window)
         relinking_results = {}
         if dialog.exec_() == ActivityLinkingDialog.Accepted:
+            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             for old, new in dialog.relink.items():
                 other = bw.Database(new)
                 failed, succeeded, examples = relink_activity_exchanges(actvty, old, other)
                 relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
+            QtWidgets.QApplication.restoreOverrideCursor()
             if failed > 0:
                 relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
                 relinking_dialog.exec_()

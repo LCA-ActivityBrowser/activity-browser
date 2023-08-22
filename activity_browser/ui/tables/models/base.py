@@ -316,6 +316,28 @@ class BaseTreeModel(QAbstractItemModel):
         else:
             return QModelIndex()
 
+    def iterator(self, item: TreeItem = None):
+        """
+        An iterator for the TreeModel items, providing an initial object of type
+        None returns a series of objects contained in the TreeModel (including the
+        root item as the first returned object). Returns a final None type object
+        upon termination.
+        """
+        if item == None:
+            return self.root
+        if item.childCount() > 0: #if its not a leaf
+            return item.child(0) # return the first child
+        if item.parent().childCount() > item.row()+1: #if there's still a sibling
+            return item.parent().child(item.row()+1)
+        else: # look for siblings from previous "generations"
+            parent = item.parent()
+            while parent != self.root:
+                if parent.parent().childCount() > parent.row() + 1:
+                    return parent.parent().child(parent.row()+1)
+                parent = parent.parent()
+            # if there are no siblings left return None
+        return None
+
     def parent(self, child: QModelIndex = None):
         if not child.isValid():
             return QModelIndex()
