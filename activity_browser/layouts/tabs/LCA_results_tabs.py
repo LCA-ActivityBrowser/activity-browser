@@ -67,7 +67,7 @@ Tabs = namedtuple(
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
 ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
-PlotTableCheck = namedtuple("plot_table_space", ("plot", "table"))
+PlotTableCheck = namedtuple("plot_table_space", ("plot", "table", "invert"))
 Combobox = namedtuple(
     "combobox_menu", (
         "func", "func_label", "method", "method_label",
@@ -202,7 +202,7 @@ class NewAnalysisTab(BaseRightTab):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-    def build_main_space(self) -> QScrollArea:
+    def build_main_space(self, invertable: bool = False) -> QScrollArea:
         """Assemble main space where plots, tables and relevant options are shown."""
         space = QScrollArea()
         widget = QWidget()
@@ -213,8 +213,12 @@ class NewAnalysisTab(BaseRightTab):
 
         # Option switches
         self.plot_table = PlotTableCheck(
-            QCheckBox("Plot"), QCheckBox("Table")
+            QCheckBox("Plot"), QCheckBox("Table"), None
         )
+        if invertable:
+            self.plot_table = PlotTableCheck(QCheckBox("Plot"), QCheckBox("Table"), QCheckBox("Invert"))
+            self.plot_table.invert.setChecked(False)
+            self.plot_table.invert.stateChanged.connect(self.invert_plot)
         self.plot_table.plot.setChecked(True)
         self.plot_table.table.setChecked(True)
         self.plot_table.table.stateChanged.connect(self.space_check)
@@ -225,6 +229,8 @@ class NewAnalysisTab(BaseRightTab):
         row.addWidget(self.plot_table.plot)
         row.addWidget(self.plot_table.table)
         row.addWidget(vertical_line())
+        if invertable:
+            row.addWidget(self.plot_table.invert)
         if self.relativity:
             row.addWidget(self.relativity.relative)
             row.addWidget(self.relativity.absolute)
@@ -240,6 +246,12 @@ class NewAnalysisTab(BaseRightTab):
             self.pt_layout.addWidget(self.table)
         self.pt_layout.addStretch()
         return space
+
+    @QtCore.Slot(name="invertPlot")
+    def invert_plot(self):
+        self.plot_inversion = self.plot_table.invert.isChecked()
+        self.space_check()
+        self.update_plot()
 
     @QtCore.Slot(name="checkboxChanges")
     def space_check(self):
@@ -693,6 +705,7 @@ class LCIAResultsTab(NewAnalysisTab):
         super(LCIAResultsTab, self).__init__(parent, **kwargs)
         self.parent = parent
         self.df = None
+        self.plot_inversion = False
 
         # if not self.parent.single_func_unit:
         self.plot = LCAResultsPlot(self.parent)
@@ -701,7 +714,7 @@ class LCIAResultsTab(NewAnalysisTab):
         self.table.table_name = self.parent.cs_name + '_LCIA results'
         self.relative = False
 
-        self.layout.addWidget(self.build_main_space())
+        self.layout.addWidget(self.build_main_space(True))
         self.layout.addLayout(self.build_export(True, True))
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
@@ -734,7 +747,7 @@ class LCIAResultsTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
-        super().update_plot(self.df)
+        super().update_plot(self.df, invert_plot=self.plot_inversion)
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
