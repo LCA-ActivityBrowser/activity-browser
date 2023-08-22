@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
+from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
 from ...ui.tables import (
@@ -20,11 +21,13 @@ class ProjectTab(QtWidgets.QWidget):
         self.projects_widget = ProjectsWidget()
         self.databases_widget = DatabaseWidget(self)
         self.activity_biosphere_widget = ActivityBiosphereWidget(self)
+        self.activity_biosphere_tabs = ActivityBiosphereTabs(self)
 
         # Layout
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.splitter.addWidget(self.databases_widget)
-        self.splitter.addWidget(self.activity_biosphere_widget)
+        #self.splitter.addWidget(self.activity_biosphere_widget)
+        self.splitter.addWidget(self.activity_biosphere_tabs)
 
         self.overall_layout = QtWidgets.QVBoxLayout()
         self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
@@ -164,6 +167,35 @@ class DatabaseWidget(QtWidgets.QWidget):
 
         self.table.setVisible(not no_databases)
         self.label_change_readonly.setVisible(not no_databases)
+
+
+class ActivityBiosphereTabs(ABTab):
+    # TODO: Write signals so that change in db only updates the table in the correct tab, not all
+    # TODO: change ActivityBiosphereWidget so that it takes updates this class -which then decides if it needs an update-
+    # TODO: change ProjectTab to properly use this class instead of ActivityBiosphereWidget
+    # TODO: apply update_and_shorten_label to tab name
+
+    def __init__(self, parent=None):
+        super(ActivityBiosphereTabs, self).__init__(parent)
+        self.setTabsClosable(True)
+
+        # signals
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.database_selected.connect(self.open_or_focus_tab)
+
+    def open_or_focus_tab(self, db_name):
+        """If the database isn't open yet, open it, either way, put focus on database tab
+        """
+        # create the tab if it doesn't exist yet
+        if db_name not in self.tabs.keys():
+            lab = QtWidgets.QLabel(db_name)
+            self.add_tab(lab, db_name)
+
+        # put the focus on this tab
+        self.select_tab(self.tabs[db_name])
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
