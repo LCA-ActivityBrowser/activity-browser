@@ -23,6 +23,7 @@ class Signals(QObject):
     # Database
     add_database = Signal()
     delete_database = Signal(str)
+    delete_database_confirmed = Signal(str)
     copy_database = Signal(str)
     install_default_data = Signal()
     import_database = Signal()

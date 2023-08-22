@@ -55,12 +55,9 @@ class DatabasesModel(PandasModel):
 class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.database_name = None
         self.act_fields = lambda: AB_metadata.get_existing_fields(["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"])
         self.ef_fields = lambda: AB_metadata.get_existing_fields(["name", "categories", "type", "unit"])
         self.technosphere = True
-        signals.database_selected.connect(self.sync)
-        signals.database_changed.connect(self.check_database_changed)
 
     @property
     def fields(self) -> list:
@@ -76,13 +73,6 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def clear(self) -> None:
         self._dataframe = pd.DataFrame([])
         self.updated.emit()
-
-    @Slot(str, name="optionalSync")
-    def check_database_changed(self, db_name: str) -> None:
-        """ Determine if we need to re-sync (did 'our' db change?).
-        """
-        if db_name == self.database_name and db_name in bw.databases:
-            self.sync(db_name)
 
     def df_from_metadata(self, db_name: str) -> pd.DataFrame:
         """ Take the given database name and return the complete subset

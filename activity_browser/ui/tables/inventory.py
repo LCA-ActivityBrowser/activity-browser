@@ -132,7 +132,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def contextMenuEvent(self, event) -> None:
         """ Construct and present a menu.
         """
-        if self.indexAt(event.pos()).row() == -1:
+        if self.indexAt(event.pos()).row() == -1 and len(self.model._dataframe) != 0:
             return
         menu = QtWidgets.QMenu()
         menu.addAction(qicons.right, "Open activity", self.open_activity_tabs)
@@ -176,7 +176,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
         self.model.updated.connect(self.update_filter_settings)
-        signals.database_selected.connect(self.reset_filters)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
