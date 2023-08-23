@@ -30,13 +30,16 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
 def test_select_biosphere(qtbot, ab_app):
     """ Select the 'biosphere3' database from the databases table.
     """
+    biosphere = 'biosphere3'
     project_tab = ab_app.main_window.left_panel.tabs['Project']
-    act_bio_widget = project_tab.activity_biosphere_widget
     db_table = project_tab.databases_widget.table
     dbs = [
         db_table.model.index(i, 0).data() for i in range(db_table.rowCount())
     ]
-    assert 'biosphere3' in dbs
+    assert biosphere in dbs
+    act_bio_tabs = project_tab.activity_biosphere_tabs
+    act_bio_tabs.open_or_focus_tab(biosphere)
+    act_bio_widget = act_bio_tabs.tabs[biosphere]
 
     # Grab the rectangle of the 2nd column on the first row.
     rect = db_table.visualRect(db_table.proxy_model.index(0, 1))
