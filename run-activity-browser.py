@@ -8,5 +8,6 @@ from activity_browser import run_activity_browser
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
+log.info("The Activity-Browser log file can be found at {}".format(log.log_file_path()))
 
 run_activity_browser()

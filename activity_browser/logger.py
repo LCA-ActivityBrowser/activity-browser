@@ -36,20 +36,22 @@ class ABHandler(object):
         name = logger.name + ABHandler.timestamp() + '.log'
         dir_path = appdirs.user_log_dir('ActivityBrowser', 'ActivityBrowser')
         os.makedirs(dir_path, exist_ok=True)
-        ABHandler.cleanDirectory(dir_path)
+        ABHandler.clean_directory(dir_path)
         ABHandler.file_path = dir_path + "/" + name
         ABHandler.stream_handler = logging.StreamHandler()
         ABHandler.file_handler = logging.FileHandler(ABHandler.file_path)
 
-        log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s - ")
-        ABHandler.stream_handler.setFormatter(log_format)
+        log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(ABmodule)s - %(message)s - ")
+
+        console_format = logging.Formatter("%(message)s")
+        ABHandler.stream_handler.setFormatter(console_format)
         ABHandler.file_handler.setFormatter(log_format)
 
         ABHandler.stream_handler.setLevel(logging.INFO)
         ABHandler.file_handler.setLevel(logging.DEBUG)
 
         ABHandler.qt_handler = ABLogHandler()
-        ABHandler.qt_handler.setFormatter(log_format)
+        ABHandler.qt_handler.setFormatter(console_format)
 
         return ABHandler.setup_with_logger(logger)
 
@@ -78,7 +80,7 @@ class ABHandler(object):
         return ABHandler("root")
 
     @staticmethod
-    def uniqueString(n: int) -> str:
+    def unique_string(n: int) -> str:
         """Returns a random string of length n, to avoid issues with non-unique log files"""
         return ''.join(random.choice(string.ascii_letters) for i in range(n))
 
@@ -90,13 +92,16 @@ class ABHandler(object):
         return f"-{stmp.tm_mday}_{stmp.tm_mon}_{stmp.tm_year}-{stmp.tm_hour}_{stmp.tm_min}_{stmp.tm_sec}"
 
     @staticmethod
-    def cleanDirectory(dirpath: str) -> None:
+    def clean_directory(dirpath: str) -> None:
         """Cleans the Activity-Browser/log directory of all files older than 365 days"""
         time_limit = time.time() - 24*3600*365
         for file in os.listdir(dirpath):
             filepath = dirpath + '/' + file
             if os.stat(filepath).st_mtime < time_limit:
                 os.remove(filepath)
+
+    def log_file_path(self):
+        return ABHandler.file_path
 
     def message(self, *args) -> str:
         _str = ''
@@ -108,13 +113,13 @@ class ABHandler(object):
         return _str
 
     def debug(self, msg: str, *args) -> None:
-        ABHandler.log.debug(self.module_name + " == " + self.message(msg, *args))
+        ABHandler.log.debug(self.message(msg, *args), extra={'ABmodule': self.module_name})
 
     def info(self, msg: str, *args) -> None:
-        ABHandler.log.info(self.module_name + " == " + self.message(msg, *args))
+        ABHandler.log.info(self.message(msg, *args), extra={'ABmodule': self.module_name})
 
     def warning(self, msg: str, *args) -> None:
-        ABHandler.log.warning(self.module_name + " == " + self.message(msg, *args))
+        ABHandler.log.warning(self.message(msg, *args), extra={'ABmodule': self.module_name})
 
     def error(self, msg: str = None, *args, **kwargs) -> None:
         """ Provides a wrapper for the Logger.error method. This is to keep the logging messages
@@ -127,7 +132,7 @@ class ABHandler(object):
                 exc_info=bool
         """
         if msg is not None:
-            ABHandler.log.error(self.module_name + " == " + self.message(msg, *args))
+            ABHandler.log.error(self.message(msg, *args), extra={'ABmodule': self.module_name})
 
         exc_info = True # TODO Move this error handling with the use of kwargs into a single error message
         if kwargs and 'error' in kwargs:
