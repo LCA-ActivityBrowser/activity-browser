@@ -55,7 +55,11 @@ def test_select_biosphere(qtbot, ab_app):
 def test_search_biosphere(qtbot, ab_app):
     assert bw.projects.current == 'pytest_project'
     project_tab = ab_app.main_window.left_panel.tabs['Project']
-    act_bio_widget = project_tab.activity_biosphere_widget
+
+    act_bio_tabs = project_tab.activity_biosphere_tabs
+    act_bio_tabs.open_or_focus_tab('biosphere3')
+    act_bio_widget = act_bio_tabs.tabs['biosphere3']
+
     initial_amount = act_bio_widget.table.rowCount()
     # Now search for a specific string
     with qtbot.waitSignal(act_bio_widget.search_box.returnPressed, timeout=1000):
