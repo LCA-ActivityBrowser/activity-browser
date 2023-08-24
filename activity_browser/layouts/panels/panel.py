@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtCore
 
 from ...signals import signals
 
@@ -15,6 +15,11 @@ class ABTab(QtWidgets.QTabWidget):
         signals.hide_tab.connect(self.hide_tab)
         signals.toggle_show_or_hide_tab.connect(self.toggle_tab_visibility)
         signals.hide_when_empty.connect(self.hide_when_empty)
+        self.connect(self, QtCore.SIGNAL('currentChanged(int)'), self.current_index_changed)
+
+    def current_index_changed(self, current_index: int):
+        """Optional function to accept the index of the selected tab."""
+        pass  # NotImplementedError is not used as this function gets called often and not neccecarily used.
 
     def add_tab(self, obj, tab_name):
         """Default addTab method and add item to self.tabs
@@ -64,6 +69,14 @@ class ABTab(QtWidgets.QTabWidget):
             return tab_names[0]
         else:
             print("Warning: found", len(tab_names), "occurences of this object.")
+
+    def get_tab_name_from_index(self, index):
+        """Return the name of a tab based on its index."""
+        tab_names = [self.tabText(i) for i in range(self.count()) if i == index]
+        if len(tab_names) == 1:
+            return tab_names[0]
+        else:
+            print("Warning: did not find instance of tab")
 
     def hide_when_empty(self):
         """Show tab if it has sub-tabs (not empty) or hide if it has no sub-tabs (empty)."""
