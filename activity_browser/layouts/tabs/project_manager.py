@@ -205,6 +205,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
         self.table = ActivitiesBiosphereTable(self)
+        self.tree = QtWidgets.QLabel('tree view goes here')
 
         # Header widget
         self.header_widget = QtWidgets.QWidget()
@@ -214,17 +215,32 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
         self.setup_search()
 
+        self.mode_radio_list = QtWidgets.QRadioButton("List view")
+        self.mode_radio_list.setChecked(True)
+        self.mode_radio_list.setToolTip("List view of the database")
+        self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
+        self.mode_radio_tree.setToolTip("Tree view of the database")
+
+        self.header_layout.addWidget(self.mode_radio_list)
+        self.header_layout.addWidget(self.mode_radio_tree)
+
         # Overall Layout
         self.v_layout = QtWidgets.QVBoxLayout()
         self.v_layout.setAlignment(QtCore.Qt.AlignTop)
         self.v_layout.addWidget(self.header_widget)
         self.v_layout.addWidget(self.table)
+        self.v_layout.addWidget(self.tree)
         self.setLayout(self.v_layout)
 
         self.table.setSizePolicy(QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred,
             QtWidgets.QSizePolicy.Maximum)
         )
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.mode_radio_tree.toggled.connect(self.update_view)
 
     def reset_widget(self):
         self.hide()
@@ -258,3 +274,9 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def set_search_term(self):
         search_term = self.search_box.text()
         self.table.search(search_term)
+
+    @QtCore.Slot(bool, name="isListToggled")
+    def update_view(self, toggled: bool):
+        self.table.setVisible(not toggled)
+        self.tree.setVisible(toggled)
+
