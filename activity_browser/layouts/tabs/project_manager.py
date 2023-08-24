@@ -188,8 +188,12 @@ class ActivityBiosphereTabs(ABTab):
             self.add_tab(widget, db_name)
             self.update_activity_biosphere_widget(db_name)
 
-        # put the focus on this tab
+        # put the focus on this tab + send signal that this is the open db
         self.select_tab(self.tabs[db_name])
+
+    def current_index_changed(self, current_index: int) -> None:
+        db_name = self.get_tab_name_from_index(current_index)
+        signals.database_tab_open.emit(db_name)
 
     def update_activity_biosphere_widget(self, db_name: str) -> None:
         """Check if database is open, if so, update the underlying data"""

@@ -134,7 +134,14 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         """
         if self.indexAt(event.pos()).row() == -1 and len(self.model._dataframe) != 0:
             return
+
         menu = QtWidgets.QMenu()
+        if len(self.model._dataframe) == 0:
+            # if the database is empty, only add the 'new' activity option and return
+            menu.addAction(self.new_activity_action)
+            menu.exec_(event.globalPos())
+            return
+
         menu.addAction(qicons.right, "Open activity", self.open_activity_tabs)
         menu.addAction(
             qicons.graph_explorer, "Open in Graph Explorer",

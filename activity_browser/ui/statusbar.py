@@ -23,7 +23,7 @@ class Statusbar(QStatusBar):
     def connect_signals(self):
         signals.new_statusbar_message.connect(self.left)
         signals.project_selected.connect(self.update_project)
-        signals.database_selected.connect(self.set_database)
+        signals.database_tab_open.connect(self.set_database)
 
     @Slot(str, name="statusLeft")
     def left(self, message: str) -> None:
