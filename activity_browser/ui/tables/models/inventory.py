@@ -310,13 +310,14 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         self.beginResetModel()
         self.root.clear()
         self.query = query
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         if self.query:
-            tree = deepcopy(self.tree_data)
-            self._data, self.matches = self.search_tree(tree, self.query)
+            self._data, self.matches = self.search_tree(self.query)
         else:
             self._data = self.tree_data
         self.build_tree(self._data, self.root)
         self.endResetModel()
+        QApplication.restoreOverrideCursor()
         self.updated.emit()
 
     def build_tree(self, data: dict, root: ActivitiesBiosphereItem) -> None:
@@ -340,7 +341,6 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         """
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        print('++ Getting data from metadatastore')
         df = self.df_from_metadata(self.database_name)
         # remove empty columns
         df.replace('', np.nan, inplace=True)
@@ -352,11 +352,13 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         # Sort dataframe on column: 'product' and then on 'tree_order'
         sort_field = df.columns[0]
         df = df.iloc[df[sort_field].str.lower().argsort()]
-        self._dataframe = df.iloc[df['tree_order'].argsort()]
+        df = df.iloc[df['tree_order'].argsort()]
+        del df['tree_order']
+        self._dataframe = df
 
-        self.all_col = self._dataframe.columns.get_loc("tree_path_tuple")
+        self.path_col = self._dataframe.columns.get_loc("tree_path_tuple")
+
         # get the complete nested dict for the dataframe:
-        print('++ Nesting data')
         self.tree_data = self.nest_data(self._dataframe)
         QApplication.restoreOverrideCursor()
 
@@ -374,11 +376,11 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.HEADERS] + ["key"]
         return df
 
-    def tree_order(self, row):
-        """Give item order to row"""
+    def tree_order(self, row) -> int:
+        """Give item order to row, if no class exists, move to lowest rank."""
         classification = row['ISIC rev.4 ecoinvent']
         if not isinstance(classification, str):
-            # this is not a valid number, return high number
+            # this is not a valid number, return high number (low rank)
             return 99999
         # match based on the actual number code, ignore letters or text
         class_code = classification.split(':')[0]
@@ -387,17 +389,17 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         order = self.ISIC_order.get(class_code, 99999)
         return order
 
-    def tree_path_tuple(self, row):
+    def tree_path_tuple(self, row) -> tuple:
         """Convert the row to a tuple"""
         classification = row['ISIC rev.4 ecoinvent']
         if not isinstance(classification, str):
-            # this is not a valid number, return 'Not classified'
-            return tuple(list(('Not classified',)) + [row['Product']])
+            # this is not a valid number, return 'No classification'
+            return tuple(list(('No classification',)) + [row['Product']])
         # match based on the actual number code, ignore letters or text
         class_code = classification.split(':')[0]
         if len(class_code) > 1 and not class_code[-1].isdigit():
             class_code = class_code[:-1]
-        classification = self.ISIC_tree_codes.get(class_code, ('Not classified',))
+        classification = self.ISIC_tree_codes.get(class_code, ('No classification',))
         tup = self.ISIC_tree[classification]
         tup = tuple(list(tup) + [row['Product']])
         return tup
@@ -427,15 +429,9 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         """
         data = np.empty(df.shape[0], dtype=object)
 
-        print('++ creating array <data>')
-        print('++ DF shape', df.shape)
-        flag = True
         for idx, row in enumerate(df.to_numpy(dtype=object)):
             split = list(row[-1])  # convert tuple to list
             split.append(tuple(row))
-            if flag:
-                print('++ This is split for row 0',idx,  split)
-                flag = False
             data[idx] = split
             # data is np 1d array (list) of each dataframe row
 
@@ -455,8 +451,6 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             #                 'GWP 100a'))]
             # so: [str, str, str, tuple(str, str, str, tuple(str, str, str))]
             temp_row = list(row[-1])  # temp_row = tuple(str, str, str, tuple(str, str, str))
-            temp_row[0] = temp_row[-1][-1]  # in the example this would be 'GWP 100a'
-            # temp_row[0] is taken from [-1][-1] and not from row[2] as there can be an arbitrary depth in the category
 
             new_row = tuple(temp_row)
             # new_row format: ('GWP 100a',
@@ -499,31 +493,14 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             return queries
         return methods
 
-    @staticmethod
-    def search_tree(tree: dict, query: str, matches: int = 0) -> (dict, int):
-        """Search the tree and remove non-matching leaves and branches."""
-        remove = []
-        for key, value in tree.items():
-            if isinstance(value, tuple):
-                # this is a leaf node
-                if query.lower() not in ', '.join(value[-1]).lower():
-                    # the query does not match
-                    remove.append(key)
-                else:
-                    matches += 1
-            else:
-                # this is not a leaf node
-                if query.lower() not in key.lower():
-                    # the query does not match, go deeper
-                    sub_tree, matches = ActivitiesBiosphereTreeModel.search_tree(value, query, matches)
-                    if len(sub_tree) > 0:
-                        # there were query matches in this branch
-                        tree[key] = sub_tree
-                    else:
-                        # there were no query matches in this branch
-                        remove.append(key)
-                else:
-                    matches += 1
-        for key in remove:
-            tree.pop(key)
-        return tree, matches
+    def search_tree(self, query: str) -> dict:
+        """Search the dataframe on the query and return a new nested tree."""
+
+        df = deepcopy(self._dataframe)
+        mask = functools.reduce(
+            np.logical_or, [
+                df[col].apply(lambda x: query.lower() in str(x).lower())
+                for col in df.columns
+            ]
+        )
+        return self.nest_data(df.loc[mask].reset_index(drop=True)), len(df)

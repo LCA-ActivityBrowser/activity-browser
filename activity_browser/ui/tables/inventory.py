@@ -315,7 +315,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:
-        self.model.sync()
+        self.model.sync(query)
 
     @Slot(name="optionalExpandAll")
     def optional_expand(self) -> None:
@@ -327,7 +327,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
          https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
          https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
         """
-        if self.model.query and self.model.matches <= 300:
+        if self.model.query and self.model.matches <= 250:
             self.expandAll()
 
     @Slot(name="openActivity")
@@ -426,3 +426,10 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             item.add(p.data(0))
             p = p.parent()
         return item
+
+    def search(self, query: str = None) -> None:
+        self.model.sync(query)
+
+    @Slot(name="resetSearch")
+    def reset_search(self) -> None:
+        self.model.sync()

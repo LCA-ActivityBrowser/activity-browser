@@ -217,6 +217,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.header_widget.setLayout(self.header_layout)
 
         self.setup_search()
+        self.search_active = False
 
         self.mode_radio_list = QtWidgets.QRadioButton("List view")
         self.mode_radio_list.setChecked(True)
@@ -244,10 +245,14 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.connect_signals()
 
     def create_tree(self):
-        print('++ Starting tree creation')
-        self.tree = QtWidgets.QLabel('This is a placeholder for the tree')
         self.tree = ActivitiesBiosphereTree(self, self.database_name)
+
+        # check if search was active, if so, apply to tree
+        if self.search_active:
+            self.tree.search(self.search_active)
+
         self.v_layout.addWidget(self.tree)
+        self.reset_search_button.clicked.connect(self.tree.reset_search)
 
     def connect_signals(self):
         self.mode_radio_tree.toggled.connect(self.update_view)
@@ -277,19 +282,24 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
         signals.project_selected.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
-
         self.header_layout.addWidget(self.search_button)
         self.header_layout.addWidget(self.reset_search_button)
 
     def set_search_term(self):
         search_term = self.search_box.text()
+        self.search_active = search_term
         self.table.search(search_term)
+        if isinstance(self.tree, ActivitiesBiosphereTree):
+            self.tree.search(search_term)
+
+    def reset_search(self):
+        self.search_active = False
+        self.search_box.clear()
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
         self.table.setVisible(not toggled)
 
-        #if not isinstance(self.tree, QtWidgets.QLabel):
         if not isinstance(self.tree, ActivitiesBiosphereTree):
             self.create_tree()
         self.tree.setVisible(toggled)
@@ -297,9 +307,8 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def sync_data(self, db_name: str) -> None:
         self.table.model.sync(db_name)
 
-        # if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
-        #         and not isinstance(self.tree, QtWidgets.QLabel):
-        if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns and not isinstance(self.tree, ActivitiesBiosphereTree):
+        if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
+                and not isinstance(self.tree, ActivitiesBiosphereTree):
             # a treeview does not exist and should be able to navigate to
 
             # set the view to list and show the radio buttons
