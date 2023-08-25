@@ -10,3 +10,4 @@ from .excel import import_from_excel, get_sheet_names
 from .manager import SuperstructureManager
 from .mlca import SuperstructureMLCA, SuperstructureContributions
 from .utils import SUPERSTRUCTURE, _time_it_
+from .exchanges import set_default_exchange_values

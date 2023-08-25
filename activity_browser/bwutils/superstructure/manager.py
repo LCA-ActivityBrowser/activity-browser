@@ -20,9 +20,11 @@ logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
 
 from .file_dialogs import ABPopup
-from ..errors import (CriticalScenarioExtensionError, UnlinkableScenarioExchangeError,
+from ..errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
                       ImportCanceledError,
                       )
+
+from .exchanges import set_default_exchange_values
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
@@ -38,7 +40,8 @@ class SuperstructureManager(object):
         self.is_multiple = len(self.frames) > 1
 
     def combined_data(self, kind: str = "product", skip_checks: bool = False) -> pd.DataFrame:
-        """Combines multiple superstructures using a specific kind of logic.
+        """
+        Combines multiple superstructures using logic specified by the first argument (kind).
 
         Currently implemented: 'product' creates an outer-product combination
         from all of the columns of the dataframes and injects values from all
@@ -48,16 +51,26 @@ class SuperstructureManager(object):
         Uses parts of https://stackoverflow.com/a/45286061
 
         If only a single dataframe is given to the manager, return this dataframe instead.
+
+        Parameters
+        ----------
+        kind: a string that indicates the type of combination to make for the class self.frames variable
+        can be of the form 'product', or 'addition'
+        skip_checks: A boolean trigger that should be set to True if the duplicate checks are not required.
+        Primarily of use when removing a dataframe, in which case duplicates are removed without warnings
+        provided to the user.
+
+        Returns
+        -------
+        A single pandas dataframe built from the separate dataframes held in the objects frame variable
         """
         if not self.is_multiple:
             df = next(iter(self.frames))
             if skip_checks:
                 df = SuperstructureManager.remove_duplicates(df)
-            else:
-                SuperstructureManager.check_duplicates(df)
-            df = SuperstructureManager.merge_flows_to_self(df)
-            #df.replace(np.nan, 0, inplace=True)
             cols = scenario_columns(df)
+            df = set_default_exchange_values(df, cols)
+            df = SuperstructureManager.merge_flows_to_self(df)
             return pd.DataFrame(
                 data=df.loc[:, cols], index=df.index, columns=cols
             )
@@ -83,8 +96,6 @@ class SuperstructureManager(object):
             )
             # Note the dataframe is built with a common index built from all files.
             # So no duplicates will be present in the DataFrame (df), eliminating checks
-            # additionally the DataFrame does not contain the correct format at this point
-            # for duplicate checks.
         else:
             df = pd.DataFrame([], index=combo_idx)
         cols = scenario_columns(df)
@@ -93,6 +104,19 @@ class SuperstructureManager(object):
         )
 
     def _combine_columns(self) -> pd.MultiIndex:
+        """
+        Combines the scenario columns from the objects self.frames variable following combinatoric
+        principles.
+
+        Raises
+        ------
+        CriticalScenarioExtensionError if multiple dataframes in the self.frames variable contain the
+        same scenario names
+
+        Returns
+        -------
+        A pandas multi-index with the separate dataframes in self.frames contributing to the index levels
+        """
         def test_column_names(cols):
             col_set = set()
             cols_len = 0
@@ -100,6 +124,7 @@ class SuperstructureManager(object):
                 col_set = col_set.union(col)
                 cols_len += len(col)
             if cols_len != len(col_set):
+                # if some scenario columns are non-unique
                 msg = "While attempting to combine the scenario files an error was detected. The scenario "\
                 "files are being extended through combinations, this requires the scenario names to be "\
                 "unique. Some scenario names between files were found to be non-unique.<br> To correct "\
@@ -133,16 +158,17 @@ class SuperstructureManager(object):
         dataframe with duplicate indexes being resolved using a 'last one wins'
         logic.
 
-        parameters
+        Parameters
         ----------
         data: A List of dataframes, each dataframe corresponding to a dataframe from a single scenario difference file
-
         index: The combined Multi-index for the final merged dataframe
-
         cols: A Multi-index object that contains all of the levels (scenario names) from the different scenario files)
-                this is used to create a combined set of scenario names
-
+        this is used to create a combined set of scenario names
         skip_checks: a boolean that triggers the use of duplicate checks (not required when removing scenario files)
+
+        Returns
+        -------
+        A pandas dataframe constructed from the combined inputs to the class self.frames variable
         """
         def combine(one, two):
             """ Should hopefully provide a failsafe approach to combining the different scenario combinations,
@@ -157,11 +183,13 @@ class SuperstructureManager(object):
         if not skip_checks:
             tmp_df = SuperstructureManager.check_duplicates(data)
             for idx, f in enumerate(tmp_df):
+                f = set_default_exchange_values(f, scenario_columns(f))
                 combine(scenarios_data, f)
                 base_scenario_data.loc[f.index, :] = f.loc[:, SUPERSTRUCTURE]
         else:
             for idx, f in enumerate(data):
                 f = SuperstructureManager.remove_duplicates(f)
+                f = set_default_exchange_values(f, scenario_columns(f))
                 combine(scenarios_data, f)
                 base_scenario_data.loc[f.index, :] = f.loc[:, SUPERSTRUCTURE]
 
@@ -177,26 +205,30 @@ class SuperstructureManager(object):
         Iterates through the combined dataframes to produce a single merged dataframe where duplicates are resolved
         with a "last one wins" approach
 
-        parameters
+        Parameters
         ----------
         data: list of input dataframes from the scenario difference files
-
         index: pandas Multi-Index used to create the x-index from the merged indexes of the data input
-
         cols: the list of scenario columns from the scenario difference files
-
         skip_checks: a simple boolean used to avoid the duplicate checks (when removing a scenario file)
+
+        Returns
+        -------
+        A pandas dataframe constructed from the combined inputs to the class self.frames variable
         """
         columns = data.columns if isinstance(data, pd.DataFrame) else data[0].columns
+
         df = pd.DataFrame([], index=index, columns=columns)
         if not skip_checks:
             SuperstructureManager.check_duplicates(data)
             for f in data:
+                f = set_default_exchange_values(f, cols)
                 df.loc[f.index, columns] = f.loc[:, columns]
         else:
             for f in data:
                 if skip_checks:
                     f = SuperstructureManager.remove_duplicates(f)
+                f = set_default_exchange_values(f, cols)
                 df.loc[f.index, columns] = f.loc[:, columns]
         df = SuperstructureManager.merge_flows_to_self(df)
         df.replace(np.nan, 0, inplace=True)
@@ -304,6 +336,13 @@ class SuperstructureManager(object):
 
     @staticmethod
     def exchangesPopup() -> ABPopup:
+        """
+        Provides a popup message if there is an issue to find some of the scenario exchanges in the uploaded files
+
+        Returns
+        -------
+        A QDialog with a critical Error
+        """
         msg = "<p>One, or several, exchanges (rows) in the scenario file could not be found in the database (meaning:"\
               " a part or all of the exchange information, i.e. input or output product/activity/unit/geography, or the"\
             " key, have no match in the project databases).</p> <p>It is not possible to proceed at this point."\
@@ -318,10 +357,18 @@ class SuperstructureManager(object):
          If the keys cannot be found in the available databases then an Exception is
          raised
 
-         parameters
+         Raises
          ------
+         ScenarioExchangeNotFoundError if a scenario exchange is not present in the local database
+
+         Parameters
+         ----------
          df: the input dataframe containing scenario data with exchanges that need to be
          checked for the presence of a key
+
+         Returns
+         -------
+         A pandas dataframe with complete entries for the dataframes 'to key' and 'from key' fields
          """
         if df.loc[:, EXCHANGE_KEYS].isna().any().any():
             df = fill_df_keys_with_fields(df)
@@ -332,7 +379,7 @@ class SuperstructureManager(object):
                 sdf_keys.dataframe_to_file(df, _df.index)
                 QApplication.restoreOverrideCursor()
                 sdf_keys.exec_()
-                raise UnlinkableScenarioExchangeError("Cannot find key(s) in local databases.")
+                raise ScenarioExchangeNotFoundError("Cannot find key(s) in local databases.")
         return df
 
     @staticmethod
@@ -340,10 +387,17 @@ class SuperstructureManager(object):
         """Checks all process keys in the scenario file and does not provide alternative keys based on exchange
         metadata.
 
-        parameters
+        Raises
+        ------
+        ScenarioExchangeNotFoundError if a scenario exchange is not present in the local database
+
+        Parameters
         -------
         df: the dataframe with process keys that need to be verified
 
+        Returns
+        -------
+        A scenario dataframe with all scenario exchange keys verified with the local brightway databases
         """
         dbs = set(df.loc[:, 'from database']).union(df.loc[:, 'to database'])
         df_ = pd.DataFrame({}, columns=df.columns)
@@ -358,7 +412,7 @@ class SuperstructureManager(object):
             sdf_keys.dataframe_to_file(df, df_.index)
             QApplication.restoreOverrideCursor()
             sdf_keys.exec_()
-            raise UnlinkableScenarioExchangeError("A key provided in the scenario file is not valid for the available database, consult the respective output.")
+            raise ScenarioExchangeNotFoundError("A key provided in the scenario file is not valid for the available database, consult the respective output.")
 
     @staticmethod
     def check_duplicates(data: Optional[Union[pd.DataFrame, list]],
@@ -368,11 +422,19 @@ class SuperstructureManager(object):
         'from key', 'to key' and 'flow type'
         Produces a warning
 
-        parameters
-        data: a pandas dataframe or list of pandas dataframes that will be checked for containing duplicates
+        Raises
+        ------
+        ImportCanceledError if the user cancels the import due to duplicate exchanges
 
+        Parameters
+        ----------
+        data: a pandas dataframe or list of pandas dataframes that will be checked for containing duplicates
         index: nominally required, but probably best to avoid overwriting the default values. Used to indicate the
             columns to check for duplication of an exchange
+
+        Returns
+        -------
+        A dataframe that contains only unique flow exchanges
         """
         if isinstance(data, pd.DataFrame):
             return SuperstructureManager._check_duplicate(data, index)

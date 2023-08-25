@@ -17,7 +17,9 @@ from ...ui.icons import qicons
 
 class ProblemDataModel(QtCore.QAbstractTableModel):
     """
-    A simple table model for use in popup windows.
+    A simple table model for use in the ABPopup dialogs for error reporting.
+
+    Intentionally coupled with the ABPopup class and not intended for use externally.
     """
     updated = QtCore.Signal()
     def __init__(self):
@@ -50,7 +52,9 @@ class ProblemDataModel(QtCore.QAbstractTableModel):
 
 class ProblemDataFrame(QtWidgets.QTableView):
     """
-    A simple view class to provide required functionality for the QDialog
+    A simple view class coupled with the ABPopup class.
+
+    Not intended for external use.
     """
     def __init__(self, parent: QtWidgets.QWidget, dataframe: pd.DataFrame, cols: pd.Index):
         super().__init__(parent)
@@ -71,7 +75,17 @@ class ABPopup(QtWidgets.QDialog):
     """
     Holds AB defined message boxes to enable a more consistent popup message structure for errors.
 
-    This is primarily for use for the creation of errors for the purposes of scenario file imports
+    Primarily concerned with the creation of errors for the purposes of scenario file imports.
+
+    Contains a tightly coupled dataframe that is intended to hold a limited sample set for user guidance.
+    Dataframe management is through the dataframe() method that takes the dataframe with the data of interest
+    and the columns to be extract for the creation of the internal table
+
+    Contains the option of saving the warning output to a file with the option of printing the data that
+    generated the throwing of the popup, or the full file with the error causing entries highlighted
+
+
+
     """
     def __init__(self):
         super().__init__()
@@ -97,6 +111,14 @@ class ABPopup(QtWidgets.QDialog):
         ))
 
     def dataframe(self, data: pd.DataFrame, columns: list = None):
+        """
+        Handles the creation of the internal dataframe using just those columns provided
+
+        Arguments
+        ---------
+        data: the dataframe that generates the error
+        columns: a list of columns to provide the dataframe with for the popup message
+        """
         dataframe = data
         cols = pd.Index(columns)
         dataframe = dataframe.loc[:, columns]
@@ -105,7 +127,10 @@ class ABPopup(QtWidgets.QDialog):
         self.data_frame.setHidden(False)
         self.updateGeometry()
 
-    def save_options(self, msg: str = None):
+    def save_options(self):
+        """
+        Creates a checkbox for determining the format for saved files
+        """
         self.check_box.setVisible(True)
         self.check_box.setTristate(False)
         self.check_box.setText("Excerpt")
@@ -118,10 +143,22 @@ class ABPopup(QtWidgets.QDialog):
 
 
     def dataframe_to_file(self, dataframe: pd.DataFrame, flags: pd.Index=None) -> None:
+        """
+        Sets the class variables for determining those elements of the dataframe that contain error causing data
+
+        Arguments
+        ---------
+        dataframe: the pandas dataframe with the full data from importing into the AB
+        flags: the pandas row index indicating those rows with the data causing the error
+        """
         self._dataframe = dataframe
         self._flags = flags
 
     def save_dataframe(self):
+        """
+        Saves the dataframe according to pre-specified conditions with the dataframe_to_file and save_options class
+        methods
+        """
         if self.check_box.isChecked():
             self._dataframe = self._dataframe.loc[self._flags]
         elif self._dataframe is not None:
@@ -156,6 +193,22 @@ class ABPopup(QtWidgets.QDialog):
 
     @staticmethod
     def abQuestion(title, message, button1, button2):
+        """
+        Creates an ABPopup object that contains a title message and multiple options
+
+        Arguments
+        ---------
+        title: The Popup's title, should be relevant for the request to the user
+        message: A detailed explanation providing why a response from the user is required, what is done
+        according to the type of response and what the user should expect
+        button1: a QPushButton instance MUST BE PROVIDED
+        button2: a QPushButton instance MUST BE PROVIDED
+
+        Returns
+        -------
+        An ABPopup instance that provides the basic format and dialog for the popup window.
+        Further manipulation of the object and execution (via .exec_()) is performed upon instantiation
+        """
         obj = ABPopup()
         obj.layout = QtWidgets.QVBoxLayout()
         obj.setWindowTitle(title)
@@ -182,6 +235,23 @@ class ABPopup(QtWidgets.QDialog):
 
     @staticmethod
     def abWarning(title, message, button1, button2=None, default=1):
+        """
+        Creates an ABPopup object that contains a title message and a user response for a raised warning
+
+        Arguments
+        ---------
+        title: The Popup's title, should be relevant for the request to the user
+        message: A detailed explanation providing why a response from the user is required, what is done
+        according to the type of response and what the user should expect
+        button1: a QPushButton instance MUST BE PROVIDED
+        button2: a QPushButton instance OPTIONAL
+        default: the default button to be used (default set to button1)
+
+        Returns
+        -------
+        An ABPopup instance that provides the basic format and dialog for the popup window to provide a warning.
+        Further manipulation of the object and execution (via .exec_()) is performed upon instantiation
+        """
         obj = ABPopup()
         obj.layout = QtWidgets.QVBoxLayout()
         obj.setWindowTitle(title)
@@ -215,6 +285,23 @@ class ABPopup(QtWidgets.QDialog):
 
     @staticmethod
     def abCritical(title, message, button1, button2=None, default=1):
+        """
+        Creates an ABPopup object that contains a title message and a user response for a critical error
+
+        Arguments
+        ---------
+        title: The Popup's title, should be relevant for the request to the user
+        message: A detailed explanation providing why a response from the user is required, what is done
+        according to the type of response and what the user should expect
+        button1: a QPushButton instance MUST BE PROVIDED
+        button2: a QPushButton instance OPTIONAL
+        default: the default button to be used (default set to button1)
+
+        Returns
+        -------
+        An ABPopup instance that provides the basic format and dialog for the popup window to provide a warning.
+        Further manipulation of the object and execution (via .exec_()) is performed upon instantiation
+        """
         obj = ABPopup()
         obj.layout = QtWidgets.QVBoxLayout()
         obj.setWindowTitle(title)

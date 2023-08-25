@@ -9,7 +9,7 @@ import pandas as pd
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
 from ..utils import Index
-from ..errors import UnlinkableScenarioExchangeError
+from ..errors import ScenarioExchangeNotFoundError
 from .dataframe import (
     scenario_names_from_df, arrays_from_indexed_superstructure,
     filter_databases_indexed_superstructure
@@ -118,7 +118,7 @@ class SuperstructureMLCA(MLCA):
                 msg = f"One of the activities in the exchange between ({index.input.database}, {index.input.code}) and ({index.output.database}, {index.output.code}) from the scenario file is not present within the designated database. Please check both keys for this exchange within your scenario file with the corresponding databases."
                 critical = ABPopup.abCritical("Scenario Key Error", msg, QPushButton('Cancel'))
                 critical.exec_()
-                raise UnlinkableScenarioExchangeError
+                raise ScenarioExchangeNotFoundError
             except Exception as e:
                 continue
 

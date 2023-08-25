@@ -1,12 +1,23 @@
 # -*- coding: utf-8 -*-
 
+"""
+A series of defined Errors and Warnings for the Activity Browser
+
+Both Warnings and Exceptions are customized to enable custom handling (in bulk) of non-critical
+errors.
+
+
+"""
+
 
 class ABError(Exception):
     """To be used as a generic Activity-Browser Error that will not lead to the AB crashing out"""
+    pass
 
 
 class ABWarning(Warning):
     """To be used as a generic Activity-Browser Warning"""
+    pass
 
 class ImportCanceledError(ABError):
     """Import of data was cancelled by the user."""
@@ -59,19 +70,27 @@ class DuplicatedScenarioExchangeWarning(ABWarning):
 class CriticalCalculationError(ABError):
     """Should be raised if some action during the running of the calculation causes a critical Exception that will fail
     the calculation. This is intended to be used with a Popup warning system that catches the original exception."""
+    pass
 
 
 class CriticalScenarioExtensionError(ABError):
     """Should be raised when combinging multiple scenario files by extension leads to zero scenario columns. Due to no
     scenario columns being found in common between the scenario files."""
+    pass
 
 
-class UnlinkableScenarioDatabaseError(ABError):
+class ScenarioDatabaseNotFoundError(ABError):
     """Should be raised when looking up one of the processes in an SDF file and the values used don't match those
     present in the local AB/BW databases."""
+    pass
 
 
-class UnlinkableScenarioExchangeError(ABError):
+class ScenarioExchangeNotFoundError(ABError):
     """Should be raised when looking up a process key from the metadata in a scenario difference file, if THAT process
     key cannot be located in the local databases."""
+    pass
 
+
+class ScenarioExchangeDataNotFoundError(ABError):
+    """Should be raised if no actual quantities for the exchanges can be found in the scenario difference file"""
+    pass

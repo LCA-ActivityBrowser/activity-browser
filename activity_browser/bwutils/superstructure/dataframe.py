@@ -13,7 +13,7 @@ from ..utils import Index
 from .activities import data_from_index
 from .utils import SUPERSTRUCTURE
 from .file_dialogs import ABPopup
-from ..errors import UnlinkableScenarioDatabaseError
+from ..errors import ScenarioDatabaseNotFoundError
 
 def superstructure_from_arrays(samples: np.ndarray, indices: np.ndarray, names: List[str] = None) -> pd.DataFrame:
     """Process indices into the superstructure itself, the samples represent
@@ -81,6 +81,10 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     either be terminated, or can proceed without replacement of those activities not identified (the unidentified
     database names in these instances will be retained)
 
+    Raises
+    ------
+    ScenarioDatabaseNotFoundError
+
     Parameters
     ----------
 
@@ -90,6 +94,9 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             and the value corresponds to the respective database in the local brightway environment
 
     bw_dbs : a list of Brightway databases held locally
+
+    Returns
+    -------
     """
     def exchange_replace_database(ds: pd.Series, replacements: dict, critical: list, idx: pd.Index) -> tuple:
         """
@@ -194,7 +201,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             critical_message.dataframe_to_file(df_, critical['index'])
             response = critical_message.exec_()
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        raise UnlinkableScenarioDatabaseError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
+        raise ScenarioDatabaseNotFoundError("Incompatible Databases in the scenario file, unable to complete further checks on the file")
     else:
         df_.loc[df.index] = df
     return df_

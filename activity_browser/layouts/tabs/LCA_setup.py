@@ -15,8 +15,8 @@ from ...bwutils.superstructure import (
     ABFileImporter, scenario_replace_databases
 )
 from ...settings import ab_settings
-from ...bwutils.errors import (CriticalScenarioExtensionError, UnlinkableScenarioExchangeError,
-                               UnlinkableScenarioDatabaseError, ImportCanceledError)
+from ...bwutils.errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
+                               ScenarioDatabaseNotFoundError, ImportCanceledError, ScenarioExchangeDataNotFoundError)
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -545,13 +545,16 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 # Triggered when combining different scenario files by extension leads to no scenario columns
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
-            except UnlinkableScenarioDatabaseError as e:
+            except ScenarioDatabaseNotFoundError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
-            except UnlinkableScenarioExchangeError as e:
+            except ScenarioExchangeNotFoundError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             except ImportCanceledError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except ScenarioExchangeDataNotFoundError as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             self.scenario_name.setText(path.name)
