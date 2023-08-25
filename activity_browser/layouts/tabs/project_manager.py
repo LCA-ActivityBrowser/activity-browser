@@ -185,7 +185,7 @@ class ActivityBiosphereTabs(ABTab):
         """
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
-            widget = ActivityBiosphereWidget(parent=self)
+            widget = ActivityBiosphereWidget(parent=self, database_name=db_name)
             self.add_tab(widget, db_name)
             self.update_activity_biosphere_widget(db_name)
 
@@ -203,8 +203,10 @@ class ActivityBiosphereTabs(ABTab):
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent, database_name):
         super(ActivityBiosphereWidget, self).__init__(parent)
+        self.database_name = database_name
+
         self.table = ActivitiesBiosphereTable(self)
         self.tree = None
 
@@ -242,7 +244,9 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.connect_signals()
 
     def create_tree(self):
+        print('++ Starting tree creation')
         self.tree = QtWidgets.QLabel('This is a placeholder for the tree')
+        self.tree = ActivitiesBiosphereTree(self, self.database_name)
         self.v_layout.addWidget(self.tree)
 
     def connect_signals(self):
@@ -285,16 +289,17 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def update_view(self, toggled: bool):
         self.table.setVisible(not toggled)
 
-        if not isinstance(self.tree, QtWidgets.QLabel):
+        #if not isinstance(self.tree, QtWidgets.QLabel):
+        if not isinstance(self.tree, ActivitiesBiosphereTree):
             self.create_tree()
         self.tree.setVisible(toggled)
 
     def sync_data(self, db_name: str) -> None:
         self.table.model.sync(db_name)
 
-        if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
-                and not isinstance(self.tree, QtWidgets.QLabel):
-        #if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns and not isinstance(self.tree, ActivitiesBiosphereTree):
+        # if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
+        #         and not isinstance(self.tree, QtWidgets.QLabel):
+        if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns and not isinstance(self.tree, ActivitiesBiosphereTree):
             # a treeview does not exist and should be able to navigate to
 
             # set the view to list and show the radio buttons
@@ -311,9 +316,10 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         else:
             # a treeview does not need to be shown
 
-            # delete the tree
-            self.tree.hide()
-            self.tree = None
+            # delete the tree if it exists
+            if isinstance(self.tree, ActivitiesBiosphereTree):
+                self.tree.hide()
+                self.tree = None
             # set the view to list and hide radio buttons
             self.mode_radio_list.hide()
             self.mode_radio_tree.hide()

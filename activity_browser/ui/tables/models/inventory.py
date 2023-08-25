@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import datetime
 import functools
+from copy import deepcopy
+from typing import Iterator, Optional
+import os
 
 import arrow
 import brightway2 as bw
@@ -13,7 +16,7 @@ from PySide2.QtWidgets import QApplication
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
-from .base import PandasModel, DragPandasModel
+from .base import PandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
 import logging
 from activity_browser.logger import ABHandler
@@ -58,7 +61,7 @@ class DatabasesModel(PandasModel):
         self.updated.emit()
 
 
-class ActivitiesBiosphereModel(DragPandasModel):
+class ActivitiesBiosphereListModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.act_fields = lambda: AB_metadata.get_existing_fields(["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"])
@@ -208,3 +211,319 @@ class ActivitiesBiosphereModel(DragPandasModel):
         df = pd.DataFrame(data)
         df.to_clipboard(excel=True, index=False)
         QApplication.restoreOverrideCursor()
+
+
+class ActivitiesBiosphereItem(TreeItem):
+    """ Item in ActivitiesBiosphereTreeModel."""
+    # this manual typing of COLUMNS below could be a risk later:
+    # potential fix could be to get data from HEADERS in tables/inventory/ActivitiesBiosphereTree
+    def __init__(self, data: list, parent=None):
+        super().__init__(data, parent)
+
+    @classmethod
+    def build_item(cls, impact_cat, parent: TreeItem) -> 'ActivitiesBiosphereItem':
+        item = cls(list(impact_cat), parent)
+        parent.appendChild(item)
+        return item
+
+
+class ActivitiesBiosphereTreeModel(BaseTreeModel):
+    """Tree model for activities in a database.
+    Tree is based on data in self._dataframe
+    self.setup_model_data() initializes data format
+    self._dataframe is converted to a nested dict, stored in self.tree_data
+    self.tree_data can be queried during sync, pruning the tree
+    finally, the ui side is built with self.build_tree()
+
+    for tree nested dict format see self.nest_data()
+    """
+    HEADERS = ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"]
+
+    def __init__(self, parent=None, database_name=None):
+        super().__init__(parent)
+        self.database_name = database_name
+        self.HEADERS = AB_metadata.get_existing_fields(
+            ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"])
+
+        self.root = ActivitiesBiosphereItem.build_root(self.HEADERS)
+
+        # All of the various variables.
+        self._dataframe: Optional[pd.DataFrame] = None
+        self.all_col = 0
+        self.tree_data = None
+        self.matches = None
+        self.query = None
+
+        self.ISIC_tree, self.ISIC_tree_codes, self.ISIC_order = self.get_isic_tree()
+        self.setup_model_data()
+
+        signals.project_selected.connect(self.setup_and_sync)
+
+    def flags(self, index):
+        res = super().flags(index) | Qt.ItemIsDragEnabled
+        return res
+
+    def get_isic_tree(self) -> dict:
+        """Generate an entry for every class of the ISIC and store its path"""
+
+        # this file is from https://unstats.un.org/unsd/classifications/Econ/isic
+        # the file is structured such that each sub-class of the previous has 1 character more in column 'code'
+        # that means each super-class is already seen before we get to the sub-class
+        # we use that as a feature to create the 'tree path'
+        path = os.path.join(os.getcwd(), "activity_browser", "static", "database_classifications",
+                            "ISIC_Rev_4_english_structure.Txt")
+        df = pd.read_csv(path)
+
+        tree_data = {}
+        tree_codes = {}
+        tree_numeric_order = {}
+        last_super = tuple()
+        last_super_depth = 0
+        for idx, row in df.iterrows():
+            cls, name = row
+            current_depth = len(cls)
+            key = cls + ":" + name
+            tree_codes[cls] = key
+            tree_numeric_order[cls] = idx
+
+            if current_depth > last_super_depth:
+                # this is a sub-class at a deeper level as the last entry we read
+                value = tuple(list(last_super) + [key])
+            elif current_depth <= last_super_depth:
+                # this is a (sub-)class at a same or higher level than the last entry we read
+                depth = last_super_depth - current_depth + 1
+                value = tuple(list(last_super)[:-depth] + [key])
+
+            tree_data[key] = value
+            last_super = value
+            # take the last class level, split on ':' and take the length of the number
+            last_super_depth = len(last_super[-1].split(":")[0])
+        return tree_data, tree_codes, tree_numeric_order
+
+    def setup_and_sync(self) -> None:
+        self.setup_model_data()
+        self.sync()
+
+    @Slot(name="clearSyncModel")
+    @Slot(str, name="syncModel")
+    def sync(self, query=None) -> None:
+        self.beginResetModel()
+        self.root.clear()
+        self.query = query
+        if self.query:
+            tree = deepcopy(self.tree_data)
+            self._data, self.matches = self.search_tree(tree, self.query)
+        else:
+            self._data = self.tree_data
+        self.build_tree(self._data, self.root)
+        self.endResetModel()
+        self.updated.emit()
+
+    def build_tree(self, data: dict, root: ActivitiesBiosphereItem) -> None:
+        """Assemble the tree ui."""
+        for key, value in data.items():
+            if isinstance(value, dict):
+                # this is a root or branch node
+                new_data = [key] + [""] * (self.columnCount() - 1)
+                new_root = root.build_item(new_data, root)
+                self.build_tree(value, new_root)
+            else:
+                # this is a leaf node
+                ActivitiesBiosphereItem.build_item(value, root)
+
+    @Slot(name="activitiesAltered")
+    def setup_model_data(self) -> None:
+        """Construct a dataframe of activities and a complete nested
+        dict of the dataframe.
+
+        Trigger this at init and when an activity is added/edited/deleted.
+        """
+        # Get dataframe from metadata and update column-names
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        print('++ Getting data from metadatastore')
+        df = self.df_from_metadata(self.database_name)
+        # remove empty columns
+        df.replace('', np.nan, inplace=True)
+        df.dropna(how='all', axis=1, inplace=True)
+        df['tree_order'] = df.apply(lambda row: self.tree_order(row), axis=1)
+        df['tree_path_tuple'] = df.apply(lambda row: self.tree_path_tuple(row), axis=1)
+        df = df.reset_index(drop=True)
+
+        # Sort dataframe on column: 'product' and then on 'tree_order'
+        sort_field = df.columns[0]
+        df = df.iloc[df[sort_field].str.lower().argsort()]
+        self._dataframe = df.iloc[df['tree_order'].argsort()]
+
+        self.all_col = self._dataframe.columns.get_loc("tree_path_tuple")
+        # get the complete nested dict for the dataframe:
+        print('++ Nesting data')
+        self.tree_data = self.nest_data(self._dataframe)
+        QApplication.restoreOverrideCursor()
+
+    def df_from_metadata(self, db_name: str) -> pd.DataFrame:
+        """ Take the given database name and return the complete subset
+        of that database from the metadata.
+
+        The fields are used to prune the dataset of unused columns.
+        """
+        df = AB_metadata.get_database_metadata(db_name)
+        # New / empty database? Shortcut the sorting / structuring process
+        if df.empty:
+            return df
+        df = df.loc[:, self.HEADERS + ["key"]]
+        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.HEADERS] + ["key"]
+        return df
+
+    def tree_order(self, row):
+        """Give item order to row"""
+        classification = row['ISIC rev.4 ecoinvent']
+        if not isinstance(classification, str):
+            # this is not a valid number, return high number
+            return 99999
+        # match based on the actual number code, ignore letters or text
+        class_code = classification.split(':')[0]
+        if len(class_code) > 1 and not class_code[-1].isdigit():
+            class_code = class_code[:-1]
+        order = self.ISIC_order.get(class_code, 99999)
+        return order
+
+    def tree_path_tuple(self, row):
+        """Convert the row to a tuple"""
+        classification = row['ISIC rev.4 ecoinvent']
+        if not isinstance(classification, str):
+            # this is not a valid number, return 'Not classified'
+            return tuple(list(('Not classified',)) + [row['Product']])
+        # match based on the actual number code, ignore letters or text
+        class_code = classification.split(':')[0]
+        if len(class_code) > 1 and not class_code[-1].isdigit():
+            class_code = class_code[:-1]
+        classification = self.ISIC_tree_codes.get(class_code, ('Not classified',))
+        tup = self.ISIC_tree[classification]
+        tup = tuple(list(tup) + [row['Product']])
+        return tup
+
+    @staticmethod
+    def nest_data(df: pd.DataFrame, method: tuple = None) -> dict:
+        """Convert impact category dataframe into nested dict format.
+        Tree can have arbitrary amount (0 or more) levels of branch depth.
+
+        Format is:
+        {root1: {branch1: (data),
+                          (data)},
+                {branch2: {branch3: (data),
+                                    (data)},
+                          {branch4: (data),
+                                    (data)},
+                          (data)}}
+        Where:
+        root#  : top level category (str) e.g.: CML 2001
+        branch#: sub level category (str) e.g.: climate change
+                 can be arbitrary amount of branches
+        data   : data (leaf node) of category (tuple) e.g.: ("GWP 100a",
+                                                             "kg CO2-Eq",
+                                                             160,
+                                                             "('CML 2001', 'climate change', 'GWP 100a')")
+                 Here each index of the tuple refers to the data in the self.HEADERS list of this class
+        """
+        data = np.empty(df.shape[0], dtype=object)
+
+        print('++ creating array <data>')
+        print('++ DF shape', df.shape)
+        flag = True
+        for idx, row in enumerate(df.to_numpy(dtype=object)):
+            split = list(row[-1])  # convert tuple to list
+            split.append(tuple(row))
+            if flag:
+                print('++ This is split for row 0',idx,  split)
+                flag = False
+            data[idx] = split
+            # data is np 1d array (list) of each dataframe row
+
+        # From https://stackoverflow.com/a/19900276 but changed -2 to -1
+        #  this version is ~2 orders of magnitude faster than the pandas
+        #  option in the same answer
+        simple_dict = {}
+        for row in data:
+            # row is e.g.: ['CML 2001',
+            #               'climate change',
+            #               'GWP 100a',
+            #               ('CML 2001, climate change, GWP 100a',
+            #                'kg CO2-Eq',
+            #                160,
+            #                ('CML 2001',
+            #                 'climate change',
+            #                 'GWP 100a'))]
+            # so: [str, str, str, tuple(str, str, str, tuple(str, str, str))]
+            temp_row = list(row[-1])  # temp_row = tuple(str, str, str, tuple(str, str, str))
+            temp_row[0] = temp_row[-1][-1]  # in the example this would be 'GWP 100a'
+            # temp_row[0] is taken from [-1][-1] and not from row[2] as there can be an arbitrary depth in the category
+
+            new_row = tuple(temp_row)
+            # new_row format: ('GWP 100a',
+            #                  'kg CO2-Eq',
+            #                  160,
+            #                  ('CML 2001',
+            #                   'climate change',
+            #                   'GWP 100a'))
+            # new_row is the leaf node, the format is based on self.HEADERS
+            here = simple_dict
+            for elem in row[:-2]:
+                if elem not in here:
+                    # add root or branch node if it doesn't exist yet
+                    here[elem] = {}
+                # otherwise append the root/branch
+                here = here[elem]
+            # finally, add the leaf node:
+            here[row[-1]] = new_row
+        return simple_dict
+
+    def get_activity(self, tree_level: tuple) -> tuple:
+        """Retrieve method data"""
+        name = tree_level[1]
+        if tree_level[0] == 'branch':
+            return tuple(tree_level[1])
+        if not isinstance(name, str):
+            name = ", ".join(tree_level[1])
+        else:
+            return tuple([tree_level[1]])
+        methods = self._dataframe.loc[self._dataframe["Name"] == name, "method"]
+        return next(iter(methods))
+
+    def get_activities(self, name: str) -> Iterator:
+        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(name), "method"]
+        if self.query:
+            queries = [
+                method for method in methods
+                if self.query.lower() in ', '.join(method).lower()
+            ]
+            return queries
+        return methods
+
+    @staticmethod
+    def search_tree(tree: dict, query: str, matches: int = 0) -> (dict, int):
+        """Search the tree and remove non-matching leaves and branches."""
+        remove = []
+        for key, value in tree.items():
+            if isinstance(value, tuple):
+                # this is a leaf node
+                if query.lower() not in ', '.join(value[-1]).lower():
+                    # the query does not match
+                    remove.append(key)
+                else:
+                    matches += 1
+            else:
+                # this is not a leaf node
+                if query.lower() not in key.lower():
+                    # the query does not match, go deeper
+                    sub_tree, matches = ActivitiesBiosphereTreeModel.search_tree(value, query, matches)
+                    if len(sub_tree) > 0:
+                        # there were query matches in this branch
+                        tree[key] = sub_tree
+                    else:
+                        # there were no query matches in this branch
+                        remove.append(key)
+                else:
+                    matches += 1
+        for key in remove:
+            tree.pop(key)
+        return tree, matches
