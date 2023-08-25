@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Slot
+from typing import Iterable
 
+from PySide2 import QtWidgets, QtCore
+from PySide2.QtCore import Slot, QModelIndex
+
+from ...bwutils import AB_metadata
 from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
 from .delegates import CheckboxDelegate
-from .models import DatabasesModel, ActivitiesBiosphereModel
-from .views import ABDataFrameView, ABFilterableDataFrameView
+from .models import DatabasesModel, ActivitiesBiosphereListModel, ActivitiesBiosphereTreeModel
+from .views import ABDictTreeView, ABDataFrameView, ABFilterableDataFrameView
 
 
 class DatabasesTable(ABDataFrameView):
@@ -103,7 +106,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         super().__init__(parent)
         self.db_read_only = True
 
-        self.model = ActivitiesBiosphereModel(parent=self)
+        self.model = ActivitiesBiosphereListModel(parent=self)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
@@ -258,3 +261,143 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             self.new_activity_action.setEnabled(not self.db_read_only)
             self.duplicate_activity_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
+
+class ActivitiesBiosphereTree(ABDictTreeView):
+    HEADERS = ["ISIC rev.4 ecoinvent", "reference product", "name", "location", "unit"]
+
+    def __init__(self, parent=None, database_name=None):
+        super().__init__(parent)
+        self.database_name = database_name
+        self.HEADERS = AB_metadata.get_existing_fields(
+            ["ISIC rev.4 ecoinvent", "reference product", "name", "location", "unit"])
+
+        # set drag ability
+        self.setDragEnabled(True)
+        self.setDragDropMode(ABDictTreeView.DragOnly)
+        # set model
+        self.model = ActivitiesBiosphereTreeModel(self, self.database_name)
+        self.setModel(self.model)
+        self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.optional_expand)
+        self.model.sync()
+
+    def _connect_signals(self):
+        super()._connect_signals()
+        self.doubleClicked.connect(self.activity_selected)
+        # Signal for when new activity is added --> self.open_activity
+        # Signal for when activity is edited --> self.open_activity)
+        # Signal for when activity is deleted --> self.open_activity)
+
+    @Slot(name="syncTree")
+    def sync(self, query=None) -> None:
+        self.model.sync()
+
+    @Slot(name="optionalExpandAll")
+    def optional_expand(self) -> None:
+        """auto-expand on sync with query through this function.
+
+        NOTE: self.expandAll() is terribly slow with large trees, so you are advised not to use this without
+         something like search [as implemented below through the query check].
+         Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
+         https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
+         https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
+        """
+        if self.model.query and self.model.matches <= 300:
+            self.expandAll()
+
+    @Slot(name="openActivity")
+    def open_activity(self):
+        """'Opens' the method tree, dependent on the previous state this method will
+        generate a new tree and then expand all the nodes that were previously expanded.
+        """
+        expands = self.expanded_list()
+        self.model.setup_model_data()
+        self.model.sync()
+        iter = self.model.iterator(None)
+        while iter != None:
+            item = self.build_path(iter)
+            if item in expands:
+                self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
+            iter = self.model.iterator(iter)
+
+    @Slot(QModelIndex, name="activitySelection")
+    def activity_selected(self):
+        tree_level = self.tree_level()
+        if tree_level[0] == 'leaf':
+            activity = self.model.get_activity(tree_level)
+            # emit signal to open the activity
+
+    def contextMenuEvent(self, event) -> None:
+        """Right clicked menu, action depends on item level."""
+        if self.indexAt(event.pos()).row() == -1:
+            return
+        menu = QtWidgets.QMenu(self)
+        if self.tree_level()[0] == 'leaf':
+            pass
+        else:
+            pass
+        menu.exec_(event.globalPos())
+
+    def selected_activities(self) -> Iterable:
+        """Returns a generator which yields the 'activity' for each row."""
+        tree_level = self.tree_level()
+        if tree_level[0] == 'leaf':
+            # filter on the leaf
+            return [self.model.get_activity(tree_level)]
+
+        if tree_level[0] == 'root':
+            # filter on the root + ', '
+            # (this needs to be added in case one root level starts with a shorter name of another one
+            # example: 'activity a' and 'activity a, words'
+            filter_on = tree_level[1] + ', '
+        else:
+            # filter on the branch and its parents/roots
+            filter_on = ', '.join(tree_level[1]) + ', '
+
+        activities = self.model.get_activities(filter_on)
+        return activities
+
+    def tree_level(self) -> tuple:
+        """Return list of (tree level, content).
+        Where content depends on level:
+        leaf:   the descending list of branch levels, list()
+        root:   the name of the root, str()
+        branch: the descending list of branch levels, list()
+            leaf/branch example: ('CML 2001', 'climate change')"""
+        indexes = self.selectedIndexes()
+        if indexes[1].data() != '' or indexes[2].data() != '':
+            return 'leaf', self.find_levels()
+        elif indexes[0].parent().data() is None:
+            return 'root', indexes[0].data()
+        else:
+            return 'branch', self.find_levels()
+
+    def find_levels(self, level=None) -> list:
+        """Find all levels of branch."""
+        level = level or next(iter(self.selectedIndexes()))
+        parent = level.parent()
+        levels = [level.data()]
+        while parent.data() is not None:
+            levels.append(parent.data())
+            parent = parent.parent()
+        return levels[::-1]
+
+    def expanded_list(self):
+        it = self.model.iterator(None)
+        expanded_items = []
+        while it != None:
+            if self.isExpanded(self.model.createIndex(it.row(), 0, it)):
+                expanded_items.append(self.build_path(it))
+            it = self.model.iterator(it)
+        return expanded_items
+
+    def build_path(self, iter):
+        """Given an iterator of the TreeItem type build the path back to the
+        root ancestor. This is intended for testing membership of expanded
+        entries."""
+        item = set()
+        p = iter
+        while p != self.model.root:
+            item.add(p.data(0))
+            p = p.parent()
+        return item
