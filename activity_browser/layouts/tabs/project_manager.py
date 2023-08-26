@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
+from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
 from ...ui.tables import (
@@ -10,21 +11,18 @@ from ...ui.tables import (
 )
 from ...signals import signals
 
-from ...bwutils.commontasks import update_and_shorten_label
-
-
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ProjectTab, self).__init__(parent)
         # main widgets
         self.projects_widget = ProjectsWidget()
         self.databases_widget = DatabaseWidget(self)
-        self.activity_biosphere_widget = ActivityBiosphereWidget(self)
+        self.activity_biosphere_tabs = ActivityBiosphereTabs(self)
 
         # Layout
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.splitter.addWidget(self.databases_widget)
-        self.splitter.addWidget(self.activity_biosphere_widget)
+        self.splitter.addWidget(self.activity_biosphere_tabs)
 
         self.overall_layout = QtWidgets.QVBoxLayout()
         self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
@@ -46,16 +44,16 @@ class ProjectTab(QtWidgets.QWidget):
     def update_widgets(self):
         """Update widgets when a new database has been selected or the project has been changed.
         Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
-        no_databases = self.activity_biosphere_widget.table.rowCount() == 0
+        no_databases = len(self.activity_biosphere_tabs.tabs) == 0
 
         self.databases_widget.update_widget()
 
-        self.activity_biosphere_widget.setVisible(not no_databases)
+        self.activity_biosphere_tabs.setVisible(not no_databases)
         self.resize_splitter()
 
     def resize_splitter(self):
         """Splitter sizes need to be reset (for some reason this is buggy if not done like this)"""
-        widgets = [self.databases_widget, self.activity_biosphere_widget]
+        widgets = [self.databases_widget, self.activity_biosphere_tabs]
         sizes = [x.sizeHint().height() for x in widgets]
         tabheight = self.height()
         if sum(sizes) > tabheight and sizes[1] > 0.75 * tabheight:
@@ -166,6 +164,43 @@ class DatabaseWidget(QtWidgets.QWidget):
         self.label_change_readonly.setVisible(not no_databases)
 
 
+class ActivityBiosphereTabs(ABTab):
+    def __init__(self, parent=None):
+        super(ActivityBiosphereTabs, self).__init__(parent)
+        self.setTabsClosable(True)
+
+        self.connect_signals()
+
+    def connect_signals(self) -> None:
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.database_selected.connect(self.open_or_focus_tab)
+        signals.database_changed.connect(self.update_activity_biosphere_widget)
+        signals.delete_database_confirmed.connect(self.close_tab_by_tab_name)
+
+        signals.project_selected.connect(self.close_all)
+
+    def open_or_focus_tab(self, db_name: str) -> None:
+        """Put focus on tab, if not open yet, open it.
+        """
+        # create the tab if it doesn't exist yet
+        if not self.tabs.get(db_name, False):
+            widget = ActivityBiosphereWidget(parent=self)
+            self.add_tab(widget, db_name)
+            self.update_activity_biosphere_widget(db_name)
+
+        # put the focus on this tab + send signal that this is the open db
+        self.select_tab(self.tabs[db_name])
+
+    def current_index_changed(self, current_index: int) -> None:
+        db_name = self.get_tab_name_from_index(current_index)
+        signals.database_tab_open.emit(db_name)
+
+    def update_activity_biosphere_widget(self, db_name: str) -> None:
+        """Check if database is open, if so, update the underlying data"""
+        if self.tabs.get(db_name, False):
+            self.tabs[db_name].table.model.sync(db_name)
+
+
 class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
@@ -175,12 +210,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.header_widget = QtWidgets.QWidget()
         self.header_layout = QtWidgets.QHBoxLayout()
         self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.header_layout.addWidget(header("Activities:"))
         self.header_widget.setLayout(self.header_layout)
-
-        self.label_database = QtWidgets.QLabel("[]")
-        self.header_layout.addWidget(self.label_database)
-        signals.database_selected.connect(self.update_table)
 
         self.setup_search()
 
@@ -196,11 +226,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Maximum)
         )
 
-        self.connect_signals()
-
-    def connect_signals(self):
-        signals.project_selected.connect(self.reset_widget)
-
     def reset_widget(self):
         self.hide()
         self.table.model.clear()
@@ -208,17 +233,8 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def setup_search(self):
         # 1st search box
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("Filter by search string")
+        self.search_box.setPlaceholderText("Search")
         self.search_box.returnPressed.connect(self.set_search_term)
-
-#        # 2nd search box
-#        self.search_box2 = QtWidgets.QLineEdit()
-#        self.search_box2.setPlaceholderText("Filter by search string")
-#        self.search_box2.returnPressed.connect(self.set_search_term)
-#
-#        # search logic between both search fields
-#        self.logic_dropdown = QtWidgets.QComboBox()
-#        self.logic_dropdown.addItems(['AND', 'OR', 'AND NOT'])
 
         # search
         self.search_button = QtWidgets.QToolButton()
@@ -232,24 +248,13 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.reset_search_button.setToolTip("Clear the search")
         self.reset_search_button.clicked.connect(self.table.reset_search)
         self.reset_search_button.clicked.connect(self.search_box.clear)
-#        self.reset_search_button.clicked.connect(self.search_box2.clear)
 
         signals.project_selected.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
-#        self.header_layout.addWidget(self.logic_dropdown)
-#        self.header_layout.addWidget(self.search_box2)
 
         self.header_layout.addWidget(self.search_button)
         self.header_layout.addWidget(self.reset_search_button)
 
-    def update_table(self, db_name='biosphere3'):
-        if self.table.database_name:
-            self.show()
-
-        update_and_shorten_label(self.label_database, db_name)
-
     def set_search_term(self):
         search_term = self.search_box.text()
-#        search_term2 = self.search_box2.text()
-#        logic = self.logic_dropdown.currentText()
         self.table.search(search_term)

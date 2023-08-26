@@ -125,6 +125,7 @@ class DatabaseController(QObject):
             del bw.databases[name]
             Group.delete().where(Group.name == name).execute()
             ProjectController.change_project(bw.projects.current, reload=True)
+            signals.delete_database_confirmed.emit(name)
 
     @Slot(str, name="relinkDatabase")
     def relink_database(self, db_name: str) -> None:
