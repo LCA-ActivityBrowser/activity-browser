@@ -36,6 +36,17 @@ class SuperstructureMLCA(MLCA):
 
         super().__init__(cs_name)
 
+        # Scenarios overwrite the lca.xxx_matrix. For supporting absent values
+        # in scenario files defaults are required, to prevent these from being
+        # overwritten duplicates are required...
+        self.default_technosphere_matrix = self.lca.technosphere_matrix.copy()
+        self.default_biosphere_matrix = self.lca.biosphere_matrix.copy()
+        self.defaults = {
+            "technosphere": "default_technosphere_matrix",
+            "production": "default_technosphere_matrix",
+            "biosphere": "default_biosphere_matrix"
+        }
+
         # Filter dataframe for keys that do not occur in the LCA matrix.
         df = filter_databases_indexed_superstructure(df, self.all_databases)
         assert not df.empty, "Filtering unused flows removed all of the scenario data."
@@ -141,9 +152,15 @@ class SuperstructureMLCA(MLCA):
         for kind in kinds:
             idx = self.matrix_indices[types == kind]
             sample = self.values[types == kind, self.current]
-            # Filter sample and idx for NaN values in samples.
-            idx = idx[~np.isnan(sample)]
-            sample = sample[~np.isnan(sample)]
+            # Previously filtered sample and idx for NaN values in samples.
+            # Currently replaces sample NaN values with defaults from the databases
+            if np.isnan(sample).any():
+                default = getattr(self, self.defaults[kind])
+                na_idx = idx[np.isnan(sample)]
+                if kind == 'technosphere':
+                    sample[np.isnan(sample)] = np.multiply(default[na_idx["row"], na_idx["col"]].tolist()[0], -1)
+                else:
+                    sample[np.isnan(sample)] = default[na_idx["row"], na_idx["col"]].tolist()[0]
             try:
                 matrix = getattr(self.lca, self.matrices[kind])
             except AttributeError:
