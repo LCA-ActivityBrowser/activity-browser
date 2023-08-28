@@ -8,6 +8,12 @@ from activity_browser.settings import ab_settings
 from activity_browser.signals import signals
 from activity_browser.ui.widgets import TupleNameDialog, ProjectDeletionDialog
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class ProjectController(QObject):
     """The controller that handles all of the AB features on the level of
@@ -33,11 +39,11 @@ class ProjectController(QObject):
 
     def load_settings(self) -> None:
         if ab_settings.settings:
-            print("Loading user settings:")
+            log.info("Loading user settings:")
             self.switch_brightway2_dir_path(dirpath=ab_settings.current_bw_dir)
             self.change_project(ab_settings.startup_project)
-        print('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        print('Brightway2 active project: {}'.format(bw.projects.current))
+        log.info('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        log.info('Brightway2 active project: {}'.format(bw.projects.current))
 
     @staticmethod
     @Slot(str, name="changeProject")
@@ -48,13 +54,13 @@ class ProjectController(QObject):
 #        assert name, "No project name given."
         name = "default" if not name else name
         if name not in bw.projects:
-            print("Project does not exist: {}, creating!".format(name))
+            log.info("Project does not exist: {}, creating!".format(name))
             bw.projects.create_project(name)
 
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
         signals.project_selected.emit()
-        print("Loaded project:", name)
+        log.info("Loaded project:", name)
 
     @Slot(name="createProject")
     def new_project(self, name=None):
@@ -141,7 +147,7 @@ class CSetupController(QObject):
                 return
             bw.calculation_setups[name] = {'inv': [], 'ia': []}
             signals.calculation_setup_selected.emit(name)
-            print("New calculation setup: {}".format(name))
+            log.info("New calculation setup: {}".format(name))
 
     @Slot(str, name="copyCalculationSetup")
     def copy_calculation_setup(self, current: str) -> None:
@@ -155,13 +161,13 @@ class CSetupController(QObject):
                 return
             bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
             signals.calculation_setup_selected.emit(new_name)
-            print("Copied calculation setup {} as {}".format(current, new_name))
+            log.info("Copied calculation setup {} as {}".format(current, new_name))
 
     @Slot(str, name="deleteCalculationSetup")
     def delete_calculation_setup(self, name: str) -> None:
         del bw.calculation_setups[name]
         signals.set_default_calculation_setup.emit()
-        print("Deleted calculation setup: {}".format(name))
+        log.info("Deleted calculation setup: {}".format(name))
 
     @Slot(str, name="renameCalculationSetup")
     def rename_calculation_setup(self, current: str) -> None:
@@ -174,11 +180,9 @@ class CSetupController(QObject):
             if not self._can_use_cs_name(new_name):
                 return
             bw.calculation_setups[new_name] = bw.calculation_setups[current].copy()
-            # print("Current setups:", list(bw.calculation_setups.keys()))
             del bw.calculation_setups[current]
-            # print("After deletion of {}:".format(current), list(bw.calculation_setups.keys()))
             signals.calculation_setup_selected.emit(new_name)
-            print("Renamed calculation setup from {} to {}".format(current, new_name))
+            log.info("Renamed calculation setup from {} to {}".format(current, new_name))
 
     def _can_use_cs_name(self, new_name: str) -> bool:
         if new_name in bw.calculation_setups.keys():
@@ -223,17 +227,17 @@ class ImpactCategoryController(QObject):
                     QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
                     return
                 mthd.copy(new_method)
-                print("Copied method {} into {}".format(str(mthd.name), str(new_method)))
+                log.info("Copied method {} into {}".format(str(mthd.name), str(new_method)))
             signals.new_method.emit()
 
     @Slot(tuple, name="deleteMethod")
-    def delete_method(self, method: tuple, level:str = None) -> None:
+    def delete_method(self, method_: tuple, level:str = None) -> None:
         """Call delete on the (first) selected method and present confirmation dialog."""
         if level is not None and level != 'leaf':
-            methods = [bw.Method(mthd) for mthd in bw.methods if set(method).issubset(mthd)]
+            methods = [bw.Method(mthd) for mthd in bw.methods if set(method_).issubset(mthd)]
         else:
-            methods = [bw.Method(method)]
-        method = bw.Method(method)
+            methods = [bw.Method(method_)]
+        method = bw.Method(method_)
         dialog = QtWidgets.QMessageBox()
         dialog.setWindowTitle("Are you sure you want to delete this method?")
         dialog.setText("You are about to PERMANENTLY delete the following Impact Category:\n("
@@ -245,8 +249,7 @@ class ImpactCategoryController(QObject):
         if dialog.exec_() == QtWidgets.QMessageBox.Yes:
             for mthd in methods:
                 mthd.deregister()
-                print("Deleted method {}".format(str(mthd.name)))
-            # TODO: ensure the method no longer shows up anywhere.
+                log.info("Deleted method {}".format(str(mthd.name)))
             signals.method_deleted.emit()
 
     @Slot(list, tuple, name="removeCFUncertainty")
@@ -318,7 +321,6 @@ class ImpactCategoryController(QObject):
             for d in to_delete:
                 if i[0][0] == d[0][0] and i[0][1] == d[0][1]:
                     delete_list.append(i)
-                    print('yep same')
         for d in delete_list:
             cfs.remove(d)
         method.write(cfs)

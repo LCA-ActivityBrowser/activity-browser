@@ -6,9 +6,15 @@ from PySide2.QtWidgets import QMessageBox, QFileDialog
 
 from typing import Optional, Union
 from ..errors import (
-    ImportCanceledError, ActivityProductionValueError, IncompatibleDatabaseNamingError,
+    ActivityProductionValueError, IncompatibleDatabaseNamingError,
     InvalidSDFEntryValue, ExchangeErrorValues
 )
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class ABPopup(QMessageBox):
@@ -142,7 +148,7 @@ class ABFileImporter(ABC):
                     msg = "Error in importing file with activity {} and {}".format(ds[4], ds[5])
                     raise IncompatibleDatabaseNamingError()
         except IncompatibleDatabaseNamingError as e:
-            print(msg)
+            log.error(msg)
             raise e
 
     @staticmethod
@@ -160,7 +166,7 @@ class ABFileImporter(ABC):
                 msg = "Error with the production value in the exchange between activity {} and {}".format(failed['from activity name'], failed['to activity name'])
                 raise ActivityProductionValueError()
         except ActivityProductionValueError as e:
-            print(msg)
+            log.error(msg)
             raise e
 
     @staticmethod
@@ -179,7 +185,7 @@ class ABFileImporter(ABC):
                 msg = "Error with NA's in the exchange between activity {} and {}".format(hasNA['from activity name'], hasNA['to activity name'])
                 raise InvalidSDFEntryValue()
         except InvalidSDFEntryValue as e:
-            print(msg)
+            log.error(msg)
             raise e
 
     @staticmethod

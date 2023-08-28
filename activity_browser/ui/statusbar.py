@@ -6,6 +6,11 @@ import brightway2 as bw
 
 from ..signals import signals
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 class Statusbar(QStatusBar):
     def __init__(self, window):
@@ -27,7 +32,7 @@ class Statusbar(QStatusBar):
 
     @Slot(str, name="statusLeft")
     def left(self, message: str) -> None:
-        print(message)  # for console output
+        log.info(message)  # for console output
         if isinstance(message, str):
             self.status_message_left.setText(message)
 

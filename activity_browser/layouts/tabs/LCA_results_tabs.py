@@ -36,6 +36,13 @@ from ...ui.widgets import CutoffMenu, SwitchComboBox
 from ...ui.web import SankeyNavigatorWidget
 from .base import BaseRightTab
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
+
 def get_header_layout(header_text: str) -> QVBoxLayout:
     vlayout = QVBoxLayout()
     vlayout.addWidget(header(header_text))
@@ -160,7 +167,7 @@ class LCAResultsSubTab(QTabWidget):
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.tabs.sankey):
             if not self.tabs.sankey.has_sankey:
-                print('Generating Sankey Tab')
+                log.info('Generating Sankey Tab')
                 self.tabs.sankey.new_sankey()
 
     @QtCore.Slot(name="lciaScenarioExport")
@@ -1218,11 +1225,11 @@ class MonteCarloTab(NewAnalysisTab):
         iterations = int(self.iterations.text())
         seed = None
         if self.seed.text():
-            print('SEED: ', self.seed.text())
+            log.info('SEED: ', self.seed.text())
             try:
                 seed = int(self.seed.text())
-            except ValueError:
-                traceback.print_exc()
+            except ValueError as e:
+                log.error('Seed value must be an integer number or left empty.', error=e)
                 QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
                 self.seed.setText('')
                 return
@@ -1240,7 +1247,7 @@ class MonteCarloTab(NewAnalysisTab):
             self.update_mc()
         except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
-            traceback.print_exc()
+            log.error(error=e)
             QMessageBox.warning(self, 'Could not perform Monte Carlo simulation', str(e))
         QApplication.restoreOverrideCursor()
 
@@ -1490,7 +1497,7 @@ class GSATab(NewAnalysisTab):
                                  cutoff_technosphere=cutoff_technosphere, cutoff_biosphere=cutoff_biosphere)
             # self.update_mc()
         except Exception as e:  # Catch any error...
-            traceback.print_exc()
+            log.error(error=e)
             message = str(e)
             message_addition = ''
             if message == 'singular matrix':
@@ -1516,7 +1523,7 @@ class GSATab(NewAnalysisTab):
         self.table.table_name = 'gsa_output_' + self.GSA.get_save_name()
 
         if self.checkbox_export_data_automatically.isChecked():
-            print("EXPORTING DATA")
+            log.info("EXPORTING DATA")
             self.GSA.export_GSA_input()
             self.GSA.export_GSA_output()
 
@@ -1556,15 +1563,18 @@ class MonteCarloWorkerThread(QtCore.QThread):
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
     So this is for future reference in case this issue is solved... """
 
+    def __init__(self):
+        pass
+
     def set_mc(self, mc, iterations=20):
         self.mc = mc
         self.iterations = iterations
 
     def run(self):
-        print('Starting new Worker Thread. Iterations:', self.iterations)
+        log.info('Starting new Worker Thread. Iterations:', self.iterations)
         self.mc.calculate(iterations=self.iterations)
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
-        print('in thread {}'.format(QtCore.QThread.currentThread()))
+        log.info('in thread {}'.format(QtCore.QThread.currentThread()))
         signals.monte_carlo_ready.emit(self.mc.cs_name)
 
 

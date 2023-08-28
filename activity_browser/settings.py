@@ -10,11 +10,17 @@ import appdirs
 import brightway2 as bw
 
 from .signals import signals
+import logging
+from .logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BaseSettings(object):
     """ Base Class for handling JSON settings files.
     """
+
     def __init__(self, directory: str, filename: str = None):
         self.data_dir = directory
         self.filename = filename or "default_settings.json"
@@ -236,7 +242,7 @@ class ProjectSettings(BaseSettings):
         """ On switching project, attempt to read the settings for the new
         project.
         """
-        print("Reset project settings directory to:", bw.projects.dir)
+        log.info("Reset project settings directory to:", bw.projects.dir)
         self.settings_file = os.path.join(bw.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects

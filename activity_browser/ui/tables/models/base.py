@@ -11,6 +11,12 @@ from PySide2.QtGui import QBrush
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.style import style_item
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class PandasModel(QAbstractTableModel):
     """ Abstract pandas table model adapted from
@@ -30,10 +36,10 @@ class PandasModel(QAbstractTableModel):
         self.different_column_types = {}
 
     def rowCount(self, parent=None, *args, **kwargs):
-        return self._dataframe.shape[0]
+        return 0 if self._dataframe is None else self._dataframe.shape[0]
 
     def columnCount(self, parent=None, *args, **kwargs):
-        return self._dataframe.shape[1]
+        return 0 if self._dataframe is None else self._dataframe.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
@@ -130,7 +136,7 @@ class PandasModel(QAbstractTableModel):
             return (float(query[0]) <= col_data.astype(float)) \
                    & (col_data.astype(float) <= float(query[1]))
         else:
-            print("WARNING: unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
+            log.warning("unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
             return col_data == query
 
     def get_filter_mask(self, filters: dict) -> pd.Series:
@@ -170,7 +176,7 @@ class PandasModel(QAbstractTableModel):
                 new_mask = self.test_query_on_column(filt_type, col_data_, query)
                 if not any(new_mask):
                     # no matches for this mask, let user know:
-                    print("There were no matches for filter: {}: '{}'".format(col_filt[0], col_filt[1]))
+                    log.info("There were no matches for filter: {}: '{}'".format(col_filt[0], col_filt[1]))
 
                 # create or combine new mask within column
                 if isinstance(col_mask, pd.Series) and col_mode == 'AND':

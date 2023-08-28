@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import io
 from pathlib import Path
-from pprint import pprint
 import subprocess
 import tempfile
 import zipfile
@@ -22,6 +21,12 @@ from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger)
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -108,7 +113,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         event.accept()
 
     def cancel_thread(self):
-        print('\nDatabase import interrupted!')
+        log.info('\nDatabase import interrupted!')
         import_signals.cancel_sentinel = True
         self.cleanup()
 
@@ -824,7 +829,7 @@ class MainWorkerThread(QtCore.QThread):
                 # With the changes to the ABExcelImporter and ABPackage classes
                 # this should not really trigger for data exported from AB.
                 if db.name != self.db_name:
-                    print("WARNING: renaming database '{}' to '{}', parameters lost.".format(
+                    log.warning("renaming database '{}' to '{}', parameters lost.".format(
                         db.name, self.db_name))
                     db.rename(self.db_name)
                 import_signals.db_progress.emit(1, 1)
@@ -850,7 +855,7 @@ class MainWorkerThread(QtCore.QThread):
             )
         except StrategyError as e:
             # Excel import failed because extra databases were found, relink
-#            print("Could not link exchanges, here are 10 examples.:") # THREAD UNSAFE FUNCTIONS
+            log.error("Could not link exchanges, here are 10 examples.:") # THREAD UNSAFE FUNCTIONS
 #            pprint(e.args[0])
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
@@ -871,7 +876,7 @@ class MainWorkerThread(QtCore.QThread):
     def delete_canceled_db(self):
         if self.db_name in bw.databases:
             del bw.databases[self.db_name]
-            print(f'Database {self.db_name} deleted!')
+            log.info(f'Database {self.db_name} deleted!')
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
@@ -1151,7 +1156,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
         dir_path = str(dir_path)
         for i, filename in enumerate(file_list, start=1):
             if import_signals.cancel_sentinel:
-                print(f'Extraction canceled at position {i}!')
+                log.info(f'Extraction canceled at position {i}!')
                 raise ImportCanceledError
 
             data.append(cls.extract_activity(dir_path, filename, db_name))
@@ -1172,7 +1177,7 @@ class ActivityBrowserBackend(SQLiteBackend):
     def _efficient_write_dataset(self, *args, **kwargs):
         index = args[0]
         if import_signals.cancel_sentinel:
-            print(f'\nWriting canceled at position {index}!')
+            log.info(f'\nWriting canceled at position {index}!')
             raise ImportCanceledError
         import_signals.db_progress.emit(index+1, self.total)
         return super()._efficient_write_dataset(*args, **kwargs)

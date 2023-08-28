@@ -15,6 +15,12 @@ from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class BaseParameterModel(EditablePandasModel):
     COLUMNS = []
@@ -232,7 +238,7 @@ class ActivityParameterModel(BaseParameterModel):
             act = bw.get_activity(row["key"])
         except:
             # Can occur if an activity parameter exists for a removed activity.
-            print("Activity {} no longer exists, removing parameter.".format(row["key"]))
+            log.info("Activity {} no longer exists, removing parameter.".format(row["key"]))
             signals.clear_activity_parameter.emit(
                 parameter.database, parameter.code, parameter.group
             )
@@ -354,7 +360,7 @@ class ParameterItem(TreeItem):
                 parent.appendChild(item)
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
-                print("Broken exchange: {}, removing.".format(e))
+                log.warning("Broken exchange: {}, removing.".format(e))
                 signals.exchanges_deleted.emit([exc])
 
 

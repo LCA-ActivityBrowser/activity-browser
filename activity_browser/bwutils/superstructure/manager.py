@@ -11,6 +11,12 @@ from .activities import fill_df_keys_with_fields
 from .dataframe import scenario_columns
 from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
@@ -163,7 +169,6 @@ class SuperstructureManager(object):
 
             extra_df = pd.DataFrame(list_exc)
             extra_df.index = prod_idxs
-
             extra_df.loc[:, scenario_cols] = extra_df.loc[:, scenario_cols] / (extra_df.loc[:, scenario_cols] + df.loc[tech_idxs, scenario_cols].values)
 
             # drop the 'technosphere' flows
@@ -179,7 +184,7 @@ class SuperstructureManager(object):
         """
         duplicates = df.index.duplicated(keep="last")
         if duplicates.any():
-            print("Found and dropped {} duplicate exchanges.".format(duplicates.sum()))
+            log.warning("Found and dropped {} duplicate exchanges.".format(duplicates.sum()))
             return df.loc[~duplicates, :]
         return df
 
@@ -198,7 +203,7 @@ class SuperstructureManager(object):
                                                                                                   len(df))
         unknown_flows = df.loc[:, "flow type"].isna()
         if unknown_flows.any():
-            print("Not all flow types are known, guessing {} flows".format(
+            log.warning("Not all flow types are known, guessing {} flows".format(
                 unknown_flows.sum()
             ))
             df.loc[unknown_flows, "flow type"] = df.loc[

@@ -10,6 +10,11 @@ from .impact_categories import MethodsTable, MethodsTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):
@@ -128,7 +133,7 @@ class CSActivityTable(CSGenericTable):
         event.accept()
         source = event.source()
         if getattr(event.source(), "technosphere", False):
-            print('Dropevent from:', source)
+            log.info('Dropevent from:', source)
             self.model.include_activities(
                 {source.get_key(p): 1.0} for p in source.selectedIndexes()
             )
@@ -151,6 +156,7 @@ class CSMethodsTable(CSGenericTable):
         self.setToolTip("Drag impact categories from the impact categories tree/table to include them \n"
                         "Click and drag to re-order individual rows of the table\n"
                         "Hold CTRL and click to select multiple rows to open or delete them.")
+
 
     @Slot(name="resizeView")
     def custom_view_sizing(self):

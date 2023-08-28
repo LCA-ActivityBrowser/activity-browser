@@ -9,7 +9,11 @@ from PySide2.QtWidgets import QApplication
 from .application import Application
 from .info import __version__
 from .plugin import Plugin
+import logging
+from .logger import ABHandler
 
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 # https://bugreports.qt.io/browse/QTBUG-87014
 # https://bugreports.qt.io/browse/QTBUG-85546
@@ -20,11 +24,11 @@ if QSysInfo.productType() == "osx":
     if QSysInfo.productVersion() not in supported:
         os.environ["QT_MAC_WANTS_LAYER"] = "1"
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
-        print("Info: GPU hardware acceleration disabled")
+        log.info("Info: GPU hardware acceleration disabled")
 
 if QSysInfo.productType() in ["arch","nixos"]:
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
-    print("Info: QtWebEngine sandbox disabled")
+    log.info("Info: QtWebEngine sandbox disabled")
 
 def run_activity_browser():
     qapp = QApplication(sys.argv)
@@ -39,10 +43,10 @@ def run_activity_browser():
 #    )
     application = Application()
     application.show()
-    print("Qt Version:", qt_version)
+    log.info("Qt Version:", qt_version)
 
     def exception_hook(*args):
-        print(''.join(traceback.format_exception(*args)))
+        log.warning(''.join(traceback.format_exception(*args)))
 
     sys.excepthook = exception_hook
 

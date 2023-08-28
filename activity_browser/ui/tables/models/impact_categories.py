@@ -14,6 +14,12 @@ from activity_browser.signals import signals
 from ...wizards import UncertaintyWizard
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class MethodsListModel(DragPandasModel):
     HEADERS = ["Name", "Unit", "# CFs", "method"]
@@ -370,7 +376,6 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     @Slot(list, name="deleteCF")
     def delete_cf(self, proxy_indexes: Iterator[QModelIndex]) -> None:
         to_delete = [self.get_cf(p) for p in proxy_indexes]
-        print(to_delete)
         confirm = QMessageBox()
         confirm.setIcon(QMessageBox.Warning)
         confirm.setWindowTitle("Confirm deletion")
@@ -378,7 +383,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         confirm.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
         confirmed = confirm.exec()
         if confirmed == QMessageBox.Ok:
-            print("Deleting CF(s):", to_delete)
+            log.info("Deleting CF(s):", to_delete)
             signals.delete_cf_method.emit(to_delete, self.method.name)
 
     @Slot(tuple, object, name="modifyCf")

@@ -57,7 +57,6 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
             self.cf_table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
         else:
             self.cf_table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
-        print(self.read_only)
 
 class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):

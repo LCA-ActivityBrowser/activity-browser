@@ -11,6 +11,12 @@ from ..ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 from ..signals import signals
 from ..settings import project_settings, ab_settings
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class PluginController(QObject):
 
@@ -47,16 +53,15 @@ class PluginController(QObject):
 
     def load_plugin(self, name):
         try:
-            print("Importing plugin {}".format(name))
+            log.info("Importing plugin {}".format(name))
             plugin_lib = importlib.import_module(name)
             importlib.reload(plugin_lib)
             return plugin_lib.Plugin()
-        except:
-            print("Error: Import of plugin {} failed".format(name))
-            print(traceback.format_exc())
+        except Exception as e:
+            log.error("Error: Import of plugin {} failed".format(name), error=e)
 
     def remove_plugin(self, name):
-        print("Removing plugin {}".format(name))
+        log.info("Removing plugin {}".format(name))
         # Apply plugin remove() function
         self.plugins[name].remove()
         # Close plugin tabs
@@ -72,9 +77,9 @@ class PluginController(QObject):
             # Add plugins tabs
             for tab in plugin.tabs:
                 self.window.add_tab_to_panel(tab, plugin.infos["name"], tab.panel)
-            print("Loaded tab {}".format(name))
+            log.info("Loaded tab {}".format(name))
             return
-        print("Removing plugin {}".format(name))
+        log.info("Removing plugin {}".format(name))
         # Apply plugin remove() function
         self.plugins[name].remove()
         # Close plugin tabs
@@ -94,7 +99,7 @@ class PluginController(QObject):
             try:
                 self.add_plugin(name)
             except:
-                print(f"Error: plugin {name} not installed")
+                log.error(f"Error: plugin {name} not installed")
 
     def close_plugins(self):
         """ close all plugins

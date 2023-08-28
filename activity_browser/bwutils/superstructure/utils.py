@@ -3,6 +3,12 @@ import brightway2 as bw
 import pandas as pd
 import time
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 # Different kinds of indexes, to allow for quick selection of data from
 # the Superstructure DataFrame.
 SUPERSTRUCTURE = pd.Index([
@@ -39,6 +45,6 @@ def _time_it_(func):
     def wrapper(*args):
         now = time.time()
         result = func(*args)
-        print(f"{func} -- " + str(time.time() - now))
+        log.info(f"{func} -- " + str(time.time() - now))
         return result
     return wrapper
