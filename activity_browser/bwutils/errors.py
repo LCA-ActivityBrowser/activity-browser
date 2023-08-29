@@ -94,3 +94,7 @@ class ScenarioExchangeNotFoundError(ABError):
 class ScenarioExchangeDataNotFoundError(ABError):
     """Should be raised if no actual quantities for the exchanges can be found in the scenario difference file"""
     pass
+
+
+class UnalignableScenarioColumnsWarning(ABWarning):
+    """Should be raised if there is a mismatch between the scenario columns from multiple scenario difference files"""

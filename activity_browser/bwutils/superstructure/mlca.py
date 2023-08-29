@@ -43,7 +43,7 @@ class SuperstructureMLCA(MLCA):
             "technosphere": "default_technosphere_matrix",
             "production": "default_technosphere_matrix",
             "biosphere": "default_biosphere_matrix"
-        }
+            }
 
         # Filter dataframe for keys that do not occur in the LCA matrix.
         df = filter_databases_indexed_superstructure(df, self.all_databases)

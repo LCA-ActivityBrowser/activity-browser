@@ -16,7 +16,8 @@ from ...bwutils.superstructure import (
 )
 from ...settings import ab_settings
 from ...bwutils.errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
-                               ScenarioDatabaseNotFoundError, ImportCanceledError, ScenarioExchangeDataNotFoundError)
+                               ScenarioDatabaseNotFoundError, ImportCanceledError, ScenarioExchangeDataNotFoundError,
+                               UnalignableScenarioColumnsWarning,)
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -555,6 +556,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             except ScenarioExchangeDataNotFoundError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except UnalignableScenarioColumnsWarning as e:
                 QtWidgets.QApplication.restoreOverrideCursor()
                 return
             self.scenario_name.setText(path.name)

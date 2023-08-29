@@ -104,14 +104,16 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             If so use the key-value pair within the replacements dictionary to replace the dictionary names
             and obtain the correct activity key
 
+            Raises
+            ------
+            No exception however it creates a store of five values that indicate non-linkable flows with the
+            new database
+
             Parameters
             ----------
             ds: dataseries from a pandas dataframe containing the data from the scenario difference file
-
             replacements: a key -- value pair containing the old -- new database names
-
             critical: an initially empty list that is filled with dataseries that fail in the relinking process
-
             idx: the index for the dataseries object, in the "parent" dataframe
         """
         ds_ = ds.copy()
