@@ -6,12 +6,7 @@ from ..bwutils import (
     SuperstructureContributions, SuperstructureMLCA,
 )
 from bw2calc.errors import BW2CalcError
-<<<<<<< HEAD
-from .errors import UnlinkableScenarioExchangeError
-=======
 from .errors import ScenarioExchangeNotFoundError
-import brightway2 as bw
->>>>>>> 1682239 (Adds checks to the exchange amounts from the scenario difference files and the associated errors.)
 
 from .errors import CriticalCalculationError
 

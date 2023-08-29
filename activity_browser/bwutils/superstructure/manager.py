@@ -295,7 +295,7 @@ class SuperstructureManager(object):
             denominator = (self_referential_production_flows.loc[:, scenario_cols] + df.loc[tech_idxs, scenario_cols].values)
             self_referential_production_flows.loc[:, scenario_cols] = self_referential_production_flows.loc[:, scenario_cols] / denominator
             # if we did divide by 0 then replace these nans by 0
-            self_referential_production_flows[scenario_cols].where(~denominator.isin([0]), 0, inplace=True)
+            self_referential_production_flows.loc[:, scenario_cols] = self_referential_production_flows.loc[:, scenario_cols].where(~denominator.isin([0]), 0)
 
             # drop the 'technosphere' flows
             df = df.drop(tech_idxs)
