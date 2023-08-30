@@ -124,7 +124,7 @@ class SuperstructureManager(object):
             absent.update(cols.symmetric_difference(scenario_columns(df)))
             cols = cols.intersection(scenario_columns(df))
             for name in absent:
-                print("Warning: The following scenario is not found in all provided files and is being dropped: {}".format(name))
+                log.warning("The following scenario is not found in all provided files and is being dropped: {}".format(name))
         if cols.empty:
             msg = "While attempting to combine the scenario files an error was detected. No scenario columns were found in common between the files. For combining scenarios by extension at least one scenario needs to be found in common."
             critical = ABPopup.abCritical("Combining scenario files.", msg, QPushButton('Cancel'))
@@ -449,7 +449,7 @@ class SuperstructureManager(object):
             critical.exec_()
             raise ScenarioExchangeDataNotFoundError
         elif nas.any(axis=0).any():
-            print("Warning: Replacing empty values from the last loaded scenario difference file")
+            log.warning("Replacing empty values from the last loaded scenario difference file")
 
     @staticmethod
     @_time_it_
