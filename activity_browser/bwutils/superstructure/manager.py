@@ -287,8 +287,8 @@ class SuperstructureManager(object):
             prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
             # make a new df to edit the production, add the correct values/indices where needed
             # and concat to the main df
-            self_referential_production_flows[idx, 'flow type'] = 'production'
-            self_referential_production_flows[idx, scenario_cols] = prod_amt
+            self_referential_production_flows.loc[idx, 'flow type'] = 'production'
+            self_referential_production_flows.loc[idx, scenario_cols] = prod_amt
         if len(self_referential_production_flows) > 0:
             tech_idxs = [(x[0], x[1], "technosphere") for x in self_referential_production_flows.index]
 

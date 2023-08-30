@@ -530,7 +530,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 # Read the file as a parameter scenario file if it is correspondingly arranged
                 elif len(df.columns.intersection({'Name', 'Group'})) == 2:
                     # Try and read as parameter scenario file.
-                    log.error("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
+                    log.info("Superstructure: Attempting to read as parameter scenario file.")
                     include_default = True
                     if "default" not in df.columns:
                         query = QtWidgets.QMessageBox.question(
