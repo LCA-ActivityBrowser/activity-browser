@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .dataframe import (
-    scenario_names_from_df, superstructure_from_arrays
+    scenario_names_from_df, superstructure_from_arrays,
+    scenario_replace_databases
 )
 from .file_imports import (
     ABFeatherImporter, ABCSVImporter, ABFileImporter

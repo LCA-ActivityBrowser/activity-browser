@@ -82,7 +82,7 @@ class ABTab(QtWidgets.QTabWidget):
         if len(tab_names) == 1:
             return tab_names[0]
         else:
-            print("Warning: did not find instance of tab")
+            log.warning("Did not find instance of tab")
 
     def hide_when_empty(self):
         """Show tab if it has sub-tabs (not empty) or hide if it has no sub-tabs (empty)."""

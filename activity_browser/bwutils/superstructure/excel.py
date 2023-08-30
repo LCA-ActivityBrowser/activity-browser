@@ -45,7 +45,7 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
         wb.close()
         raise IndexError("Expected headers not found in file").with_traceback(e.__traceback__)
     except UnicodeDecodeError as e:
-        print("Given document uses an unknown encoding: {}".format(e))
+        log.error("Given document uses an unknown encoding: {}".format(e))
         wb.close()
     raise ValueError("Could not find required headers in given document sheet.")
 
