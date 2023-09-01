@@ -187,8 +187,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                   f"<br> To abort the process press \'Cancel\'"
             critical_message = ABPopup.abCritical("Activities not found", msg, QPushButton('Save'), QPushButton('Cancel'), default=2)
             critical_message.save_options()
-            critical_message.dataframe(pd.DataFrame(critical),
-                                       ['from database', 'from activity name', 'to database', 'to activity name'])
+            critical_message.dataframe(df.loc[critical['index'], :], SUPERSTRUCTURE)
             critical_message.dataframe_to_file(df_, critical['index'])
             response = critical_message.exec_()
         else:
@@ -198,8 +197,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                   f" failed relinking.<br>To abort the process press \'Cancel\'"
             critical_message = ABPopup.abCritical("Activity not found", msg, QPushButton('Save'), QPushButton('Cancel'), default=2)
             critical_message.save_options()
-            critical_message.dataframe(pd.DataFrame(critical),
-                                       ['from database', 'from activity name', 'to database', 'to activity name'])
+            critical_message.dataframe(df.loc[critical['index'], :], SUPERSTRUCTURE)
             critical_message.dataframe_to_file(df_, critical['index'])
             response = critical_message.exec_()
         QApplication.setOverrideCursor(Qt.WaitCursor)

@@ -27,6 +27,28 @@ SUPERSTRUCTURE = pd.Index([
     "flow type",
 ])
 
+def edit_superstructure_for_string(superstructure=SUPERSTRUCTURE, sep="<br>", fhighlight=""):
+    """
+    Produces a string format for the essential columns for the scenario difference files with html
+    style formatting. Allows for different defined structures.
+
+    Parameters
+    ----------
+    superstructure: the list of superstructure column headers (by default set to the SUPERSTRUCTURE index,
+    this needs to have a defined __str__ operator
+    sep: a short string that defines the separator for the column headers, by default this is the html line
+    break <br>
+    fhighlight: this is provided as a means to highlight the fields, by default this is empty (SHOULD NOT BE
+    SET TO None), but could be set to "[]", where the first and last elements enclose the field
+
+    Returns
+    -------
+    A formatted strign with the required file fields
+    """
+    text_list = ""
+    for field in superstructure:
+        text_list += f"{fhighlight[0]}{field}{fhighlight[-1]}{sep}" if fhighlight else f"{field}{sep}"
+    return text_list
 
 def guess_flow_type(row: pd.Series) -> str:
     """Given a series of input- and output keys, make a guess on the flow type.

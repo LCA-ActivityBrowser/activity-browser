@@ -69,18 +69,22 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1) ->
     'usecols' is used to exclude specific columns from the excel document.
     'comment' is used to exclude specific rows from the excel document.
     """
-    header_idx = get_header_index(document_path, import_sheet)
-    data = pd.read_excel(
-        document_path, sheet_name=import_sheet, header=header_idx,
-        usecols=valid_cols, comment="*", na_values="", keep_default_na=False,
-        engine="openpyxl"
-    )
-    diff = SUPERSTRUCTURE.difference(data.columns)
-    if not diff.empty:
-        raise ValueError("Missing required column(s) for superstructure: {}".format(diff.to_list()))
+    data = pd.DataFrame({})
+    try:
+        header_idx = get_header_index(document_path, import_sheet)
+        data = pd.read_excel(
+            document_path, sheet_name=import_sheet, header=header_idx,
+            usecols=valid_cols, comment="*", na_values="", keep_default_na=False,
+            engine="openpyxl"
+        )
+        diff = SUPERSTRUCTURE.difference(data.columns)
+        if not diff.empty:
+            raise ValueError("Missing required column(s) for superstructure: {}".format(diff.to_list()))
 
-    # Convert specific columns that may have tuples as strings
-    columns = ["from categories", "from key", "to categories", "to key"]
-    data.loc[:, columns] = data[columns].applymap(convert_tuple_str)
-
+        # Convert specific columns that may have tuples as strings
+        columns = ["from categories", "from key", "to categories", "to key"]
+        data.loc[:, columns] = data[columns].applymap(convert_tuple_str)
+    except:
+        # skip the error checks here, these now occur in the calling layout.tabs.LCA_setup module
+        pass
     return data

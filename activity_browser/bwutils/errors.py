@@ -96,5 +96,16 @@ class ScenarioExchangeDataNotFoundError(ABError):
     pass
 
 
+class ScenarioExchangeDataNonNumericError(ABError):
+    """Should be raised if non-numeric data is provided for the exchanges in a scenario difference file."""
+    pass
+
+
 class UnalignableScenarioColumnsWarning(ABWarning):
     """Should be raised if there is a mismatch between the scenario columns from multiple scenario difference files"""
+
+
+class WrongFileTypeImportError(ABError):
+    """Should be raised when a user tries to import the wrong type of file for the import in question.
+    For example a database file with the scenario import dialog, or vice versa."""
+    pass

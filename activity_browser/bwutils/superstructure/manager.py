@@ -3,6 +3,7 @@ import itertools
 from typing import List
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_numeric_dtype, is_number
 from PySide2.QtWidgets import QApplication, QPushButton
 from PySide2.QtCore import Qt
 from typing import Union, Optional
@@ -11,7 +12,7 @@ import brightway2 as bw
 
 from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns
-from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
+from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_, edit_superstructure_for_string
 
 import logging
 from activity_browser.logger import ABHandler
@@ -22,7 +23,7 @@ log = ABHandler.setup_with_logger(logger, __name__)
 from .file_dialogs import ABPopup
 from ..errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
                       ImportCanceledError, ScenarioExchangeDataNotFoundError,
-                        UnalignableScenarioColumnsWarning,
+                        UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError
                       )
 
 
@@ -376,7 +377,6 @@ class SuperstructureManager(object):
             _df = df.loc[df.loc[:, EXCHANGE_KEYS].isna().any(axis=1)]
             if not _df.empty:
                 sdf_keys = SuperstructureManager.exchangesPopup()
-                sdf_keys.save_options()
                 sdf_keys.dataframe_to_file(df, _df.index)
                 QApplication.restoreOverrideCursor()
                 sdf_keys.exec_()
@@ -407,10 +407,8 @@ class SuperstructureManager(object):
             _ = get_activities_from_keys(df, db)
             df_ = pd.concat([df_, _], axis=0, ignore_index=False)
         if not df_.empty:
-            errors_df = pd.DataFrame(df_, index=None, columns=['from key', 'to key', 'flow type'])
             sdf_keys = SuperstructureManager.exchangesPopup()
-            sdf_keys.save_options()
-            sdf_keys.dataframe(errors_df, errors_df.columns)
+            sdf_keys.dataframe(df_, SUPERSTRUCTURE)
             sdf_keys.dataframe_to_file(df, df_.index)
             QApplication.restoreOverrideCursor()
             sdf_keys.exec_()
@@ -426,6 +424,7 @@ class SuperstructureManager(object):
         Raises
         ------
         A ScenarioExchangeDataNotFoundError if no valid values are found in the scenario 'amounts'
+        A ScenarioExchangeDataNonNumericError if non-numeric values are found for the scenario 'amounts'
         A logged warning before replacement of invalid scenario values
 
         Parameters
@@ -435,8 +434,9 @@ class SuperstructureManager(object):
         cols: a pandas index that indicates the scenario columns holding the 'amounts' to be used in the scenario
         calculations
         """
+        _df = df.copy()
         assert len(cols) > 0
-        nas = df.loc[:, cols].isna()
+        nas = _df.loc[:, cols].isna()
         if nas.all(axis=0).all():
             msg = "<p>No exchange values could be observed in the last loaded scenario file. " + \
                   "Exchange values must be recorded in a labelled scenario column with a name distinguishable from the" + \
@@ -450,6 +450,29 @@ class SuperstructureManager(object):
             raise ScenarioExchangeDataNotFoundError
         elif nas.any(axis=0).any():
             log.warning("Replacing empty values from the last loaded scenario difference file")
+        if not is_numeric_dtype(np.array(_df.loc[:, cols])):
+            # converting to numeric only works on lists and with the coercive option
+            # any errors convert to np.nan and can then only be excluded if previous
+            # NaNs are masked by conversion to numeric values
+            _df.loc[:, cols].fillna(0, inplace=True)
+            bad_entries = pd.DataFrame(index=_df.index)
+            for col in cols:
+                bad_entries[col] = pd.to_numeric(df.loc[:, col], errors='coerce')
+            msg = "<p>Non-numeric data is present in the scenario exchange columns.</p><p> The Activity-Browser can "\
+                "only deal with numeric data for the calculations. To resolve this corrections will need to be made "\
+                "to these values in the scenario file.</p>"
+            critical = ABPopup.abCritical(
+                "Bad (non-numeric) input data",
+                msg,
+                QPushButton('Save'),
+                QPushButton('Cancel')
+            )
+            critical.dataframe(df[bad_entries.isna().any(axis=1)], SUPERSTRUCTURE)
+            critical.save_options()
+            critical.dataframe_to_file(df, bad_entries.isna().any(axis=1))
+            QApplication.restoreOverrideCursor()
+            critical.exec_()
+            raise ScenarioExchangeDataNonNumericError()
 
     @staticmethod
     @_time_it_
@@ -497,7 +520,7 @@ class SuperstructureManager(object):
                 for file, frame in duplicated.items():
                     frame.insert(0, 'File', file, allow_duplicates=True)
                 warning = ABPopup.abWarning('Duplicate flow exchanges', msg, QPushButton('Ok'), QPushButton('Cancel'))
-                warning.dataframe(pd.concat([file for file in duplicated.values()]), index)
+                warning.dataframe(pd.concat([file for file in duplicated.values()]), ['File'] + SUPERSTRUCTURE)
                 QApplication.restoreOverrideCursor()
                 response = warning.exec_()
                 QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -532,8 +555,7 @@ class SuperstructureManager(object):
                   "scenarios for the same flow. The AB can deal with this by discarding all but the last row for this " \
                   "exchange.</p> <p>Press 'Ok' to proceed, press 'Cancel' to abort.</p>"
             warning = ABPopup.abWarning('Duplicate flow exchanges', msg, QPushButton('Ok'), QPushButton('Cancel'))
-            warning.dataframe(df.loc[duplicates], index)
-
+            warning.dataframe(df.loc[duplicates], SUPERSTRUCTURE)
             QApplication.restoreOverrideCursor()
             response = warning.exec_()
             QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -541,12 +563,4 @@ class SuperstructureManager(object):
                 raise ImportCanceledError
             data.drop_duplicates(index, keep='last', inplace=True)
         return data
-
-    @staticmethod
-    def edit_superstructure_for_string():
-        text_list = ""
-        for field in SUPERSTRUCTURE:
-            text_list+= f"{field} <br>"
-        return text_list
-
 
