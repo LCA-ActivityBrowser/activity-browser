@@ -20,6 +20,7 @@ class ProblemDataModel(QtCore.QAbstractTableModel):
     A simple table model for use in the ABPopup dialogs for error reporting.
 
     Intentionally coupled with the ABPopup class and not intended for use externally.
+
     """
     updated = QtCore.Signal()
     def __init__(self):
@@ -46,8 +47,12 @@ class ProblemDataModel(QtCore.QAbstractTableModel):
         assert('dataframe' in kwargs and 'columns in kwargs')
         self.columns = kwargs['columns']
         data = kwargs['dataframe']
-        self._dataframe = pd.DataFrame(data,columns=self.columns)
+        self._dataframe = pd.DataFrame(data, columns=self.columns)
         self.updated.emit()
+
+    def headerData(self, section, orientation, role = QtCore.Qt.DisplayRole):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self.columns[section]
 
 
 class ProblemDataFrame(QtWidgets.QTableView):
@@ -116,13 +121,14 @@ class ABPopup(QtWidgets.QDialog):
 
         Arguments
         ---------
-        data: the dataframe that generates the error
+        data: a dataframe with the exchanges/rows that generate the error
         columns: a list of columns to provide the dataframe with for the popup message
         """
         dataframe = data
         cols = pd.Index(columns)
         dataframe = dataframe.loc[:, columns]
-        dataframe.index = dataframe.index.astype(str)
+        if not isinstance(dataframe.index, pd.MultiIndex):
+            dataframe.index = dataframe.index.astype(str)
         self.data_frame.update(dataframe, cols)
         self.data_frame.setHidden(False)
         self.updateGeometry()
