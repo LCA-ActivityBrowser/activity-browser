@@ -274,6 +274,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         # set drag ability
         self.setDragEnabled(True)
         self.setDragDropMode(ABDictTreeView.DragOnly)
+        self.technosphere = True  # we need this for drag/drop functionality
         # set model
         self.model = ActivitiesBiosphereTreeModel(self, self.database_name)
         self.setModel(self.model)
@@ -320,6 +321,10 @@ class ActivitiesBiosphereTree(ABDictTreeView):
                 self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
             iter = self.model.iterator(iter)
 
+    def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
+        #return self.model.get_key(proxy)
+        return self.selected_keys()
+
     @Slot(QModelIndex, name="activitySelection")
     def activity_selected(self):
         tree_level = self.tree_level()
@@ -338,12 +343,12 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             pass
         menu.exec_(event.globalPos())
 
-    def selected_activities(self) -> Iterable:
+    def selected_keys(self) -> Iterable:
         """Returns a generator which yields the 'activity' for each row."""
         tree_level = self.tree_level()
         if tree_level[0] == 'leaf':
             # filter on the leaf
-            return [self.model.get_activity(tree_level)]
+            return [self.model.get_key(tree_level)]
 
         if tree_level[0] == 'root':
             # filter on the root + ', '
@@ -354,10 +359,11 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             # filter on the branch and its parents/roots
             filter_on = ', '.join(tree_level[1]) + ', '
 
-        activities = self.model.get_activities(filter_on)
+        activities = self.model.get_keys(filter_on)
         return activities
 
     def tree_level(self) -> tuple:
+        #TODO figure out if this can return keys, otherwise I'm proper fucked
         """Return list of (tree level, content).
         Where content depends on level:
         leaf:   the descending list of branch levels, list()
