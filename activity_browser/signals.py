@@ -115,6 +115,7 @@ class Signals(QObject):
     set_uncertainty = Signal(tuple)
     add_cf_method = Signal(tuple, tuple)
     delete_cf_method = Signal(tuple, tuple)
+    cf_changed = Signal()
 
     # Monte Carlo LCA
     monte_carlo_finished = Signal()

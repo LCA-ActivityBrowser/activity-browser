@@ -261,6 +261,14 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         self.setAcceptDrops(not self.read_only)
 
         signals.set_uncertainty.connect(self.modify_uncertainty)
+        signals.cf_changed.connect(self.cell_edited)
+
+    def cell_edited(self) -> None:
+        """Store the edit made to the table in the underlying data."""
+        col = self.model.proxy_to_source(self.selectedIndexes()[0]).column()
+        if col in [2]:
+            # if the column changed is 2 (Amount)
+            self.model.modify_cf(self.selectedIndexes()[0])
 
     @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:

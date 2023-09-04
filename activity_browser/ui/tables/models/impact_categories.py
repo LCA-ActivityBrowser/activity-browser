@@ -319,6 +319,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         self.different_column_types = {k: 'num' for k in self.UNCERTAINTY + ['Amount']}
         self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
         signals.method_modified.connect(self.sync)
+        self.dataChanged.connect(lambda: signals.cf_changed.emit())  # when a cell is changed, emit this signal
 
     @property
     def uncertain_cols(self) -> list:
@@ -360,12 +361,20 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.cf_column]
 
+    def get_value(self, proxy: QModelIndex) -> tuple:
+        idx = self.proxy_to_source(proxy)
+        return self._dataframe.iat[idx.row(), idx.column()]
+
+    def get_col_from_index(self, proxy: QModelIndex) -> tuple:
+        idx = self.proxy_to_source(proxy)
+        return self.COLUMNS[idx.column()]
+
     @Slot(QModelIndex, name="modifyCFUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
         """Need to know both keys to select the correct exchange to update."""
         method_cf = self.get_cf(proxy)
         wizard = UncertaintyWizard(method_cf, self.parent())
-        wizard.complete.connect(self.modify_cf)
+        wizard.complete.connect(self.modify_cf_uncertainty)
         wizard.show()
 
     @Slot(list, name="removeCFUncertainty")
@@ -386,8 +395,8 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
             log.info("Deleting CF(s):", to_delete)
             signals.delete_cf_method.emit(to_delete, self.method.name)
 
-    @Slot(tuple, object, name="modifyCf")
-    def modify_cf(self, cf: tuple, uncertainty: dict) -> None:
+    @Slot(tuple, object, name="modifyCfUncertainty")
+    def modify_cf_uncertainty(self, cf: tuple, uncertainty: dict) -> None:
         """Update the CF with new uncertainty information, possibly converting
         the second item in the tuple to a dictionary without losing information.
         """
@@ -397,6 +406,30 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         else:
             uncertainty["amount"] = data[1]
             data[1] = uncertainty
+        signals.edit_method_cf.emit(tuple(data), self.method.name)
+
+    @Slot(tuple, object, name="modifyCfUncertainty")
+    def modify_cf(self, proxy: QModelIndex) -> None:
+        """Update the CF with new data, possibly converting
+        the second item in the tuple to a dictionary without losing information.
+        """
+        cf = self.get_cf(proxy)
+        col_name = self.get_col_from_index(proxy)
+        new_val = self.get_value(proxy)
+        new_data = {col_name: new_val}
+
+        data = [*cf]
+        if isinstance(data[1], dict):
+            data[1].update(new_data)
+        else:
+            if col_name == 'amount':
+                # if the new value we're writing is indeed 'amount', write that value, otherwise, just take the current
+                amt = new_val
+            else:
+                amt = data[1]
+
+            new_data["amount"] = amt
+            data[1] = new_data
         signals.edit_method_cf.emit(tuple(data), self.method.name)
 
     def set_filterable_columns(self, hide: bool) -> None:
