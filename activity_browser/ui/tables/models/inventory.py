@@ -406,6 +406,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
     @staticmethod
     def nest_data(df: pd.DataFrame, method: tuple = None) -> dict:
+        # TODO update description to match activity format instead of impact methods
         """Convert impact category dataframe into nested dict format.
         Tree can have arbitrary amount (0 or more) levels of branch depth.
 
@@ -471,20 +472,22 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             here[row[-1]] = new_row
         return simple_dict
 
-    def get_activity(self, tree_level: tuple) -> tuple:
+    def get_key(self, tree_level: tuple) -> tuple:
         """Retrieve method data"""
         name = tree_level[1]
+        print('++ tree level:', tree_level)
         if tree_level[0] == 'branch':
             return tuple(tree_level[1])
         if not isinstance(name, str):
             name = ", ".join(tree_level[1])
         else:
             return tuple([tree_level[1]])
-        methods = self._dataframe.loc[self._dataframe["Name"] == name, "method"]
-        return next(iter(methods))
+        activities = self._dataframe.loc[self._dataframe["Name"] == name, "key"]
+        print('++ get activity:', activities)
+        return next(iter(activities))
 
-    def get_activities(self, name: str) -> Iterator:
-        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(name), "method"]
+    def get_keys(self, name: str) -> Iterator:
+        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(name), "key"]
         if self.query:
             queries = [
                 method for method in methods
