@@ -303,7 +303,7 @@ def test_open_activity_tab(qtbot, ab_app):
     qtbot.mouseClick(table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
 
     # Trigger the tab to open
-    table.open_activity_tab()
+    table.safe_open_activity_tab()
 
     # We should now be looking at the activity tab
     assert panel.currentIndex() != panel.indexOf(param_tab)
