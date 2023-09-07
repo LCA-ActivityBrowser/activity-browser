@@ -265,6 +265,8 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
 
     def cell_edited(self) -> None:
         """Store the edit made to the table in the underlying data."""
+        if len(self.selectedIndexes()) == 0:
+            return
         col = self.model.proxy_to_source(self.selectedIndexes()[0]).column()
         if col in [2]:
             # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
