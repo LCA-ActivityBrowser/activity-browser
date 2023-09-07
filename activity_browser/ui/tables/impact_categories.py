@@ -267,7 +267,7 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         """Store the edit made to the table in the underlying data."""
         col = self.model.proxy_to_source(self.selectedIndexes()[0]).column()
         if col in [2]:
-            # if the column changed is 2 (Amount)
+            # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
             self.model.modify_cf(self.selectedIndexes()[0])
 
     @Slot(name="resizeView")
