@@ -358,14 +358,17 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         return row
 
     def get_cf(self, proxy: QModelIndex) -> tuple:
+        """Get the characterization factor data of the selected row."""
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.cf_column]
 
-    def get_value(self, proxy: QModelIndex) -> tuple:
+    def get_value(self, proxy: QModelIndex) -> float:
+        """Get the value of the selected cell."""
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), idx.column()]
 
-    def get_col_from_index(self, proxy: QModelIndex) -> tuple:
+    def get_col_from_index(self, proxy: QModelIndex) -> str:
+        """Get the name of the column of the selected cell."""
         idx = self.proxy_to_source(proxy)
         return self.COLUMNS[idx.column()]
 
@@ -412,6 +415,11 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     def modify_cf(self, proxy: QModelIndex) -> None:
         """Update the CF with new data, possibly converting
         the second item in the tuple to a dictionary without losing information.
+
+        Parameters
+        ----------
+        proxy : QModelIndex
+            The Qt object of the selected cell in the table.
         """
         cf = self.get_cf(proxy)
         col_name = self.get_col_from_index(proxy)
