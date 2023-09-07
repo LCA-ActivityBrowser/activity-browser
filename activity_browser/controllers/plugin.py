@@ -32,7 +32,6 @@ class PluginController(QObject):
         signals.manage_plugins.connect(self.manage_plugins_wizard)
         signals.project_selected.connect(self.reload_plugins)
         signals.plugin_selected.connect(self.add_plugin)
-        signals.plugin_deselected.connect(self.remove_plugin)
 
     @Slot(name="openManagerWizard")
     def manage_plugins_wizard(self) -> None:
@@ -59,13 +58,6 @@ class PluginController(QObject):
             return plugin_lib.Plugin()
         except Exception as e:
             log.error("Error: Import of plugin {} failed".format(name), error=e)
-
-    def remove_plugin(self, name):
-        log.info("Removing plugin {}".format(name))
-        # Apply plugin remove() function
-        self.plugins[name].remove()
-        # Close plugin tabs
-        self.close_plugin_tabs(self.plugins[name])
 
     def add_plugin(self, name, select: bool = True):
         """ add or reload tabs of the given plugin

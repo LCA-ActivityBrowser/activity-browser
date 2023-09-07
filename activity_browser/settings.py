@@ -218,7 +218,6 @@ class ProjectSettings(BaseSettings):
         """
         signals.project_selected.connect(self.reset_for_project_selection)
         signals.plugin_selected.connect(self.add_plugin)
-        signals.plugin_deselected.connect(self.remove_plugin)
 
     @classmethod
     def get_default_settings(cls) -> dict:
@@ -282,20 +281,12 @@ class ProjectSettings(BaseSettings):
         return (name for name, ro in iterator if not ro and name != "biosphere3")
 
     def add_plugin(self, name: str, select: bool = True):
-        """ Add a plugin to settings
+        """ Add a plugin to settings or remove it
         """
         if select:
             self.settings["plugins_list"].append(name)
             self.write_settings()
             return
-        if name in self.settings["plugins_list"]:
-            self.settings["plugins_list"].remove(name)
-            self.write_settings()
-
-
-    def remove_plugin(self, name: str) -> None:
-        """ When a plugin is deselected from a project, remove it from settings
-        """
         if name in self.settings["plugins_list"]:
             self.settings["plugins_list"].remove(name)
             self.write_settings()
