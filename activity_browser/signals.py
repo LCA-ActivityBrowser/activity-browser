@@ -112,6 +112,7 @@ class Signals(QObject):
     set_uncertainty = Signal(tuple)  # Set uncertainty of CF | proxy index of the table view of the CF
     add_cf_method = Signal(tuple, tuple)  # Add uncertainty to CF | tuple of CF, tuple impact category
     delete_cf_method = Signal(tuple, tuple)  # Delete this CF from impact category | tuple of CF, tuple of impact category
+    cf_changed = Signal()  # A characterization factor was changed
 
     # Monte Carlo LCA
     monte_carlo_finished = Signal()  # The monte carlo calculations are finished
