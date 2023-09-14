@@ -1,5 +1,5 @@
-name: Bug Report
-description: AB is not working as it should be
+name: Bug report
+description: AB is not working as it should be.
 labels: ["bug"] 
 body:
   - type: markdown
@@ -12,25 +12,25 @@ body:
       label: What happened?
       description: Also tell us, what did you expect to happen?
       placeholder: Tell us what happened
-      value: 
     validations:
       required: true
   - type: textarea
     id: errors
     attributes:
       label: Relevant errors
-      description: Please copy and paste any relevant errors from the terminal. This will be automatically formatted into code, so no need for backticks.
-      render: shell
+      description: Please copy and paste any relevant errors from the terminal.
+      placeholder: This will be automatically formatted into code, so no need for backticks.
+      render: python
   - type: textarea
     id: files
     attributes:
       label: Relevant files
-      description: Drag any files into this box like screenshots or relevant databases
+      description: Drag any relevant files into the box below like screenshots or relevant databases
       placeholder: Share your files
-      value: 
   - type: textarea
     id: conda-env
     attributes:
       label: Conda environment
-      description: Please copy and paste the output from `conda list`. This will be automatically formatted into code, so no need for backticks.
+      description: Please copy and paste the output from `conda list`.
+      placeholder: This will be automatically formatted into code, so no need for backticks.
       render: shell
