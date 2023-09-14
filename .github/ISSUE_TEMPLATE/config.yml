@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Need help with using AB?
+  - name: Using AB
     url: https://github.com/LCA-ActivityBrowser/activity-browser/discussions
-    about: Please ask AB user questions on our discussions page.
+    about: Ask AB user questions on our discussions page.
