@@ -1,4 +1,4 @@
-name: Bug report2
+name: Bug report
 description: File a bug report for AB.
 labels: ["bug"]
 body:
@@ -11,7 +11,7 @@ body:
     attributes:
       label: Updating AB
       options:
-        - label: "I have [updated AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab) to the newest version and I still have this problem"
+        - label: "Yes, I have [updated AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab) and still experience this issue"
   - type: textarea
     id: what-happened
     attributes:
