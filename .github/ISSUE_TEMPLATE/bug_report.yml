@@ -1,6 +1,6 @@
 name: Bug report
-description: AB is not working as it should be.
-labels: ["bug"] 
+description: File a bug report for AB.
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
@@ -19,7 +19,7 @@ body:
     attributes:
       label: Relevant errors
       description: Please copy and paste any relevant errors from the terminal.
-      placeholder: This will be automatically formatted into code, so no need for backticks.
+      placeholder: This will be automatically formatted into code, so no need to worry about the formatting.
       render: python
   - type: textarea
     id: files
@@ -32,5 +32,5 @@ body:
     attributes:
       label: Conda environment
       description: Please copy and paste the output from `conda list`.
-      placeholder: This will be automatically formatted into code, so no need for backticks.
+      placeholder: This will be automatically formatted into code, so no need to worry about the formatting.
       render: shell
