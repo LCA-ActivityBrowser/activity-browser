@@ -1,0 +1,48 @@
+name: Bug report
+description: File a bug report for AB.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: checkboxes
+    id: has-updated
+    attributes:
+      label: Updating AB
+      description: Have you tried to fix your issue by [updating AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab)?
+      options:
+        - label: Yes
+        - label: No
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen? You can share relevant files (e.g. screenshots/databases) here too.
+      placeholder: Tell us what happened
+    validations:
+      required: true
+  - type: textarea
+    id: errors
+    attributes:
+      label: Relevant errors
+      description: Please copy and paste any relevant errors from the terminal.
+      placeholder: This will be automatically formatted into code, so no need to worry about the formatting.
+      render: python
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      multiple: false
+      options:
+        - Windows 10
+        - Windows 11
+        - MacOS
+        - Linux/Other (please specify below)
+  - type: textarea
+    id: conda-env
+    attributes:
+      label: Conda environment
+      description: Please copy and paste the output from `conda list`.
+      placeholder: This will be automatically formatted into code, so no need to worry about the formatting.
+      render: shell
