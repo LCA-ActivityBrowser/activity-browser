@@ -12,8 +12,8 @@ body:
       label: Updating AB
       description: Have you tried to fix your issue by [updating AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab)?
       options:
-        - label: Yes 
-        - label: No 
+        - label: "Yes"
+        - label: "No"
   - type: textarea
     id: what-happened
     attributes:
