@@ -1,9 +1,6 @@
 name: Bug Report
 description: AB is not working as it should be
-title:
-labels: ["bug"]
-projects: 
-assignees: 
+labels: ["bug"] 
 body:
   - type: markdown
     attributes:
