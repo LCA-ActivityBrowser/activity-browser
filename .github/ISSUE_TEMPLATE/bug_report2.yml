@@ -10,10 +10,8 @@ body:
     id: has-updated
     attributes:
       label: Updating AB
-      description: Have you tried to fix your issue by [updating AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab)?
       options:
-        - label: "Yes"
-        - label: "No"
+        - label: "I have [updated AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab) to the newest version and I still have this problem"
   - type: textarea
     id: what-happened
     attributes:
@@ -38,7 +36,8 @@ body:
         - Windows 10
         - Windows 11
         - MacOS
-        - Linux/Other (please specify below)
+        - Linux/Other (please specify above)
+      default: 0
   - type: textarea
     id: conda-env
     attributes:
