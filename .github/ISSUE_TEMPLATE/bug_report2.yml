@@ -11,7 +11,7 @@ body:
     attributes:
       label: Updating AB
       options:
-        - label: "Yes, I have [updated AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab) and still experience this issue"
+        - label: "Yes, I have [updated AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab) to [![Anaconda-Server Badge](https://anaconda.org/conda-forge/activity-browser/badges/version.svg)](https://anaconda.org/conda-forge/activity-browser) and still experience this issue"
   - type: textarea
     id: what-happened
     attributes:
