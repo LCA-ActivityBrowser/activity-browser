@@ -6,11 +6,17 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
+  - type: checkboxes
+    id: has-updated
+    attributes:
+      label: Updating AB
+      options:
+        - label: "Yes, I have [updated AB](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab) and still experience this issue"
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
-      description: Also tell us, what did you expect to happen?
+      description: Also tell us, what did you expect to happen? You can share relevant files (e.g. screenshots/databases) here too.
       placeholder: Tell us what happened
     validations:
       required: true
@@ -21,12 +27,17 @@ body:
       description: Please copy and paste any relevant errors from the terminal.
       placeholder: This will be automatically formatted into code, so no need to worry about the formatting.
       render: python
-  - type: textarea
-    id: files
+  - type: dropdown
+    id: os
     attributes:
-      label: Relevant files
-      description: Drag any relevant files into the box below like screenshots or relevant databases
-      placeholder: Share your files
+      label: Operating system
+      multiple: false
+      options:
+        - Windows 10
+        - Windows 11
+        - MacOS
+        - Linux/Other (please specify above)
+      default: 0
   - type: textarea
     id: conda-env
     attributes:
