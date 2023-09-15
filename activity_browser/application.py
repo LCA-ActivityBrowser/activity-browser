@@ -4,7 +4,6 @@ import logging
 from .controllers import controllers
 from .layouts import MainWindow
 from .logger import ABHandler
-from .utils import UpdateManager
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -23,8 +22,6 @@ class Application(object):
         # dialogs and wizards.
         for attr, controller in controllers.items():
             setattr(self, attr, controller(self.main_window))
-
-        update_manager = UpdateManager()
 
     def show(self):
         self.main_window.showMaximized()
