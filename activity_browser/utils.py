@@ -1,10 +1,15 @@
 from pathlib import Path
 import os
+import requests
+from requests.exceptions import ConnectionError
+import pandas as pd
+import io
 from PySide2 import QtWidgets
 
 from bw2data.filesystem import safe_filename
 
 from .settings import ab_settings
+from .info import __version__
 
 
 def get_base_path() -> Path:
@@ -32,3 +37,31 @@ def savefilepath(default_file_name: str = "AB_file", file_filter: str = "All Fil
         filter=file_filter,
     )
     return filepath
+
+class UpdateManager():
+    def __init__(self):
+        self.conda_forge_url = "https://anaconda.org/conda-forge/activity-browser/labels"
+
+        cu = self.current_version
+        la = self.fetch_latest()
+
+        print('the current version of AB is >{}<, the latest version of AB is >{}<'.format(cu, la))
+
+    def fetch_latest(self) -> str:
+        """Fetch the latest version number from conda forge."""
+        try:
+            page = requests.get(self.conda_forge_url)  # retrieve the page from the URL
+            df = pd.read_html(io.StringIO(page.text))[0]  # read the version table from the HTML
+            latest = df.iloc[0, 1]
+        except ConnectionError as e:  # failing to connect to server
+            # TODO log error properly and handle it properly
+            latest = '0.0.0'
+        except:  # failing to read the version from the page
+            # TODO log error properly and handle it properly
+            latest = '0.0.0'
+        return latest
+
+    @property
+    def current_version(self) -> str:
+        """Version of AB running now"""
+        return __version__
