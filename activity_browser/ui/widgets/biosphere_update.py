@@ -6,6 +6,12 @@ from PySide2.QtCore import Signal, Slot
 import bw2io.data as data
 from ...signals import signals
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
     def __init__(self, parent=None):
@@ -48,5 +54,5 @@ class UpdateBiosphereThread(QtCore.QThread):
                 update_bio = getattr(data, patch)
                 update_bio()
         except ValidityError as e:
-            print("Could not patch biosphere: {}".format(str(e)))
+            log.error("Could not patch biosphere: {}".format(str(e)))
             self.exit(1)

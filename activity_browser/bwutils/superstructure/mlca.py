@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional
-from PySide2.QtWidgets import QMessageBox
+from PySide2.QtWidgets import QPushButton
 
 from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
 import numpy as np
@@ -9,14 +9,12 @@ import pandas as pd
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
 from ..utils import Index
-from .utils import _time_it_
-from .file_imports import ABPopup
-from ..errors import ScenarioExchangeError
+from ..errors import ScenarioExchangeNotFoundError
 from .dataframe import (
     scenario_names_from_df, arrays_from_indexed_superstructure,
     filter_databases_indexed_superstructure
 )
-
+from .file_dialogs import ABPopup
 
 class SuperstructureMLCA(MLCA):
     """Subclass of the `MLCA` class which adds another dimension in the form
@@ -36,6 +34,17 @@ class SuperstructureMLCA(MLCA):
 
         super().__init__(cs_name)
 
+        # Scenarios overwrite the lca.xxx_matrix. For supporting absent values
+        # in scenario files defaults are required, to prevent these from being
+        # overwritten duplicates are required...
+        self.default_technosphere_matrix = self.lca.technosphere_matrix.copy()
+        self.default_biosphere_matrix = self.lca.biosphere_matrix.copy()
+        self.defaults = {
+            "technosphere": "default_technosphere_matrix",
+            "production": "default_technosphere_matrix",
+            "biosphere": "default_biosphere_matrix"
+            }
+
         # Filter dataframe for keys that do not occur in the LCA matrix.
         df = filter_databases_indexed_superstructure(df, self.all_databases)
         assert not df.empty, "Filtering unused flows removed all of the scenario data."
@@ -46,19 +55,6 @@ class SuperstructureMLCA(MLCA):
         # biosphere_dict ('rows') while the 'output' keys are matched
         # to the activity_dict ('cols').
 
-        errors = self.indices_check()
-        if errors:
-            errors_df = pd.DataFrame(errors, index=None, columns=['from key', 'to key', 'flow type'])
-            error_message = ABPopup()
-            error_message.dataframe(errors_df, errors_df.columns)
-            msg = """<p>Some exchanges in the scenario difference file could not be found in the local databases. For the calculation to proceed all exchanges in the scenario file <b>must</b> be linkable to the local database(s).</p>
-
-            <p>The exchanges that could not be found in the local databases can be saved to a file, these can then be corrected (checked) in your original SDF(s), which should then be ready for importing.</p>
-            """
-            response = error_message.abCritical("Scenario exchanges not found", msg, QMessageBox.Save)
-            if response == error_message.Save:
-                error_message.save_dataframe(errors_df)
-            raise ScenarioExchangeError()
 
         # Side-note on presamples: Presamples was used in AB for calculating scenarios,
         # presamples was superseded by this implementation. For more reading:
@@ -93,20 +89,6 @@ class SuperstructureMLCA(MLCA):
         """
         self._current_index = current if current < self.total else 0
 
-    @_time_it_
-    def indices_check(self) -> list:
-        """ Check the indices of the scenario dataframe against the processes in the dataframes for the BW databases"""
-        errors = []
-        for idx in self.indices:
-            in_dict = self.lca.biosphere_dict if idx.flow_type == "biosphere" else self.lca.product_dict
-            i = in_dict.get(idx.input, idx.input)
-            j = self.lca.activity_dict.get(idx.output, idx.output)
-            if not isinstance(i, int):
-                errors.append((idx.input, idx.output, idx.flow_type))
-            if not isinstance(j, int):
-                errors.append((idx.input, idx.output, idx.flow_type))
-        return errors
-
     def next_scenario(self):
         self.update_matrices()
         self.current += 1
@@ -128,11 +110,20 @@ class SuperstructureMLCA(MLCA):
                 idx.exchange_type,
             )
         for i, index in enumerate(self.indices):
-            self.matrix_indices[i] = convert(index)
+            try:
+                self.matrix_indices[i] = convert(index)
+            except (ValueError, KeyError) as e:
+                # This is to be used as a fail safe for the case where we don't catch a bad exchange during the import
+                # process, or if something else causes an issue with the exchange
+                msg = f"One of the activities in the exchange between ({index.input.database}, {index.input.code}) and ({index.output.database}, {index.output.code}) from the scenario file is not present within the designated database. Please check both keys for this exchange within your scenario file with the corresponding databases."
+                critical = ABPopup.abCritical("Scenario Key Error", msg, QPushButton('Cancel'))
+                critical.exec_()
+                raise ScenarioExchangeNotFoundError
+            except Exception as e:
+                continue
 
     def update_matrices(self) -> None:
         """A Simplified version of the `PackagesDataLoader.update_matrices` method.
-
         In this case, we expect to only replace technosphere and biosphere
         values, leaving out characterization factor values.
         """
@@ -141,9 +132,15 @@ class SuperstructureMLCA(MLCA):
         for kind in kinds:
             idx = self.matrix_indices[types == kind]
             sample = self.values[types == kind, self.current]
-            # Filter sample and idx for NaN values in samples.
-            idx = idx[~np.isnan(sample)]
-            sample = sample[~np.isnan(sample)]
+            # Previously filtered sample and idx for NaN values in samples.
+            # Currently replaces sample NaN values with defaults from the databases
+            if np.isnan(sample).any():
+                default = getattr(self, self.defaults[kind])
+                na_idx = idx[np.isnan(sample)]
+                if kind == 'technosphere':
+                    sample[np.isnan(sample)] = np.multiply(default[na_idx["row"], na_idx["col"]].tolist()[0], -1)
+                else:
+                    sample[np.isnan(sample)] = default[na_idx["row"], na_idx["col"]].tolist()[0]
             try:
                 matrix = getattr(self.lca, self.matrices[kind])
             except AttributeError:

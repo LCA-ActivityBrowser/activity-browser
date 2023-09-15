@@ -11,6 +11,12 @@ from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 from ...signals import signals
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger)
+
 
 class UncertaintyWizard(QtWidgets.QWizard):
     """Using this wizard, guide the user through selecting an 'uncertainty'
@@ -573,7 +579,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
             matrix = PedigreeMatrix.from_dict(obj.uncertainty.get("pedigree", {}))
             self.pedigree = matrix.factors
         except AssertionError as e:
-            print("Could not extract pedigree data: {}".format(str(e)))
+            log.info("Could not extract pedigree data: {}".format(str(e)))
             self.pedigree = {}
         self.check_complete()
 

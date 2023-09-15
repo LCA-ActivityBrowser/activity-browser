@@ -217,10 +217,10 @@ If you experience problems or are suffering from a specific bug, please [raise a
 
 ### Important contributers
 
-- Adrian Haas (haasad@ethz.ch)
-- Chris Mutel (cmutel@gmail.com)
-- Daniel de Koning (d.g.de.koning@cml.leidenuniv.nl)
-- Marc van der Meide (m.t.van.der.meide@cml.leidenuniv.nl)
+- [Adrian Haas](https://github.com/haasad)
+- [Chris Mutel](https://github.com/cmutel)
+- [Daniel de Koning](https://github.com/dgdekoning)
+- [Marc van der Meide](https://github.com/marc-vdm)
 - [Remy le Calloch](https://remy.lecalloch.net)
 
 # Copyright

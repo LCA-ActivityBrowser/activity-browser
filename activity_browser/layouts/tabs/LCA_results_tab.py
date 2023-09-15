@@ -10,6 +10,12 @@ from ..panels import ABTab
 from ...signals import signals
 from ...bwutils.errors import ABError
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class LCAResultsTab(ABTab):
     """Tab that contains subtabs for each calculation setup."""
@@ -59,9 +65,9 @@ class LCAResultsTab(ABTab):
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])
             signals.show_tab.emit("LCA results")
-        except BW2CalcError as e:
+        except (BW2CalcError, ABError) as e:
             initial, *other = e.args
-            print(traceback.format_exc())
+            log.error(traceback.format_exc())
             msg = QMessageBox(
                 QMessageBox.Warning, "Calculation problem", str(initial),
                 QMessageBox.Ok, self

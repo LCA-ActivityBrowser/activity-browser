@@ -17,8 +17,16 @@ from ..settings import project_settings
 from ..signals import signals
 from .project import ProjectController
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
+
 
 class DatabaseController(QObject):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window = parent
@@ -53,7 +61,7 @@ class DatabaseController(QObject):
         @LegacyCode?
         """
         if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
-            print("creating missing sqlite indices")
+            log.info("creating missing sqlite indices")
             bw.Database(list(bw.databases)[-1])._add_indices()
 
     @Slot(name="bw2Setup")
@@ -144,8 +152,10 @@ class DatabaseController(QObject):
                 relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
             QtWidgets.QApplication.restoreOverrideCursor()
             if failed > 0:
+                QtWidgets.QApplication.restoreOverrideCursor()
                 relinking_dialog = DatabaseLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
                 relinking_dialog.exec_()
                 activity = relinking_dialog.open_activity()
+            QtWidgets.QApplication.restoreOverrideCursor()
             signals.database_changed.emit(db_name)
             signals.databases_changed.emit()

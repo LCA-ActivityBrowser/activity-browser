@@ -18,6 +18,12 @@ from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from .base import PandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class DatabasesModel(PandasModel):
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified"]
@@ -102,7 +108,7 @@ class ActivitiesBiosphereListModel(DragPandasModel):
     def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
-            print("Pandas Dataframe passed to sync.", df.shape)
+            log.info("Pandas Dataframe passed to sync.", df.shape)
             self._dataframe = df
             self.updated.emit()
             return
@@ -195,12 +201,13 @@ class ActivitiesBiosphereListModel(DragPandasModel):
             keys = [self.get_key(p) for p in proxies]
         else:
             keys = [self.get_key(proxies[0])]
-
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         exchanges = bc.get_exchanges_from_a_list_of_activities(activities=keys,
                                                                as_keys=True)
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)
         df.to_clipboard(excel=True, index=False)
+        QApplication.restoreOverrideCursor()
 
 
 class ActivitiesBiosphereItem(TreeItem):

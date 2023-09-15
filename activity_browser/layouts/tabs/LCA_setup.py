@@ -5,20 +5,34 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 from brightway2 import calculation_setups
 import pandas as pd
+import re
 
+import brightway2 as bw
+from bw2data.filesystem import safe_filename
 from ...bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
     SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
-    ABFileImporter
+    ABFileImporter, scenario_replace_databases
 )
+from ...settings import ab_settings
+from ...bwutils.errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
+                               ScenarioDatabaseNotFoundError, ImportCanceledError, ScenarioExchangeDataNotFoundError,
+                               UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError,)
 from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
 from ...ui.tables import (
     CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
 )
-from ...ui.widgets import ExcelReadDialog
+from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
 from .base import BaseRightTab
+from activity_browser.bwutils.superstructure import ABPopup, edit_superstructure_for_string
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 """
 Lifecycle of a calculation setup
@@ -291,6 +305,8 @@ class ScenarioImportPanel(BaseRightTab):
 
         self.scenario_tables = QtWidgets.QHBoxLayout()
         self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
+        self.save_scenario = QtWidgets.QPushButton("Save", self)
+        self.save_scenario.setHidden(True)
 
         self.group_box = QtWidgets.QGroupBox()
         self.group_box.setStyleSheet(style_group_box.border_title)
@@ -308,14 +324,17 @@ class ScenarioImportPanel(BaseRightTab):
         self.group_box.setHidden(True)
 
         row = QtWidgets.QToolBar()
-        row.addWidget(header("Scenarios:"))
+        _header = header("Scenarios:")
+        _header.setToolTip("Left click on the question mark for help")
+        row.addWidget(_header)
         row.addAction(
-            qicons.question, "Scenarios help",
+            qicons.question, "Left click for help on Scenarios",
             self.explanation
         )
         row.addWidget(self.table_btn)
         tool_row = QtWidgets.QHBoxLayout()
         tool_row.addWidget(row)
+        tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)
         tool_row.addStretch(1)
         layout.addLayout(tool_row)
@@ -328,6 +347,7 @@ class ScenarioImportPanel(BaseRightTab):
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
+        self.save_scenario.clicked.connect(self.save_action)
         signals.project_selected.connect(self.clear_tables)
         signals.project_selected.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
@@ -340,7 +360,7 @@ class ScenarioImportPanel(BaseRightTab):
             return []
         return scenario_names_from_df(self.tables[idx])
 
-    def combined_dataframe(self) -> pd.DataFrame:
+    def combined_dataframe(self, skip_checks: bool = False) -> pd.DataFrame:
         """Return a dataframe that combines the scenarios of multiple tables.
         """
         if not self.tables:
@@ -357,7 +377,7 @@ class ScenarioImportPanel(BaseRightTab):
             kind = "addition"
         else:
             kind = "none"
-        self._scenario_dataframe = manager.combined_data(kind, ABFileImporter.check_duplicates)
+        self._scenario_dataframe = manager.combined_data(kind, skip_checks)
 
     @Slot(name="addTable")
     def add_table(self) -> None:
@@ -366,18 +386,20 @@ class ScenarioImportPanel(BaseRightTab):
         self.tables.append(widget)
         self.scenario_tables.addWidget(widget)
         self.updateGeometry()
-        self.combined_dataframe()
+        self.combined_dataframe(skip_checks=True)
 
     @Slot(int, name="removeTable")
     def remove_table(self, idx: int) -> None:
         w = self.tables.pop(idx)
         self.scenario_tables.removeWidget(w)
         w.deleteLater()
+        if not self.tables:
+            self.save_scenario.setHidden(True)
         self.updateGeometry()
         # Do not forget to update indexes!
         for i, w in enumerate(self.tables):
             w.index = i
-        self.combined_dataframe()
+        self.combined_dataframe(skip_checks=True)
 
     @Slot(name="clearTables")
     def clear_tables(self) -> None:
@@ -386,6 +408,7 @@ class ScenarioImportPanel(BaseRightTab):
             self.scenario_tables.removeWidget(w)
             w.deleteLater()
         self.tables = []
+        self.save_scenario.setHidden(True)
         self.updateGeometry()
         self.combined_dataframe()
 
@@ -409,6 +432,36 @@ class ScenarioImportPanel(BaseRightTab):
     def handle_superstructure_signal(self, table_idx: int, df: pd.DataFrame) -> None:
         table = self.tables[table_idx]
         table.sync_superstructure(df)
+
+    @Slot(int, name="SaveScenarioDataframe")
+    def save_action(self, idx) -> None:
+        """ Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
+        merged. Will not contain duplicates. Will not contain self-referential technosphere flows.
+
+        Triggered by a signal from ScenarioImportPanel save button, uses a dummy input argument.
+        """
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self, caption="Choose location to save the scenario file",
+            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
+        )
+        scenarios = self._scenario_dataframe.columns.difference(['input', 'output', 'flow'])
+        superstructure = SUPERSTRUCTURE.tolist()
+        cols = superstructure + scenarios.tolist()
+
+        savedf = pd.DataFrame(index=self._scenario_dataframe.index, columns=cols)
+        for table in self.tables:
+            indices = savedf.index.intersection(table.scenario_df.index)
+            savedf.loc[indices, superstructure] = table.scenario_df.loc[indices, superstructure]
+            savedf.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
+        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
+            savedf.to_excel(filepath, index=False)
+        else: # assumed to be a csv
+            savedf.to_csv(filepath, index=False)
+
+    def save_button(self, visible: bool):
+        self.save_scenario.setHidden(not visible)
+        self.show()
+        self.updateGeometry()
 
 
 class ScenarioImportWidget(QtWidgets.QWidget):
@@ -452,61 +505,121 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     def load_action(self) -> None:
         dialog = ExcelReadDialog(self)
         if dialog.exec_() == ExcelReadDialog.Accepted:
-            path = dialog.path
-            idx = dialog.import_sheet.currentIndex()
-            file_type_suffix = dialog.path.suffix
-            separator = dialog.field_separator.currentData()
-            print("separator == '{}'".format(separator))
-            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
-            print('Loading Scenario file. This may take a while for large files')
+
             try:
+                path = dialog.path
+                idx = dialog.import_sheet.currentIndex()
+                file_type_suffix = dialog.path.suffix
+                separator = dialog.field_separator.currentData()
+                log.info("separator == '{}'".format(separator))
+                QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+                log.info('Loading Scenario file. This may take a while for large files')
                 # Try and read as a superstructure file
+                # Choose a different routine for reading the file dependent on file type
                 if file_type_suffix == ".feather":
                     df = ABFeatherImporter.read_file(path)
-#                    ABFeatherImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
-
                 elif file_type_suffix.startswith(".xls"):
                     df = import_from_excel(path, idx)
                 else:
                     df = ABCSVImporter.read_file(path, separator=separator)
-#                    ABCSVImporter.all_checks(df, ABCSVImporter.ABScenarioColumnsErrorIfNA, ABCSVImporter.scenario_names(df))
-                df = ABFileImporter.check_duplicates(df)
-                if df is None:
+                # Read in the file as a scenario flow table if the file is arranged as one
+                if len(df.columns.intersection(SUPERSTRUCTURE)) >= 12:
+                    if df is None:
+                        QtWidgets.QApplication.restoreOverrideCursor()
+                        return
+                    self.sync_superstructure(df)
+                # Read the file as a parameter scenario file if it is correspondingly arranged
+                elif len(df.columns.intersection({'Name', 'Group'})) == 2:
+                    # Try and read as parameter scenario file.
+                    log.info("Superstructure: Attempting to read as parameter scenario file.")
+                    include_default = True
+                    if "default" not in df.columns:
+                        query = QtWidgets.QMessageBox.question(
+                            self, "Default column not found",
+                            "Attempt to load and include the 'default' scenario column?",
+                            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                            QtWidgets.QMessageBox.No
+                        )
+                        if query == QtWidgets.QMessageBox.No:
+                            include_default = False
+                    signals.parameter_scenario_sync.emit(self.index, df, include_default)
+                else:
+                    # this is a wrong file type
+                    msg = "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"\
+                        " another file type was detected. Please check the file type of the attempted import, if it is"\
+                        " a scenario file make sure it contains a valid format.</p>"\
+                        "<p>A flow exchange scenario file requires the following headers:<br>" +\
+                        edit_superstructure_for_string(sep=", ", fhighlight='"') + "</p>"\
+                        "<p>A parameter scenario file requires the following:<br>" + edit_superstructure_for_string(
+                        ["name", "group"], sep=", ", fhighlight='"') + "</p>"
+                    critical = ABPopup.abCritical("Wrong file type", msg, QtWidgets.QPushButton("Cancel"))
                     QtWidgets.QApplication.restoreOverrideCursor()
+                    critical.exec_()
                     return
-                self.sync_superstructure(df)
-            except (IndexError, ValueError) as e:
-                # Try and read as parameter scenario file.
-                print("Superstructure: {}\nAttempting to read as parameter scenario file.".format(e))
-                df = pd.read_excel(path, sheet_name=idx, engine="openpyxl")
-                include_default = True
-                if "default" not in df.columns:
-                    query = QtWidgets.QMessageBox.question(
-                        self, "Default column not found",
-                        "Attempt to load and include the 'default' scenario column?",
-                        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                        QtWidgets.QMessageBox.No
-                    )
-                    if query == QtWidgets.QMessageBox.No:
-                        include_default = False
-                signals.parameter_scenario_sync.emit(self.index, df, include_default)
-            finally:
-                # TODO Move the scenario exchanges check with the local databases here and keep all the scenario
-                # TODO checks within the scenario import procedures
-                self.scenario_name.setText(path.name)
-                self.scenario_name.setToolTip(path.name)
+            except CriticalScenarioExtensionError as e:
+                # Triggered when combining different scenario files by extension leads to no scenario columns
                 QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except ScenarioDatabaseNotFoundError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except ScenarioExchangeNotFoundError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except ImportCanceledError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except ScenarioExchangeDataNotFoundError as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            except UnalignableScenarioColumnsWarning as e:
+                QtWidgets.QApplication.restoreOverrideCursor()
+                return
+            self.scenario_name.setText(path.name)
+            self.scenario_name.setToolTip(path.name)
+            self._parent.save_button(True)
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     @_time_it_
     def sync_superstructure(self, df: pd.DataFrame) -> None:
+        """synchronizes the contents of either a single, or multiple scenario files to create a single scenario
+        dataframe"""
         # TODO: Move the 'scenario_df' into the model itself.
+        QtWidgets.QApplication.restoreOverrideCursor()
+        df = self.scenario_db_check(df)
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+        df = SuperstructureManager.fill_empty_process_keys_in_exchanges(df)
+        SuperstructureManager.verify_scenario_process_keys(df)
+        df = SuperstructureManager.check_duplicates(df)
+        # TODO add the key checks here and field checks here.
+        # If we've cancelled the import then we don't want to load the dataframe
+        if df.empty:
+            return
         self.scenario_df = df
         cols = scenario_names_from_df(self.scenario_df)
         self.table.model.sync(cols)
         self._parent.combined_dataframe()
 
+    @_time_it_
+    def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
+        dbs = set(df.loc[:, 'from database']).union(set(df.loc[:, 'to database']))
+        unlinkable = dbs.difference(bw.databases)
+        db_lst = list(bw.databases)
+        relink = []
+        for db in unlinkable:
+            relink.append((db, db_lst))
+        # check for databases in the scenario dataframe that cannot be linked to
+        if unlinkable:
+            dialog = ScenarioDatabaseDialog.construct_dialog(self._parent, relink)
+            if dialog.exec_() == dialog.Accepted:
+
+                # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
+                return scenario_replace_databases(df, dialog.relink)
+                # generate the required dialog
+        return df
+
     @property
     def dataframe(self) -> pd.DataFrame:
         if self.scenario_df.empty:
-            print("No data in scenario table {}, skipping".format(self.index + 1))
+            log.warning("No data in scenario table {}, skipping".format(self.index + 1))
         return self.scenario_df

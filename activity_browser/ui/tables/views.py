@@ -14,6 +14,12 @@ from ..icons import qicons
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class ABDataFrameView(QTableView):
     """ Base class for showing pandas dataframe objects as tables.
@@ -523,7 +529,7 @@ class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
         self.activate_filter = True
         self.invalidateFilter()
         self.activate_filter = False
-        print('{} filter matches found'.format(self.matches))
+        log.info('{} filter matches found'.format(self.matches))
 
     def clear_filters(self) -> None:
         self.mask = None

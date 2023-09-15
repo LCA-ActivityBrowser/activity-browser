@@ -10,11 +10,17 @@ import appdirs
 import brightway2 as bw
 
 from .signals import signals
+import logging
+from .logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BaseSettings(object):
     """ Base Class for handling JSON settings files.
     """
+
     def __init__(self, directory: str, filename: str = None):
         self.data_dir = directory
         self.filename = filename or "default_settings.json"
@@ -212,7 +218,6 @@ class ProjectSettings(BaseSettings):
         """
         signals.project_selected.connect(self.reset_for_project_selection)
         signals.plugin_selected.connect(self.add_plugin)
-        signals.plugin_deselected.connect(self.remove_plugin)
 
     @classmethod
     def get_default_settings(cls) -> dict:
@@ -236,7 +241,7 @@ class ProjectSettings(BaseSettings):
         """ On switching project, attempt to read the settings for the new
         project.
         """
-        print("Reset project settings directory to:", bw.projects.dir)
+        log.info("Reset project settings directory to:", bw.projects.dir)
         self.settings_file = os.path.join(bw.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects
@@ -276,20 +281,12 @@ class ProjectSettings(BaseSettings):
         return (name for name, ro in iterator if not ro and name != "biosphere3")
 
     def add_plugin(self, name: str, select: bool = True):
-        """ Add a plugin to settings
+        """ Add a plugin to settings or remove it
         """
         if select:
             self.settings["plugins_list"].append(name)
             self.write_settings()
             return
-        if name in self.settings["plugins_list"]:
-            self.settings["plugins_list"].remove(name)
-            self.write_settings()
-
-
-    def remove_plugin(self, name: str) -> None:
-        """ When a plugin is deselected from a project, remove it from settings
-        """
         if name in self.settings["plugins_list"]:
             self.settings["plugins_list"].remove(name)
             self.write_settings()

@@ -11,6 +11,12 @@ from activity_browser.bwutils import commontasks as bc
 from activity_browser.signals import signals
 from .base import EditablePandasModel, PandasModel
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class CSGenericModel(EditablePandasModel):
     """ Intermediate class to enable internal move functionality for the
@@ -130,7 +136,7 @@ class CSActivityModel(CSGenericModel):
             row.update({"Amount": amount, "key": key})
             return row
         except (TypeError, ActivityDataset.DoesNotExist):
-            print("Could not load key in Calculation Setup: ", key)
+            log.error("Could not load key '{}' in Calculation Setup '{}'".format(str(key), self.current_cs))
             return {}
 
     @Slot(name="deleteRows")
@@ -159,11 +165,36 @@ class CSMethodsModel(CSGenericModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.current_cs = None
-        signals.calculation_setup_selected.connect(self.sync)
+        signals.calculation_setup_selected.connect(self.update_cs)
+        signals.method_deleted.connect(
+            lambda: self.update_cs(self.current_cs))
 
     @property
     def methods(self) -> list:
-        return self._dataframe.loc[:, "method"].to_list()
+        return [] if self._dataframe is None else self._dataframe.loc[:, "method"].to_list()
+
+    @Slot(name="UpdateBWCalculationSetup")
+    def update_cs(self, name: str = None) -> None:
+        """Updates and syncs the bw.calculation_setups for the Impact categories. Removes any
+        Impact category from a calculation setup if it is not present in the current environment"""
+        def filter_methods(cs):
+            """Filters any methods out from the calculation setup if they aren't in bw.methods"""
+            i = 0
+            while i < len(cs):
+                if cs[i] not in bw.methods:
+                    cs.pop(i)
+                else:
+                    i += 1
+            ######## END OF FUNCTION
+
+        if self.current_cs is not None or name is not None:
+            self.current_cs = name
+            filter_methods(bw.calculation_setups[self.current_cs].get('ia', []))
+            self.sync(self.current_cs)
+        else:
+            for name, cs in bw.calculation_setups.items():
+                filter_methods(cs['ia'])
+            self.sync()
 
     @Slot(str, name="syncModel")
     def sync(self, name: str = None) -> None:

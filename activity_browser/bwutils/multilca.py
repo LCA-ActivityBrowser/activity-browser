@@ -12,6 +12,12 @@ from .commontasks import wrap_text
 from .metadata import AB_metadata
 from .errors import ReferenceFlowValueError
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class MLCA(object):
     """Wrapper class for performing LCA calculations with many reference flows and impact categories.
@@ -487,7 +493,7 @@ class Contributions(object):
                 complete_index = special_keys + keys
                 joined = joined.reindex(complete_index, axis="index", fill_value=0.)
             except:
-                print('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
+                log.error('Could not put Total and Rest on positions 0 and 1 in the dataframe.')
         joined.index = cls.get_labels(joined.index, fields=x_fields)
         return joined
 
@@ -529,6 +535,7 @@ class Contributions(object):
         index = df.loc[df.index.difference(special_keys)].replace(0, np.nan).dropna(how='all').index.union(special_keys)
         df = df.loc[index]
 
+        joined = None
         if not mask:
             joined = self.join_df_with_metadata(
                 df, x_fields=x_fields, y_fields=y_fields,
@@ -543,8 +550,9 @@ class Contributions(object):
             df = df.reindex(combined_keys, axis="index", fill_value=0.0)
             df.index = self.get_labels(df.index, mask=mask)
             joined = df
-
-        return joined.reset_index(drop=False)
+        if joined is not None:
+            return joined.reset_index(drop=False)
+        return
 
     @staticmethod
     def adjust_table_unit(df: pd.DataFrame, method: Optional[tuple]) -> pd.DataFrame:
