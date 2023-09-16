@@ -38,7 +38,7 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
     - [Importing LCI databases](#importing-lci-databases)
     - [Additional Resources](#additional-resources)
 - [Plugins](#plugins)
-    - [Existing plugins](#existing-plugins)
+    - [Available plugins](#available-plugins)
     - [Installation](#installation-1)
     - [Usage](#usage)
     - [Development](#development)
