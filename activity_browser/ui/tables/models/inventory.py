@@ -234,13 +234,12 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
     for tree nested dict format see self.nest_data()
     """
-    HEADERS = ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"]
+    HEADERS = ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent", "key"]
 
     def __init__(self, parent=None, database_name=None):
         super().__init__(parent)
         self.database_name = database_name
-        self.HEADERS = AB_metadata.get_existing_fields(
-            ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"])
+        self.HEADERS = AB_metadata.get_existing_fields(self.HEADERS)
 
         self.root = ActivitiesBiosphereItem.build_root(self.HEADERS)
 
@@ -369,8 +368,8 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         # New / empty database? Shortcut the sorting / structuring process
         if df.empty:
             return df
-        df = df.loc[:, self.HEADERS + ["key"]]
-        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.HEADERS] + ["key"]
+        df = df.loc[:, self.HEADERS]
+        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.HEADERS]
         return df
 
     def tree_order(self, row) -> int:
@@ -469,22 +468,27 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             here[row[-1]] = new_row
         return simple_dict
 
-    def get_key(self, tree_level: tuple) -> tuple:
-        """Retrieve method data"""
-        name = tree_level[1]
-        print('++ tree level:', tree_level)
-        if tree_level[0] == 'branch':
-            return tuple(tree_level[1])
-        if not isinstance(name, str):
-            name = ", ".join(tree_level[1])
-        else:
-            return tuple([tree_level[1]])
-        activities = self._dataframe.loc[self._dataframe["Name"] == name, "key"]
-        print('++ get activity:', activities)
-        return next(iter(activities))
+    # def get_key(self, tree_level: tuple) -> tuple:
+    #     """Retrieve keys"""
+    #     name = tree_level[1]
+    #     print('++ tree level:', tree_level)
+    #     if tree_level[0] == 'branch':
+    #         return tuple(tree_level[1])
+    #     if not isinstance(name, str):
+    #         name = ", ".join(tree_level[1])
+    #     else:
+    #         return tuple([tree_level[1]])
+    #     activities = self._dataframe.loc[self._dataframe["Name"] == name, "key"]
+    #     print('++ get activity:', activities)
+    #     return next(iter(activities))
 
-    def get_keys(self, name: str) -> Iterator:
-        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(name), "key"]
+    def get_keys(self, tree_path: str) -> Iterator:
+
+        print('++ this is the query', tree_path)
+        filtered_df = self.search_df(tree_path, cols=['tree_path_tuple'])
+        keys = filtered_df['key'].tolist()
+        print('++ these are the keys', keys)
+        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(tree_path), "key"]
         if self.query:
             queries = [
                 method for method in methods
@@ -493,14 +497,40 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             return queries
         return methods
 
-    def search_tree(self, query: str) -> dict:
-        """Search the dataframe on the query and return a new nested tree."""
+    def search_df(self, query: str, cols: list = None) -> pd.DataFrame:
+        """Search self._dataframe on query and return filtered dataframe.
 
+        Parameters
+        ----------
+        query: query string
+        cols: optional, limited set of columns to search in
+
+        Returns
+        -------
+        df: the filtered dataframe
+
+        """
         df = deepcopy(self._dataframe)
+        cols = cols or df.columns
         mask = functools.reduce(
             np.logical_or, [
                 df[col].apply(lambda x: query.lower() in str(x).lower())
-                for col in df.columns
+                for col in cols
             ]
         )
-        return self.nest_data(df.loc[mask].reset_index(drop=True)), len(df)
+        return df.loc[mask].reset_index(drop=True)
+
+    def search_tree(self, query: str) -> dict:
+        """Search self._dataframe on query and return a nested tree and amt of hits.
+
+        Parameters
+        ----------
+        query: query string
+
+        Returns
+        -------
+        nested tree and how many hits were found
+
+        """
+        df = self.search_df(query)
+        return self.nest_data(df), len(df)
