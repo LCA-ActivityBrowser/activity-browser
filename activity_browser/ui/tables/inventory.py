@@ -218,15 +218,16 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
     @Slot(QtCore.QModelIndex, name="openActivityTab")
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
-        key = self.model.get_key(proxy)
-        signals.safe_open_activity_tab.emit(key)
-        signals.add_activity_to_history.emit(key)
+        self.open_activity_tab_w_key(self.model.get_key(proxy))
 
     @Slot(name="openActivityTabs")
     def open_activity_tabs(self) -> None:
-        for key in (self.model.get_key(p) for p in self.selectedIndexes()):
-            signals.safe_open_activity_tab.emit(key)
-            signals.add_activity_to_history.emit(key)
+        for proxy in self.selectedIndexes():
+            self.open_activity_tab_w_key(self.model.get_key(proxy))
+
+    def open_activity_tab_w_key(self, key) -> None:
+        signals.safe_open_activity_tab.emit(key)
+        signals.add_activity_to_history.emit(key)
 
     @Slot(name="relinkActivityExchanges")
     def relink_activity_exchanges(self) -> None:
@@ -288,13 +289,12 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             self.delete_activity_action.setEnabled(not self.db_read_only)
 
 class ActivitiesBiosphereTree(ABDictTreeView):
-    HEADERS = ["ISIC rev.4 ecoinvent", "reference product", "name", "location", "unit"]
+    HEADERS = ["ISIC rev.4 ecoinvent", "reference product", "name", "location", "unit", "key"]
 
     def __init__(self, parent=None, database_name=None):
         super().__init__(parent)
         self.database_name = database_name
-        self.HEADERS = AB_metadata.get_existing_fields(
-            ["ISIC rev.4 ecoinvent", "reference product", "name", "location", "unit"])
+        self.HEADERS = AB_metadata.get_existing_fields(self.HEADERS)
 
         # set drag ability
         self.setDragEnabled(True)
@@ -309,7 +309,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     def _connect_signals(self):
         super()._connect_signals()
-        self.doubleClicked.connect(self.activity_selected)
+        self.doubleClicked.connect(self.open_activity_tab)
         # Signal for when new activity is added --> self.open_activity
         # Signal for when activity is edited --> self.open_activity)
         # Signal for when activity is deleted --> self.open_activity)
@@ -347,15 +347,17 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             iter = self.model.iterator(iter)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
-        #return self.model.get_key(proxy)
+        # TODO see if I can select underlying entries programatically if not leaf???
+
         return self.selected_keys()
 
-    @Slot(QModelIndex, name="activitySelection")
-    def activity_selected(self):
+    @Slot(name="openActivityTab")
+    def open_activity_tab(self):
         tree_level = self.tree_level()
         if tree_level[0] == 'leaf':
-            activity = self.model.get_activity(tree_level)
-            # emit signal to open the activity
+            key = tree_level[1][-1]
+            signals.safe_open_activity_tab.emit(key)
+            signals.add_activity_to_history.emit(key)
 
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
@@ -369,26 +371,24 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         menu.exec_(event.globalPos())
 
     def selected_keys(self) -> Iterable:
-        """Returns a generator which yields the 'activity' for each row."""
+        """Return all keys selected"""
         tree_level = self.tree_level()
         if tree_level[0] == 'leaf':
-            # filter on the leaf
-            return [self.model.get_key(tree_level)]
-
+            # select key of the leaf
+            return tree_level[1][-1]
         if tree_level[0] == 'root':
             # filter on the root + ', '
             # (this needs to be added in case one root level starts with a shorter name of another one
             # example: 'activity a' and 'activity a, words'
-            filter_on = tree_level[1] + ', '
-        else:
+            filter_on = tree_level[1]
+        else:  # branch level
             # filter on the branch and its parents/roots
-            filter_on = ', '.join(tree_level[1]) + ', '
+            filter_on = str(tuple(tree_level[1]))[1:-2]
 
         activities = self.model.get_keys(filter_on)
         return activities
 
     def tree_level(self) -> tuple:
-        #TODO figure out if this can return keys, otherwise I'm proper fucked
         """Return list of (tree level, content).
         Where content depends on level:
         leaf:   the descending list of branch levels, list()
@@ -405,8 +405,15 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     def find_levels(self, level=None) -> list:
         """Find all levels of branch."""
-        level = level or next(iter(self.selectedIndexes()))
-        parent = level.parent()
+        if not level:
+            idx = self.selectedIndexes()
+            if idx[-1].data() != '':
+                level = idx[-1]
+            else:
+                level = idx[0]
+            parent = idx[0].parent()
+        else:
+            parent = level.parent()
         levels = [level.data()]
         while parent.data() is not None:
             levels.append(parent.data())
