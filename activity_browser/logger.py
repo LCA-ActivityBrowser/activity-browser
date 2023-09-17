@@ -1,7 +1,7 @@
-from PySide2.QtCore import Slot
 import logging
-import os, time, appdirs
-import random, string
+import os
+import time
+import appdirs
 
 from .signals import signals
 
@@ -9,8 +9,16 @@ from .signals import signals
 class ABHandler(object):
     """
     Creates two logging streams, one to the console (with >=INFORMATION logs)
-    the second to a file specified with the name argument (with >=WARNING logs)
+    the second to a file specified with the name argument (with >=DEBUG logs)
     and attaches these to a logger created in the calling modules.
+
+    There are 4 available levels in AB, increasing in importance:
+    - DEBUG
+    - INFO
+    - WARNING
+    - ERROR
+    - CRITICAL is available in logging but not implemented in AB
+    See also: https://docs.python.org/3/library/logging.html#levels
 
     Provides the formats and initialization procedures for the logging streams.
     """
@@ -37,11 +45,11 @@ class ABHandler(object):
         dir_path = appdirs.user_log_dir('ActivityBrowser', 'ActivityBrowser')
         os.makedirs(dir_path, exist_ok=True)
         ABHandler.clean_directory(dir_path)
-        ABHandler.file_path = dir_path + "/" + name
+        ABHandler.file_path = os.path.join(dir_path, name)
         ABHandler.stream_handler = logging.StreamHandler()
         ABHandler.file_handler = logging.FileHandler(ABHandler.file_path)
 
-        log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(ABmodule)s - %(message)s - ")
+        log_format = logging.Formatter("%(asctime)s-%(levelname)s - %(ABmodule)s: %(message)s")
 
         console_format = logging.Formatter("%(message)s")
         ABHandler.stream_handler.setFormatter(console_format)
@@ -56,7 +64,7 @@ class ABHandler(object):
         return ABHandler.setup_with_logger(logger)
 
     @classmethod
-    def setup_with_logger(cls, logger: logging.Logger = None, module: str = None):
+    def setup_with_logger(cls, logger: logging.Logger = None, module: str = None) -> object:
         """
         Links the logger object to the different stream handlers. This avoids the process of
         creating new handlers and should be the general method to call for linking the
@@ -65,6 +73,12 @@ class ABHandler(object):
         Parameters
         ----------
         logger: an object of type logging.Logger requiring setup with logging.Handlers
+        module: name of the logging module
+
+        Returns
+        -------
+        ABHandler: the logging handler
+
         """
 
         ABHandler.log = logger
@@ -80,37 +94,32 @@ class ABHandler(object):
         return ABHandler("root")
 
     @staticmethod
-    def unique_string(n: int) -> str:
-        """Returns a random string of length n, to avoid issues with non-unique log files"""
-        return ''.join(random.choice(string.ascii_letters) for i in range(n))
-
-    @staticmethod
     def timestamp() -> str:
-        """Returns a timestamped string, the format provided is:
-        day of the month _ month _ year - hour _ minute _ second"""
+        """Return a timestamped string, the format provided is:
+        day of the year _ month _ day - hour _ minute _ second"""
         stmp = time.localtime()
-        return f"-{stmp.tm_mday}_{stmp.tm_mon}_{stmp.tm_year}-{stmp.tm_hour}_{stmp.tm_min}_{stmp.tm_sec}"
+        return f"-{stmp.tm_year}-{stmp.tm_mon}-{stmp.tm_mday}_{stmp.tm_hour}-{stmp.tm_min}-{stmp.tm_sec}"
 
     @staticmethod
     def clean_directory(dirpath: str) -> None:
-        """Cleans the Activity-Browser/log directory of all files older than 365 days"""
+        """Clean the Activity-Browser/log directory of all files older than 365 days"""
         time_limit = time.time() - 24*3600*365
         for file in os.listdir(dirpath):
-            filepath = dirpath + '/' + file
+            filepath = os.path.join(dirpath, file)
             if os.stat(filepath).st_mtime < time_limit:
                 os.remove(filepath)
 
-    def log_file_path(self):
+    def log_file_path(self) -> str:
         return ABHandler.file_path
 
     def message(self, *args) -> str:
-        _str = ''
+        str_ = ''
         for arg in args:
             if not isinstance(arg, str):
-                _str += str(arg)
+                str_ += str(arg)
             else:
-                _str += arg
-        return _str
+                str_ += arg
+        return str_
 
     def debug(self, msg: str, *args) -> None:
         ABHandler.log.debug(self.message(msg, *args), extra={'ABmodule': self.module_name})
@@ -122,19 +131,25 @@ class ABHandler(object):
         ABHandler.log.warning(self.message(msg, *args), extra={'ABmodule': self.module_name})
 
     def error(self, msg: str = None, *args, **kwargs) -> None:
-        """ Provides a wrapper for the Logger.error method. This is to keep the logging messages
+        """Provides a wrapper for the Logger.error method. This is to keep the logging messages
         consistent with previous practices. Exception handling is provided through the use of
         kwargs
-        Parameters:
-            msg, *args: strings that form the logging message, multiple strings allowed
-            **kwargs: provided for the handling of stack traces, the two arguments taken here are:
+
+        Parameters
+        ----------
+        msg, *args: strings that form the logging message, multiple strings allowed
+        **kwargs: provided for the handling of stack traces, the two arguments taken here are:
                 error=''
                 exc_info=bool
+
+        Returns
+        -------
+
         """
         if msg is not None:
             ABHandler.log.error(self.message(msg, *args), extra={'ABmodule': self.module_name})
 
-        exc_info = True # TODO Move this error handling with the use of kwargs into a single error message
+        exc_info = True  # TODO Move this error handling with the use of kwargs into a single error message
         if kwargs and 'error' in kwargs:
             if 'exc_info' in kwargs:
                 exc_info = kwargs['exc_info']
@@ -164,10 +179,3 @@ class ABLogHandler(logging.Handler):
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.initialize_with_logger(logger)
-
-#handler = ABLogHandler()
-#handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(asctime)s - %(message)s"))
-#log = ABHandler('ab_logs')
-#log.addHandler(handler)
-#log.propagate = True
-#logging.setLoggerClass(ABHandler)
