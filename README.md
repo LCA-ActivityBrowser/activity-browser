@@ -27,11 +27,6 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 
 # Contents
 - [Installation](#installation)
-    - [The quick way](#the-quick-way)
-    - [The thorough way](#the-thorough-way)
-        - [Conda](#conda)
-        - [Install the AB with ecoinvent >=3.9](#install-the-ab-with-ecoinvent-39)
-        - [Install the AB with ecoinvent <3.9](#install-the-ab-with-older-ecoinvent-versions-39)
 - [Updating the AB](#updating-the-ab)
 - [Getting started](#getting-started)
     - [Running the AB](#running-the-ab)
@@ -48,8 +43,6 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 - [License](#license)
 
 # Installation
-
-## The quick way
 
 You can install and start the activity-browser like this:
 
@@ -121,7 +114,7 @@ These are the plugins that we know about. To add your plugin to this list either
 | Name     | Description | Links | Author |
 |:---------|-------------|-------|--------|
 | template | An empty plugin to start from | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/activity-browser-plugin-template) | Rémy Le Calloch |
-| Notebook | Use Jupyter notebooks from AB | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/ab-plugin-Notebook) | Rémy Le Calloch |
+| Notebook | Use Jupyter notebooks from AB | [anaconda](https://anaconda.org/pan6ora/ab-plugin-notebook), [github](https://github.com/Pan6ora/ab-plugin-Notebook) | Rémy Le Calloch |
 | ReSICLED | Evaluating the recyclability of electr(on)ic product for improving product design | [anaconda](https://anaconda.org/pan6ora/ab-plugin-resicled), [github](https://github.com/Pan6ora/ab-plugin-ReSICLED) | G-SCOP Laboratory |
 
 ## Installation
