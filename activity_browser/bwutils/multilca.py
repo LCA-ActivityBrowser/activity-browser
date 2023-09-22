@@ -8,6 +8,8 @@ from bw2analyzer import ContributionAnalysis
 
 ca = ContributionAnalysis()
 
+from collections import OrderedDict
+
 from .commontasks import wrap_text
 from .metadata import AB_metadata
 from .errors import ReferenceFlowValueError
@@ -391,7 +393,7 @@ class Contributions(object):
         topcontribution_dict = dict()
         for fu_or_method, col in FU_M_index.items():
             top_contribution = ca.sort_array(C[col, :], limit=limit, limit_type=limit_type)
-            cont_per = dict()
+            cont_per = OrderedDict()
             cont_per.update({
                 ('Total', ''): C[col, :].sum(),
                 ('Rest', ''): C[col, :].sum() - top_contribution[:, 0].sum(),
@@ -400,7 +402,6 @@ class Contributions(object):
                 cont_per.update({rev_dict[index]: value})
             topcontribution_dict.update({fu_or_method: cont_per})
         return topcontribution_dict
-
 
     @staticmethod
     def get_labels(key_list, fields=None, separator=' | ',

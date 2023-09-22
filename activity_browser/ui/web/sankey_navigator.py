@@ -244,13 +244,12 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             else:
                 data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
 
-        except ValueError as e:
+        except (ValueError, ZeroDivisionError) as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
         log.info("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
 
         self.graph.new_graph(data)
         self.has_sankey = bool(self.graph.json_data)
-        # print("emitting graph ready signal")
         self.send_json()
 
     def set_database(self, name):
