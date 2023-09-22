@@ -25,6 +25,7 @@ class ActivityController(QObject):
         signals.delete_activity.connect(self.delete_activity)
         signals.delete_activities.connect(self.delete_activity)
         signals.duplicate_activity.connect(self.duplicate_activity)
+        signals.duplicate_activity_new_loc.connect(self.duplicate_activity_new_loc)
         signals.duplicate_activities.connect(self.duplicate_activity)
         signals.duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
         signals.duplicate_to_db_interface_multiple.connect(self.show_duplicate_to_db_interface)
@@ -117,6 +118,45 @@ class ActivityController(QObject):
         # todo: add "copy of" (or similar) to name of activity for easy identification in new db
         # todo: some interface feedback so user knows the copy has succeeded
         activities = self._retrieve_activities(data)
+
+        for act in activities:
+            new_code = self.generate_copy_code(act.key)
+            new_act = act.copy(new_code)
+            # Update production exchanges
+            for exc in new_act.production():
+                if exc.input.key == act.key:
+                    exc.input = new_act
+                    exc.save()
+            # Update 'products'
+            for product in new_act.get('products', []):
+                if product.get('input') == act.key:
+                    product['input'] = new_act.key
+            new_act.save()
+            AB_metadata.update_metadata(new_act.key)
+            signals.safe_open_activity_tab.emit(new_act.key)
+
+        db = next(iter(activities)).get("database")
+        bw.databases.set_modified(db)
+        signals.database_changed.emit(db)
+        signals.databases_changed.emit()
+
+    @Slot(tuple, name="copyActivityNewLoc")
+    def duplicate_activity_new_loc(self, data: tuple) -> None:
+        """Duplicates the selected activity in the same db, links to new location, with a new BW code.
+
+        This function will try and link all exchanges in the same location as the production process
+        to a chosen location, if none is available for the given exchange, it will try to link to
+        RoW and then GLO, if those don't exist, the exchange is not altered.
+        """
+        #TODO actually write def, this is just a copy of duplicate_activity above
+        activities = self._retrieve_activities(data)
+
+        # See also https://github.com/LCA-ActivityBrowser/activity-browser/issues/1042 for what to do
+        # get list of dependent databases for activity and load to MetaDataStore
+        # get list of all unique locations in the dependent databases
+        # trigger dialog with autocomplete-writeable-dropdown-list (sorted alphabetically)
+        # check every exchange (act.technosphere) whether it can be replaced
+        #   write a def that tries to find the processes and potential alternatives
 
         for act in activities:
             new_code = self.generate_copy_code(act.key)

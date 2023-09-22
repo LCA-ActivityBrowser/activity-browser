@@ -185,6 +185,9 @@ class ActivitiesBiosphereModel(DragPandasModel):
         else:
             signals.duplicate_activity.emit(self.get_key(proxies[0]))
 
+    def duplicate_activity_to_new_loc(self, proxies: list) -> None:
+        signals.duplicate_activity_new_loc.emit(self.get_key(proxies[0]))
+
     def duplicate_activities_to_db(self, proxies: list) -> None:
         if len(proxies) > 1:
             keys = [self.get_key(p) for p in proxies]
