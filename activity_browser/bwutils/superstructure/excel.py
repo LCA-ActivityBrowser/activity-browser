@@ -38,7 +38,7 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
         sheet = wb.worksheets[import_sheet]
         for i in range(10):
             value = sheet.cell(i + 1, 1).value
-            if isinstance(value, str) and value.startswith("from activity name"):
+            if isinstance(value, str):
                 wb.close()
                 return i
     except IndexError as e:
