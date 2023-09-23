@@ -1145,3 +1145,72 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
             obj.grid.addWidget(combo, i, 2, 1, 2)
         obj.updateGeometry()
         return obj
+
+
+class LocationLinkingDialog(QtWidgets.QDialog):
+    """Display all of the possible location links in a single dialog for the user.
+
+    Allow users to select alternate location links and an option to link to generic alternatives (GLO, RoW).
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Activity Location linking")
+
+        self.loc_label = QtWidgets.QLabel()
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Location link:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
+
+        self.use_alternatives_checkbox = QtWidgets.QCheckBox('Use generic alternatives (GLO, RoW) as fallback')
+        self.use_alternatives_checkbox.setToolTip('If the location is not found, try to match to generic locations '
+                                         'like GLO and RoW.')
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.loc_label)
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.use_alternatives_checkbox)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @classmethod
+    def construct_dialog(cls, label: str, options: List[Tuple[str, List[str]]],
+                         parent: QtWidgets.QWidget = None) -> 'LocationLinkingDialog':
+        obj = cls(parent)
+        obj.loc_label.setText(label)
+        # Start at 1 because row 0 is taken up by the loc_label
+        for i, item in enumerate(options):
+            label = QtWidgets.QLabel(item[0])
+            combo = QtWidgets.QComboBox()
+            combo.addItems(item[1])
+            combo.setCurrentText(item[0])
+            obj.label_choices.append((label, combo))
+            obj.grid.addWidget(label, i, 0, 1, 2)
+            obj.grid.addWidget(combo, i, 2, 1, 2)
+
+        obj.updateGeometry()
+        return obj
+
+    @classmethod
+    def relink_location(cls, options: List[Tuple[str, List[str]]],
+                        parent=None) -> 'LocationLinkingDialog':
+        label = "Relinking exchange locations from activity to a new location."
+        return cls.construct_dialog(label, options, parent)
