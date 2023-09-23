@@ -147,43 +147,86 @@ class ActivityController(QObject):
         This function will try and link all exchanges in the same location as the production process
         to a chosen location, if none is available for the given exchange, it will try to link to
         RoW and then GLO, if those don't exist, the exchange is not altered.
+
+        This def does the following:
+        - Read all databases in exchanges of activity into MetaDataStore
+        - Give user dialog to re-link location and potentially use alternatives
+        - Finds suitable activities with new location (and potentially alternative)
+        - Re-link exchanges to new (and potentially alternative) location
+        - Show user what changes are.???
         """
         #TODO actually write def, this is just a copy of duplicate_activity above
-        #TODO write such that it takes only one activity as input
-        activities = self._retrieve_activities(data)
+        act = self._retrieve_activities(data)[0]
 
         # get list of dependent databases for activity and load to MetaDataStore
         databases = []
-
-        for act in activities:
-            for exch in act.technosphere():
-                databases.append(exch['input'][0])
+        for exch in act.technosphere():
+            databases.append(exch['input'][0])
 
         # load all dependent databases to MetaDataStore
-        dbs = [AB_metadata.get_database_metadata(db) for db in databases]
+        dbs = {db: AB_metadata.get_database_metadata(db) for db in databases}
         # get list of all unique locations in the dependent databases (sorted alphabetically)
         locations = []
-        for db in dbs:
+        for db in dbs.values():
             locations += db['location'].to_list()  # add all locations to one list
         locations = list(set(locations))  # reduce the list to only unique items
         locations.sort()
 
         # get the location to relink
-        db = AB_metadata.get_database_metadata(act.key[0])
-        old_location = db.loc[db['key'] == act.key]['location'][0]
+        db = dbs[act.key[0]]
+        old_location = db.loc[db['key'] == act.key]['location'].iloc[0]
 
         # trigger dialog with autocomplete-writeable-dropdown-list
         options = (old_location, locations)
-        dialog = LocationLinkingDialog.relink_location(options, self.window)
-        relinking_results = dict()
-        if dialog.exec_() == LocationLinkingDialog.Accepted:
-            for old, new in dialog.relink.items():
-                relinking_results[old] = new
-                use_alternatives = dialog.use_alternatives_checkbox.isChecked()
+        dialog = LocationLinkingDialog.relink_location(act['name'], options, self.window)
+        if dialog.exec_() != LocationLinkingDialog.Accepted:
+            # if the dialog accept button is not clicked, do nothing
+            return
 
-        # check every exchange (act.technosphere) whether it can be replaced
-        #   write a def that tries to find the processes and potential alternatives
-        #   use MetaDataStore to quickly find things
+        # read the data from the dialog
+        for old, new in dialog.relink.items():
+            new_location = new
+            use_alternatives = dialog.use_alternatives_checkbox.isChecked()
+
+        succesful_links = {}  # key: old key, value: new key
+        alternatives = ['RoW', 'GLO']  # alternatives to try to match to
+        # get exchanges to re-link
+        for exch in act.technosphere():
+            db = dbs[exch['input'][0]]
+            if db.loc[db['key'] == exch['input']]['location'].iloc[0] != old_location:
+                continue  # this exchange has a location we're not trying to re-link, continue
+
+            # get relevant data to match on
+            row = db.loc[db['key'] == exch['input']]
+            name = row['name'].iloc[0]
+            prod = row['reference product'].iloc[0]
+            unit = row['unit'].iloc[0]
+
+            # get candidates to match
+            candidates = db.loc[(db['name'] == name)
+                                & (db['reference product'] == prod)
+                                & (db['unit'] == unit)]
+            if len(candidates) <= 1:
+                continue  # this activity does not exist in this database with another location (1 is self), continue
+
+            # check candidates for new_location
+            candidate = candidates.loc[candidates['location'] == new_location]
+            if len(candidate) == 0 and not use_alternatives:
+                continue  # there is no candidate, continue
+            elif len(candidate) > 1:
+                continue  # there is more than one candidate, we can't know what to use, continue
+            elif len(candidate) == 0:
+                # there are no candidates, but we can try alternatives
+                for alt in alternatives:
+                    candidate = candidates.loc[candidates['location'] == alt]
+                    if len(candidate) != 0:
+                        break  # found an alternative in with this alternative location, stop looking
+
+            # at this point, we have found 1 suitable candidate, whether that is new_location or alternative location
+            succesful_links[exch['input']] = candidate['key'].iloc[0]
+
+        # now, create a new activity and do the actual re-linking
+
 
         # for act in activities:
         #     new_code = self.generate_copy_code(act.key)
