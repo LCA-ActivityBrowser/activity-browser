@@ -1194,23 +1194,25 @@ class LocationLinkingDialog(QtWidgets.QDialog):
     @classmethod
     def construct_dialog(cls, label: str, options: List[Tuple[str, List[str]]],
                          parent: QtWidgets.QWidget = None) -> 'LocationLinkingDialog':
+        loc, locs = options
+
         obj = cls(parent)
         obj.loc_label.setText(label)
+
+        label = QtWidgets.QLabel(loc)
+        combo = QtWidgets.QComboBox()
+        combo.addItems(locs)
+        combo.setCurrentText(loc)
+        obj.label_choices.append((label, combo))
         # Start at 1 because row 0 is taken up by the loc_label
-        for i, item in enumerate(options):
-            label = QtWidgets.QLabel(item[0])
-            combo = QtWidgets.QComboBox()
-            combo.addItems(item[1])
-            combo.setCurrentText(item[0])
-            obj.label_choices.append((label, combo))
-            obj.grid.addWidget(label, i, 0, 1, 2)
-            obj.grid.addWidget(combo, i, 2, 1, 2)
+        obj.grid.addWidget(label, 0, 0, 1, 2)
+        obj.grid.addWidget(combo, 0, 2, 1, 2)
 
         obj.updateGeometry()
         return obj
 
     @classmethod
-    def relink_location(cls, options: List[Tuple[str, List[str]]],
+    def relink_location(cls, act_name: str, options: List[Tuple[str, List[str]]],
                         parent=None) -> 'LocationLinkingDialog':
-        label = "Relinking exchange locations from activity to a new location."
+        label = "Relinking exchanges from activity '{}' to a new location.".format(act_name)
         return cls.construct_dialog(label, options, parent)

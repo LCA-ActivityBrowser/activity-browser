@@ -118,7 +118,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         )
         self.duplicate_activity_new_loc_action.setToolTip(
             "Duplicate this activity to another location.\n"
-            "Link the exchanges to a new location if it is availabe.")
+            "Link the exchanges to a new location if it is availabe.")  # only for 1 activity
         self.delete_activity_action = QtWidgets.QAction(
             qicons.delete, "Delete activity/-ies", None
         )
@@ -143,8 +143,11 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         if len(self.selectedIndexes()) > 1:
             act = 'activities'
+            self.duplicate_activity_new_loc_action.setEnabled(False)
         else:
             act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(True)
+
         self.duplicate_activity_action.setText("Duplicate {}".format(act))
         self.delete_activity_action.setText("Delete {}".format(act))
 
@@ -165,8 +168,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         menu.addAction(self.new_activity_action)
         menu.addAction(self.duplicate_activity_action)
         menu.addAction(self.duplicate_activity_new_loc_action)
-        if len(self.selectedIndexes()) > 1:
-            self.duplicate_activity_new_loc_action.setEnabled(False)
         menu.addAction(self.delete_activity_action)
         menu.addAction(
             qicons.edit, "Relink the activity exchanges",
