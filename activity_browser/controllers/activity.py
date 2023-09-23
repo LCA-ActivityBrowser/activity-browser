@@ -12,7 +12,7 @@ from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
-from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog
+from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, LocationLinkingDialog
 from .parameter import ParameterController
 
 
@@ -149,35 +149,62 @@ class ActivityController(QObject):
         RoW and then GLO, if those don't exist, the exchange is not altered.
         """
         #TODO actually write def, this is just a copy of duplicate_activity above
+        #TODO write such that it takes only one activity as input
         activities = self._retrieve_activities(data)
 
-        # See also https://github.com/LCA-ActivityBrowser/activity-browser/issues/1042 for what to do
         # get list of dependent databases for activity and load to MetaDataStore
-        # get list of all unique locations in the dependent databases
-        # trigger dialog with autocomplete-writeable-dropdown-list (sorted alphabetically)
-        # check every exchange (act.technosphere) whether it can be replaced
-        #   write a def that tries to find the processes and potential alternatives
+        databases = []
 
         for act in activities:
-            new_code = self.generate_copy_code(act.key)
-            new_act = act.copy(new_code)
-            # Update production exchanges
-            for exc in new_act.production():
-                if exc.input.key == act.key:
-                    exc.input = new_act
-                    exc.save()
-            # Update 'products'
-            for product in new_act.get('products', []):
-                if product.get('input') == act.key:
-                    product['input'] = new_act.key
-            new_act.save()
-            AB_metadata.update_metadata(new_act.key)
-            signals.safe_open_activity_tab.emit(new_act.key)
+            for exch in act.technosphere():
+                databases.append(exch['input'][0])
 
-        db = next(iter(activities)).get("database")
-        bw.databases.set_modified(db)
-        signals.database_changed.emit(db)
-        signals.databases_changed.emit()
+        # load all dependent databases to MetaDataStore
+        dbs = [AB_metadata.get_database_metadata(db) for db in databases]
+        # get list of all unique locations in the dependent databases (sorted alphabetically)
+        locations = []
+        for db in dbs:
+            locations += db['location'].to_list()  # add all locations to one list
+        locations = list(set(locations))  # reduce the list to only unique items
+        locations.sort()
+
+        # get the location to relink
+        db = AB_metadata.get_database_metadata(act.key[0])
+        old_location = db.loc[db['key'] == act.key]['location'][0]
+
+        # trigger dialog with autocomplete-writeable-dropdown-list
+        options = (old_location, locations)
+        dialog = LocationLinkingDialog.relink_location(options, self.window)
+        relinking_results = dict()
+        if dialog.exec_() == LocationLinkingDialog.Accepted:
+            for old, new in dialog.relink.items():
+                relinking_results[old] = new
+                use_alternatives = dialog.use_alternatives_checkbox.isChecked()
+
+        # check every exchange (act.technosphere) whether it can be replaced
+        #   write a def that tries to find the processes and potential alternatives
+        #   use MetaDataStore to quickly find things
+
+        # for act in activities:
+        #     new_code = self.generate_copy_code(act.key)
+        #     new_act = act.copy(new_code)
+        #     # Update production exchanges
+        #     for exc in new_act.production():
+        #         if exc.input.key == act.key:
+        #             exc.input = new_act
+        #             exc.save()
+        #     # Update 'products'
+        #     for product in new_act.get('products', []):
+        #         if product.get('input') == act.key:
+        #             product['input'] = new_act.key
+        #     new_act.save()
+        #     AB_metadata.update_metadata(new_act.key)
+        #     signals.safe_open_activity_tab.emit(new_act.key)
+        #
+        # db = next(iter(activities)).get("database")
+        # bw.databases.set_modified(db)
+        # signals.database_changed.emit(db)
+        # signals.databases_changed.emit()
 
     @Slot(tuple, str, name="copyActivityToDbInterface")
     @Slot(list, str, name="copyActivitiesToDbInterface")

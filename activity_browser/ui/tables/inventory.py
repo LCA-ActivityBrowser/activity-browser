@@ -141,7 +141,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         if self.indexAt(event.pos()).row() == -1 and len(self.model._dataframe) != 0:
             return
 
-        if self.selectedIndexes() > 1:
+        if len(self.selectedIndexes()) > 1:
             act = 'activities'
         else:
             act = 'activity'
