@@ -65,6 +65,7 @@ class Signals(QObject):
     # Exchanges
     exchanges_deleted = Signal(list)  # These exchanges should be deleted | list of exchange keys
     exchanges_add = Signal(list, tuple)  # Add these exchanges to this activity | list of exchange keys to be added, key of target activity
+    exchanges_add_w_values = Signal(list, tuple, dict)  # Add these exchanges to this activity with these values| list of exchange keys to be added, key of target activity, values to add per exchange
     exchange_modified = Signal(object, str, object)  # This was changed about this exchange | exchange object, name of the changed field, new content of the field
     # Exchange object and uncertainty dictionary
     exchange_uncertainty_wizard = Signal(object)  # Trigger uncertainty dialog for this exchange | exchange object
