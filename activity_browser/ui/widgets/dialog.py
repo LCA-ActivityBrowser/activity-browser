@@ -1162,9 +1162,9 @@ class LocationLinkingDialog(QtWidgets.QDialog):
         self.grid = QtWidgets.QGridLayout()
         self.grid_box.setLayout(self.grid)
 
-        self.use_alternatives_checkbox = QtWidgets.QCheckBox('Use generic alternatives (GLO, RoW) as fallback')
+        self.use_alternatives_checkbox = QtWidgets.QCheckBox('Use generic alternatives (RoW, GLO) as fallback')
         self.use_alternatives_checkbox.setToolTip('If the location is not found, try to match to generic locations '
-                                         'like GLO and RoW.')
+                                         'RoW or GLO (in that order).')
 
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
