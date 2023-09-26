@@ -141,7 +141,7 @@ class ActivityController(QObject):
         signals.databases_changed.emit()
 
     @Slot(tuple, name="copyActivityNewLoc")
-    def duplicate_activity_new_loc(self, data: tuple) -> None:
+    def duplicate_activity_new_loc(self, old_key: tuple) -> None:
         """Duplicates the selected activity in the same db, links to new location, with a new BW code.
 
         This function will try and link all exchanges in the same location as the production process
@@ -153,9 +153,15 @@ class ActivityController(QObject):
         - Give user dialog to re-link location and potentially use alternatives
         - Finds suitable activities with new location (and potentially alternative)
         - Re-link exchanges to new (and potentially alternative) location
-        - Show user what changes are.???
+
+        Parameters
+        ----------
+        old_key: the key of the activity to re-link to a different location
+
+        Returns
+        -------
         """
-        act = self._retrieve_activities(data)[0]  # we only take one activity but this function always returns list
+        act = self._retrieve_activities(old_key)[0]  # we only take one activity but this function always returns list
 
         # get list of dependent databases for activity and load to MetaDataStore
         databases = []
@@ -187,14 +193,18 @@ class ActivityController(QObject):
             new_location = new
             use_alternatives = dialog.use_alternatives_checkbox.isChecked()
 
-        keep_exch = []  # keep these exchanges
+        del_exch = []  # delete these exchanges
         succesful_links = {}  # dict of dicts, key of new exch : {new values} <-- see 'values' below
         alternatives = ['RoW', 'GLO']  # alternatives to try to match to
+        # in the future, 'alternatives' could be improved by making use of some location hierarchy. From that we could
+        # get things like if the new location is NL but there is no NL, but RER exists, we use that. However, for that
+        # we need some hierarchical structure to the location data, which may be available from ecoinvent, but we need
+        # to look for that.
+
         # get exchanges to re-link
         for exch in act.technosphere():
             db = dbs[exch.input[0]]
             if db.loc[db['key'] == exch.input]['location'].iloc[0] != old_location:
-                keep_exch.append(exch.input)
                 continue  # this exchange has a location we're not trying to re-link, continue
 
             # get relevant data to match on
@@ -203,35 +213,28 @@ class ActivityController(QObject):
             prod = row['reference product'].iloc[0]
             unit = row['unit'].iloc[0]
 
-            # get candidates to match
+            # get candidates to match (must have same name, product and unit)
             candidates = db.loc[(db['name'] == name)
                                 & (db['reference product'] == prod)
                                 & (db['unit'] == unit)]
             if len(candidates) <= 1:
-                keep_exch.append(exch.input)
                 continue  # this activity does not exist in this database with another location (1 is self), continue
 
             # check candidates for new_location
             candidate = candidates.loc[candidates['location'] == new_location]
             if len(candidate) == 0 and not use_alternatives:
-                keep_exch.append(exch.input)
                 continue  # there is no candidate, continue
             elif len(candidate) > 1:
-                keep_exch.append(exch.input)
                 continue  # there is more than one candidate, we can't know what to use, continue
             elif len(candidate) == 0:
                 # there are no candidates, but we can try alternatives
-                no_alt = True
                 for alt in alternatives:
                     candidate = candidates.loc[candidates['location'] == alt]
                     if len(candidate) != 0:
-                        no_alt = False
                         break  # found an alternative in with this alternative location, stop looking
-                if no_alt:
-                    # no alternative found, despite alternatives
-                    keep_exch.append(exch.input)
 
             # at this point, we have found 1 suitable candidate, whether that is new_location or alternative location
+            del_exch.append(exch)
             values = {
                 'amount': exch.get('amount', False),
                 'comment': exch.get('comment', False),
@@ -257,8 +260,7 @@ class ActivityController(QObject):
         # save the new location to the activity
         self.modify_activity(new_act.key, 'location', new_location)
         # delete old exchanges
-        delete_exch = [exch for exch in new_act.technosphere() if exch.input not in keep_exch]
-        signals.exchanges_deleted.emit(delete_exch)
+        signals.exchanges_deleted.emit(del_exch)
         # add the new exchanges with all values carried over from last exch
         signals.exchanges_add_w_values.emit(list(succesful_links.keys()), new_act.key, succesful_links)
 
