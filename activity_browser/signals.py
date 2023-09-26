@@ -44,7 +44,7 @@ class Signals(QObject):
     new_activity = Signal(str)  # Trigger dialog to create a new activity in this database | name of database
     add_activity_to_history = Signal(tuple)  # Add this activity to history | key of activity
     duplicate_activity = Signal(tuple)  # Duplicate this activity | key of activity
-    duplicate_activity_new_loc = Signal(tuple)  # Duplicate this activity to a new location | key of activity
+    duplicate_activity_new_loc = Signal(tuple)  # Trigger dialog to duplicate this activity to a new location | key of activity
     duplicate_activities = Signal(list)  # Duplicate these activities | list of activity keys
     duplicate_activity_to_db = Signal(str, object)  # Duplicate this activity to another database | name of target database, BW2 actiivty object
     #TODO write below 2 signals to work without the str, source database is already stored in activity keys
