@@ -32,7 +32,8 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
         - [Conda](#conda)
         - [Install the AB with ecoinvent >=3.9](#install-the-ab-with-ecoinvent-39)
         - [Install the AB with ecoinvent <3.9](#install-the-ab-with-older-ecoinvent-versions-39)
-- [Updating the AB](#updating-the-ab)
+    - [Updating the AB](#updating-the-ab)
+    - [Mamba](#mamba)
 - [Getting started](#getting-started)
     - [Running the AB](#running-the-ab)
     - [Importing LCI databases](#importing-lci-databases)
@@ -100,13 +101,23 @@ conda install bw2io=0.8.7
 
 At this point the activity-browser and all of its dependencies will be installed in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you.
 
-# Updating the AB
+## Updating the AB
 
 We recommend to regularly update the AB to receive new features & bugfixes. These commands will update the activity-browser and all of its dependencies in the conda environment called `ab`.
 
 ```bash
 conda activate ab
 conda update activity-browser
+```
+
+## Mamba
+
+You can also install the AB using [Mamba](https://mamba.readthedocs.io/en/latest/mamba-installation.html#mamba-install):
+
+```bash
+mamba create -n ab activity-browser
+mamba activate ab
+activity-browser
 ```
 
 # Getting started
