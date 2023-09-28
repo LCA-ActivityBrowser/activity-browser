@@ -677,7 +677,7 @@ class Contributions(object):
         return self._correct_method_index(self.mlca.methods), None
 
     def top_elementary_flow_contributions(self, functional_unit: Optional[tuple] = None, method: Optional[tuple] = None,
-                                          aggregator: Optional[str, list] = None, limit: int = 5,
+                                          aggregator: Union[str, list, None] = None, limit: int = 5,
                                           normalize: bool = False, limit_type: str = "number", **kwargs
                                           ) -> pd.DataFrame:
         """Return top EF contributions for either functional_unit or method.
@@ -720,7 +720,7 @@ class Contributions(object):
         return labelled_df
 
     def top_process_contributions(self, functional_unit: Optional[tuple] = None, method: Optional[tuple] = None,
-                                  aggregator: Optional[str, list] = None, limit: int = 5,
+                                  aggregator: Union[str, list, None] = None, limit: int = 5,
                                   normalize: bool = False, limit_type: str = "number", **kwargs
                                   ) -> pd.DataFrame:
         """Return top process contributions for functional_unit or method.
