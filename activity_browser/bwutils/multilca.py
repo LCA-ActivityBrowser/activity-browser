@@ -348,55 +348,45 @@ class Contributions(object):
             "technosphere": (self.mlca.rev_activity_dict, self.mlca.lca.activity_dict, self.act_fields),
         }
 
-    def normalize(self, contribution_array):
+    def normalize(self, contribution_array: np.ndarray) -> np.ndarray:
         """Normalise the contribution array.
 
         Parameters
         ----------
-        contribution_array : `numpy.ndarray`
-            A 2-dimensional contribution array
+        contribution_array : A 2-dimensional contribution array
 
         Returns
         -------
-        `numpy.ndarray`
-            2-dimensional array of same shape, with scores normalized.
+        2-dimensional array of same shape, with scores normalized.
 
         """
-        scores = abs(contribution_array).sum(axis=1, keepdims=True)
+        scores = abs(contribution_array.sum(axis=1, keepdims=True))
         return contribution_array / scores
 
-    def _build_dict(self, C, FU_M_index, rev_dict, limit, limit_type):
+    def _build_dict(self, contributions: np.ndarray, FU_M_index: dict,
+                    rev_dict: dict, limit: int, limit_type: str) -> dict:
         """Sort the given contribution array on method or reference flow column.
 
         Parameters
         ----------
-        C : `numpy.ndarray`
-            A 2-dimensional contribution array
-        FU_M_index : dict
-            Dictionary which maps the reference flows or methods to their
-            matching columns
-        rev_dict : dict
-            'reverse' dictionary used to map correct activity/method to
-            its value
-        limit : int
-            Number of top-contributing items to include
-        limit_type : str
-            Either "number" or "percent", ContributionAnalysis.sort_array
-            for complete explanation
+        contributions: A 2-dimensional contribution array
+        FU_M_index : Dictionary which maps the reference flows or methods to their matching columns
+        rev_dict : 'reverse' dictionary used to map correct activity/method to its value
+        limit : Number of top-contributing items to include
+        limit_type : Either "number" or "percent", ContributionAnalysis.sort_array for complete explanation
 
         Returns
         -------
-        dict
-            Top-contributing flows per method or activity
+        Top-contributing flows per method or activity
 
         """
         topcontribution_dict = dict()
         for fu_or_method, col in FU_M_index.items():
-            top_contribution = ca.sort_array(C[col, :], limit=limit, limit_type=limit_type)
+            top_contribution = ca.sort_array(contributions[col, :], limit=limit, limit_type=limit_type)
             cont_per = OrderedDict()
             cont_per.update({
-                ('Total', ''): C[col, :].sum(),
-                ('Rest', ''): C[col, :].sum() - top_contribution[:, 0].sum(),
+                ('Total', ''): contributions[col, :].sum(),
+                ('Rest', ''): contributions[col, :].sum() - top_contribution[:, 0].sum(),
                 })
             for value, index in top_contribution:
                 cont_per.update({rev_dict[index]: value})
@@ -404,8 +394,8 @@ class Contributions(object):
         return topcontribution_dict
 
     @staticmethod
-    def get_labels(key_list, fields=None, separator=' | ',
-                   max_length=False, mask=None):
+    def get_labels(key_list: pd.MultiIndex, fields: Optional[list] = None, separator: str = ' | ',
+                   max_length: int = False, mask: Optional[list] = None) -> list:
         """Generate labels from metadata information.
 
         Setting max_length will wrap the label into a multi-line string if
@@ -413,23 +403,16 @@ class Contributions(object):
 
         Parameters
         ----------
-        key_list : `pandas.MultiIndex`
-            An index containing 'keys' to be retrieved from the MetaDataStore
-        fields : list
-            List of column-names to be included from the MetaDataStore
-        separator : str
-            Specific separator to use when joining strings together
-        max_length : int
-            Allowed character length before string is wrapped over multiple
-            lines
-        mask : list
-            Instead of the metadata, this list is used to check keys against.
+        key_list : An index containing 'keys' to be retrieved from the MetaDataStore
+        fields : List of column-names to be included from the MetaDataStore
+        separator : Specific separator to use when joining strings together
+        max_length : Allowed character length before string is wrapped over multiple lines
+        mask : Instead of the metadata, this list is used to check keys against.
             Use if data is aggregated or keys do not exist in MetaDataStore
 
         Returns
         -------
-        list
-            Translated and/or joined (and wrapped) labels matching the keys
+        Translated and/or joined (and wrapped) labels matching the keys
 
         """
         fields = fields if fields else ['name', 'reference product', 'location', 'database']
@@ -449,8 +432,8 @@ class Contributions(object):
         return translated_keys
 
     @classmethod
-    def join_df_with_metadata(cls, df, x_fields=None, y_fields=None,
-                              special_keys=None):
+    def join_df_with_metadata(cls, df: pd.DataFrame, x_fields: Optional[list] = None, y_fields: Optional[list] = None,
+                              special_keys: Optional[list] = None) -> pd.DataFrame:
         """Join a dataframe that has keys on the index with metadata.
 
         Metadata fields are defined in x_fields.
@@ -459,24 +442,19 @@ class Contributions(object):
 
         Parameters
         ----------
-        df : `pandas.DataFrame`
-            Simple DataFrame containing processed data
-        x_fields : list
-            List of additional columns to add from the MetaDataStore
-        y_fields : list
-            List of column keys for the data in the df dataframe
-        special_keys : list
-            List of specific items to place at the top of the dataframe
+        df : Simple DataFrame containing processed data
+        x_fields : List of additional columns to add from the MetaDataStore
+        y_fields : List of column keys for the data in the df dataframe
+        special_keys : List of specific items to place at the top of the dataframe
 
         Returns
         -------
-        `pandas.DataFrame`
-            Expanded and metadata-annotated dataframe
+        Expanded and metadata-annotated dataframe
 
         """
 
         # replace column keys with labels
-        df.columns = cls.get_labels(df.columns, fields=y_fields)#, separator='\n')
+        df.columns = cls.get_labels(df.columns, fields=y_fields)
         # Coerce index to MultiIndex if it currently isn't
         if not isinstance(df.index, pd.MultiIndex):
             df.index = pd.MultiIndex.from_tuples(df.index)
@@ -498,27 +476,20 @@ class Contributions(object):
         joined.index = cls.get_labels(joined.index, fields=x_fields)
         return joined
 
-    def get_labelled_contribution_dict(self, cont_dict, x_fields=None,
-                                       y_fields=None, mask=None):
+    def get_labelled_contribution_dict(self, cont_dict: dict, x_fields: list = None,
+                                       y_fields: list = None, mask: list = None) -> pd.DataFrame:
         """Annotate the contribution dict with metadata.
 
         Parameters
         ----------
-        cont_dict : dict
-            Holds the contribution data connected to the functions of methods
-        x_fields : list
-            X-axis fieldnames, these are usually the indexes/keys of specific
-            processes
-        y_fields : list
-            Column names specific to the cont_dict to be labelled
-        mask : list
-            Used in case of aggregation or special cases where the usual
-            way of using the metadata cannot be used
+        cont_dict : Holds the contribution data connected to the functions of methods
+        x_fields : X-axis fieldnames, these are usually the indexes/keys of specific processes
+        y_fields : Column names specific to the cont_dict to be labelled
+        mask : Used in case of aggregation or special cases where the usual way of using the metadata cannot be used
 
         Returns
         -------
-        `pandas.DataFrame`
-            Annotated contribution dict inside a pandas dataframe
+        Annotated contribution dict inside a pandas dataframe
 
         """
         dfs = (
@@ -536,7 +507,6 @@ class Contributions(object):
         index = df.loc[df.index.difference(special_keys)].replace(0, np.nan).dropna(how='all').index.union(special_keys)
         df = df.loc[index]
 
-        joined = None
         if not mask:
             joined = self.join_df_with_metadata(
                 df, x_fields=x_fields, y_fields=y_fields,
@@ -553,13 +523,10 @@ class Contributions(object):
             joined = df
         if joined is not None:
             return joined.reset_index(drop=False)
-        return
 
     @staticmethod
     def adjust_table_unit(df: pd.DataFrame, method: Optional[tuple]) -> pd.DataFrame:
-        """Given a dataframe, adjust the unit of the table to either match the
-        given method, or not exist.
-        """
+        """Given a dataframe, adjust the unit of the table to either match the given method, or not exist."""
         if "unit" not in df.columns:
             return df
         keys = df.index[~df["index"].isin({"Total", "Rest"})]
@@ -578,9 +545,8 @@ class Contributions(object):
         joined.reset_index(inplace=True, drop=True)
         return joined
 
-    def inventory_df(self, inventory_type: str, columns: set = {'name', 'database', 'code'}):
-        """Returns an inventory dataframe with metadata of the given type.
-        """
+    def inventory_df(self, inventory_type: str, columns: set = {'name', 'database', 'code'}) -> pd.DataFrame:
+        """Return an inventory dataframe with metadata of the given type."""
         try:
             data = self.inventory_data[inventory_type]
             appending = columns.difference(set(data[3]))
@@ -613,9 +579,8 @@ class Contributions(object):
         joined = joined.loc[:, col_order.append(methods)]
         return joined.reset_index(drop=False)
 
-    def lca_scores_df(self, normalized=False) -> pd.DataFrame:
-        """Returns a metadata-annotated DataFrame of the LCA scores.
-        """
+    def lca_scores_df(self, normalized: bool = False) -> pd.DataFrame:
+        """Return a metadata-annotated DataFrame of the LCA scores."""
         scores = self.mlca.lca_scores if not normalized else self.mlca.lca_scores_normalized
         return self._build_lca_scores_df(scores)
 
@@ -625,8 +590,7 @@ class Contributions(object):
 
     def get_contributions(self, contribution, functional_unit=None,
                           method=None) -> np.ndarray:
-        """Return a contribution matrix given the type and fu / method
-        """
+        """Return a contribution matrix given the type and fu / method."""
         if all([functional_unit, method]) or not any([functional_unit, method]):
             raise ValueError(
                 "It must be either by reference flow or by impact category. Provided:"
@@ -645,40 +609,32 @@ class Contributions(object):
                 dataset[contribution], self.mlca.func_key_dict[functional_unit], 0
             )
 
-    def aggregate_by_parameters(self, C: np.ndarray, inventory: str,
+    def aggregate_by_parameters(self, contributions: np.ndarray, inventory: str,
                                 parameters: Union[str, list] = None):
-        """Perform aggregation of the contribution data given parameters
+        """Perform aggregation of the contribution data given parameters.
 
         Parameters
         ----------
-        C : `numpy.ndarray`
-            2-dimensional contribution array
-        inventory: str
-            Either 'biosphere' or 'technosphere', used to determine which
-            inventory to use
-        parameters : str or list
-            One or more parameters by which to aggregate the given contribution
-            array.
+        contributions : 2-dimensional contribution array
+        inventory : Either 'biosphere' or 'technosphere', used to determine which inventory to use
+        parameters : One or more parameters by which to aggregate the given contribution array.
 
         Returns
         -------
-        `numpy.ndarray`
+        aggregated : pd.DataFrame
             The aggregated 2-dimensional contribution array
         mask_index : dict
-            Contains all of the values of the aggregation mask, linked to
-            their indexes
+            Contains all of the values of the aggregation mask, linked to their indexes
         mask : list or dictview or None
             An optional list or dictview of the mask_index values
-
-        -------
 
         """
         rev_index, keys, fields = self.aggregate_data[inventory]
         if not parameters:
-            return C, rev_index, None
+            return contributions, rev_index, None
 
-        df = pd.DataFrame(C).T
-        columns = list(range(C.shape[0]))
+        df = pd.DataFrame(contributions).T
+        columns = list(range(contributions.shape[0]))
         df.index = pd.MultiIndex.from_tuples(rev_index.values())
         metadata = AB_metadata.get_metadata(list(keys), fields)
 
@@ -695,7 +651,7 @@ class Contributions(object):
             return self.act_fields if contribution == self.ACT else self.ef_fields
         return aggregator if isinstance(aggregator, list) else [aggregator]
 
-    def _correct_method_index(self, mthd_indx):
+    def _correct_method_index(self, mthd_indx: list) -> dict:
         """ A method for amending the tuples for impact method labels so
         that all tuples are fully printed.
 
@@ -720,9 +676,10 @@ class Contributions(object):
             return self.mlca.fu_index, self.act_fields
         return self._correct_method_index(self.mlca.methods), None
 
-    def top_elementary_flow_contributions(self, functional_unit=None, method=None,
-                                          aggregator=None, limit=5, normalize=False,
-                                          limit_type="number", **kwargs):
+    def top_elementary_flow_contributions(self, functional_unit: Optional[tuple] = None, method: Optional[tuple] = None,
+                                          aggregator: Union[str, list, None] = None, limit: int = 5,
+                                          normalize: bool = False, limit_type: str = "number", **kwargs
+                                          ) -> pd.DataFrame:
         """Return top EF contributions for either functional_unit or method.
 
         * If functional_unit: Compare the unit against all considered impact
@@ -731,49 +688,42 @@ class Contributions(object):
 
         Parameters
         ----------
-        functional_unit : tuple, optional
-            The reference flow to compare all considered impact categories against
-        method : tuple, optional
-            The method to compare all considered reference flows against
-        aggregator : str or list, optional
-            Used to aggregate EF contributions over certain columns
-        limit : int
-            The number of top contributions to consider
-        normalize : bool
-            Determines whether or not to normalize the contribution values
-        limit_type : str
-            The type of limit, either 'number' or 'percent'
-
+        functional_unit : The reference flow to compare all considered impact categories against
+        method : The method to compare all considered reference flows against
+        aggregator : Used to aggregate EF contributions over certain columns
+        limit : The number of top contributions to consider
+        normalize : Determines whether or not to normalize the contribution values
+        limit_type : The type of limit, either 'number' or 'percent'
 
         Returns
         -------
-        `pandas.DataFrame`
-            Annotated top-contribution dataframe
+        Annotated top-contribution dataframe
 
         """
-        C = self.get_contributions(self.EF, functional_unit, method)
+        contributions = self.get_contributions(self.EF, functional_unit, method)
 
         x_fields = self._contribution_rows(self.EF, aggregator)
         index, y_fields = self._contribution_index_cols(
             functional_unit=functional_unit, method=method
         )
-        C, rev_index, mask = self.aggregate_by_parameters(C, self.BIOS, aggregator)
+        contributions, rev_index, mask = self.aggregate_by_parameters(contributions, self.BIOS, aggregator)
 
         # Normalise if required
         if normalize:
-            C = self.normalize(C)
+            contributions = self.normalize(contributions)
 
-        top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
+        top_cont_dict = self._build_dict(contributions, index, rev_index, limit, limit_type)
         labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
         self.adjust_table_unit(labelled_df, method)
         return labelled_df
 
-    def top_process_contributions(self, functional_unit=None, method=None,
-                                  aggregator=None, limit=5, normalize=False,
-                                  limit_type="number", **kwargs):
-        """Return top process contributions for functional_unit or method
+    def top_process_contributions(self, functional_unit: Optional[tuple] = None, method: Optional[tuple] = None,
+                                  aggregator: Union[str, list, None] = None, limit: int = 5,
+                                  normalize: bool = False, limit_type: str = "number", **kwargs
+                                  ) -> pd.DataFrame:
+        """Return top process contributions for functional_unit or method.
 
         * If functional_unit: Compare the process against all considered impact
         assessment methods.
@@ -781,38 +731,31 @@ class Contributions(object):
 
         Parameters
         ----------
-        functional_unit : tuple, optional
-            The reference flow to compare all considered methods against
-        method : tuple, optional
-            The method to compare all considered reference flows against
-        aggregator : str or list, optional
-            Used to aggregate PC contributions over certain columns
-        limit : int
-            The number of top contributions to consider
-        normalize : bool
-            Determines whether or not to normalize the contribution values
-        limit_type : str
-            The type of limit, either 'number' or 'percent'
+        functional_unit : The reference flow to compare all considered impact categories against
+        method : The method to compare all considered reference flows against
+        aggregator : Used to aggregate EF contributions over certain columns
+        limit : The number of top contributions to consider
+        normalize : Determines whether or not to normalize the contribution values
+        limit_type : The type of limit, either 'number' or 'percent'
 
         Returns
         -------
-        `pandas.DataFrame`
-            Annotated top-contribution dataframe
+        Annotated top-contribution dataframe
 
         """
-        C = self.get_contributions(self.ACT, functional_unit, method)
+        contributions = self.get_contributions(self.ACT, functional_unit, method)
 
         x_fields = self._contribution_rows(self.ACT, aggregator)
         index, y_fields = self._contribution_index_cols(
             functional_unit=functional_unit, method=method
         )
-        C, rev_index, mask = self.aggregate_by_parameters(C, self.TECH, aggregator)
+        contributions, rev_index, mask = self.aggregate_by_parameters(contributions, self.TECH, aggregator)
 
         # Normalise if required
         if normalize:
-            C = self.normalize(C)
+            contributions = self.normalize(contributions)
 
-        top_cont_dict = self._build_dict(C, index, rev_index, limit, limit_type)
+        top_cont_dict = self._build_dict(contributions, index, rev_index, limit, limit_type)
         labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
         )
