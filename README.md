@@ -204,7 +204,7 @@ If you experience problems or are suffering from a specific bug, please [raise a
 ### Current main developers
 
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl) (creator)
-- Marc van der Meide ([github]((https://github.com/marc-vdm))) (maintainer)
+- Marc van der Meide ([github](https://github.com/marc-vdm)) (maintainer)
 
 ### Important contributers
 
