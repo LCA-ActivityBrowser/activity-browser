@@ -181,13 +181,13 @@ If you experience problems or are suffering from a specific bug, please [raise a
 
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl) (creator)
 - Marc van der Meide ([github]((https://github.com/marc-vdm))) (maintainer)
-- Jonathan Kidner (j.h.kidner@cml.leidenuniv.nl) (maintainer)
 
 ### Important contributers
 
 - [Adrian Haas](https://github.com/haasad)
 - [Chris Mutel](https://github.com/cmutel)
 - [Daniel de Koning](https://github.com/dgdekoning)
+- [Jonathan Kidner](https://github.com/Zoophobus)
 - [Remy le Calloch](https://remy.lecalloch.net)
 
 # Copyright
