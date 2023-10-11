@@ -9,7 +9,7 @@ from .dialog import (
     DatabaseLinkingDialog, DefaultBiosphereDialog,
     DatabaseLinkingResultsDialog, ActivityLinkingDialog,
     ActivityLinkingResultsDialog, ProjectDeletionDialog,
-    ScenarioDatabaseDialog
+    ScenarioDatabaseDialog, LocationLinkingDialog
 )
 from .line_edit import (SignalledPlainTextEdit, SignalledComboEdit,
                         SignalledLineEdit)

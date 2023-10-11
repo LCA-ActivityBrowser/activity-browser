@@ -12,7 +12,7 @@ from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
-from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog
+from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, LocationLinkingDialog
 from .parameter import ParameterController
 
 
@@ -25,6 +25,7 @@ class ActivityController(QObject):
         signals.delete_activity.connect(self.delete_activity)
         signals.delete_activities.connect(self.delete_activity)
         signals.duplicate_activity.connect(self.duplicate_activity)
+        signals.duplicate_activity_new_loc.connect(self.duplicate_activity_new_loc)
         signals.duplicate_activities.connect(self.duplicate_activity)
         signals.duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
         signals.duplicate_to_db_interface_multiple.connect(self.show_duplicate_to_db_interface)
@@ -139,6 +140,139 @@ class ActivityController(QObject):
         signals.database_changed.emit(db)
         signals.databases_changed.emit()
 
+    @Slot(tuple, name="copyActivityNewLoc")
+    def duplicate_activity_new_loc(self, old_key: tuple) -> None:
+        """Duplicates the selected activity in the same db, links to new location, with a new BW code.
+
+        This function will try and link all exchanges in the same location as the production process
+        to a chosen location, if none is available for the given exchange, it will try to link to
+        RoW and then GLO, if those don't exist, the exchange is not altered.
+
+        This def does the following:
+        - Read all databases in exchanges of activity into MetaDataStore
+        - Give user dialog to re-link location and potentially use alternatives
+        - Finds suitable activities with new location (and potentially alternative)
+        - Re-link exchanges to new (and potentially alternative) location
+
+        Parameters
+        ----------
+        old_key: the key of the activity to re-link to a different location
+
+        Returns
+        -------
+        """
+        act = self._retrieve_activities(old_key)[0]  # we only take one activity but this function always returns list
+
+        # get list of dependent databases for activity and load to MetaDataStore
+        databases = []
+        for exch in act.technosphere():
+            databases.append(exch.input[0])
+
+        # load all dependent databases to MetaDataStore
+        dbs = {db: AB_metadata.get_database_metadata(db) for db in databases}
+        # get list of all unique locations in the dependent databases (sorted alphabetically)
+        locations = []
+        for db in dbs.values():
+            locations += db['location'].to_list()  # add all locations to one list
+        locations = list(set(locations))  # reduce the list to only unique items
+        locations.sort()
+
+        # get the location to relink
+        db = dbs[act.key[0]]
+        old_location = db.loc[db['key'] == act.key]['location'].iloc[0]
+
+        # trigger dialog with autocomplete-writeable-dropdown-list
+        options = (old_location, locations)
+        dialog = LocationLinkingDialog.relink_location(act['name'], options, self.window)
+        if dialog.exec_() != LocationLinkingDialog.Accepted:
+            # if the dialog accept button is not clicked, do nothing
+            return
+
+        # read the data from the dialog
+        for old, new in dialog.relink.items():
+            new_location = new
+            use_alternatives = dialog.use_alternatives_checkbox.isChecked()
+
+        del_exch = []  # delete these exchanges
+        succesful_links = {}  # dict of dicts, key of new exch : {new values} <-- see 'values' below
+        alternatives = ['RoW', 'GLO']  # alternatives to try to match to
+        # in the future, 'alternatives' could be improved by making use of some location hierarchy. From that we could
+        # get things like if the new location is NL but there is no NL, but RER exists, we use that. However, for that
+        # we need some hierarchical structure to the location data, which may be available from ecoinvent, but we need
+        # to look for that.
+
+        # get exchanges to re-link
+        for exch in act.technosphere():
+            db = dbs[exch.input[0]]
+            if db.loc[db['key'] == exch.input]['location'].iloc[0] != old_location:
+                continue  # this exchange has a location we're not trying to re-link, continue
+
+            # get relevant data to match on
+            row = db.loc[db['key'] == exch.input]
+            name = row['name'].iloc[0]
+            prod = row['reference product'].iloc[0]
+            unit = row['unit'].iloc[0]
+
+            # get candidates to match (must have same name, product and unit)
+            candidates = db.loc[(db['name'] == name)
+                                & (db['reference product'] == prod)
+                                & (db['unit'] == unit)]
+            if len(candidates) <= 1:
+                continue  # this activity does not exist in this database with another location (1 is self), continue
+
+            # check candidates for new_location
+            candidate = candidates.loc[candidates['location'] == new_location]
+            if len(candidate) == 0 and not use_alternatives:
+                continue  # there is no candidate, continue
+            elif len(candidate) > 1:
+                continue  # there is more than one candidate, we can't know what to use, continue
+            elif len(candidate) == 0:
+                # there are no candidates, but we can try alternatives
+                for alt in alternatives:
+                    candidate = candidates.loc[candidates['location'] == alt]
+                    if len(candidate) != 0:
+                        break  # found an alternative in with this alternative location, stop looking
+
+            # at this point, we have found 1 suitable candidate, whether that is new_location or alternative location
+            del_exch.append(exch)
+            values = {
+                'amount': exch.get('amount', False),
+                'comment': exch.get('comment', False),
+                'formula': exch.get('formula', False),
+                'uncertainty': exch.get('uncertainty', False)
+            }
+            succesful_links[candidate['key'].iloc[0]] = values
+
+        # now, create a new activity by copying the old one
+        db_name = act.key[0]
+        new_code = self.generate_copy_code(act.key)
+        new_act = act.copy(new_code)
+        # update production exchanges
+        for exc in new_act.production():
+            if exc.input.key == act.key:
+                exc.input = new_act
+                exc.save()
+        # update 'products'
+        for product in new_act.get('products', []):
+            if product.get('input') == act.key:
+                product.input = new_act.key
+        new_act.save()
+        # save the new location to the activity
+        self.modify_activity(new_act.key, 'location', new_location)
+        # delete old exchanges
+        signals.exchanges_deleted.emit(del_exch)
+        # add the new exchanges with all values carried over from last exch
+        signals.exchanges_add_w_values.emit(list(succesful_links.keys()), new_act.key, succesful_links)
+
+        # update the MetaDataStore and open new activity
+        AB_metadata.update_metadata(new_act.key)
+        signals.safe_open_activity_tab.emit(new_act.key)
+
+        # send signals to relevant locations
+        bw.databases.set_modified(db_name)
+        signals.database_changed.emit(db_name)
+        signals.databases_changed.emit()
+
     @Slot(tuple, str, name="copyActivityToDbInterface")
     @Slot(list, str, name="copyActivitiesToDbInterface")
     def show_duplicate_to_db_interface(self, data: Union[tuple, Iterator[tuple]],
@@ -238,13 +372,29 @@ class ExchangeController(QObject):
 
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
+        signals.exchanges_add_w_values.connect(self.add_exchanges)
         signals.exchange_modified.connect(self.modify_exchange)
         signals.exchange_uncertainty_wizard.connect(self.edit_exchange_uncertainty)
         signals.exchange_uncertainty_modified.connect(self.modify_exchange_uncertainty)
         signals.exchange_pedigree_modified.connect(self.modify_exchange_pedigree)
 
     @Slot(list, tuple, name="addExchangesToKey")
-    def add_exchanges(self, from_keys: Iterator[tuple], to_key: tuple) -> None:
+    def add_exchanges(self, from_keys: Iterator[tuple], to_key: tuple, new_values: dict = {}) -> None:
+        """
+        Add new exchanges.
+
+        Optionally add new values also.
+
+        Parameters
+        ----------
+        from_keys: The activities (keys) to create exchanges from
+        to_key: The activity (key) to create an exchange to
+        new_values: Values of the exchange, dict (from_keys as keys) with field names and values for the exchange
+
+        Returns
+        -------
+
+        """
         activity = bw.get_activity(to_key)
         for key in from_keys:
             technosphere_db = bc.is_technosphere_db(key[0])
@@ -255,6 +405,11 @@ class ExchangeController(QObject):
                 exc['type'] = 'biosphere'
             else:
                 exc['type'] = 'unknown'
+            # add optional exchange values
+            if new_vals := new_values.get(key, {}):
+                for field_name, value in new_vals.items():
+                    if value:
+                        exc[field_name] = value
             exc.save()
         bw.databases.set_modified(to_key[0])
         AB_metadata.update_metadata(to_key)
