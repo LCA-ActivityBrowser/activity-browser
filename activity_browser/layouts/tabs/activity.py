@@ -157,6 +157,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.grouped_tables = [DetailsGroupBox(l, t) for l, t in self.exchange_tables]
 
         # activity-specific data displayed and editable near the top of the tab
+        # this contains: activity name, location, database
         self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 

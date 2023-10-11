@@ -44,6 +44,7 @@ class Signals(QObject):
     new_activity = Signal(str)  # Trigger dialog to create a new activity in this database | name of database
     add_activity_to_history = Signal(tuple)  # Add this activity to history | key of activity
     duplicate_activity = Signal(tuple)  # Duplicate this activity | key of activity
+    duplicate_activity_new_loc = Signal(tuple)  # Trigger dialog to duplicate this activity to a new location | key of activity
     duplicate_activities = Signal(list)  # Duplicate these activities | list of activity keys
     duplicate_activity_to_db = Signal(str, object)  # Duplicate this activity to another database | name of target database, BW2 actiivty object
     #TODO write below 2 signals to work without the str, source database is already stored in activity keys
@@ -64,6 +65,7 @@ class Signals(QObject):
     # Exchanges
     exchanges_deleted = Signal(list)  # These exchanges should be deleted | list of exchange keys
     exchanges_add = Signal(list, tuple)  # Add these exchanges to this activity | list of exchange keys to be added, key of target activity
+    exchanges_add_w_values = Signal(list, tuple, dict)  # Add these exchanges to this activity with these values| list of exchange keys to be added, key of target activity, values to add per exchange
     exchange_modified = Signal(object, str, object)  # This was changed about this exchange | exchange object, name of the changed field, new content of the field
     # Exchange object and uncertainty dictionary
     exchange_uncertainty_wizard = Signal(object)  # Trigger uncertainty dialog for this exchange | exchange object
