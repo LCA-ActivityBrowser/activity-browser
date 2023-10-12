@@ -25,7 +25,7 @@ requirements:
     - arrow
     - brightway2 >=2.4.4
     - pyperclip
-    - eidl >=1.4.2
+    - eidl >=2.0.1
     - networkx
     - pyside2 >=5.15.5
     - qt-webengine
@@ -34,7 +34,6 @@ requirements:
     - seaborn
     - libxml2 <=2.10.4
     - pint <=0.21
-
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
