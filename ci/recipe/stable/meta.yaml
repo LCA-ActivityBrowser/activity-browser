@@ -35,6 +35,7 @@ requirements:
     - libxml2 <=2.10.4
     - pint <=0.21
 
+
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
   license: LGPL3+
