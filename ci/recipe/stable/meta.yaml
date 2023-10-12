@@ -29,7 +29,7 @@ requirements:
     - networkx
     - pyside2 >=5.15.5
     - qt-webengine
-    - numpy =1.23.5
+    - numpy >=1.23.5
     - salib >=1.4
     - seaborn
     - libxml2 <=2.10.4
