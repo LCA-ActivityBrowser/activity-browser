@@ -91,7 +91,8 @@ def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
     if sub.empty:
         return {}
 
-    names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
+    names, products, locations, dbs = list(map(set, sub.iloc[:, 0:4].values.T))
+#    names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
     query = (ActivityDataset
              .select(ActivityDataset.name, ActivityDataset.product,
                      ActivityDataset.location, ActivityDataset.database,
@@ -113,7 +114,8 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
     if sub.empty:
         return {}
 
-    names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
+    names, categories, dbs = list(map(set, sub.iloc[:, 0:3].values.T))
+#    names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
     query = (ActivityDataset
              .select(ActivityDataset.name, ActivityDataset.data,
                      ActivityDataset.database, ActivityDataset.code)
