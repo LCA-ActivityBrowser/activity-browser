@@ -83,7 +83,7 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1) ->
 
         # Convert specific columns that may have tuples as strings
         columns = ["from categories", "from key", "to categories", "to key"]
-        data.loc[:, columns] = data[columns].applymap(convert_tuple_str)
+        data.loc[:, columns] = data[columns].map(convert_tuple_str)
     except:
         # skip the error checks here, these now occur in the calling layout.tabs.LCA_setup module
         pass
