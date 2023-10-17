@@ -11,7 +11,7 @@ Remove items that do not apply. For completed items, change [ ] to [x].
 -->
 
 - [ ] Keep pull requests small so they can be easily reviewed.
-- [ ] Update the documentation.
+- [ ] Update the documentation, please follow the [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)
 - [ ] Update tests.
 - [ ] Categorize the PR by setting a good title and adding one of the labels:
       `bug`, `feature`, `ui`, `change`, `documentation`, `breaking`, `ci`

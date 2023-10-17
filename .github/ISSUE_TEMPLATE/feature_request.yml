@@ -1,0 +1,15 @@
+name: Feature request
+description: File a feature request for AB.
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this feature request!
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature request
+      description: A clear description of your idea and what problem it should resolve. Please share examples or images if relevant.
+    validations:
+      required: true

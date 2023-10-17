@@ -23,7 +23,7 @@ requirements:
   run:
     - python >=3.8,<3.10
     - arrow
-    - brightway2 >=2.4.2
+    - brightway2 >=2.4.4
     - pyperclip
     - eidl >=1.4.2
     - networkx

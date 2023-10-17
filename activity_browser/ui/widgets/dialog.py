@@ -186,7 +186,8 @@ class ExcelReadDialog(QtWidgets.QDialog):
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             parent=self, caption="Select scenario template file",
-            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)"
+            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)",
+            selectedFilter="All Files (*.*)"
         )
         if path:
             self.path_line.setText(path)
@@ -1087,3 +1088,131 @@ class ProjectDeletionDialog(QtWidgets.QDialog):
 
     def deletion_warning_checked(self, parent: QtWidgets.QWidget = None):
         return self.bttn.isChecked()
+
+
+class ScenarioDatabaseDialog(QtWidgets.QDialog):
+    """
+    Displays the possible databases for relinking the exchanges for a given activity
+    """
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.setWindowTitle("Linking scenario databases")
+
+        self.label = QtWidgets.QLabel("The following database(s) in the scenario file cannot be found in your project.\n\n"
+                                      "Please indicate the corresponding database(s), or cancel the import if this is not"
+                                      " possible. (Warning: this process may take a few minutes for large scenario files)")
+
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Databases:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.label)
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @classmethod
+    def construct_dialog(cls, parent: QtWidgets.QWidget = None, options: list = None) -> 'ScenarioDatabaseDialog':
+        obj = cls(parent)
+        # Start at 1 because row 0 is taken up by the db_label
+        for i, item in enumerate(options):
+            label = QtWidgets.QLabel(item[0])
+            combo = QtWidgets.QComboBox()
+            combo.addItems(item[1])
+            combo.setCurrentIndex(0)
+            obj.label_choices.append((label, combo))
+            obj.grid.addWidget(label, i, 0, 1, 2)
+            obj.grid.addWidget(combo, i, 2, 1, 2)
+        obj.updateGeometry()
+        return obj
+
+
+class LocationLinkingDialog(QtWidgets.QDialog):
+    """Display all of the possible location links in a single dialog for the user.
+
+    Allow users to select alternate location links and an option to link to generic alternatives (GLO, RoW).
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Activity Location linking")
+
+        self.loc_label = QtWidgets.QLabel()
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Location link:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
+
+        self.use_alternatives_checkbox = QtWidgets.QCheckBox('Use generic alternatives (RoW, GLO) as fallback')
+        self.use_alternatives_checkbox.setToolTip('If the location is not found, try to match to generic locations '
+                                         'RoW or GLO (in that order).')
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.loc_label)
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.use_alternatives_checkbox)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @classmethod
+    def construct_dialog(cls, label: str, options: List[Tuple[str, List[str]]],
+                         parent: QtWidgets.QWidget = None) -> 'LocationLinkingDialog':
+        loc, locs = options
+
+        obj = cls(parent)
+        obj.loc_label.setText(label)
+
+        label = QtWidgets.QLabel(loc)
+        combo = QtWidgets.QComboBox()
+        combo.addItems(locs)
+        combo.setCurrentText(loc)
+        obj.label_choices.append((label, combo))
+        # Start at 1 because row 0 is taken up by the loc_label
+        obj.grid.addWidget(label, 0, 0, 1, 2)
+        obj.grid.addWidget(combo, 0, 2, 1, 2)
+
+        obj.updateGeometry()
+        return obj
+
+    @classmethod
+    def relink_location(cls, act_name: str, options: List[Tuple[str, List[str]]],
+                        parent=None) -> 'LocationLinkingDialog':
+        label = "Relinking exchanges from activity '{}' to a new location.".format(act_name)
+        return cls.construct_dialog(label, options, parent)

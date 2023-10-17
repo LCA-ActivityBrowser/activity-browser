@@ -113,6 +113,12 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.duplicate_activity_action = QtWidgets.QAction(
             qicons.copy, "Duplicate activity/-ies", None
         )
+        self.duplicate_activity_new_loc_action = QtWidgets.QAction(
+            qicons.copy, "Duplicate activity to new location", None
+        )
+        self.duplicate_activity_new_loc_action.setToolTip(
+            "Duplicate this activity to another location.\n"
+            "Link the exchanges to a new location if it is availabe.")  # only for 1 activity
         self.delete_activity_action = QtWidgets.QAction(
             qicons.delete, "Delete activity/-ies", None
         )
@@ -132,9 +138,26 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def contextMenuEvent(self, event) -> None:
         """ Construct and present a menu.
         """
-        if self.indexAt(event.pos()).row() == -1:
+        if self.indexAt(event.pos()).row() == -1 and len(self.model._dataframe) != 0:
             return
+
+        if len(self.selectedIndexes()) > 1:
+            act = 'activities'
+            self.duplicate_activity_new_loc_action.setEnabled(False)
+        else:
+            act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(True)
+
+        self.duplicate_activity_action.setText("Duplicate {}".format(act))
+        self.delete_activity_action.setText("Delete {}".format(act))
+
         menu = QtWidgets.QMenu()
+        if len(self.model._dataframe) == 0:
+            # if the database is empty, only add the 'new' activity option and return
+            menu.addAction(self.new_activity_action)
+            menu.exec_(event.globalPos())
+            return
+
         menu.addAction(qicons.right, "Open activity", self.open_activity_tabs)
         menu.addAction(
             qicons.graph_explorer, "Open in Graph Explorer",
@@ -144,6 +167,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         )
         menu.addAction(self.new_activity_action)
         menu.addAction(self.duplicate_activity_action)
+        menu.addAction(self.duplicate_activity_new_loc_action)
         menu.addAction(self.delete_activity_action)
         menu.addAction(
             qicons.edit, "Relink the activity exchanges",
@@ -169,6 +193,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             lambda: signals.new_activity.emit(self.database_name)
         )
         self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
+        self.duplicate_activity_new_loc_action.triggered.connect(self.duplicate_activity_to_new_loc)
         self.delete_activity_action.triggered.connect(self.delete_activities)
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
         self.doubleClicked.connect(self.open_activity_tab)
@@ -176,7 +201,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
         self.model.updated.connect(self.update_filter_settings)
-        signals.database_selected.connect(self.reset_filters)
 
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
@@ -210,6 +234,10 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     @Slot(name="duplicateActivitiesWithinDb")
     def duplicate_activities(self) -> None:
         self.model.duplicate_activities(self.selectedIndexes())
+
+    @Slot(name="duplicateActivitiesToNewLocWithinDb")
+    def duplicate_activity_to_new_loc(self) -> None:
+        self.model.duplicate_activity_to_new_loc(self.selectedIndexes())
 
     @Slot(name="duplicateActivitiesToOtherDb")
     def duplicate_activities_to_db(self) -> None:

@@ -109,7 +109,7 @@ class LCAResultsPlot(Plot):
         super().__init__(parent)
         self.plot_name = 'LCA heatmap'
 
-    def plot(self, df: pd.DataFrame):
+    def plot(self, df: pd.DataFrame, invert_plot: bool= False):
         """ Plot a heatmap grid of the different impact categories and reference flows. """
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
@@ -126,9 +126,14 @@ class LCAResultsPlot(Plot):
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
         dfp.columns = [wrap_text(i, max_length=20) for i in dfp.columns]
+        prop = dfp.divide(dfp.max(axis=0)).multiply(100)
+        dfp.replace(np.nan, 0, inplace=True)
+        if invert_plot:
+            dfp = dfp.T
+            prop = prop.T
 
         sns.heatmap(
-            dfp, ax=self.ax, cmap="Blues", annot=True, linewidths=0.05,
+            prop, ax=self.ax, cmap="Blues", annot=dfp, linewidths=0.05,
             annot_kws={"size": 11 if dfp.shape[1] <= 8 else 9,
                        "rotation": 0 if dfp.shape[1] <= 8 else 60}
         )
@@ -279,7 +284,11 @@ class SimpleDistributionPlot(Plot):
         try:
             sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
         except RuntimeError as e:
+<<<<<<< HEAD
             log.error("Runtime error: {}\nPlotting without KDE.".format(e))
+=======
+            log.error("{}: Plotting without KDE.".format(e))
+>>>>>>> 0916c449fa3f5c35b52be1037213f2bd0dacb3c1
             sns.histplot(data.T, kde=False, stat="density", ax=self.ax, edgecolor="none")
         self.ax.set_xlabel(label)
         self.ax.set_ylabel("Probability density")

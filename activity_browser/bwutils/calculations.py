@@ -7,12 +7,16 @@ from ..bwutils import (
 )
 from bw2calc.errors import BW2CalcError
 
+from .errors import ScenarioExchangeNotFoundError
+
+from .errors import CriticalCalculationError
+
+
 import logging
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
-
 
 def do_LCA_calculations(data: dict):
     """Perform the MLCA calculation."""
@@ -32,16 +36,25 @@ def do_LCA_calculations(data: dict):
             contributions = SuperstructureContributions(mlca)
         except AssertionError as e:
             # This occurs if the superstructure itself detects something is wrong.
+            QApplication.restoreOverrideCursor()
             raise BW2CalcError("Scenario LCA failed.", str(e)).with_traceback(e.__traceback__)
         except ValueError as e:
             # This occurs if the LCA matrix does not contain any of the
             # exchanges mentioned in the superstructure data.
+            QApplication.restoreOverrideCursor()
             raise BW2CalcError(
                 "Scenario LCA failed.",
                 "Constructed LCA matrix does not contain any exchanges from the superstructure"
             ).with_traceback(e.__traceback__)
         except KeyError as e:
+            QApplication.restoreOverrideCursor()
             raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
+        except CriticalCalculationError as e:
+            QApplication.restoreOverrideCursor()
+            raise Exception(e)
+        except ScenarioExchangeNotFoundError as e:
+            QApplication.restoreOverrideCursor()
+            raise CriticalCalculationError
     else:
         log.error('Calculation type must be: simple or scenario. Given:', cs_name)
         raise ValueError

@@ -16,17 +16,19 @@ from activity_browser.ui.wizards import UncertaintyWizard
 from activity_browser.signals import signals
 from activity_browser.logger import ABHandler
 
+from activity_browser.logger import ABHandler
+
 """
 Mess around with the uncertainty wizard.
 """
 
 logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+log = ABHandler.setup_with_logger(logger, "uncertainty_wizard_test")
 
 log.setLevel(logging.INFO, True)
 log.propagate = True
 
-@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
+@pytest.mark.skipif(sys.platform=='darwin', reaso   n="tests segfaults on osx")
 def test_wizard_fail(qtbot):
     """Can't create a wizard if no uncertainty interface exists."""
     mystery_box = ["Hello", "My", "Name", "Is", "Error"]  # Type is list.

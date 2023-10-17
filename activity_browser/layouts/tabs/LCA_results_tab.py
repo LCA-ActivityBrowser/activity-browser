@@ -23,7 +23,6 @@ class LCAResultsTab(ABTab):
         super(LCAResultsTab, self).__init__(parent)
 
         self.setMovable(True)
-        # self.setTabShape(1)  # Triangular-shaped Tabs
         self.setTabsClosable(True)
 
         # Generate layout
@@ -65,9 +64,10 @@ class LCAResultsTab(ABTab):
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])
             signals.show_tab.emit("LCA results")
-        except BW2CalcError as e:
+        except (BW2CalcError, ABError) as e:
             initial, *other = e.args
             log.error(traceback.format_exc())
+            QApplication.restoreOverrideCursor()
             msg = QMessageBox(
                 QMessageBox.Warning, "Calculation problem", str(initial),
                 QMessageBox.Ok, self
@@ -76,6 +76,3 @@ class LCAResultsTab(ABTab):
             if other:
                 msg.setDetailedText("\n".join(other))
             msg.exec_()
-        except ABError as e:
-            QApplication.restoreOverrideCursor()
-
