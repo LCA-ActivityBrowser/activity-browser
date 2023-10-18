@@ -91,7 +91,6 @@ class ABHandler(object):
 
         if module is not None:
             return ABHandler(module)
-
         return ABHandler("root")
 
     @staticmethod

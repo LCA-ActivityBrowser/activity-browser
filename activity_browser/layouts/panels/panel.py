@@ -76,7 +76,6 @@ class ABTab(QtWidgets.QTabWidget):
         else:
             log.warning("found", len(tab_names), "occurences of this object.")
 
-
     def get_tab_name_from_index(self, index):
         """Return the name of a tab based on its index."""
         tab_names = [self.tabText(i) for i in range(self.count()) if i == index]

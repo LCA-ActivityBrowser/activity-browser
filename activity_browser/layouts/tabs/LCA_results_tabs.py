@@ -1230,10 +1230,8 @@ class MonteCarloTab(NewAnalysisTab):
             log.info('SEED: ', self.seed.text())
             try:
                 seed = int(self.seed.text())
-
             except ValueError as e:
                 log.error('Seed value must be an integer number or left empty.', error=e)
-
                 QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
                 self.seed.setText('')
                 return
