@@ -284,11 +284,7 @@ class SimpleDistributionPlot(Plot):
         try:
             sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
         except RuntimeError as e:
-<<<<<<< HEAD
-            log.error("Runtime error: {}\nPlotting without KDE.".format(e))
-=======
             log.error("{}: Plotting without KDE.".format(e))
->>>>>>> 0916c449fa3f5c35b52be1037213f2bd0dacb3c1
             sns.histplot(data.T, kde=False, stat="density", ax=self.ax, edgecolor="none")
         self.ax.set_xlabel(label)
         self.ax.set_ylabel("Probability density")

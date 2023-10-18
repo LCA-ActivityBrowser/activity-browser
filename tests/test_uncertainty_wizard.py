@@ -28,7 +28,7 @@ log = ABHandler.setup_with_logger(logger, "uncertainty_wizard_test")
 log.setLevel(logging.INFO, True)
 log.propagate = True
 
-@pytest.mark.skipif(sys.platform=='darwin', reaso   n="tests segfaults on osx")
+@pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_wizard_fail(qtbot):
     """Can't create a wizard if no uncertainty interface exists."""
     mystery_box = ["Hello", "My", "Name", "Is", "Error"]  # Type is list.
