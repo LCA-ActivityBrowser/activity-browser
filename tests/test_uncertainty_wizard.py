@@ -14,7 +14,6 @@ from stats_arrays.distributions import (
 
 from activity_browser.ui.wizards import UncertaintyWizard
 from activity_browser.signals import signals
-
 from activity_browser.logger import ABHandler
 
 """
