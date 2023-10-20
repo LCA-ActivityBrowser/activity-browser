@@ -27,6 +27,8 @@ class SuperstructureMLCA(MLCA):
     }
 
     def __init__(self, cs_name: str, df: pd.DataFrame):
+        assert isinstance(df, pd.DataFrame), "Check if you have provided at least 1 reference flow, 1 impact category " \
+                                             "and 1 scenario file. "
         assert not df.empty, "Cannot run analysis without data."
         self.scenario_names = scenario_names_from_df(df)
         self.total = len(self.scenario_names)
