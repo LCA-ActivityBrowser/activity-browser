@@ -14,17 +14,17 @@ from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns
 from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_, edit_superstructure_for_string
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
 from .file_dialogs import ABPopup
 from ..errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
                       ImportCanceledError, ScenarioExchangeDataNotFoundError,
                         UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError
                       )
+
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
 
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
@@ -113,9 +113,8 @@ class SuperstructureManager(object):
         -------
         A pandas multi-index with the separate dataframes in self.frames contributing to the index levels
         """
-
         cols = [scenario_columns(df).to_list() for df in self.frames]
-        return pd.MultiIndex.from_tuples(list(itertools.product(*cols)))
+        return pd.Index([str(c) for c in list(itertools.product(*cols))])
 
     def _combine_columns_intersect(self) -> pd.Index:
         iterable = iter(self.frames)
@@ -175,7 +174,7 @@ class SuperstructureManager(object):
             """
             for col_two in SUPERSTRUCTURE.symmetric_difference(two.columns):
                 for idx in one.columns:
-                    if col_two in set(idx):
+                    if col_two in idx:
                         one.loc[two.index, idx] = two.loc[:, col_two]
         base_scenario_data = pd.DataFrame([], index=index, columns=SUPERSTRUCTURE)
         scenarios_data = pd.DataFrame([], index=index, columns=cols)
@@ -271,8 +270,7 @@ class SuperstructureManager(object):
         )
         scenario_cols = df.columns.difference(SUPERSTRUCTURE)
         prod_indexes = self_referential_production_flows.loc[self_referential_production_flows.index.isin(df.index)].index
-        self_referential_production_flows.loc[prod_indexes, scenario_cols] \
-            = df.loc[df.index.isin(self_referential_production_flows.index), scenario_cols]
+        self_referential_production_flows.loc[prod_indexes, scenario_cols] = df.loc[df.index.isin(self_referential_production_flows.index), scenario_cols]
         self_referential_production_flows.loc[prod_indexes, 'flow type'] = 'production'
 
         # TODO use metadata for the default production values
