@@ -238,6 +238,15 @@ The AB team should schedule and prioritize bug-fixes and new features to be adde
 By adding milestones to issues and pull-requests, it becomes clear to the community and other developers and maintainers
 What is planned for when.
 
+#### Regular checks for dependency problems
+AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/runs/6595951720) 
+that runs the installation of AB every 24 hours, it will report any problems with installing AB.
+
+In addition, the tests that run when a pull-request is opened can pass, while still having `warnings`, these may be 
+`DeprecationWarning` or other things that are not a problem now, but will become a problem in the future.
+
+If any installation problems occur or warnings happen in the pull-requests tests, they should be resolved. 
+
 ### Creating a new release of Activity Browser
 
 Activity Browser versions and related information can be found on the
@@ -265,10 +274,12 @@ To create a new release follow these steps:
 - Wait until a new pull-request is opened on the 
   [`conda forge feedstock`](https://github.com/conda-forge/activity-browser-feedstock/pulls)
   automatically, then review the pull-request and merge the changes
+- Close the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) for this version
+- If this was a `major` or `minor` release, write an email to the
+  [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) announcing the new changes
 
 ### Don'ts for maintainers:
-- Never create a new release on a Friday or before you have a day off, if things go wrong, you should be available to
-  fix them
+- Never create a new release on a Friday or on a day before you'll be unavailable
 - Never create `major` or `minor` releases close to (e.g. 3 weeks before) something like a course where AB is used, 
   only release changes that are certain to improve stability or fix things that are known to be a problem during the 
   course
