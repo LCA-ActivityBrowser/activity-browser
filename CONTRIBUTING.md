@@ -239,7 +239,7 @@ By adding milestones to issues and pull-requests, it becomes clear to the commun
 What is planned for when.
 
 #### Regular checks for dependency problems
-AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/runs/6595951720) 
+AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/install-canary.yaml) 
 that runs the installation of AB every 24 hours, it will report any problems with installing AB.
 
 In addition, the tests that run when a pull-request is opened can pass, while still having `warnings`, these may be 
