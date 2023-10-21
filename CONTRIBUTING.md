@@ -261,6 +261,12 @@ Using milestones also allows us to keep a log of when certain things have been a
 While the releases changelog shows merged pull-requests, the milestones will also show issues that have been closed in 
 a certain version making it easier to track when changes were made.   
 
+Once it has been decided that an issue will be worked on, it is useful to provide additional information in the issue: 
+- When: Adding a milestone 
+- Who: Assigning someone to the issue 
+- What: Commenting a TODO list with simple broken-down steps
+  ([e.g. like this](https://github.com/LCA-ActivityBrowser/activity-browser/issues/632))
+
 #### Regular checks for dependency problems
 AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/install-canary.yaml) 
 that runs the installation of AB every 24 hours, it will report any problems with installing AB.
