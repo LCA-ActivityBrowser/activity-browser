@@ -25,7 +25,6 @@ Additionally, if you see other feature suggestions that look important or intere
 ## Contributing documentation to the Activity Browser and helping other users
 
 ### Youtube
-
 The README file already contains a link to a youtube channel for introducing beginning users of the AB to the 
 application. 
 If you have the time, further contributions to further explain the more advanced features of the AB are especially 
@@ -35,7 +34,6 @@ If you want to include the opening graphics created for the existing youtube vid
 [contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers).
 
 ### Github wiki page
-
 The Activity Browser has its own
 [__wiki__](https://github.com/LCA-ActivityBrowser/activity-browser/wiki) page!
 This page contains an explanation (in text) of how to get started with the AB.
@@ -45,7 +43,6 @@ want to contribute to the wiki, either by adding figures or links or by writing
 new sections, please contact the developers!
 
 ### In-software guidance
-
 With more and more features being included into the AB, the inclusion of
 in-software guidance for how these features work is becoming more and more
 a priority. Examples of in-software guidance go from `?` buttons that
@@ -68,7 +65,6 @@ or by [contacting the developers](https://github.com/LCA-ActivityBrowser/activit
 For more in-depth information about contributing to the project, please read on.
 
 #### Adding (big) features
-
 If you want to make big changes to the code or functionality of Activity Browser, please always 
 [contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers) first.
 A large amount of the code in the activity browser is based on the logic and features present in `brightway2`. 
@@ -123,21 +119,7 @@ This section is here to help give some direction.
   [__javascript__](https://github.com/LCA-ActivityBrowser/activity-browser/tree/master/activity_browser/static/javascript) 
   part which presents a given JSON document as a graph (built using the JavaScript dagre D3 library).
 
-
-### Do's and Don'ts
-
-- Please do document any new code you wish to include in the activity browser.
-  This means writing useful documentation in the code (please follow the 
-  [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)), but also writing useful tooltips, labels
-  and other things that can help users.
-- Where possible, avoid importing and using brightway2 classes and methods directly in the Qt application code. 
-  If some complex data processing is needed, see if your use-case is covered by bwutils instead. 
-  If bwutils does not contain any for your use-case you are welcome to add it.
-- Always create changes on your own fork, even if you have write access to the main repository
-
-
 ### Setting up a development environment
-
 If you want to contribute code, we suggest the following setup:
 
 - Set up a `conda` environment as explained in the 
@@ -149,7 +131,6 @@ If you want to contribute code, we suggest the following setup:
 ![image](https://github.com/LCA-ActivityBrowser/activity-browser/assets/34626062/de77953f-12c1-4188-9898-1e44a9ce04df) 
 
 ### Running and writing tests
-
 If you want to check whether your changes break anything essential, you can run the automated tests. 
 This requires some additional packages.
 
@@ -179,7 +160,6 @@ Please see the tests that are already present in the
 [pytest-qt documentation](https://pytest-qt.readthedocs.io/en/latest/) for inspiration and examples.
 
 ### Pull requests
-
 Once you are happy with your changes to AB, please open a pull-request. 
 We use the
 [fork and pull model](https://help.github.com/articles/about-collaborative-development-models/)
@@ -190,9 +170,22 @@ When creating a pull-request, please add a description of what your new changes 
 known problem, _why_ AB needs this).
 If it's a larger pull-request, feel free to add screenshots or other useful descriptions to help us understand what 
 you did. 
-Next, make sure your pull-request has a sensible name that _users_ can easily understand, this name is shown in the 
+Next, make sure your pull-request has a sensible title that _users_ can easily understand, this name is shown in the 
 changelog of the next release.
-Finally, please make sure you follow the pull-request check-list (you can see this when you open a pull-request.
+Avoid issue numbers in the title.
+
+This is a [BAD example of a title](https://github.com/LCA-ActivityBrowser/activity-browser/pull/958):
+
+![image](https://github.com/LCA-ActivityBrowser/activity-browser/assets/34626062/ea751c88-d25d-4edb-a724-380c73ec9347)
+- This example is bad because it is not clear to users what this does and uses an issue number, which will show in the 
+  changelog, but also, does not work directly in titles.
+
+This is a [GOOD example of a title](https://github.com/LCA-ActivityBrowser/activity-browser/pull/1051):
+
+![image](https://github.com/LCA-ActivityBrowser/activity-browser/assets/34626062/0822a3c8-d01c-4a0c-8cbc-d44c4bbddc02)
+- This is a good example because it describes what is changed.
+
+Finally, please make sure you follow the pull-request checklist (you can see this when you open a pull-request.
 
 Upon creating a new pull-request, there are a number of automated tests that will be run. 
 If the test-runners fail in some way, it is likely that there is an error somewhere in your PR. 
@@ -200,6 +193,34 @@ You can look at the logs of the continuous integration services to see what fail
 
 When the tests pass on a pull-request, one of the maintainers of AB will review the changes 
 (possibly requesting some edits) and approve or reject the request.
+
+### Do's and Don'ts
+- Please do document any new code you wish to include in the activity browser.
+  This means writing useful documentation in the code (please follow the 
+  [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)), but also writing useful tooltips, labels
+  and other things that can help users.
+- Where possible, avoid importing and using brightway2 classes and methods directly in the Qt application code. 
+  If some complex data processing is needed, see if your use-case is covered by bwutils instead. 
+  If bwutils does not contain any for your use-case you are welcome to add it.
+- Always create changes on your own fork, even if you have write access to the main repository
+- Do try to write descriptive commit messages:
+  - This is a [BAD example](https://github.com/LCA-ActivityBrowser/activity-browser/commit/86922c1578c9d9d9fd034a7048bc9c74fae20e4a):
+
+    ![image](https://github.com/LCA-ActivityBrowser/activity-browser/assets/34626062/af20ed45-4a47-4a76-b5ef-1bea12723cf5)
+    - This is a bad example because looking back through the commit history, we don't know what this refers to
+    - A better title could have been: `implement dialog for new location linking feature`
+  - This is a [GOOD example](https://github.com/LCA-ActivityBrowser/activity-browser/commit/f8f58a1a365419d33d9ca929cdbfaef52199e67e):
+  
+    ![image](https://github.com/LCA-ActivityBrowser/activity-browser/assets/34626062/c2b587ea-5539-452a-991e-2061fb20c249)
+    - This is a good example because it is clear _what_ has been done and _where_.
+    - This commit message also uses a [closing keyword](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue), 
+      making writing your pull-requests easier because the issue is already linked automatically
+    - This could have been better as 2 commits, one for resolving the issue, one for improving the documentation, it is
+      not clear in the commit what actually fixes the issue.  
+  - __Tip__: Keep in mind that these commits are visible on Github, you can make use of this by referencing issues and 
+    using 
+    [Markdown formatting](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
+    in your commits.
 
 ## Maintaining the Activity Browser
 Next to developers, some people maintain the AB. 
@@ -215,8 +236,7 @@ Maintainers can contribute to AB themselves, but also have the following tasks:
 When reviewing a pull-request the following should be kept in mind:
 - __Necessity__
   
-  Do we need this change? 
-  Does it add value to Activity Browser? 
+  Do we _need_ this change (e.g. is it from an open issue or clear from the pull-request why this is needed)?  
   Does this conflict with other planned changes?
 
 - __Code quality__
@@ -229,14 +249,17 @@ When reviewing a pull-request the following should be kept in mind:
 
 - __Functionality__
 
-  Try the new changes, does it do what it is supposed to do?
-  Do other functions related to this still work?
+  Try the new changes on your machine, does it do what it is supposed to do?
+  Has nothing else accidentally broken because of this change?
   Try to abuse/break the new changes, better to find problems now than to have users find them.  
   
 ### Planning bug-fixes and new features
 The AB team should schedule and prioritize bug-fixes and new features to be added to AB.
 By adding milestones to issues and pull-requests, it becomes clear to the community and other developers and maintainers
-What is planned for when.
+what is planned for when. 
+Using milestones also allows us to keep a log of when certain things have been added or removed from AB. 
+While the releases changelog shows merged pull-requests, the milestones will also show issues that have been closed in 
+a certain version making it easier to track when changes were made.   
 
 #### Regular checks for dependency problems
 AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/install-canary.yaml) 
@@ -248,7 +271,6 @@ In addition, the tests that run when a pull-request is opened can pass, while st
 If any installation problems occur or warnings happen in the pull-requests tests, they should be resolved. 
 
 ### Creating a new release of Activity Browser
-
 Activity Browser versions and related information can be found on the
 [__releases__](https://github.com/LCA-ActivityBrowser/activity-browser/releases)
 page.
