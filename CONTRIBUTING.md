@@ -291,7 +291,7 @@ To create a new release follow these steps:
   for the next version are complete, if not, either re-plan them for a next milestone or finish them
 - Check out the master branch (either through your IDE or with `git checkout master`)
 - `Fetch` and `Pull` changes
-- Create a new tag: `git tag -a x.y.z -m 'x.y.z'` (where x.y.z is the new version number)
+- Create a new tag: `git tag -a x.y.z -m 'x.y.z'` (where `x.y.z` is the new version number)
 - Push the new tag to the repository: `git push upstream x.y.z`
   - Of course make sure your upstream remote is actually called `upstream`
 - The above triggers the following:
