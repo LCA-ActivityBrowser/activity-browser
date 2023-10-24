@@ -233,25 +233,30 @@ Maintainers can contribute to AB themselves, but also have the following tasks:
 - Creating new releases
 
 ### Reviewing pull-requests
-When reviewing a pull-request the following should be kept in mind:
-- __Necessity__
-  
-  Do we _need_ this change (e.g. is it from an open issue or clear from the pull-request why this is needed)?  
-  Does this conflict with other planned changes?
+When reviewing a pull-request the below should be kept in mind.
+Consider that you're helping developers do better work and ensure the quality of AB, so be helpful; 
+add/improve the basics and a milestone if they're missing.  
 
-- __Code quality__
-  
-  Is the code readable? 
-  Do the comments make sense? 
-  Is all the added code used?
-  Is there still commented code that should be removed?
-  Do the tests succeed and should new tests be added?
+__Basics__ 
+- Is the title easy to understand for _users_?
+- Is the checklist completed and have no things been removed that are relevant?
+- Are the checklisted items correct? (e.g issues properly linked, correct label applied etc.)?
 
-- __Functionality__
+__Necessity__
+- Do we _need_ this change (e.g. is it from an open issue or clear from the pull-request why this is needed)?  
+- Does this conflict with other planned changes?
 
-  Try the new changes on your machine, does it do what it is supposed to do?
-  Has nothing else accidentally broken because of this change?
-  Try to abuse/break the new changes, better to find problems now than to have users find them.  
+__Code quality__ 
+- Is the code readable? 
+- Do the comments make sense? 
+- Is all the added code used?
+- Is there still commented code that should be removed?
+- Do the tests succeed and should new tests be added?
+
+__Functionality__
+- Try the new changes on your machine, does it do what it is supposed to do?
+- Has nothing else accidentally broken because of this change?
+- Try to abuse/break the new changes, better to find problems now than to have users find them.  
   
 ### Planning bug-fixes and new features
 The AB team should schedule and prioritize bug-fixes and new features to be added to AB.
