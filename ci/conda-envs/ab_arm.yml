@@ -1,7 +1,0 @@
-name: ab_arm
-channels:
-  - conda-forge
-  - bsteubing
-  - cmutel
-dependencies:
-  - activity-browser-arm
