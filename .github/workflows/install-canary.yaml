@@ -90,7 +90,7 @@ jobs:
         uses: mikefarah/yq@master
         with:
           cmd: |
-            ls | grep mamba | while read yaml; do echo $yaml; yq -i $yaml; done
+            yq -i env-ubuntu-latest-3.9-mamba
       - name: diff ubuntu
         run: |
           diff -u env-ubuntu-latest-3.9*
