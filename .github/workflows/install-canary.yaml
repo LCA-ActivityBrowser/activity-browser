@@ -85,12 +85,13 @@ jobs:
         run: |
           ls -la
           ls | grep mamba
+          cat env-ubuntu-latest-3.9-mamba
       - name: correct yaml formatting
         # add correct indentation to make diffing possible
         uses: mikefarah/yq@master
         with:
           cmd: |
-            yq -i env-ubuntu-latest-3.9-mamba
+            yq env-ubuntu-latest-3.9-mamba
       - name: diff ubuntu
         run: |
           diff -u env-ubuntu-latest-3.9*
