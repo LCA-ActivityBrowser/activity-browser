@@ -14,8 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest] #, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9']
     defaults:
       run:
         shell: bash -l {0}
@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest] #, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.9']
     defaults:
       run:
