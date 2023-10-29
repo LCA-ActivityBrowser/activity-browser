@@ -64,12 +64,6 @@ jobs:
           micromamba list
           micromamba env export
           micromamba env export > env.yaml
-      - name: correct yaml formatting
-        # add correct indentation to make diffing possible
-        uses: mikefarah/yq@master
-        with:
-          cmd: |
-            yq -i env.yaml
       - name: Upload final environment as artifact
         uses: actions/upload-artifact@v3
         with:
@@ -89,6 +83,12 @@ jobs:
         uses: actions/download-artifact@v3
       - name: show files
         run: ls -la
+      - name: correct yaml formatting
+        # add correct indentation to make diffing possible
+        uses: mikefarah/yq@master
+        with:
+          cmd: |
+            ls | grep mamba | while read yaml; do yq -i $yaml; done
       - name: diff ubuntu
         run: |
           diff -u env-ubuntu-latest-3.9*
