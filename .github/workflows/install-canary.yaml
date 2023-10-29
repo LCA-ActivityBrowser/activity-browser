@@ -34,7 +34,7 @@ jobs:
           conda env export
           conda env export -f env.yaml
       - name: Upload final environment as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: env-${{ matrix.os }}-${{ matrix.python-version }}
           path: env.yaml
