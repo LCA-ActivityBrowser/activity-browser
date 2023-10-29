@@ -84,14 +84,12 @@ jobs:
       - name: show files
         run: |
           ls -la
-          ls | grep mamba
-          ls env-ubuntu-latest-3.9-mamba
       - name: correct yaml formatting
         # add correct indentation to make diffing possible
         uses: mikefarah/yq@master
         with:
           cmd: |
-            yq env-ubuntu-latest-3.9-mamba
+            ls | grep mamba | while read d; do yq -i $d/env.yaml; done
       - name: diff ubuntu
         run: |
           diff -u env-ubuntu-latest-3.9*
