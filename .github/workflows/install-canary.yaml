@@ -89,13 +89,12 @@ jobs:
         uses: actions/download-artifact@v3
       - name: show files
         run: ls -la
-      - name: diff
+      - name: diff ubuntu
         run: |
-          echo ubuntu
           diff -u env-ubuntu-latest-3.9*
-          echo #####################
-          echo windows
+      - name: diff windows
+        run: |
           diff -u env-windows-latest-3.9*
-          echo #####################
-          echo macos
+      - name: diff macos
+        run: |
           diff -u env-macos-latest-3.9*
