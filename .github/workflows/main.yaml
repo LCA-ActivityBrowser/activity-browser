@@ -11,7 +11,7 @@ jobs:
   patch-test-environment:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Patch test environment dependencies
         # This step adds the run requirements from the stable recipe to the test environment
         uses: mikefarah/yq@master
@@ -21,7 +21,7 @@ jobs:
       - name: Show patched environment
         run: cat patched-environment.yml
       - name: Upload patched environment as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: patched-environment
           path: patched-environment.yml
@@ -38,9 +38,9 @@ jobs:
       run:
         shell: bash -l {0}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download patched test environment
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: patched-environment
       - name: Setup python ${{ matrix.python-version }} conda environment
@@ -55,7 +55,7 @@ jobs:
           conda env export
           conda env export -f env.yaml
       - name: Upload final environment as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: env-${{ matrix.os }}-${{ matrix.python-version }}
           path: env.yaml
@@ -107,7 +107,7 @@ jobs:
     env:
       PKG_NAME: "activity-browser-dev"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build and deploy 3.8
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -150,7 +150,7 @@ jobs:
     env:
       PKG_NAME: "activity-browser-arm"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build and deploy 3.8
         uses: conda-incubator/setup-miniconda@v2
         with:
