@@ -69,3 +69,17 @@ jobs:
         with:
           name: env-${{ matrix.os }}-${{ matrix.python-version }}-mamba
           path: env.yaml
+
+  conda-micromamba-comparison:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    needs:
+      - canary-installs
+      - canary-installs-mamba
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
+      - name: show files
+        run: ls -la
