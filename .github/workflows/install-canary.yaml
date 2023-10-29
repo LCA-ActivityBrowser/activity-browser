@@ -70,7 +70,7 @@ jobs:
           cmd: |
             yq -i env.yaml
       - name: Upload final environment as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: env-${{ matrix.os }}-${{ matrix.python-version }}-mamba
           path: env.yaml
@@ -85,7 +85,7 @@ jobs:
       - canary-installs-mamba
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
       - name: show files
         run: ls -la
       - name: diff
