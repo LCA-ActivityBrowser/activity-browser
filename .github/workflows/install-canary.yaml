@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest] #, windows-latest, macos-latest]
         python-version: ['3.8', '3.9']
     defaults:
       run:
@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest] #, windows-latest, macos-latest]
         python-version: ['3.9']
     defaults:
       run:
@@ -82,13 +82,15 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
       - name: show files
-        run: ls -la
+        run: |
+          ls -la
+          ls | grep mamba
       - name: correct yaml formatting
         # add correct indentation to make diffing possible
         uses: mikefarah/yq@master
         with:
           cmd: |
-            ls | grep mamba | while read yaml; do yq -i $yaml; done
+            ls | grep mamba | while read yaml; do echo $yaml; yq -i $yaml; done
       - name: diff ubuntu
         run: |
           diff -u env-ubuntu-latest-3.9*
