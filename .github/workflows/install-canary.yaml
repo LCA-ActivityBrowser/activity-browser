@@ -38,3 +38,34 @@ jobs:
         with:
           name: env-${{ matrix.os }}-${{ matrix.python-version }}
           path: env.yaml
+
+  # also run install with micromamba instead of conda to have a timining comparison
+  canary-installs-mamba:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9']
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Setup python ${{ matrix.python-version }} conda environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: ab
+          create-args: >-
+            python=${{ matrix.python-version }}
+            activity-browser
+      - name: Environment info
+        run: |
+          micromamba list
+          micromamba env export
+          micromamba env export > env.yaml
+      - name: Upload final environment as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: env-${{ matrix.os }}-${{ matrix.python-version }}-mamba
+          path: env.yaml
