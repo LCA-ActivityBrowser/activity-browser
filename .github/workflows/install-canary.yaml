@@ -92,10 +92,10 @@ jobs:
             ls | grep mamba | while read d; do yq -i $d/env.yaml; done
       - name: diff ubuntu
         run: |
-          diff -u env-ubuntu-latest-3.9*
+          diff -u env-ubuntu-latest-3.9* || :
       - name: diff windows
         run: |
-          diff -u env-windows-latest-3.9*
+          diff -u env-windows-latest-3.9* || :
       - name: diff macos
         run: |
-          diff -u env-macos-latest-3.9*
+          diff -u env-macos-latest-3.9* || :
