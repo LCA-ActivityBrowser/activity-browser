@@ -3,6 +3,7 @@ from typing import Iterator, Optional, Union
 import uuid
 
 import brightway2 as bw
+import pandas as pd
 from bw2data.backends.peewee.proxies import Activity, ExchangeProxyBase
 from PySide2.QtCore import QObject, Slot, Qt
 from PySide2 import QtWidgets
@@ -163,7 +164,13 @@ class ActivityController(QObject):
         """
         def find_candidate(dbs, exch, old_location, new_location, use_alternatives, alternatives) -> Optional[object]:
             """Find a candidate to replace the exchange with."""
-            db = dbs[exch.input[0]]
+            current_db = exch.input[0]
+            if current_db == db_name:
+                db = dbs[current_db]
+            else:  # if the exchange is not from the current database, also check the current
+                # (user may have added their own alternative dependents already)
+                db = pd.concat([dbs[current_db], dbs[db_name]])
+
             if db.loc[db['key'] == exch.input]['location'].iloc[0] != old_location:
                 return  # this exchange has a location we're not trying to re-link
 
@@ -228,11 +235,21 @@ class ActivityController(QObject):
 
         # read the data from the dialog
         for old, new in dialog.relink.items():
+            alternatives = []
             new_location = new
-            use_alternatives = dialog.use_alternatives_checkbox.isChecked()
+            if dialog.use_rer.isChecked():  # RER
+                alternatives.append(dialog.use_rer.text())
+            if dialog.use_ews.isChecked():  # Europe without Switzerland
+                alternatives.append(dialog.use_ews.text())
+            if dialog.use_row.isChecked():  # RoW
+                alternatives.append(dialog.use_row.text())
+            # the order we add alternatives is important, they are checked in this order!
+            if len(alternatives) > 0:
+                use_alternatives = True
+            else:
+                use_alternatives = False
 
         succesful_links = {}  # dict of dicts, key of new exch : {new values} <-- see 'values' below
-        alternatives = ['RoW', 'GLO']  # alternatives to try to match to
         # in the future, 'alternatives' could be improved by making use of some location hierarchy. From that we could
         # get things like if the new location is NL but there is no NL, but RER exists, we use that. However, for that
         # we need some hierarchical structure to the location data, which may be available from ecoinvent, but we need

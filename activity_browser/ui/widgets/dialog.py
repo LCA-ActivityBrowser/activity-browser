@@ -1162,9 +1162,13 @@ class LocationLinkingDialog(QtWidgets.QDialog):
         self.grid = QtWidgets.QGridLayout()
         self.grid_box.setLayout(self.grid)
 
-        self.use_alternatives_checkbox = QtWidgets.QCheckBox('Use generic alternatives (RoW, GLO) as fallback')
-        self.use_alternatives_checkbox.setToolTip('If the location is not found, try to match to generic locations '
-                                         'RoW or GLO (in that order).')
+        self.use_alternatives_label = QtWidgets.QLabel('Use generic alternatives as fallback:')
+        self.use_alternatives_label.setToolTip('If the chosen location is not found, try matching the selected '
+                                               'locations below too')
+        self.use_row = QtWidgets.QCheckBox('RoW')
+        self.use_row.setChecked(True)
+        self.use_rer = QtWidgets.QCheckBox('RER')
+        self.use_ews = QtWidgets.QCheckBox('Europe without Switzerland')
 
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -1175,7 +1179,10 @@ class LocationLinkingDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.loc_label)
         layout.addWidget(self.grid_box)
-        layout.addWidget(self.use_alternatives_checkbox)
+        layout.addWidget(self.use_alternatives_label)
+        layout.addWidget(self.use_row)
+        layout.addWidget(self.use_rer)
+        layout.addWidget(self.use_ews)
         layout.addWidget(self.buttons)
         self.setLayout(layout)
 
