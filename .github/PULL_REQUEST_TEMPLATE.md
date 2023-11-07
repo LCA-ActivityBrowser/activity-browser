@@ -17,8 +17,7 @@ pull-request is published.
 - [ ] Categorize the PR by setting a good title and adding one of the labels:
       `bug`, `feature`, `ui`, `change`, `documentation`, `breaking`, `ci`
       as they show up in the changelog
-- [ ] Link this PR to related issues by using
-  [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
+- [ ] Link this PR to related issues by using [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
 - [ ] Request a review from another developer.
 
 <!--
