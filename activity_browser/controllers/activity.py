@@ -3,6 +3,7 @@ from typing import Iterator, Optional, Union
 import uuid
 
 import brightway2 as bw
+import pandas as pd
 from bw2data.backends.peewee.proxies import Activity, ExchangeProxyBase
 from PySide2.QtCore import QObject, Slot, Qt
 from PySide2 import QtWidgets
@@ -161,51 +162,17 @@ class ActivityController(QObject):
         Returns
         -------
         """
-        act = self._retrieve_activities(old_key)[0]  # we only take one activity but this function always returns list
+        def find_candidate(dbs, exch, old_location, new_location, use_alternatives, alternatives) -> Optional[object]:
+            """Find a candidate to replace the exchange with."""
+            current_db = exch.input[0]
+            if current_db == db_name:
+                db = dbs[current_db]
+            else:  # if the exchange is not from the current database, also check the current
+                # (user may have added their own alternative dependents already)
+                db = pd.concat([dbs[current_db], dbs[db_name]])
 
-        # get list of dependent databases for activity and load to MetaDataStore
-        databases = []
-        for exch in act.technosphere():
-            databases.append(exch.input[0])
-
-        # load all dependent databases to MetaDataStore
-        dbs = {db: AB_metadata.get_database_metadata(db) for db in databases}
-        # get list of all unique locations in the dependent databases (sorted alphabetically)
-        locations = []
-        for db in dbs.values():
-            locations += db['location'].to_list()  # add all locations to one list
-        locations = list(set(locations))  # reduce the list to only unique items
-        locations.sort()
-
-        # get the location to relink
-        db = dbs[act.key[0]]
-        old_location = db.loc[db['key'] == act.key]['location'].iloc[0]
-
-        # trigger dialog with autocomplete-writeable-dropdown-list
-        options = (old_location, locations)
-        dialog = LocationLinkingDialog.relink_location(act['name'], options, self.window)
-        if dialog.exec_() != LocationLinkingDialog.Accepted:
-            # if the dialog accept button is not clicked, do nothing
-            return
-
-        # read the data from the dialog
-        for old, new in dialog.relink.items():
-            new_location = new
-            use_alternatives = dialog.use_alternatives_checkbox.isChecked()
-
-        del_exch = []  # delete these exchanges
-        succesful_links = {}  # dict of dicts, key of new exch : {new values} <-- see 'values' below
-        alternatives = ['RoW', 'GLO']  # alternatives to try to match to
-        # in the future, 'alternatives' could be improved by making use of some location hierarchy. From that we could
-        # get things like if the new location is NL but there is no NL, but RER exists, we use that. However, for that
-        # we need some hierarchical structure to the location data, which may be available from ecoinvent, but we need
-        # to look for that.
-
-        # get exchanges to re-link
-        for exch in act.technosphere():
-            db = dbs[exch.input[0]]
             if db.loc[db['key'] == exch.input]['location'].iloc[0] != old_location:
-                continue  # this exchange has a location we're not trying to re-link, continue
+                return  # this exchange has a location we're not trying to re-link
 
             # get relevant data to match on
             row = db.loc[db['key'] == exch.input]
@@ -218,23 +185,83 @@ class ActivityController(QObject):
                                 & (db['reference product'] == prod)
                                 & (db['unit'] == unit)]
             if len(candidates) <= 1:
-                continue  # this activity does not exist in this database with another location (1 is self), continue
+                return  # this activity does not exist in this database with another location (1 is self)
 
             # check candidates for new_location
             candidate = candidates.loc[candidates['location'] == new_location]
             if len(candidate) == 0 and not use_alternatives:
-                continue  # there is no candidate, continue
+                return  # there is no candidate
             elif len(candidate) > 1:
-                continue  # there is more than one candidate, we can't know what to use, continue
+                return  # there is more than one candidate, we can't know what to use
             elif len(candidate) == 0:
                 # there are no candidates, but we can try alternatives
                 for alt in alternatives:
                     candidate = candidates.loc[candidates['location'] == alt]
-                    if len(candidate) != 0:
+                    if len(candidate) == 1:
                         break  # found an alternative in with this alternative location, stop looking
+                if len(candidate) != 1:
+                    return  # there are either no or multiple matches with alternative locations
+            return candidate
+
+        act = self._retrieve_activities(old_key)[0]  # we only take one activity but this function always returns list
+        db_name = act.key[0]
+
+        # get list of dependent databases for activity and load to MetaDataStore
+        databases = []
+        for exch in act.technosphere():
+            databases.append(exch.input[0])
+        if db_name not in databases:  # add own database if it wasn't added already
+            databases.append(db_name)
+
+        # load all dependent databases to MetaDataStore
+        dbs = {db: AB_metadata.get_database_metadata(db) for db in databases}
+        # get list of all unique locations in the dependent databases (sorted alphabetically)
+        locations = []
+        for db in dbs.values():
+            locations += db['location'].to_list()  # add all locations to one list
+        locations = list(set(locations))  # reduce the list to only unique items
+        locations.sort()
+
+        # get the location to relink
+        db = dbs[db_name]
+        old_location = db.loc[db['key'] == act.key]['location'].iloc[0]
+
+        # trigger dialog with autocomplete-writeable-dropdown-list
+        options = (old_location, locations)
+        dialog = LocationLinkingDialog.relink_location(act['name'], options, self.window)
+        if dialog.exec_() != LocationLinkingDialog.Accepted:
+            # if the dialog accept button is not clicked, do nothing
+            return
+
+        # read the data from the dialog
+        for old, new in dialog.relink.items():
+            alternatives = []
+            new_location = new
+            if dialog.use_rer.isChecked():  # RER
+                alternatives.append(dialog.use_rer.text())
+            if dialog.use_ews.isChecked():  # Europe without Switzerland
+                alternatives.append(dialog.use_ews.text())
+            if dialog.use_row.isChecked():  # RoW
+                alternatives.append(dialog.use_row.text())
+            # the order we add alternatives is important, they are checked in this order!
+            if len(alternatives) > 0:
+                use_alternatives = True
+            else:
+                use_alternatives = False
+
+        succesful_links = {}  # dict of dicts, key of new exch : {new values} <-- see 'values' below
+        # in the future, 'alternatives' could be improved by making use of some location hierarchy. From that we could
+        # get things like if the new location is NL but there is no NL, but RER exists, we use that. However, for that
+        # we need some hierarchical structure to the location data, which may be available from ecoinvent, but we need
+        # to look for that.
+
+        # get exchanges that we want to relink
+        for exch in act.technosphere():
+            candidate = find_candidate(dbs, exch, old_location, new_location, use_alternatives, alternatives)
+            if candidate is None:
+                continue  # no suitable candidate was found, try the next exchange
 
             # at this point, we have found 1 suitable candidate, whether that is new_location or alternative location
-            del_exch.append(exch)
             values = {
                 'amount': exch.get('amount', False),
                 'comment': exch.get('comment', False),
@@ -244,7 +271,6 @@ class ActivityController(QObject):
             succesful_links[candidate['key'].iloc[0]] = values
 
         # now, create a new activity by copying the old one
-        db_name = act.key[0]
         new_code = self.generate_copy_code(act.key)
         new_act = act.copy(new_code)
         # update production exchanges
@@ -259,8 +285,17 @@ class ActivityController(QObject):
         new_act.save()
         # save the new location to the activity
         self.modify_activity(new_act.key, 'location', new_location)
-        # delete old exchanges
+
+        # get exchanges that we want to delete
+        del_exch = []  # delete these exchanges
+        for exch in new_act.technosphere():
+            candidate = find_candidate(dbs, exch, old_location, new_location, use_alternatives, alternatives)
+            if candidate is None:
+                continue  # no suitable candidate was found, try the next exchange
+            del_exch.append(exch)
+        # delete exchanges with old locations
         signals.exchanges_deleted.emit(del_exch)
+
         # add the new exchanges with all values carried over from last exch
         signals.exchanges_add_w_values.emit(list(succesful_links.keys()), new_act.key, succesful_links)
 

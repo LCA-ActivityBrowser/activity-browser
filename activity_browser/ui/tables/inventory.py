@@ -144,6 +144,9 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         if len(self.selectedIndexes()) > 1:
             act = 'activities'
             self.duplicate_activity_new_loc_action.setEnabled(False)
+        elif len(self.selectedIndexes()) == 1 and self.db_read_only:
+            act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(False)
         else:
             act = 'activity'
             self.duplicate_activity_new_loc_action.setEnabled(True)
