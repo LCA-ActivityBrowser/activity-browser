@@ -1,5 +1,0 @@
-name: ab_dev
-channels:
-  - conda-forge
-dependencies:
-  - activity-browser-dev
