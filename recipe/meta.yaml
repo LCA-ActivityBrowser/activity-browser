@@ -1,4 +1,7 @@
-# Used https://github.com/conda-forge/staged-recipes/blob/master/recipes/example/meta.yaml as example
+# conda recipe for stable release on bsteubing channel
+# https://anaconda.org/bsteubing/activity-browser
+# this is mainly used for development purposes, use the official release instead at
+# https://anaconda.org/conda-forge/activity-browser
 package:
   name: activity-browser
   version: "{{ GIT_DESCRIBE_TAG }}"
