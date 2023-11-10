@@ -17,7 +17,7 @@ jobs:
         uses: mikefarah/yq@master
         with:
           cmd: |
-            yq eval-all 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' ci/conda-envs/test.yml ci/recipe/stable/meta.yaml > patched-environment.yml
+            yq eval-all 'select(fi == 0).dependencies += select(fi == 1).requirements.run | select(fi == 0)' .github/conda-envs/test.yml ci/recipe/stable/meta.yaml > patched-environment.yml
       - name: Show patched environment
         run: cat patched-environment.yml
       - name: Upload patched environment as artifact
@@ -113,7 +113,7 @@ jobs:
         with:
           python-version: 3.8
           activate-environment: build
-          environment-file: ci/conda-envs/build.yml
+          environment-file: .github/conda-envs/build.yml
       - name: Export version
         run: |
           echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
