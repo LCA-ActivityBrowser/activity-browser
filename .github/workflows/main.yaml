@@ -44,16 +44,17 @@ jobs:
         with:
           name: patched-environment
       - name: Setup python ${{ matrix.python-version }} conda environment
-        uses: conda-incubator/setup-miniconda@v2
+        uses: mamba-org/setup-micromamba@v1
         with:
-          python-version: ${{ matrix.python-version }}
-          activate-environment: test
+          environment-name: test
           environment-file: patched-environment.yml
+          create-args: >-
+            python=${{ matrix.python-version }}
       - name: Environment info
         run: |
-          conda list
-          conda env export
-          conda env export -f env.yaml
+          micromamba list
+          micromamba env export
+          micromamba env export > env.yaml
       - name: Upload final environment as artifact
         uses: actions/upload-artifact@v3
         with:
@@ -72,7 +73,7 @@ jobs:
       - name: Install coveralls and coverage
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          conda install -q -y coveralls=3.3.1 coverage pytest-cov
+          micromamba install -q -y coveralls=3.3.1 coverage pytest-cov
       - name: Run linux tests
         if: ${{ matrix.os == 'ubuntu-latest' }}
         env:
