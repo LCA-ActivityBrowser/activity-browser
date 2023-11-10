@@ -214,7 +214,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                       max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
         log.info("Demand / Method: {} {}".format(demand, method))
-        start = time.time()
 
         cache_key = (str(demand), method_index, scenario_index, cut_off, max_calc)
         if data := self.cache.get(cache_key, False):
@@ -223,6 +222,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             self.has_sankey = bool(self.graph.json_data)
             self.send_json()
             return
+
+        start = time.time()
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
