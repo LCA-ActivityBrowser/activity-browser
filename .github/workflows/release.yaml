@@ -33,7 +33,7 @@ jobs:
           environment-file: .github/conda-envs/build.yml
       - name: Build activity-browser stable
         run: |
-          conda build ci/recipe/stable
+          conda build recipe/
       - name: Upload to anaconda.org
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
