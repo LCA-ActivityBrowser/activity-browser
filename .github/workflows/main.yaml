@@ -128,7 +128,7 @@ jobs:
         run: cat .github/dev-recipe/meta.yaml
       - name: Build development package
         run: |
-          conda build ci/recipe/dev
+          conda build .github/dev-recipe/
       - name: Upload the activity-browser-dev package
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload --force \
