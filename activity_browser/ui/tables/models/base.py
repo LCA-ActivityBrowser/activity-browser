@@ -42,6 +42,10 @@ class PandasModel(QAbstractTableModel):
         return 0 if self._dataframe is None else self._dataframe.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
+        """
+        Returns value for table index based on a certain DisplayRole enum.
+        More on DisplayRole enums: https://doc.qt.io/qt-5/qt.html#ItemDataRole-enum
+        """
         if not index.isValid():
             return None
 
