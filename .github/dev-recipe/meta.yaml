@@ -1,9 +1,11 @@
+# conda recipe for activity-browser-dev
+# https://anaconda.org/bsteubing/activity-browser-dev
 package:
   name: "{{ os.environ.get('PKG_NAME', 'activity-browser-dev') }}"
   version: "{{ os.environ.get('VERSION', 'dev') }}"
 
 source:
-  path: ../../..
+  path: ../..
 
 build:
   noarch: python
@@ -20,7 +22,7 @@ requirements:
   build:
     - python
     - setuptools
-  run:  # dependencies are added via github action from ci/recipe/stable/meta.yaml
+  run:  # dependencies are added via github action from stable at recipe/meta.yaml
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

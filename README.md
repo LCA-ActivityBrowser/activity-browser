@@ -21,7 +21,7 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 ### Some highlights
 
 - **Fast LCA calculations**: for multiple reference flows, impact categories, and scenarios
-- **A productivity tool for brightway**: model in brightway (python) and see the results in the AB or vice-versa 
+- **A productivity tool for brightway**: model in brightway (python) and see the results in the AB or vice-versa
 - **Advanced modeling:** Use parameters, scenarios (including prospective LCI databases from [premise](https://premise.readthedocs.io/en/latest/)), uncertainties and our Graph Explorer
 - **Advanced analyses:** Contribution analyses, Sankey Diagrams, Monte Carlo, and Global Sensitivity Analysis
 
@@ -49,7 +49,7 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 You can install and start the activity-browser like this:
 
 ```bash
-conda create -n ab -c conda-forge activity-browser
+conda create -n ab -c conda-forge --solver libmamba activity-browser
 conda activate ab
 activity-browser
 ```
@@ -76,6 +76,10 @@ The activity-browser has many dependencies that are managed by the [conda-forge]
 
 ```bash
 conda config --prepend channels conda-forge
+```
+Also configure conda to use the libmamba solver which is significantly faster than the default.
+```bash
+conda config --set solver libmamba
 ```
 
 ### Installing Activity Browser
@@ -165,7 +169,7 @@ Plugins are conda packages (like the Activity Browser). To add a plugin simply i
 
 _Nb: add `-c conda-forge` to the install command like below to avoid problems with dependencies._
 
-Ex: 
+Ex:
 
 ```
 conda activate ab
@@ -178,7 +182,7 @@ Once a new plugin is installed restart the Activity Browser.
 
 ### enabling a plugin
 
-Plugins are enabled **per-project**. Simply open the plugin manager in the `Tools > Plugins` menu. 
+Plugins are enabled **per-project**. Simply open the plugin manager in the `Tools > Plugins` menu.
 
 Close the plugin manager. New tabs should have appeared in the AB (each plugin can spawn one tab on each left/right panel).
 
