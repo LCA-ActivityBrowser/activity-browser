@@ -128,7 +128,7 @@ class MethodsTreeModel(BaseTreeModel):
 
     @Slot(name="clearSyncModel")
     @Slot(str, name="syncModel")
-    def sync(self, query = None) -> None:
+    def sync(self, query=None) -> None:
         self.beginResetModel()
         self.root.clear()
         self.query = query

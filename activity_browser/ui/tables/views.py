@@ -581,9 +581,7 @@ class ABDictTreeView(QTreeView):
         Will expand or collapse any branch and sub-branches given in index.
         expand is a boolean that defines expand (True) or collapse (False)."""
         # based on: https://stackoverflow.com/a/4208240
-
         def recursive_expand_or_collapse(index, childCount, expand):
-
             for childNo in range(0, childCount):
                 childIndex = index.child(childNo, 0)
                 if expand:  # if expanding, do that first (wonky animation otherwise)
@@ -594,9 +592,11 @@ class ABDictTreeView(QTreeView):
                 if not expand:  # if collapsing, do it last (wonky animation otherwise)
                     self.setExpanded(childIndex, expand)
 
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         if not expand:  # if collapsing, do that first (wonky animation otherwise)
             self.setExpanded(index, expand)
         childCount = index.internalPointer().childCount()
         recursive_expand_or_collapse(index, childCount, expand)
         if expand:  # if expanding, do that last (wonky animation otherwise)
             self.setExpanded(index, expand)
+        QApplication.restoreOverrideCursor()

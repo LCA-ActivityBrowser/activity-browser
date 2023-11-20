@@ -306,6 +306,8 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
     def sync_data(self, db_name: str) -> None:
         self.table.model.sync(db_name)
+        if self.tree:
+            self.tree.model.setup_and_sync()
 
         if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
                 and not isinstance(self.tree, ActivitiesBiosphereTree):

@@ -471,43 +471,15 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             here[row[-1]] = new_row
         return simple_dict
 
-    # def get_key(self, tree_level: tuple) -> tuple:
-    #     """Retrieve keys"""
-    #     name = tree_level[1]
-    #     print('++ tree level:', tree_level)
-    #     if tree_level[0] == 'branch':
-    #         return tuple(tree_level[1])
-    #     if not isinstance(name, str):
-    #         name = ", ".join(tree_level[1])
-    #     else:
-    #         return tuple([tree_level[1]])
-    #     activities = self._dataframe.loc[self._dataframe["Name"] == name, "key"]
-    #     print('++ get activity:', activities)
-    #     return next(iter(activities))
-
     def get_keys(self, tree_path: str) -> Iterator:
 
-        print('++ this is the query', tree_path)
         # apply search on the tree_path to get all activities and key the key fields
         filtered_df = self.search_df(tree_path, cols=['tree_path_tuple'])
         # apply any actual search queries if active
         if self.query:
             filtered_df = self.search_df(self.query, df=filtered_df)
         keys = filtered_df['key'].tolist()
-        print('++ these are the keys', keys)
         return keys
-
-
-        # # apply search on the tree_path to get all activities and key the key fields
-        # activities = filtered_df.loc[filtered_df["tree_path_tuple"].str.startswith(tree_path), "key"]
-        # # apply any actual search queries if active
-        # if self.query:
-        #     queries = [
-        #         act for act in activities
-        #         if self.query.lower() in ', '.join(act).lower()
-        #     ]
-        #     return queries
-        # return activities
 
     def search_df(self, query: str, cols: list = None, df: pd.DataFrame = None) -> pd.DataFrame:
         """Search DataFrame (self._dataframe) on query and return filtered dataframe.
