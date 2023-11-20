@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
+from peewee import SqliteDatabase
 import os
 import re
 
@@ -109,12 +110,9 @@ class SettingsPage(QtWidgets.QWizardPage):
 
     def bw_projects(self, path: str):
         """ Finds the bw_projects from the brightway2 environment provided by path"""
-        projects = []
-        for dir in [dir for dir in os.listdir(path) if os.path.isdir(path + "/" + dir)]:
-            project = re.match(r'(\w+)\.', dir)
-            if project:
-                projects.append(project.group(1))
-        return projects
+        db = SqliteDatabase(path +"/projects.db")
+        cursor = db.execute_sql('SELECT "name" FROM "projectdataset"')
+        return [ i[0] for i in cursor.fetchall()]
 
     def restore_defaults(self):
         self.change_bw_dir(ab_settings.get_default_directory())
