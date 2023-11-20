@@ -346,11 +346,6 @@ class ActivitiesBiosphereTree(ABDictTreeView):
                 self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
             iter = self.model.iterator(iter)
 
-    def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
-        # TODO see if I can select underlying entries programatically if not leaf???
-
-        return self.selected_keys()
-
     @Slot(name="openActivityTab")
     def open_activity_tab(self):
         tree_level = self.tree_level()
