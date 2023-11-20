@@ -8,6 +8,7 @@ from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
 from .delegates import *
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import (
     BaseParameterModel, ProjectParameterModel, DatabaseParameterModel,
     ActivityParameterModel, ParameterTreeModel,
@@ -182,10 +183,10 @@ class ActivityParameterTable(BaseParameterTable):
         super().custom_view_sizing()
         self.setColumnHidden(self.model.group_col, True)
 
-    def dragMoveEvent(self, event: QDragMoveEvent) -> None:
+    def dragEnterEvent(self, event: QDragMoveEvent) -> None:
         """ Check that the dragged row is from the databases table
         """
-        if hasattr(event.source(), "technosphere"):
+        if isinstance(event.source(), (ActivitiesBiosphereTable, ActivitiesBiosphereTree)):
             event.accept()
 
     def dropEvent(self, event: QDropEvent) -> None:
@@ -205,7 +206,10 @@ class ActivityParameterTable(BaseParameterTable):
             )
             return
 
-        keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            keys = [db_table.get_key(idx) for idx in db_table.selectedIndexes()]
+        elif isinstance(event.source(), ActivitiesBiosphereTree):
+            keys = event.source().selected_keys()
         event.accept()
         signals.add_activity_parameters.emit(keys)
 

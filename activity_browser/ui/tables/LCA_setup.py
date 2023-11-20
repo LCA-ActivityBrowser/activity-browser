@@ -7,6 +7,7 @@ from activity_browser.signals import signals
 from ..icons import qicons
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
 
@@ -125,20 +126,26 @@ class CSActivityTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if getattr(event.source(), "technosphere", False)\
+        if isinstance(event.source(), (ActivitiesBiosphereTable, ActivitiesBiosphereTree))\
                 or event.source() is self:
             event.accept()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event) -> None:
         event.accept()
         source = event.source()
-        if getattr(event.source(), "technosphere", False):
-            log.info('Dropevent from:', source)
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            # get the key from the TABLE for every selected index and convert it to dict
+            log.debug('Dropevent from:', source)
             keys = []
             for proxy in source.selectedIndexes():
                 key = {source.get_key(proxy): 1.0}
                 if key not in keys:
                     keys.append(key)
+            self.model.include_activities(keys)
+        elif isinstance(event.source(), ActivitiesBiosphereTree):
+            # get a list of keys from the TREE for the selected tree level (respecting search) and convert to dict
+            log.debug('Dropevent from:', source)
+            keys = [{k: 1.0} for k in source.selected_keys()]
             self.model.include_activities(keys)
         elif event.source() is self:
             selection = self.selectedIndexes()

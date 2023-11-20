@@ -371,11 +371,11 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         menu.exec_(event.globalPos())
 
     def selected_keys(self) -> Iterable:
-        """Return all keys selected"""
+        """Return all keys selected."""
         tree_level = self.tree_level()
         if tree_level[0] == 'leaf':
             # select key of the leaf
-            return tree_level[1][-1]
+            return [tree_level[1][-1]]
         if tree_level[0] == 'root':
             # filter on the root + ', '
             # (this needs to be added in case one root level starts with a shorter name of another one

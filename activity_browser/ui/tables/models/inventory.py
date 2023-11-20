@@ -488,32 +488,43 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
     def get_keys(self, tree_path: str) -> Iterator:
 
         print('++ this is the query', tree_path)
+        # apply search on the tree_path to get all activities and key the key fields
         filtered_df = self.search_df(tree_path, cols=['tree_path_tuple'])
+        # apply any actual search queries if active
+        if self.query:
+            filtered_df = self.search_df(self.query, df=filtered_df)
         keys = filtered_df['key'].tolist()
         print('++ these are the keys', keys)
-        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(tree_path), "key"]
-        if self.query:
-            queries = [
-                method for method in methods
-                if self.query.lower() in ', '.join(method).lower()
-            ]
-            return queries
-        return methods
+        return keys
 
-    def search_df(self, query: str, cols: list = None) -> pd.DataFrame:
-        """Search self._dataframe on query and return filtered dataframe.
+
+        # # apply search on the tree_path to get all activities and key the key fields
+        # activities = filtered_df.loc[filtered_df["tree_path_tuple"].str.startswith(tree_path), "key"]
+        # # apply any actual search queries if active
+        # if self.query:
+        #     queries = [
+        #         act for act in activities
+        #         if self.query.lower() in ', '.join(act).lower()
+        #     ]
+        #     return queries
+        # return activities
+
+    def search_df(self, query: str, cols: list = None, df: pd.DataFrame = None) -> pd.DataFrame:
+        """Search DataFrame (self._dataframe) on query and return filtered dataframe.
 
         Parameters
         ----------
         query: query string
         cols: optional, limited set of columns to search in
+        df: optional, if given, search this df, otherwise, search self._dataframe
 
         Returns
         -------
         df: the filtered dataframe
 
         """
-        df = deepcopy(self._dataframe)
+        if not isinstance(df, pd.DataFrame):
+            df = deepcopy(self._dataframe)
         cols = cols or df.columns
         mask = functools.reduce(
             np.logical_or, [
