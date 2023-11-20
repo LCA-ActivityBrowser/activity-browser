@@ -441,7 +441,6 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     @Slot(name="relinkActivityExchanges")
     def relink_activity_exchanges(self) -> None:
         """Relink the exchanges of the selected activity."""
-        #TODO review if works
         signals.relink_activity.emit(self.get_key())
 
     @Slot(name="deleteActivities")
