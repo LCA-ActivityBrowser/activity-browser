@@ -4,6 +4,7 @@ import functools
 from copy import deepcopy
 from typing import Iterator, Optional
 import os
+from typing import Tuple
 
 import arrow
 import brightway2 as bw
@@ -246,7 +247,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
         self.root = ActivitiesBiosphereItem.build_root(self.HEADERS)
 
-        # All of the various variables.
+        # all of the various variables.
         self._dataframe: Optional[pd.DataFrame] = None
         self.all_col = 0
         self.tree_data = None
@@ -262,13 +263,22 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         res = super().flags(index) | Qt.ItemIsDragEnabled
         return res
 
-    def get_isic_tree(self) -> dict:
-        """Generate an entry for every class of the ISIC and store its path"""
+    def get_isic_tree(self) -> Tuple[dict, dict, dict]:
+        """Generate an entry for every class of the ISIC and store its path.
 
-        # this file is from https://unstats.un.org/unsd/classifications/Econ/isic
-        # the file is structured such that each sub-class of the previous has 1 character more in column 'code'
-        # that means each super-class is already seen before we get to the sub-class
-        # we use that as a feature to create the 'tree path'
+        this file is from https://unstats.un.org/unsd/classifications/Econ/isic
+        stored locally under path variable below
+        the file is sorted and structured such that each sub-class of the previous has 1 character more in column
+        'code', that means each super-class is already seen before we get to the sub-class
+        we use that as a feature to create the 'tree path'
+
+        Returns
+        -------
+        tuple: A tuple of 3 dicts
+            tree_data: keys are str of classification:name, values are the tree path consisting of keys
+            tree_codes: keys are classification number, values are the full keys
+            tree_numeric_order: keys are classification number, values are the row number in file
+        """
         path = os.path.join(os.getcwd(), "activity_browser", "static", "database_classifications",
                             "ISIC_Rev_4_english_structure.Txt")
         df = pd.read_csv(path)
@@ -279,23 +289,24 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         last_super = tuple()
         last_super_depth = 0
         for idx, row in df.iterrows():
-            cls, name = row
-            current_depth = len(cls)
-            key = cls + ":" + name
-            tree_codes[cls] = key
-            tree_numeric_order[cls] = idx
+            cls, name = row  # cls is the number classification, name is the proper name
+            current_depth = len(cls)  # we measure the depth by the length of cls
+            key = f'{cls}:{name}'
+            tree_codes[cls] = key  # add the full key to the classification cls in dict
+            tree_numeric_order[cls] = idx  # add the row number to the classification cls in dict
 
             if current_depth > last_super_depth:
                 # this is a sub-class at a deeper level as the last entry we read
-                value = tuple(list(last_super) + [key])
+                path = tuple(list(last_super) + [key])  # create a tuple of the tree path
             elif current_depth <= last_super_depth:
                 # this is a (sub-)class at a same or higher level than the last entry we read
-                depth = last_super_depth - current_depth + 1
-                value = tuple(list(last_super)[:-depth] + [key])
+                depth = last_super_depth - current_depth + 1  # find how many entries to clip of the path
+                path = tuple(list(last_super)[:-depth] + [key])  # create a tuple of the tree path
 
-            tree_data[key] = value
-            last_super = value
-            # take the last class level, split on ':' and take the length of the number
+            tree_data[key] = path  # add the treepath to the key in dict
+            last_super = path  # add as last_super
+
+            # take the last class level, split on ':' and take the length of the class as depth
             last_super_depth = len(last_super[-1].split(":")[0])
         return tree_data, tree_codes, tree_numeric_order
 
@@ -339,8 +350,9 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         Trigger this at init and when an activity is added/edited/deleted.
         """
         # Get dataframe from metadata and update column-names
-        QApplication.setOverrideCursor(Qt.WaitCursor)
         df = self.df_from_metadata(self.database_name)
+
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         # remove empty columns
         df.replace('', np.nan, inplace=True)
         df.dropna(how='all', axis=1, inplace=True)
@@ -382,10 +394,10 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             # this is not a valid number, return high number (low rank)
             return 99999
         # match based on the actual number code, ignore letters or text
-        class_code = classification.split(':')[0]
+        class_code = classification.split(':')[0]  # take only class code
         if len(class_code) > 1 and not class_code[-1].isdigit():
-            class_code = class_code[:-1]
-        order = self.ISIC_order.get(class_code, 99999)
+            class_code = class_code[:-1]  # only read the numeric part of the code
+        order = self.ISIC_order.get(class_code, 99999)  # get the row number from the ISIC file for this class
         return order
 
     def tree_path_tuple(self, row) -> tuple:
@@ -406,6 +418,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
     @staticmethod
     def nest_data(df: pd.DataFrame, method: tuple = None) -> dict:
         # TODO update description to match activity format instead of impact methods
+        # e.g. use this as example: ['A:Agriculture, forestry and fishing', '01:Crop and animal production, hunting and related service activities', '011:Growing of non-perennial crops', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', 'sweet corn', ('sweet corn', 'sweet corn production', 'US', 'kilogram', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', ('cutoff38', '4e26f787e6b76f2bbcb72e2ec1318f8a'), ('A:Agriculture, forestry and fishing', '01:Crop and animal production, hunting and related service activities', '011:Growing of non-perennial crops', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', 'sweet corn'))]
         """Convert impact category dataframe into nested dict format.
         Tree can have arbitrary amount (0 or more) levels of branch depth.
 
@@ -427,13 +440,12 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
                                                              "('CML 2001', 'climate change', 'GWP 100a')")
                  Here each index of the tuple refers to the data in the self.HEADERS list of this class
         """
-        data = np.empty(df.shape[0], dtype=object)
+        data = np.empty(df.shape[0], dtype=object)  # create 1D np.array with same len as input df
 
         for idx, row in enumerate(df.to_numpy(dtype=object)):
             split = list(row[-1])  # convert tuple to list
             split.append(tuple(row))
-            data[idx] = split
-            # data is np 1d array (list) of each dataframe row
+            data[idx] = split  # the split is a list of 2 items, 0) the tree path and 1) the complete row data
 
         # From https://stackoverflow.com/a/19900276 but changed -2 to -1
         #  this version is ~2 orders of magnitude faster than the pandas
@@ -461,19 +473,19 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             #                   'GWP 100a'))
             # new_row is the leaf node, the format is based on self.HEADERS
             here = simple_dict
-            for elem in row[:-2]:
+            for elem in row[:-2]:  # iterate over the full treepath
                 if elem not in here:
                     # add root or branch node if it doesn't exist yet
                     here[elem] = {}
-                # otherwise append the root/branch
+                # append the root/branch
                 here = here[elem]
             # finally, add the leaf node:
             here[row[-1]] = new_row
         return simple_dict
 
-    def get_keys(self, tree_path: str) -> Iterator:
-
-        # apply search on the tree_path to get all activities and key the key fields
+    def get_keys(self, tree_path: str) -> list:
+        """Get all the keys under the selected root/branch."""
+        # apply search on the tree_path to get all activities
         filtered_df = self.search_df(tree_path, cols=['tree_path_tuple'])
         # apply any actual search queries if active
         if self.query:
@@ -482,7 +494,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         return keys
 
     def search_df(self, query: str, cols: list = None, df: pd.DataFrame = None) -> pd.DataFrame:
-        """Search DataFrame (self._dataframe) on query and return filtered dataframe.
+        """Search DataFrame (default: self._dataframe) on query (optional: specify cols) and return filtered dataframe.
 
         Parameters
         ----------
@@ -506,7 +518,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         )
         return df.loc[mask].reset_index(drop=True)
 
-    def search_tree(self, query: str) -> dict:
+    def search_tree(self, query: str) -> Tuple[dict, int]:
         """Search self._dataframe on query and return a nested tree and amt of hits.
 
         Parameters
