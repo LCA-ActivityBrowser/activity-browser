@@ -367,6 +367,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.duplicate_other_db_action.triggered.connect(self.duplicate_activities_to_db)
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
         self.doubleClicked.connect(self.open_activity_tab)
+        # TODO make sure doubleclick only works on leaves, otherwise if you doubleclick in ecoinvent on a root node, you open 1000 activities
 
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
