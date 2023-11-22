@@ -110,7 +110,7 @@ class SettingsPage(QtWidgets.QWizardPage):
 
     def bw_projects(self, path: str):
         """ Finds the bw_projects from the brightway2 environment provided by path"""
-        db = SqliteDatabase(path +"/projects.db")
+        db = SqliteDatabase(os.path.join(path, "projects.db"))
         cursor = db.execute_sql('SELECT "name" FROM "projectdataset"')
         return [ i[0] for i in cursor.fetchall()]
 
