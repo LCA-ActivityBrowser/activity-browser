@@ -309,3 +309,4 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             self.duplicate_activity_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
             self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
+            self.relink_activity_exch_action.setEnabled(not self.db_read_only)
