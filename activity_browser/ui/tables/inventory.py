@@ -317,23 +317,36 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.model.sync()
 
         # contextmenu items
+        self.open_activity_action = QtWidgets.QAction(
+            qicons.right, 'Open ***', None
+        )
+        self.open_activity_graph_action = QtWidgets.QAction(
+            qicons.graph_explorer, 'Open *** in Graph Explorer', None
+        )
         self.new_activity_action = QtWidgets.QAction(
-            qicons.add, "Add new activity", None
+            qicons.add, 'Add new activity', None
         )
         self.duplicate_activity_action = QtWidgets.QAction(
-            qicons.copy, "Duplicate activity", None
+            qicons.copy, 'Duplicate ***', None
         )
         self.duplicate_activity_new_loc_action = QtWidgets.QAction(
-            qicons.copy, "Duplicate activity to new location", None
+            qicons.copy, 'Duplicate activity to new location', None
         )
         self.duplicate_activity_new_loc_action.setToolTip(
-            "Duplicate this activity to another location.\n"
-            "Link the exchanges to a new location if it is available.")  # only for 1 activity
+            'Duplicate this activity to another location.\n'
+            'Link the exchanges to a new location if it is available.')  # only for 1 activity
         self.delete_activity_action = QtWidgets.QAction(
-            qicons.delete, "Delete activity", None
+            qicons.delete, 'Delete ***', None
         )
+        self.relink_activity_exch_action = QtWidgets.QAction(
+            qicons.edit, 'Relink the *** exchanges'
+        )
+        self.duplicate_other_db_action = QtWidgets.QAction(
+            qicons.duplicate_to_other_database, 'Duplicate to other database'
+        )
+
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
-            qicons.superstructure, "Exchanges for scenario difference file", None
+            qicons.superstructure, 'Exchanges for scenario difference file', None
         )
 
         self.connect_signals()
@@ -341,12 +354,16 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     def connect_signals(self):
         super()._connect_signals()
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
+        self.open_activity_action.triggered.connect(self.open_activity_tab)
+        self.open_activity_graph_action.triggered.connect(self.open_graph_explorer)
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database_name)
         )
         self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
         self.duplicate_activity_new_loc_action.triggered.connect(self.duplicate_activity_to_new_loc)
         self.delete_activity_action.triggered.connect(self.delete_activities)
+        self.relink_activity_exch_action.triggered.connect(self.relink_activity_exchanges)
+        self.duplicate_other_db_action.triggered.connect(self.duplicate_activities_to_db)
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
         self.doubleClicked.connect(self.open_activity_tab)
 
@@ -356,87 +373,72 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     def sync(self, query=None) -> None:
         self.model.sync(query)
 
-    @Slot(name="optionalExpandAll")
-    def optional_expand(self) -> None:
-        """auto-expand on sync with query through this function.
-
-        NOTE: self.expandAll() is terribly slow with large trees, so you are advised not to use this without
-         something like search [as implemented below through the query check].
-         Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
-         https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
-         https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
-        """
-        if self.model.query and self.model.matches <= 250:
-            self.expandAll()
-
-    @Slot(name="openActivity")
-    def open_activity(self):
-        """'Opens' the method tree, dependent on the previous state this method will
-        generate a new tree and then expand all the nodes that were previously expanded.
-        """
-        expands = self.expanded_list()
-        self.model.setup_model_data()
-        self.model.sync()
-        iter = self.model.iterator(None)
-        while iter != None:
-            item = self.build_path(iter)
-            if item in expands:
-                self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
-            iter = self.model.iterator(iter)
-
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
         if self.indexAt(event.pos()).row() == -1:
             return
-        menu = QtWidgets.QMenu(self)
-        if self.tree_level()[0] == 'leaf':
-            menu = QtWidgets.QMenu()
-            if len(self.model._dataframe) == 0:
-                # if the database is empty, only add the 'new' activity option and return
-                menu.addAction(self.new_activity_action)
-                menu.exec_(event.globalPos())
-                return
 
-            menu.addAction(qicons.right, "Open activity", self.open_activity_tab)
-            menu.addAction(
-                qicons.graph_explorer, "Open in Graph Explorer",
-                lambda: signals.open_activity_graph_tab.emit(self.get_key())
-            )
-            menu.addAction(self.new_activity_action)
-            menu.addAction(self.duplicate_activity_action)
-            menu.addAction(self.duplicate_activity_new_loc_action)
-            menu.addAction(self.delete_activity_action)
-            menu.addAction(
-                qicons.edit, "Relink the activity exchanges",
-                self.relink_activity_exchanges
-            )
-            menu.addAction(
-                qicons.duplicate_to_other_database, "Duplicate to other database",
-                self.duplicate_activities_to_db
-            )
-
-            # Submenu copy to clipboard
-            submenu_copy = QtWidgets.QMenu(menu)
-            submenu_copy.setTitle('Copy to clipboard')
-            submenu_copy.setIcon(qicons.copy_to_clipboard)
-            submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
-            menu.addMenu(submenu_copy)
+        # determine whether 1 or multiple activities are selected
+        if len(self.selected_keys()) == 1:
+            act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(True)
+            self.relink_activity_exch_action.setEnabled(True)
         else:
-            menu.addAction(self.new_activity_action)
+            act = 'activities'
+            self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.relink_activity_exch_action.setEnabled(False)
+
+        self.open_activity_action.setText(f'Open {act}')
+        self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
+        self.duplicate_activity_action.setText(f'Duplicate {act}')
+        self.delete_activity_action.setText(f'Delete {act}')
+        self.relink_activity_exch_action.setText(f'Relink the {act} exchanges')
+
+        menu = QtWidgets.QMenu(self)
+        # submenu duplicates
+        submenu_dupl = QtWidgets.QMenu(menu)
+        submenu_dupl.setTitle(f'Duplicate {act}')
+        submenu_dupl.setIcon(qicons.copy)
+        submenu_dupl.addAction(self.duplicate_activity_action)
+        submenu_dupl.addAction(self.duplicate_activity_new_loc_action)
+        submenu_dupl.addAction(self.duplicate_other_db_action)
+        # submenu copy to clipboard
+        submenu_copy = QtWidgets.QMenu(menu)
+        submenu_copy.setTitle('Copy to clipboard')
+        submenu_copy.setIcon(qicons.copy_to_clipboard)
+        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+
+        if self.tree_level()[0] != 'leaf':
+            # multiple items are selected
             menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
             menu.addAction(qicons.backward, "Collapse all sub levels", self.collapse_branch)
+            menu.addSeparator()
+
+        menu.addAction(self.open_activity_action)
+        menu.addAction(self.open_activity_graph_action)
+        menu.addAction(self.new_activity_action)
+        menu.addMenu(submenu_dupl)
+        menu.addAction(self.delete_activity_action)
+        menu.addAction(self.relink_activity_exch_action)
+        menu.addMenu(submenu_copy)
+
         menu.exec_(event.globalPos())
 
     # context menu actions:
     @Slot(name="openActivityTab")
     def open_activity_tab(self):
-        """Open the selected activity in a new 'Activity Details' tab."""
-        tree_level = self.tree_level()
-        # first check whether leaf is selected or not
-        if tree_level[0] == 'leaf':
-            key = tree_level[1][-1]
+        """Open the selected activities in a new 'Activity Details' tab."""
+        keys = self.selected_keys()
+        for key in keys:
             signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
+
+    @Slot(name='openActivityGraphExplorer')
+    def open_graph_explorer(self):
+        """Open the selected activities in the graph explorer."""
+        keys = self.selected_keys()
+        for key in keys:
+            signals.open_activity_graph_tab.emit(key)
 
     @Slot(name="relinkActivityExchanges")
     def relink_activity_exchanges(self) -> None:
@@ -445,33 +447,40 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     @Slot(name="deleteActivities")
     def delete_activities(self) -> None:
-        """Delete the selected activity."""
-        #TODO implement
-        self.model.delete_activities(self.selectedIndexes())
+        """Delete the selected activities."""
+        keys = self.selected_keys()
+        if len(keys) > 1:
+            signals.delete_activities.emit(keys)
+        else:
+            signals.delete_activity.emit(keys[0])
 
     @Slot(name="duplicateActivitiesWithinDb")
     def duplicate_activities(self) -> None:
-        """Duplicate the selected activity."""
-        # TODO implement
-        self.model.duplicate_activities(self.selectedIndexes())
+        """Duplicate the selected activities."""
+        keys = self.selected_keys()
+        if len(keys) > 1:
+            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
+        else:
+            signals.duplicate_to_db_interface.emit(keys[0], self.database_name)
 
     @Slot(name="duplicateActivitiesToNewLocWithinDb")
     def duplicate_activity_to_new_loc(self) -> None:
-        """Duplicate the selected activity to a new location"""
-        # TODO implement
-        self.model.duplicate_activity_to_new_loc(self.selectedIndexes())
+        """Duplicate the selected activity to a new location."""
+        signals.duplicate_activity_new_loc.emit(self.get_key())
 
     @Slot(name="duplicateActivitiesToOtherDb")
     def duplicate_activities_to_db(self) -> None:
-        """Duplicate the selected activity to another database."""
-        # TODO implement
-        self.model.duplicate_activities_to_db(self.selectedIndexes())
+        """Duplicate the selected activities to another database."""
+        keys = self.selected_keys()
+        if len(keys) > 1:
+            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
+        else:
+            signals.duplicate_to_db_interface.emit(keys[0], self.database_name)
 
     @Slot(name="copyFlowInformation")
     def copy_exchanges_for_SDF(self) -> None:
         """Copy these exchanges for SDF format"""
-        # TODO implement
-        self.model.copy_exchanges_for_SDF(self.selectedIndexes())
+        self.model.copy_exchanges_for_SDF(self.selected_keys())
 
     def selected_keys(self) -> Iterable:
         """Return all keys selected."""
@@ -494,6 +503,34 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     def get_key(self):
         """Convenience function to get the key of the selected activity."""
         return self.selected_keys()[0]  # should only be called when you're sure there is 1 activity selected.
+
+    @Slot(name="openActivity")
+    def open_activity(self):
+        """'Opens' the method tree, dependent on the previous state this method will
+        generate a new tree and then expand all the nodes that were previously expanded.
+        """
+        expands = self.expanded_list()
+        self.model.setup_model_data()
+        self.model.sync()
+        iter = self.model.iterator(None)
+        while iter != None:
+            item = self.build_path(iter)
+            if item in expands:
+                self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
+            iter = self.model.iterator(iter)
+
+    @Slot(name="optionalExpandAll")
+    def optional_expand(self) -> None:
+        """auto-expand on sync with query through this function.
+
+        NOTE: self.expandAll() is terribly slow with large trees, so you are advised not to use this without
+         something like search [as implemented below through the query check].
+         Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
+         https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
+         https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
+        """
+        if self.model.query and self.model.matches <= 250:
+            self.expandAll()
 
     def tree_level(self) -> tuple:
         """Return list of (tree level, content).

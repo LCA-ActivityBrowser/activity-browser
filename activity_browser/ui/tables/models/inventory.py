@@ -532,3 +532,12 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         """
         df = self.search_df(query)
         return self.nest_data(df), len(df)
+
+    def copy_exchanges_for_SDF(self, keys: list) -> None:
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        exchanges = bc.get_exchanges_from_a_list_of_activities(activities=keys,
+                                                               as_keys=True)
+        data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
+        df = pd.DataFrame(data)
+        df.to_clipboard(excel=True, index=False)
+        QApplication.restoreOverrideCursor()
