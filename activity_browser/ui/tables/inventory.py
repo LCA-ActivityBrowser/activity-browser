@@ -377,15 +377,13 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     @Slot(name="updateMenuContext")
     def set_context_menu_policy(self) -> None:
-        if self.model.technosphere:
-            self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
-            self.db_read_only = project_settings.db_is_readonly(self.database_name)
-            self.update_activity_table_read_only(self.database_name, self.db_read_only)
-        else:
-            self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+        # self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
+        self.db_read_only = project_settings.db_is_readonly(self.database_name)
+        self.update_activity_table_read_only(self.database_name, self.db_read_only)
 
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
+        #TODO there is a bug with the readonly state not being properly read in the treeview, but that may be related to signals not yet properly implemented
         if self.indexAt(event.pos()).row() == -1:
             return
 
