@@ -302,6 +302,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     def __init__(self, parent=None, database_name=None):
         super().__init__(parent)
+        self.db_read_only = True
         self.database_name = database_name
         self.HEADERS = AB_metadata.get_existing_fields(self.HEADERS)
 
@@ -368,10 +369,20 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.doubleClicked.connect(self.open_activity_tab)
 
         self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.set_context_menu_policy)
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:
         self.model.sync(query)
+
+    @Slot(name="updateMenuContext")
+    def set_context_menu_policy(self) -> None:
+        if self.model.technosphere:
+            self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
+            self.db_read_only = project_settings.db_is_readonly(self.database_name)
+            self.update_activity_table_read_only(self.database_name, self.db_read_only)
+        else:
+            self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
@@ -379,14 +390,18 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             return
 
         # determine whether 1 or multiple activities are selected
-        if len(self.selected_keys()) == 1:
-            act = 'activity'
-            self.duplicate_activity_new_loc_action.setEnabled(True)
-            self.relink_activity_exch_action.setEnabled(True)
-        else:
+        if len(self.selected_keys()) > 1:
             act = 'activities'
             self.duplicate_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
+        elif len(self.selected_keys()) == 1 and self.db_read_only:
+            act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.relink_activity_exch_action.setEnabled(False)
+        else:
+            act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(True)
+            self.relink_activity_exch_action.setEnabled(True)
 
         self.open_activity_action.setText(f'Open {act}')
         self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
@@ -601,7 +616,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         """
         if self.database_name == db_name:
             self.db_read_only = db_read_only
-            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
             self.new_activity_action.setEnabled(not self.db_read_only)
             self.duplicate_activity_action.setEnabled(not self.db_read_only)
+            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
