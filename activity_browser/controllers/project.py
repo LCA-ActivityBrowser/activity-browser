@@ -216,12 +216,12 @@ class ImpactCategoryController(QObject):
         else:
             methods = [bw.Method(method)]
         dialog = TupleNameDialog.get_combined_name(
-            self.window, "Impact category name", "Combined name:", method, "Copy"
+            self.window, "Impact category name", "Combined name:", method, " - Copy"
         )
         if dialog.exec_() == TupleNameDialog.Accepted:
             new_name = dialog.result_tuple
             for mthd in methods:
-                new_method = new_name + mthd.name[len(new_name)-1:]
+                new_method = new_name + mthd.name[len(new_name):]
                 if new_method in bw.methods:
                     warn = "Impact Category with name '{}' already exists!".format(new_method)
                     QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
