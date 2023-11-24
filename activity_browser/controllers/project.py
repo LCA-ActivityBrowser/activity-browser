@@ -103,24 +103,49 @@ class ProjectController(QObject):
 
     @Slot(name="deleteProject")
     def delete_project(self):
-        if len(bw.projects) == 1:
+        """
+        Delete the currently active project. Reject if it's the last one.
+        """
+        project_to_delete: str = bw.projects.current
+
+        # if it's the startup project: reject deletion and inform user
+        if project_to_delete == ab_settings.startup_project:
             QtWidgets.QMessageBox.information(
-                self.window, "Not possible", "Can't delete last project."
+                self.window, "Not possible", "Can't delete the startup project. Please select another startup project in the settings first."
             )
             return
 
+        # open a delete dialog for the user to confirm, return if user rejects
         delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(self.window, bw.projects.current)
+        if delete_dialog.exec_() == ProjectDeletionDialog.Rejected: return
 
-        if delete_dialog.exec_() == ProjectDeletionDialog.Accepted:
-            if delete_dialog.deletion_warning_checked():
-                bw.projects.delete_project(bw.projects.current, delete_dir=True)
-                self.change_project(ab_settings.startup_project, reload=True)
-                signals.projects_changed.emit()
-            else:
-                bw.projects.delete_project(bw.projects.current, delete_dir=False)
-                self.change_project(ab_settings.startup_project, reload=True)
-                signals.projects_changed.emit()
+        # change from the project to be deleted, to the startup project
+        self.change_project(ab_settings.startup_project, reload=True)
 
+        # try to delete the project, delete directory if user specified so
+        try:
+            bw.projects.delete_project(
+                project_to_delete, 
+                delete_dir=delete_dialog.deletion_warning_checked()
+                )
+        # if an exception occurs, show warning box en log exception
+        except Exception as exception:
+            log.error(str(exception))
+            QtWidgets.QMessageBox.warning(
+                self.window,
+                "An error occured",
+                "An error occured during project deletion. Please check the logs for more information."
+            )            
+        # if all goes well show info box that the project is deleted
+        else:
+            QtWidgets.QMessageBox.information(
+                self.window,
+                "Project deleted",
+                "Project succesfully deleted"
+            )
+
+        # emit that the project list hast changed because of the deletion
+        signals.projects_changed.emit()
 
 class CSetupController(QObject):
     """The controller that handles brightway features related to
