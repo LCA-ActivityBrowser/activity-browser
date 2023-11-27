@@ -51,8 +51,11 @@ class ProjectController(QObject):
         """Change the project, this clears all tabs and metadata related to
         the current project.
         """
-        if name not in bw.projects: return log.info(f"Project does not exist: {name}")
-
+        # check whether the project does exist, otherwise return
+        if name not in bw.projects: 
+            log.info(f"Project does not exist: {name}")
+            return
+        
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
         signals.project_selected.emit()
@@ -113,7 +116,7 @@ class ProjectController(QObject):
 
         # open a delete dialog for the user to confirm, return if user rejects
         delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(self.window, bw.projects.current)
-        if delete_dialog.exec_() == ProjectDeletionDialog.Rejected: return
+        if delete_dialog.exec_() != ProjectDeletionDialog.Accepted: return
 
         # change from the project to be deleted, to the startup project
         self.change_project(ab_settings.startup_project, reload=True)
@@ -140,7 +143,8 @@ class ProjectController(QObject):
                 "Project succesfully deleted"
             )
 
-        # emit that the project list hast changed because of the deletion
+        # emit that the project list has changed because of the deletion,
+        # regardless of a possible exception (which may have deleted the project anyways) 
         signals.projects_changed.emit()
 
 class CSetupController(QObject):
