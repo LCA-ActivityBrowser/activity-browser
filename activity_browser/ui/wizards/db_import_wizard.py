@@ -997,7 +997,8 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             del self.system_models["universal"]
         self.version_combobox.clear()
         self.system_model_combobox.clear()
-        self.version_combobox.addItems(list(self.system_models.keys()))
+        versions = sorted(self.system_models.keys(), key=lambda x: tuple(map(int, x.split('.'))))
+        self.version_combobox.addItems(versions[::-1])
         if bool(self.version_combobox.count()):
             # Adding the items will cause system_model_combobox to update
             # and show the correct list, this is just to be sure.
