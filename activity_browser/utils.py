@@ -1,3 +1,5 @@
+from typing import Tuple
+import requests
 from pathlib import Path
 import os
 from PySide2 import QtWidgets
@@ -32,3 +34,23 @@ def savefilepath(default_file_name: str = "AB_file", file_filter: str = "All Fil
         filter=file_filter,
     )
     return filepath
+
+
+def safe_link_fetch(url: str) -> Tuple[bool, object]:
+    """
+    Get a web-page or file from the internet or the error of getting the link.
+
+    Parameters
+    ----------
+    url: a link
+
+    Returns
+    -------
+    bool: True if no Exceptions, False if Exceptions
+    object: page if no Exceptions, Exception if Exceptions
+    """
+    try:
+        page = requests.get(url)  # retrieve the page from the URL
+        return (True, page)
+    except Exception as e:
+        return (False, e)
