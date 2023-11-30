@@ -45,7 +45,7 @@ def get_compatible_versions() -> list:
 
     except Exception as e:
         log.debug(f'Reading compatible ecoinvent versions failed with the following error: {e}')
-        return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1']
+        return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1'][::-1]
 
 
 __ei_versions__ = get_compatible_versions()

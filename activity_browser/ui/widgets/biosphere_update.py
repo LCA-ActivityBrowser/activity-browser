@@ -14,14 +14,14 @@ log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
-    def __init__(self, parent=None):
+    def __init__(self, version, parent=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Updating '{}' database".format(bw.config.biosphere))
         self.setLabelText("Adding new flows to biosphere database")
         self.setRange(0, 0)
         self.show()
 
-        self.thread = UpdateBiosphereThread(self)
+        self.thread = UpdateBiosphereThread(version, self)
         self.setMaximum(self.thread.total_patches)
         self.thread.progress.connect(self.update_progress)
         self.thread.finished.connect(self.finished)

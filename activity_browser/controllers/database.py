@@ -98,8 +98,8 @@ class DatabaseController(QObject):
         if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
         version = version_dialog.options.currentText()
 
-        # reduce ecoinvent update list
-        ei_versions = [v for v in __ei_versions__[::-1][:__ei_versions__[::-1].index(version) + 1]]
+        # reduce biosphere update list up to the selected version
+        ei_versions = [v for v in __ei_versions__[:__ei_versions__.index(version) + 1]]
 
         # show updating dialog
         dialog = BiosphereUpdater(ei_versions, self.window)
