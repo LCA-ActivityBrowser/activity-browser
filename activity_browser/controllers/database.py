@@ -68,7 +68,13 @@ class DatabaseController(QObject):
 
     @Slot(name="bw2Setup")
     def install_default_data(self) -> None:
-        dialog = DefaultBiosphereDialog(self.window)
+
+        # let user choose version
+        version_dialog = EcoinventVersionDialog()
+        if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
+        version = version_dialog.options.currentText()
+
+        dialog = DefaultBiosphereDialog(version, self.window)
         dialog.show()
 
     @Slot(name="updateBiosphereDialog")

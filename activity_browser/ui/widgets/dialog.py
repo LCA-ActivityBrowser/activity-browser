@@ -5,6 +5,7 @@ from typing import List, Tuple
 import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QRegExp, QThread, Qt, Signal, Slot
+from bw2io.importers import Ecospold2BiosphereImporter
 
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.settings import project_settings
@@ -499,13 +500,13 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
 
 
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
-    def __init__(self, parent=None):
+    def __init__(self, version, parent=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Biosphere and impact categories")
         self.setRange(0, 3)
         self.setModal(Qt.ApplicationModal)
 
-        self.biosphere_thread = DefaultBiosphereThread(self)
+        self.biosphere_thread = DefaultBiosphereThread(version, self)
         self.biosphere_thread.update.connect(self.update_progress)
         self.biosphere_thread.finished.connect(self.finished)
         self.biosphere_thread.start()
@@ -525,11 +526,18 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
 class DefaultBiosphereThread(QThread):
     update = Signal(int, str)
 
+    def __init__(self, version, parent=None):
+        super().__init__(parent=parent)
+        self.version = version[:3]
+
     def run(self):
         project = "<b>{}</b>".format(bw.projects.current)
         if "biosphere3" not in bw.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
-            bw.create_default_biosphere3()
+            #TODO figure out way of supplying older versions of biosphere as only most recent is stored here
+            eb = Ecospold2BiosphereImporter(version=self.version)
+            eb.apply_strategies()
+            eb.write_database()
             project_settings.add_db("biosphere3")
         if not len(bw.methods):
             self.update.emit(1, "Creating default LCIA methods for {}".format(project))
