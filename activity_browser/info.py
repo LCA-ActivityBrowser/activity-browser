@@ -1,4 +1,5 @@
 import ast
+import os.path
 from importlib.metadata import version, PackageNotFoundError
 from .utils import safe_link_fetch, sort_semantic_versions
 
@@ -24,11 +25,21 @@ def get_compatible_versions() -> list:
     """
     try:
         # read versions
-        versions_URL = 'https://raw.githubusercontent.com/marc-vdm/activity-browser/better_biosphere_handling/compatible_ei_versions.txt'
+        versions_URL = 'https://raw.githubusercontent.com/marc-vdm/activity-browser/better_biosphere_handling/activity_browser/bwutils/ecoinvent_biosphere_versions/compatible_ei_versions.txt'
         success, page = safe_link_fetch(versions_URL)
-        if not success:
-            raise Exception(page)
-        all_versions = ast.literal_eval(page.text)
+        if success:
+            file = page.text
+        else:
+            # silently try a local fallback:
+            log.debug(f'Reading online compatible ecoinvent versions failed '
+                      f'-attempting local fallback- with this error: {page}')
+            file_path = os.path.join(os.path.dirname(__file__),
+                                     'bwutils',
+                                     'ecoinvent_biosphere_versions',
+                                     'compatible_ei_versions.txt')
+            with open(file_path, 'r') as f:
+                file = f.read()
+        all_versions = ast.literal_eval(file)
         sorted_versions = sort_semantic_versions(all_versions.keys())
 
         # select either the latest lower version available or if none available the lowest version for safety
@@ -44,7 +55,7 @@ def get_compatible_versions() -> list:
         return ei_versions[::-1]  # reverse the list of versions
 
     except Exception as e:
-        log.debug(f'Reading compatible ecoinvent versions failed with the following error: {e}')
+        log.debug(f'Reading local fallback failed with: {e}')
         return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1'][::-1]
 
 
