@@ -11,6 +11,7 @@ from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
+from ...info import __ei_versions__
 
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
@@ -1233,3 +1234,29 @@ class LocationLinkingDialog(QtWidgets.QDialog):
                         parent=None) -> 'LocationLinkingDialog':
         label = "Relinking exchanges from activity '{}' to a new location.".format(act_name)
         return cls.construct_dialog(label, options, parent)
+
+
+class EcoinventVersionDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(EcoinventVersionDialog, self).__init__(parent)
+
+        self.setWindowTitle("Choose an ecoinvent version")
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.label = QtWidgets.QLabel('Choose to what ecoinvent-compatible biosphere\n'
+                                      'version you would like to update')
+        self.options = QtWidgets.QComboBox()
+
+        # Add available ecoinvent versions to the combobox
+        self.options.addItems(__ei_versions__)
+
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.options)
+        self.layout.addWidget(self.buttons)
+        self.setLayout(self.layout)

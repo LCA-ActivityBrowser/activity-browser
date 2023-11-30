@@ -43,8 +43,12 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
 class UpdateBiosphereThread(QtCore.QThread):
     PATCHES = [patch for patch in dir(data) if patch.startswith('add_ecoinvent') and patch.endswith('biosphere_flows')]
     progress = Signal(int)
-    def __init__(self, parent=None):
+    def __init__(self, ei_versions, parent=None):
         super().__init__(parent)
+
+        # reduce the patches list to only compatible versions for this AB version
+        self.PATCHES = [p for p in self.PATCHES if any(v.replace('.', '') in p for v in ei_versions)]
+
         self.total_patches = len(self.PATCHES)
 
     def run(self):
