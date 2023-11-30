@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Iterable
 import requests
 from pathlib import Path
 import os
@@ -54,3 +54,11 @@ def safe_link_fetch(url: str) -> Tuple[bool, object]:
         return (True, page)
     except Exception as e:
         return (False, e)
+
+
+def sort_semantic_versions(versions: Iterable) -> list:
+    """Return a sorted (descending) list of semantic versions.
+
+    Sorts based on the semantic versioning system.
+    """
+    return list(sorted(versions, key=lambda x: tuple(map(int, x.split('.'))), reverse=True))

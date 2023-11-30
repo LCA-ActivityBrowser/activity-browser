@@ -21,6 +21,8 @@ from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
+from ...info import __ei_versions__
+from ...utils import sort_semantic_versions
 
 import logging
 from activity_browser.logger import ABHandler
@@ -989,7 +991,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             self.db_dict = self.wizard.downloader.db_dict
         self.system_models = {
             version: sorted({k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True)
-            for version in sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
+            for version in sorted({k[0] for k in self.db_dict.keys() if k[0] in __ei_versions__}, reverse=True)
         }
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
@@ -997,7 +999,8 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             del self.system_models["universal"]
         self.version_combobox.clear()
         self.system_model_combobox.clear()
-        self.version_combobox.addItems(list(self.system_models.keys()))
+        versions = sort_semantic_versions(self.system_models.keys())
+        self.version_combobox.addItems(versions)
         if bool(self.version_combobox.count()):
             # Adding the items will cause system_model_combobox to update
             # and show the correct list, this is just to be sure.
