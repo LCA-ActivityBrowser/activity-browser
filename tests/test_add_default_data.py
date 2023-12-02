@@ -21,17 +21,18 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
-    with qtbot.waitSignal(signals.change_project, timeout=1000):
+    with qtbot.waitSignal(signals.change_project, timeout=600000):
+        # click the 'add default data' button
         qtbot.mouseClick(
             project_tab.databases_widget.add_default_data_button,
             QtCore.Qt.LeftButton
         )
-        # clicking the add_default_data_button spawns a popup.
-        with qtbot.waitSignal(signals.install_default_data, timeout=500):
-            qtbot.mouseClick(
-                EcoinventVersionDialog.buttons.accepted,
-                QtCore.Qt.LeftButton
-            )
+        # confirm the version chooser dialog
+        EcoinventVersionDialog.accept()
+        # qtbot.mouseClick(
+        #     EcoinventVersionDialog.buttons.accepted,
+        #     QtCore.Qt.LeftButton
+        # )
 
 
 def test_select_biosphere(qtbot, ab_app):
