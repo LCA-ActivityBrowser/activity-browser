@@ -40,9 +40,9 @@ def get_compatible_versions() -> list:
             with open(file_path, 'r') as f:
                 file = f.read()
         all_versions = ast.literal_eval(file)
-        sorted_versions = sort_semantic_versions(all_versions.keys())
 
         # select either the latest lower version available or if none available the lowest version for safety
+        sorted_versions = sort_semantic_versions(all_versions.keys())
         for ab_version in sorted_versions:
             if sort_semantic_versions([__version__, ab_version])[0] == __version__:
                 # current version is higher than or equal to tested AB version:
@@ -52,11 +52,11 @@ def get_compatible_versions() -> list:
             ei_versions = all_versions[sorted_versions[-1]]
 
         log.debug(f'Following versions of ecoinvent are compatible with AB {__version__}: {ei_versions}')
-        return ei_versions[::-1]  # reverse the list of versions
+        return ei_versions
 
     except Exception as e:
         log.debug(f'Reading local fallback failed with: {e}')
-        return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1'][::-1]
+        return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1']
 
 
 __ei_versions__ = get_compatible_versions()

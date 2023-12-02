@@ -74,7 +74,7 @@ class DatabaseController(QObject):
         if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
         version = version_dialog.options.currentText()
 
-        dialog = DefaultBiosphereDialog(version, self.window)
+        dialog = DefaultBiosphereDialog(version[:3], self.window)  # only read Major/Minor part of version
         dialog.show()
 
     @Slot(name="updateBiosphereDialog")
@@ -99,7 +99,8 @@ class DatabaseController(QObject):
         version = version_dialog.options.currentText()
 
         # reduce biosphere update list up to the selected version
-        ei_versions = [v for v in __ei_versions__[:__ei_versions__.index(version) + 1]]
+        sorted_versions = sort_semantic_versions(__ei_versions__, highest_to_lowest=False)
+        ei_versions = sorted_versions[:sorted_versions.index(version) + 1]
 
         # show updating dialog
         dialog = BiosphereUpdater(ei_versions, self.window)

@@ -56,9 +56,9 @@ def safe_link_fetch(url: str) -> Tuple[bool, object]:
         return (False, e)
 
 
-def sort_semantic_versions(versions: Iterable) -> list:
-    """Return a sorted (descending) list of semantic versions.
+def sort_semantic_versions(versions: Iterable, highest_to_lowest: bool = True) -> list:
+    """Return a sorted (default highest to lowest) list of semantic versions.
 
     Sorts based on the semantic versioning system.
     """
-    return list(sorted(versions, key=lambda x: tuple(map(int, x.split('.'))), reverse=True))
+    return list(sorted(versions, key=lambda x: tuple(map(int, x.split('.'))), reverse=highest_to_lowest))

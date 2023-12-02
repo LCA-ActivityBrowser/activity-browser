@@ -14,14 +14,14 @@ log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
-    def __init__(self, version, parent=None):
+    def __init__(self, ei_versions, parent=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Updating '{}' database".format(bw.config.biosphere))
         self.setLabelText("Adding new flows to biosphere database")
         self.setRange(0, 0)
         self.show()
 
-        self.thread = UpdateBiosphereThread(version, self)
+        self.thread = UpdateBiosphereThread(ei_versions, self)
         self.setMaximum(self.thread.total_patches)
         self.thread.progress.connect(self.update_progress)
         self.thread.finished.connect(self.finished)
@@ -55,6 +55,7 @@ class UpdateBiosphereThread(QtCore.QThread):
         try:
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)
+                log.debug(f'Applying biosphere patch: {patch}')
                 update_bio = getattr(data, patch)
                 update_bio()
         except ValidityError as e:

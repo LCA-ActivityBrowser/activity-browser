@@ -5,14 +5,16 @@ from typing import List, Tuple
 import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QRegExp, QThread, Qt, Signal, Slot
-from bw2io.importers import Ecospold2BiosphereImporter
 
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
+from ...ui.widgets import BiosphereUpdater
 from ...info import __ei_versions__
+from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
+from ...utils import sort_semantic_versions
 
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
@@ -506,7 +508,9 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.setRange(0, 3)
         self.setModal(Qt.ApplicationModal)
 
-        self.biosphere_thread = DefaultBiosphereThread(version, self)
+        self.version = version
+
+        self.biosphere_thread = DefaultBiosphereThread(self.version, self)
         self.biosphere_thread.update.connect(self.update_progress)
         self.biosphere_thread.finished.connect(self.finished)
         self.biosphere_thread.start()
@@ -521,6 +525,18 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.setValue(3)
         signals.change_project.emit(bw.projects.current)
         signals.project_selected.emit()
+        self.check_patch()
+
+    def check_patch(self):
+        """Apply any relevant biosphere patches if available."""
+
+        # reduce biosphere update list up to the selected version
+        sorted_versions = sort_semantic_versions(__ei_versions__, highest_to_lowest=False)
+        ei_versions = sorted_versions[:sorted_versions.index(self.version) + 1]
+
+        # show updating dialog
+        dialog = BiosphereUpdater(ei_versions, self)
+        dialog.show()
 
 
 class DefaultBiosphereThread(QThread):
@@ -528,16 +544,13 @@ class DefaultBiosphereThread(QThread):
 
     def __init__(self, version, parent=None):
         super().__init__(parent=parent)
-        self.version = version[:3]
+        self.version = version
 
     def run(self):
         project = "<b>{}</b>".format(bw.projects.current)
         if "biosphere3" not in bw.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
-            #TODO figure out way of supplying older versions of biosphere as only most recent is stored here
-            eb = Ecospold2BiosphereImporter(version=self.version)
-            eb.apply_strategies()
-            eb.write_database()
+            create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
         if not len(bw.methods):
             self.update.emit(1, "Creating default LCIA methods for {}".format(project))
@@ -1257,12 +1270,12 @@ class EcoinventVersionDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         self.layout = QtWidgets.QVBoxLayout()
-        self.label = QtWidgets.QLabel('Choose to what ecoinvent-compatible biosphere\n'
-                                      'version you would like to update')
+        self.label = QtWidgets.QLabel('Choose which ecoinvent-compatible biosphere\n'
+                                      'version you would like to use')
         self.options = QtWidgets.QComboBox()
 
         # Add available ecoinvent versions to the combobox
-        self.options.addItems(__ei_versions__)
+        self.options.addItems(sort_semantic_versions(__ei_versions__))
 
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.options)
