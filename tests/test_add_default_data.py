@@ -12,8 +12,8 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
 
     # fake the project name text input
     monkeypatch.setattr(
-        QtWidgets.QInputDialog, "getText",
-        staticmethod(lambda *args, **kwargs: ("pytest_project", True))
+        QtWidgets.QInputDialog, 'getText',
+        staticmethod(lambda *args, **kwargs: ('pytest_project', True))
     )
     project_tab = ab_app.main_window.left_panel.tabs['Project']
     qtbot.mouseClick(
@@ -30,7 +30,8 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
             QtCore.Qt.LeftButton
         )
         # confirm the version chooser dialog
-        monkeypatch.setattr(EcoinventVersionDialog, "exec_", lambda self: EcoinventVersionDialog.Accepted)
+        qtbot.wait(1000)
+        monkeypatch.setattr(EcoinventVersionDialog, 'exec_', lambda self: EcoinventVersionDialog.Accepted)
 
 
 def test_select_biosphere(qtbot, ab_app):
