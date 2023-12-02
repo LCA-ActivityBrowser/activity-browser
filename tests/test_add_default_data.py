@@ -3,6 +3,7 @@ import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser.signals import signals
+from activity_browser.ui.widgets.dialog import EcoinventVersionDialog
 
 
 def test_add_default_data(qtbot, ab_app, monkeypatch):
@@ -20,11 +21,17 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
-    with qtbot.waitSignal(signals.change_project, timeout=600000):
+    with qtbot.waitSignal(signals.change_project, timeout=1000):
         qtbot.mouseClick(
             project_tab.databases_widget.add_default_data_button,
             QtCore.Qt.LeftButton
         )
+        # clicking the add_default_data_button spawns a popup.
+        with qtbot.waitSignal(signals.install_default_data, timeout=500):
+            qtbot.mouseClick(
+                EcoinventVersionDialog.buttons.accepted,
+                QtCore.Qt.LeftButton
+            )
 
 
 def test_select_biosphere(qtbot, ab_app):
