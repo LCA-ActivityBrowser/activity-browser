@@ -10,7 +10,7 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'default'
     qtbot.waitForWindowShown(ab_app.main_window)
 
-    # fake the project name text input
+    # fake the project name text input when called
     monkeypatch.setattr(
         QtWidgets.QInputDialog, 'getText',
         staticmethod(lambda *args, **kwargs: ('pytest_project', True))
@@ -24,14 +24,15 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
 
     # The biosphere3 import finishes with a 'change_project' signal.
     with qtbot.waitSignal(signals.change_project, timeout=600000):
+
+        # fake the accepting of the dialog when started
+        monkeypatch.setattr(EcoinventVersionDialog, 'exec_', lambda self: EcoinventVersionDialog.Accepted)
+
         # click the 'add default data' button
         qtbot.mouseClick(
             project_tab.databases_widget.add_default_data_button,
             QtCore.Qt.LeftButton
         )
-        # confirm the version chooser dialog
-        qtbot.wait(1000)
-        monkeypatch.setattr(EcoinventVersionDialog, 'exec_', lambda self: EcoinventVersionDialog.Accepted)
 
 
 def test_select_biosphere(qtbot, ab_app):
