@@ -504,7 +504,7 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def __init__(self, version, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Biosphere and impact categories")
+        self.setWindowTitle('Biosphere and impact categories')
         self.setRange(0, 3)
         self.setModal(Qt.ApplicationModal)
 
@@ -515,7 +515,10 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.finished.connect(self.finished)
         self.biosphere_thread.start()
 
-    @Slot(int, str, name="updateThread")
+        # finally, check if patches are available for this version and apply them
+        self.check_patches()
+
+    @Slot(int, str, name='updateThread')
     def update_progress(self, current: int, text: str) -> None:
         self.setValue(current)
         self.setLabelText(text)
@@ -525,11 +528,9 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.setValue(3)
         signals.change_project.emit(bw.projects.current)
         signals.project_selected.emit()
-        self.check_patch()
 
-    def check_patch(self):
+    def check_patches(self):
         """Apply any relevant biosphere patches if available."""
-
         # reduce biosphere update list up to the selected version
         sorted_versions = sort_semantic_versions(__ei_versions__, highest_to_lowest=False)
         ei_versions = sorted_versions[:sorted_versions.index(self.version) + 1]

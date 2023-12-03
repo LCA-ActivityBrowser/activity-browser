@@ -59,5 +59,5 @@ class UpdateBiosphereThread(QtCore.QThread):
                 update_bio = getattr(data, patch)
                 update_bio()
         except ValidityError as e:
-            log.error("Could not patch biosphere: {}".format(str(e)))
+            log.error(f'Could not patch biosphere: {str(e)}')
             self.exit(1)

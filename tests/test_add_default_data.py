@@ -7,8 +7,9 @@ from activity_browser.ui.widgets.dialog import EcoinventVersionDialog
 
 
 def test_add_default_data(qtbot, ab_app, monkeypatch):
+    """Switch to 'pytest_project' and add default data."""
     assert bw.projects.current == 'default'
-    qtbot.waitForWindowShown(ab_app.main_window)
+    qtbot.waitExposed(ab_app.main_window)
 
     # fake the project name text input when called
     monkeypatch.setattr(
@@ -23,7 +24,7 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
-    with qtbot.waitSignal(signals.change_project, timeout=600000):
+    with qtbot.waitSignal(signals.change_project, timeout=10*60*1000):  # allow 10 mins for biosphere install
 
         # fake the accepting of the dialog when started
         monkeypatch.setattr(EcoinventVersionDialog, 'exec_', lambda self: EcoinventVersionDialog.Accepted)
@@ -34,10 +35,12 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
             QtCore.Qt.LeftButton
         )
 
+    # biosphere was installed
+    assert 'biosphere3' in bw.databases
+
 
 def test_select_biosphere(qtbot, ab_app):
-    """ Select the 'biosphere3' database from the databases table.
-    """
+    """Select the 'biosphere3' database from the databases table."""
     biosphere = 'biosphere3'
     project_tab = ab_app.main_window.left_panel.tabs['Project']
     db_table = project_tab.databases_widget.table
@@ -51,7 +54,7 @@ def test_select_biosphere(qtbot, ab_app):
 
     # Grab the rectangle of the 2nd column on the first row.
     rect = db_table.visualRect(db_table.proxy_model.index(0, 1))
-    with qtbot.waitSignal(signals.database_selected, timeout=2000):
+    with qtbot.waitSignal(signals.database_selected, timeout=1000):
         # Click once to 'focus' the table
         qtbot.mouseClick(db_table.viewport(), QtCore.Qt.LeftButton, pos=rect.center())
         # Then double-click to trigger the `doubleClick` event.
@@ -80,32 +83,30 @@ def test_search_biosphere(qtbot, ab_app):
 
 
 def test_fail_open_biosphere(ab_app):
-    """ Specifically fail to open an activity tab for a biosphere flow
-    """
-    assert bw.projects.current == "pytest_project"
-    activities_tab = ab_app.main_window.right_panel.tabs["Activity Details"]
+    """Specifically fail to open an activity tab for a biosphere flow."""
+    assert bw.projects.current == 'pytest_project'
+    activities_tab = ab_app.main_window.right_panel.tabs['Activity Details']
     # Select any biosphere activity and emit signal to trigger opening the tab
-    biosphere_flow = bw.Database("biosphere3").random()
+    biosphere_flow = bw.Database('biosphere3').random()
     signals.safe_open_activity_tab.emit(biosphere_flow.key)
     assert len(activities_tab.tabs) == 0
 
 
 def test_succceed_open_activity(ab_app):
-    """ Create a tiny test database with a production activity
-    """
-    assert bw.projects.current == "pytest_project"
-    db = bw.Database("testdb")
-    act_key = ("testdb", "act1")
+    """Create a tiny test database with a production activity."""
+    assert bw.projects.current == 'pytest_project'
+    db = bw.Database('testdb')
+    act_key = ('testdb', 'act1')
     db.write({
         act_key: {
-            "name": "act1",
-            "unit": "kilogram",
-            "exchanges": [
-                {"input": act_key, "amount": 1, "type": "production"}
+            'name': 'act1',
+            'unit': 'kilogram',
+            'exchanges': [
+                {'input': act_key, 'amount': 1, 'type': 'production'}
             ]
         }
     })
-    activities_tab = ab_app.main_window.right_panel.tabs["Activity Details"]
+    activities_tab = ab_app.main_window.right_panel.tabs['Activity Details']
     # Select the activity and emit signal to trigger opening the tab
     act = bw.get_activity(act_key)
     signals.safe_open_activity_tab.emit(act_key)
@@ -113,15 +114,15 @@ def test_succceed_open_activity(ab_app):
     assert act_key in activities_tab.tabs
     # Current index of QTabWidget is changed by opening the tab
     index = activities_tab.currentIndex()
-    assert act.get("name") == activities_tab.tabText(index)
+    assert act.get('name') == activities_tab.tabText(index)
 
 
 def test_close_open_activity_tab(ab_app):
     """Closing the activity tab will also hide the Activity Details tab."""
-    act_key = ("testdb", "act1")
+    act_key = ('testdb', 'act1')
     act = bw.get_activity(act_key)
-    act_name = act.get("name")
-    activities_tab = ab_app.main_window.right_panel.tabs["Activity Details"]
+    act_name = act.get('name')
+    activities_tab = ab_app.main_window.right_panel.tabs['Activity Details']
 
     # The tab should still be open from the previous test
     assert act_key in activities_tab.tabs
