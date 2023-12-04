@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from PySide2.QtCore import QObject, Slot
+import bw2data.utils
+from bw2io import backup
+from PySide2.QtCore import QObject, Slot, Qt
 from PySide2 import QtWidgets
+
+import os
+import shutil
 
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.settings import ab_settings
@@ -28,6 +33,8 @@ class ProjectController(QObject):
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
         signals.change_project.connect(self.change_project)
         signals.new_project.connect(self.new_project)
+        signals.import_project.connect(self.import_project)
+        signals.export_project.connect(self.export_project)
         signals.copy_project.connect(self.copy_project)
         signals.delete_project.connect(self.delete_project)
 
@@ -61,26 +68,108 @@ class ProjectController(QObject):
         signals.project_selected.emit()
         log.info("Loaded project:", name)
 
-    @Slot(name="createProject")
-    def new_project(self, name=None):
-        if name is None:
-            name, ok = QtWidgets.QInputDialog.getText(
-                self.window,
-                "Create new project",
-                "Name of new project:" + " " * 25
-            )
-            if not ok or not name:
-                return
+    def get_project_name(self, suggestion: str = '') -> str:
+        """Ask for a project name, if it exists, inform user and ask again."""
+        project_name, _ = QtWidgets.QInputDialog.getText(
+            self.window,
+            'Choose project name',
+            'Choose a name for your project',
+            text=suggestion
+        )
+        if not project_name: return
 
-        if name and name not in bw.projects:
-            bw.projects.set_current(name)
-            self.change_project(name, reload=True)
-            signals.projects_changed.emit()
-        elif name in bw.projects:
+        if project_name in bw.projects:
+            # this name already exists, inform user and ask again.
             QtWidgets.QMessageBox.information(
                 self.window, "Not possible.",
                 "A project with this name already exists."
             )
+            project_name = self.get_project_name(suggestion)
+        return project_name
+
+    @Slot(name="createProject")
+    def new_project(self):
+        name = self.get_project_name()
+        if not name: return
+
+        bw.projects.set_current(name)
+        self.change_project(name, reload=True)
+        signals.projects_changed.emit()
+
+    @Slot(name="importProject")
+    def import_project(self) -> None:
+        """Import a project into AB based on file chosen by user."""
+
+        # get the path from the user
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            parent=self.window,
+            caption='Choose project file to import',
+            filter='Tar archive (*.tar.gz);; All files (*.*)'
+        )
+        if not path: return
+
+        # create a name suggestion based on the file name
+        _, suggestion = os.path.split(path)
+        suggestion = suggestion.split('.')[0]  # get only the file_name
+        suggestion = suggestion.replace('brightway2-project-', '')
+
+        # get a new project name from the user:
+        name = self.get_project_name(suggestion=suggestion)
+        if not name: return
+
+        # start the import
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+        log.debug('Starting project import:'
+                  f'\nPATH: {path}'
+                  f'\nNAME: {name}')
+
+        backup.restore_project_directory(fp=path, project_name=name)
+
+        QtWidgets.QApplication.restoreOverrideCursor()
+        log.info(f'Project `{name}` imported.')
+
+        # change to the newly imported project
+        signals.change_project.emit(name)
+
+    @Slot(name="exportProject")
+    def export_project(self) -> None:
+        """Export the current project to a folder chosen by the user."""
+
+        # project name
+        name = bw.projects.current
+
+        # project target folder
+        target_folder = QtWidgets.QFileDialog.getExistingDirectory(
+            self.window,
+            f'Select a folder to export the project `{name}` to'
+        )
+        if not target_folder: return
+
+        # start actual export
+        log.debug(f'Starting project export for `{name}`:'
+                  f'\nPATH: {target_folder}')
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+
+        # export the project
+        backup.backup_project_directory(name)
+
+        # bw2io.backup.backup_project_directory() only exports to the home folder,
+        # now move to location chosen by user
+        home_dir = os.path.expanduser('~')
+        # get all files that fit this export name
+        files = [f for f in os.listdir(home_dir) if f.startswith(f'brightway2-project-{name}') and f.endswith('tar.gz')]
+        if len(files) > 1:
+            # there are multiple backups of this project, take the most recent one
+            times = [os.path.getctime(os.path.join(home_dir, f)) for f in files]
+            file = files[times.index(max(times))]
+        else:
+            file = files[0]
+
+        # move the file to the correct folder
+        shutil.move(os.path.join(home_dir, file), target_folder)
+
+        QtWidgets.QApplication.restoreOverrideCursor()
+        log.info(f'Project `{name}` exported.')
 
     @Slot(name="copyProject")
     def copy_project(self):
