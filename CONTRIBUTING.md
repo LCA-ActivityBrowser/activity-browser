@@ -294,6 +294,7 @@ bug-fixes and minor changes.
 To create a new release follow these steps:
 - Review if all scheduled changes in the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) 
   for the next version are complete, if not, either re-plan them for a next milestone or finish them
+- __Do not__ close the milestone yet
 - Check out the master branch (either through your IDE or with `git checkout master`)
 - `Fetch` and `Pull` changes
 - Create a new tag: `git tag -a x.y.z -m 'x.y.z'` (where `x.y.z` is the new version number)
@@ -307,9 +308,14 @@ To create a new release follow these steps:
 - Wait until a new pull-request is opened on the 
   [`conda forge feedstock`](https://github.com/conda-forge/activity-browser-feedstock/pulls)
   automatically, then review the pull-request and merge the changes
+  - The release will be available on [conda-forge](https://anaconda.org/conda-forge/activity-browser) shortly 
 - Close the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) for this version
-- If this was a `major` or `minor` release, write an email to the
-  [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) announcing the new changes
+  - This triggers a 
+    [`github actions`](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/comment-milestoned-issues.yaml) 
+    bot that will reply to each _closed_ issue with this milestone that a new release is available with an 
+    implemented solution for the issue
+- Write an email to the   [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) announcing the 
+  new changes
 
 ### Don'ts for maintainers:
 - Never create a new release on a Friday or on a day before you'll be unavailable
