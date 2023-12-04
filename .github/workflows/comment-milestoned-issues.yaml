@@ -1,0 +1,33 @@
+name: Comment when milestone is closed
+on:
+  issues:
+    types: [milestoned]
+
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on issue
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const issue_number = context.issue.number;
+            const milestone_title = context.payload.issue.milestone.title;
+            
+            // Get all milestones
+            const milestones = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
+            // Find the closed milestone that matches the title
+            const closedMilestone = milestones.data.find(milestone => milestone.title === milestone_title && milestone.state === 'closed');
+            
+            if (closedMilestone) {
+              // Post a comment on the issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+                body: `This issue has been resolved in Activity Browser [version ${milestone_title](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title), please [update Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).`,
+              });
+            }
