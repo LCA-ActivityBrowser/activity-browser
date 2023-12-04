@@ -1,4 +1,4 @@
-name: Comment when milestone is closed
+name: comment when milestone is closed
 on:
   milestone:
     types: [closed]
@@ -22,12 +22,14 @@ jobs:
               state: 'all',
             });
 
-            // Loop through the issues and post a comment on each one
+            // Loop through the issues and if the issue was closed, post a comment referring to the new release
             for (const issue of issues.data) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `This issue has been resolved in Activity Browser [version ${milestone_title}](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title}), please [update Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).`,
-              });
+              if (issue.state === 'closed') {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: `This issue has been implemented in the [new release of Activity Browser 🚀 (version ${milestone_title})](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title}), you can get the new version by [updating Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).\n\n_🤖beep boop! I'm a bot and this message was an automated action. If updating does not make sense for this issue, just ignore this._`,
+                });
+              }
             }
