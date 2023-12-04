@@ -3,6 +3,7 @@ on:
   issues:
     types: [milestoned]
 
+jobs:
   comment:
     runs-on: ubuntu-latest
     steps:
@@ -28,6 +29,6 @@ on:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue_number,
-                body: `This issue has been resolved in Activity Browser [version ${milestone_title](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title), please [update Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).`,
+                body: `This issue has been resolved in Activity Browser [version ${milestone_title}](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title}), please [update Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).`,
               });
             }
