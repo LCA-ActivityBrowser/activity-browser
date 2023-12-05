@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 
+import datetime
+import arrow
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import (
-    QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, Signal,
+    QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, Signal, QSortFilterProxyModel
 )
 from PySide2.QtGui import QBrush
 
@@ -52,7 +54,7 @@ class PandasModel(QAbstractTableModel):
 
         # instantiate value only in case of DisplayRole or ToolTipRole       
         value = None
-        if role == Qt.DisplayRole or role == Qt.ToolTipRole:
+        if role == Qt.DisplayRole or role == Qt.ToolTipRole or role == 'sorting':
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
                 value = float(value)
@@ -62,9 +64,13 @@ class PandasModel(QAbstractTableModel):
                 value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
-        
+            elif isinstance(value, datetime.datetime) and role != 'sorting':
+                tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
+                time_shift = - tz.utcoffset().total_seconds()
+                value = arrow.get(value).shift(seconds=time_shift).humanize()
+
         # immediately return value in case of DisplayRole
-        if role == Qt.DisplayRole: return value
+        if role == Qt.DisplayRole or role == 'sorting': return value
         
         # in case of ToolTipRole, check whether content fits the cell
         if role == Qt.ToolTipRole:
@@ -396,3 +402,9 @@ class BaseTreeModel(QAbstractItemModel):
 
     def sync(self, *args, **kwargs) -> None:
         pass
+
+class SortProxyModel(QSortFilterProxyModel):
+    def lessThan(self, left, right):
+        left_data = self.sourceModel().data(left, 'sorting')
+        right_data = self.sourceModel().data(right, 'sorting')
+        return left_data < right_data
