@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.11', '3.12']
+        python-version: ['3.8', '3.9', '3.11']
     defaults:
       run:
         shell: bash -l {0}
@@ -47,7 +47,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.12']
+        python-version: ['3.11']
     defaults:
       run:
         shell: bash -l {0}
@@ -92,10 +92,10 @@ jobs:
             ls | grep mamba | while read d; do yq -i $d/env.yaml; done
       - name: diff ubuntu
         run: |
-          diff -u env-ubuntu-latest-3.12* || :
+          diff -u env-ubuntu-latest-3.11* || :
       - name: diff windows
         run: |
-          diff -u env-windows-latest-3.12* || :
+          diff -u env-windows-latest-3.11* || :
       - name: diff macos
         run: |
-          diff -u env-macos-latest-3.12* || :
+          diff -u env-macos-latest-3.11* || :
