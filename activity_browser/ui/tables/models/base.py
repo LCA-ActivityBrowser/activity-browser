@@ -403,7 +403,11 @@ class BaseTreeModel(QAbstractItemModel):
     def sync(self, *args, **kwargs) -> None:
         pass
 
-class SortProxyModel(QSortFilterProxyModel):
+class ABSortProxyModel(QSortFilterProxyModel):
+    """Reimplementation to allow for sorting on the actual data in cells instead of the visible data.
+
+    See this for context: https://github.com/LCA-ActivityBrowser/activity-browser/pull/1151
+    """
     def lessThan(self, left, right):
         left_data = self.sourceModel().data(left, 'sorting')
         right_data = self.sourceModel().data(right, 'sorting')

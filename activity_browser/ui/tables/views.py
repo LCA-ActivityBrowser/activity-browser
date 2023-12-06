@@ -13,7 +13,7 @@ from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 from ..icons import qicons
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
-from .models.base import SortProxyModel
+from .models.base import ABSortProxyModel
 
 import logging
 from activity_browser.logger import ABHandler
@@ -48,7 +48,7 @@ class ABDataFrameView(QTableView):
         # Creating (and typing) them here allows PyCharm to see them as
         # valid attributes.
         self.model: Optional[PandasModel] = None
-        self.proxy_model: Optional[SortProxyModel] = None
+        self.proxy_model: Optional[ABSortProxyModel] = None
 
     def get_max_height(self) -> int:
         return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
@@ -62,7 +62,7 @@ class ABDataFrameView(QTableView):
 
     @Slot(name="updateProxyModel")
     def update_proxy_model(self) -> None:
-        self.proxy_model = SortProxyModel(self)
+        self.proxy_model = ABSortProxyModel(self)
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         self.setModel(self.proxy_model)
@@ -501,7 +501,7 @@ class CustomHeader(QHeaderView):
         self.viewport().update()
 
 
-class ABMultiColumnSortProxyModel(SortProxyModel):
+class ABMultiColumnSortProxyModel(ABSortProxyModel):
     """ Subclass of QSortFilterProxyModel to enable sorting on multiple columns.
 
     The main purpose of this subclass is to override def filterAcceptsRow().
