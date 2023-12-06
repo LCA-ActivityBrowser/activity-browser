@@ -6,6 +6,7 @@ from activity_browser.signals import signals
 from activity_browser.settings import ab_settings
 from activity_browser.controllers import ProjectController
 import os
+import time
 
 
 def test_new_project(qtbot, ab_app, monkeypatch):
@@ -90,13 +91,22 @@ def test_export_import_projects(qtbot, ab_app, monkeypatch):
     )
 
     # start the export
-    with qtbot.waitSignal(signals.export_project, timeout=5*60*1000):  # 5 minutes
+    with qtbot.waitSignal(signals.export_project, timeout=500):
         menu_bar.export_proj_action.trigger()
+
+    # wait for the export to finish
+    # there is no signal so custom implementation
+    timeout = 5*60  # 5 minutes
+    start_time = time.time()
+    while len([f for f in os.listdir(target_dir)]) == 0:
+        if time.time() - start_time > timeout:
+            raise TimeoutError(f"File {target_dir} not found within {timeout} seconds.")
+        time.sleep(3)  # check every 3 seconds
 
     # get all the files in the target folder
     files = [f for f in os.listdir(target_dir)]
 
-    # there should only exist 1 exported file in the folder
+    # there should only exist 1 exported file in the folder and it should be a .tar.gz
     assert len(files) == 1 and files[0].endswith('.tar.gz')
 
     # IMPORT
