@@ -4,6 +4,8 @@ from PySide2 import QtCore, QtWidgets
 from activity_browser.ui.widgets.dialog import ProjectDeletionDialog
 from activity_browser.signals import signals
 from activity_browser.settings import ab_settings
+from activity_browser.controllers import ProjectController
+import os
 
 
 def test_new_project(qtbot, ab_app, monkeypatch):
@@ -63,3 +65,42 @@ def test_delete_project(qtbot, ab_app, monkeypatch):
             QtCore.Qt.LeftButton
         )
     assert bw.projects.current == ab_settings.startup_project
+
+def test_export_import_projects(qtbot, ab_app, monkeypatch):
+    """Test exporting and importing of a project."""
+    qtbot.waitExposed(ab_app.main_window)
+    used_project = 'default'
+    assert bw.projects.current == used_project
+
+    menu_bar = ab_app.main_window.menu_bar
+
+    # create a folder to use for export/import
+    target_folder_name = 'export_import'
+    os.mkdir(os.getcwd(), target_folder_name)
+    target_dir = os.path.join(os.getcwd(), target_folder_name)
+
+    # EXPORT
+    # patch the export button to run ProjectController.export_project()
+    monkeypatch.setattr(
+        ProjectController, "export_project", lambda *args: None
+    )
+    # patch the file_dialog to return target_dir
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getExistingDirectory",
+        staticmethod(lambda *args, **kwargs: (target_dir, True))
+    )
+
+    # start the export
+    with qtbot.waitSignal(signals.export_database, timeout=5*60*1000):  # 5 minutes
+        menu_bar.export_proj_action.trigger()
+
+    # get all the files that match the export name structure in the target folder
+    files = [f for f in os.listdir(target_dir) if f.startswith(f'brightway2-project-{used_project}') and f.endswith('tar.gz')]
+
+    # there should only exist 1 exported file in the folder
+    assert len(files) == 1
+
+    # IMPORT
+
+
+
