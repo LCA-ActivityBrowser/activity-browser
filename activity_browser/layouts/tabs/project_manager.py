@@ -212,6 +212,12 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
         self.header_widget.setLayout(self.header_layout)
 
+        # auto-search
+        self.debounce_search = QtCore.QTimer()
+        self.debounce_search.setInterval(300)
+        self.debounce_search.setSingleShot(True)
+        self.debounce_search.timeout.connect(self.set_search_term)
+
         self.setup_search()
 
         # Overall Layout
@@ -234,6 +240,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         # 1st search box
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Search")
+        self.search_box.textChanged.connect(self.debounce_search.start)
         self.search_box.returnPressed.connect(self.set_search_term)
 
         # search
@@ -256,5 +263,5 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.header_layout.addWidget(self.reset_search_button)
 
     def set_search_term(self):
-        search_term = self.search_box.text()
+        search_term = self.search_box.text().strip()
         self.table.search(search_term)
