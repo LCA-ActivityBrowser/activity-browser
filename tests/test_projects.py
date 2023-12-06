@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
+from activity_browser.ui.widgets.dialog import ProjectDeletionDialog
 
 
 def test_new_project(qtbot, ab_app, monkeypatch):
@@ -30,17 +31,16 @@ def test_change_project(qtbot, ab_app):
     assert bw.projects.current == 'pytest_project_del'
 
 
-#def test_delete_project(qtbot, ab_app, monkeypatch):
-#    qtbot.waitForWindowShown(ab_app.main_window)
-#    assert bw.projects.current == 'pytest_project_del'
-#    monkeypatch.setattr(
-#        QtWidgets.QMessageBox, "question",
-#        staticmethod(lambda *args: QtWidgets.QMessageBox.Yes)
-#    )
-#    project_tab = ab_app.main_window.left_panel.tabs['Project']
-#    qtbot.mouseClick(
-#        project_tab.projects_widget.delete_project_button,
-#        QtCore.Qt.LeftButton
-#    )
-#
-#    assert bw.projects.current == 'default'
+def test_delete_project(qtbot, ab_app, monkeypatch):
+   qtbot.waitForWindowShown(ab_app.main_window)
+   assert bw.projects.current == 'pytest_project_del'
+
+   monkeypatch.setattr(ProjectDeletionDialog, 'exec_', lambda self: ProjectDeletionDialog.Accepted)
+
+   project_tab = ab_app.main_window.left_panel.tabs['Project']
+   qtbot.mouseClick(
+       project_tab.projects_widget.delete_project_button,
+       QtCore.Qt.LeftButton
+   )
+
+   assert bw.projects.current == 'default'
