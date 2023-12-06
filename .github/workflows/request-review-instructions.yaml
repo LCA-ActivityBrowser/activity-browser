@@ -15,17 +15,15 @@ jobs:
         with:
           script: |
             const pr_number = context.payload.pull_request.number;
-            const reviewer = context.payload.review.user.login;
             
             const fs = require('fs');
             const path = require('path');
 
             // Read CONTRIBUTING.md
-            const markdown = fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, '../tree/master/CONTRIBUTING.md'), 'utf8');
+            const markdown = fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, 'CONTRIBUTING.md'), 'utf8');
             
             // Extract Reviewing guidelines
             const section = markdown.split('### Reviewing pull-requests')[1].split('###')[0];
-
 
             // Loop through each requested reviewer
               for (const reviewer of context.payload.pull_request.requested_reviewers) {
