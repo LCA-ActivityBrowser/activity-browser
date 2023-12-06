@@ -75,9 +75,8 @@ def test_export_import_projects(qtbot, ab_app, monkeypatch):
     menu_bar = ab_app.main_window.menu_bar
 
     # create a folder to use for export/import
-    target_folder_name = 'export_import'
-    os.mkdir(os.getcwd(), target_folder_name)
-    target_dir = os.path.join(os.getcwd(), target_folder_name)
+    target_dir = os.path.join(os.getcwd(), 'export_import')
+    os.mkdir(target_dir)
 
     # EXPORT
     # patch the export button to run ProjectController.export_project()
