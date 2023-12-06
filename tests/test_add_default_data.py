@@ -20,11 +20,14 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
-    with qtbot.waitSignal(signals.change_project, timeout=600000):
+    with qtbot.waitSignal(signals.change_project, timeout=10*60*1000):  # 10 minutes
         qtbot.mouseClick(
             project_tab.databases_widget.add_default_data_button,
             QtCore.Qt.LeftButton
         )
+
+    # biosphere was installed
+    assert 'biosphere3' in bw.databases
 
 
 def test_select_biosphere(qtbot, ab_app):
