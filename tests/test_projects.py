@@ -90,14 +90,14 @@ def test_export_import_projects(qtbot, ab_app, monkeypatch):
     )
 
     # start the export
-    with qtbot.waitSignal(signals.export_database, timeout=5*60*1000):  # 5 minutes
+    with qtbot.waitSignal(signals.export_project, timeout=5*60*1000):  # 5 minutes
         menu_bar.export_proj_action.trigger()
 
-    # get all the files that match the export name structure in the target folder
-    files = [f for f in os.listdir(target_dir) if f.startswith(f'brightway2-project-{used_project}') and f.endswith('tar.gz')]
+    # get all the files in the target folder
+    files = [f for f in os.listdir(target_dir)]
 
     # there should only exist 1 exported file in the folder
-    assert len(files) == 1
+    assert len(files) == 1 and files[0].endswith('.tar.gz')
 
     # IMPORT
 
