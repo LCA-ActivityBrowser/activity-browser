@@ -1,7 +1,7 @@
 name: notify reviewer
 on:
-  pull_request_review:
-    types: [assigned]
+  pull_request:
+    types: [review_requested]
 
 jobs:
   comment:
