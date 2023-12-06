@@ -1,0 +1,37 @@
+name: notify reviewer
+on:
+  pull_request:
+    types: [review_requested]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Comment on PR
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const pr_number = context.payload.pull_request.number;
+            
+            const fs = require('fs');
+            const path = require('path');
+
+            // Read CONTRIBUTING.md
+            const markdown = fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, 'CONTRIBUTING.md'), 'utf8');
+            
+            // Extract Reviewing guidelines
+            const section = markdown.split('### Reviewing pull-requests')[1].split('###')[0];
+
+            // Loop through each requested reviewer
+              for (const reviewer of context.payload.pull_request.requested_reviewers) {
+                // Post a comment tagging the reviewer asking them to review following the guidelines
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr_number,
+                  body: `> [!NOTE]\n> @${reviewer.login}, your review was requested for this Pull Request. Please review this PR following these guidelines:\n\n${section}\n\n\n🤖 _beep boop! I'm a bot and this was an automated message._`,
+                });
+              }
