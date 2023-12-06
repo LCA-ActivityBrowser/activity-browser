@@ -29,7 +29,7 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: issue.number,
-                  body: `This issue has been resolved in the [new release of Activity Browser (${milestone_title})](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title}) 🚀, you can get the new version by [updating Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).\n\nIf you would like to be kept up to date on new releases of Activity Browser, consider subscribing to our [updates mailing list](https://brightway.groups.io/g/AB-updates/topics), which you can do [here](https://brightway.groups.io/g/AB-updates/join).\n\n\n_🤖 beep boop! I'm a bot and this message was an automated action.\nIf updating does not make sense for this issue, just ignore this._`,
+                  body: `> [!NOTE]\n>This issue has been resolved in the new release of Activity Browser [(${milestone_title})](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title}) 🚀. You can get the new version by [updating Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).\n>\n>Do you want to be notified of new releases of Activity Browser? [Subscribe](https://brightway.groups.io/g/AB-updates/join) to our [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) ✉.\n\n\n🤖 _beep boop! I'm a bot and this was an automated message.\nIf updating does not make sense for this issue, just ignore this._`,
                 });
               }
             }
