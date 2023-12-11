@@ -132,7 +132,7 @@ For license information please see the copyright on <a href="https://github.com/
         msgBox.exec_()
 
     def raise_issue_github(self):
-        url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
+        url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new/choose')
         QtGui.QDesktopServices.openUrl(url)
 
     @Slot(name="testBiosphereExists")
