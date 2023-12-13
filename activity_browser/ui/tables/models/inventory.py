@@ -2,7 +2,6 @@
 import datetime
 import functools
 
-import arrow
 import brightway2 as bw
 from bw2data.utils import natural_sort
 import numpy as np
@@ -41,9 +40,7 @@ class DatabasesModel(PandasModel):
 
         data = []
         for name in natural_sort(bw.databases):
-            dt = bw.databases[name].get("modified", "")
-            if dt:
-                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
+            dt = datetime.datetime.strptime(bw.databases[name].get("modified", ""), '%Y-%m-%dT%H:%M:%S.%f')
             # final column includes interactive checkbox which shows read-only state of db
             database_read_only = project_settings.db_is_readonly(name)
             data.append({
