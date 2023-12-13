@@ -70,7 +70,7 @@ class DatabaseController(QObject):
     def install_default_data(self) -> None:
 
         # let user choose version
-        version_dialog = EcoinventVersionDialog()
+        version_dialog = EcoinventVersionDialog(self.window)
         if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
         version = version_dialog.options.currentText()
 
