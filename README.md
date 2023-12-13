@@ -69,7 +69,7 @@ activity-browser
 
 We recommend that you use **conda** to manage your python installation. You can install [Anaconda](https://www.anaconda.com/products/individual) or the more compact [miniconda](https://conda.io/miniconda.html) (Python 3 version) for your operating system. Installation instructions for miniconda can be found [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html). See also the [conda user guide](https://docs.conda.io/projects/conda/en/latest/user-guide/index.html) or the [Conda cheat sheet](https://docs.conda.io/projects/conda/en/latest/_downloads/843d9e0198f2a193a3484886fa28163c/conda-cheatsheet.pdf).
 
-Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update conda`.
+Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update -n base conda`.
 
 ### Add the Conda-Forge channel
 The activity-browser has many dependencies that are managed by the [conda-forge](https://conda.io/docs/user-guide/tasks/manage-channels.html) channel. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following:
