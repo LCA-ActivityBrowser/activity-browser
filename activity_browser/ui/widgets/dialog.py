@@ -108,12 +108,22 @@ class TupleNameDialog(QtWidgets.QDialog):
     @classmethod
     def get_combined_name(cls, parent: QtWidgets.QWidget, title: str, label: str,
                           fields: tuple, extra: str = "Extra") -> 'TupleNameDialog':
+        """
+        Set-up a TupleNameDialog pop-up with supplied title + label. Construct fields
+        for each field of the supplied tuple. Last field of the tuple is appended with
+        the extra string, to avoid duplicates.
+        """
         obj = cls(parent)
         obj.setWindowTitle(title)
         obj.name_label.setText(label)
-        for field in fields:
-            obj.add_input_field(str(field))
-        obj.add_input_field("", extra)
+
+        # set up a field for each tuple element
+        for i, field in enumerate(fields):
+            field_content = str(field)
+
+            # if it's the last element, add extra to the string
+            if i + 1 == len(fields): field_content += extra
+            obj.add_input_field(field_content)
         obj.input_box.updateGeometry()
         obj.changed()
         return obj
