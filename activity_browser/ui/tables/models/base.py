@@ -42,10 +42,17 @@ class PandasModel(QAbstractTableModel):
         return 0 if self._dataframe is None else self._dataframe.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
+        """
+        Return value for table index based on a certain DisplayRole enum.
+        
+        More on DisplayRole enums: https://doc.qt.io/qt-5/qt.html#ItemDataRole-enum
+        """
         if not index.isValid():
             return None
 
-        if role == Qt.DisplayRole:
+        # instantiate value only in case of DisplayRole or ToolTipRole       
+        value = None
+        if role == Qt.DisplayRole or role == Qt.ToolTipRole:
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
                 value = float(value)
@@ -55,7 +62,22 @@ class PandasModel(QAbstractTableModel):
                 value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
-            return value
+        
+        # immediately return value in case of DisplayRole
+        if role == Qt.DisplayRole: return value
+        
+        # in case of ToolTipRole, check whether content fits the cell
+        if role == Qt.ToolTipRole:
+            parent = self.parent()
+            fontMetrics = parent.fontMetrics()
+
+            # get the width of both the cell, and the text
+            column_width = parent.columnWidth(index.column())
+            text_width = fontMetrics.horizontalAdvance(value)
+            margin = 10
+
+            # only show tooltip if the text is wider then the cell minus the margin
+            if text_width > column_width - margin: return value
 
         if role == Qt.ForegroundRole:
             col_name = self._dataframe.columns[index.column()]

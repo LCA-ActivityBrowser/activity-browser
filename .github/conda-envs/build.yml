@@ -1,8 +1,6 @@
 name: build
 channels:
   - conda-forge
-  - cmutel
-  - bsteubing
 dependencies:
   - conda-build
   - anaconda-client

@@ -21,7 +21,7 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 ### Some highlights
 
 - **Fast LCA calculations**: for multiple reference flows, impact categories, and scenarios
-- **A productivity tool for brightway**: model in brightway (python) and see the results in the AB or vice-versa 
+- **A productivity tool for brightway**: model in brightway (python) and see the results in the AB or vice-versa
 - **Advanced modeling:** Use parameters, scenarios (including prospective LCI databases from [premise](https://premise.readthedocs.io/en/latest/)), uncertainties and our Graph Explorer
 - **Advanced analyses:** Contribution analyses, Sankey Diagrams, Monte Carlo, and Global Sensitivity Analysis
 
@@ -49,7 +49,7 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 You can install and start the activity-browser like this:
 
 ```bash
-conda create -n ab -c conda-forge activity-browser
+conda create -n ab -c conda-forge --solver libmamba activity-browser
 conda activate ab
 activity-browser
 ```
@@ -69,13 +69,17 @@ activity-browser
 
 We recommend that you use **conda** to manage your python installation. You can install [Anaconda](https://www.anaconda.com/products/individual) or the more compact [miniconda](https://conda.io/miniconda.html) (Python 3 version) for your operating system. Installation instructions for miniconda can be found [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html). See also the [conda user guide](https://docs.conda.io/projects/conda/en/latest/user-guide/index.html) or the [Conda cheat sheet](https://docs.conda.io/projects/conda/en/latest/_downloads/843d9e0198f2a193a3484886fa28163c/conda-cheatsheet.pdf).
 
-Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update conda`.
+Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update -n base conda`.
 
 ### Add the Conda-Forge channel
 The activity-browser has many dependencies that are managed by the [conda-forge](https://conda.io/docs/user-guide/tasks/manage-channels.html) channel. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following:
 
 ```bash
 conda config --prepend channels conda-forge
+```
+Also configure conda to use the libmamba solver which is significantly faster than the default.
+```bash
+conda config --set solver libmamba
 ```
 
 ### Installing Activity Browser
@@ -165,7 +169,7 @@ Plugins are conda packages (like the Activity Browser). To add a plugin simply i
 
 _Nb: add `-c conda-forge` to the install command like below to avoid problems with dependencies._
 
-Ex: 
+Ex:
 
 ```
 conda activate ab
@@ -178,7 +182,7 @@ Once a new plugin is installed restart the Activity Browser.
 
 ### enabling a plugin
 
-Plugins are enabled **per-project**. Simply open the plugin manager in the `Tools > Plugins` menu. 
+Plugins are enabled **per-project**. Simply open the plugin manager in the `Tools > Plugins` menu.
 
 Close the plugin manager. New tabs should have appeared in the AB (each plugin can spawn one tab on each left/right panel).
 
@@ -219,15 +223,4 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - 2016-2023: Bernhard Steubing (Leiden University)
 
 # License
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published
-by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You can find the license information for Activity Browser in the [license file](https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/LICENSE.txt).
