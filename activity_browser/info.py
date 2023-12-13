@@ -32,7 +32,7 @@ def get_compatible_versions() -> list:
         else:
             # silently try a local fallback:
             log.debug(f'Reading online compatible ecoinvent versions failed '
-                      f'-attempting local fallback- with this error: {error[:500]}')
+                      f'-attempting local fallback- with this error: {error}')
             file_path = os.path.join(os.path.dirname(__file__),
                                      'bwutils',
                                      'ecoinvent_biosphere_versions',
@@ -55,7 +55,7 @@ def get_compatible_versions() -> list:
         return ei_versions
 
     except Exception as error:
-        log.debug(f'Reading local fallback failed with: {error[:500]}')
+        log.debug(f'Reading local fallback failed with: {error}')
         return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1']
 
 
