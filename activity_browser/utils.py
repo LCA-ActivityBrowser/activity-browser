@@ -47,15 +47,15 @@ def safe_link_fetch(url: str) -> Tuple[object, object]:
     Returns
     -------
     object: error if any, otherwise None
-    object: response
+    object: response if no error, otherwise None
     """
     try:
         response = requests.get(url)  # retrieve the page from the URL
         response.raise_for_status()
     except Exception as error:
-        return (error, response)
+        return (None, error)
 
-    return (None, response)
+    return (response, None)
 
 
 def sort_semantic_versions(versions: Iterable, highest_to_lowest: bool = True) -> list:
