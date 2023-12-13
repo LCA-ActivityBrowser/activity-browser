@@ -1,3 +1,5 @@
+from typing import Tuple, Iterable
+import requests
 from pathlib import Path
 import os
 from PySide2 import QtWidgets
@@ -32,3 +34,33 @@ def savefilepath(default_file_name: str = "AB_file", file_filter: str = "All Fil
         filter=file_filter,
     )
     return filepath
+
+
+def safe_link_fetch(url: str) -> Tuple[object, object]:
+    """
+    Get a web-page or file from the internet or the error of getting the link.
+
+    Parameters
+    ----------
+    url: a link
+
+    Returns
+    -------
+    object: error if any, otherwise None
+    object: response if no error, otherwise None
+    """
+    try:
+        response = requests.get(url)  # retrieve the page from the URL
+        response.raise_for_status()
+    except Exception as error:
+        return (None, error)
+
+    return (response, None)
+
+
+def sort_semantic_versions(versions: Iterable, highest_to_lowest: bool = True) -> list:
+    """Return a sorted (default highest to lowest) list of semantic versions.
+
+    Sorts based on the semantic versioning system.
+    """
+    return list(sorted(versions, key=lambda x: tuple(map(int, x.split('.'))), reverse=highest_to_lowest))

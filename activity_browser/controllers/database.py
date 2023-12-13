@@ -9,13 +9,15 @@ from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
 from ..ui.widgets import (
     CopyDatabaseDialog, DatabaseLinkingDialog, DefaultBiosphereDialog,
-    BiosphereUpdater, DatabaseLinkingResultsDialog
+    BiosphereUpdater, DatabaseLinkingResultsDialog, EcoinventVersionDialog
 )
 from ..ui.wizards.db_export_wizard import DatabaseExportWizard
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
 from ..settings import project_settings
 from ..signals import signals
 from .project import ProjectController
+from ..info import __ei_versions__
+from ..utils import sort_semantic_versions
 
 import logging
 from activity_browser.logger import ABHandler
@@ -66,7 +68,13 @@ class DatabaseController(QObject):
 
     @Slot(name="bw2Setup")
     def install_default_data(self) -> None:
-        dialog = DefaultBiosphereDialog(self.window)
+
+        # let user choose version
+        version_dialog = EcoinventVersionDialog(self.window)
+        if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
+        version = version_dialog.options.currentText()
+
+        dialog = DefaultBiosphereDialog(version[:3], self.window)  # only read Major/Minor part of version
         dialog.show()
 
     @Slot(name="updateBiosphereDialog")
@@ -74,15 +82,29 @@ class DatabaseController(QObject):
         """ Open a popup with progression bar and run through the different
         functions for adding ecoinvent biosphere flows.
         """
-        ok = QtWidgets.QMessageBox.question(
+        # warn user of consequences of updating
+        warn_dialog = QtWidgets.QMessageBox.question(
             self.window, "Update biosphere3?",
-            "Updating the biosphere3 database cannot be undone!",
+            'Newer versions of the biosphere database may not\n'
+            'always be compatible with older ecoinvent versions.\n'
+            '\nUpdating the biosphere3 database cannot be undone!\n',
             QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
             QtWidgets.QMessageBox.Abort
         )
-        if ok == QtWidgets.QMessageBox.Ok:
-            dialog = BiosphereUpdater(self.window)
-            dialog.show()
+        if warn_dialog is not QtWidgets.QMessageBox.Ok: return
+
+        # let user choose version
+        version_dialog = EcoinventVersionDialog(self.window)
+        if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
+        version = version_dialog.options.currentText()
+
+        # reduce biosphere update list up to the selected version
+        sorted_versions = sort_semantic_versions(__ei_versions__, highest_to_lowest=False)
+        ei_versions = sorted_versions[:sorted_versions.index(version) + 1]
+
+        # show updating dialog
+        dialog = BiosphereUpdater(ei_versions, self.window)
+        dialog.show()
 
     @Slot(name="addDatabase")
     def add_database(self):
