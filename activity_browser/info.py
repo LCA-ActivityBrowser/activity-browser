@@ -26,13 +26,13 @@ def get_compatible_versions() -> list:
     try:
         # read versions
         versions_URL = 'https://raw.githubusercontent.com/marc-vdm/activity-browser/better_biosphere_handling/activity_browser/bwutils/ecoinvent_biosphere_versions/compatible_ei_versions.txt'
-        success, page = safe_link_fetch(versions_URL)
-        if success:
+        error, page = safe_link_fetch(versions_URL)
+        if not error:
             file = page.text
         else:
             # silently try a local fallback:
             log.debug(f'Reading online compatible ecoinvent versions failed '
-                      f'-attempting local fallback- with this error: {page}')
+                      f'-attempting local fallback- with this error: {error[:500]}')
             file_path = os.path.join(os.path.dirname(__file__),
                                      'bwutils',
                                      'ecoinvent_biosphere_versions',
@@ -54,8 +54,8 @@ def get_compatible_versions() -> list:
         log.debug(f'Following versions of ecoinvent are compatible with AB {__version__}: {ei_versions}')
         return ei_versions
 
-    except Exception as e:
-        log.debug(f'Reading local fallback failed with: {e}')
+    except Exception as error:
+        log.debug(f'Reading local fallback failed with: {error[:500]}')
         return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1']
 
 

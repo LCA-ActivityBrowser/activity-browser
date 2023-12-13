@@ -36,7 +36,7 @@ def savefilepath(default_file_name: str = "AB_file", file_filter: str = "All Fil
     return filepath
 
 
-def safe_link_fetch(url: str) -> Tuple[bool, object]:
+def safe_link_fetch(url: str) -> Tuple[object, object]:
     """
     Get a web-page or file from the internet or the error of getting the link.
 
@@ -46,14 +46,16 @@ def safe_link_fetch(url: str) -> Tuple[bool, object]:
 
     Returns
     -------
-    bool: True if no Exceptions, False if Exceptions
-    object: page if no Exceptions, Exception if Exceptions
+    object: error if any, otherwise None
+    object: response
     """
     try:
-        page = requests.get(url)  # retrieve the page from the URL
-        return (True, page)
-    except Exception as e:
-        return (False, e)
+        response = requests.get(url)  # retrieve the page from the URL
+        response.raise_for_status()
+    except Exception as error:
+        return (error, response)
+
+    return (None, response)
 
 
 def sort_semantic_versions(versions: Iterable, highest_to_lowest: bool = True) -> list:
