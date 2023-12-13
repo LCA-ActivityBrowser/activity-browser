@@ -1262,7 +1262,7 @@ class EcoinventVersionDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(EcoinventVersionDialog, self).__init__(parent)
 
-        self.setWindowTitle("Choose an ecoinvent version")
+        self.setWindowTitle("Choose a biosphere version")
 
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -1271,8 +1271,8 @@ class EcoinventVersionDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         self.layout = QtWidgets.QVBoxLayout()
-        self.label = QtWidgets.QLabel('Choose which ecoinvent-compatible biosphere\n'
-                                      'version you would like to use')
+        self.label = QtWidgets.QLabel('Choose which biosphere version\n'
+                                      'you would like to use')
         self.options = QtWidgets.QComboBox()
 
         # Add available ecoinvent versions to the combobox
