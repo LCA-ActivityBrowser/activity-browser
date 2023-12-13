@@ -73,7 +73,7 @@ class PandasModel(QAbstractTableModel):
 
             # get the width of both the cell, and the text
             column_width = parent.columnWidth(index.column())
-            text_width = fontMetrics.horizontalAdvance(value)
+            text_width = fontMetrics.horizontalAdvance(str(value))
             margin = 10
 
             # only show tooltip if the text is wider then the cell minus the margin
