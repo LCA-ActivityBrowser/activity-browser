@@ -107,23 +107,37 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
+        # contextmenu items
+        self.open_activity_action = QtWidgets.QAction(
+            qicons.right, 'Open ***', None
+        )
+        self.open_activity_graph_action = QtWidgets.QAction(
+            qicons.graph_explorer, 'Open *** in Graph Explorer', None
+        )
         self.new_activity_action = QtWidgets.QAction(
-            qicons.add, "Add new activity", None
+            qicons.add, 'Add new activity', None
         )
         self.duplicate_activity_action = QtWidgets.QAction(
-            qicons.copy, "Duplicate activity/-ies", None
+            qicons.copy, 'Duplicate ***', None
         )
         self.duplicate_activity_new_loc_action = QtWidgets.QAction(
-            qicons.copy, "Duplicate activity to new location", None
+            qicons.copy, 'Duplicate activity to new location', None
         )
         self.duplicate_activity_new_loc_action.setToolTip(
-            "Duplicate this activity to another location.\n"
-            "Link the exchanges to a new location if it is availabe.")  # only for 1 activity
+            'Duplicate this activity to another location.\n'
+            'Link the exchanges to a new location if it is available.')  # only for 1 activity
         self.delete_activity_action = QtWidgets.QAction(
-            qicons.delete, "Delete activity/-ies", None
+            qicons.delete, 'Delete ***', None
         )
+        self.relink_activity_exch_action = QtWidgets.QAction(
+            qicons.edit, 'Relink the activity exchanges'
+        )
+        self.duplicate_other_db_action = QtWidgets.QAction(
+            qicons.duplicate_to_other_database, 'Duplicate to other database'
+        )
+
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
-            qicons.superstructure, "Exchanges for scenario difference file", None
+            qicons.superstructure, 'Exchanges for scenario difference file', None
         )
         self.connect_signals()
 
@@ -142,62 +156,67 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             return
 
         if len(self.selectedIndexes()) > 1:
+            # more than 1 activity is selected
             act = 'activities'
             self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.relink_activity_exch_action.setEnabled(False)
         elif len(self.selectedIndexes()) == 1 and self.db_read_only:
             act = 'activity'
             self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.relink_activity_exch_action.setEnabled(False)
         else:
             act = 'activity'
             self.duplicate_activity_new_loc_action.setEnabled(True)
+            self.relink_activity_exch_action.setEnabled(True)
 
-        self.duplicate_activity_action.setText("Duplicate {}".format(act))
-        self.delete_activity_action.setText("Delete {}".format(act))
+        self.open_activity_action.setText(f'Open {act}')
+        self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
+        self.duplicate_activity_action.setText(f'Duplicate {act}')
+        self.delete_activity_action.setText(f'Delete {act}')
 
         menu = QtWidgets.QMenu()
+
         if len(self.model._dataframe) == 0:
             # if the database is empty, only add the 'new' activity option and return
             menu.addAction(self.new_activity_action)
             menu.exec_(event.globalPos())
             return
 
-        menu.addAction(qicons.right, "Open activity", self.open_activity_tabs)
-        menu.addAction(
-            qicons.graph_explorer, "Open in Graph Explorer",
-            lambda: signals.open_activity_graph_tab.emit(
-                self.model.get_key(self.currentIndex())
-            )
-        )
-        menu.addAction(self.new_activity_action)
-        menu.addAction(self.duplicate_activity_action)
-        menu.addAction(self.duplicate_activity_new_loc_action)
-        menu.addAction(self.delete_activity_action)
-        menu.addAction(
-            qicons.edit, "Relink the activity exchanges",
-            self.relink_activity_exchanges
-        )
-        menu.addAction(
-            qicons.duplicate_to_other_database, "Duplicate to other database",
-            self.duplicate_activities_to_db
-        )
-
-        # Submenu copy to clipboard
+        # submenu duplicates
+        submenu_dupl = QtWidgets.QMenu(menu)
+        submenu_dupl.setTitle(f'Duplicate {act}')
+        submenu_dupl.setIcon(qicons.copy)
+        submenu_dupl.addAction(self.duplicate_activity_action)
+        submenu_dupl.addAction(self.duplicate_activity_new_loc_action)
+        submenu_dupl.addAction(self.duplicate_other_db_action)
+        # submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
         submenu_copy.setTitle('Copy to clipboard')
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+
+        menu.addAction(self.open_activity_action)
+        menu.addAction(self.open_activity_graph_action)
+        menu.addAction(self.new_activity_action)
+        menu.addMenu(submenu_dupl)
+        menu.addAction(self.delete_activity_action)
+        menu.addAction(self.relink_activity_exch_action)
         menu.addMenu(submenu_copy)
 
         menu.exec_(event.globalPos())
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
+        self.open_activity_action.triggered.connect(self.open_activity_tabs)
+        self.open_activity_graph_action.triggered.connect(self.open_graph_explorer)
         self.new_activity_action.triggered.connect(
             lambda: signals.new_activity.emit(self.database_name)
         )
         self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
         self.duplicate_activity_new_loc_action.triggered.connect(self.duplicate_activity_to_new_loc)
         self.delete_activity_action.triggered.connect(self.delete_activities)
+        self.relink_activity_exch_action.triggered.connect(self.relink_activity_exchanges)
+        self.duplicate_other_db_action.triggered.connect(self.duplicate_activities_to_db)
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
         self.doubleClicked.connect(self.open_activity_tab)
         self.model.updated.connect(self.update_proxy_model)
@@ -224,6 +243,12 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         for key in (self.model.get_key(p) for p in self.selectedIndexes()):
             signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
+
+    @Slot(name='openActivityGraphExplorer')
+    def open_graph_explorer(self):
+        """Open the selected activities in the graph explorer."""
+        for key in (self.model.get_key(p) for p in self.selectedIndexes()):
+            signals.open_activity_graph_tab.emit(key)
 
     @Slot(name="relinkActivityExchanges")
     def relink_activity_exchanges(self) -> None:
@@ -283,3 +308,5 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             self.new_activity_action.setEnabled(not self.db_read_only)
             self.duplicate_activity_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
+            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
+            self.relink_activity_exch_action.setEnabled(not self.db_read_only)

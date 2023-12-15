@@ -94,6 +94,7 @@ class CSActivityModel(CSGenericModel):
         return [{x["key"]: x["Amount"]} for x in selection]
 
     def check_activities(self, db):
+        if db == 'biosphere3': return  # if biosphere changed, we don't need to check as it doesn't have activities.
         databases = [list(k.keys())[0][0] for k in self.activities]
         if db in databases:
             self.sync()
