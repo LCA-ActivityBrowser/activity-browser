@@ -48,6 +48,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
     def __init__(self, cs_name, parent=None):
         super().__init__(parent, css_file="sankey_navigator.css")
+
+        self.cache = {}  # we cache the calculated data to improve responsiveness
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
@@ -86,8 +88,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
         self.scenario_cb.currentIndexChanged.connect(self.new_sankey)
-        # self.cutoff_sb.valueChanged.connect(self.new_sankey)
-        # self.max_calc_sb.valueChanged.connect(self.new_sankey)
 
     def construct_layout(self) -> None:
         """Layout of Sankey Navigator"""
@@ -106,18 +106,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay.addWidget(self.func_unit_cb, 0, 1)
         grid_lay.addWidget(self.scenario_cb, 1, 1)
         grid_lay.addWidget(self.method_cb, 2, 1)
-
-        # self.reload_pb = QtWidgets.QPushButton('Reload')
-        # self.reload_pb.clicked.connect(self.new_sankey)
-        # grid_lay.addWidget(self.reload_pb, 2, 0)
-        # self.close_pb = QtWidgets.QPushButton('Close')
-        # self.close_pb.clicked.connect(self.switch_to_main)
-
-        # grid_lay.addWidget(self.close_pb, 0, 5)
-        # self.color_attr_cb = QtWidgets.QComboBox()
-        # self.color_attr_cb.addItems(['flow', 'location', 'name'])
-        # grid_lay.addWidget(QtWidgets.QLabel('color by: '), 0, 2)
-        # grid_lay.addWidget(self.color_attr_cb, 0, 3)
 
         # cut-off
         grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 2, 2)
@@ -141,10 +129,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         hlay = QtWidgets.QHBoxLayout()
         hlay.addLayout(grid_lay)
 
-        # checkbox cumulative impact
-        # self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
-        # self.checkbox_cumulative_impact.setChecked(True)
-
         # Controls Layout
         hl_controls = QtWidgets.QHBoxLayout()
         hl_controls.addWidget(self.button_back)
@@ -155,15 +139,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         hl_controls.addWidget(self.button_toggle_help)
         hl_controls.addStretch(1)
 
-        # Checkboxes Layout
-        # self.hl_checkboxes = QtWidgets.QHBoxLayout()
-        # self.hl_checkboxes.addWidget(self.checkbox_cumulative_impact)
-        # self.hl_checkboxes.addStretch(1)
-
         # Layout
         self.layout.addLayout(hl_controls)
         self.layout.addLayout(hlay)
-        # self.vlay.addLayout(self.hl_checkboxes)
         self.layout.addWidget(self.label_help)
         self.layout.addWidget(self.view)
         self.setLayout(self.layout)
@@ -214,6 +192,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.method_cb.blockSignals(False)
 
     def new_sankey(self) -> None:
+        """(re)-generate the sankey diagram."""
         log.info("New Sankey for CS: ", self.cs)
         demand_index = self.func_unit_cb.currentIndex()
         method_index = self.method_cb.currentIndex()
@@ -235,8 +214,16 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                       max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
         log.info("Demand / Method: {} {}".format(demand, method))
-        start = time.time()
 
+        cache_key = (str(demand), method_index, scenario_index, cut_off, max_calc)
+        if data := self.cache.get(cache_key, False):
+            # this Sankey is already cached, generate the Sankey with the cached data
+            self.graph.new_graph(data)
+            self.has_sankey = bool(self.graph.json_data)
+            self.send_json()
+            return
+
+        start = time.time()
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
@@ -248,6 +235,10 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
         log.info("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
 
+        # cache the generated Sankey data
+        self.cache[cache_key] = data
+
+        # generate the new Sankey
         self.graph.new_graph(data)
         self.has_sankey = bool(self.graph.json_data)
         self.send_json()

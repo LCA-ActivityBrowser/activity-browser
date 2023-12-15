@@ -50,26 +50,11 @@ class MonteCarloLCA(object):
         self.activity_keys = [list(fu.keys())[0] for fu in self.func_units]
         self.activity_index = {key: index for index, key in enumerate(self.activity_keys)}
         self.rev_activity_index = {index: key for index, key in enumerate(self.activity_keys)}
-        # previously: self.rev_activity_index = {v: k for k, v in self.activity_keys}
-        # self.fu_index = {k: i for i, k in enumerate(self.activity_keys)}
 
         # methods
         self.methods = self.cs['ia']
         self.method_index = {m: i for i, m in enumerate(self.methods)}
         self.rev_method_index = {i: m for i, m in enumerate(self.methods)}
-        # previously: self.rev_method_index = {v: k for k, v in self.method_index.items()}
-        # self.rev_method_index = {v: k for k, v in self.method_index.items()}
-
-        # todo: get rid of the below
-        self.func_unit_translation_dict = {str(bw.get_activity(list(func_unit.keys())[0])): func_unit
-                                           for func_unit in self.func_units}
-        if len(self.func_unit_translation_dict) != len(self.func_units):
-            self.func_unit_translation_dict = {}
-            for fu in self.func_units:
-                act = bw.get_activity(next(iter(fu)))
-                self.func_unit_translation_dict["{} {}".format(act, act[0])] = fu
-        self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
-        self.func_key_list = list(self.func_key_dict.keys())
 
         # GSA calculation variables
         self.A_matrices = list()

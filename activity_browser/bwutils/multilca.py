@@ -170,17 +170,17 @@ class MLCA(object):
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
 
-        # TODO: get rid of the below
-        self.func_unit_translation_dict = {
-            str(bw.get_activity(list(func_unit.keys())[0])): func_unit for func_unit in self.func_units
-        }
-        if len(self.func_unit_translation_dict) != len(self.func_units):
-            self.func_unit_translation_dict = {}
-            for fu in self.func_units:
-                act = bw.get_activity(next(iter(fu)))
-                self.func_unit_translation_dict["{} {}".format(act, act[0])] = fu
+        name = 'name'
+        ref_prod = 'reference product'
+        db = 'database'
+        self.func_unit_translation_dict = {}
+        for fu in self.func_units:
+            key = next(iter(fu))
+            amt = fu[key]
+            act = bw.get_activity(key)
+            self.func_unit_translation_dict[f'{act[name]} | {act[ref_prod]} | {act[db]} | {amt}'] = fu
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
-        self.func_key_list = list(self.func_key_dict.keys())
+        self.func_key_list = list(self.func_unit_translation_dict.keys())
 
     def _construct_lca(self):
         return bw.LCA(demand=self.func_units_dict, method=self.methods[0])
