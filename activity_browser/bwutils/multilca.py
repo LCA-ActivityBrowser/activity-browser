@@ -122,8 +122,8 @@ class MLCA(object):
         if len([v for rf in cs['inv'] for v in rf.values() if v == 0]) != 0:
             msg = QMessageBox()
             msg.setWindowTitle('Reference flows equal 0')
-            msg.setInformativeText('All reference flows must be non-zero.\n' +
-                                   'Please enter a valid value before calculating LCA results again.')
+            msg.setText('All reference flows must be non-zero.')
+            msg.setInformativeText('Please enter a valid value before calculating LCA results again.')
             msg.setIcon(QMessageBox.Warning)
             QApplication.restoreOverrideCursor()
             msg.exec_()
