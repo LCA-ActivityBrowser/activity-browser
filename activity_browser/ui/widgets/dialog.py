@@ -59,7 +59,7 @@ class TupleNameDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.name_label = QtWidgets.QLabel("New name")
         self.view_name = QtWidgets.QLabel()
-        self.no_comma_validator = QtGui.QRegExpValidator(QRegExp("[^,]+"))
+
         self.input_fields = []
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -94,13 +94,24 @@ class TupleNameDialog(QtWidgets.QDialog):
 
     @Slot(name="inputChanged")
     def changed(self) -> None:
-        """Rebuild the view_name with text from all of the input fields."""
+        """
+        Actions when the text within the TupleNameDialog is edited by the user
+        """
+        # rebuild the combined name example 
         self.view_name.setText("'({})'".format(self.combined_names))
+
+        # disable the button (and its outline) when all fields are empty
+        if self.combined_names == "":
+            self.buttons.buttons()[0].setDefault(False)
+            self.buttons.buttons()[0].setDisabled(True)
+        # enable when that's not the case (anymore)
+        else:
+            self.buttons.buttons()[0].setDisabled(False)
+            self.buttons.buttons()[0].setDefault(True)
 
     def add_input_field(self, text: str, placeholder: str = None) -> None:
         edit = QtWidgets.QLineEdit(text, self)
         edit.setPlaceholderText(placeholder or "")
-        edit.setValidator(self.no_comma_validator)
         edit.textChanged.connect(self.changed)
         self.input_fields.append(edit)
         self.input_box.layout().addWidget(edit)
