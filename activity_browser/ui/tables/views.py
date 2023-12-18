@@ -3,7 +3,7 @@ import os
 from typing import Optional
 
 from bw2data.filesystem import safe_filename
-from PySide2.QtCore import QSize, QSortFilterProxyModel, Qt, Slot, QPoint, Signal, QRect, QTimer
+from PySide2.QtCore import QSize, Qt, Slot, QPoint, Signal, QRect, QTimer
 from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
     QHeaderView, QStyle, QStyleOptionButton,QLineEdit, QWidgetAction, QWidget, QHBoxLayout, QToolButton
 from PySide2.QtGui import QKeyEvent, QDoubleValidator
@@ -13,6 +13,7 @@ from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 from ..icons import qicons
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
+from .models.base import ABSortProxyModel
 
 import logging
 from activity_browser.logger import ABHandler
@@ -35,7 +36,6 @@ class ABDataFrameView(QTableView):
         self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
-#        self.setStyleSheet("alternate-background-color: #efefef; background-color: #fcfcfc; opacity: 1;")
         self.setSortingEnabled(True)
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         self.verticalHeader().setVisible(True)
@@ -48,7 +48,7 @@ class ABDataFrameView(QTableView):
         # Creating (and typing) them here allows PyCharm to see them as
         # valid attributes.
         self.model: Optional[PandasModel] = None
-        self.proxy_model: Optional[QSortFilterProxyModel] = None
+        self.proxy_model: Optional[ABSortProxyModel] = None
 
     def get_max_height(self) -> int:
         return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
@@ -62,7 +62,7 @@ class ABDataFrameView(QTableView):
 
     @Slot(name="updateProxyModel")
     def update_proxy_model(self) -> None:
-        self.proxy_model = QSortFilterProxyModel(self)
+        self.proxy_model = ABSortProxyModel(self)
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         self.setModel(self.proxy_model)
@@ -501,7 +501,7 @@ class CustomHeader(QHeaderView):
         self.viewport().update()
 
 
-class ABMultiColumnSortProxyModel(QSortFilterProxyModel):
+class ABMultiColumnSortProxyModel(ABSortProxyModel):
     """ Subclass of QSortFilterProxyModel to enable sorting on multiple columns.
 
     The main purpose of this subclass is to override def filterAcceptsRow().
