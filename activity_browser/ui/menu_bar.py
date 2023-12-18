@@ -26,6 +26,10 @@ class MenuBar(QtWidgets.QMenuBar):
             self.window.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon),
             "&Export database...", None
         )
+        self.export_proj_action = QtWidgets.QAction(
+            self.window.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon),
+            "&Export this project...", None
+        )
         self.import_db_action = QtWidgets.QAction(
             qicons.import_db, '&Import database...', None
         )
@@ -52,6 +56,7 @@ class MenuBar(QtWidgets.QMenuBar):
         signals.databases_changed.connect(self.biosphere_exists)
         self.update_biosphere_action.triggered.connect(signals.update_biosphere.emit)
         self.export_db_action.triggered.connect(signals.export_database.emit)
+        self.export_proj_action.triggered.connect(signals.export_project.emit)
         self.import_db_action.triggered.connect(signals.import_database.emit)
         self.manage_plugins_action.triggered.connect(signals.manage_plugins.emit)
 
@@ -59,6 +64,7 @@ class MenuBar(QtWidgets.QMenuBar):
         """Build the menu for specific importing/export/updating actions."""
         self.file_menu.addAction(self.import_db_action)
         self.file_menu.addAction(self.export_db_action)
+        self.file_menu.addAction(self.export_proj_action)
         self.file_menu.addAction(self.update_biosphere_action)
         self.file_menu.addAction(
             qicons.settings,

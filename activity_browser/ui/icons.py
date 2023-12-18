@@ -56,7 +56,6 @@ class Icons(object):
     filter = create_path('main', 'filter.png')
     filter_outline = create_path('main', 'filter_outline.png')
 
-
     # database
     import_db = create_path('main', 'import_database.png')
     duplicate_database = create_path('main', 'duplicate_database.png')

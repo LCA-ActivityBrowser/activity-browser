@@ -19,6 +19,8 @@ class Signals(QObject):
     # Project
     change_project = Signal(str)  # Change the project | project name
     new_project = Signal()  # Start a new project
+    import_project = Signal()  # Import a project
+    export_project = Signal()  # Export the current project
     copy_project = Signal()  # Copy a project
     delete_project = Signal()  # Delete a project
     project_selected = Signal()  # A project was selected (opened)
