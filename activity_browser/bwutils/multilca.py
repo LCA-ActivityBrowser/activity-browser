@@ -115,11 +115,13 @@ class MLCA(object):
             cs = bw.calculation_setups[cs_name]
         except KeyError:
             raise ValueError(
-                "{} is not a known `calculation_setup`.".format(cs_name)
+                f"{cs_name} is not a known `calculation_setup`."
             )
 
         # check if all values are non-zero
-        if len([v for rf in cs['inv'] for v in rf.values() if v == 0]) != 0:
+        # cs['inv'] contains all reference flows (rf),
+        # all values of rf are the individual reference flow items.
+        if [v for rf in cs['inv'] for v in rf.values() if v == 0]:
             msg = QMessageBox()
             msg.setWindowTitle('Reference flows equal 0')
             msg.setText('All reference flows must be non-zero.')
