@@ -102,7 +102,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
-            log.info("Pandas Dataframe passed to sync.", df.shape)
+            log.debug("Pandas Dataframe passed to sync.", df.shape)
             self._dataframe = df
             self.updated.emit()
             return
