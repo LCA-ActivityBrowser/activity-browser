@@ -63,7 +63,7 @@ class TupleNameDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.name_label = QtWidgets.QLabel("New name")
         self.view_name = QtWidgets.QLabel()
-        self.no_comma_validator = QtGui.QRegExpValidator(QRegExp("[^,]+"))
+
         self.input_fields = []
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -91,20 +91,27 @@ class TupleNameDialog(QtWidgets.QDialog):
 
     @property
     def result_tuple(self) -> tuple:
-        result = [f.text() for f in self.input_fields if f.text()]
-        if not self.input_fields[-1].text():
-            result.append(self.input_fields[-1].placeholderText())
-        return tuple(result)
+        return tuple([f.text() for f in self.input_fields if f.text()])
 
     @Slot(name="inputChanged")
     def changed(self) -> None:
-        """Rebuild the view_name with text from all of the input fields."""
-        self.view_name.setText("'({})'".format(self.combined_names))
+        """
+        Actions when the text within the TupleNameDialog is edited by the user
+        """
+        # rebuild the combined name example 
+        self.view_name.setText(f"'({self.combined_names})'")
 
-    def add_input_field(self, text: str, placeholder: str = None) -> None:
+        # disable the button (and its outline) when all fields are empty
+        if self.combined_names == "":
+            self.buttons.buttons()[0].setDefault(False)
+            self.buttons.buttons()[0].setDisabled(True)
+        # enable when that's not the case (anymore)
+        else:
+            self.buttons.buttons()[0].setDisabled(False)
+            self.buttons.buttons()[0].setDefault(True)
+
+    def add_input_field(self, text: str) -> None:
         edit = QtWidgets.QLineEdit(text, self)
-        edit.setPlaceholderText(placeholder or "")
-        edit.setValidator(self.no_comma_validator)
         edit.textChanged.connect(self.changed)
         self.input_fields.append(edit)
         self.input_box.layout().addWidget(edit)
@@ -126,7 +133,8 @@ class TupleNameDialog(QtWidgets.QDialog):
             field_content = str(field)
 
             # if it's the last element, add extra to the string
-            if i + 1 == len(fields): field_content += extra
+            if i + 1 == len(fields):
+                field_content += extra
             obj.add_input_field(field_content)
         obj.input_box.updateGeometry()
         obj.changed()

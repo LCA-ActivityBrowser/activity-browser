@@ -243,17 +243,19 @@ class ImpactCategoryController(QObject):
         dialog = TupleNameDialog.get_combined_name(
             self.window, "Impact category name", "Combined name:", method, " - Copy"
         )
-        if dialog.exec_() == TupleNameDialog.Accepted:
-            new_name = dialog.result_tuple
-            for mthd in methods:
-                new_method = new_name + mthd.name[len(new_name):]
-                if new_method in bw.methods:
-                    warn = "Impact Category with name '{}' already exists!".format(new_method)
-                    QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
-                    return
-                mthd.copy(new_method)
-                log.info("Copied method {} into {}".format(str(mthd.name), str(new_method)))
-            signals.new_method.emit()
+        if dialog.exec_() != TupleNameDialog.Accepted: return
+
+        new_name = dialog.result_tuple
+        for mthd in methods:
+            new_method = new_name + mthd.name[len(new_name):]
+            print('+', mthd)
+            if new_method in bw.methods:
+                warn = f"Impact Category with name '{new_method}' already exists!"
+                QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
+                return
+            mthd.copy(new_method)
+            log.info("Copied method {} into {}".format(str(mthd.name), str(new_method)))
+        signals.new_method.emit()
 
     @Slot(tuple, name="deleteMethod")
     def delete_method(self, method_: tuple, level:str = None) -> None:
