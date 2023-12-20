@@ -115,18 +115,21 @@ class MLCA(object):
             cs = bw.calculation_setups[cs_name]
         except KeyError:
             raise ValueError(
-                "{} is not a known `calculation_setup`.".format(cs_name)
+                f"{cs_name} is not a known `calculation_setup`."
             )
 
-        if sum([v for rf in cs['inv'] for v in rf.values()]) == 0:
+        # check if all values are non-zero
+        # cs['inv'] contains all reference flows (rf),
+        # all values of rf are the individual reference flow items.
+        if [v for rf in cs['inv'] for v in rf.values() if v == 0]:
             msg = QMessageBox()
-            msg.setText('Sum of reference flows equals 0')
-            msg.setInformativeText('A value greater than 0 must be provided for at least one reference flow.\n' +
-                                   'Please enter a valid value before calculating LCA results again.')
+            msg.setWindowTitle('Reference flows equal 0')
+            msg.setText('All reference flows must be non-zero.')
+            msg.setInformativeText('Please enter a valid value before calculating LCA results again.')
             msg.setIcon(QMessageBox.Warning)
             QApplication.restoreOverrideCursor()
             msg.exec_()
-            raise ReferenceFlowValueError("Sum of reference flows == 0")
+            raise ReferenceFlowValueError("Reference flow == 0")
 
         # reference flows and related indexes
         self.func_units = cs['inv']
