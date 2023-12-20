@@ -87,10 +87,7 @@ class TupleNameDialog(QtWidgets.QDialog):
 
     @property
     def result_tuple(self) -> tuple:
-        result = [f.text() for f in self.input_fields if f.text()]
-        if not self.input_fields[-1].text():
-            result.append(self.input_fields[-1].placeholderText())
-        return tuple(result)
+        return tuple([f.text() for f in self.input_fields if f.text()])
 
     @Slot(name="inputChanged")
     def changed(self) -> None:
@@ -98,7 +95,7 @@ class TupleNameDialog(QtWidgets.QDialog):
         Actions when the text within the TupleNameDialog is edited by the user
         """
         # rebuild the combined name example 
-        self.view_name.setText("'({})'".format(self.combined_names))
+        self.view_name.setText(f"'({self.combined_names})'")
 
         # disable the button (and its outline) when all fields are empty
         if self.combined_names == "":
@@ -109,9 +106,8 @@ class TupleNameDialog(QtWidgets.QDialog):
             self.buttons.buttons()[0].setDisabled(False)
             self.buttons.buttons()[0].setDefault(True)
 
-    def add_input_field(self, text: str, placeholder: str = None) -> None:
+    def add_input_field(self, text: str) -> None:
         edit = QtWidgets.QLineEdit(text, self)
-        edit.setPlaceholderText(placeholder or "")
         edit.textChanged.connect(self.changed)
         self.input_fields.append(edit)
         self.input_box.layout().addWidget(edit)
@@ -133,7 +129,8 @@ class TupleNameDialog(QtWidgets.QDialog):
             field_content = str(field)
 
             # if it's the last element, add extra to the string
-            if i + 1 == len(fields): field_content += extra
+            if i + 1 == len(fields):
+                field_content += extra
             obj.add_input_field(field_content)
         obj.input_box.updateGeometry()
         obj.changed()
