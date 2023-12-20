@@ -947,7 +947,7 @@ class StrFilterRow(FilterRow):
     @property
     def get_state(self) -> tuple:
         # remove weird whitespace from input
-        query_line = self.filter_query_line.text().translate(str.maketrans('', '', '\n\t\r'))
+        query_line = self.filter_query_line.text().translate(str.maketrans('', '', '\n\t\r')).strip()
         # if valid, return a tuple with the state, otherwise, return None
         if query_line == '':
             return None
@@ -1010,7 +1010,7 @@ class NumFilterRow(FilterRow):
     @property
     def get_state(self) -> tuple:
         # remove weird whitespace from input
-        query_line = self.filter_query_line.text().translate(str.maketrans('', '', ' \n\t\r'))
+        query_line = self.filter_query_line.text().translate(str.maketrans('', '', ' \n\t\r')).strip()
         # if valid, return a tuple with the state, otherwise, return None
         if query_line == '':
             return None

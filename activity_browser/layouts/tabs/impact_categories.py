@@ -68,6 +68,13 @@ class MethodsTab(QtWidgets.QWidget):
         self.table = MethodsTable(self)
         self.table.setToolTip(
             "Drag (groups of) impact categories to the calculation setup")
+
+        # auto-search
+        self.debounce_search = QtCore.QTimer()
+        self.debounce_search.setInterval(300)
+        self.debounce_search.setSingleShot(True)
+        self.debounce_search.timeout.connect(self.set_search_term)
+
         #
         self.search_box = QtWidgets.QLineEdit()
         self.search_box.setPlaceholderText("Search impact categories")
@@ -122,33 +129,32 @@ class MethodsTab(QtWidgets.QWidget):
         self.table.setVisible(False)
         self.setLayout(container)
 
-        self.reset_search_button.clicked.connect(self.table.sync)
-        self.reset_search_button.clicked.connect(self.tree.model.sync)
-
-        self.search_button.clicked.connect(lambda: self.table.sync(query=self.search_box.text()))
-        self.search_button.clicked.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
-        self.reset_search_button.clicked.connect(self.search_box.clear)
-        self.search_box.returnPressed.connect(lambda: self.table.sync(query=self.search_box.text()))
-        self.search_box.returnPressed.connect(lambda: self.tree.model.sync(query=self.search_box.text()))
-
-        signals.project_selected.connect(self.search_box.clear)
         self.connect_signals()
 
     def connect_signals(self):
         self.mode_radio_list.toggled.connect(self.update_view)
 
-    @QtCore.Slot(tuple, name="searchCopiedMethod")
-    def method_copied(self, method: tuple) -> None:
-        """If a method is successfully copied, we might want to filter, but for now do nothing."""
-        # """If a method is successfully copied, sync and filter for new name."""
-        # query = ", ".join(method)
-        # self.search_box.setText(query)
+        self.reset_search_button.clicked.connect(self.table.sync)
+        self.reset_search_button.clicked.connect(self.tree.model.sync)
+
+        self.search_button.clicked.connect(self.set_search_term)
+        self.search_button.clicked.connect(self.set_search_term)
+        self.search_box.returnPressed.connect(self.set_search_term)
+        self.search_box.returnPressed.connect(self.set_search_term)
+        self.search_box.textChanged.connect(self.debounce_search.start)
+
+        self.reset_search_button.clicked.connect(self.search_box.clear)
+        signals.project_selected.connect(self.search_box.clear)
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
         self.tree.setVisible(not toggled)
-        # self.tree_settings_layout_container.setVisible(not toggled)
         self.table.setVisible(toggled)
+
+    def set_search_term(self):
+        search_term = self.search_box.text().strip()
+        self.table.sync(query=search_term)
+        self.tree.model.sync(query=search_term)
 
 
 class CharacterizationFactorsTab(ABTab):

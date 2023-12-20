@@ -76,10 +76,15 @@ def test_search_biosphere(qtbot, ab_app):
     with qtbot.waitSignal(act_bio_widget.search_box.returnPressed, timeout=1000):
         qtbot.keyClicks(act_bio_widget.search_box, 'Pentanol')
         qtbot.keyPress(act_bio_widget.search_box, QtCore.Qt.Key_Return)
+
+    # Reset search box & timer so it doesn't auto-search after this test
+    act_bio_widget.search_box.clear()
+    act_bio_widget.debounce_search.stop()
     # We found some results!
     assert act_bio_widget.table.rowCount() > 0
     # And the table is now definitely smaller than it was.
     assert act_bio_widget.table.rowCount() < initial_amount
+    
 
 
 def test_fail_open_biosphere(ab_app):
