@@ -206,8 +206,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         cutoff = self.cutoff_sb.value()
         max_calc = self.max_calc_sb.value()
         self.update_sankey(demand, method,
-                           demand_index=demand_index, method_index=method_index, scenario_lca=scenario_lca,
-                           scenario_index=scenario_index, cut_off=cutoff, max_calc=max_calc)
+                           demand_index=demand_index, method_index=method_index, scenario_index=scenario_index,
+                           scenario_lca=scenario_lca, cut_off=cutoff, max_calc=max_calc)
 
     def update_sankey(self, demand: dict, method: tuple,
                       demand_index: int = None, method_index: int = None, scenario_index: int = None,
