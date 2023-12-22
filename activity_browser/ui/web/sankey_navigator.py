@@ -193,7 +193,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
     def new_sankey(self) -> None:
         """(re)-generate the sankey diagram."""
-        log.info("New Sankey for CS: ", self.cs)
         demand_index = self.func_unit_cb.currentIndex()
         method_index = self.method_cb.currentIndex()
 
@@ -216,9 +215,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
 
         # the cache key consists of demand/method/scenario indices (index of item in the relevant tables),
-        # the cutoff, max_calc and finally the demand amount.
+        # the cutoff, max_calc.
         # together, these are unique.
-        cache_key = (demand_index, method_index, scenario_index, cut_off, max_calc, list(demand.values())[0])
+        cache_key = (demand_index, method_index, scenario_index, cut_off, max_calc)
         if data := self.cache.get(cache_key, False):
             # this Sankey is already cached, generate the Sankey with the cached data
             log.debug(f'CACHED sankey for: {demand}, {method}, key: {cache_key}')
@@ -232,14 +231,18 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method,
+                                                                              cutoff=cut_off, max_calc=max_calc)
             else:
-                data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = bw.GraphTraversal().calculate(demand, method,
+                                                     cutoff=cut_off, max_calc=max_calc)
             # store the metadata from this calculation
             data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
                                 'score': data["lca"].score,
                                 'unit': bw.Method(data["lca"].method).metadata["unit"],
                                 'act_dict': data["lca"].activity_dict.items()}
+            # drop LCA object as it's useless from now on
+            del data["lca"]
 
         except (ValueError, ZeroDivisionError) as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
@@ -306,8 +309,6 @@ class Graph(BaseGraph):
             "title": Graph.build_title(demand, lca_score, lcia_unit),
             "max_impact": max(abs(n["cum"]) for n in data["nodes"].values()),
         }
-        # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
-        # print(json_data)
         return json.dumps(json_data)
 
     @staticmethod
