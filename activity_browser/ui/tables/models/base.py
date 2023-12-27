@@ -64,14 +64,22 @@ class PandasModel(QAbstractTableModel):
                 value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
-            elif isinstance(value, datetime.datetime) and role != 'sorting':
+            elif isinstance(value, datetime.datetime) and (Qt.DisplayRole or Qt.ToolTipRole):
                 tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
                 time_shift = - tz.utcoffset().total_seconds()
-                value = arrow.get(value).shift(seconds=time_shift).humanize()
+                if role == Qt.ToolTipRole:
+                    value = arrow.get(value).shift(seconds=time_shift).format('YYYY-MM-DD HH:mm:ss')
+                elif role == Qt.DisplayRole:
+                    value = arrow.get(value).shift(seconds=time_shift).humanize()
 
-        # immediately return value in case of DisplayRole
-        if role == Qt.DisplayRole or role == 'sorting': return value
-        
+        # immediately return value in case of DisplayRole or sorting
+        if role == Qt.DisplayRole or role == 'sorting':
+            return value
+
+        # in case of ToolTipRole and value is datetime object
+        if role == Qt.ToolTipRole and isinstance(value, datetime.datetime):
+            return value
+
         # in case of ToolTipRole, check whether content fits the cell
         if role == Qt.ToolTipRole:
             parent = self.parent()
@@ -83,7 +91,8 @@ class PandasModel(QAbstractTableModel):
             margin = 10
 
             # only show tooltip if the text is wider then the cell minus the margin
-            if text_width > column_width - margin: return value
+            if text_width > column_width - margin:
+                return value
 
         if role == Qt.ForegroundRole:
             col_name = self._dataframe.columns[index.column()]
