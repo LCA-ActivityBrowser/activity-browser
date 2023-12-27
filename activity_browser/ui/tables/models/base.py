@@ -54,6 +54,7 @@ class PandasModel(QAbstractTableModel):
 
         # instantiate value only in case of DisplayRole or ToolTipRole       
         value = None
+        tt_date_flag = False  # flag to indicate if value is datetime object and role is ToolTipRole
         if role == Qt.DisplayRole or role == Qt.ToolTipRole or role == 'sorting':
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
@@ -69,6 +70,7 @@ class PandasModel(QAbstractTableModel):
                 time_shift = - tz.utcoffset().total_seconds()
                 if role == Qt.ToolTipRole:
                     value = arrow.get(value).shift(seconds=time_shift).format('YYYY-MM-DD HH:mm:ss')
+                    tt_date_flag = True
                 elif role == Qt.DisplayRole:
                     value = arrow.get(value).shift(seconds=time_shift).humanize()
 
@@ -76,8 +78,8 @@ class PandasModel(QAbstractTableModel):
         if role == Qt.DisplayRole or role == 'sorting':
             return value
 
-        # in case of ToolTipRole and value is datetime object
-        if role == Qt.ToolTipRole and isinstance(value, datetime.datetime):
+        # in case of ToolTipRole and date, always show the full date
+        if tt_date_flag and role == Qt.ToolTipRole:
             return value
 
         # in case of ToolTipRole, check whether content fits the cell
