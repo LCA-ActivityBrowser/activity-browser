@@ -16,6 +16,12 @@ from ...info import __ei_versions__
 from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
 from ...utils import sort_semantic_versions
 
+import logging
+from activity_browser.logger import ABHandler
+
+logger = logging.getLogger('ab_logs')
+log = ABHandler.setup_with_logger(logger, __name__)
+
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
     nothing is entered, we have this.
@@ -559,6 +565,7 @@ class DefaultBiosphereThread(QThread):
         project = "<b>{}</b>".format(bw.projects.current)
         if "biosphere3" not in bw.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
+            log.info(f'+++ Version: {self.version}')
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
         if not len(bw.methods):

@@ -24,7 +24,7 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
-    with qtbot.waitSignal(signals.change_project, timeout=10*60*1000):  # allow 10 mins for biosphere install
+    with qtbot.waitSignal(signals.change_project, timeout=3*60*1000):  # allow 10 mins for biosphere install
 
         # fake the accepting of the dialog when started with version 3.7 selected
         # version 3.7 is used for testing as it requires both an install (3.6) and an update to a newer version (3.7)
