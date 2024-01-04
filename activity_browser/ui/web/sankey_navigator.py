@@ -239,7 +239,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             # store the metadata from this calculation
             data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
                                 'score': data["lca"].score,
-                                'unit': bw.Method(data["lca"].method).metadata["unit"],
+                                'unit': bw.Method(method).metadata["unit"],
                                 'act_dict': data["lca"].activity_dict.items()}
             # drop LCA object as it's useless from now on
             del data["lca"]
