@@ -6,3 +6,5 @@ recursive-include activity_browser *.png
 recursive-include activity_browser *.svg
 recursive-include activity_browser *.js
 recursive-include activity_browser *.css
+recursive-include activity_browser *.txt
+recursive-include activity_browser *.zip
