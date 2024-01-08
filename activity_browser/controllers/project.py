@@ -190,9 +190,26 @@ class CSetupController(QObject):
 
     @Slot(str, name="deleteCalculationSetup")
     def delete_calculation_setup(self, name: str) -> None:
+        # ask the user whether they are sure to delete the calculation setup
+        warning = QtWidgets.QMessageBox.warning(self.window,
+            f"Deleting Calculation Setup: {name}",
+            "Are you sure you want to delete this calculation setup?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No)
+        
+        # return if the users cancels
+        if warning == QtWidgets.QMessageBox.No: return
+
+        # otherwise delete the calculation setup
         del bw.calculation_setups[name]
         signals.set_default_calculation_setup.emit()
+
+        # inform the user that the calculation setup has been deleted
         log.info("Deleted calculation setup: {}".format(name))
+        QtWidgets.QMessageBox.information(self.window,
+            f"Deleting Calculation Setup: {name}",
+            "Calculation setup was succesfully deleted.",
+            QtWidgets.QMessageBox.Ok)
 
     @Slot(str, name="renameCalculationSetup")
     def rename_calculation_setup(self, current: str) -> None:
