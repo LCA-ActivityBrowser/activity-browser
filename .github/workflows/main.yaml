@@ -33,7 +33,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9']
+        python-version: ['3.8', '3.9', '3.11']
     defaults:
       run:
         shell: bash -l {0}
@@ -85,7 +85,7 @@ jobs:
         run: |
           pytest
       - name: Upload coverage
-        if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.python-version == '3.11' && matrix.os == 'ubuntu-latest' }}
         # https://github.com/lemurheavy/coveralls-public/issues/1435#issuecomment-763357004
         # https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
         # https://github.com/TheKevJames/coveralls-python/issues/252
@@ -109,10 +109,10 @@ jobs:
       PKG_NAME: "activity-browser-dev"
     steps:
       - uses: actions/checkout@v3
-      - name: Build and deploy 3.8
+      - name: Build and deploy 3.11
         uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.8
+          python-version: 3.11
           activate-environment: build
           environment-file: .github/conda-envs/build.yml
       - name: Export version
