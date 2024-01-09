@@ -193,7 +193,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
     def new_sankey(self) -> None:
         """(re)-generate the sankey diagram."""
-        log.info("New Sankey for CS: ", self.cs)
         demand_index = self.func_unit_cb.currentIndex()
         method_index = self.method_cb.currentIndex()
 
@@ -206,34 +205,48 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()
         max_calc = self.max_calc_sb.value()
-        self.update_sankey(demand, method, scenario_lca=scenario_lca, scenario_index=scenario_index,
-                           method_index=method_index, cut_off=cutoff, max_calc=max_calc)
+        self.update_sankey(demand, method,
+                           demand_index=demand_index, method_index=method_index, scenario_index=scenario_index,
+                           scenario_lca=scenario_lca, cut_off=cutoff, max_calc=max_calc)
 
-    def update_sankey(self, demand, method, scenario_index: int = None, method_index: int = None,
-                      scenario_lca: bool = False, cut_off=0.05,
-                      max_calc=100) -> None:
+    def update_sankey(self, demand: dict, method: tuple,
+                      demand_index: int = None, method_index: int = None, scenario_index: int = None,
+                      scenario_lca: bool = False, cut_off=0.05, max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
-        log.info("Demand / Method: {} {}".format(demand, method))
 
-        cache_key = (str(demand), method_index, scenario_index, cut_off, max_calc)
+        # the cache key consists of demand/method/scenario indices (index of item in the relevant tables),
+        # the cutoff, max_calc.
+        # together, these are unique.
+        cache_key = (demand_index, method_index, scenario_index, cut_off, max_calc)
         if data := self.cache.get(cache_key, False):
             # this Sankey is already cached, generate the Sankey with the cached data
+            log.debug(f'CACHED sankey for: {demand}, {method}, key: {cache_key}')
             self.graph.new_graph(data)
             self.has_sankey = bool(self.graph.json_data)
             self.send_json()
             return
 
         start = time.time()
+        log.debug(f'CALCULATE sankey for: {demand}, {method}, key: {cache_key}')
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method,
+                                                                              cutoff=cut_off, max_calc=max_calc)
             else:
-                data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = bw.GraphTraversal().calculate(demand, method,
+                                                     cutoff=cut_off, max_calc=max_calc)
+            # store the metadata from this calculation
+            data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
+                                'score': data["lca"].score,
+                                'unit': bw.Method(method).metadata["unit"],
+                                'act_dict': data["lca"].activity_dict.items()}
+            # drop LCA object as it's useless from now on
+            del data["lca"]
 
         except (ValueError, ZeroDivisionError) as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
-        log.info("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
+        log.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds, {data['counter']} iterations)")
 
         # cache the generated Sankey data
         self.cache[cache_key] = data
@@ -272,11 +285,11 @@ class Graph(BaseGraph):
     @staticmethod
     def get_json_data(data) -> str:
         """Transform bw.Graphtraversal() output to JSON data."""
-        lca = data["lca"]
-        lca_score = lca.score
-        lcia_unit = bw.Method(lca.method).metadata["unit"]
-        demand = list(lca.demand.items())[0]
-        reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
+        meta = data["metadata"]
+        lca_score = meta['score']
+        lcia_unit = meta['unit']
+        demand = meta['demand']
+        reverse_activity_dict = {v: k for k, v in meta['act_dict']}
 
         build_json_node = Graph.compose_node_builder(lca_score, lcia_unit, demand[0])
         build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
@@ -296,8 +309,6 @@ class Graph(BaseGraph):
             "title": Graph.build_title(demand, lca_score, lcia_unit),
             "max_impact": max(abs(n["cum"]) for n in data["nodes"].values()),
         }
-        # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
-        # print(json_data)
         return json.dumps(json_data)
 
     @staticmethod
