@@ -34,13 +34,12 @@ class DatabasesModel(PandasModel):
         return self._dataframe.iat[idx.row(), 0]
 
     def sync(self):
-        # code below is based on the assumption that bw uses utc timestamps
-        tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
-        time_shift = - tz.utcoffset().total_seconds()
-
         data = []
         for name in natural_sort(bw.databases):
-            dt = datetime.datetime.strptime(bw.databases[name].get("modified", ""), '%Y-%m-%dT%H:%M:%S.%f')
+            # get the modified time, in case it doesn't exist, just write 'now' in the correct format
+            dt = bw.databases[name].get("modified", datetime.datetime.now().isoformat())
+            dt = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
+
             # final column includes interactive checkbox which shows read-only state of db
             database_read_only = project_settings.db_is_readonly(name)
             data.append({

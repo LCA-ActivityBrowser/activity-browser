@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+import traceback
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
@@ -190,9 +191,35 @@ class CSetupController(QObject):
 
     @Slot(str, name="deleteCalculationSetup")
     def delete_calculation_setup(self, name: str) -> None:
-        del bw.calculation_setups[name]
-        signals.set_default_calculation_setup.emit()
-        log.info("Deleted calculation setup: {}".format(name))
+        # ask the user whether they are sure to delete the calculation setup
+        warning = QtWidgets.QMessageBox.warning(self.window,
+            f"Deleting Calculation Setup: {name}",
+            "Are you sure you want to delete this calculation setup?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No)
+        
+        # return if the users cancels
+        if warning == QtWidgets.QMessageBox.No: return
+
+        # otherwise try to delete the calculation setup
+        try:
+            del bw.calculation_setups[name]
+            signals.set_default_calculation_setup.emit()
+        # if an error occurs, notify the user and return
+        except Exception as e:
+            log.error(f"Deletion of calculation setup {name} failed with error {traceback.format_exc()}")
+            QtWidgets.QMessageBox.critical(self.window,
+                f"Deleting Calculation Setup: {name}",
+                "An error occured during the deletion of the calculation setup. Check the logs for more information",
+                QtWidgets.QMessageBox.Ok)
+            return
+
+        # inform the user that the calculation setup has been deleted
+        log.info(f"Deleted calculation setup: {name}")
+        QtWidgets.QMessageBox.information(self.window,
+            f"Deleting Calculation Setup: {name}",
+            "Calculation setup was succesfully deleted.",
+            QtWidgets.QMessageBox.Ok)
 
     @Slot(str, name="renameCalculationSetup")
     def rename_calculation_setup(self, current: str) -> None:
