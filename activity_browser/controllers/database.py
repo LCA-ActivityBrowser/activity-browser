@@ -117,6 +117,7 @@ class DatabaseController(QObject):
         if ok and name:
             if name not in bw.databases:
                 bw.Database(name).register()
+                bw.Database(name).write({})  # write nothing to the database so we set a modified time
                 project_settings.add_db(name, False)
                 signals.databases_changed.emit()
                 signals.database_selected.emit(name)
