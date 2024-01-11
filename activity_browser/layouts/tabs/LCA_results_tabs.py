@@ -1117,8 +1117,9 @@ class ProductContributionsTab(ContributionTab):
             # run the analysis for every reference flow
             for demand_index, demand in enumerate(self.func_units):
                 demand_key = self.func_keys[demand_index]
-                cache_key = (demand_key, method_index, scenario_index)
+                cache_key = (demand_index, method_index, scenario_index)
                 if self.caching and self.cache.get(cache_key, False):
+                    # this data is cached
                     all_data.append([demand_key, self.cache[cache_key]])
                     continue
                 data = self.calculate_contributions(demand, demand_key,
@@ -1134,8 +1135,9 @@ class ProductContributionsTab(ContributionTab):
         elif compare == 'Impact Categories':
             # run the analysis for every method
             for method_index, method in enumerate(self.methods):
-                cache_key = (demand_key, method_index, scenario_index)
+                cache_key = (demand_index, method_index, scenario_index)
                 if self.caching and self.cache.get(cache_key, False):
+                    # this data is cached
                     all_data.append([method, self.cache[cache_key]])
                     continue
                 data = self.calculate_contributions(demand, demand_key,
@@ -1155,8 +1157,9 @@ class ProductContributionsTab(ContributionTab):
                 self.combobox_menu.scenario.setCurrentIndex(scenario_index)
                 scenario = self.combobox_menu.scenario.currentText()
 
-                cache_key = (demand_key, method_index, scenario_index)
+                cache_key = (demand_index, method_index, scenario_index)
                 if self.caching and self.cache.get(cache_key, False):
+                    # this data is cached
                     all_data.append([scenario, self.cache[cache_key]])
                     continue
                 data = self.calculate_contributions(demand, demand_key,
@@ -1184,10 +1187,14 @@ class ProductContributionsTab(ContributionTab):
                         exch.input.key != exch.output.key])  # get the amount of exchanges that are not to self
 
         with warnings.catch_warnings():
-            # Ignore the calculation count warning, as we don't care about it in this situation
+            # ignore the calculation count warning, as we will hit it by design
             warnings.filterwarnings("ignore", message="Stopping traversal due to calculation count.")
             try:
                 if scenario_lca:
+                    #TODO review
+                    # https://github.com/LCA-ActivityBrowser/activity-browser/pull/1180
+                    # https://github.com/LCA-ActivityBrowser/activity-browser/pull/1117
+                    # as there was a problem with getting the right method from the scenario object??
                     self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
                     data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=0,
                                                                                   max_calc=max_calc)
@@ -1269,6 +1276,7 @@ class ProductContributionsTab(ContributionTab):
         df = pd.DataFrame(d)
         check_cols = list(set(df.columns) - meta_cols)
         df = df.dropna(subset=check_cols, how='all')
+        # TODO sort like https://github.com/LCA-ActivityBrowser/activity-browser/issues/887
         df.sort_values(by=col_name, ascending=False)  # temporary sorting solution, just sort on the last column.
         return df
 
