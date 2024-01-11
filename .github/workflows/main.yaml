@@ -109,6 +109,8 @@ jobs:
       PKG_NAME: "activity-browser-dev"
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: "0"
       - name: Build and deploy 3.11
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -117,7 +119,7 @@ jobs:
           environment-file: .github/conda-envs/build.yml
       - name: Export version
         run: |
-          echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+          echo "VERSION=$(git describe --tags --always | cut -d- -f1,2 | sed 's/-/dev/')" >> $GITHUB_ENV
       - name: Patch recipe with run requirements from stable
         uses: mikefarah/yq@master
         # Adds the run dependencies from the stable recipe to the dev recipe (inplace)
@@ -131,5 +133,5 @@ jobs:
           conda build .github/dev-recipe/
       - name: Upload the activity-browser-dev package
         run: |
-          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload --force \
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
