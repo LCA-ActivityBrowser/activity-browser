@@ -38,7 +38,7 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
         sheet = wb.worksheets[import_sheet]
         for i in range(10):
             value = sheet.cell(i + 1, 1).value
-            if isinstance(value, str) and value.startswith("from activity name"):
+            if isinstance(value, str):
                 wb.close()
                 return i
     except IndexError as e:
@@ -83,7 +83,7 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1) ->
 
         # Convert specific columns that may have tuples as strings
         columns = ["from categories", "from key", "to categories", "to key"]
-        data.loc[:, columns] = data[columns].applymap(convert_tuple_str)
+        data.loc[:, columns] = data[columns].map(convert_tuple_str)
     except:
         # skip the error checks here, these now occur in the calling layout.tabs.LCA_setup module
         pass

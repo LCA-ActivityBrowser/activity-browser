@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 
+import datetime
+import arrow
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import (
-    QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, Signal,
+    QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, Signal, QSortFilterProxyModel
 )
 from PySide2.QtGui import QBrush
 
@@ -42,10 +44,18 @@ class PandasModel(QAbstractTableModel):
         return 0 if self._dataframe is None else self._dataframe.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
+        """
+        Return value for table index based on a certain DisplayRole enum.
+        
+        More on DisplayRole enums: https://doc.qt.io/qt-5/qt.html#ItemDataRole-enum
+        """
         if not index.isValid():
             return None
 
-        if role == Qt.DisplayRole:
+        # instantiate value only in case of DisplayRole or ToolTipRole       
+        value = None
+        tt_date_flag = False  # flag to indicate if value is datetime object and role is ToolTipRole
+        if role == Qt.DisplayRole or role == Qt.ToolTipRole or role == 'sorting':
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
                 value = float(value)
@@ -55,7 +65,36 @@ class PandasModel(QAbstractTableModel):
                 value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
+            elif isinstance(value, datetime.datetime) and (Qt.DisplayRole or Qt.ToolTipRole):
+                tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
+                time_shift = - tz.utcoffset().total_seconds()
+                if role == Qt.ToolTipRole:
+                    value = arrow.get(value).shift(seconds=time_shift).format('YYYY-MM-DD HH:mm:ss')
+                    tt_date_flag = True
+                elif role == Qt.DisplayRole:
+                    value = arrow.get(value).shift(seconds=time_shift).humanize()
+
+        # immediately return value in case of DisplayRole or sorting
+        if role == Qt.DisplayRole or role == 'sorting':
             return value
+
+        # in case of ToolTipRole and date, always show the full date
+        if tt_date_flag and role == Qt.ToolTipRole:
+            return value
+
+        # in case of ToolTipRole, check whether content fits the cell
+        if role == Qt.ToolTipRole:
+            parent = self.parent()
+            fontMetrics = parent.fontMetrics()
+
+            # get the width of both the cell, and the text
+            column_width = parent.columnWidth(index.column())
+            text_width = fontMetrics.horizontalAdvance(str(value))
+            margin = 10
+
+            # only show tooltip if the text is wider then the cell minus the margin
+            if text_width > column_width - margin:
+                return value
 
         if role == Qt.ForegroundRole:
             col_name = self._dataframe.columns[index.column()]
@@ -374,3 +413,13 @@ class BaseTreeModel(QAbstractItemModel):
 
     def sync(self, *args, **kwargs) -> None:
         pass
+
+class ABSortProxyModel(QSortFilterProxyModel):
+    """Reimplementation to allow for sorting on the actual data in cells instead of the visible data.
+
+    See this for context: https://github.com/LCA-ActivityBrowser/activity-browser/pull/1151
+    """
+    def lessThan(self, left, right):
+        left_data = self.sourceModel().data(left, 'sorting')
+        right_data = self.sourceModel().data(right, 'sorting')
+        return left_data < right_data

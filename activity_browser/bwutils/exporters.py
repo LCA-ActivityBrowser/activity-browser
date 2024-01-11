@@ -63,7 +63,8 @@ def format_pedigree(data: dict) -> str:
 
 
 def frmt_str(data: Union[str, dict]) -> str:
-    return format_pedigree(data) if isinstance(data, dict) else data
+    """Format non-numerical data (like tuples) to string format."""
+    return format_pedigree(data) if isinstance(data, dict) else str(data)
 
 
 def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
@@ -71,7 +72,8 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
 
     Not all data can be exported. The following constraints apply:
 
-    * Nested data, e.g. `{'foo': {'bar': 'baz'}}` are excluded. Spreadsheets are not a great format for nested data. However, *tuples* are exported, and the characters `::` are used to join elements of the tuple.
+    * Nested data, e.g. `{'foo': {'bar': 'baz'}}` are excluded. Spreadsheets are not a great format for nested data.
+      However, *tuples* are exported, and the characters `::` are used to join elements of the tuple.
     * The only well-supported data types are strings, numbers, and booleans.
 
     Returns the filepath of the exported file.
@@ -100,8 +102,7 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
             elif isinstance(value, numbers.Number):
                 sheet.write_number(row_index, col_index, value, frmt(value))
             else:
-                sheet.write(row_index, col_index, value, frmt(value))
-#               sheet.write_string(row_index, col_index, frmt_str(value), frmt(value))
+                sheet.write_string(row_index, col_index, frmt_str(value), frmt(value))
 
     workbook.close()
 

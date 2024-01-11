@@ -11,6 +11,10 @@ from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
+from ...ui.widgets import BiosphereUpdater
+from ...info import __ei_versions__
+from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
+from ...utils import sort_semantic_versions
 
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
@@ -59,7 +63,7 @@ class TupleNameDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.name_label = QtWidgets.QLabel("New name")
         self.view_name = QtWidgets.QLabel()
-        self.no_comma_validator = QtGui.QRegExpValidator(QRegExp("[^,]+"))
+
         self.input_fields = []
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -87,20 +91,27 @@ class TupleNameDialog(QtWidgets.QDialog):
 
     @property
     def result_tuple(self) -> tuple:
-        result = [f.text() for f in self.input_fields if f.text()]
-        if not self.input_fields[-1].text():
-            result.append(self.input_fields[-1].placeholderText())
-        return tuple(result)
+        return tuple([f.text() for f in self.input_fields if f.text()])
 
     @Slot(name="inputChanged")
     def changed(self) -> None:
-        """Rebuild the view_name with text from all of the input fields."""
-        self.view_name.setText("'({})'".format(self.combined_names))
+        """
+        Actions when the text within the TupleNameDialog is edited by the user
+        """
+        # rebuild the combined name example 
+        self.view_name.setText(f"'({self.combined_names})'")
 
-    def add_input_field(self, text: str, placeholder: str = None) -> None:
+        # disable the button (and its outline) when all fields are empty
+        if self.combined_names == "":
+            self.buttons.buttons()[0].setDefault(False)
+            self.buttons.buttons()[0].setDisabled(True)
+        # enable when that's not the case (anymore)
+        else:
+            self.buttons.buttons()[0].setDisabled(False)
+            self.buttons.buttons()[0].setDefault(True)
+
+    def add_input_field(self, text: str) -> None:
         edit = QtWidgets.QLineEdit(text, self)
-        edit.setPlaceholderText(placeholder or "")
-        edit.setValidator(self.no_comma_validator)
         edit.textChanged.connect(self.changed)
         self.input_fields.append(edit)
         self.input_box.layout().addWidget(edit)
@@ -108,12 +119,23 @@ class TupleNameDialog(QtWidgets.QDialog):
     @classmethod
     def get_combined_name(cls, parent: QtWidgets.QWidget, title: str, label: str,
                           fields: tuple, extra: str = "Extra") -> 'TupleNameDialog':
+        """
+        Set-up a TupleNameDialog pop-up with supplied title + label. Construct fields
+        for each field of the supplied tuple. Last field of the tuple is appended with
+        the extra string, to avoid duplicates.
+        """
         obj = cls(parent)
         obj.setWindowTitle(title)
         obj.name_label.setText(label)
-        for field in fields:
-            obj.add_input_field(str(field))
-        obj.add_input_field("", extra)
+
+        # set up a field for each tuple element
+        for i, field in enumerate(fields):
+            field_content = str(field)
+
+            # if it's the last element, add extra to the string
+            if i + 1 == len(fields):
+                field_content += extra
+            obj.add_input_field(field_content)
         obj.input_box.updateGeometry()
         obj.changed()
         return obj
@@ -488,18 +510,23 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
 
 
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
-    def __init__(self, parent=None):
+    def __init__(self, version, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Biosphere and impact categories")
+        self.setWindowTitle('Biosphere and impact categories')
         self.setRange(0, 3)
         self.setModal(Qt.ApplicationModal)
 
-        self.biosphere_thread = DefaultBiosphereThread(self)
+        self.version = version
+
+        self.biosphere_thread = DefaultBiosphereThread(self.version, self)
         self.biosphere_thread.update.connect(self.update_progress)
         self.biosphere_thread.finished.connect(self.finished)
         self.biosphere_thread.start()
 
-    @Slot(int, str, name="updateThread")
+        # finally, check if patches are available for this version and apply them
+        self.check_patches()
+
+    @Slot(int, str, name='updateThread')
     def update_progress(self, current: int, text: str) -> None:
         self.setValue(current)
         self.setLabelText(text)
@@ -510,15 +537,29 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         signals.change_project.emit(bw.projects.current)
         signals.project_selected.emit()
 
+    def check_patches(self):
+        """Apply any relevant biosphere patches if available."""
+        # reduce biosphere update list up to the selected version
+        sorted_versions = sort_semantic_versions(__ei_versions__, highest_to_lowest=False)
+        ei_versions = sorted_versions[:sorted_versions.index(self.version) + 1]
+
+        # show updating dialog
+        dialog = BiosphereUpdater(ei_versions, self)
+        dialog.show()
+
 
 class DefaultBiosphereThread(QThread):
     update = Signal(int, str)
+
+    def __init__(self, version, parent=None):
+        super().__init__(parent=parent)
+        self.version = version
 
     def run(self):
         project = "<b>{}</b>".format(bw.projects.current)
         if "biosphere3" not in bw.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
-            bw.create_default_biosphere3()
+            create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
         if not len(bw.methods):
             self.update.emit(1, "Creating default LCIA methods for {}".format(project))
@@ -906,7 +947,7 @@ class StrFilterRow(FilterRow):
     @property
     def get_state(self) -> tuple:
         # remove weird whitespace from input
-        query_line = self.filter_query_line.text().translate(str.maketrans('', '', '\n\t\r'))
+        query_line = self.filter_query_line.text().translate(str.maketrans('', '', '\n\t\r')).strip()
         # if valid, return a tuple with the state, otherwise, return None
         if query_line == '':
             return None
@@ -969,7 +1010,7 @@ class NumFilterRow(FilterRow):
     @property
     def get_state(self) -> tuple:
         # remove weird whitespace from input
-        query_line = self.filter_query_line.text().translate(str.maketrans('', '', ' \n\t\r'))
+        query_line = self.filter_query_line.text().translate(str.maketrans('', '', ' \n\t\r')).strip()
         # if valid, return a tuple with the state, otherwise, return None
         if query_line == '':
             return None
@@ -1145,3 +1186,107 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
             obj.grid.addWidget(combo, i, 2, 1, 2)
         obj.updateGeometry()
         return obj
+
+
+class LocationLinkingDialog(QtWidgets.QDialog):
+    """Display all of the possible location links in a single dialog for the user.
+
+    Allow users to select alternate location links and an option to link to generic alternatives (GLO, RoW).
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Activity Location linking")
+
+        self.loc_label = QtWidgets.QLabel()
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Location link:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
+
+        self.use_alternatives_label = QtWidgets.QLabel('Use generic alternatives as fallback:')
+        self.use_alternatives_label.setToolTip('If the chosen location is not found, try matching the selected '
+                                               'locations below too')
+        self.use_row = QtWidgets.QCheckBox('RoW')
+        self.use_row.setChecked(True)
+        self.use_rer = QtWidgets.QCheckBox('RER')
+        self.use_ews = QtWidgets.QCheckBox('Europe without Switzerland')
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.loc_label)
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.use_alternatives_label)
+        layout.addWidget(self.use_row)
+        layout.addWidget(self.use_rer)
+        layout.addWidget(self.use_ews)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText() for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @classmethod
+    def construct_dialog(cls, label: str, options: List[Tuple[str, List[str]]],
+                         parent: QtWidgets.QWidget = None) -> 'LocationLinkingDialog':
+        loc, locs = options
+
+        obj = cls(parent)
+        obj.loc_label.setText(label)
+
+        label = QtWidgets.QLabel(loc)
+        combo = QtWidgets.QComboBox()
+        combo.addItems(locs)
+        combo.setCurrentText(loc)
+        obj.label_choices.append((label, combo))
+        # Start at 1 because row 0 is taken up by the loc_label
+        obj.grid.addWidget(label, 0, 0, 1, 2)
+        obj.grid.addWidget(combo, 0, 2, 1, 2)
+
+        obj.updateGeometry()
+        return obj
+
+    @classmethod
+    def relink_location(cls, act_name: str, options: List[Tuple[str, List[str]]],
+                        parent=None) -> 'LocationLinkingDialog':
+        label = "Relinking exchanges from activity '{}' to a new location.".format(act_name)
+        return cls.construct_dialog(label, options, parent)
+
+
+class EcoinventVersionDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(EcoinventVersionDialog, self).__init__(parent)
+
+        self.setWindowTitle("Choose a biosphere version")
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.label = QtWidgets.QLabel('Choose which biosphere version\n'
+                                      'you would like to use')
+        self.options = QtWidgets.QComboBox()
+
+        # Add available ecoinvent versions to the combobox
+        self.options.addItems(sort_semantic_versions(__ei_versions__))
+
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.options)
+        self.layout.addWidget(self.buttons)
+        self.setLayout(self.layout)

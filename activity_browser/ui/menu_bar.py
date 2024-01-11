@@ -120,15 +120,8 @@ class MenuBar(QtWidgets.QMenuBar):
 Activity Browser - a graphical interface for Brightway2.<br><br>
 Application version: <b>{}</b><br><br>
 All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
-Main developers:<br>
-- Bernhard Steubing (CML Leiden University)<br>
-- Jonathan Kidner (CML Leiden University)<br><br>
-For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser>github</a>.<br><br>
-<br>
-LICENSE:<br>
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br><br>
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.<br><br>
-You should have received a copy of the GNU Lesser General Public License along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.
+For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/master#copyright">this page</a>.<br><br>
+For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/LICENSE.txt">this page</a>.<br><br>
 """
         msgBox = QtWidgets.QMessageBox(parent=self.window)
         msgBox.setWindowTitle('About the Activity Browser')
@@ -139,7 +132,7 @@ You should have received a copy of the GNU Lesser General Public License along w
         msgBox.exec_()
 
     def raise_issue_github(self):
-        url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
+        url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new/choose')
         QtGui.QDesktopServices.openUrl(url)
 
     @Slot(name="testBiosphereExists")

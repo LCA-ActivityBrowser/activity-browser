@@ -2,7 +2,6 @@
 import datetime
 import functools
 
-import arrow
 import brightway2 as bw
 from bw2data.utils import natural_sort
 import numpy as np
@@ -35,15 +34,12 @@ class DatabasesModel(PandasModel):
         return self._dataframe.iat[idx.row(), 0]
 
     def sync(self):
-        # code below is based on the assumption that bw uses utc timestamps
-        tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
-        time_shift = - tz.utcoffset().total_seconds()
-
         data = []
         for name in natural_sort(bw.databases):
-            dt = bw.databases[name].get("modified", "")
-            if dt:
-                dt = arrow.get(dt).shift(seconds=time_shift).humanize()
+            # get the modified time, in case it doesn't exist, just write 'now' in the correct format
+            dt = bw.databases[name].get("modified", datetime.datetime.now().isoformat())
+            dt = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
+
             # final column includes interactive checkbox which shows read-only state of db
             database_read_only = project_settings.db_is_readonly(name)
             data.append({
@@ -105,7 +101,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
-            log.info("Pandas Dataframe passed to sync.", df.shape)
+            log.debug("Pandas Dataframe passed to sync.", df.shape)
             self._dataframe = df
             self.updated.emit()
             return
@@ -184,6 +180,9 @@ class ActivitiesBiosphereModel(DragPandasModel):
             signals.duplicate_activities.emit(keys)
         else:
             signals.duplicate_activity.emit(self.get_key(proxies[0]))
+
+    def duplicate_activity_to_new_loc(self, proxies: list) -> None:
+        signals.duplicate_activity_new_loc.emit(self.get_key(proxies[0]))
 
     def duplicate_activities_to_db(self, proxies: list) -> None:
         if len(proxies) > 1:

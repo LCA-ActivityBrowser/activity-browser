@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
+import traceback
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
@@ -47,16 +48,15 @@ class ProjectController(QObject):
 
     @staticmethod
     @Slot(str, name="changeProject")
-    def change_project(name: str, reload: bool = False) -> None:
+    def change_project(name: str = "default", reload: bool = False) -> None:
         """Change the project, this clears all tabs and metadata related to
         the current project.
         """
-#        assert name, "No project name given."
-        name = "default" if not name else name
-        if name not in bw.projects:
-            log.info("Project does not exist: {}, creating!".format(name))
-            bw.projects.create_project(name)
-
+        # check whether the project does exist, otherwise return
+        if name not in bw.projects: 
+            log.info(f"Project does not exist: {name}")
+            return
+        
         if name != bw.projects.current or reload:
             bw.projects.set_current(name)
         signals.project_selected.emit()
@@ -103,24 +103,50 @@ class ProjectController(QObject):
 
     @Slot(name="deleteProject")
     def delete_project(self):
-        if len(bw.projects) == 1:
+        """
+        Delete the currently active project. Reject if it's the last one.
+        """
+        project_to_delete: str = bw.projects.current
+
+        # if it's the startup project: reject deletion and inform user
+        if project_to_delete == ab_settings.startup_project:
             QtWidgets.QMessageBox.information(
-                self.window, "Not possible", "Can't delete last project."
+                self.window, "Not possible", "Can't delete the startup project. Please select another startup project in the settings first."
             )
             return
 
+        # open a delete dialog for the user to confirm, return if user rejects
         delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(self.window, bw.projects.current)
+        if delete_dialog.exec_() != ProjectDeletionDialog.Accepted: return
 
-        if delete_dialog.exec_() == ProjectDeletionDialog.Accepted:
-            if delete_dialog.deletion_warning_checked():
-                bw.projects.delete_project(bw.projects.current, delete_dir=True)
-                self.change_project(ab_settings.startup_project, reload=True)
-                signals.projects_changed.emit()
-            else:
-                bw.projects.delete_project(bw.projects.current, delete_dir=False)
-                self.change_project(ab_settings.startup_project, reload=True)
-                signals.projects_changed.emit()
+        # change from the project to be deleted, to the startup project
+        self.change_project(ab_settings.startup_project, reload=True)
 
+        # try to delete the project, delete directory if user specified so
+        try:
+            bw.projects.delete_project(
+                project_to_delete, 
+                delete_dir=delete_dialog.deletion_warning_checked()
+                )
+        # if an exception occurs, show warning box en log exception
+        except Exception as exception:
+            log.error(str(exception))
+            QtWidgets.QMessageBox.warning(
+                self.window,
+                "An error occured",
+                "An error occured during project deletion. Please check the logs for more information."
+            )            
+        # if all goes well show info box that the project is deleted
+        else:
+            QtWidgets.QMessageBox.information(
+                self.window,
+                "Project deleted",
+                "Project succesfully deleted"
+            )
+
+        # emit that the project list has changed because of the deletion,
+        # regardless of a possible exception (which may have deleted the project anyways) 
+        signals.projects_changed.emit()
 
 class CSetupController(QObject):
     """The controller that handles brightway features related to
@@ -165,9 +191,35 @@ class CSetupController(QObject):
 
     @Slot(str, name="deleteCalculationSetup")
     def delete_calculation_setup(self, name: str) -> None:
-        del bw.calculation_setups[name]
-        signals.set_default_calculation_setup.emit()
-        log.info("Deleted calculation setup: {}".format(name))
+        # ask the user whether they are sure to delete the calculation setup
+        warning = QtWidgets.QMessageBox.warning(self.window,
+            f"Deleting Calculation Setup: {name}",
+            "Are you sure you want to delete this calculation setup?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No)
+        
+        # return if the users cancels
+        if warning == QtWidgets.QMessageBox.No: return
+
+        # otherwise try to delete the calculation setup
+        try:
+            del bw.calculation_setups[name]
+            signals.set_default_calculation_setup.emit()
+        # if an error occurs, notify the user and return
+        except Exception as e:
+            log.error(f"Deletion of calculation setup {name} failed with error {traceback.format_exc()}")
+            QtWidgets.QMessageBox.critical(self.window,
+                f"Deleting Calculation Setup: {name}",
+                "An error occured during the deletion of the calculation setup. Check the logs for more information",
+                QtWidgets.QMessageBox.Ok)
+            return
+
+        # inform the user that the calculation setup has been deleted
+        log.info(f"Deleted calculation setup: {name}")
+        QtWidgets.QMessageBox.information(self.window,
+            f"Deleting Calculation Setup: {name}",
+            "Calculation setup was succesfully deleted.",
+            QtWidgets.QMessageBox.Ok)
 
     @Slot(str, name="renameCalculationSetup")
     def rename_calculation_setup(self, current: str) -> None:
@@ -216,19 +268,21 @@ class ImpactCategoryController(QObject):
         else:
             methods = [bw.Method(method)]
         dialog = TupleNameDialog.get_combined_name(
-            self.window, "Impact category name", "Combined name:", method, "Copy"
+            self.window, "Impact category name", "Combined name:", method, " - Copy"
         )
-        if dialog.exec_() == TupleNameDialog.Accepted:
-            new_name = dialog.result_tuple
-            for mthd in methods:
-                new_method = new_name + mthd.name[len(new_name)-1:]
-                if new_method in bw.methods:
-                    warn = "Impact Category with name '{}' already exists!".format(new_method)
-                    QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
-                    return
-                mthd.copy(new_method)
-                log.info("Copied method {} into {}".format(str(mthd.name), str(new_method)))
-            signals.new_method.emit()
+        if dialog.exec_() != TupleNameDialog.Accepted: return
+
+        new_name = dialog.result_tuple
+        for mthd in methods:
+            new_method = new_name + mthd.name[len(new_name):]
+            print('+', mthd)
+            if new_method in bw.methods:
+                warn = f"Impact Category with name '{new_method}' already exists!"
+                QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
+                return
+            mthd.copy(new_method)
+            log.info("Copied method {} into {}".format(str(mthd.name), str(new_method)))
+        signals.new_method.emit()
 
     @Slot(tuple, name="deleteMethod")
     def delete_method(self, method_: tuple, level:str = None) -> None:

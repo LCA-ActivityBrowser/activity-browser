@@ -48,6 +48,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
     def __init__(self, cs_name, parent=None):
         super().__init__(parent, css_file="sankey_navigator.css")
+
+        self.cache = {}  # we cache the calculated data to improve responsiveness
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
@@ -86,8 +88,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
         self.scenario_cb.currentIndexChanged.connect(self.new_sankey)
-        # self.cutoff_sb.valueChanged.connect(self.new_sankey)
-        # self.max_calc_sb.valueChanged.connect(self.new_sankey)
 
     def construct_layout(self) -> None:
         """Layout of Sankey Navigator"""
@@ -106,18 +106,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay.addWidget(self.func_unit_cb, 0, 1)
         grid_lay.addWidget(self.scenario_cb, 1, 1)
         grid_lay.addWidget(self.method_cb, 2, 1)
-
-        # self.reload_pb = QtWidgets.QPushButton('Reload')
-        # self.reload_pb.clicked.connect(self.new_sankey)
-        # grid_lay.addWidget(self.reload_pb, 2, 0)
-        # self.close_pb = QtWidgets.QPushButton('Close')
-        # self.close_pb.clicked.connect(self.switch_to_main)
-
-        # grid_lay.addWidget(self.close_pb, 0, 5)
-        # self.color_attr_cb = QtWidgets.QComboBox()
-        # self.color_attr_cb.addItems(['flow', 'location', 'name'])
-        # grid_lay.addWidget(QtWidgets.QLabel('color by: '), 0, 2)
-        # grid_lay.addWidget(self.color_attr_cb, 0, 3)
 
         # cut-off
         grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 2, 2)
@@ -141,10 +129,6 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         hlay = QtWidgets.QHBoxLayout()
         hlay.addLayout(grid_lay)
 
-        # checkbox cumulative impact
-        # self.checkbox_cumulative_impact = QtWidgets.QCheckBox("Cumulative impact")
-        # self.checkbox_cumulative_impact.setChecked(True)
-
         # Controls Layout
         hl_controls = QtWidgets.QHBoxLayout()
         hl_controls.addWidget(self.button_back)
@@ -155,15 +139,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         hl_controls.addWidget(self.button_toggle_help)
         hl_controls.addStretch(1)
 
-        # Checkboxes Layout
-        # self.hl_checkboxes = QtWidgets.QHBoxLayout()
-        # self.hl_checkboxes.addWidget(self.checkbox_cumulative_impact)
-        # self.hl_checkboxes.addStretch(1)
-
         # Layout
         self.layout.addLayout(hl_controls)
         self.layout.addLayout(hlay)
-        # self.vlay.addLayout(self.hl_checkboxes)
         self.layout.addWidget(self.label_help)
         self.layout.addWidget(self.view)
         self.setLayout(self.layout)
@@ -214,7 +192,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.method_cb.blockSignals(False)
 
     def new_sankey(self) -> None:
-        log.info("New Sankey for CS: ", self.cs)
+        """(re)-generate the sankey diagram."""
         demand_index = self.func_unit_cb.currentIndex()
         method_index = self.method_cb.currentIndex()
 
@@ -227,30 +205,55 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()
         max_calc = self.max_calc_sb.value()
-        self.update_sankey(demand, method, scenario_lca=scenario_lca, scenario_index=scenario_index,
-                           method_index=method_index, cut_off=cutoff, max_calc=max_calc)
+        self.update_sankey(demand, method,
+                           demand_index=demand_index, method_index=method_index, scenario_index=scenario_index,
+                           scenario_lca=scenario_lca, cut_off=cutoff, max_calc=max_calc)
 
-    def update_sankey(self, demand, method, scenario_index: int = None, method_index: int = None,
-                      scenario_lca: bool = False, cut_off=0.05,
-                      max_calc=100) -> None:
+    def update_sankey(self, demand: dict, method: tuple,
+                      demand_index: int = None, method_index: int = None, scenario_index: int = None,
+                      scenario_lca: bool = False, cut_off=0.05, max_calc=100) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
-        log.info("Demand / Method: {} {}".format(demand, method))
-        start = time.time()
 
+        # the cache key consists of demand/method/scenario indices (index of item in the relevant tables),
+        # the cutoff, max_calc.
+        # together, these are unique.
+        cache_key = (demand_index, method_index, scenario_index, cut_off, max_calc)
+        if data := self.cache.get(cache_key, False):
+            # this Sankey is already cached, generate the Sankey with the cached data
+            log.debug(f'CACHED sankey for: {demand}, {method}, key: {cache_key}')
+            self.graph.new_graph(data)
+            self.has_sankey = bool(self.graph.json_data)
+            self.send_json()
+            return
+
+        start = time.time()
+        log.debug(f'CALCULATE sankey for: {demand}, {method}, key: {cache_key}')
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method,
+                                                                              cutoff=cut_off, max_calc=max_calc)
             else:
-                data = bw.GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                data = bw.GraphTraversal().calculate(demand, method,
+                                                     cutoff=cut_off, max_calc=max_calc)
+            # store the metadata from this calculation
+            data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
+                                'score': data["lca"].score,
+                                'unit': bw.Method(method).metadata["unit"],
+                                'act_dict': data["lca"].activity_dict.items()}
+            # drop LCA object as it's useless from now on
+            del data["lca"]
 
-        except ValueError as e:
+        except (ValueError, ZeroDivisionError) as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
-        log.info("Completed graph traversal ({:.2g} seconds, {} iterations)".format(time.time() - start, data["counter"]))
+        log.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds, {data['counter']} iterations)")
 
+        # cache the generated Sankey data
+        self.cache[cache_key] = data
+
+        # generate the new Sankey
         self.graph.new_graph(data)
         self.has_sankey = bool(self.graph.json_data)
-        # print("emitting graph ready signal")
         self.send_json()
 
     def set_database(self, name):
@@ -282,11 +285,11 @@ class Graph(BaseGraph):
     @staticmethod
     def get_json_data(data) -> str:
         """Transform bw.Graphtraversal() output to JSON data."""
-        lca = data["lca"]
-        lca_score = lca.score
-        lcia_unit = bw.Method(lca.method).metadata["unit"]
-        demand = list(lca.demand.items())[0]
-        reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
+        meta = data["metadata"]
+        lca_score = meta['score']
+        lcia_unit = meta['unit']
+        demand = meta['demand']
+        reverse_activity_dict = {v: k for k, v in meta['act_dict']}
 
         build_json_node = Graph.compose_node_builder(lca_score, lcia_unit, demand[0])
         build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
@@ -306,8 +309,6 @@ class Graph(BaseGraph):
             "title": Graph.build_title(demand, lca_score, lcia_unit),
             "max_impact": max(abs(n["cum"]) for n in data["nodes"].values()),
         }
-        # print("JSON DATA (Nodes/Edges):", len(nodes), len(edges))
-        # print(json_data)
         return json.dumps(json_data)
 
     @staticmethod

@@ -6,7 +6,7 @@ packages = []
 root_dir = os.path.dirname(__file__)
 if root_dir:
     os.chdir(root_dir)
-accepted_filetypes = (".html", ".png", ".svg", ".js", ".css")
+accepted_filetypes = (".html", ".png", ".svg", ".js", ".css", ".txt", ".zip")
 
 for dirpath, dirnames, filenames in os.walk('activity_browser'):
     # Ignore dirnames that start with '.'
@@ -51,9 +51,9 @@ setup(
         'Operating System :: POSIX',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.11',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Visualization',
