@@ -119,7 +119,7 @@ jobs:
           environment-file: .github/conda-envs/build.yml
       - name: Export version
         run: |
-          echo "VERSION=$(git describe --tags --always | cut -d- -f1,2 | sed 's/-/dev/')" >> $GITHUB_ENV
+          echo "VERSION=$(git describe --tags --always | cut -d- -f1,2 | sed 's/-/dev/' | sed 's/^/1!/')" >> $GITHUB_ENV
       - name: Patch recipe with run requirements from stable
         uses: mikefarah/yq@master
         # Adds the run dependencies from the stable recipe to the dev recipe (inplace)
