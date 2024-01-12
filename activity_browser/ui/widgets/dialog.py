@@ -524,7 +524,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.start()
 
         # finally, check if patches are available for this version and apply them
-        self.biosphere_thread.finished.connect(self.check_patches)
+        #self.biosphere_thread.finished.connect(self.check_patches)
 
     @Slot(int, str, name='updateThread')
     def update_progress(self, current: int, text: str) -> None:
@@ -534,6 +534,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def finished(self, result: int = None) -> None:
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
+        self.check_patches()
         signals.change_project.emit(bw.projects.current)
         signals.project_selected.emit()
 
