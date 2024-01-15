@@ -360,23 +360,30 @@ class ScenarioImportPanel(BaseRightTab):
             return []
         return scenario_names_from_df(self.tables[idx])
 
-    def combined_dataframe(self, skip_checks: bool = False) -> pd.DataFrame:
-        """Return a dataframe that combines the scenarios of multiple tables.
+    def combined_dataframe(self, skip_checks: bool = False) -> None:
+        """Updates scenario dataframe to contain the combinated scenarios of multiple tables.
         """
+        # if there are no tables currently, set the dataframe to be empty
         if not self.tables:
-            # Return an empty dataframe, will almost immediately cause a
-            # validation exception.
-            return pd.DataFrame()
+            self._scenario_dataframe = pd.DataFrame()
+            return
+        
+        # if the tables are empty, set the dataframe to be empty
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         if not data:
-            return pd.DataFrame()
-        manager = SuperstructureManager(*data)
+            self._scenario_dataframe = pd.DataFrame()
+            return
+        
+        # check what kind of combination the user wants to do
         if self.product_choice.isChecked():
             kind = "product"
         elif self.addition_choice.isChecked():
             kind = "addition"
         else:
             kind = "none"
+        
+        # combine the data using superstructuremanager and update the dataframe
+        manager = SuperstructureManager(*data)
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
 
     @Slot(name="addTable")
