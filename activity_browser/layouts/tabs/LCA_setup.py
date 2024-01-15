@@ -393,20 +393,28 @@ class ScenarioImportPanel(BaseRightTab):
         self.tables.append(widget)
         self.scenario_tables.addWidget(widget)
         self.updateGeometry()
-        self.combined_dataframe(skip_checks=True)
 
     @Slot(int, name="removeTable")
-    def remove_table(self, idx: int) -> None:
-        w = self.tables.pop(idx)
-        self.scenario_tables.removeWidget(w)
-        w.deleteLater()
+    def remove_table(self, index: int) -> None:
+        """Remove the table widget at the provided index"""
+        # remove from the self.tables list and the layout
+        table_widget = self.tables.pop(index)
+        self.scenario_tables.removeWidget(table_widget)       
+        
+        # update the other widgets with new indices
+        for i, widget in enumerate(self.tables):
+            widget.index = i
+
+        # if there was data in the widget, recalculate the combined DF
+        if not table_widget.dataframe.empty: self.combined_dataframe(skip_checks=True)
+        
+        # free up the memory
+        table_widget.deleteLater()
+
+        # update ourselves
         if not self.tables:
             self.save_scenario.setHidden(True)
         self.updateGeometry()
-        # Do not forget to update indexes!
-        for i, w in enumerate(self.tables):
-            w.index = i
-        self.combined_dataframe(skip_checks=True)
 
     @Slot(name="clearTables")
     def clear_tables(self) -> None:
