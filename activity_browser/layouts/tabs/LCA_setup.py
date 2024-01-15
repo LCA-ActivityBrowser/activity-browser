@@ -352,6 +352,30 @@ class ScenarioImportPanel(BaseRightTab):
         signals.project_selected.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
+        self.combine_group.buttonClicked.connect(self.toggle_combine_type)
+
+    def toggle_combine_type(self):
+        """Called by signal when the combine type is switched by the user"""
+        type = self.get_combine_type()
+        try: 
+            # try to update the combined dataframe
+            self.combined_dataframe()
+        except:
+            # revert when an exception occurs
+            if type == "product":
+                self.addition_choice.setChecked(True)
+            if type == "addition":
+                self.product_choice.setChecked(True)
+        
+    def get_combine_type(self) -> str:
+        """Returns the type of combination the user wants to do"""
+        if self.product_choice.isChecked():
+            return "product"
+        elif self.addition_choice.isChecked():
+            return "addition"
+        else:
+            return "none"
+
     def scenario_dataframe(self):
         return self._scenario_dataframe
 
@@ -375,12 +399,7 @@ class ScenarioImportPanel(BaseRightTab):
             return
         
         # check what kind of combination the user wants to do
-        if self.product_choice.isChecked():
-            kind = "product"
-        elif self.addition_choice.isChecked():
-            kind = "addition"
-        else:
-            kind = "none"
+        kind = self.get_combine_type()
         
         # combine the data using superstructuremanager and update the dataframe
         manager = SuperstructureManager(*data)
