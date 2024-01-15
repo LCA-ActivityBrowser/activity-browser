@@ -518,7 +518,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 idx = dialog.import_sheet.currentIndex()
                 file_type_suffix = dialog.path.suffix
                 separator = dialog.field_separator.currentData()
-                log.info("separator == '{}'".format(separator))
+                log.debug("separator == '{}'".format(separator))
                 QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
                 log.info('Loading Scenario file. This may take a while for large files')
                 # Try and read as a superstructure file
@@ -628,5 +628,5 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @property
     def dataframe(self) -> pd.DataFrame:
         if self.scenario_df.empty:
-            log.warning("No data in scenario table {}, skipping".format(self.index + 1))
+            log.debug("No data in scenario table {}, skipping".format(self.index + 1))
         return self.scenario_df
