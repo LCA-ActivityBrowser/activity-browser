@@ -340,6 +340,10 @@ class ScenarioImportPanel(BaseRightTab):
         layout.addLayout(tool_row)
         layout.addLayout(self.scenario_tables)
         layout.addStretch(1)
+
+        self.stats_widget = QtWidgets.QLabel()
+        layout.addWidget(self.stats_widget)
+
         self.setLayout(layout)
         self._connect_signals()
         self._scenario_dataframe = None
@@ -353,6 +357,13 @@ class ScenarioImportPanel(BaseRightTab):
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
+    
+    def update_stats(self):
+        n_scenarios = len(self._scenario_dataframe.columns)
+        n_flows = len(self._scenario_dataframe)
+
+        stats = f"Total number of scenarios: <b>{n_scenarios}</b>  |  Total number of variable flows: <b>{n_flows}</b>"
+        self.stats_widget.setText(stats)
 
     def toggle_combine_type(self):
         """Called by signal when the combine type is switched by the user"""
@@ -404,6 +415,9 @@ class ScenarioImportPanel(BaseRightTab):
         # combine the data using superstructuremanager and update the dataframe
         manager = SuperstructureManager(*data)
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
+
+        # update the stats at the bottom of the widget
+        self.update_stats()
 
     @Slot(name="addTable")
     def add_table(self) -> None:
