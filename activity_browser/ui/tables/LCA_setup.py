@@ -214,7 +214,7 @@ class ScenarioImportTable(ABDataFrameView):
     """
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.model = ScenarioImportModel(self)
+        self.model = ScenarioImportModel(None, self)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
 
