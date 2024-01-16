@@ -428,12 +428,14 @@ class ScenarioImportPanel(BaseRightTab):
         # if there are no tables currently, set the dataframe to be empty
         if not self.tables:
             self._scenario_dataframe = pd.DataFrame()
+            self.update_stats()
             return
         
         # if the tables are empty, set the dataframe to be empty
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         if not data:
             self._scenario_dataframe = pd.DataFrame()
+            self.update_stats()
             return
         
         # check what kind of combination the user wants to do
