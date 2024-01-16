@@ -301,52 +301,79 @@ class ScenarioImportPanel(BaseRightTab):
         """
 
         self.tables = []
-        layout = QtWidgets.QVBoxLayout()
+        self._scenario_dataframe = pd.DataFrame()
 
-        self.scenario_tables = QtWidgets.QHBoxLayout()
-        self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
-        self.save_scenario = QtWidgets.QPushButton("Save", self)
-        self.save_scenario.setHidden(True)
+        # set-up the header
+        panel_header = header("Scenarios:  ")
+        panel_header.setToolTip("Left click on the question mark for help")
+        
+        # set-up the control buttons
+        self.table_btn = QtWidgets.QPushButton("Add scenarios", self)
 
-        self.group_box = QtWidgets.QGroupBox()
-        self.group_box.setStyleSheet(style_group_box.border_title)
-        input_field_layout = QtWidgets.QHBoxLayout()
-        self.group_box.setLayout(input_field_layout)
-        self.combine_group = QtWidgets.QButtonGroup()
-        self.combine_group.setExclusive(True)
-        self.product_choice = QtWidgets.QRadioButton("Combine scenarios")
+        self.save_scenario = QtWidgets.QPushButton("Save to file...", self)
+        self.save_scenario.setDisabled(True)
+
+        # set-up the combination buttons
+
+        # initiate the combine scenarios button
+        self.product_choice = QtWidgets.QRadioButton("Combine scenarios", self)
         self.product_choice.setChecked(True)
-        self.addition_choice = QtWidgets.QRadioButton("Extend scenarios")
+
+        # initiate the extend scenarios button
+        self.addition_choice = QtWidgets.QRadioButton("Extend scenarios", self)
+
+        # group them and make them exclusive
+        self.combine_group = QtWidgets.QButtonGroup(self)
+        self.combine_group.setExclusive(True)
         self.combine_group.addButton(self.product_choice)
         self.combine_group.addButton(self.addition_choice)
+
+        # orient them horizontally
+        input_field_layout = QtWidgets.QHBoxLayout()
         input_field_layout.addWidget(self.product_choice)
         input_field_layout.addWidget(self.addition_choice)
-        self.group_box.setHidden(True)
 
-        row = QtWidgets.QToolBar()
-        _header = header("Scenarios:")
-        _header.setToolTip("Left click on the question mark for help")
-        row.addWidget(_header)
-        row.addAction(
+        # add the border and hide until further notice
+        self.group_box = QtWidgets.QGroupBox()
+        self.group_box.setStyleSheet(style_group_box.border_title)        
+        self.group_box.setLayout(input_field_layout)  
+        self.group_box.setDisabled(True)
+
+        # set-up the help button
+        help_button = QtWidgets.QToolBar(self)
+        help_button.addAction(
             qicons.question, "Left click for help on Scenarios",
             self.explanation
         )
-        row.addWidget(self.table_btn)
+
+        # combining all into the tool row
         tool_row = QtWidgets.QHBoxLayout()
-        tool_row.addWidget(row)
+        tool_row.addSpacing(10)
+        tool_row.addWidget(panel_header)
+        tool_row.addWidget(self.table_btn)
         tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)
         tool_row.addStretch(1)
+        tool_row.addWidget(QtWidgets.QLabel("More info on scenarios: "))
+        tool_row.addWidget(help_button)
+
+        # layout for the different scenario tables that can be added
+        self.scenario_tables = QtWidgets.QHBoxLayout()
+
+        # statistics at the bottom of the widget
+        self.stats_widget = QtWidgets.QLabel()
+        self.update_stats()
+        
+        # construct the full layout
+        layout = QtWidgets.QVBoxLayout()
         layout.addLayout(tool_row)
         layout.addLayout(self.scenario_tables)
         layout.addStretch(1)
-
-        self.stats_widget = QtWidgets.QLabel()
         layout.addWidget(self.stats_widget)
-
         self.setLayout(layout)
+
         self._connect_signals()
-        self._scenario_dataframe = None
+        
 
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
@@ -357,7 +384,7 @@ class ScenarioImportPanel(BaseRightTab):
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
-    
+
     def update_stats(self):
         n_scenarios = len(self._scenario_dataframe.columns)
         n_flows = len(self._scenario_dataframe)
@@ -446,7 +473,7 @@ class ScenarioImportPanel(BaseRightTab):
 
         # update ourselves
         if not self.tables:
-            self.save_scenario.setHidden(True)
+            self.save_scenario.setDisabled(True)
         self.updateGeometry()
 
     @Slot(name="clearTables")
@@ -456,12 +483,12 @@ class ScenarioImportPanel(BaseRightTab):
             self.scenario_tables.removeWidget(w)
             w.deleteLater()
         self.tables = []
-        self.save_scenario.setHidden(True)
+        self.save_scenario.setDisabled(True)
         self.updateGeometry()
         self.combined_dataframe()
 
     def updateGeometry(self):
-        self.group_box.setHidden(len(self.tables) <= 1)
+        self.group_box.setDisabled(len(self.tables) <= 1)
         # Make sure that scenario tables are equally balanced within the box.
         if self.tables:
             table_width = self.width() / len(self.tables)
@@ -507,7 +534,7 @@ class ScenarioImportPanel(BaseRightTab):
             savedf.to_csv(filepath, index=False)
 
     def save_button(self, visible: bool):
-        self.save_scenario.setHidden(not visible)
+        self.save_scenario.setDisabled(not visible)
         self.show()
         self.updateGeometry()
 
