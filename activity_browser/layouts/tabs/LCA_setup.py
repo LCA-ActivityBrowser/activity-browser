@@ -564,6 +564,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
         layout.addLayout(row)
         layout.addWidget(self.table)
+        layout.addStretch(1)
         self.setLayout(layout)
         self._connect_signals()
 
