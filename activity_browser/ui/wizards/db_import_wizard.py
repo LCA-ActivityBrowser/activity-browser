@@ -54,6 +54,8 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.setWindowTitle("Database Import Wizard")
         self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setWindowFlags(QtCore.Qt.Sheet)
+        self.setOption(self.NoCancelButton, False)
 
         # Construct and bind pages.
         self.import_type_page = ImportTypePage(self)
