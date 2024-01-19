@@ -24,7 +24,7 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
-    with qtbot.waitSignal(signals.database_changed, timeout=10*60*1000):  # allow 10 mins for biosphere install
+    with qtbot.waitSignal(signals.change_project, timeout=10*60*1000):  # allow 10 mins for biosphere install
 
         # fake the accepting of the dialog when started
         monkeypatch.setattr(EcoinventVersionDialog, 'exec_', lambda self: EcoinventVersionDialog.Accepted)
@@ -34,6 +34,10 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
             project_tab.databases_widget.add_default_data_button,
             QtCore.Qt.LeftButton
         )
+
+    # The biosphere3 update finishes with a 'database_changed' signal.
+    with qtbot.waitSignal(signals.database_changed, timeout=2 * 60 * 1000):  # allow 2 mins for biosphere update
+        pass
 
     # biosphere was installed
     assert 'biosphere3' in bw.databases
