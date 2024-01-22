@@ -5,7 +5,6 @@ import brightway2 as bw
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
 from PySide2 import QtWidgets
