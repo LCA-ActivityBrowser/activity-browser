@@ -134,12 +134,12 @@ class LCAResultsPlot(Plot):
 
         # set different color palette depending on whether all values are positive or not
         if dfp.min(axis=None) < 0 and dfp.max(axis=None) > 0:  # has both negative AND positive values
-            sns.color_palette("vlag_r", as_cmap=True)
+            cmap = sns.color_palette("vlag_r", as_cmap=True)
         else:  # has only positive OR negative values
-            sns.color_palette("Blues", as_cmap=True)
+            cmap = sns.color_palette("Blues", as_cmap=True)
 
         sns.heatmap(
-            prop, ax=self.ax, annot=dfp, linewidths=0.05,
+            prop, ax=self.ax, cmap=cmap, annot=dfp, linewidths=0.05,
             annot_kws={"size": 11 if dfp.shape[1] <= 8 else 9,
                        "rotation": 0 if dfp.shape[1] <= 8 else 60},
             cbar_kws={'format': '%.0f%%'}
