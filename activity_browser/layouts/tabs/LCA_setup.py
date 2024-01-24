@@ -532,7 +532,7 @@ class ScenarioImportPanel(BaseRightTab):
             savedf.loc[indices, superstructure] = table.scenario_df.loc[indices, superstructure]
             savedf.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
         if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
-            print('Saving to excel file')
+            savedf.to_excel(filepath, index=False)
             return
         elif not filepath.endswith('.csv'):
             filepath += '.csv'
