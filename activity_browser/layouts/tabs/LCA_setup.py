@@ -385,36 +385,35 @@ class ScenarioImportPanel(BaseRightTab):
 
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
 
-    def update_stats(self):
+    def update_stats(self) -> None:
+        """Update the statistics at the bottom of the widget"""
         n_scenarios = len(self._scenario_dataframe.columns)
         n_flows = len(self._scenario_dataframe)
 
         stats = f"Total number of scenarios: <b>{n_scenarios}</b>  |  Total number of variable flows: <b>{n_flows}</b>"
         self.stats_widget.setText(stats)
 
-    def toggle_combine_type(self):
+    def toggle_combine_type(self) -> None:
         """Called by signal when the combine type is switched by the user"""
-        type = self.get_combine_type()
         try: 
             # try to update the combined dataframe
             self.combined_dataframe()
         except:
             # revert when an exception occurs
+            type = self.get_combine_type()
             if type == "product":
                 self.addition_choice.setChecked(True)
             if type == "addition":
                 self.product_choice.setChecked(True)
         
     def get_combine_type(self) -> str:
-        """Returns the type of combination the user wants to do"""
+        """Return the type of combination the user wants to do"""
         if self.product_choice.isChecked():
             return "product"
         elif self.addition_choice.isChecked():
             return "addition"
-        else:
-            return "none"
 
-    def scenario_dataframe(self):
+    def scenario_dataframe(self) -> pd.DataFrame:
         return self._scenario_dataframe
 
     def scenario_names(self, idx: int) -> list:
@@ -423,7 +422,7 @@ class ScenarioImportPanel(BaseRightTab):
         return scenario_names_from_df(self.tables[idx])
 
     def combined_dataframe(self, skip_checks: bool = False) -> None:
-        """Updates scenario dataframe to contain the combinated scenarios of multiple tables.
+        """Updates scenario dataframe to contain the combined scenarios of multiple tables.
         """
         # if there are no tables currently, set the dataframe to be empty
         if not self.tables:
@@ -441,7 +440,7 @@ class ScenarioImportPanel(BaseRightTab):
         # check what kind of combination the user wants to do
         kind = self.get_combine_type()
         
-        # combine the data using superstructuremanager and update the dataframe
+        # combine the data using SuperstructureManager and update the dataframe
         manager = SuperstructureManager(*data)
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
 
@@ -450,6 +449,7 @@ class ScenarioImportPanel(BaseRightTab):
 
     @Slot(name="addTable")
     def add_table(self) -> None:
+        """Add a new table widget to the widget and add to the list of tables"""
         new_idx = len(self.tables)
         widget = ScenarioImportWidget(new_idx, self)
         self.tables.append(widget)
@@ -461,7 +461,7 @@ class ScenarioImportPanel(BaseRightTab):
         """Remove the table widget at the provided index"""
         # remove from the self.tables list and the layout
         table_widget = self.tables.pop(index)
-        self.scenario_tables.removeWidget(table_widget)       
+        self.scenario_tables.removeWidget(table_widget)
         
         # update the other widgets with new indices
         for i, widget in enumerate(self.tables):
@@ -469,11 +469,11 @@ class ScenarioImportPanel(BaseRightTab):
 
         # if there was data in the widget, recalculate the combined DF
         if not table_widget.dataframe.empty: self.combined_dataframe(skip_checks=True)
-        
+
         # free up the memory
         table_widget.deleteLater()
 
-        # update ourselves
+        # update save_scenario button
         if not self.tables:
             self.save_scenario.setDisabled(True)
         self.updateGeometry()
