@@ -511,7 +511,7 @@ class ScenarioImportPanel(BaseRightTab):
         table.sync_superstructure(df)
 
     @Slot(int, name="SaveScenarioDataframe")
-    def save_action(self, idx) -> None:
+    def save_action(self) -> None:
         """ Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
         merged. Will not contain duplicates. Will not contain self-referential technosphere flows.
 
@@ -519,8 +519,9 @@ class ScenarioImportPanel(BaseRightTab):
         """
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self, caption="Choose location to save the scenario file",
-            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
+            filter="Excel (*.xlsx *.xls);; CSV (*.csv)",
         )
+        print('Saving scenario dataframe to file: ', filepath)
         scenarios = self._scenario_dataframe.columns.difference(['input', 'output', 'flow'])
         superstructure = SUPERSTRUCTURE.tolist()
         cols = superstructure + scenarios.tolist()
@@ -531,9 +532,11 @@ class ScenarioImportPanel(BaseRightTab):
             savedf.loc[indices, superstructure] = table.scenario_df.loc[indices, superstructure]
             savedf.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
         if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
-            savedf.to_excel(filepath, index=False)
-        else: # assumed to be a csv
-            savedf.to_csv(filepath, index=False)
+            print('Saving to excel file')
+            return
+        elif not filepath.endswith('.csv'):
+            filepath += '.csv'
+        savedf.to_csv(filepath, index=False)
 
     def save_button(self, visible: bool):
         self.save_scenario.setDisabled(not visible)
