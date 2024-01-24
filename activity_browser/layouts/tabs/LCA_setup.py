@@ -536,7 +536,7 @@ class ScenarioImportPanel(BaseRightTab):
             return
         elif not filepath.endswith('.csv'):
             filepath += '.csv'
-        savedf.to_csv(filepath, index=False)
+        savedf.to_csv(filepath, index=False, sep=';')
 
     def save_button(self, visible: bool):
         self.save_scenario.setDisabled(not visible)
