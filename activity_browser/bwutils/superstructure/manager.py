@@ -465,10 +465,10 @@ class SuperstructureManager(object):
                 QPushButton('Save'),
                 QPushButton('Cancel')
             )
+            QApplication.restoreOverrideCursor()
             critical.dataframe(df[bad_entries.isna().any(axis=1)], SUPERSTRUCTURE)
             critical.save_options()
             critical.dataframe_to_file(df, bad_entries.isna().any(axis=1))
-            QApplication.restoreOverrideCursor()
             critical.exec_()
             raise ScenarioExchangeDataNonNumericError()
 
