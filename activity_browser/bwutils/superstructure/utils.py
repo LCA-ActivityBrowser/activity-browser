@@ -11,6 +11,7 @@ log = ABHandler.setup_with_logger(logger, __name__)
 
 # Different kinds of indexes, to allow for quick selection of data from
 # the Superstructure DataFrame.
+#TODO review if this can be made a list instead of pd.Index
 SUPERSTRUCTURE = pd.Index([
     "from activity name",
     "from reference product",

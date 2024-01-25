@@ -3,7 +3,7 @@ import itertools
 from typing import List
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_number
+from pandas.api.types import is_numeric_dtype
 from PySide2.QtWidgets import QApplication, QPushButton
 from PySide2.QtCore import Qt
 from typing import Union, Optional
@@ -12,7 +12,7 @@ import brightway2 as bw
 
 from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns
-from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_, edit_superstructure_for_string
+from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
 
 from .file_dialogs import ABPopup
 from ..errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
@@ -465,10 +465,10 @@ class SuperstructureManager(object):
                 QPushButton('Save'),
                 QPushButton('Cancel')
             )
+            QApplication.restoreOverrideCursor()
             critical.dataframe(df[bad_entries.isna().any(axis=1)], SUPERSTRUCTURE)
             critical.save_options()
             critical.dataframe_to_file(df, bad_entries.isna().any(axis=1))
-            QApplication.restoreOverrideCursor()
             critical.exec_()
             raise ScenarioExchangeDataNonNumericError()
 
@@ -507,18 +507,16 @@ class SuperstructureManager(object):
             while count < len(data):
                 count += 1
                 popped = data[-count]
-                duplicates = SuperstructureManager._check_duplicates(df, popped)
+                duplicates = SuperstructureManager._check_duplicates(df, popped, count)
                 if not duplicates.empty:
                     duplicated[count] = duplicates
-            if duplicated:
 
+            if duplicated:
                 msg = "<p>Duplicates have been found, meaning that there are several rows in the scenario file describing "\
                 "scenarios for the same flow. The AB can deal with this by discarding all but the last row for this "\
                 "exchange.</p> <p>Press 'Ok' to proceed, press 'Cancel' to abort.</p>"
-                for file, frame in duplicated.items():
-                    frame.insert(0, 'File', file, allow_duplicates=True)
                 warning = ABPopup.abWarning('Duplicate flow exchanges', msg, QPushButton('Ok'), QPushButton('Cancel'))
-                warning.dataframe(pd.concat([file for file in duplicated.values()]), ['File'] + SUPERSTRUCTURE)
+                warning.dataframe(pd.concat([file for file in duplicated.values()]), ['file'] + SUPERSTRUCTURE.tolist())
                 QApplication.restoreOverrideCursor()
                 response = warning.exec_()
                 QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -527,23 +525,27 @@ class SuperstructureManager(object):
             return data
 
     @staticmethod
-    def _check_duplicates(dfp: pd.DataFrame, pdf: pd.DataFrame,
+    def _check_duplicates(dfp: pd.DataFrame, pdf: pd.DataFrame, count: int,
                           index: list = ['to key', 'from key', 'flow type']) -> pd.DataFrame:
+        # TODO fix variable names 'dfp' & 'pdf' to something undearstandeable
+        # TODO create useful docstring, already clear this is a private method from '_' prefix
         """ NOT TO BE USED OUTSIDE OF CALLING METHOD check_duplicates """
         # First save the original index and create a new one that can help the user identify duplicates in their files
         d_idx = dfp.index
+        dfp.insert(0, 'file', '1', allow_duplicates=True)  # add the file number
         dfp.index = pd.Index([str(i) for i in range(dfp.shape[0])])
         p_idx = pdf.index
+        pdf.insert(0, 'file', str(count), allow_duplicates=True)  # add the file number
         pdf.index = pd.Index([str(i) for i in range(pdf.shape[0])])
         df = pd.concat([dfp, pdf], ignore_index=True)
         dfp.index = d_idx
         pdf.index = p_idx
         dfp.drop_duplicates(index, keep='last', inplace=True)
-        #        pdf.drop_duplicates(index, keep='last', inplace=True)
         return df.loc[df.duplicated(index, keep=False)]
 
     @staticmethod
     def _check_duplicate(data: pd.DataFrame, index: list = ['to key', 'from key', 'flow type']) -> pd.DataFrame:
+        # TODO create useful docstring, already clear this is a private method from '_' prefix
         """ NOT TO BE USED OUTSIDE OF CALLING METHOD check_duplicates """
         df = data.copy()
         df.index = pd.Index([str(i) for i in range(df.shape[0])])
