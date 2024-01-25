@@ -502,11 +502,11 @@ class SuperstructureManager(object):
             # and we are always checking the last file
             # So only comparisons with the last file are required
             count = 1
-            df = data[-count]
+            df = data[-count].copy()
             duplicated = {}
             while count < len(data):
                 count += 1
-                popped = data[-count]
+                popped = data[-count].copy()
                 duplicates = SuperstructureManager._check_duplicates(df, popped, count)
                 if not duplicates.empty:
                     duplicated[count] = duplicates
