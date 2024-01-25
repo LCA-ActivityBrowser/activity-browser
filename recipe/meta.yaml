@@ -37,6 +37,7 @@ requirements:
     - seaborn
     - libxml2 <=2.10.4
     - pint <=0.21
+    - pandas <=2.1.4
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
