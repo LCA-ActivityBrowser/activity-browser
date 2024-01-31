@@ -8,6 +8,7 @@ from ...signals import signals
 
 import logging
 from activity_browser.logger import ABHandler
+from ..threading import ABThread
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -40,7 +41,7 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.setValue(current)
 
 
-class UpdateBiosphereThread(QtCore.QThread):
+class UpdateBiosphereThread(ABThread):
     PATCHES = [patch for patch in dir(data) if patch.startswith('add_ecoinvent') and patch.endswith('biosphere_flows')]
     progress = Signal(int)
     def __init__(self, ei_versions, parent=None):
@@ -61,6 +62,3 @@ class UpdateBiosphereThread(QtCore.QThread):
         except ValidityError as e:
             log.error(f'Could not patch biosphere: {str(e)}')
             self.exit(1)
-        for _, db in bw.config.sqlite3_databases:
-            if not db._database.is_closed():
-                db._database.close()

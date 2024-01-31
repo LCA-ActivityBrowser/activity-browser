@@ -4,11 +4,12 @@ from typing import List, Tuple
 
 import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
-from PySide2.QtCore import QRegExp, QThread, Qt, Signal, Slot
+from PySide2.QtCore import Qt, Signal, Slot
 
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
+from ..threading import ABThread
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
 from ...ui.widgets import BiosphereUpdater
@@ -549,7 +550,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         dialog.show()
 
 
-class DefaultBiosphereThread(QThread):
+class DefaultBiosphereThread(ABThread):
     update = Signal(int, str)
 
     def __init__(self, version, parent=None):
@@ -568,10 +569,6 @@ class DefaultBiosphereThread(QThread):
         if not len(bw.migrations):
             self.update.emit(2, "Creating core data migrations for {}".format(project))
             bw.create_core_migrations()
-        # cleaning up the DB connections in this thread
-        for _, db in bw.config.sqlite3_databases:
-            if not db._database.is_closed():
-                db._database.close()
 
 
 class FilterManagerDialog(QtWidgets.QDialog):

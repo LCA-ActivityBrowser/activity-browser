@@ -16,6 +16,7 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
+from ..threading import ABThread
 from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
@@ -707,7 +708,7 @@ class ImportPage(QtWidgets.QWizardPage):
         return
 
 
-class MainWorkerThread(QtCore.QThread):
+class MainWorkerThread(ABThread):
     def __init__(self, downloader, parent=None):
         super().__init__(parent)
         self.downloader = downloader
@@ -912,12 +913,6 @@ class MainWorkerThread(QtCore.QThread):
             del bw.databases[self.db_name]
             log.info(f'Database {self.db_name} deleted!')
 
-    def exit(self, retcode: int = ...) -> None:
-        # cleaning up the DB connections in this thread
-        for _, db in bw.config.sqlite3_databases:
-            if not db._database.is_closed():
-                db._database.close()
-        return super().exit(retcode)
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
