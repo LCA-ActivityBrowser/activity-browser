@@ -730,7 +730,7 @@ class MainWorkerThread(ABThread):
         self.use_local = use_local
         self.relink = relink or {}
 
-    def run(self):
+    def run_safely(self):
         # Set the cancel sentinal to false whenever the thread (re-)starts
         import_signals.cancel_sentinel = False
         if self.use_forwast:

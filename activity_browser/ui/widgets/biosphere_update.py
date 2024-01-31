@@ -52,7 +52,7 @@ class UpdateBiosphereThread(ABThread):
 
         self.total_patches = len(self.PATCHES)
 
-    def run(self):
+    def run_safely(self):
         try:
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)

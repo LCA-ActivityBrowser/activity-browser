@@ -557,7 +557,7 @@ class DefaultBiosphereThread(ABThread):
         super().__init__(parent=parent)
         self.version = version
 
-    def run(self):
+    def run_safely(self):
         project = "<b>{}</b>".format(bw.projects.current)
         if "biosphere3" not in bw.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
