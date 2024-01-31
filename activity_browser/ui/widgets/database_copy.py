@@ -3,6 +3,7 @@ import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
 from ...signals import signals
+from ..threading import ABThread
 
 
 class CopyDatabaseDialog(QtWidgets.QProgressDialog):
@@ -36,7 +37,7 @@ class CopyDatabaseDialog(QtWidgets.QProgressDialog):
         signals.databases_changed.emit()
 
 
-class CopyDatabaseThread(QtCore.QThread):
+class CopyDatabaseThread(ABThread):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.copy_from = None
@@ -46,5 +47,5 @@ class CopyDatabaseThread(QtCore.QThread):
         self.copy_from = copy_from
         self.copy_to = copy_to
 
-    def run(self):
+    def run_safely(self):
         bw.Database(self.copy_from).copy(self.copy_to)
