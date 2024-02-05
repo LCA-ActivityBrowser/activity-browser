@@ -16,6 +16,7 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
+from ..threading import ABThread
 from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
@@ -707,7 +708,7 @@ class ImportPage(QtWidgets.QWizardPage):
         return
 
 
-class MainWorkerThread(QtCore.QThread):
+class MainWorkerThread(ABThread):
     def __init__(self, downloader, parent=None):
         super().__init__(parent)
         self.downloader = downloader
@@ -729,7 +730,7 @@ class MainWorkerThread(QtCore.QThread):
         self.use_local = use_local
         self.relink = relink or {}
 
-    def run(self):
+    def run_safely(self):
         # Set the cancel sentinal to false whenever the thread (re-)starts
         import_signals.cancel_sentinel = False
         if self.use_forwast:

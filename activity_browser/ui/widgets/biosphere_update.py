@@ -8,6 +8,7 @@ from ...signals import signals
 
 import logging
 from activity_browser.logger import ABHandler
+from ..threading import ABThread
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -40,7 +41,7 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.setValue(current)
 
 
-class UpdateBiosphereThread(QtCore.QThread):
+class UpdateBiosphereThread(ABThread):
     PATCHES = [patch for patch in dir(data) if patch.startswith('add_ecoinvent') and patch.endswith('biosphere_flows')]
     progress = Signal(int)
     def __init__(self, ei_versions, parent=None):
@@ -51,7 +52,7 @@ class UpdateBiosphereThread(QtCore.QThread):
 
         self.total_patches = len(self.PATCHES)
 
-    def run(self):
+    def run_safely(self):
         try:
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)
