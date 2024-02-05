@@ -81,7 +81,7 @@ class ABExcelImporter(ExcelImporter):
             obj.project_parameters, obj.database_parameters,
             any("parameters" in ds for ds in obj.data)
         ])
-        obj.apply_strategies(verbose=False)
+        obj.apply_strategies()
         if any(obj.unlinked) and relink:
             for db, new_db in relink.items():
                 if db == "(name missing)":
