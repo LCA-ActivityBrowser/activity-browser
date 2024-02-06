@@ -150,17 +150,22 @@ class MethodsTree(ABDictTreeView):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu(self)
+
+        if self.tree_level()[0] == 'leaf':
+            menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
+        else:
+            menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
+            menu.addAction(qicons.backward, "Collapse all sub levels", self.collapse_branch)
+        
+        menu.addSeparator()
+
         menu.addAction(qicons.copy, "Duplicate Impact Category",
                        lambda: self.copy_method()
                        )
         menu.addAction(qicons.delete, "Delete Impact Category",
                        lambda: self.delete_method()
                        )
-        if self.tree_level()[0] == 'leaf':
-            menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
-        else:
-            menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
-            menu.addAction(qicons.backward, "Collapse all sub levels", self.collapse_branch)
+
         menu.exec_(event.globalPos())
 
     def selected_methods(self) -> Iterable:

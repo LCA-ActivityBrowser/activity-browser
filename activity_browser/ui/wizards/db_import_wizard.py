@@ -16,11 +16,14 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
+from ..threading import ABThread
 from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...signals import signals
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
+from ...info import __ei_versions__
+from ...utils import sort_semantic_versions
 
 import logging
 from activity_browser.logger import ABHandler
@@ -51,6 +54,9 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.downloader = ABEcoinventDownloader()
         self.setWindowTitle("Database Import Wizard")
         self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setWindowFlags(QtCore.Qt.Sheet)
+        self.setOption(self.NoCancelButton, False)
 
         # Construct and bind pages.
         self.import_type_page = ImportTypePage(self)
@@ -83,10 +89,6 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         # db import is done when finish button becomes active
         self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.cleanup)
 
-        # thread management
-        self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_thread)
-        self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel_extraction)
-
         import_signals.connection_problem.connect(self.show_info)
         import_signals.import_failure.connect(self.show_info)
         import_signals.import_failure_detailed.connect(self.show_detailed)
@@ -102,20 +104,54 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     def update_downloader(self):
         self.downloader.version = self.version
         self.downloader.system_model = self.system_model
+    
+    def done(self, result: int):
+        """
+        Reimplementation of the QWizard.done method which is called when the wizard is done
+        or when the user cancels.
+        """
+        # indicate to the user that the click was succesful
+        self.button(QtWidgets.QWizard.CancelButton).setDisabled(True)
+
+        # cancel any running tasks
+        self.cancel_extraction()
+        self.cancel_thread()
+
+        # else just call done on super()
+        super().done(result)
 
     def closeEvent(self, event):
         """ Close event now behaves similarly to cancel, because of self.reject.
 
         This allows the import wizard to be reused, ie starts from the beginning
         """
-        self.cancel_thread()
         self.cancel_extraction()
+        self.cancel_thread()
         event.accept()
 
     def cancel_thread(self):
-        log.info('\nDatabase import interrupted!')
-        import_signals.cancel_sentinel = True
-        self.cleanup()
+        """Cancels the worker thread initiated by the import page"""
+        thread = self.import_page.main_worker_thread
+        dispatcher = self.thread().eventDispatcher()
+
+        # show the user we're working on something within the wizard
+        self.setCursor(QtCore.Qt.WaitCursor)
+
+        if thread.isRunning():
+            # flag an abort through the sentinel
+            import_signals.cancel_sentinel = True
+            # make sure the import page doesn't receive any last signals by the thread
+            import_signals.disconnect(self.import_page)
+            # signal the thread to exit when it can do so safely
+            thread.exit(1)
+
+        # block while the thread is still running
+        while thread.isRunning():
+            # make sure we stay responsive
+            dispatcher.processEvents(QtCore.QEventLoop.AllEvents)
+        
+        # return to normal
+        self.setCursor(QtCore.Qt.ArrowCursor)
 
     def cancel_extraction(self):
         process = getattr(self.downloader, "extraction_process", None)
@@ -672,7 +708,7 @@ class ImportPage(QtWidgets.QWizardPage):
         return
 
 
-class MainWorkerThread(QtCore.QThread):
+class MainWorkerThread(ABThread):
     def __init__(self, downloader, parent=None):
         super().__init__(parent)
         self.downloader = downloader
@@ -694,7 +730,7 @@ class MainWorkerThread(QtCore.QThread):
         self.use_local = use_local
         self.relink = relink or {}
 
-    def run(self):
+    def run_safely(self):
         # Set the cancel sentinal to false whenever the thread (re-)starts
         import_signals.cancel_sentinel = False
         if self.use_forwast:
@@ -989,7 +1025,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             self.db_dict = self.wizard.downloader.db_dict
         self.system_models = {
             version: sorted({k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True)
-            for version in sorted({k[0] for k in self.db_dict.keys()}, reverse=True)
+            for version in sorted({k[0] for k in self.db_dict.keys() if k[0] in __ei_versions__}, reverse=True)
         }
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
@@ -997,7 +1033,8 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             del self.system_models["universal"]
         self.version_combobox.clear()
         self.system_model_combobox.clear()
-        self.version_combobox.addItems(list(self.system_models.keys()))
+        versions = sort_semantic_versions(self.system_models.keys())
+        self.version_combobox.addItems(versions)
         if bool(self.version_combobox.count()):
             # Adding the items will cause system_model_combobox to update
             # and show the correct list, this is just to be sure.

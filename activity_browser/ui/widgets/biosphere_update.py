@@ -8,20 +8,21 @@ from ...signals import signals
 
 import logging
 from activity_browser.logger import ABHandler
+from ..threading import ABThread
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
-    def __init__(self, parent=None):
+    def __init__(self, ei_versions, parent=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Updating '{}' database".format(bw.config.biosphere))
         self.setLabelText("Adding new flows to biosphere database")
         self.setRange(0, 0)
         self.show()
 
-        self.thread = UpdateBiosphereThread(self)
+        self.thread = UpdateBiosphereThread(ei_versions, self)
         self.setMaximum(self.thread.total_patches)
         self.thread.progress.connect(self.update_progress)
         self.thread.finished.connect(self.finished)
@@ -40,19 +41,24 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.setValue(current)
 
 
-class UpdateBiosphereThread(QtCore.QThread):
+class UpdateBiosphereThread(ABThread):
     PATCHES = [patch for patch in dir(data) if patch.startswith('add_ecoinvent') and patch.endswith('biosphere_flows')]
     progress = Signal(int)
-    def __init__(self, parent=None):
+    def __init__(self, ei_versions, parent=None):
         super().__init__(parent)
+
+        # reduce the patches list to only compatible versions for this AB version
+        self.PATCHES = [p for p in self.PATCHES if any(v.replace('.', '') in p for v in ei_versions)]
+
         self.total_patches = len(self.PATCHES)
 
-    def run(self):
+    def run_safely(self):
         try:
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)
+                log.debug(f'Applying biosphere patch: {patch}')
                 update_bio = getattr(data, patch)
                 update_bio()
         except ValidityError as e:
-            log.error("Could not patch biosphere: {}".format(str(e)))
+            log.error(f'Could not patch biosphere: {str(e)}')
             self.exit(1)

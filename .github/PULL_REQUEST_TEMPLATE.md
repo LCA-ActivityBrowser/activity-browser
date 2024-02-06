@@ -12,12 +12,13 @@ pull-request is published.
 -->
 
 - [ ] Keep pull requests small so they can be easily reviewed.
-- [ ] Update the documentation, please follow the [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)
+- [ ] Update the documentation, please follow the [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html).
 - [ ] Update tests.
 - [ ] Categorize the PR by setting a good title and adding one of the labels:
       `bug`, `feature`, `ui`, `change`, `documentation`, `breaking`, `ci`
-      as they show up in the changelog
+      as they show up in the changelog.
 - [ ] Link this PR to related issues by using [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
+- [ ] Add a milestone to the PR for the intended release.
 - [ ] Request a review from another developer.
 
 <!--

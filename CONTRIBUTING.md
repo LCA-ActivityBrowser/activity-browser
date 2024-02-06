@@ -168,7 +168,7 @@ Fork the AB repository, create a new branch from the `master` branch, apply your
 forked repository and open a pull request from there. 
 When creating a pull-request, please add a description of what your new changes should accomplish (and if this wasn't a 
 known problem, _why_ AB needs this).
-If it's a larger pull-request, feel free to add screenshots or other useful descriptions to help us understand what 
+If it's a larger pull-request, feel free to add screenshots/gifs or other useful descriptions to help us understand what 
 you did. 
 Next, make sure your pull-request has a sensible title that _users_ can easily understand, this name is shown in the 
 changelog of the next release.
@@ -185,7 +185,9 @@ This is a [GOOD example of a title](https://github.com/LCA-ActivityBrowser/activ
 ![image](https://github.com/LCA-ActivityBrowser/activity-browser/assets/34626062/0822a3c8-d01c-4a0c-8cbc-d44c4bbddc02)
 - This is a good example because it describes what is changed.
 
-Finally, please make sure you follow the pull-request checklist (you can see this when you open a pull-request.
+Finally, please make sure you follow the pull-request checklist (you can see this when you open a pull-request).
+If you can't complete certain tasks because you don't have write-access (e.g. adding a label and milestone), 
+they will be performed by the maintainers.
 
 Upon creating a new pull-request, there are a number of automated tests that will be run. 
 If the test-runners fail in some way, it is likely that there is an error somewhere in your PR. 
@@ -294,6 +296,7 @@ bug-fixes and minor changes.
 To create a new release follow these steps:
 - Review if all scheduled changes in the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) 
   for the next version are complete, if not, either re-plan them for a next milestone or finish them
+- __Do not__ close the milestone yet
 - Check out the master branch (either through your IDE or with `git checkout master`)
 - `Fetch` and `Pull` changes
 - Create a new tag: `git tag -a x.y.z -m 'x.y.z'` (where `x.y.z` is the new version number)
@@ -307,9 +310,14 @@ To create a new release follow these steps:
 - Wait until a new pull-request is opened on the 
   [`conda forge feedstock`](https://github.com/conda-forge/activity-browser-feedstock/pulls)
   automatically, then review the pull-request and merge the changes
+  - The release will be available on [conda-forge](https://anaconda.org/conda-forge/activity-browser) shortly 
 - Close the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) for this version
-- If this was a `major` or `minor` release, write an email to the
-  [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) announcing the new changes
+  - This triggers a 
+    [`github actions`](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/comment-milestoned-issues.yaml) 
+    bot that will reply to each _closed_ issue with this milestone that a new release is available with an 
+    implemented solution for the issue
+- Write an email to the   [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) announcing the 
+  new changes
 
 ### Don'ts for maintainers:
 - Never create a new release on a Friday or on a day before you'll be unavailable

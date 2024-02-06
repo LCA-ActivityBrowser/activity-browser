@@ -35,19 +35,16 @@ class MenuBar(QtWidgets.QMenuBar):
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
-        self.addMenu(self.windows_menu)
         self.addMenu(self.tools_menu)
         self.addMenu(self.help_menu)
 
         self.setup_file_menu()
         self.setup_view_menu()
-        self.update_windows_menu()
         self.setup_tools_menu()
         self.setup_help_menu()
         self.connect_signals()
 
     def connect_signals(self):
-        signals.update_windows.connect(self.update_windows_menu)
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
         self.update_biosphere_action.triggered.connect(signals.update_biosphere.emit)
@@ -83,17 +80,6 @@ class MenuBar(QtWidgets.QMenuBar):
             '&Welcome screen',
             lambda: signals.toggle_show_or_hide_tab.emit("Welcome")
         )
-
-    def update_windows_menu(self):
-        """Clear and rebuild the menu for switching between tabs."""
-        self.windows_menu.clear()
-        for index in range(self.window.stacked.count()):  # iterate over widgets in QStackedWidget
-            widget = self.window.stacked.widget(index)
-            self.windows_menu.addAction(
-                widget.icon,
-                widget.name,
-                self.window.toggle_debug_window,
-            )
 
     def setup_tools_menu(self) -> None:
         """Build the tools menu for the menubar."""
@@ -132,7 +118,7 @@ For license information please see the copyright on <a href="https://github.com/
         msgBox.exec_()
 
     def raise_issue_github(self):
-        url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new')
+        url = QUrl('https://github.com/LCA-ActivityBrowser/activity-browser/issues/new/choose')
         QtGui.QDesktopServices.openUrl(url)
 
     @Slot(name="testBiosphereExists")

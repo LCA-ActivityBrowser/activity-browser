@@ -301,48 +301,79 @@ class ScenarioImportPanel(BaseRightTab):
         """
 
         self.tables = []
-        layout = QtWidgets.QVBoxLayout()
+        self._scenario_dataframe = pd.DataFrame()
 
-        self.scenario_tables = QtWidgets.QHBoxLayout()
-        self.table_btn = QtWidgets.QPushButton(qicons.add, "Add")
-        self.save_scenario = QtWidgets.QPushButton("Save", self)
-        self.save_scenario.setHidden(True)
+        # set-up the header
+        panel_header = header("Scenarios:  ")
+        panel_header.setToolTip("Left click on the question mark for help")
+        
+        # set-up the control buttons
+        self.table_btn = QtWidgets.QPushButton("Add scenarios", self)
 
-        self.group_box = QtWidgets.QGroupBox()
-        self.group_box.setStyleSheet(style_group_box.border_title)
-        input_field_layout = QtWidgets.QHBoxLayout()
-        self.group_box.setLayout(input_field_layout)
-        self.combine_group = QtWidgets.QButtonGroup()
-        self.combine_group.setExclusive(True)
-        self.product_choice = QtWidgets.QCheckBox("Combine scenarios")
+        self.save_scenario = QtWidgets.QPushButton("Save to file...", self)
+        self.save_scenario.setDisabled(True)
+
+        # set-up the combination buttons
+
+        # initiate the combine scenarios button
+        self.product_choice = QtWidgets.QRadioButton("Combine scenarios", self)
         self.product_choice.setChecked(True)
-        self.addition_choice = QtWidgets.QCheckBox("Extend scenarios")
+
+        # initiate the extend scenarios button
+        self.addition_choice = QtWidgets.QRadioButton("Extend scenarios", self)
+
+        # group them and make them exclusive
+        self.combine_group = QtWidgets.QButtonGroup(self)
+        self.combine_group.setExclusive(True)
         self.combine_group.addButton(self.product_choice)
         self.combine_group.addButton(self.addition_choice)
+
+        # orient them horizontally
+        input_field_layout = QtWidgets.QHBoxLayout()
         input_field_layout.addWidget(self.product_choice)
         input_field_layout.addWidget(self.addition_choice)
-        self.group_box.setHidden(True)
 
-        row = QtWidgets.QToolBar()
-        _header = header("Scenarios:")
-        _header.setToolTip("Left click on the question mark for help")
-        row.addWidget(_header)
-        row.addAction(
+        # add the border and hide until further notice
+        self.group_box = QtWidgets.QGroupBox()
+        self.group_box.setStyleSheet(style_group_box.border_title)        
+        self.group_box.setLayout(input_field_layout)  
+        self.group_box.setDisabled(True)
+
+        # set-up the help button
+        help_button = QtWidgets.QToolBar(self)
+        help_button.addAction(
             qicons.question, "Left click for help on Scenarios",
             self.explanation
         )
-        row.addWidget(self.table_btn)
+
+        # combining all into the tool row
         tool_row = QtWidgets.QHBoxLayout()
-        tool_row.addWidget(row)
+        tool_row.addSpacing(10)
+        tool_row.addWidget(panel_header)
+        tool_row.addWidget(self.table_btn)
         tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)
         tool_row.addStretch(1)
+        tool_row.addWidget(QtWidgets.QLabel("More info on scenarios: "))
+        tool_row.addWidget(help_button)
+
+        # layout for the different scenario tables that can be added
+        self.scenario_tables = QtWidgets.QHBoxLayout()
+
+        # statistics at the bottom of the widget
+        self.stats_widget = QtWidgets.QLabel()
+        self.update_stats()
+        
+        # construct the full layout
+        layout = QtWidgets.QVBoxLayout()
         layout.addLayout(tool_row)
         layout.addLayout(self.scenario_tables)
         layout.addStretch(1)
+        layout.addWidget(self.stats_widget)
         self.setLayout(layout)
+
         self._connect_signals()
-        self._scenario_dataframe = None
+        
 
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
@@ -352,7 +383,37 @@ class ScenarioImportPanel(BaseRightTab):
         signals.project_selected.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
-    def scenario_dataframe(self):
+        self.combine_group.buttonClicked.connect(self.toggle_combine_type)
+
+    def update_stats(self) -> None:
+        """Update the statistics at the bottom of the widget"""
+        n_scenarios = len(self._scenario_dataframe.columns)
+        n_flows = len(self._scenario_dataframe)
+
+        stats = f"Total number of scenarios: <b>{n_scenarios}</b>  |  Total number of variable flows: <b>{n_flows}</b>"
+        self.stats_widget.setText(stats)
+
+    def toggle_combine_type(self) -> None:
+        """Called by signal when the combine type is switched by the user"""
+        try: 
+            # try to update the combined dataframe
+            self.combined_dataframe()
+        except:
+            # revert when an exception occurs
+            type = self.get_combine_type()
+            if type == "product":
+                self.addition_choice.setChecked(True)
+            if type == "addition":
+                self.product_choice.setChecked(True)
+        
+    def get_combine_type(self) -> str:
+        """Return the type of combination the user wants to do"""
+        if self.product_choice.isChecked():
+            return "product"
+        elif self.addition_choice.isChecked():
+            return "addition"
+
+    def scenario_dataframe(self) -> pd.DataFrame:
         return self._scenario_dataframe
 
     def scenario_names(self, idx: int) -> list:
@@ -360,46 +421,62 @@ class ScenarioImportPanel(BaseRightTab):
             return []
         return scenario_names_from_df(self.tables[idx])
 
-    def combined_dataframe(self, skip_checks: bool = False) -> pd.DataFrame:
-        """Return a dataframe that combines the scenarios of multiple tables.
+    def combined_dataframe(self, skip_checks: bool = False) -> None:
+        """Updates scenario dataframe to contain the combined scenarios of multiple tables.
         """
+        # if there are no tables currently, set the dataframe to be empty
         if not self.tables:
-            # Return an empty dataframe, will almost immediately cause a
-            # validation exception.
-            return pd.DataFrame()
+            self._scenario_dataframe = pd.DataFrame()
+            self.update_stats()
+            return
+        
+        # if the tables are empty, set the dataframe to be empty
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         if not data:
-            return pd.DataFrame()
+            self._scenario_dataframe = pd.DataFrame()
+            self.update_stats()
+            return
+        
+        # check what kind of combination the user wants to do
+        kind = self.get_combine_type()
+        
+        # combine the data using SuperstructureManager and update the dataframe
         manager = SuperstructureManager(*data)
-        if self.product_choice.isChecked():
-            kind = "product"
-        elif self.addition_choice.isChecked():
-            kind = "addition"
-        else:
-            kind = "none"
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
+
+        # update the stats at the bottom of the widget
+        self.update_stats()
 
     @Slot(name="addTable")
     def add_table(self) -> None:
+        """Add a new table widget to the widget and add to the list of tables"""
         new_idx = len(self.tables)
         widget = ScenarioImportWidget(new_idx, self)
         self.tables.append(widget)
         self.scenario_tables.addWidget(widget)
         self.updateGeometry()
-        self.combined_dataframe(skip_checks=True)
 
     @Slot(int, name="removeTable")
-    def remove_table(self, idx: int) -> None:
-        w = self.tables.pop(idx)
-        self.scenario_tables.removeWidget(w)
-        w.deleteLater()
+    def remove_table(self, index: int) -> None:
+        """Remove the table widget at the provided index"""
+        # remove from the self.tables list and the layout
+        table_widget = self.tables.pop(index)
+        self.scenario_tables.removeWidget(table_widget)
+        
+        # update the other widgets with new indices
+        for i, widget in enumerate(self.tables):
+            widget.index = i
+
+        # if there was data in the widget, recalculate the combined DF
+        if not table_widget.dataframe.empty: self.combined_dataframe(skip_checks=True)
+
+        # free up the memory
+        table_widget.deleteLater()
+
+        # update save_scenario button
         if not self.tables:
-            self.save_scenario.setHidden(True)
+            self.save_scenario.setDisabled(True)
         self.updateGeometry()
-        # Do not forget to update indexes!
-        for i, w in enumerate(self.tables):
-            w.index = i
-        self.combined_dataframe(skip_checks=True)
 
     @Slot(name="clearTables")
     def clear_tables(self) -> None:
@@ -408,12 +485,12 @@ class ScenarioImportPanel(BaseRightTab):
             self.scenario_tables.removeWidget(w)
             w.deleteLater()
         self.tables = []
-        self.save_scenario.setHidden(True)
+        self.save_scenario.setDisabled(True)
         self.updateGeometry()
         self.combined_dataframe()
 
     def updateGeometry(self):
-        self.group_box.setHidden(len(self.tables) <= 1)
+        self.group_box.setDisabled(len(self.tables) <= 1)
         # Make sure that scenario tables are equally balanced within the box.
         if self.tables:
             table_width = self.width() / len(self.tables)
@@ -434,7 +511,7 @@ class ScenarioImportPanel(BaseRightTab):
         table.sync_superstructure(df)
 
     @Slot(int, name="SaveScenarioDataframe")
-    def save_action(self, idx) -> None:
+    def save_action(self) -> None:
         """ Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
         merged. Will not contain duplicates. Will not contain self-referential technosphere flows.
 
@@ -442,8 +519,9 @@ class ScenarioImportPanel(BaseRightTab):
         """
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self, caption="Choose location to save the scenario file",
-            filter="All Files (*.*);; CSV (*.csv);; Excel (*.xlsx)",
+            filter="Excel (*.xlsx *.xls);; CSV (*.csv)",
         )
+        print('Saving scenario dataframe to file: ', filepath)
         scenarios = self._scenario_dataframe.columns.difference(['input', 'output', 'flow'])
         superstructure = SUPERSTRUCTURE.tolist()
         cols = superstructure + scenarios.tolist()
@@ -455,11 +533,13 @@ class ScenarioImportPanel(BaseRightTab):
             savedf.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
         if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
             savedf.to_excel(filepath, index=False)
-        else: # assumed to be a csv
-            savedf.to_csv(filepath, index=False)
+            return
+        elif not filepath.endswith('.csv'):
+            filepath += '.csv'
+        savedf.to_csv(filepath, index=False, sep=';')
 
     def save_button(self, visible: bool):
-        self.save_scenario.setHidden(not visible)
+        self.save_scenario.setDisabled(not visible)
         self.show()
         self.updateGeometry()
 
@@ -487,6 +567,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
         layout.addLayout(row)
         layout.addWidget(self.table)
+        layout.addStretch(1)
         self.setLayout(layout)
         self._connect_signals()
 
@@ -511,7 +592,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 idx = dialog.import_sheet.currentIndex()
                 file_type_suffix = dialog.path.suffix
                 separator = dialog.field_separator.currentData()
-                log.info("separator == '{}'".format(separator))
+                log.debug("separator == '{}'".format(separator))
                 QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
                 log.info('Loading Scenario file. This may take a while for large files')
                 # Try and read as a superstructure file
@@ -621,5 +702,5 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @property
     def dataframe(self) -> pd.DataFrame:
         if self.scenario_df.empty:
-            log.warning("No data in scenario table {}, skipping".format(self.index + 1))
+            log.debug("No data in scenario table {}, skipping".format(self.index + 1))
         return self.scenario_df

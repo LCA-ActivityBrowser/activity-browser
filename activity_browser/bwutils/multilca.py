@@ -115,18 +115,21 @@ class MLCA(object):
             cs = bw.calculation_setups[cs_name]
         except KeyError:
             raise ValueError(
-                "{} is not a known `calculation_setup`.".format(cs_name)
+                f"{cs_name} is not a known `calculation_setup`."
             )
 
-        if sum([v for rf in cs['inv'] for v in rf.values()]) == 0:
+        # check if all values are non-zero
+        # cs['inv'] contains all reference flows (rf),
+        # all values of rf are the individual reference flow items.
+        if [v for rf in cs['inv'] for v in rf.values() if v == 0]:
             msg = QMessageBox()
-            msg.setText('Sum of reference flows equals 0')
-            msg.setInformativeText('A value greater than 0 must be provided for at least one reference flow.\n' +
-                                   'Please enter a valid value before calculating LCA results again.')
+            msg.setWindowTitle('Reference flows equal 0')
+            msg.setText('All reference flows must be non-zero.')
+            msg.setInformativeText('Please enter a valid value before calculating LCA results again.')
             msg.setIcon(QMessageBox.Warning)
             QApplication.restoreOverrideCursor()
             msg.exec_()
-            raise ReferenceFlowValueError("Sum of reference flows == 0")
+            raise ReferenceFlowValueError("Reference flow == 0")
 
         # reference flows and related indexes
         self.func_units = cs['inv']
@@ -170,17 +173,17 @@ class MLCA(object):
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
 
-        # TODO: get rid of the below
-        self.func_unit_translation_dict = {
-            str(bw.get_activity(list(func_unit.keys())[0])): func_unit for func_unit in self.func_units
-        }
-        if len(self.func_unit_translation_dict) != len(self.func_units):
-            self.func_unit_translation_dict = {}
-            for fu in self.func_units:
-                act = bw.get_activity(next(iter(fu)))
-                self.func_unit_translation_dict["{} {}".format(act, act[0])] = fu
+        name = 'name'
+        ref_prod = 'reference product'
+        db = 'database'
+        self.func_unit_translation_dict = {}
+        for fu in self.func_units:
+            key = next(iter(fu))
+            amt = fu[key]
+            act = bw.get_activity(key)
+            self.func_unit_translation_dict[f'{act[name]} | {act[ref_prod]} | {act[db]} | {amt}'] = fu
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
-        self.func_key_list = list(self.func_key_dict.keys())
+        self.func_key_list = list(self.func_unit_translation_dict.keys())
 
     def _construct_lca(self):
         return bw.LCA(demand=self.func_units_dict, method=self.methods[0])

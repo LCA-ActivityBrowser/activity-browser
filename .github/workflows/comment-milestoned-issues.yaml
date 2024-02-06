@@ -1,0 +1,36 @@
+name: comment when milestone is closed
+on:
+  milestone:
+    types: [closed]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on issue
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const milestone_number = context.payload.milestone.number;
+            const milestone_title = context.payload.milestone.title;
+
+            // Get all issues associated with the milestone
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              milestone: milestone_number,
+              state: 'all',
+            });
+
+            // Loop through the issues and if the issue was closed and is not a PR, 
+            // post a comment referring to the new release
+            for (const issue of issues.data) {
+              if (issue.state === 'closed' && !issue.pull_request) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: `> [!NOTE]\n> This issue has been implemented in the [new release of Activity Browser 🚀 (version ${milestone_title})](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/${milestone_title}), you can get the new version by [updating Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser#updating-the-ab).\n> \n> Do you want to be notified of new releases of Activity Browser? [Subscribe](https://brightway.groups.io/g/AB-updates/join) to our [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) ✉.\n\n🤖 _beep boop! I'm a bot and this message was an automated action._\n_If updating does not make sense for this issue, just ignore this._`,
+                });
+              }
+            }
