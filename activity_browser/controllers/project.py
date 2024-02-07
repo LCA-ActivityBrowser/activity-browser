@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
 import traceback
+
+import brightway2 as bw
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
+from activity_browser import log, signals, ab_settings
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.settings import ab_settings
-from activity_browser.signals import signals
 from activity_browser.ui.widgets import TupleNameDialog, ProjectDeletionDialog
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
 
 class ProjectController(QObject):
     """The controller that handles all of the AB features on the level of

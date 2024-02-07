@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtWidgets, QtCore
 
-from ...signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from activity_browser import log, signals
 
 
 class ABTab(QtWidgets.QTabWidget):

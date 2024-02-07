@@ -1,25 +1,18 @@
 # -*- coding: utf-8 -*-
-from abc import abstractmethod
-from copy import deepcopy
 import json
 import os
+from abc import abstractmethod
+from copy import deepcopy
 from typing import Type
 
 from PySide2 import QtWebEngineWidgets, QtWebChannel, QtWidgets
 from PySide2.QtCore import Signal, Slot, QObject, Qt, QUrl
 from bw2data.filesystem import safe_filename
 
+from activity_browser import log, ab_settings, signals
 from . import webutils
 from ... import utils
-from ...settings import ab_settings
 from ...ui.icons import qicons
-from ...signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BaseNavigatorWidget(QtWidgets.QWidget):

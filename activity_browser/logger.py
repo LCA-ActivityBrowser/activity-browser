@@ -3,8 +3,6 @@ import os
 import time
 import appdirs
 
-from .signals import signals
-
 
 class ABHandler(object):
     """
@@ -174,7 +172,7 @@ class ABLogHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
-        signals.log.emit(msg)
+        #signals.log.emit(msg)
 
 
 logger = logging.getLogger('ab_logs')

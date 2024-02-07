@@ -8,18 +8,12 @@ from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, 
     QHeaderView, QStyle, QStyleOptionButton,QLineEdit, QWidgetAction, QWidget, QHBoxLayout, QToolButton
 from PySide2.QtGui import QKeyEvent, QDoubleValidator
 
-from ...settings import ab_settings
-from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
-from ..icons import qicons
+from activity_browser import log, ab_settings
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
 from .models.base import ABSortProxyModel
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from ..icons import qicons
+from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 
 
 class ABDataFrameView(QTableView):

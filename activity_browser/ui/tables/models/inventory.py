@@ -2,23 +2,16 @@
 import datetime
 import functools
 
-import brightway2 as bw
-from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd
+import brightway2 as bw
+from bw2data.utils import natural_sort
 from PySide2.QtCore import Qt, QModelIndex, Slot
 from PySide2.QtWidgets import QApplication
 
+from activity_browser import log, project_settings, signals
 from activity_browser.bwutils import AB_metadata, commontasks as bc
-from activity_browser.settings import project_settings
-from activity_browser.signals import signals
 from .base import PandasModel, DragPandasModel
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class DatabasesModel(PandasModel):

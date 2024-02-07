@@ -5,13 +5,8 @@ from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 import numpy as np
 
+from activity_browser import log
 from .commontasks import count_database_records
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 # todo: extend store over several projects
 

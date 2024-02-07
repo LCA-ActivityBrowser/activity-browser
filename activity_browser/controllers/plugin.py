@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
-import sys
 import importlib.util
-import traceback
 from pkgutil import iter_modules
-from shutil import rmtree
 
 from PySide2.QtCore import QObject, Slot
 
+from activity_browser import log, signals
 from ..ui.wizards.plugins_manager_wizard import PluginsManagerWizard
-from ..signals import signals
 from ..settings import project_settings, ab_settings
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class PluginController(QObject):

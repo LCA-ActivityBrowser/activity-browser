@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import Optional
-from PySide2.QtWidgets import QMessageBox
 
 import appdirs
 import brightway2 as bw
-
-from .signals import signals
-import logging
-from .logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
+from PySide2.QtWidgets import QMessageBox
+from activity_browser import log, signals
 
 class BaseSettings(object):
     """ Base Class for handling JSON settings files.

@@ -9,14 +9,10 @@ from bw2io.errors import StrategyError
 from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_by_fields
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
+from activity_browser import log
 from .commontasks import clean_activity_name
 from ..bwutils.errors import ExchangeErrorValues
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}

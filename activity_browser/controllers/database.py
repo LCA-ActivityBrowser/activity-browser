@@ -5,6 +5,8 @@ from bw2data.parameters import Group
 from PySide2 import QtWidgets
 from PySide2.QtCore import QObject, Slot, Qt
 
+from activity_browser import log, signals, project_settings
+from .project import ProjectController
 from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
 from ..ui.widgets import (
@@ -13,18 +15,8 @@ from ..ui.widgets import (
 )
 from ..ui.wizards.db_export_wizard import DatabaseExportWizard
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
-from ..settings import project_settings
-from ..signals import signals
-from .project import ProjectController
 from ..info import __ei_versions__
 from ..utils import sort_semantic_versions
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
 
 
 class DatabaseController(QObject):

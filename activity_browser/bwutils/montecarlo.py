@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 from time import time
 from typing import Optional, Union
+from collections import defaultdict
 
 import brightway2 as bw
 from bw2calc.utils import get_seed
 import numpy as np
 import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
-from collections import defaultdict
 
+from activity_browser import log
 from .manager import MonteCarloParameterManager
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class MonteCarloLCA(object):

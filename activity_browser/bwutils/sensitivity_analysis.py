@@ -5,23 +5,18 @@
 # Moment-Independent measure based on Monte Carlo simulation LCA results.
 # see: https://salib.readthedocs.io/en/latest/api.html#delta-moment-independent-measure
 # =============================================================================
+import os
+import traceback
+from time import time
 
 import brightway2 as bw
 import numpy as np
 import pandas as pd
-from time import time
-import traceback
 from SALib.analyze import delta
-import os
 
+from activity_browser import log
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 from ..settings import ab_settings
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 def get_lca(fu, method):

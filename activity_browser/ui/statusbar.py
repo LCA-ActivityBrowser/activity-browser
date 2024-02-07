@@ -1,16 +1,9 @@
 # -*- coding: utf-8 -*-
+import brightway2 as bw
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QLabel, QStatusBar
 
-import brightway2 as bw
-
-from ..signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from activity_browser import log, signals
 
 class Statusbar(QStatusBar):
     def __init__(self, window):

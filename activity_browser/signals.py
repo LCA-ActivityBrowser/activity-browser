@@ -2,7 +2,7 @@
 from PySide2.QtCore import QObject, Signal, QModelIndex
 
 
-class Signals(QObject):
+class ABSignals(QObject):
     """ Signals used for the Activity Browser should be defined here.
     While arguments can be passed to signals, it is good practice not to do this if possible.
     Every signal should have a comment (no matter how descriptive the name of the signal) that describes what a
@@ -134,4 +134,4 @@ class Signals(QObject):
     plugin_selected = Signal(str, bool)  # This plugin was/was not selected | name of plugin, selected state
     manage_plugins = Signal()  # Trigger the plugins dialog
 
-signals = Signals()
+signals = ABSignals()

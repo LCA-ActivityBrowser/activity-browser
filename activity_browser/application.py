@@ -6,8 +6,6 @@ from PySide2.QtWidgets import QApplication
 from PySide2.QtCore import QSysInfo
 
 from activity_browser import log
-from .controllers import controllers
-
 
 class ABApplication(QApplication):
     _main_window = None
@@ -24,6 +22,8 @@ class ABApplication(QApplication):
     @main_window.setter
     def main_window(self, widget):
         self._main_window = widget
+    
+    def set_controllers(self, controllers):
         for attr, controller in controllers.items():
             setattr(self, attr, controller(self.main_window))
 

@@ -2,6 +2,7 @@
 from typing import Optional
 
 import datetime
+
 import arrow
 import numpy as np
 import pandas as pd
@@ -10,14 +11,9 @@ from PySide2.QtCore import (
 )
 from PySide2.QtGui import QBrush
 
+from activity_browser import log
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.style import style_item
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class PandasModel(QAbstractTableModel):
