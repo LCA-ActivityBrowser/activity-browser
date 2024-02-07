@@ -6,16 +6,14 @@ from bw2data.parameters import ActivityParameter, Group, ParameterBase
 from PySide2.QtCore import QObject, Slot
 from PySide2.QtWidgets import QInputDialog, QMessageBox, QErrorMessage
 
+from activity_browser import signals, application
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.signals import signals
 from activity_browser.ui.wizards import ParameterWizard
 
 
 class ParameterController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.window = parent
-
         signals.add_parameter.connect(self.add_parameter)
         signals.add_activity_parameter.connect(self.auto_add_parameter)
         signals.add_activity_parameters.connect(self.multiple_auto_parameters)
@@ -30,7 +28,7 @@ class ParameterController(QObject):
     @Slot(tuple, name="createParameterWizard")
     def add_parameter(self, key: Optional[tuple] = None) -> None:
         key = key or ("", "")
-        wizard = ParameterWizard(key, self.window)
+        wizard = ParameterWizard(key, application.main_window)
 
         if wizard.exec_() == ParameterWizard.Accepted:
             selection = wizard.selected
@@ -89,7 +87,7 @@ class ParameterController(QObject):
             if act.get("type", "process") != "process":
                 issue = warning.format(act.get("name"), act.get("type"))
                 QMessageBox.warning(
-                    self.window, "Not allowed", issue, QMessageBox.Ok, QMessageBox.Ok
+                    application.main_window, "Not allowed", issue, QMessageBox.Ok, QMessageBox.Ok
                 )
                 continue
             self.auto_add_parameter(key)
@@ -178,7 +176,7 @@ class ParameterController(QObject):
                 # warning message.
                 transaction.rollback()
                 QMessageBox.warning(
-                    self.window, "Could not save changes", str(e),
+                    application.main_window, "Could not save changes", str(e),
                     QMessageBox.Ok, QMessageBox.Ok
                 )
         signals.parameters_changed.emit()
@@ -194,7 +192,7 @@ class ParameterController(QObject):
         """
         text = "Rename parameter '{}' to:".format(param.name)
         new_name, ok = QInputDialog.getText(
-            self.window, "Rename parameter", text,
+            application.main_window, "Rename parameter", text,
         )
         if not ok or not new_name:
             return
@@ -210,7 +208,7 @@ class ParameterController(QObject):
             signals.parameter_renamed.emit(old_name, group, new_name)
         except Exception as e:
             QMessageBox.warning(
-                self.window, "Could not save changes", str(e),
+                application.main_window, "Could not save changes", str(e),
                 QMessageBox.Ok, QMessageBox.Ok
             )
 
@@ -253,3 +251,5 @@ class ParameterController(QObject):
             if not exists:
                 # Also clear Group if it is not in use anymore
                 Group.delete().where(Group.name == group).execute()
+
+parameter_controller = ParameterController(application)

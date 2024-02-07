@@ -8,7 +8,7 @@ from bw2data.backends.peewee.proxies import Activity
 from PySide2.QtCore import QObject, Slot, Qt
 from PySide2 import QtWidgets
 
-from activity_browser import project_settings, signals
+from activity_browser import project_settings, signals, application
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.bwutils.strategies import relink_activity_exchanges
 from .parameter import ParameterController
@@ -17,8 +17,6 @@ from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, Lo
 class ActivityController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.window = parent
-
         signals.new_activity.connect(self.new_activity)
         signals.delete_activity.connect(self.delete_activity)
         signals.delete_activities.connect(self.delete_activity)
@@ -34,7 +32,7 @@ class ActivityController(QObject):
     @Slot(str, name="createNewActivity")
     def new_activity(self, database_name: str) -> None:
         name, ok = QtWidgets.QInputDialog.getText(
-            self.window,
+            application.main_window,
             "Create new technosphere activity",
             "Please specify an activity name:" + " " * 10,
         )
@@ -69,7 +67,7 @@ class ActivityController(QObject):
                 "Are you sure you want to continue?")
 
         if any(len(act.upstream()) > 0 for act in activities):
-            choice = QtWidgets.QMessageBox.warning(self.window,
+            choice = QtWidgets.QMessageBox.warning(application.main_window,
                                                    "Activity/Activities has/have downstream processes",
                                                    text,
                                                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
@@ -225,7 +223,7 @@ class ActivityController(QObject):
 
         # trigger dialog with autocomplete-writeable-dropdown-list
         options = (old_location, locations)
-        dialog = LocationLinkingDialog.relink_location(act['name'], options, self.window)
+        dialog = LocationLinkingDialog.relink_location(act['name'], options, application.main_window)
         if dialog.exec_() != LocationLinkingDialog.Accepted:
             # if the dialog accept button is not clicked, do nothing
             return
@@ -317,13 +315,13 @@ class ActivityController(QObject):
             available_target_dbs.remove(origin_db)
         if not available_target_dbs:
             QtWidgets.QMessageBox.warning(
-                self.window, "No target database",
+                application.main_window, "No target database",
                 "No valid target databases available. Create a new database or set one to writable (not read-only)."
             )
             return
 
         target_db, ok = QtWidgets.QInputDialog.getItem(
-            self.window, "Copy activity to database", "Target database:",
+            application.main_window, "Copy activity to database", "Target database:",
             available_target_dbs, 0, False
         )
         if target_db and ok:
@@ -380,7 +378,7 @@ class ActivityController(QObject):
         actvty = db.get(key[1])
         depends = db.find_dependents()
         options = [(depend, bw.databases.list) for depend in depends]
-        dialog = ActivityLinkingDialog.relink_sqlite(actvty['name'], options, self.window)
+        dialog = ActivityLinkingDialog.relink_sqlite(actvty['name'], options, application.main_window)
         relinking_results = {}
         if dialog.exec_() == ActivityLinkingDialog.Accepted:
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -390,10 +388,10 @@ class ActivityController(QObject):
                 relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
             QtWidgets.QApplication.restoreOverrideCursor()
             if failed > 0:
-                relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
+                relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(application.main_window, relinking_results, examples)
                 relinking_dialog.exec_()
                 activity = relinking_dialog.open_activity()
             signals.database_changed.emit(actvty['name'])
             signals.databases_changed.emit()
 
-
+activity_controller = ActivityController(application)

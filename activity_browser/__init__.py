@@ -5,9 +5,9 @@ import traceback
 from .logger import log
 from .application import application
 from .signals import signals
-from .info import __version__ as version
 from .settings import ab_settings, project_settings
-from .controllers import controllers
+from .controllers import *
+from .info import __version__ as version
 from .layouts.main import MainWindow
 from .plugin import Plugin
 
@@ -17,7 +17,7 @@ def run_activity_browser():
     log.info(f'Activity Browser version: {version}')
 
     application.main_window = MainWindow(application)
-    application.set_controllers(controllers)
+    project_controller.load_settings()
     application.show()
 
     def exception_hook(*args):

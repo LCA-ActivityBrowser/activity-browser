@@ -1,25 +1,17 @@
-from typing import Iterator, Optional, Union
+from typing import Iterator
 import uuid
 
 import brightway2 as bw
-import pandas as pd
-from bw2data.backends.peewee.proxies import Activity, ExchangeProxyBase
-from PySide2.QtCore import QObject, Slot, Qt
-from PySide2 import QtWidgets
+from bw2data.backends.peewee.proxies import ExchangeProxyBase
+from PySide2.QtCore import QObject, Slot
 
+from activity_browser import signals, application
 from activity_browser.bwutils import AB_metadata, commontasks as bc
-from activity_browser.bwutils.strategies import relink_activity_exchanges
-from activity_browser.settings import project_settings
-from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
-from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, LocationLinkingDialog
-from .parameter import ParameterController
 
 class ExchangeController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.window = parent
-
         signals.exchanges_deleted.connect(self.delete_exchanges)
         signals.exchanges_add.connect(self.add_exchanges)
         signals.exchanges_add_w_values.connect(self.add_exchanges)
@@ -104,7 +96,7 @@ class ExchangeController(QObject):
     @Slot(object, name="runUncertaintyWizard")
     def edit_exchange_uncertainty(self, exc: ExchangeProxyBase) -> None:
         """Explicitly call the wizard here for altering the uncertainty."""
-        wizard = UncertaintyWizard(exc, self.window)
+        wizard = UncertaintyWizard(exc, application.main_window)
         wizard.show()
 
     @staticmethod
@@ -127,3 +119,5 @@ class ExchangeController(QObject):
         exc.save()
         bw.databases.set_modified(exc["output"][0])
         signals.database_changed.emit(exc["output"][0])
+
+exchange_controller = ExchangeController(application)

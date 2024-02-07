@@ -3,7 +3,7 @@ import brightway2 as bw
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
-from activity_browser import log, signals, ab_settings
+from activity_browser import log, signals, ab_settings, application
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.widgets import ProjectDeletionDialog
 
@@ -13,10 +13,6 @@ class ProjectController(QObject):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.window = parent
-
-        self.load_settings()
-
         signals.switch_bw2_dir_path.connect(self.switch_brightway2_dir_path)
         signals.change_project.connect(self.change_project)
         signals.new_project.connect(self.new_project)
@@ -57,7 +53,7 @@ class ProjectController(QObject):
     def new_project(self, name=None):
         if name is None:
             name, ok = QtWidgets.QInputDialog.getText(
-                self.window,
+                application.main_window,
                 "Create new project",
                 "Name of new project:" + " " * 25
             )
@@ -70,14 +66,14 @@ class ProjectController(QObject):
             signals.projects_changed.emit()
         elif name in bw.projects:
             QtWidgets.QMessageBox.information(
-                self.window, "Not possible.",
+                application.main_window, "Not possible.",
                 "A project with this name already exists."
             )
 
     @Slot(name="copyProject")
     def copy_project(self):
         name, ok = QtWidgets.QInputDialog.getText(
-            self.window,
+            application.main_window,
             "Copy current project",
             "Copy current project ({}) to new name:".format(bw.projects.current) + " " * 10
         )
@@ -88,7 +84,7 @@ class ProjectController(QObject):
                 signals.projects_changed.emit()
             else:
                 QtWidgets.QMessageBox.information(
-                    self.window, "Not possible.",
+                    application.main_window, "Not possible.",
                     "A project with this name already exists."
                 )
 
@@ -102,12 +98,12 @@ class ProjectController(QObject):
         # if it's the startup project: reject deletion and inform user
         if project_to_delete == ab_settings.startup_project:
             QtWidgets.QMessageBox.information(
-                self.window, "Not possible", "Can't delete the startup project. Please select another startup project in the settings first."
+                application.main_window, "Not possible", "Can't delete the startup project. Please select another startup project in the settings first."
             )
             return
 
         # open a delete dialog for the user to confirm, return if user rejects
-        delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(self.window, bw.projects.current)
+        delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(application.main_window, bw.projects.current)
         if delete_dialog.exec_() != ProjectDeletionDialog.Accepted: return
 
         # change from the project to be deleted, to the startup project
@@ -123,14 +119,14 @@ class ProjectController(QObject):
         except Exception as exception:
             log.error(str(exception))
             QtWidgets.QMessageBox.warning(
-                self.window,
+                application.main_window,
                 "An error occured",
                 "An error occured during project deletion. Please check the logs for more information."
             )            
         # if all goes well show info box that the project is deleted
         else:
             QtWidgets.QMessageBox.information(
-                self.window,
+                application.main_window,
                 "Project deleted",
                 "Project succesfully deleted"
             )
@@ -138,3 +134,5 @@ class ProjectController(QObject):
         # emit that the project list has changed because of the deletion,
         # regardless of a possible exception (which may have deleted the project anyways) 
         signals.projects_changed.emit()
+
+project_controller = ProjectController(application)

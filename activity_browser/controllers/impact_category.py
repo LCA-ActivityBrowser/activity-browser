@@ -3,15 +3,13 @@ import brightway2 as bw
 from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
-from activity_browser import log, signals
+from activity_browser import log, signals, application
 from activity_browser.ui.widgets import TupleNameDialog
 
 
 class ImpactCategoryController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.window = parent
-
         signals.copy_method.connect(self.copy_method)
         signals.delete_method.connect(self.delete_method)
         signals.edit_method_cf.connect(self.modify_method_with_cf)
@@ -29,7 +27,7 @@ class ImpactCategoryController(QObject):
         else:
             methods = [bw.Method(method)]
         dialog = TupleNameDialog.get_combined_name(
-            self.window, "Impact category name", "Combined name:", method, " - Copy"
+            application.main_window, "Impact category name", "Combined name:", method, " - Copy"
         )
         if dialog.exec_() != TupleNameDialog.Accepted: return
 
@@ -39,7 +37,7 @@ class ImpactCategoryController(QObject):
             print('+', mthd)
             if new_method in bw.methods:
                 warn = f"Impact Category with name '{new_method}' already exists!"
-                QtWidgets.QMessageBox.warning(self.window, "Copy failed", warn)
+                QtWidgets.QMessageBox.warning(application.main_window, "Copy failed", warn)
                 return
             mthd.copy(new_method)
             log.info("Copied method {} into {}".format(str(mthd.name), str(new_method)))
@@ -141,4 +139,4 @@ class ImpactCategoryController(QObject):
         method.write(cfs)
         signals.method_modified.emit(method.name)
 
-        
+impact_category_controller = ImpactCategoryController(application)

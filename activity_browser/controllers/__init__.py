@@ -1,22 +1,11 @@
 # -*- coding: utf-8 -*-
-from .activity import ActivityController
-from .exchange import ExchangeController
-from .database import DatabaseController
-from .parameter import ParameterController
-from .project import ProjectController
-from .impact_category import ImpactCategoryController
-from .calculation_setup import CalculationSetupController
-from .utilities import UtilitiesController
-from .plugin import PluginController
+from .activity import activity_controller
+from .exchange import exchange_controller
+from .database import database_controller
+from .parameter import parameter_controller
+from .project import project_controller
+from .impact_category import impact_category_controller
+from .calculation_setup import calculation_setup_controller
+from .utilities import utilities_controller
+from .plugin import plugin_controller
 
-controllers = {
-    "activity_controller": ActivityController,
-    "exchange_controller": ExchangeController,
-    "database_controller": DatabaseController,
-    "parameter_controller": ParameterController,
-    "plugin_controller": PluginController,
-    "project_controller": ProjectController,
-    "cs_controller": CalculationSetupController,
-    "ia_controller": ImpactCategoryController,
-    "utils_controller": UtilitiesController,
-}
