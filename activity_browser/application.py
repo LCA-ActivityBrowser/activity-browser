@@ -3,15 +3,12 @@ import sys
 import os
 
 from PySide2.QtWidgets import QApplication
-from PySide2.QtCore import QSysInfo
+from PySide2.QtCore import QSysInfo, Qt, QCoreApplication
 
 from activity_browser import log
 
 class ABApplication(QApplication):
     _main_window = None
-
-    def __init__(self):
-        super().__init__(sys.argv)
 
     @property
     def main_window(self):
@@ -51,5 +48,7 @@ if QSysInfo.productType() == "osx":
 if QSysInfo.productType() in ["arch","nixos"]:
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
     log.info("Info: QtWebEngine sandbox disabled")
+
+QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 
 application = ABApplication()
