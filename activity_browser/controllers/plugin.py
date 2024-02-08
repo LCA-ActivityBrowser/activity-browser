@@ -82,7 +82,7 @@ class PluginController(QObject):
             except:
                 log.error(f"Error: plugin {name} not installed")
 
-    def close_plugins(self):
+    def close(self):
         """ close all plugins
         """
         for plugin in self.plugins.values():

@@ -2,15 +2,16 @@
 import os
 
 from PySide2.QtWidgets import QApplication
-from PySide2.QtCore import QSysInfo, Qt, QCoreApplication
+from PySide2.QtCore import QSysInfo, Qt, QCoreApplication, QObject
 
 from activity_browser import log
 
 class ABApplication(QApplication):
     _main_window = None
+    _controllers = None
 
     @property
-    def main_window(self):
+    def main_window(self) -> QObject | None:
         """Returns the main_window widget of the Activity Browser"""
         if self._main_window: return self._main_window
         raise Exception("main_window not yet initialized, did you try to access it during startup?")
@@ -19,16 +20,12 @@ class ABApplication(QApplication):
     def main_window(self, widget):
         self._main_window = widget
     
-    def set_controllers(self, controllers):
-        for attr, controller in controllers.items():
-            setattr(self, attr, controller(self.main_window))
-
     def show(self):
         self.main_window.showMaximized()
 
     def close(self):
-        self.plugin_controller.close_plugins()
-        self.main_window.close()
+        for child in self.children():
+            if hasattr(child, "close"): child.close()
 
     def deleteLater(self):
         self.main_window.deleteLater()
