@@ -35,11 +35,6 @@ class DatabaseController(QObject):
 
         signals.project_selected.connect(self.ensure_sqlite_indices)
 
-    @property
-    def databases(self) -> list[bd.backends.SQLiteBackend]:
-        db = bd.databases
-        return db
-
     @Slot(name="openImportWizard")
     def import_database_wizard(self) -> None:
         """Start the database import wizard."""
