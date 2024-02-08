@@ -4,7 +4,7 @@ import shutil
 import brightway2 as bw
 import pytest
 
-from activity_browser import Application
+from activity_browser import application, MainWindow
 
 
 @pytest.fixture(scope='session')
@@ -12,10 +12,10 @@ def ab_application():
     """ Initialize the application and yield it. Cleanup the 'test' project
     after session is complete.
     """
-    app = Application()
-    yield app
+    application.main_window = MainWindow(application)
+    yield application
     # Explicitly close the window
-    app.close()
+    application.close()
     # Explicitly close the connection to all the databases for the pytest_project
     if bw.projects.current == "pytest_project":
         for _, db in bw.config.sqlite3_databases:

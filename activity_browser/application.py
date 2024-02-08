@@ -11,7 +11,7 @@ class ABApplication(QApplication):
     _controllers = None
 
     @property
-    def main_window(self) -> QObject | None:
+    def main_window(self) -> QObject:
         """Returns the main_window widget of the Activity Browser"""
         if self._main_window: return self._main_window
         raise Exception("main_window not yet initialized, did you try to access it during startup?")
