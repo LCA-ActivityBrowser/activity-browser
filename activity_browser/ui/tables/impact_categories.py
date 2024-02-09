@@ -66,10 +66,6 @@ class MethodsTable(ABFilterableDataFrameView):
 
 
 class MethodsTree(ABDictTreeView):
-    # TODO Current approach uses a complete regeneration of the tree including
-    # TODO the root and all branch and leaf nodes. This conflicts with the fundamental
-    # TODO structure of these models using links between parent and child nodes as new
-    # TODO addresses are provided, invalidating provided indexes
     """
     The TreeView object for the Tree model of the AB used for the impact categories:
 
@@ -112,7 +108,7 @@ class MethodsTree(ABDictTreeView):
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:
-        self.model.sync()
+        self.model.sync(query)
 
     @Slot(name="optionalExpandAll")
     def optional_expand(self) -> None:

@@ -8,6 +8,7 @@ from ...ui.tables import (
     DatabasesTable,
     ProjectListWidget,
     ActivitiesBiosphereTable,
+    ActivitiesBiosphereTree
 )
 from ...signals import signals
 
@@ -184,7 +185,7 @@ class ActivityBiosphereTabs(ABTab):
         """
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
-            widget = ActivityBiosphereWidget(parent=self)
+            widget = ActivityBiosphereWidget(parent=self, database_name=db_name)
             self.add_tab(widget, db_name)
             self.update_activity_biosphere_widget(db_name)
 
@@ -198,13 +199,16 @@ class ActivityBiosphereTabs(ABTab):
     def update_activity_biosphere_widget(self, db_name: str) -> None:
         """Check if database is open, if so, update the underlying data"""
         if self.tabs.get(db_name, False):
-            self.tabs[db_name].table.model.sync(db_name)
+            self.tabs[db_name].sync_data(db_name)
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent, database_name):
         super(ActivityBiosphereWidget, self).__init__(parent)
+        self.database_name = database_name
+
         self.table = ActivitiesBiosphereTable(self)
+        self.tree = None
 
         # Header widget
         self.header_widget = QtWidgets.QWidget()
@@ -219,6 +223,18 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.debounce_search.timeout.connect(self.set_search_term)
 
         self.setup_search()
+        self.search_active = False
+
+        self.mode_radio_list = QtWidgets.QRadioButton("List view")
+        self.mode_radio_list.setChecked(True)
+        self.mode_radio_list.setToolTip("List view of the database")
+        self.mode_radio_list.hide()
+        self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
+        self.mode_radio_tree.setToolTip("Tree view of the database")
+        self.mode_radio_tree.hide()
+
+        self.header_layout.addWidget(self.mode_radio_list)
+        self.header_layout.addWidget(self.mode_radio_tree)
 
         # Overall Layout
         self.v_layout = QtWidgets.QVBoxLayout()
@@ -231,6 +247,21 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Preferred,
             QtWidgets.QSizePolicy.Maximum)
         )
+
+        self.connect_signals()
+
+    def create_tree(self):
+        self.tree = ActivitiesBiosphereTree(self, self.database_name)
+
+        # check if search was active, if so, apply to tree
+        if self.search_active:
+            self.tree.search(self.search_active)
+
+        self.v_layout.addWidget(self.tree)
+        self.reset_search_button.clicked.connect(self.tree.reset_search)
+
+    def connect_signals(self):
+        self.mode_radio_tree.toggled.connect(self.update_view)
 
     def reset_widget(self):
         self.hide()
@@ -258,10 +289,56 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
 
         signals.project_selected.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
-
         self.header_layout.addWidget(self.search_button)
         self.header_layout.addWidget(self.reset_search_button)
 
     def set_search_term(self):
         search_term = self.search_box.text().strip()
+        self.search_active = search_term
         self.table.search(search_term)
+        if isinstance(self.tree, ActivitiesBiosphereTree):
+            self.tree.search(search_term)
+
+    def reset_search(self):
+        self.search_active = False
+        self.search_box.clear()
+
+    @QtCore.Slot(bool, name="isListToggled")
+    def update_view(self, toggled: bool):
+        self.table.setVisible(not toggled)
+
+        if not isinstance(self.tree, ActivitiesBiosphereTree):
+            self.create_tree()
+        self.tree.setVisible(toggled)
+
+    def sync_data(self, db_name: str) -> None:
+        self.table.model.sync(db_name)
+        if self.tree:
+            self.tree.model.setup_and_sync()
+
+        if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
+                and not isinstance(self.tree, ActivitiesBiosphereTree):
+            # a treeview does not exist and should be able to navigate to
+
+            # set the view to list and show the radio buttons
+            self.mode_radio_list.setChecked(True)
+            self.mode_radio_tree.setChecked(False)
+            self.mode_radio_list.show()
+            self.mode_radio_tree.show()
+        elif 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns:
+            # a treeview exists
+
+            # make sure that the radio buttons are available
+            self.mode_radio_list.show()
+            self.mode_radio_tree.show()
+        else:
+            # a treeview does not need to be shown
+
+            # delete the tree if it exists
+            if isinstance(self.tree, ActivitiesBiosphereTree):
+                self.tree.hide()
+                self.tree = None
+            # set the view to list and hide radio buttons
+            self.mode_radio_list.hide()
+            self.mode_radio_tree.hide()
+            self.table.show()

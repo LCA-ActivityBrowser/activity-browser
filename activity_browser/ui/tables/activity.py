@@ -3,6 +3,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
 from .delegates import *
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import (
     BaseExchangeModel, ProductExchangeModel, TechnosphereExchangeModel,
     BiosphereExchangeModel, DownstreamExchangeModel,
@@ -97,8 +98,11 @@ class BaseExchangeTable(ABDataFrameView):
         pass
 
     def dropEvent(self, event):
-        source_table = event.source()
-        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            source_table = event.source()
+            keys = [source_table.get_key(idx) for idx in source_table.selectedIndexes()]
+        elif isinstance(event.source(), ActivitiesBiosphereTree):
+            keys = event.source().selected_keys()
         event.accept()
         signals.exchanges_add.emit(keys, self.key)
 

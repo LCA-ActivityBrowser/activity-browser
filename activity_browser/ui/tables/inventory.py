@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Slot
+from typing import Iterable
 
+from PySide2 import QtWidgets, QtCore
+from PySide2.QtCore import Slot, QModelIndex
+
+from ...bwutils import AB_metadata
 from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
 from .delegates import CheckboxDelegate
-from .models import DatabasesModel, ActivitiesBiosphereModel
-from .views import ABDataFrameView, ABFilterableDataFrameView
+from .models import DatabasesModel, ActivitiesBiosphereListModel, ActivitiesBiosphereTreeModel
+from .views import ABDictTreeView, ABDataFrameView, ABFilterableDataFrameView
 
 
 class DatabasesTable(ABDataFrameView):
@@ -103,7 +106,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         super().__init__(parent)
         self.db_read_only = True
 
-        self.model = ActivitiesBiosphereModel(parent=self)
+        self.model = ActivitiesBiosphereListModel(parent=self)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
@@ -234,15 +237,18 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
     @Slot(QtCore.QModelIndex, name="openActivityTab")
     def open_activity_tab(self, proxy: QtCore.QModelIndex) -> None:
-        key = self.model.get_key(proxy)
-        signals.safe_open_activity_tab.emit(key)
-        signals.add_activity_to_history.emit(key)
+        """Open the selected activity in a new 'Activity Details' tab."""
+        self.open_activity_tab_w_key(self.model.get_key(proxy))
 
     @Slot(name="openActivityTabs")
     def open_activity_tabs(self) -> None:
-        for key in (self.model.get_key(p) for p in self.selectedIndexes()):
-            signals.safe_open_activity_tab.emit(key)
-            signals.add_activity_to_history.emit(key)
+        """Open these selected activities in new 'Activity Details' tabs."""
+        for proxy in self.selectedIndexes():
+            self.open_activity_tab_w_key(self.model.get_key(proxy))
+
+    def open_activity_tab_w_key(self, key) -> None:
+        signals.safe_open_activity_tab.emit(key)
+        signals.add_activity_to_history.emit(key)
 
     @Slot(name='openActivityGraphExplorer')
     def open_graph_explorer(self):
@@ -252,27 +258,33 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
     @Slot(name="relinkActivityExchanges")
     def relink_activity_exchanges(self) -> None:
+        """Relink the exchanges of the selected activities"""
         for key in (self.model.get_key(a) for a in self.selectedIndexes()):
             signals.relink_activity.emit(key)
 
     @Slot(name="deleteActivities")
     def delete_activities(self) -> None:
+        """Delete the selected activities."""
         self.model.delete_activities(self.selectedIndexes())
 
     @Slot(name="duplicateActivitiesWithinDb")
     def duplicate_activities(self) -> None:
+        """Duplicate the selected activities"""
         self.model.duplicate_activities(self.selectedIndexes())
 
     @Slot(name="duplicateActivitiesToNewLocWithinDb")
     def duplicate_activity_to_new_loc(self) -> None:
+        """Duplicate the selected activity to a new location"""
         self.model.duplicate_activity_to_new_loc(self.selectedIndexes())
 
     @Slot(name="duplicateActivitiesToOtherDb")
     def duplicate_activities_to_db(self) -> None:
+        """Duplicate the selected activities to another database."""
         self.model.duplicate_activities_to_db(self.selectedIndexes())
 
     @Slot(name="copyFlowInformation")
     def copy_exchanges_for_SDF(self) -> None:
+        """Copy these exchanges for SDF format"""
         self.model.copy_exchanges_for_SDF(self.selectedIndexes())
 
     def sync(self, db_name: str) -> None:
@@ -310,3 +322,326 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             self.delete_activity_action.setEnabled(not self.db_read_only)
             self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
             self.relink_activity_exch_action.setEnabled(not self.db_read_only)
+
+class ActivitiesBiosphereTree(ABDictTreeView):
+    HEADERS = ["ISIC rev.4 ecoinvent", "reference product", "name", "location", "unit", "key"]
+
+    def __init__(self, parent=None, database_name=None):
+        super().__init__(parent)
+        self.db_read_only = True
+        self.database_name = database_name
+        self.HEADERS = AB_metadata.get_existing_fields(self.HEADERS)
+
+        # set drag ability
+        self.setDragEnabled(True)
+        self.setDragDropMode(ABDictTreeView.DragOnly)
+        self.technosphere = True  # we need this for drag/drop functionality
+        # set model
+        self.model = ActivitiesBiosphereTreeModel(self, self.database_name)
+        self.setModel(self.model)
+        self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.optional_expand)
+        self.model.sync()
+
+        # contextmenu items
+        self.open_activity_action = QtWidgets.QAction(
+            qicons.right, 'Open ***', None
+        )
+        self.open_activity_graph_action = QtWidgets.QAction(
+            qicons.graph_explorer, 'Open *** in Graph Explorer', None
+        )
+        self.new_activity_action = QtWidgets.QAction(
+            qicons.add, 'Add new activity', None
+        )
+        self.duplicate_activity_action = QtWidgets.QAction(
+            qicons.copy, 'Duplicate ***', None
+        )
+        self.duplicate_activity_new_loc_action = QtWidgets.QAction(
+            qicons.copy, 'Duplicate activity to new location', None
+        )
+        self.duplicate_activity_new_loc_action.setToolTip(
+            'Duplicate this activity to another location.\n'
+            'Link the exchanges to a new location if it is available.')  # only for 1 activity
+        self.delete_activity_action = QtWidgets.QAction(
+            qicons.delete, 'Delete ***', None
+        )
+        self.relink_activity_exch_action = QtWidgets.QAction(
+            qicons.edit, 'Relink the *** exchanges'
+        )
+        self.duplicate_other_db_action = QtWidgets.QAction(
+            qicons.duplicate_to_other_database, 'Duplicate to other database'
+        )
+
+        self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
+            qicons.superstructure, 'Exchanges for scenario difference file', None
+        )
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        super()._connect_signals()
+        signals.database_read_only_changed.connect(self.update_activity_table_read_only)
+        self.open_activity_action.triggered.connect(self.open_activity_tab)
+        self.open_activity_graph_action.triggered.connect(self.open_graph_explorer)
+        self.new_activity_action.triggered.connect(
+            lambda: signals.new_activity.emit(self.database_name)
+        )
+        self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
+        self.duplicate_activity_new_loc_action.triggered.connect(self.duplicate_activity_to_new_loc)
+        self.delete_activity_action.triggered.connect(self.delete_activities)
+        self.relink_activity_exch_action.triggered.connect(self.relink_activity_exchanges)
+        self.duplicate_other_db_action.triggered.connect(self.duplicate_activities_to_db)
+        self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
+        self.doubleClicked.connect(self.open_activity_tab)
+        # TODO make sure doubleclick only works on leaves, otherwise if you doubleclick in ecoinvent on a root node, you open 1000 activities
+
+        self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.set_context_menu_policy)
+
+    @Slot(name="syncTree")
+    def sync(self, query=None) -> None:
+        self.model.sync(query)
+
+    @Slot(name="updateMenuContext")
+    def set_context_menu_policy(self) -> None:
+        # self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
+        self.db_read_only = project_settings.db_is_readonly(self.database_name)
+        self.update_activity_table_read_only(self.database_name, self.db_read_only)
+
+    def contextMenuEvent(self, event) -> None:
+        """Right clicked menu, action depends on item level."""
+        #TODO there is a bug with the readonly state not being properly read in the treeview, but that may be related to signals not yet properly implemented
+        if self.indexAt(event.pos()).row() == -1:
+            return
+
+        # determine whether 1 or multiple activities are selected
+        if len(self.selected_keys()) > 1:
+            act = 'activities'
+            self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.relink_activity_exch_action.setEnabled(False)
+        elif len(self.selected_keys()) == 1 and self.db_read_only:
+            act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.relink_activity_exch_action.setEnabled(False)
+        else:
+            act = 'activity'
+            self.duplicate_activity_new_loc_action.setEnabled(True)
+            self.relink_activity_exch_action.setEnabled(True)
+
+        self.open_activity_action.setText(f'Open {act}')
+        self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
+        self.duplicate_activity_action.setText(f'Duplicate {act}')
+        self.delete_activity_action.setText(f'Delete {act}')
+        self.relink_activity_exch_action.setText(f'Relink the {act} exchanges')
+
+        menu = QtWidgets.QMenu(self)
+        # submenu duplicates
+        submenu_dupl = QtWidgets.QMenu(menu)
+        submenu_dupl.setTitle(f'Duplicate {act}')
+        submenu_dupl.setIcon(qicons.copy)
+        submenu_dupl.addAction(self.duplicate_activity_action)
+        submenu_dupl.addAction(self.duplicate_activity_new_loc_action)
+        submenu_dupl.addAction(self.duplicate_other_db_action)
+        # submenu copy to clipboard
+        submenu_copy = QtWidgets.QMenu(menu)
+        submenu_copy.setTitle('Copy to clipboard')
+        submenu_copy.setIcon(qicons.copy_to_clipboard)
+        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+
+        if self.tree_level()[0] != 'leaf':
+            # multiple items are selected
+            menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
+            menu.addAction(qicons.backward, "Collapse all sub levels", self.collapse_branch)
+            menu.addSeparator()
+
+        menu.addAction(self.open_activity_action)
+        menu.addAction(self.open_activity_graph_action)
+        menu.addAction(self.new_activity_action)
+        menu.addMenu(submenu_dupl)
+        menu.addAction(self.delete_activity_action)
+        menu.addAction(self.relink_activity_exch_action)
+        menu.addMenu(submenu_copy)
+
+        menu.exec_(event.globalPos())
+
+    # context menu actions:
+    @Slot(name="openActivityTab")
+    def open_activity_tab(self):
+        """Open the selected activities in a new 'Activity Details' tab."""
+        keys = self.selected_keys()
+        for key in keys:
+            signals.safe_open_activity_tab.emit(key)
+            signals.add_activity_to_history.emit(key)
+
+    @Slot(name='openActivityGraphExplorer')
+    def open_graph_explorer(self):
+        """Open the selected activities in the graph explorer."""
+        keys = self.selected_keys()
+        for key in keys:
+            signals.open_activity_graph_tab.emit(key)
+
+    @Slot(name="relinkActivityExchanges")
+    def relink_activity_exchanges(self) -> None:
+        """Relink the exchanges of the selected activity."""
+        signals.relink_activity.emit(self.get_key())
+
+    @Slot(name="deleteActivities")
+    def delete_activities(self) -> None:
+        """Delete the selected activities."""
+        keys = self.selected_keys()
+        if len(keys) > 1:
+            signals.delete_activities.emit(keys)
+        else:
+            signals.delete_activity.emit(keys[0])
+
+    @Slot(name="duplicateActivitiesWithinDb")
+    def duplicate_activities(self) -> None:
+        """Duplicate the selected activities."""
+        keys = self.selected_keys()
+        if len(keys) > 1:
+            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
+        else:
+            signals.duplicate_to_db_interface.emit(keys[0], self.database_name)
+
+    @Slot(name="duplicateActivitiesToNewLocWithinDb")
+    def duplicate_activity_to_new_loc(self) -> None:
+        """Duplicate the selected activity to a new location."""
+        signals.duplicate_activity_new_loc.emit(self.get_key())
+
+    @Slot(name="duplicateActivitiesToOtherDb")
+    def duplicate_activities_to_db(self) -> None:
+        """Duplicate the selected activities to another database."""
+        keys = self.selected_keys()
+        if len(keys) > 1:
+            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
+        else:
+            signals.duplicate_to_db_interface.emit(keys[0], self.database_name)
+
+    @Slot(name="copyFlowInformation")
+    def copy_exchanges_for_SDF(self) -> None:
+        """Copy these exchanges for SDF format"""
+        self.model.copy_exchanges_for_SDF(self.selected_keys())
+
+    def selected_keys(self) -> Iterable:
+        """Return all keys selected."""
+        tree_level = self.tree_level()
+        if tree_level[0] == 'leaf':
+            # select key of the leaf
+            return [tree_level[1][-1]]
+        if tree_level[0] == 'root':
+            # filter on the root + ', '
+            # (this needs to be added in case one root level starts with a shorter name of another one
+            # example: 'activity a' and 'activity a, words'
+            filter_on = tree_level[1]
+        else:  # branch level
+            # filter on the branch and its parents/roots
+            filter_on = str(tuple(tree_level[1]))[1:-2]
+
+        activities = self.model.get_keys(filter_on)
+        return activities
+
+    def get_key(self):
+        """Convenience function to get the key of the selected activity."""
+        return self.selected_keys()[0]  # should only be called when you're sure there is 1 activity selected.
+
+    @Slot(name="openActivity")
+    def open_activity(self):
+        """'Opens' the method tree, dependent on the previous state this method will
+        generate a new tree and then expand all the nodes that were previously expanded.
+        """
+        expands = self.expanded_list()
+        self.model.setup_model_data()
+        self.model.sync()
+        iter = self.model.iterator(None)
+        while iter != None:
+            item = self.build_path(iter)
+            if item in expands:
+                self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
+            iter = self.model.iterator(iter)
+
+    @Slot(name="optionalExpandAll")
+    def optional_expand(self) -> None:
+        """auto-expand on sync with query through this function.
+
+        NOTE: self.expandAll() is terribly slow with large trees, so you are advised not to use this without
+         something like search [as implemented below through the query check].
+         Could perhaps be fixed with canFetchMore and fetchMore, see also links below:
+         https://interest.qt-project.narkive.com/ObOvIpWF/qtreeview-expand-expandall-performance
+         https://www.qtcentre.org/threads/31642-Speed-Up-TreeView
+        """
+        if self.model.query and self.model.matches <= 250:
+            self.expandAll()
+
+    def tree_level(self) -> tuple:
+        """Return list of (tree level, content).
+        Where content depends on level:
+        leaf:   the descending list of branch levels, list()
+        root:   the name of the root, str()
+        branch: the descending list of branch levels, list()
+            leaf/branch example: ('CML 2001', 'climate change')"""
+        indexes = self.selectedIndexes()
+        if indexes[1].data() != '' or indexes[2].data() != '':
+            return 'leaf', self.find_levels()
+        elif indexes[0].parent().data() is None:
+            return 'root', indexes[0].data()
+        else:
+            return 'branch', self.find_levels()
+
+    def find_levels(self, level=None) -> list:
+        """Find all levels of branch."""
+        if not level:
+            idx = self.selectedIndexes()
+            if idx[-1].data() != '':
+                level = idx[-1]
+            else:
+                level = idx[0]
+            parent = idx[0].parent()
+        else:
+            parent = level.parent()
+        levels = [level.data()]
+        while parent.data() is not None:
+            levels.append(parent.data())
+            parent = parent.parent()
+        return levels[::-1]
+
+    def expanded_list(self):
+        it = self.model.iterator(None)
+        expanded_items = []
+        while it != None:
+            if self.isExpanded(self.model.createIndex(it.row(), 0, it)):
+                expanded_items.append(self.build_path(it))
+            it = self.model.iterator(it)
+        return expanded_items
+
+    def build_path(self, iter):
+        """Given an iterator of the TreeItem type build the path back to the
+        root ancestor. This is intended for testing membership of expanded
+        entries."""
+        item = set()
+        p = iter
+        while p != self.model.root:
+            item.add(p.data(0))
+            p = p.parent()
+        return item
+
+    def search(self, query: str = None) -> None:
+        self.model.sync(query)
+
+    @Slot(name="resetSearch")
+    def reset_search(self) -> None:
+        self.model.sync()
+
+    @Slot(str, bool, name="updateReadOnly")
+    def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
+        """ [new, duplicate & delete] actions can only be selected for
+        databases that are not read-only.
+
+        The user can change state of dbs other than the open one, so check
+        if database name matches.
+        """
+        if self.database_name == db_name:
+            self.db_read_only = db_read_only
+            self.new_activity_action.setEnabled(not self.db_read_only)
+            self.duplicate_activity_action.setEnabled(not self.db_read_only)
+            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
+            self.delete_activity_action.setEnabled(not self.db_read_only)
