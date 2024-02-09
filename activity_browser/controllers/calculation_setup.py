@@ -103,4 +103,5 @@ class CalculationSetupController(QObject):
             return False
         return True
 
+
 calculation_setup_controller = CalculationSetupController(application)

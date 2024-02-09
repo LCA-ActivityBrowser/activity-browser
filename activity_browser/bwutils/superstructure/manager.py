@@ -20,7 +20,6 @@ from ..errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundEr
                       )
 
 
-
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtWidgets import QMessageBox, QApplication
+from PySide2.QtWidgets import QApplication
 from bw2calc.errors import BW2CalcError
 
 from activity_browser import log
@@ -7,8 +7,7 @@ from ..bwutils import (
     Contributions, MonteCarloLCA, MLCA,
     SuperstructureContributions, SuperstructureMLCA,
 )
-from .errors import ScenarioExchangeNotFoundError
-from .errors import CriticalCalculationError
+from .errors import ScenarioExchangeNotFoundError, CriticalCalculationError
 
 def do_LCA_calculations(data: dict):
     """Perform the MLCA calculation."""

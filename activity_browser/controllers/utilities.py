@@ -31,4 +31,5 @@ class UtilitiesController(QObject):
         wizard = SettingsWizard(application.main_window)
         wizard.show()
 
+
 utilities_controller = UtilitiesController(application)

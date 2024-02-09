@@ -123,7 +123,7 @@ class ABHandler(object):
     def debug(self, msg: str, *args) -> None:
         ABHandler.log.debug(self.message(msg, *args), extra={'ABmodule': self.get_module()})
 
-    def info(self, msg: str, *args) -> None:       
+    def info(self, msg: str, *args) -> None:
         ABHandler.log.info(self.message(msg, *args), extra={'ABmodule': self.get_module()})
 
     def warning(self, msg: str, *args) -> None:
@@ -169,6 +169,7 @@ class ABHandler(object):
         module = inspect.getmodule(frame[0])
         return module.__name__
 
+
 class ABLogHandler(logging.Handler):
     """Customizing a handler for running within a separate thread, emitting logs to the main
     thread."""
@@ -178,7 +179,6 @@ class ABLogHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
-        #signals.log.emit(msg)
 
 
 logger = logging.getLogger('ab_logs')

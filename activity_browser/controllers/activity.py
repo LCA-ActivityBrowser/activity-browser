@@ -14,6 +14,7 @@ from activity_browser.bwutils.strategies import relink_activity_exchanges
 from .parameter import ParameterController
 from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, LocationLinkingDialog
 
+
 class ActivityController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -393,5 +394,6 @@ class ActivityController(QObject):
                 activity = relinking_dialog.open_activity()
             signals.database_changed.emit(actvty['name'])
             signals.databases_changed.emit()
+
 
 activity_controller = ActivityController(application)

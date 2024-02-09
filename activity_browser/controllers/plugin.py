@@ -88,4 +88,5 @@ class PluginController(QObject):
         for plugin in self.plugins.values():
             plugin.close()
 
+
 plugin_controller = PluginController(application)

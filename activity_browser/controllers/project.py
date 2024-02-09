@@ -7,6 +7,7 @@ from activity_browser import log, signals, ab_settings, application
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.widgets import ProjectDeletionDialog
 
+
 class ProjectController(QObject):
     """The controller that handles all of the AB features on the level of
     a brightway project.
@@ -134,5 +135,6 @@ class ProjectController(QObject):
         # emit that the project list has changed because of the deletion,
         # regardless of a possible exception (which may have deleted the project anyways) 
         signals.projects_changed.emit()
+
 
 project_controller = ProjectController(application)

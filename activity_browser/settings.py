@@ -10,6 +10,7 @@ import brightway2 as bw
 from PySide2.QtWidgets import QMessageBox
 from activity_browser import log, signals
 
+
 class BaseSettings(object):
     """ Base Class for handling JSON settings files.
     """

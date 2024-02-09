@@ -252,4 +252,5 @@ class ParameterController(QObject):
                 # Also clear Group if it is not in use anymore
                 Group.delete().where(Group.name == group).execute()
 
+
 parameter_controller = ParameterController(application)

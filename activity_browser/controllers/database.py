@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-import bw2data as bd
 from bw2data.backends.peewee import sqlite3_lci_db
 from bw2data.parameters import Group
 from PySide2 import QtWidgets
@@ -173,5 +172,6 @@ class DatabaseController(QObject):
             QtWidgets.QApplication.restoreOverrideCursor()
             signals.database_changed.emit(db_name)
             signals.databases_changed.emit()
+
 
 database_controller = DatabaseController(application)

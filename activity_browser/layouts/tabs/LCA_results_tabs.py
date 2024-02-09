@@ -13,8 +13,7 @@ from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
     QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-    QApplication, QSizePolicy, QToolBar
+    QApplication, QToolBar
 )
 from stats_arrays.errors import InvalidParamsError
 
@@ -1540,6 +1539,7 @@ class GSATab(NewAnalysisTab):
         export_widget.hide()
         return export_widget
 
+    # TODO review if can be removed
     # def set_filename(self, optional_fields: dict = None):
     #     """Given a dictionary of fields, put together a usable filename for the plot and table."""
     #     save_name = 'gsa_output_' + self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity['name'] + \
@@ -1576,6 +1576,8 @@ class MonteCarloWorkerThread(QtCore.QThread):
 
 
 worker_thread = MonteCarloWorkerThread()
+
+#TODO review if can be removed
 
 # class Worker(QtCore.QObject):
 #

@@ -59,6 +59,7 @@ def guess_flow_type(row: pd.Series) -> str:
         return "technosphere"
 
 def _time_it_(func):
+    #TODO rename to non_protected name
     """
     For use as a wrapper to time the execution of functions using the python time library
     """

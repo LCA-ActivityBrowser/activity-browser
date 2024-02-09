@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtCore import QObject, Signal, QModelIndex
+from PySide2.QtCore import QObject, Signal
 
 
 class ABSignals(QObject):
@@ -133,5 +133,6 @@ class ABSignals(QObject):
     # Plugins
     plugin_selected = Signal(str, bool)  # This plugin was/was not selected | name of plugin, selected state
     manage_plugins = Signal()  # Trigger the plugins dialog
+
 
 signals = ABSignals()

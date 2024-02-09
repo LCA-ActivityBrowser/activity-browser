@@ -180,7 +180,6 @@ class CSMethodsModel(CSGenericModel):
                     cs.pop(i)
                 else:
                     i += 1
-            ######## END OF FUNCTION
 
         if self.current_cs is not None or name is not None:
             self.current_cs = name

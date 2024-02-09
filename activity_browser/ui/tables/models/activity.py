@@ -77,7 +77,6 @@ class BaseExchangeModel(EditablePandasModel):
                                             'shape', 'minimum', 'maximum'}:
             self.modify_uncertainty(proxy)
 
-
     @Slot(list, name="deleteExchanges")
     def delete_exchanges(self, proxies: list) -> None:
         """ Remove all of the selected exchanges from the activity."""

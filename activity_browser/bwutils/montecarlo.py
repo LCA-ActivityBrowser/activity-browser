@@ -13,7 +13,6 @@ from activity_browser import log
 from .manager import MonteCarloParameterManager
 
 
-
 class MonteCarloLCA(object):
     """A Monte Carlo LCA for multiple reference flows and methods loaded from a calculation setup."""
     def __init__(self, cs_name):

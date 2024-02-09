@@ -5,6 +5,7 @@ from PySide2.QtWidgets import QLabel, QStatusBar
 
 from activity_browser import log, signals
 
+
 class Statusbar(QStatusBar):
     def __init__(self, window):
         super().__init__(parent=window)

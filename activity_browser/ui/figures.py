@@ -202,6 +202,8 @@ class ContributionPlot(Plot):
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
+        #TODO review: remove or enable
+
         # refresh canvas
         # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
         # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])

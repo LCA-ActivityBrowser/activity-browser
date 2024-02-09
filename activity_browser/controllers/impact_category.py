@@ -139,4 +139,5 @@ class ImpactCategoryController(QObject):
         method.write(cfs)
         signals.method_modified.emit(method.name)
 
+
 impact_category_controller = ImpactCategoryController(application)

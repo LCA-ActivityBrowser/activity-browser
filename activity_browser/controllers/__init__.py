@@ -8,4 +8,3 @@ from .impact_category import impact_category_controller
 from .calculation_setup import calculation_setup_controller
 from .utilities import utilities_controller
 from .plugin import plugin_controller
-

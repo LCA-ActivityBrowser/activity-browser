@@ -1,5 +1,4 @@
 from typing import Iterator
-import uuid
 
 import brightway2 as bw
 from bw2data.backends.peewee.proxies import ExchangeProxyBase
@@ -8,6 +7,7 @@ from PySide2.QtCore import QObject, Slot
 from activity_browser import signals, application
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from activity_browser.ui.wizards import UncertaintyWizard
+
 
 class ExchangeController(QObject):
     def __init__(self, parent=None):
@@ -119,5 +119,6 @@ class ExchangeController(QObject):
         exc.save()
         bw.databases.set_modified(exc["output"][0])
         signals.database_changed.emit(exc["output"][0])
+
 
 exchange_controller = ExchangeController(application)

@@ -25,10 +25,12 @@ class ABApplication(QApplication):
 
     def close(self):
         for child in self.children():
-            if hasattr(child, "close"): child.close()
+            if hasattr(child, "close"):
+                child.close()
 
     def deleteLater(self):
         self.main_window.deleteLater()
+
 
 if QSysInfo.productType() == "osx":
     # https://bugreports.qt.io/browse/QTBUG-87014
@@ -41,7 +43,7 @@ if QSysInfo.productType() == "osx":
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
         log.info("Info: GPU hardware acceleration disabled")
 
-if QSysInfo.productType() in ["arch","nixos"]:
+if QSysInfo.productType() in ["arch", "nixos"]:
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
     log.info("Info: QtWebEngine sandbox disabled")
 
