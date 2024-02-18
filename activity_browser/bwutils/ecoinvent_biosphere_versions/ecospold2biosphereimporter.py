@@ -20,10 +20,12 @@ def create_default_biosphere3(version) -> None:
     # format version number to only Major/Minor
     version = version[:3]
 
-    if version == sort_semantic_versions(__ei_versions__)[0]:
+    if version == sort_semantic_versions(__ei_versions__)[0][:3]:
+        log.debug(f'Installing biosphere version >{version}<')
         # most recent version
         eb = Ecospold2BiosphereImporter()
     else:
+        log.debug(f'Installing legacy biosphere version >{version}<')
         # not most recent version, import legacy biosphere from AB
         eb = ABEcospold2BiosphereImporter(version=version)
     eb.apply_strategies()
