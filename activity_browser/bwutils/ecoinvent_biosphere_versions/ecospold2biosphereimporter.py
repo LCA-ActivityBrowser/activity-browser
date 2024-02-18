@@ -15,6 +15,7 @@ from activity_browser.logger import ABHandler
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
 
+
 def create_default_biosphere3(version) -> None:
     """Reimplementation of bw.create_default_biosphere3 to allow import from older biosphere versions."""
     # format version number to only Major/Minor
