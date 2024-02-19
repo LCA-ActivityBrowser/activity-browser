@@ -52,7 +52,7 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
 
 def valid_cols(name: str) -> bool:
     """Callable which evaluates if a specific column should be used."""
-    return False if name.startswith("#") else True
+    return False if str(name).startswith("#") else True
 
 def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1) -> pd.DataFrame:
     """Import all of the exchanges and their scenario amounts from a given
