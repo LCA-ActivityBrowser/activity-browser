@@ -286,7 +286,7 @@ class SuperstructureContributions(Contributions):
         return data[fu_index, m_index, :]
 
     def get_contributions(self, contribution, functional_unit=None,
-                          method=None) -> np.ndarray:
+                          method=None, scenario=0) -> np.ndarray:
         """Return a contribution matrix given the type and fu / method
 
         Allow for both fu and method to exist.
@@ -305,6 +305,7 @@ class SuperstructureContributions(Contributions):
                 dataset[contribution], self.mlca.func_key_dict[functional_unit],
                 self.mlca.method_index[method]
             )
+        self.mlca.current = scenario
         return super().get_contributions(contribution, functional_unit, method)
 
     def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
