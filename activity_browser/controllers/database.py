@@ -85,9 +85,9 @@ class DatabaseController(QObject):
         # warn user of consequences of updating
         warn_dialog = QtWidgets.QMessageBox.question(
             self.window, "Update biosphere3?",
-            'Newer versions of the biosphere database may not\n'
-            'always be compatible with older ecoinvent versions.\n'
-            '\nUpdating the biosphere3 database cannot be undone!\n',
+            'Newer versions of the biosphere database may not'
+            'always be compatible with older ecoinvent versions.'
+            '\nUpdating the biosphere3 database cannot be undone!',
             QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
             QtWidgets.QMessageBox.Abort
         )
