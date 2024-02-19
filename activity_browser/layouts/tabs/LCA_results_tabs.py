@@ -873,24 +873,35 @@ class ContributionTab(NewAnalysisTab):
         combobox objects to be read out (which comparison, drop-down indexes,
         etc.) and fed into update calls.
         """
-        if self.combobox_menu.agg.currentText() != 'none':
-            compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
-        else:
-            compare_fields = {"aggregator": None}
+        # gather the combobox values
+        method = self.parent.method_dict[self.combobox_menu.method.currentText()]
+        functional_unit = self.combobox_menu.func.currentText()
+        scenario = self.combobox_menu.scenario.currentIndex()
+        aggregator = self.combobox_menu.agg.currentText()
+
+        # catch uninitiated scenario combobox
+        if scenario < 0: scenario = 0
+        # set aggregator to None if unwanted
+        if aggregator == 'none': aggregator = None
+
+        # initiate dict with the field we want to compare
+        compare_fields = {"aggregator": aggregator}
 
         # Determine which comparison is active and update the comparison.
         if self.switches.currentIndex() == self.switches.indexes.func:
             compare_fields.update({
-                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
+                "method": method,
+                "scenario": scenario
             })
         elif self.switches.currentIndex() == self.switches.indexes.method:
             compare_fields.update({
-                "functional_unit": self.combobox_menu.func.currentText(),
+                "functional_unit": functional_unit,
+                "scenario": scenario
             })
         elif self.switches.currentIndex() == self.switches.indexes.scenario:
             compare_fields.update({
-                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
-                "functional_unit": self.combobox_menu.func.currentText(),
+                "method": method,
+                "functional_unit": functional_unit,
             })
 
         # Determine the unit for the figure, update the filenames and the
@@ -906,6 +917,7 @@ class ContributionTab(NewAnalysisTab):
         self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
+        self.combobox_menu.scenario.currentIndexChanged.connect(self.update_tab)
 
     def update_tab(self):
         """Update the tab."""
