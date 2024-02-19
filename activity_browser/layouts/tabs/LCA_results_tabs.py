@@ -880,9 +880,11 @@ class ContributionTab(NewAnalysisTab):
         aggregator = self.combobox_menu.agg.currentText()
 
         # catch uninitiated scenario combobox
-        if scenario < 0: scenario = 0
+        if scenario < 0:
+            scenario = 0
         # set aggregator to None if unwanted
-        if aggregator == 'none': aggregator = None
+        if aggregator == 'none':
+            aggregator = None
 
         # initiate dict with the field we want to compare
         compare_fields = {"aggregator": aggregator}
