@@ -1,19 +1,11 @@
 # -*- coding: utf-8 -*-
+import os
+
 import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 from peewee import SqliteDatabase
-import os
-import re
 
-from activity_browser.bwutils import commontasks as bc
-from ...settings import ab_settings
-from ...signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger)
+from activity_browser import log, signals, ab_settings
 
 
 class SettingsWizard(QtWidgets.QWizard):

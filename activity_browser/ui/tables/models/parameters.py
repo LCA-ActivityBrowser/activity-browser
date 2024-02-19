@@ -2,24 +2,18 @@
 import itertools
 from typing import Iterable
 
-from asteval import Interpreter
-import brightway2 as bw
 import pandas as pd
+import brightway2 as bw
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
+from asteval import Interpreter
 from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
 
+from activity_browser import log, signals
 from activity_browser.bwutils import commontasks as bc, uncertainty as uc
-from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BaseParameterModel(EditablePandasModel):

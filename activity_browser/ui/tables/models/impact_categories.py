@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-from copy import deepcopy
 import numbers
+from copy import deepcopy
 from typing import Iterator, Optional
-
 
 import brightway2 as bw
 import numpy as np
@@ -10,15 +9,9 @@ import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 from PySide2.QtWidgets import QMessageBox
 
-from activity_browser.signals import signals
-from ...wizards import UncertaintyWizard
+from activity_browser import log, signals
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from ...wizards import UncertaintyWizard
 
 
 class MethodsListModel(DragPandasModel):

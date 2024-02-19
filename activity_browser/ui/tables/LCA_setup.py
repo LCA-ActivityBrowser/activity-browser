@@ -3,18 +3,13 @@ import brightway2 as bw
 from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
 
-from activity_browser.signals import signals
-from ..icons import qicons
+from activity_browser import log, signals
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
+from ..icons import qicons
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):

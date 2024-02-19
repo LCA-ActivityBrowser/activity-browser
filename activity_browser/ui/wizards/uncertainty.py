@@ -1,21 +1,15 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
-import numpy as np
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
+from activity_browser import log, signals
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
-from ...signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger)
 
 
 class UncertaintyWizard(QtWidgets.QWizard):

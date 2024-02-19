@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from copy import deepcopy
 import itertools
 import json
 import os
+from copy import deepcopy
 from typing import Optional
 
 import brightway2 as bw
@@ -10,15 +10,10 @@ import networkx as nx
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
+from activity_browser import log, signals
 from .base import BaseGraph, BaseNavigatorWidget
-from ...signals import signals
 from ...bwutils.commontasks import identify_activity_type
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 # TODO:
 # save graph as image

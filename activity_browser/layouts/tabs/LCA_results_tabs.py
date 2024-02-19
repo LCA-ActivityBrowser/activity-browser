@@ -5,27 +5,26 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
 from collections import namedtuple
-import traceback
 from typing import List, Optional, Union
-import pandas as pd
 
+import pandas as pd
+from PySide2 import QtGui, QtCore
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
     QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-    QApplication, QSizePolicy, QToolBar
+    QApplication, QToolBar
 )
-from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
 
+from activity_browser import log, signals
+from .base import BaseRightTab
 from ...bwutils import (
     Contributions, MonteCarloLCA, MLCA,
     SuperstructureMLCA, GlobalSensitivityAnalysis,
     commontasks as bc,
     calculations,
 )
-from ...signals import signals
 from ...ui.figures import (
     LCAResultsPlot, ContributionPlot, CorrelationPlot, LCAResultsBarChart, MonteCarloPlot
 )
@@ -34,13 +33,6 @@ from ...ui.style import horizontal_line, vertical_line, header
 from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from ...ui.web import SankeyNavigatorWidget
-from .base import BaseRightTab
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -1547,6 +1539,7 @@ class GSATab(NewAnalysisTab):
         export_widget.hide()
         return export_widget
 
+    # TODO review if can be removed
     # def set_filename(self, optional_fields: dict = None):
     #     """Given a dictionary of fields, put together a usable filename for the plot and table."""
     #     save_name = 'gsa_output_' + self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity['name'] + \
@@ -1583,6 +1576,8 @@ class MonteCarloWorkerThread(QtCore.QThread):
 
 
 worker_thread = MonteCarloWorkerThread()
+
+#TODO review if can be removed
 
 # class Worker(QtCore.QObject):
 #

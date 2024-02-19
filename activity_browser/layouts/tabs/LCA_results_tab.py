@@ -5,16 +5,10 @@ from bw2calc.errors import BW2CalcError
 from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout, QApplication
 
+from activity_browser import log, signals
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
-from ...signals import signals
 from ...bwutils.errors import ABError
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class LCAResultsTab(ABTab):

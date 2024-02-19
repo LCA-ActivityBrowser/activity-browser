@@ -2,25 +2,19 @@
 import itertools
 from typing import Iterable, Optional
 
+import pandas as pd
 from asteval import Interpreter
 from bw2data.parameters import (ProjectParameter, DatabaseParameter, Group,
                                 ActivityParameter)
 from bw2data.proxies import ExchangeProxyBase
-import pandas as pd
 from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
+from activity_browser import log, signals
 from activity_browser.bwutils import (
     PedigreeMatrix, uncertainty as uc, commontasks as bc
 )
-from activity_browser.signals import signals
 from .base import EditablePandasModel
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BaseExchangeModel(EditablePandasModel):
@@ -82,7 +76,6 @@ class BaseExchangeModel(EditablePandasModel):
         if self._dataframe.columns[col] in {'Uncertainty', 'pedigree', 'loc', 'scale',
                                             'shape', 'minimum', 'maximum'}:
             self.modify_uncertainty(proxy)
-
 
     @Slot(list, name="deleteExchanges")
     def delete_exchanges(self, proxies: list) -> None:
