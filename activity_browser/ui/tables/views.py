@@ -129,7 +129,7 @@ class ABDataFrameView(QTableView):
 
 
 class ABFilterableDataFrameView(ABDataFrameView):
-    """ Filterable base class for showing pandas dataframe objects as tables.
+    """ Filterable base.py class for showing pandas dataframe objects as tables.
 
     To use this table, the following MUST be set in the table model:
     - self.filterable_columns: dict

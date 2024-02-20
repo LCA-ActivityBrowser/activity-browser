@@ -11,7 +11,7 @@ from ..errors import *
 
 class ABFileImporter(ABC):
     """
-    Activity Browser abstract base class for scenario file imports
+    Activity Browser abstract base.py class for scenario file imports
 
     Contains a set of static methods for checking the file contents
     to conform to the desired standard. These include:

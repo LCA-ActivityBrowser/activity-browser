@@ -95,6 +95,6 @@ class SignalledComboEdit(QtWidgets.QComboBox):
         super(SignalledComboEdit, self).focusOutEvent(event)
 
     # def showPopup(self):
-    #     """Overrides the base class function."""
+    #     """Overrides the base.py class function."""
     #     self.populate_combobox.emit()
     #     super(SignalledComboEdit, self).showPopup()

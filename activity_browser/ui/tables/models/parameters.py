@@ -223,7 +223,7 @@ class ActivityParameterModel(BaseParameterModel):
 
     @classmethod
     def parse_parameter(cls, parameter) -> dict:
-        """ Override the base method to add more steps.
+        """ Override the base.py method to add more steps.
         """
         row = super().parse_parameter(parameter)
         # Combine the 'database' and 'code' fields of the parameter into a 'key'

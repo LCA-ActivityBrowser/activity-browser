@@ -19,62 +19,46 @@ class ActivityController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         signals.new_activity.connect(self.new_activity)
-        signals.delete_activity.connect(self.delete_activity)
-        signals.delete_activities.connect(self.delete_activity)
-        signals.duplicate_activity.connect(self.duplicate_activity)
+        signals.delete_activity.connect(self.delete_activities)
+        signals.delete_activities.connect(self.delete_activities)
+        signals.duplicate_activity.connect(self.duplicate_activities)
         signals.duplicate_activity_new_loc.connect(self.duplicate_activity_new_loc)
-        signals.duplicate_activities.connect(self.duplicate_activity)
+        signals.duplicate_activities.connect(self.duplicate_activities)
         signals.duplicate_to_db_interface.connect(self.show_duplicate_to_db_interface)
         signals.duplicate_to_db_interface_multiple.connect(self.show_duplicate_to_db_interface)
         signals.activity_modified.connect(self.modify_activity)
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
         signals.relink_activity.connect(self.relink_activity_exchange)
 
-    @Slot(str, name="createNewActivity")
-    def new_activity(self, database_name: str) -> None:
-        name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
-            "Create new technosphere activity",
-            "Please specify an activity name:" + " " * 10,
+    def new_activity(self, database_name: str, activity_name: str) -> None:
+        data = {
+            "name": activity_name,
+            "reference product": activity_name,
+            "unit": "unit",
+            "type": "process"
+        }
+        new_act = bw.Database(database_name).new_activity(
+            code=uuid.uuid4().hex,
+            **data
         )
-        if ok and name:
-            data = {
-                "name": name, "reference product": name, "unit": "unit",
-                "type": "process"
-            }
-            new_act = bw.Database(database_name).new_activity(
-                code=uuid.uuid4().hex,
-                **data
-            )
-            new_act.save()
-            production_exchange = new_act.new_exchange(
-                input=new_act, amount=1, type="production"
-            )
-            production_exchange.save()
-            bw.databases.set_modified(database_name)
-            AB_metadata.update_metadata(new_act.key)
-            signals.database_changed.emit(database_name)
-            signals.databases_changed.emit()
-            signals.unsafe_open_activity_tab.emit(new_act.key)
+        new_act.save()
 
-    @Slot(tuple, name="deleteActivity")
-    @Slot(list, name="deleteActivities")
-    def delete_activity(self, data: Union[tuple, Iterator[tuple]]) -> None:
+
+        production_exchange = new_act.new_exchange(
+            input=new_act, amount=1, type="production"
+        )
+        production_exchange.save()
+
+        bw.databases.set_modified(database_name)
+        AB_metadata.update_metadata(new_act.key)
+
+        signals.database_changed.emit(database_name)
+        signals.databases_changed.emit()
+        signals.unsafe_open_activity_tab.emit(new_act.key)
+
+    def delete_activities(self, data: Union[tuple, Iterator[tuple]]) -> None:
         """Use the given data to delete one or more activities from brightway2."""
-        activities = self._retrieve_activities(data)
-
-        text = ("One or more activities have downstream processes. "
-                "Deleting these activities will remove the exchange from the downstream processes, this can't be undone.\n\n"
-                "Are you sure you want to continue?")
-
-        if any(len(act.upstream()) > 0 for act in activities):
-            choice = QtWidgets.QMessageBox.warning(application.main_window,
-                                                   "Activity/Activities has/have downstream processes",
-                                                   text,
-                                                   QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                                   QtWidgets.QMessageBox.No)
-            if choice == QtWidgets.QMessageBox.No:
-                return
+        activities = self.get_activities(data)
 
         # Iterate through the activities and:
         # - Close any open activity tabs,
@@ -108,13 +92,11 @@ class ActivityController(QObject):
         n = max((int(c.split('_copy')[1]) for c in copies))
         return "{}_copy{}".format(code, n + 1)
 
-    @Slot(tuple, name="copyActivity")
-    @Slot(list, name="copyActivities")
-    def duplicate_activity(self, data: Union[tuple, Iterator[tuple]]) -> None:
+    def duplicate_activities(self, keys: list[tuple]) -> None:
         """Duplicates the selected activity in the same db, with a new BW code."""
         # todo: add "copy of" (or similar) to name of activity for easy identification in new db
         # todo: some interface feedback so user knows the copy has succeeded
-        activities = self._retrieve_activities(data)
+        activities = self.get_activities(keys)
 
         for act in activities:
             new_code = self.generate_copy_code(act.key)
@@ -199,7 +181,7 @@ class ActivityController(QObject):
                     return  # there are either no or multiple matches with alternative locations
             return candidate
 
-        act = self._retrieve_activities(old_key)[0]  # we only take one activity but this function always returns list
+        act = self.get_activities(old_key)[0]  # we only take one activity but this function always returns list
         db_name = act.key[0]
 
         # get list of dependent databases for activity and load to MetaDataStore
@@ -308,7 +290,7 @@ class ActivityController(QObject):
     @Slot(list, str, name="copyActivitiesToDbInterface")
     def show_duplicate_to_db_interface(self, data: Union[tuple, Iterator[tuple]],
                                        db_name: Optional[str] = None) -> None:
-        activities = self._retrieve_activities(data)
+        activities = self.get_activities(data)
         origin_db = db_name or next(iter(activities)).get("database")
 
         available_target_dbs = list(project_settings.get_editable_databases())
@@ -365,13 +347,14 @@ class ActivityController(QObject):
         signals.database_changed.emit(key[0])
 
     @staticmethod
-    def _retrieve_activities(data: Union[tuple, Iterator[tuple]]) -> Iterator[Activity]:
+    def get_activities(keys: Union[tuple, list[tuple]]) -> list[Activity]:
         """Given either a key-tuple or a list of key-tuples, return a list
         of activities.
         """
-        return [bw.get_activity(data)] if isinstance(data, tuple) else [
-            bw.get_activity(k) for k in data
-        ]
+        if isinstance(keys, tuple):
+            return [bw.get_activity(keys)]
+        else:
+            return [bw.get_activity(k) for k in keys]
 
     @Slot(tuple, name="relinkActivityExchanges")
     def relink_activity_exchange(self, key: tuple) -> None:

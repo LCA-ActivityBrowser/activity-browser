@@ -160,31 +160,6 @@ class ActivitiesBiosphereModel(DragPandasModel):
         )
         return mask
 
-    def delete_activities(self, proxies: list) -> None:
-        if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
-            signals.delete_activities.emit(keys)
-        else:
-            signals.delete_activity.emit(self.get_key(proxies[0]))
-
-    def duplicate_activities(self, proxies: list) -> None:
-        if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
-            signals.duplicate_activities.emit(keys)
-        else:
-            signals.duplicate_activity.emit(self.get_key(proxies[0]))
-
-    def duplicate_activity_to_new_loc(self, proxies: list) -> None:
-        signals.duplicate_activity_new_loc.emit(self.get_key(proxies[0]))
-
-    def duplicate_activities_to_db(self, proxies: list) -> None:
-        if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
-            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
-        else:
-            key = self.get_key(proxies[0])
-            signals.duplicate_to_db_interface.emit(key, self.database_name)
-
     def copy_exchanges_for_SDF(self, proxies: list) -> None:
         if len(proxies) > 1:
             keys = [self.get_key(p) for p in proxies]

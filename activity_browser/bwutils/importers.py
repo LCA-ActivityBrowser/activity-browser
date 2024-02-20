@@ -139,7 +139,7 @@ class ABPackage(bw.BW2Package):
 
     @classmethod
     def load_file(cls, filepath, whitelist=True, **kwargs):
-        """Similar to how the base class loads the data, but also perform
+        """Similar to how the base.py class loads the data, but also perform
         a number of evaluations on the metadata.
 
         Also, if given a 'relink' dictionary, perform relinking of exchanges.
