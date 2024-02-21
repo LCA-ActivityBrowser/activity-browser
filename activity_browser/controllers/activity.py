@@ -345,7 +345,7 @@ class ActivityController(QObject):
         signals.database_changed.emit(key[0])
 
     @staticmethod
-    def get_activities(keys: Union[tuple, list[tuple]]) -> list[Activity]:
+    def get_activities(keys: Union[tuple, List[tuple]]) -> List[Activity]:
         """Given either a key-tuple or a list of key-tuples, return a list
         of activities.
         """
