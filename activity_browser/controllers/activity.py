@@ -471,6 +471,21 @@ class ExchangeController(QObject):
     @staticmethod
     @Slot(object, str, object, name="editExchange")
     def modify_exchange(exchange: ExchangeProxyBase, field: str, value) -> None:
+        """
+        Modify or edit an exchange field.
+
+        Note that if a field does not exist, this function will create the field.
+
+        Parameters
+        ----------
+        exchange: the exchange
+        field: the name of the field
+        value: the new value
+
+        Returns
+        -------
+
+        """
         # The formula field needs special handling.
         if field == "formula":
             if field in exchange and (value == "" or value is None):
