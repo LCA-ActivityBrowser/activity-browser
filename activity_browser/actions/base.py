@@ -5,11 +5,10 @@ class ABAction(QtWidgets.QAction):
     icon: QtGui.QIcon
     title: str
     tool_tip: str = None
-    depends = []
 
-    def __init__(self, parent):
-        self.check_dependencies(parent)
+    def __init__(self, parent, **kwargs):
         super().__init__(self.icon, self.title, parent)
+        self.kwargs = kwargs
 
         self.triggered.connect(self.onTrigger)
         self.toggled.connect(self.onToggle)
@@ -17,10 +16,17 @@ class ABAction(QtWidgets.QAction):
         if self.tool_tip:
             self.setToolTip(self.tool_tip)
 
-    def check_dependencies(self, parent):
-        for dependency in self.depends:
-            if dependency not in dir(parent):
-                raise AttributeError
+    def __getattr__(self, name: str):
+        # immediate return if not found
+        if name not in self.kwargs.keys():
+            raise AttributeError
+
+        # get the associated value
+        value = self.kwargs[name]
+
+        # if the kwarg is a getter, call and return, else just return
+        if callable(value): return value()
+        else: return value
 
     def onTrigger(self, checked):
         raise NotImplementedError

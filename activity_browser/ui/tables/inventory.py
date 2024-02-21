@@ -32,7 +32,7 @@ class DatabasesTable(ABDataFrameView):
         self.relink_action = QtWidgets.QAction(
             qicons.edit, "Relink the database", None
         )
-        self.new_activity_action = ActivityNew(self)
+        self.new_activity_action = ActivityNew(self.current_database, self)
         self.model = DatabasesModel(parent=self)
         self._connect_signals()
 
@@ -41,7 +41,7 @@ class DatabasesTable(ABDataFrameView):
             lambda p: signals.database_selected.emit(self.model.get_db_name(p))
         )
         self.relink_action.triggered.connect(
-            lambda: signals.relink_database.emit(self.current_database)
+            lambda: signals.relink_database.emit(self.current_database())
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -53,12 +53,12 @@ class DatabasesTable(ABDataFrameView):
         menu = QtWidgets.QMenu(self)
         menu.addAction(
             qicons.delete, "Delete database",
-            lambda: signals.delete_database.emit(self.current_database)
+            lambda: signals.delete_database.emit(self.current_database())
         )
         menu.addAction(self.relink_action)
         menu.addAction(
             qicons.duplicate_database, "Copy database",
-            lambda: signals.copy_database.emit(self.current_database)
+            lambda: signals.copy_database.emit(self.current_database())
         )
         menu.addAction(self.new_activity_action)
         proxy = self.indexAt(event.pos())
@@ -88,7 +88,6 @@ class DatabasesTable(ABDataFrameView):
                 self.model.sync()
         super().mousePressEvent(e)
 
-    @property
     def current_database(self) -> str:
         """ Return the database name of the user-selected index.
         """
@@ -104,21 +103,20 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
-        # contextmenu items
-        self.open_activity_action = ActivityOpen(self)
-        self.open_activity_graph_action = ActivityGraph(self)
-        self.new_activity_action = ActivityNew(self)
-        self.duplicate_activity_action = ActivityDuplicate(self)
-        self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc(self)
-        self.delete_activity_action = ActivityDelete(self)
-        self.relink_activity_exch_action = ActivityRelink(self)
-        self.duplicate_other_db_action = ActivityDuplicateToDB(self)
+        # context-menu items
+        self.open_activity_action = ActivityOpen(self.selected_keys, self)
+        self.open_activity_graph_action = ActivityGraph(self.selected_keys, self)
+        self.new_activity_action = ActivityNew(self.current_database, self)
+        self.duplicate_activity_action = ActivityDuplicate(self.selected_keys, self)
+        self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc(self.selected_keys, self)
+        self.delete_activity_action = ActivityDelete(self.selected_keys, self)
+        self.relink_activity_exch_action = ActivityRelink(self.selected_keys, self)
+        self.duplicate_other_db_action = ActivityDuplicateToDB(self.selected_keys, self)
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, 'Exchanges for scenario difference file', None
         )
         self.connect_signals()
 
-    @property
     def current_database(self) -> str:
         return self.model.database_name
 
@@ -197,7 +195,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
 
-    @property
     def selected_keys(self) -> list[tuple]:
         return [self.model.get_key(index) for index in self.selectedIndexes()]
 
@@ -217,8 +214,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def set_context_menu_policy(self) -> None:
         if self.model.technosphere:
             self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
-            self.db_read_only = project_settings.db_is_readonly(self.current_database)
-            self.update_activity_table_read_only(self.current_database, self.db_read_only)
+            self.db_read_only = project_settings.db_is_readonly(self.current_database())
+            self.update_activity_table_read_only(self.current_database(), self.db_read_only)
         else:
             self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
@@ -238,7 +235,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         The user can change state of dbs other than the open one, so check
         if database name matches.
         """
-        if self.current_database == db_name:
+        if self.current_database() == db_name:
             self.db_read_only = db_read_only
             self.new_activity_action.setEnabled(not self.db_read_only)
             self.duplicate_activity_action.setEnabled(not self.db_read_only)

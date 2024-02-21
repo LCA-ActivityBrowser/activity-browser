@@ -1,4 +1,6 @@
-from PySide2 import QtWidgets
+from typing import Union, Callable
+
+from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
 from ..controllers.activity import activity_controller
@@ -9,17 +11,19 @@ from .base import ABAction
 class ActivityNew(ABAction):
     icon = qicons.add
     title = "New activity"
-    depends = ["current_database"]
+    activity_keys: list[tuple]
+
+    def __init__(self, database_name: Union[str, Callable], parent: QtCore.QObject):
+        super().__init__(parent, database_name=database_name)
 
     def onTrigger(self, toggled):
-        database_name = self.parent().current_database
-
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             "Create new technosphere activity",
             "Please specify an activity name:" + " " * 10,
+            QtWidgets.QLineEdit.Normal
         )
 
         if not ok or not name: return
 
-        activity_controller.new_activity(database_name, name)
+        activity_controller.new_activity(self.database_name, name)

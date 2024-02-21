@@ -1,4 +1,6 @@
-from PySide2 import QtWidgets
+from typing import Union, Callable
+
+from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application, project_settings
 from ..controllers.activity import activity_controller
@@ -9,11 +11,13 @@ from .base import ABAction
 class ActivityDuplicateToDB(ABAction):
     icon = qicons.duplicate_to_other_database
     title = 'Duplicate to other database'
-    depends = ["selected_keys"]
+    activity_keys: list[tuple]
+
+    def __init__(self, activity_keys: Union[list[tuple], Callable], parent: QtCore.QObject):
+        super().__init__(parent, activity_keys=activity_keys)
 
     def onTrigger(self, toggled):
-        keys = self.parent().selected_keys
-        activities = activity_controller.get_activities(keys)
+        activities = activity_controller.get_activities(self.activity_keys)
         origin_db = next(iter(activities)).get("database")
         target_dbs = [db for db in project_settings.get_editable_databases() if db != origin_db]
 

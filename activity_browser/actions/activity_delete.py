@@ -1,4 +1,6 @@
-from PySide2 import QtWidgets
+from typing import Union, Callable
+
+from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
 from ..controllers.activity import activity_controller
@@ -9,10 +11,13 @@ from .base import ABAction
 class ActivityDelete(ABAction):
     icon = qicons.delete
     title = 'Delete ***'
-    depends = ["selected_keys"]
+    activity_keys: list[tuple]
+
+    def __init__(self, activity_keys: Union[list[tuple], Callable], parent: QtCore.QObject):
+        super().__init__(parent, activity_keys=activity_keys)
 
     def onTrigger(self, toggled):
-        keys = self.parent().selected_keys
+        keys = self.activity_keys
 
         activities = activity_controller.get_activities(keys)
 
