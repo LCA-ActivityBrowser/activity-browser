@@ -11,7 +11,7 @@ from .base import ABAction
 class ActivityNew(ABAction):
     icon = qicons.add
     title = "New activity"
-    activity_keys: list[tuple]
+    database_name: str
 
     def __init__(self, database_name: Union[str, Callable], parent: QtCore.QObject):
         super().__init__(parent, database_name=database_name)

@@ -1,4 +1,4 @@
-from typing import Union, Callable
+from typing import Union, Callable, List
 
 from PySide2 import QtWidgets, QtCore
 
@@ -11,9 +11,9 @@ from .base import ABAction
 class ActivityDuplicateToDB(ABAction):
     icon = qicons.duplicate_to_other_database
     title = 'Duplicate to other database'
-    activity_keys: list[tuple]
+    activity_keys: List[tuple]
 
-    def __init__(self, activity_keys: Union[list[tuple], Callable], parent: QtCore.QObject):
+    def __init__(self, activity_keys: Union[List[tuple], Callable], parent: QtCore.QObject):
         super().__init__(parent, activity_keys=activity_keys)
 
     def onTrigger(self, toggled):

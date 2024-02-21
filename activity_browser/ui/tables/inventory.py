@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import List
+
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Slot
 
@@ -188,7 +190,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     def get_key(self, proxy: QtCore.QModelIndex) -> tuple:
         return self.model.get_key(proxy)
 
-    def selected_keys(self) -> list[tuple]:
+    def selected_keys(self) -> List[tuple]:
         return [self.model.get_key(index) for index in self.selectedIndexes()]
 
     def update_filter_settings(self) -> None:
