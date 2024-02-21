@@ -365,6 +365,10 @@ class ActivityController(QObject):
         activity[field] = value
         activity.save()
         bw.databases.set_modified(key[0])
+        if field == "reference product":
+            # update the exchange names for all exchanges to the new reference product name
+            for exc in activity.upstream():
+                signals.exchange_modified.emit(exc, "name", value)
         AB_metadata.update_metadata(key)
         signals.database_changed.emit(key[0])
 
@@ -430,16 +434,20 @@ class ExchangeController(QObject):
         -------
 
         """
-        activity = bw.get_activity(to_key)
+        to_activity = bw.get_activity(to_key)
         for key in from_keys:
+            # add type
             technosphere_db = bc.is_technosphere_db(key[0])
-            exc = activity.new_exchange(input=key, amount=1)
+            exc = to_activity.new_exchange(input=key, amount=1)
             if technosphere_db is True:
                 exc['type'] = 'technosphere'
             elif technosphere_db is False:
                 exc['type'] = 'biosphere'
             else:
                 exc['type'] = 'unknown'
+            # add name
+            from_activity = bw.get_activity(key)
+            exc['name'] = from_activity.get("reference product") or from_activity.get("name")
             # add optional exchange values
             if new_vals := new_values.get(key, {}):
                 for field_name, value in new_vals.items():
