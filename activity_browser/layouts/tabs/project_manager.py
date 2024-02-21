@@ -10,6 +10,7 @@ from ...ui.tables import (
     ActivitiesBiosphereTable,
 )
 from ...signals import signals
+from ...actions import DatabaseImport, DatabaseNew, DefaultInstall
 
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -120,21 +121,19 @@ class DatabaseWidget(QtWidgets.QWidget):
         )
 
         # Buttons
-        self.add_default_data_button = QtWidgets.QPushButton(
-            qicons.import_db, "Add default data (biosphere flows and impact categories)"
-        )
-        self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
-        self.new_database_button.setToolTip('Make a new database')
-        self.import_database_button = QtWidgets.QPushButton(qicons.import_db, "Import")
-        self.import_database_button.setToolTip('Import a new database')
+        self.add_default_data_button = QtWidgets.QToolButton(self)
+        self.add_default_data_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.add_default_data_button.setDefaultAction(DefaultInstall(self))
+
+        self.new_database_button = QtWidgets.QToolButton(self)
+        self.new_database_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.new_database_button.setDefaultAction(DatabaseNew(self))
+
+        self.import_database_button = QtWidgets.QToolButton(self)
+        self.import_database_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.import_database_button.setDefaultAction(DatabaseImport(self))
 
         self._construct_layout()
-        self._connect_signals()
-
-    def _connect_signals(self):
-        self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
-        self.import_database_button.clicked.connect(signals.import_database.emit)
-        self.new_database_button.clicked.connect(signals.add_database.emit)
 
     def _construct_layout(self):
         header_widget = QtWidgets.QWidget()

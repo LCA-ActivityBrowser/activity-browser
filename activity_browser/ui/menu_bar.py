@@ -6,6 +6,7 @@ from PySide2.QtCore import QSize, QUrl, Slot
 from ..info import __version__ as ab_version
 from .icons import qicons
 from ..signals import signals
+from ..actions import *
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -18,17 +19,9 @@ class MenuBar(QtWidgets.QMenuBar):
         self.tools_menu = QtWidgets.QMenu('&Tools', self.window)
         self.help_menu = QtWidgets.QMenu('&Help', self.window)
 
-        self.update_biosphere_action = QtWidgets.QAction(
-            window.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload),
-            "&Update biosphere...", None
-        )
-        self.export_db_action = QtWidgets.QAction(
-            self.window.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon),
-            "&Export database...", None
-        )
-        self.import_db_action = QtWidgets.QAction(
-            qicons.import_db, '&Import database...', None
-        )
+        self.update_biosphere_action = BiosphereUpdate(self)
+        self.export_db_action = DatabaseExport(self)
+        self.import_db_action = DatabaseImport(self)
         self.manage_plugins_action = QtWidgets.QAction(
             qicons.plugin, '&Plugins...', None
         )
@@ -47,9 +40,6 @@ class MenuBar(QtWidgets.QMenuBar):
     def connect_signals(self):
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
-        self.update_biosphere_action.triggered.connect(signals.update_biosphere.emit)
-        self.export_db_action.triggered.connect(signals.export_database.emit)
-        self.import_db_action.triggered.connect(signals.import_database.emit)
         self.manage_plugins_action.triggered.connect(signals.manage_plugins.emit)
 
     def setup_file_menu(self) -> None:

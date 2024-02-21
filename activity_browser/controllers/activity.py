@@ -5,14 +5,13 @@ import uuid
 import brightway2 as bw
 import pandas as pd
 from bw2data.backends.peewee.proxies import Activity
-from PySide2.QtCore import QObject, Slot, Qt
+from PySide2.QtCore import QObject, Slot
 from PySide2 import QtWidgets
 
 from activity_browser import project_settings, signals, application
 from activity_browser.bwutils import AB_metadata, commontasks as bc
-from activity_browser.bwutils.strategies import relink_activity_exchanges
 from .parameter import ParameterController
-from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, LocationLinkingDialog
+from ..ui.widgets import LocationLinkingDialog
 
 
 class ActivityController(QObject):
@@ -28,7 +27,6 @@ class ActivityController(QObject):
         signals.duplicate_to_db_interface_multiple.connect(self.show_duplicate_to_db_interface)
         signals.activity_modified.connect(self.modify_activity)
         signals.duplicate_activity_to_db.connect(self.duplicate_activity_to_db)
-        signals.relink_activity.connect(self.relink_activity_exchange)
 
     def new_activity(self, database_name: str, activity_name: str) -> None:
         data = {
@@ -355,28 +353,6 @@ class ActivityController(QObject):
             return [bw.get_activity(keys)]
         else:
             return [bw.get_activity(k) for k in keys]
-
-    @Slot(tuple, name="relinkActivityExchanges")
-    def relink_activity_exchange(self, key: tuple) -> None:
-        db = bw.Database(key[0])
-        actvty = db.get(key[1])
-        depends = db.find_dependents()
-        options = [(depend, bw.databases.list) for depend in depends]
-        dialog = ActivityLinkingDialog.relink_sqlite(actvty['name'], options, application.main_window)
-        relinking_results = {}
-        if dialog.exec_() == ActivityLinkingDialog.Accepted:
-            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
-            for old, new in dialog.relink.items():
-                other = bw.Database(new)
-                failed, succeeded, examples = relink_activity_exchanges(actvty, old, other)
-                relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
-            QtWidgets.QApplication.restoreOverrideCursor()
-            if failed > 0:
-                relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(application.main_window, relinking_results, examples)
-                relinking_dialog.exec_()
-                activity = relinking_dialog.open_activity()
-            signals.database_changed.emit(actvty['name'])
-            signals.databases_changed.emit()
 
 
 activity_controller = ActivityController(application)

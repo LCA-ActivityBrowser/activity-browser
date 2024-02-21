@@ -29,19 +29,18 @@ class DatabasesTable(ABDataFrameView):
             QtWidgets.QSizePolicy.Preferred,
             QtWidgets.QSizePolicy.Maximum
         ))
-        self.relink_action = QtWidgets.QAction(
-            qicons.edit, "Relink the database", None
-        )
+
+        self.relink_action = DatabaseRelink(self.current_database, self)
         self.new_activity_action = ActivityNew(self.current_database, self)
+        self.delete_db_action = DatabaseDelete(self.current_database, self)
+        self.duplicate_db_action = DatabaseDuplicate(self.current_database, self)
+
         self.model = DatabasesModel(parent=self)
         self._connect_signals()
 
     def _connect_signals(self):
         self.doubleClicked.connect(
             lambda p: signals.database_selected.emit(self.model.get_db_name(p))
-        )
-        self.relink_action.triggered.connect(
-            lambda: signals.relink_database.emit(self.current_database())
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -51,15 +50,9 @@ class DatabasesTable(ABDataFrameView):
             return
 
         menu = QtWidgets.QMenu(self)
-        menu.addAction(
-            qicons.delete, "Delete database",
-            lambda: signals.delete_database.emit(self.current_database())
-        )
+        menu.addAction(self.delete_db_action)
         menu.addAction(self.relink_action)
-        menu.addAction(
-            qicons.duplicate_database, "Copy database",
-            lambda: signals.copy_database.emit(self.current_database())
-        )
+        menu.addAction(self.duplicate_db_action)
         menu.addAction(self.new_activity_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
