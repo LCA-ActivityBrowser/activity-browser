@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Iterator, Optional, Union
+from typing import Iterator, Optional, Union, List
 import uuid
 
 import brightway2 as bw
@@ -90,7 +90,7 @@ class ActivityController(QObject):
         n = max((int(c.split('_copy')[1]) for c in copies))
         return "{}_copy{}".format(code, n + 1)
 
-    def duplicate_activities(self, keys: list[tuple]) -> None:
+    def duplicate_activities(self, keys: List[tuple]) -> None:
         """Duplicates the selected activity in the same db, with a new BW code."""
         # todo: add "copy of" (or similar) to name of activity for easy identification in new db
         # todo: some interface feedback so user knows the copy has succeeded
