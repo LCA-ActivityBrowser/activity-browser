@@ -4,6 +4,7 @@ from pathlib import Path
 import brightway2 as bw
 from PySide2.QtWidgets import QVBoxLayout
 
+from activity_browser import log, signals
 from .panel import ABTab
 from ...ui.web import GraphNavigatorWidget, RestrictedWebViewWidget
 from ..tabs import (
@@ -14,13 +15,6 @@ from ..tabs import (
     ParametersTab
 )
 from ...bwutils.commontasks import get_activity_name
-from ...signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class RightPanel(ABTab):

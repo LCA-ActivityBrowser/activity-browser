@@ -5,6 +5,8 @@ from bw2data.parameters import Group
 from PySide2 import QtWidgets
 from PySide2.QtCore import QObject, Slot, Qt
 
+from activity_browser import log, signals, project_settings, application
+from .project import ProjectController
 from ..bwutils import commontasks as bc
 from ..bwutils.strategies import relink_exchanges_existing_db
 from ..ui.widgets import (
@@ -13,26 +15,14 @@ from ..ui.widgets import (
 )
 from ..ui.wizards.db_export_wizard import DatabaseExportWizard
 from ..ui.wizards.db_import_wizard import DatabaseImportWizard
-from ..settings import project_settings
-from ..signals import signals
-from .project import ProjectController
 from ..info import __ei_versions__
 from ..utils import sort_semantic_versions
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
 
 
 class DatabaseController(QObject):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.window = parent
-
         signals.import_database.connect(self.import_database_wizard)
         signals.export_database.connect(self.export_database_wizard)
         signals.update_biosphere.connect(self.update_biosphere)
@@ -47,12 +37,12 @@ class DatabaseController(QObject):
     @Slot(name="openImportWizard")
     def import_database_wizard(self) -> None:
         """Start the database import wizard."""
-        wizard = DatabaseImportWizard(self.window)
+        wizard = DatabaseImportWizard(application.main_window)
         wizard.show()
 
     @Slot(name="openExportWizard")
     def export_database_wizard(self) -> None:
-        wizard = DatabaseExportWizard(self.window)
+        wizard = DatabaseExportWizard(application.main_window)
         wizard.show()
 
     @Slot(name="fixBrokenIndexes")
@@ -70,11 +60,11 @@ class DatabaseController(QObject):
     def install_default_data(self) -> None:
 
         # let user choose version
-        version_dialog = EcoinventVersionDialog(self.window)
+        version_dialog = EcoinventVersionDialog(application.main_window)
         if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
         version = version_dialog.options.currentText()
 
-        dialog = DefaultBiosphereDialog(version[:3], self.window)  # only read Major/Minor part of version
+        dialog = DefaultBiosphereDialog(version[:3], application.main_window)  # only read Major/Minor part of version
         dialog.show()
 
     @Slot(name="updateBiosphereDialog")
@@ -84,17 +74,17 @@ class DatabaseController(QObject):
         """
         # warn user of consequences of updating
         warn_dialog = QtWidgets.QMessageBox.question(
-            self.window, "Update biosphere3?",
-            'Newer versions of the biosphere database may not'
-            'always be compatible with older ecoinvent versions.'
-            '\nUpdating the biosphere3 database cannot be undone!',
+            application.main_window, "Update biosphere3?",
+            'Newer versions of the biosphere database may not\n'
+            'always be compatible with older ecoinvent versions.\n'
+            '\nUpdating the biosphere3 database cannot be undone!\n',
             QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
             QtWidgets.QMessageBox.Abort
         )
         if warn_dialog is not QtWidgets.QMessageBox.Ok: return
 
         # let user choose version
-        version_dialog = EcoinventVersionDialog(self.window)
+        version_dialog = EcoinventVersionDialog(application.main_window)
         if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
         version = version_dialog.options.currentText()
 
@@ -103,13 +93,13 @@ class DatabaseController(QObject):
         ei_versions = sorted_versions[:sorted_versions.index(version) + 1]
 
         # show updating dialog
-        dialog = BiosphereUpdater(ei_versions, self.window)
+        dialog = BiosphereUpdater(ei_versions, application.main_window)
         dialog.show()
 
     @Slot(name="addDatabase")
     def add_database(self):
         name, ok = QtWidgets.QInputDialog.getText(
-            self.window,
+            application.main_window,
             "Create new database",
             "Name of new database:" + " " * 25
         )
@@ -123,30 +113,30 @@ class DatabaseController(QObject):
                 signals.database_selected.emit(name)
             else:
                 QtWidgets.QMessageBox.information(
-                    self.window, "Not possible", "A database with this name already exists."
+                    application.main_window, "Not possible", "A database with this name already exists."
                 )
 
     @Slot(str, QObject, name="copyDatabaseAction")
     def copy_database(self, name: str) -> None:
         new_name, ok = QtWidgets.QInputDialog.getText(
-            self.window,
+            application.main_window,
             "Copy {}".format(name),
             "Name of new database:" + " " * 25)
         if ok and new_name:
             try:
                 # Attaching the created wizard to the class avoids the copying
                 # thread being prematurely destroyed.
-                copy_progress = CopyDatabaseDialog(self.window)
+                copy_progress = CopyDatabaseDialog(application.main_window)
                 copy_progress.show()
                 copy_progress.begin_copy(name, new_name)
                 project_settings.add_db(new_name, project_settings.db_is_readonly(name))
             except ValueError as e:
-                QtWidgets.QMessageBox.information(self.window, "Not possible", str(e))
+                QtWidgets.QMessageBox.information(application.main_window, "Not possible", str(e))
 
     @Slot(str, name="deleteDatabase")
     def delete_database(self, name: str) -> None:
         ok = QtWidgets.QMessageBox.question(
-            self.window,
+            application.main_window,
             "Delete database?",
             ("Are you sure you want to delete database '{}'? It has {} activity datasets").format(
                 name, bc.count_database_records(name))
@@ -164,7 +154,7 @@ class DatabaseController(QObject):
         db = bw.Database(db_name)
         depends = db.find_dependents()
         options = [(depend, bw.databases.list) for depend in depends]
-        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, self.window)
+        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, application.main_window)
         relinking_results = dict()
         if dialog.exec_() == DatabaseLinkingDialog.Accepted:
             # Now, start relinking.
@@ -176,9 +166,12 @@ class DatabaseController(QObject):
             QtWidgets.QApplication.restoreOverrideCursor()
             if failed > 0:
                 QtWidgets.QApplication.restoreOverrideCursor()
-                relinking_dialog = DatabaseLinkingResultsDialog.present_relinking_results(self.window, relinking_results, examples)
+                relinking_dialog = DatabaseLinkingResultsDialog.present_relinking_results(application.main_window, relinking_results, examples)
                 relinking_dialog.exec_()
                 activity = relinking_dialog.open_activity()
             QtWidgets.QApplication.restoreOverrideCursor()
             signals.database_changed.emit(db_name)
             signals.databases_changed.emit()
+
+
+database_controller = DatabaseController(application)

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from PySide2.QtCore import QObject, Slot
 
+from activity_browser import signals, application
 from activity_browser.bwutils import AB_metadata
-from activity_browser.signals import signals
 from ..ui.wizards.settings_wizard import SettingsWizard
 
 
@@ -12,8 +12,6 @@ class UtilitiesController(QObject):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.window = parent
-
         signals.project_selected.connect(self.reset_metadata)
         signals.edit_activity.connect(self.print_convenience_information)
         signals.edit_settings.connect(self.open_settings_wizard)
@@ -30,5 +28,8 @@ class UtilitiesController(QObject):
 
     @Slot(name="settingsWizard")
     def open_settings_wizard(self) -> None:
-        wizard = SettingsWizard(self.window)
+        wizard = SettingsWizard(application.main_window)
         wizard.show()
+
+
+utilities_controller = UtilitiesController(application)

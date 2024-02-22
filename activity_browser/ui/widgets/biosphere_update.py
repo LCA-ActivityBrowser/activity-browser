@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
-from bw2data.errors import ValidityError
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Signal, Slot
 import bw2io.data as data
-from ...signals import signals
+from bw2data.errors import ValidityError
+from PySide2 import QtWidgets
+from PySide2.QtCore import Signal, Slot
 
-import logging
-from activity_browser.logger import ABHandler
+from activity_browser import log, signals
 from ..threading import ABThread
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):

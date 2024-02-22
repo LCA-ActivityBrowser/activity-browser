@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import io
-from pathlib import Path
 import subprocess
 import tempfile
 import zipfile
+from pathlib import Path
 
 import eidl
 import requests
@@ -16,20 +16,15 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
+from activity_browser import signals, log
 from ..threading import ABThread
-from ...bwutils.errors import ImportCanceledError, LinkingFailed
-from ...bwutils.importers import ABExcelImporter, ABPackage
-from ...signals import signals
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
+from ...bwutils.errors import ImportCanceledError, LinkingFailed
+from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger)
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.

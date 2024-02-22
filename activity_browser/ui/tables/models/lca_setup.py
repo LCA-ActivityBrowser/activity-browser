@@ -1,21 +1,15 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable
 
-import brightway2 as bw
-from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 import numpy as np
+import brightway2 as bw
+from bw2data.backends.peewee import ActivityDataset
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
+from activity_browser import log, signals
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.signals import signals
 from .base import EditablePandasModel, PandasModel
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class CSGenericModel(EditablePandasModel):
@@ -186,7 +180,6 @@ class CSMethodsModel(CSGenericModel):
                     cs.pop(i)
                 else:
                     i += 1
-            ######## END OF FUNCTION
 
         if self.current_cs is not None or name is not None:
             self.current_cs = name

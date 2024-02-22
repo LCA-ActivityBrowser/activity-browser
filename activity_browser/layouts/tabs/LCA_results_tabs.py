@@ -12,24 +12,24 @@ import numpy as np
 import pandas as pd
 import warnings
 
+from PySide2 import QtGui, QtCore
 from PySide2.QtWidgets import (
     QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
     QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
     QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-    QApplication, QSizePolicy, QToolBar
+    QApplication, QToolBar
 )
-from PySide2 import QtGui, QtCore
 from stats_arrays.errors import InvalidParamsError
 import brightway2 as bw
 
+from activity_browser import log, signals
+from .base import BaseRightTab
 from ...bwutils import (
     Contributions, MonteCarloLCA, MLCA,
     SuperstructureMLCA, GlobalSensitivityAnalysis,
     commontasks as bc,
     calculations,
 )
-from ...signals import signals
 from ...ui.figures import (
     LCAResultsPlot, ContributionPlot, CorrelationPlot, LCAResultsBarChart, MonteCarloPlot
 )
@@ -74,7 +74,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "product", "sankey", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
@@ -1861,6 +1861,8 @@ class MonteCarloWorkerThread(QtCore.QThread):
 
 
 worker_thread = MonteCarloWorkerThread()
+
+#TODO review if can be removed
 
 # class Worker(QtCore.QObject):
 #

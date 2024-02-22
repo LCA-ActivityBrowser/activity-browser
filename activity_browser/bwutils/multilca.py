@@ -1,25 +1,19 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Union
-from PySide2.QtWidgets import QMessageBox, QApplication
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
 import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
+from PySide2.QtWidgets import QMessageBox, QApplication
 
-ca = ContributionAnalysis()
-
-from collections import OrderedDict
-
+from activity_browser import log
 from .commontasks import wrap_text
 from .metadata import AB_metadata
 from .errors import ReferenceFlowValueError
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
+ca = ContributionAnalysis()
 
 class MLCA(object):
     """Wrapper class for performing LCA calculations with many reference flows and impact categories.

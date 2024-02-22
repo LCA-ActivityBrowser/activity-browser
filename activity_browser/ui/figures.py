@@ -1,23 +1,18 @@
 # -*- coding: utf-8 -*-
 import math
 
+import numpy as np
+import pandas as pd
 import brightway2 as bw
+import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import numpy as np
-import pandas as pd
 from PySide2 import QtWidgets
-import seaborn as sns
 
+from activity_browser import log
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 # todo: sizing of the figures needs to be improved and systematized...
@@ -206,6 +201,8 @@ class ContributionPlot(Plot):
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
+
+        #TODO review: remove or enable
 
         # refresh canvas
         # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)

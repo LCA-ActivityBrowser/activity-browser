@@ -1,9 +1,8 @@
+import inspect
 import logging
 import os
 import time
 import appdirs
-
-from .signals import signals
 
 
 class ABHandler(object):
@@ -122,13 +121,13 @@ class ABHandler(object):
         return str_
 
     def debug(self, msg: str, *args) -> None:
-        ABHandler.log.debug(self.message(msg, *args), extra={'ABmodule': self.module_name})
+        ABHandler.log.debug(self.message(msg, *args), extra={'ABmodule': self.get_module()})
 
     def info(self, msg: str, *args) -> None:
-        ABHandler.log.info(self.message(msg, *args), extra={'ABmodule': self.module_name})
+        ABHandler.log.info(self.message(msg, *args), extra={'ABmodule': self.get_module()})
 
     def warning(self, msg: str, *args) -> None:
-        ABHandler.log.warning(self.message(msg, *args), extra={'ABmodule': self.module_name})
+        ABHandler.log.warning(self.message(msg, *args), extra={'ABmodule': self.get_module()})
 
     def error(self, msg: str = None, *args, **kwargs) -> None:
         """Provides a wrapper for the Logger.error method. This is to keep the logging messages
@@ -147,7 +146,7 @@ class ABHandler(object):
 
         """
         if msg is not None:
-            ABHandler.log.error(self.message(msg, *args), extra={'ABmodule': self.module_name})
+            ABHandler.log.error(self.message(msg, *args), extra={'ABmodule': self.get_module()})
 
         exc_info = True  # TODO Move this error handling with the use of kwargs into a single error message
         if kwargs and 'error' in kwargs:
@@ -163,6 +162,12 @@ class ABHandler(object):
             ABHandler.log.root.setLevel(level)
         else:
             ABHandler.log.setLevel(level)
+    
+    def get_module(self) -> str:
+        """Finds module based on the current callstack and returns the name as string"""
+        frame = inspect.stack()[2]
+        module = inspect.getmodule(frame[0])
+        return module.__name__
 
 
 class ABLogHandler(logging.Handler):
@@ -174,7 +179,6 @@ class ABLogHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
-        signals.log.emit(msg)
 
 
 logger = logging.getLogger('ab_logs')

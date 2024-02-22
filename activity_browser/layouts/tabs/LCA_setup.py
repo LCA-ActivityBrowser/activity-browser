@@ -1,38 +1,25 @@
 # -*- coding: utf-8 -*-
-from typing import Optional, Union
-
+import pandas as pd
+import brightway2 as bw
+from brightway2 import calculation_setups
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
-from brightway2 import calculation_setups
-import pandas as pd
-import re
 
-import brightway2 as bw
-from bw2data.filesystem import safe_filename
-from ...bwutils.superstructure import (
-    SuperstructureManager, import_from_excel, scenario_names_from_df,
-    SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
-    ABFileImporter, scenario_replace_databases
-)
-from ...settings import ab_settings
-from ...bwutils.errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
-                               ScenarioDatabaseNotFoundError, ImportCanceledError, ScenarioExchangeDataNotFoundError,
-                               UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError,)
-from ...signals import signals
+from activity_browser import log, signals
+from .base import BaseRightTab
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
+from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
 from ...ui.tables import (
     CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
 )
-from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
-from .base import BaseRightTab
-from activity_browser.bwutils.superstructure import ABPopup, edit_superstructure_for_string
+from ...bwutils.errors import *
+from ...bwutils.superstructure import (
+    SuperstructureManager, import_from_excel, scenario_names_from_df,
+    SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
+    scenario_replace_databases, ABPopup, edit_superstructure_for_string
+)
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 """
 Lifecycle of a calculation setup
