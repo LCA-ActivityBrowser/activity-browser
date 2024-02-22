@@ -1,61 +1,33 @@
 # -*- coding: utf-8 -*-
-from typing import List, Optional, Union
+from typing import Union
 
 import brightway2 as bw
-from bw2data.parameters import ActivityParameter, Group, ParameterBase
-from PySide2.QtCore import QObject, Slot
-from PySide2.QtWidgets import QInputDialog, QMessageBox, QErrorMessage
+from bw2data.parameters import *
+from PySide2.QtCore import QObject
 
 from activity_browser import signals, application
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.ui.wizards import ParameterWizard
 
 
 class ParameterController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
-        signals.add_parameter.connect(self.add_parameter)
-        signals.add_activity_parameter.connect(self.auto_add_parameter)
-        signals.add_activity_parameters.connect(self.multiple_auto_parameters)
-        signals.parameter_modified.connect(self.modify_parameter)
-        signals.rename_parameter.connect(self.rename_parameter)
-        signals.delete_parameter.connect(self.delete_parameter)
-        signals.parameter_uncertainty_modified.connect(self.modify_parameter_uncertainty)
-        signals.parameter_pedigree_modified.connect(self.modify_parameter_pedigree)
-        signals.clear_activity_parameter.connect(self.clear_broken_activity_parameter)
 
-    @Slot(name="createSimpleParameterWizard")
-    @Slot(tuple, name="createParameterWizard")
-    def add_parameter(self, key: Optional[tuple] = None) -> None:
-        key = key or ("", "")
-        wizard = ParameterWizard(key, application.main_window)
+    def add_parameter(self, group: str, data: dict) -> None:
+        name = data.get("name")
+        amount = str(data.get("amount"))
+        p_type = "project"
+        if group == "project":
+            bw.parameters.new_project_parameters([data])
+        elif group in bw.databases:
+            bw.parameters.new_database_parameters([data], group)
+            p_type = f"database ({group})"
+        else:
+            bw.parameters.new_activity_parameters([data], group)
+            p_type = "activity ({})".format(group)
+        signals.added_parameter.emit(name, amount, p_type)
 
-        if wizard.exec_() == ParameterWizard.Accepted:
-            selection = wizard.selected
-            data = wizard.param_data
-            name = data.get("name")
-            if name[0] in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '#'):
-                error = QErrorMessage()
-                error.showMessage("<p>Parameter names must not start with a digit, hyphen, or hash character</p>")
-                error.exec_()
-                return
-            amount = str(data.get("amount"))
-            p_type = "project"
-            if selection == 0:
-                bw.parameters.new_project_parameters([data])
-            elif selection == 1:
-                db = data.pop("database")
-                bw.parameters.new_database_parameters([data], db)
-                p_type = "database ({})".format(db)
-            elif selection == 2:
-                group = data.pop("group")
-                bw.parameters.new_activity_parameters([data], group)
-                p_type = "activity ({})".format(group)
-            signals.added_parameter.emit(name, amount, p_type)
-
-    @staticmethod
-    @Slot(tuple, name="addActivityParameter")
-    def auto_add_parameter(key: tuple) -> None:
+    def auto_add_parameter(self, key: tuple) -> None:
         """ Given the activity key, generate a new row with data from
         the activity and immediately call `new_activity_parameters`.
         """
@@ -75,26 +47,6 @@ class ParameterController(QObject):
         bw.parameters.new_activity_parameters([row], group)
         signals.parameters_changed.emit()
 
-    @Slot(list, name="addMultipleActivityParams")
-    def multiple_auto_parameters(self, keys: List[tuple]) -> None:
-        """Block the 'signals' object while iterating through the list of
-        keys, adding all of them as activity parameters.
-        """
-        warning = "Activity must be 'process' type, '{}' is type '{}'."
-        signals.blockSignals(True)
-        for key in keys:
-            act = bw.get_activity(key)
-            if act.get("type", "process") != "process":
-                issue = warning.format(act.get("name"), act.get("type"))
-                QMessageBox.warning(
-                    application.main_window, "Not allowed", issue, QMessageBox.Ok, QMessageBox.Ok
-                )
-                continue
-            self.auto_add_parameter(key)
-        signals.blockSignals(False)
-        signals.parameters_changed.emit()
-
-    @Slot(object, name="deleteParameter")
     def delete_parameter(self, parameter: ParameterBase) -> None:
         """ Remove the given parameter from the project.
 
@@ -153,7 +105,6 @@ class ParameterController(QObject):
         bw.parameters.recalculate()
         signals.parameters_changed.emit()
 
-    @Slot(object, str, object, name="modifyParameter")
     def modify_parameter(self, param: ParameterBase, field: str,
                          value: Union[str, float, list]) -> None:
         with bw.parameters.db.atomic() as transaction:
@@ -172,48 +123,39 @@ class ParameterController(QObject):
                 param.save()
                 bw.parameters.recalculate()
             except Exception as e:
-                # Anything wrong? Roll the transaction back and throw up a
-                # warning message.
+                # Anything wrong? Roll the transaction back.
                 transaction.rollback()
-                QMessageBox.warning(
-                    application.main_window, "Could not save changes", str(e),
-                    QMessageBox.Ok, QMessageBox.Ok
-                )
+                raise e
         signals.parameters_changed.emit()
 
-    @Slot(object, str, name="renameParameter")
-    def rename_parameter(self, param: ParameterBase, group: str) -> None:
-        """Creates an input dialog where users can set a new name for the
-        given parameter.
-
-        NOTE: Currently defaults to updating downstream formulas if needed,
-        by sub-classing the QInputDialog class it becomes possible to allow
-        users to decide if they want to update downstream parameters.
+    def rename_parameter(self, parameter: ParameterBase, new_name: str) -> None:
         """
-        text = "Rename parameter '{}' to:".format(param.name)
-        new_name, ok = QInputDialog.getText(
-            application.main_window, "Rename parameter", text,
-        )
-        if not ok or not new_name:
-            return
-        try:
-            old_name = param.name
-            if group == "project":
-                bw.parameters.rename_project_parameter(param, new_name, True)
-            elif group in bw.databases:
-                bw.parameters.rename_database_parameter(param, new_name, True)
-            else:
-                bw.parameters.rename_activity_parameter(param, new_name, True)
-            signals.parameters_changed.emit()
-            signals.parameter_renamed.emit(old_name, group, new_name)
-        except Exception as e:
-            QMessageBox.warning(
-                application.main_window, "Could not save changes", str(e),
-                QMessageBox.Ok, QMessageBox.Ok
-            )
+        Rename a parameter
+        """
+        old_name = parameter.name
+        group = self.get_parameter_group(parameter)
+
+        if group == "project":
+            bw.parameters.rename_project_parameter(parameter, new_name, True)
+        elif group in bw.databases:
+            bw.parameters.rename_database_parameter(parameter, new_name, True)
+        else:
+            bw.parameters.rename_activity_parameter(parameter, new_name, True)
+
+        signals.parameters_changed.emit()
+        signals.parameter_renamed.emit(old_name, group, new_name)
 
     @staticmethod
-    @Slot(object, object, name="modifyParameterUncertainty")
+    def get_parameter_group(parameter: ParameterBase) -> str:
+        if isinstance(parameter, ProjectParameter):
+            return "project"
+        elif isinstance(parameter, DatabaseParameter):
+            return parameter.database
+        elif isinstance(parameter, ActivityParameter):
+            return parameter.group
+
+
+    @staticmethod
     def modify_parameter_uncertainty(param: ParameterBase, uncertain: dict) -> None:
         unc_fields = {"loc", "scale", "shape", "minimum", "maximum"}
         for k, v in uncertain.items():
@@ -225,14 +167,12 @@ class ParameterController(QObject):
         signals.parameters_changed.emit()
 
     @staticmethod
-    @Slot(object, object, name="modifyParameterPedigree")
     def modify_parameter_pedigree(param: ParameterBase, pedigree: dict) -> None:
         param.data["pedigree"] = pedigree
         param.save()
         signals.parameters_changed.emit()
 
     @staticmethod
-    @Slot(str, str, str, name="deleteRemnantParameters")
     def clear_broken_activity_parameter(database: str, code: str, group: str) -> None:
         """Take the given information and attempt to remove all of the
         downstream parameter information.

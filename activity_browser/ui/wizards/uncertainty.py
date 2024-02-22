@@ -5,7 +5,8 @@ from PySide2.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import log, signals
+from activity_browser import log, signals, application
+from ...controllers.parameter import parameter_controller
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
@@ -79,9 +80,9 @@ class UncertaintyWizard(QtWidgets.QWizard):
             if self.using_pedigree:
                 signals.exchange_pedigree_modified.emit(self.obj.data, self.pedigree.matrix.factors)
         elif self.obj.data_type == "parameter":
-            signals.parameter_uncertainty_modified.emit(self.obj.data, self.uncertainty_info)
+            parameter_controller.modify_parameter_uncertainty(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:
-                signals.parameter_pedigree_modified.emit(self.obj.data, self.pedigree.matrix.factors)
+                parameter_controller.modify_parameter_pedigree(self.obj.data, self.pedigree.matrix.factors)
         elif self.obj.data_type == "cf":
             self.complete.emit(self.obj.data, self.uncertainty_info)
 
@@ -144,6 +145,13 @@ class UncertaintyWizard(QtWidgets.QWizard):
                     signals.exchange_modified.emit(self.obj.data, "amount", mean)
                 elif self.obj.data_type == "parameter":
                     signals.parameter_modified.emit(self.obj.data, "amount", mean)
+                    try:
+                        parameter_controller.modify_parameter(self.obj.data, "amount", mean)
+                    except Exception as e:
+                        QtWidgets.QMessageBox.warning(
+                            application.main_window, "Could not save changes", str(e),
+                            QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+                        )
                 elif self.obj.data_type == "cf":
                     altered = {k: v for k, v in self.obj.uncertainty.items()}
                     altered["amount"] = mean

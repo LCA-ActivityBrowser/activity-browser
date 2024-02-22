@@ -19,6 +19,10 @@ from .database_delete import DatabaseDelete
 from .database_duplicate import DatabaseDuplicate
 from .database_relink import DatabaseRelink
 
+from .parameter_new import ParameterNew
+from .parameter_new_automatic import ParameterNewAutomatic
+from .parameter_rename import ParameterRename
+
 from .default_install import DefaultInstall
 
 from .biosphere_update import BiosphereUpdate
