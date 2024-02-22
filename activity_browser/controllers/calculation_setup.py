@@ -11,8 +11,6 @@ class CalculationSetupController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        signals.rename_calculation_setup.connect(self.rename_calculation_setup)
-
     def new_calculation_setup(self, name) -> None:
         bw.calculation_setups[name] = {'inv': [], 'ia': []}
         signals.calculation_setup_selected.emit(name)

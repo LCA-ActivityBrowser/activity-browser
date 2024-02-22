@@ -24,7 +24,7 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
     assert bw.projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
-    with qtbot.waitSignal(signals.change_project, timeout=10*60*1000):  # allow 10 mins for biosphere install
+    with qtbot.waitSignal(signals.project_selected, timeout=10*60*1000):  # allow 10 mins for biosphere install
 
         # fake the accepting of the dialog when started
         monkeypatch.setattr(EcoinventVersionDialog, 'exec_', lambda self: EcoinventVersionDialog.Accepted)

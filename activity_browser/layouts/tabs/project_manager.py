@@ -10,7 +10,7 @@ from ...ui.tables import (
     ActivitiesBiosphereTable,
 )
 from ...signals import signals
-from ...actions import DatabaseImport, DatabaseNew, DefaultInstall
+from ...actions import DatabaseImport, DatabaseNew, DefaultInstall, ProjectNew, ProjectDuplicate, ProjectDelete
 
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -68,22 +68,11 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.projects_list = ProjectListWidget()
 
         # Buttons
-        self.new_project_button = QtWidgets.QPushButton(qicons.add, "New")
-        self.new_project_button.setToolTip('Make a new project')
-        self.copy_project_button = QtWidgets.QPushButton(qicons.copy, "Copy")
-        self.copy_project_button.setToolTip('Copy the project')
-        self.delete_project_button = QtWidgets.QPushButton(
-            qicons.delete, "Delete"
-        )
-        self.delete_project_button.setToolTip('Delete the project')
+        self.new_project_button = ProjectNew(self).button()
+        self.copy_project_button = ProjectDuplicate(self).button()
+        self.delete_project_button = ProjectDelete(self).button()
 
         self.construct_layout()
-        self.connect_signals()
-
-    def connect_signals(self):
-        self.new_project_button.clicked.connect(signals.new_project.emit)
-        self.delete_project_button.clicked.connect(signals.delete_project.emit)
-        self.copy_project_button.clicked.connect(signals.copy_project.emit)
 
     def construct_layout(self):
         h_widget = QtWidgets.QWidget()

@@ -16,6 +16,7 @@ from ...ui.widgets import BiosphereUpdater
 from ...info import __ei_versions__
 from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
 from ...utils import sort_semantic_versions
+from ...controllers import project_controller
 
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
@@ -536,7 +537,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
-        signals.change_project.emit(bw.projects.current)
+        project_controller.change_project(bw.projects.current)
         signals.project_selected.emit()
 
     def check_patches(self):

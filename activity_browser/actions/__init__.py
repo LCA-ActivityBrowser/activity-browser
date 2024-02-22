@@ -23,6 +23,10 @@ from .parameter.parameter_new import ParameterNew
 from .parameter.parameter_new_automatic import ParameterNewAutomatic
 from .parameter.parameter_rename import ParameterRename
 
+from .project.project_new import ProjectNew
+from .project.project_duplicate import ProjectDuplicate
+from .project.project_delete import ProjectDelete
+
 from .default_install import DefaultInstall
 
 from .biosphere_update import BiosphereUpdate
