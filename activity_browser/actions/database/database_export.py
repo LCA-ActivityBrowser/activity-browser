@@ -1,8 +1,8 @@
 from PySide2 import QtWidgets
 
 from activity_browser import application
-from .base import ABAction
-from ..ui.wizards.db_export_wizard import DatabaseExportWizard
+from activity_browser.actions.base import ABAction
+from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 
 
 class DatabaseExport(ABAction):

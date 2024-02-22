@@ -1,7 +1,7 @@
 from activity_browser import application
-from .base import ABAction
-from ..ui.wizards.db_import_wizard import DatabaseImportWizard
-from ..ui.icons import qicons
+from activity_browser.actions.base import ABAction
+from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
+from activity_browser.ui.icons import qicons
 
 
 class DatabaseImport(ABAction):

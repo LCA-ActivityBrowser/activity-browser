@@ -1,27 +1,27 @@
-from .activity_relink import ActivityRelink
-from .activity_new import ActivityNew
-from .activity_duplicate import ActivityDuplicate
-from .activity_open import ActivityOpen
-from .activity_graph import ActivityGraph
-from .activity_duplicate_to_loc import ActivityDuplicateToLoc
-from .activity_delete import ActivityDelete
-from .activity_duplicate_to_db import ActivityDuplicateToDB
+from .activity.activity_relink import ActivityRelink
+from .activity.activity_new import ActivityNew
+from .activity.activity_duplicate import ActivityDuplicate
+from .activity.activity_open import ActivityOpen
+from .activity.activity_graph import ActivityGraph
+from .activity.activity_duplicate_to_loc import ActivityDuplicateToLoc
+from .activity.activity_delete import ActivityDelete
+from .activity.activity_duplicate_to_db import ActivityDuplicateToDB
 
-from .cs_new import CSNew
-from .cs_delete import CSDelete
-from .cs_duplicate import CSDuplicate
-from .cs_rename import CSRename
+from .calculation_setup.cs_new import CSNew
+from .calculation_setup.cs_delete import CSDelete
+from .calculation_setup.cs_duplicate import CSDuplicate
+from .calculation_setup.cs_rename import CSRename
 
-from .database_import import DatabaseImport
-from .database_export import DatabaseExport
-from .database_new import DatabaseNew
-from .database_delete import DatabaseDelete
-from .database_duplicate import DatabaseDuplicate
-from .database_relink import DatabaseRelink
+from .database.database_import import DatabaseImport
+from .database.database_export import DatabaseExport
+from .database.database_new import DatabaseNew
+from .database.database_delete import DatabaseDelete
+from .database.database_duplicate import DatabaseDuplicate
+from .database.database_relink import DatabaseRelink
 
-from .parameter_new import ParameterNew
-from .parameter_new_automatic import ParameterNewAutomatic
-from .parameter_rename import ParameterRename
+from .parameter.parameter_new import ParameterNew
+from .parameter.parameter_new_automatic import ParameterNewAutomatic
+from .parameter.parameter_rename import ParameterRename
 
 from .default_install import DefaultInstall
 

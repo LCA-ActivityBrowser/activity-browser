@@ -4,11 +4,11 @@ import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application, signals
-from .base import ABAction
-from ..ui.icons import qicons
-from ..ui.widgets import DatabaseLinkingDialog, DatabaseLinkingResultsDialog
-from ..bwutils.strategies import relink_exchanges_existing_db
-from ..controllers import database_controller
+from activity_browser.actions.base import ABAction
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.widgets import DatabaseLinkingDialog, DatabaseLinkingResultsDialog
+from activity_browser.bwutils.strategies import relink_exchanges_existing_db
+from activity_browser.controllers import database_controller
 
 
 class DatabaseRelink(ABAction):

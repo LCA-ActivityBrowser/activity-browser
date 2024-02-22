@@ -3,9 +3,9 @@ from typing import Union, Callable
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
-from ..controllers.activity import activity_controller
-from ..ui.icons import qicons
-from .base import ABAction
+from activity_browser.controllers.activity import activity_controller
+from activity_browser.ui.icons import qicons
+from activity_browser.actions.base import ABAction
 
 
 class ActivityNew(ABAction):

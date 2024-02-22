@@ -3,9 +3,9 @@ from typing import Union, Callable, Any
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
-from .base import ABAction
-from ..ui.icons import qicons
-from ..controllers import database_controller
+from activity_browser.actions.base import ABAction
+from activity_browser.ui.icons import qicons
+from activity_browser.controllers import database_controller
 
 
 class DatabaseDelete(ABAction):

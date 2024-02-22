@@ -1,13 +1,13 @@
 from typing import Union, Callable, Optional, Tuple
 
 import brightway2 as bw
-from ..bwutils import commontasks as bc
+from activity_browser.bwutils import commontasks as bc
 from PySide2 import QtCore, QtWidgets, QtGui
 
 from activity_browser import application
-from ..controllers import parameter_controller
-from .base import ABAction
-from ..ui.icons import qicons
+from activity_browser.controllers import parameter_controller
+from activity_browser.actions.base import ABAction
+from activity_browser.ui.icons import qicons
 
 PARAMETER_STRINGS = (
     "Project: Available to all other parameters",
