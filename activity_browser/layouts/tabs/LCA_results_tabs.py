@@ -74,7 +74,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "sankey", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "product", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
