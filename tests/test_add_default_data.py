@@ -35,6 +35,10 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
             QtCore.Qt.LeftButton
         )
 
+    # The biosphere3 update finishes with a 'database_changed' signal.
+    with qtbot.waitSignal(signals.database_changed, timeout=2 * 60 * 1000):  # allow 2 mins for biosphere update
+        pass
+
     # biosphere was installed
     assert 'biosphere3' in bw.databases
 

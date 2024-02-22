@@ -21,6 +21,8 @@ log = ABHandler.setup_with_logger(logger, __name__)
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
 
+RELINK_FIELDS = ("name", "database", "categories", "unit", "reference product", "location")
+
 
 def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
     """Use this to relink exchanges during an actual import."""
@@ -62,7 +64,7 @@ def _relink_exchanges(data: list, other: str) -> list:
     act = other.random()
     is_technosphere = act.get("type", "process") == "process"
     kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
-    return link_iterable_by_fields(data, other=other, kind=kind)
+    return link_iterable_by_fields(data, other=other, kind=kind, fields=RELINK_FIELDS, relink=True)
 
 
 def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:

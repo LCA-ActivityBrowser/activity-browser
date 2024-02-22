@@ -592,7 +592,7 @@ class Contributions(object):
         return data.take(index, axis=axis)
 
     def get_contributions(self, contribution, functional_unit=None,
-                          method=None) -> np.ndarray:
+                          method=None, **kwargs) -> np.ndarray:
         """Return a contribution matrix given the type and fu / method."""
         if all([functional_unit, method]) or not any([functional_unit, method]):
             raise ValueError(
@@ -703,7 +703,7 @@ class Contributions(object):
         Annotated top-contribution dataframe
 
         """
-        contributions = self.get_contributions(self.EF, functional_unit, method)
+        contributions = self.get_contributions(self.EF, functional_unit, method, **kwargs)
 
         x_fields = self._contribution_rows(self.EF, aggregator)
         index, y_fields = self._contribution_index_cols(
@@ -746,7 +746,7 @@ class Contributions(object):
         Annotated top-contribution dataframe
 
         """
-        contributions = self.get_contributions(self.ACT, functional_unit, method)
+        contributions = self.get_contributions(self.ACT, functional_unit, method, **kwargs)
 
         x_fields = self._contribution_rows(self.ACT, aggregator)
         index, y_fields = self._contribution_index_cols(

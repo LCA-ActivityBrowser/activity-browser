@@ -18,6 +18,7 @@ def create_path(folder: str, filename: str) -> str:
     # add_db = create_path('metaprocess', 'add_database.png')
     # close_db = create_path('metaprocess', 'close_database.png')
     # cut = create_path('metaprocess', 'cut.png')
+    # debug = create_path('main', 'ladybird.png')
     # duplicate = create_path('metaprocess', 'duplicate.png')
     # graph_lmp = create_path('metaprocess', 'graph_linkedmetaprocess.png')
     # graph_mp = create_path('metaprocess', 'graph_metaprocess.png')
@@ -56,7 +57,6 @@ class Icons(object):
     filter = create_path('main', 'filter.png')
     filter_outline = create_path('main', 'filter_outline.png')
 
-
     # database
     import_db = create_path('main', 'import_database.png')
     duplicate_database = create_path('main', 'duplicate_database.png')
@@ -67,7 +67,6 @@ class Icons(object):
 
     # windows
     graph_explorer = create_path('main', 'graph_explorer.png')
-    debug = create_path('main', 'ladybird.png')
     issue = create_path('main', 'idea.png')
     settings = create_path('main', 'settings.png')
     history = create_path('main', 'history.png')

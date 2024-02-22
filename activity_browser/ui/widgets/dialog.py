@@ -4,11 +4,12 @@ from typing import List, Tuple
 
 import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
-from PySide2.QtCore import QRegExp, QThread, Qt, Signal, Slot
+from PySide2.QtCore import Qt, Signal, Slot
 
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
+from ..threading import ABThread
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
 from ...ui.widgets import BiosphereUpdater
@@ -524,7 +525,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.start()
 
         # finally, check if patches are available for this version and apply them
-        self.check_patches()
+        #self.biosphere_thread.finished.connect(self.check_patches)
 
     @Slot(int, str, name='updateThread')
     def update_progress(self, current: int, text: str) -> None:
@@ -534,6 +535,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def finished(self, result: int = None) -> None:
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
+        self.check_patches()
         signals.change_project.emit(bw.projects.current)
         signals.project_selected.emit()
 
@@ -548,14 +550,14 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         dialog.show()
 
 
-class DefaultBiosphereThread(QThread):
+class DefaultBiosphereThread(ABThread):
     update = Signal(int, str)
 
     def __init__(self, version, parent=None):
         super().__init__(parent=parent)
         self.version = version
 
-    def run(self):
+    def run_safely(self):
         project = "<b>{}</b>".format(bw.projects.current)
         if "biosphere3" not in bw.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))

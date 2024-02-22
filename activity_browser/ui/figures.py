@@ -126,16 +126,23 @@ class LCAResultsPlot(Plot):
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
         dfp.columns = [wrap_text(i, max_length=20) for i in dfp.columns]
-        prop = dfp.divide(dfp.max(axis=0)).multiply(100)
+        prop = dfp.divide(dfp.abs().max(axis=0)).multiply(100)
         dfp.replace(np.nan, 0, inplace=True)
         if invert_plot:
             dfp = dfp.T
             prop = prop.T
 
+        # set different color palette depending on whether all values are positive or not
+        if dfp.min(axis=None) < 0 and dfp.max(axis=None) > 0:  # has both negative AND positive values
+            cmap = sns.color_palette("vlag_r", as_cmap=True)
+        else:  # has only positive OR negative values
+            cmap = sns.color_palette("Blues", as_cmap=True)
+
         sns.heatmap(
-            prop, ax=self.ax, cmap="Blues", annot=dfp, linewidths=0.05,
+            prop, ax=self.ax, cmap=cmap, annot=dfp, linewidths=0.05,
             annot_kws={"size": 11 if dfp.shape[1] <= 8 else 9,
-                       "rotation": 0 if dfp.shape[1] <= 8 else 60}
+                       "rotation": 0 if dfp.shape[1] <= 8 else 60},
+            cbar_kws={'format': '%.0f%%'}
         )
         self.ax.tick_params(labelsize=8)
         if dfp.shape[1] > 5:
