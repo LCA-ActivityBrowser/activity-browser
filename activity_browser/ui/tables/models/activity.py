@@ -285,7 +285,7 @@ class BiosphereExchangeModel(BaseExchangeModel):
         try:
             act = exchange.input
             row.update({
-                "Flow Name": act.get("name"),
+                "Flow Name": exchange.get("name") or act.get("name"),
                 "Compartments": " - ".join(act.get('categories', [])),
                 "Database": act.get("database"),
                 "Uncertainty": exchange.get("uncertainty type", 0),
@@ -318,7 +318,7 @@ class DownstreamExchangeModel(BaseExchangeModel):
         row = super().create_row(exchange)
         act = exchange.output
         row.update({
-            "Product": act.get("reference product") or act.get("name"),
+            "Product": exchange.get("name") or act.get("reference product") or act.get("name"),
             "Activity": act.get("name"),
             "Location": act.get("location", "Unknown"),
             "Database": act.get("database"),
