@@ -242,7 +242,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
         try:
             act = exchange.input
             row.update({
-                "Product": exchange.get("name") or act.get("name"),
+                "Product": exchange.get("name") or act.get("reference product") or act.get("name"),
                 "Activity": act.get("name"),
                 "Location": act.get("location", "Unknown"),
                 "Database": act.get("database"),
