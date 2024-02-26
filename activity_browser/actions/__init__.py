@@ -28,6 +28,6 @@ from .project.project_duplicate import ProjectDuplicate
 from .project.project_delete import ProjectDelete
 
 from .default_install import DefaultInstall
-
 from .biosphere_update import BiosphereUpdate
-
+from .plugin_wizard_open import PluginWizardOpen
+from .settings_wizard_open import SettingsWizardOpen

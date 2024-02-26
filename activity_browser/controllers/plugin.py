@@ -2,10 +2,9 @@
 import importlib.util
 from pkgutil import iter_modules
 
-from PySide2.QtCore import QObject, Slot
+from PySide2.QtCore import QObject
 
 from activity_browser import log, signals, project_settings, ab_settings, application
-from ..ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 
 
 class PluginController(QObject):
@@ -18,14 +17,8 @@ class PluginController(QObject):
         self.load_plugins()
 
     def connect_signals(self):
-        signals.manage_plugins.connect(self.manage_plugins_wizard)
         signals.project_selected.connect(self.reload_plugins)
         signals.plugin_selected.connect(self.add_plugin)
-
-    @Slot(name="openManagerWizard")
-    def manage_plugins_wizard(self) -> None:
-        self.wizard = PluginsManagerWizard(application.main_window)
-        self.wizard.show()
 
     def load_plugins(self):
         names = self.discover_plugins()

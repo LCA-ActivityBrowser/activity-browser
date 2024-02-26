@@ -22,9 +22,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.update_biosphere_action = BiosphereUpdate(self)
         self.export_db_action = DatabaseExport(self)
         self.import_db_action = DatabaseImport(self)
-        self.manage_plugins_action = QtWidgets.QAction(
-            qicons.plugin, '&Plugins...', None
-        )
+        self.manage_plugins_action = PluginWizardOpen(self)
+        self.manage_settings_action = SettingsWizardOpen(self)
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
@@ -40,18 +39,13 @@ class MenuBar(QtWidgets.QMenuBar):
     def connect_signals(self):
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
-        self.manage_plugins_action.triggered.connect(signals.manage_plugins.emit)
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
         self.file_menu.addAction(self.import_db_action)
         self.file_menu.addAction(self.export_db_action)
         self.file_menu.addAction(self.update_biosphere_action)
-        self.file_menu.addAction(
-            qicons.settings,
-            '&Settings...',
-            signals.edit_settings.emit
-        )
+        self.file_menu.addAction(self.manage_settings_action)
 
     def setup_view_menu(self) -> None:
         """Build the menu for viewing or hiding specific tabs"""
