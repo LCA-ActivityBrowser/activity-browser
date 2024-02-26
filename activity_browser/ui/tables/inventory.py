@@ -103,7 +103,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.open_activity_graph_action = ActivityGraph(self.selected_keys, self)
         self.new_activity_action = ActivityNew(self.current_database, self)
         self.duplicate_activity_action = ActivityDuplicate(self.selected_keys, self)
-        self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc(self.selected_keys, self)
+        self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc(lambda: self.selected_keys()[0], self)
         self.delete_activity_action = ActivityDelete(self.selected_keys, self)
         self.relink_activity_exch_action = ActivityRelink(self.selected_keys, self)
         self.duplicate_other_db_action = ActivityDuplicateToDB(self.selected_keys, self)
