@@ -19,6 +19,14 @@ from .database.database_delete import DatabaseDelete
 from .database.database_duplicate import DatabaseDuplicate
 from .database.database_relink import DatabaseRelink
 
+from .exchange.exchange_new import ExchangeNew
+from .exchange.exchange_delete import ExchangeDelete
+from .exchange.exchange_modify import ExchangeModify
+from .exchange.exchange_formula_remove import ExchangeFormulaRemove
+from .exchange.exchange_uncertainty_modify import ExchangeUncertaintyModify
+from .exchange.exchange_uncertainty_remove import ExchangeUncertaintyRemove
+from .exchange.exchange_copy_sdf import ExchangeCopySDF
+
 from .parameter.parameter_new import ParameterNew
 from .parameter.parameter_new_automatic import ParameterNewAutomatic
 from .parameter.parameter_rename import ParameterRename

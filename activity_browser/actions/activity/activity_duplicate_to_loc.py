@@ -9,7 +9,7 @@ from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 from ...ui.widgets import LocationLinkingDialog
-from ...controllers.activity import activity_controller
+from ...controllers import activity_controller, exchange_controller
 
 
 class ActivityDuplicateToLoc(ABAction):
@@ -112,10 +112,10 @@ class ActivityDuplicateToLoc(ABAction):
                 continue  # no suitable candidate was found, try the next exchange
             del_exch.append(exch)
         # delete exchanges with old locations
-        signals.exchanges_deleted.emit(del_exch)
+        exchange_controller.delete_exchanges(del_exch)
 
-        # add the new exchanges with all values carried over from last exch
-        signals.exchanges_add_w_values.emit(list(successful_links.keys()), new_act.key, successful_links)
+        # add the new exchanges with all values carried over from last exchange
+        exchange_controller.add_exchanges(list(successful_links.keys()), new_act.key, successful_links)
 
         # update the MetaDataStore and open new activity
         AB_metadata.update_metadata(new_act.key)

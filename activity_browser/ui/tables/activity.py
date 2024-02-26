@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from typing import List
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
+from activity_browser import actions
 from .delegates import *
 from .models import (
     BaseExchangeModel, ProductExchangeModel, TechnosphereExchangeModel,
@@ -9,7 +12,7 @@ from .models import (
 )
 from .views import ABDataFrameView
 from ..icons import qicons
-from ...signals import signals
+from ...actions import ExchangeNew
 
 
 class BaseExchangeTable(ABDataFrameView):
@@ -24,21 +27,11 @@ class BaseExchangeTable(ABDataFrameView):
             QtWidgets.QSizePolicy.Maximum)
         )
 
-        self.delete_exchange_action = QtWidgets.QAction(
-            qicons.delete, "Delete exchange(s)", None
-        )
-        self.remove_formula_action = QtWidgets.QAction(
-            qicons.delete, "Clear formula(s)", None
-        )
-        self.modify_uncertainty_action = QtWidgets.QAction(
-            qicons.edit, "Modify uncertainty", None
-        )
-        self.remove_uncertainty_action = QtWidgets.QAction(
-            qicons.delete, "Remove uncertainty/-ies", None
-        )
-        self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
-            qicons.superstructure, "Exchanges for scenario difference file", None
-        )
+        self.delete_exchange_action = actions.ExchangeDelete(self.selected_exchanges, self)
+        self.remove_formula_action = actions.ExchangeFormulaRemove(self.selected_exchanges, self)
+        self.modify_uncertainty_action = actions.ExchangeUncertaintyModify(self.selected_exchanges, self)
+        self.remove_uncertainty_action = actions.ExchangeUncertaintyRemove(self.selected_exchanges, self)
+        self.copy_exchanges_for_SDF_action = actions.ExchangeCopySDF(self.selected_exchanges, self)
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
         self.downstream = False
@@ -49,21 +42,6 @@ class BaseExchangeTable(ABDataFrameView):
     def _connect_signals(self):
         self.doubleClicked.connect(
             lambda: self.model.edit_cell(self.currentIndex())
-        )
-        self.delete_exchange_action.triggered.connect(
-            lambda: self.model.delete_exchanges(self.selectedIndexes())
-        )
-        self.remove_formula_action.triggered.connect(
-            lambda: self.model.remove_formula(self.selectedIndexes())
-        )
-        self.modify_uncertainty_action.triggered.connect(
-            lambda: self.model.modify_uncertainty(self.currentIndex())
-        )
-        self.remove_uncertainty_action.triggered.connect(
-            lambda: self.model.remove_uncertainty(self.selectedIndexes())
-        )
-        self.copy_exchanges_for_SDF_action.triggered.connect(
-            lambda: self.model.copy_exchanges_for_SDF(self.selectedIndexes())
         )
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
@@ -100,13 +78,16 @@ class BaseExchangeTable(ABDataFrameView):
         source_table = event.source()
         keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
         event.accept()
-        signals.exchanges_add.emit(keys, self.key)
+        ExchangeNew(keys, self.key, self).trigger()
 
     def get_usable_parameters(self):
         return self.model.get_usable_parameters()
 
     def get_interpreter(self):
         return self.model.get_interpreter()
+
+    def selected_exchanges(self) -> List[any]:
+        return [self.model.get_exchange(index) for index in self.selectedIndexes()]
 
 
 class ProductExchangeTable(BaseExchangeTable):

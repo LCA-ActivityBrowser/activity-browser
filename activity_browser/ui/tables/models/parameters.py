@@ -15,7 +15,7 @@ from activity_browser import log, signals, application
 from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
-from ....controllers import parameter_controller
+from ....controllers import parameter_controller, exchange_controller
 from ....actions import ParameterRename
 
 class BaseParameterModel(EditablePandasModel):
@@ -363,7 +363,7 @@ class ParameterItem(TreeItem):
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
                 log.warning("Broken exchange: {}, removing.".format(e))
-                signals.exchanges_deleted.emit([exc])
+                exchange_controller.delete_exchanges([exc])
 
 
 class ParameterTreeModel(BaseTreeModel):

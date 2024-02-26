@@ -10,9 +10,9 @@ from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import log, signals
+from activity_browser import log, signals, actions, exchange_controller
 from activity_browser.bwutils import (
-    PedigreeMatrix, uncertainty as uc, commontasks as bc
+    PedigreeMatrix, commontasks as bc
 )
 from .base import EditablePandasModel
 
@@ -60,7 +60,7 @@ class BaseExchangeModel(EditablePandasModel):
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
             log.info("Broken exchange: {}, removing.".format(e))
-            signals.exchanges_deleted.emit([exchange])
+            exchange_controller.delete_exchanges([exchange])
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)
@@ -75,51 +75,7 @@ class BaseExchangeModel(EditablePandasModel):
         col = proxy.column()
         if self._dataframe.columns[col] in {'Uncertainty', 'pedigree', 'loc', 'scale',
                                             'shape', 'minimum', 'maximum'}:
-            self.modify_uncertainty(proxy)
-
-    @Slot(list, name="deleteExchanges")
-    def delete_exchanges(self, proxies: list) -> None:
-        """ Remove all of the selected exchanges from the activity."""
-        exchanges = [self.get_exchange(p) for p in proxies]
-        signals.exchanges_deleted.emit(exchanges)
-
-    @Slot(list, name="removeFormulas")
-    def remove_formula(self, proxies: list) -> None:
-        """ Remove the formulas for all of the selected exchanges.
-
-        This will also check if the exchange has `original_amount` and
-        attempt to overwrite the `amount` with that value after removing the
-        `formula` field.
-        """
-        exchanges = [self.get_exchange(p) for p in proxies]
-        for exchange in exchanges:
-            signals.exchange_modified.emit(exchange, "formula", "")
-
-    @Slot(QModelIndex, name="modifyExchangeUncertainty")
-    def modify_uncertainty(self, proxy: QModelIndex) -> None:
-        """Need to know both keys to select the correct exchange to update."""
-        exchange = self.get_exchange(proxy)
-        signals.exchange_uncertainty_wizard.emit(exchange)
-
-    @Slot(list, name="unsetExchangeUncertainty")
-    def remove_uncertainty(self, proxies: list) -> None:
-        exchanges = [self.get_exchange(p) for p in proxies]
-        for exchange in exchanges:
-            signals.exchange_uncertainty_modified.emit(exchange, uc.EMPTY_UNCERTAINTY)
-
-    @Slot(list, name="copyFlowInformation")
-    def copy_exchanges_for_SDF(self, proxies: list) -> None:
-        exchanges = []
-        prev = None
-        for p in proxies:
-            e = self.get_exchange(p)
-            if e is prev:
-                continue  # exact duplicate entry into clipboard
-            prev = e
-            exchanges.append(e)
-        data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
-        df = pd.DataFrame(data)
-        df.to_clipboard(excel=True, index=False)
+            actions.ExchangeUncertaintyModify([self.get_exchange(proxy)], self).trigger()
 
     @Slot(list, name="openActivities")
     def open_activities(self, proxies: list) -> None:
@@ -138,7 +94,7 @@ class BaseExchangeModel(EditablePandasModel):
         field = bc.AB_names_to_bw_keys.get(header, header)
         exchange = self._dataframe.iat[index.row(), self.exchange_column]
         if field in self.VALID_FIELDS:
-            signals.exchange_modified.emit(exchange, field, value)
+            actions.ExchangeModify(exchange, {field: value}, self).trigger()
         else:
             act_key = exchange.output.key
             signals.activity_modified.emit(act_key, field, value)
