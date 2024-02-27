@@ -1,16 +1,19 @@
 from typing import Union, Callable, List, Tuple
 
 import brightway2 as bw
-from activity_browser.bwutils import commontasks as bc
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from activity_browser import application, signals
-from activity_browser.controllers import parameter_controller
+from activity_browser import application, parameter_controller
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
-
 class ParameterNewAutomatic(ABAction):
+    """
+    ABAction for the automatic creation of a new parameter.
+
+    TODO: Remove this action as it is automatic and not user interaction, should be done through e.g. a signal but
+    TODO: will actually need to be reworked together with the parameters.
+    """
     icon = qicons.add
     title = "New parameter..."
     activity_keys: List[Tuple]

@@ -2,12 +2,15 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser.controllers.activity import activity_controller
+from activity_browser import activity_controller
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 
 
 class ActivityDuplicate(ABAction):
+    """
+    Duplicate one or multiple activities using their keys. Proxy action to call the controller.
+    """
     icon = qicons.copy
     title = 'Duplicate ***'
     activity_keys: List[tuple]

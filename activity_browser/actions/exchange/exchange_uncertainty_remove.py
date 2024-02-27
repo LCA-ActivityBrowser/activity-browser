@@ -2,13 +2,16 @@ from typing import Union, Callable, List, Any
 
 from PySide2 import QtCore
 
+from activity_browser import exchange_controller
 from ..base import ABAction
 from ...ui.icons import qicons
-from ...controllers import exchange_controller
 from ...bwutils import uncertainty
 
 
 class ExchangeUncertaintyRemove(ABAction):
+    """
+    ABAction to clear the uncertainty of one or multiple exchanges.
+    """
     icon = qicons.delete
     title = "Remove uncertainty/-ies"
     exchanges: List[Any]

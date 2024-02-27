@@ -2,12 +2,15 @@ from typing import Union, Callable, List, Any
 
 from PySide2 import QtCore
 
+from activity_browser import exchange_controller
 from ..base import ABAction
 from ...ui.icons import qicons
-from ...controllers import exchange_controller
 
 
 class ExchangeFormulaRemove(ABAction):
+    """
+    ABAction to clear the formula's of one or more exchanges.
+    """
     icon = qicons.delete
     title = "Clear formula(s)"
     exchanges: List[Any]

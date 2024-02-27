@@ -1,16 +1,21 @@
-from typing import Union, Callable, Any
+from typing import Union, Callable
 
 import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application
+from activity_browser import application, database_controller
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
-from activity_browser.controllers import database_controller
 
 
 class DatabaseDuplicate(ABAction):
+    """
+    ABAction to duplicate a database. Asks the user to provide a new name for the database, and returns when the name is
+    already in use by an existing database. Then it shows a progress dialogue which will construct a new thread in which
+    the database duplication will take place. This thread instructs the DatabaseController to duplicate the selected
+    database with the chosen name.
+    """
     icon = qicons.duplicate_database
     title = "Duplicate database..."
     tool_tip = "Make a duplicate of this database"

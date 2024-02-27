@@ -8,6 +8,11 @@ from activity_browser.actions.base import ABAction
 
 
 class ActivityOpen(ABAction):
+    """
+    ABAction to open one or more supplied activities in an activity tab by employing signals.
+
+    TODO: move away from using signals like this. Probably add a method to the MainWindow to add a panel instead.
+    """
     icon = qicons.right
     title = 'Open ***'
     activity_keys: List[tuple]

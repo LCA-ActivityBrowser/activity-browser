@@ -9,6 +9,9 @@ from ...ui.icons import qicons
 
 
 class ExchangeCopySDF(ABAction):
+    """
+    ABAction to copy the exchange information in SDF format to the clipboard.
+    """
     icon = qicons.superstructure
     title = "Exchanges for scenario difference file"
     exchanges: List[Any]

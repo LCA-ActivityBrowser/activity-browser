@@ -10,6 +10,11 @@ from activity_browser.controllers import database_controller
 
 
 class DatabaseNew(ABAction):
+    """
+    ABAction to create a new database. First asks the user to provide a name for the new database. Returns if the user
+    cancels, or when an existing database already has the chosen name. Otherwise, instructs the controller to create a
+    new database with the chosen name.
+    """
     icon = qicons.add
     title = "New database..."
     tool_tip = "Make a new database"

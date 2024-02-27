@@ -8,6 +8,9 @@ from ...controllers import exchange_controller
 
 
 class ExchangeNew(ABAction):
+    """
+    ABAction to create a new exchange for an activity.
+    """
     icon = qicons.add
     title = "Add exchanges"
     from_keys: List[tuple]

@@ -9,14 +9,15 @@ from activity_browser.controllers import project_controller
 
 
 class ProjectDelete(ABAction):
+    """
+    ABAction to delete the currently active project. Return if it's the startup project.
+    """
     icon = qicons.delete
     title = "Delete"
     tool_tip = "Delete the project"
 
     def onTrigger(self, toggled):
-        """
-        Delete the currently active project. Reject if it's the last one.
-        """
+        # get the current project
         project_to_delete = bw.projects.current
 
         # if it's the startup project: reject deletion and inform user

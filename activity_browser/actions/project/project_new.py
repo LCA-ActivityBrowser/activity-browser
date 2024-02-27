@@ -8,6 +8,11 @@ from activity_browser.controllers import project_controller
 
 
 class ProjectNew(ABAction):
+    """
+    ABAction to create a new project. Asks the user for a new name. Returns if no name is given, the user cancels, or
+    when the name is already in use by another project. Otherwise, instructs the ProjectController to create a new
+    project with the given name, and switch to it.
+    """
     icon = qicons.add
     title = "New"
     tool_tip = "Make a new project"

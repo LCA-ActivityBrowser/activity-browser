@@ -2,12 +2,15 @@ from typing import Union, Callable, List, Any
 
 from PySide2 import QtCore
 
+from activity_browser import exchange_controller
 from ..base import ABAction
 from ...ui.icons import qicons
-from ...controllers import exchange_controller
 
 
 class ExchangeDelete(ABAction):
+    """
+    ABAction to delete one or more exchanges from an activity.
+    """
     icon = qicons.delete
     title = "Delete exchange(s)"
     exchanges: List[Any]

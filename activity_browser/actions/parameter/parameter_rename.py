@@ -11,6 +11,11 @@ from activity_browser.ui.icons import qicons
 
 
 class ParameterRename(ABAction):
+    """
+    ABAction to rename an existing parameter. Constructs a dialog for the user in which they choose the new name. If no
+    name is chosen, or the user cancels: return. Else, instruct the ParameterController to rename the parameter using
+    the given name.
+    """
     icon = qicons.edit
     title = "Rename parameter..."
     parameter: Any

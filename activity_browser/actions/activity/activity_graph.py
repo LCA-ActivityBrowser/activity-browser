@@ -8,6 +8,9 @@ from activity_browser.ui.icons import qicons
 
 
 class ActivityGraph(ABAction):
+    """
+    ABAction to open one or multiple activities in the graph explorer
+    """
     icon = qicons.graph_explorer
     title = "'Open *** in Graph Explorer'"
     activity_keys: List[tuple]

@@ -11,6 +11,11 @@ from activity_browser.ui.icons import qicons
 
 
 class ActivityRelink(ABAction):
+    """
+    ABAction to relink the exchanges of an activity to exchanges from another database.
+
+    This action only uses the first key from activity_keys
+    """
     icon = qicons.edit
     title = "Relink the activity exchanges"
     activity_keys: List[tuple]
@@ -19,32 +24,41 @@ class ActivityRelink(ABAction):
         super().__init__(parent, activity_keys=activity_keys)
 
     def onTrigger(self, toggled):
+        # this action only uses the first key supplied to activity_keys
         key = self.activity_keys[0]
 
+        # extract the brightway database and activity
         db = bw.Database(key[0])
         activity = db.get(key[1])
 
+        # find the dependents for the database and construct the alternatives in tuple format
         depends = db.find_dependents()
         options = [(depend, bw.databases.list) for depend in depends]
 
+        # present the alternatives to the user in a linking dialog
         dialog = ActivityLinkingDialog.relink_sqlite(
             activity['name'],
             options,
             application.main_window
         )
 
+        # return if the user cancels
         if dialog.exec_() == ActivityLinkingDialog.Rejected: return
 
+        # relinking will take some time, set WaitCursor
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
+        # use the relink_activity_exchanges strategy to relink the exchanges of the activity
         relinking_results = {}
         for old, new in dialog.relink.items():
             other = bw.Database(new)
             failed, succeeded, examples = relink_activity_exchanges(activity, old, other)
             relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
 
+        # restore normal cursor
         QtWidgets.QApplication.restoreOverrideCursor()
 
+        # if any relinks failed present them to the user
         if failed > 0:
             relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(
                 application.main_window,
@@ -54,5 +68,6 @@ class ActivityRelink(ABAction):
             relinking_dialog.exec_()
             activity = relinking_dialog.open_activity()
 
+        # TODO signals should be owned by controllers: refactor
         signals.database_changed.emit(activity['name'])
         signals.databases_changed.emit()

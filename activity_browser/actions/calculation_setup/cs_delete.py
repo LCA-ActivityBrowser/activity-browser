@@ -1,8 +1,6 @@
 import traceback
-from typing import Union, Callable, Any
+from typing import Union, Callable
 
-
-import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import application, log
@@ -12,6 +10,10 @@ from activity_browser.controllers import calculation_setup_controller
 
 
 class CSDelete(ABAction):
+    """
+    ABAction to delete a calculation setup. First asks the user for confirmation and returns if cancelled. Otherwise,
+    passes the csname to the CalculationSetupController for deletion. Finally, displays confirmation that it succeeded.
+    """
     icon = qicons.delete
     title = "Delete"
     cs_name: str

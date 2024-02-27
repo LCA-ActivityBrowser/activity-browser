@@ -11,6 +11,9 @@ from ..info import __ei_versions__
 
 
 class BiosphereUpdate(ABAction):
+    """
+    ABAction to open the Biosphere updater.
+    """
     icon = application.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload)
     title = "Update biosphere..."
 

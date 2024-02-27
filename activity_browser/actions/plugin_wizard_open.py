@@ -5,6 +5,7 @@ from ..ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 
 
 class PluginWizardOpen(ABAction):
+    """ABAction to open the PluginWizard"""
     icon = qicons.plugin
     title = "Plugin manager..."
 

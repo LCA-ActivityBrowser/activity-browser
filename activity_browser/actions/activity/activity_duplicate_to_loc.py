@@ -4,15 +4,17 @@ import pandas as pd
 import brightway2 as bw
 from PySide2 import QtCore
 
-from activity_browser import signals, application
+from activity_browser import signals, application, activity_controller, exchange_controller
 from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 from ...ui.widgets import LocationLinkingDialog
-from ...controllers import activity_controller, exchange_controller
 
 
 class ActivityDuplicateToLoc(ABAction):
+    """
+    ABAction to duplicate an activity and possibly their exchanges to a new location.
+    """
     icon = qicons.copy
     title = 'Duplicate activity to new location'
     activity_key: tuple

@@ -1,13 +1,16 @@
-from typing import Union, Callable, List, Any
+from typing import Union, Callable, Any
 
 from PySide2 import QtCore
 
+from activity_browser import exchange_controller
 from ..base import ABAction
 from ...ui.icons import qicons
-from ...controllers import exchange_controller
 
 
 class ExchangeModify(ABAction):
+    """
+    ABAction to modify an exchange with the supplied data.
+    """
     icon = qicons.delete
     title = "Delete exchange(s)"
     exchange: Any

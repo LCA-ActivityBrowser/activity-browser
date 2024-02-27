@@ -9,6 +9,9 @@ from ...ui.icons import qicons
 
 
 class ExchangeUncertaintyModify(ABAction):
+    """
+    ABAction to open the UncertaintyWizard for an exchange
+    """
     icon = qicons.edit
     title = "Modify uncertainty"
     exchanges: List[Any]

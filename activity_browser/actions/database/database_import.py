@@ -5,6 +5,7 @@ from activity_browser.ui.icons import qicons
 
 
 class DatabaseImport(ABAction):
+    """ABAction to open the DatabaseImportWizard"""
     icon = qicons.import_db
     title = "Import database..."
     tool_tip = "Import a new database"

@@ -5,6 +5,7 @@ from ..ui.wizards.settings_wizard import SettingsWizard
 
 
 class SettingsWizardOpen(ABAction):
+    """ABAction to open the SettingsWizard"""
     icon = qicons.settings
     title = "Settings..."
 

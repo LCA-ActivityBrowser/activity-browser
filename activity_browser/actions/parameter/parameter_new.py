@@ -22,6 +22,10 @@ PARAMETER_FIELDS = (
 
 
 class ParameterNew(ABAction):
+    """
+    ABAction to create a new Parameter. Opens the ParameterWizard, returns if the wizard is canceled. Else, checks
+    whether the name is valid, and then instructs the ParameterController to put the new parameter in the right group.
+    """
     icon = qicons.add
     title = "New parameter..."
     activity_key: Optional[Tuple[str, str]]
@@ -30,12 +34,17 @@ class ParameterNew(ABAction):
         super().__init__(parent, activity_key=activity_key)
 
     def onTrigger(self, toggled):
+        # instantiate the ParameterWizard
         wizard = ParameterWizard(self.activity_key, application.main_window)
 
+        # return if the wizard is canceled
         if wizard.exec_() != wizard.Accepted: return
 
+        # gather wizard variables
         selection = wizard.selected
         data = wizard.param_data
+
+        # check whether the name is valid, otherwise return
         name = data.get("name")
         if name[0] in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '#'):
             error = QtWidgets.QErrorMessage()
@@ -43,6 +52,7 @@ class ParameterNew(ABAction):
             error.exec_()
             return
 
+        # select the right group and instruct the controller to create the parameter there
         if selection == 0:
             parameter_controller.add_parameter("project", data)
         elif selection == 1:
