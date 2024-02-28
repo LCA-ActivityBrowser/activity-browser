@@ -27,6 +27,15 @@ from .exchange.exchange_uncertainty_modify import ExchangeUncertaintyModify
 from .exchange.exchange_uncertainty_remove import ExchangeUncertaintyRemove
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 
+from .method.method_duplicate import MethodDuplicate
+from .method.method_delete import MethodDelete
+
+from .method.cf_uncertainty_modify import CFUncertaintyModify
+from .method.cf_amount_modify import CFAmountModify
+from .method.cf_remove import CFRemove
+from .method.cf_new import CFNew
+from .method.cf_uncertainty_remove import CFUncertaintyRemove
+
 from .parameter.parameter_new import ParameterNew
 from .parameter.parameter_new_automatic import ParameterNewAutomatic
 from .parameter.parameter_rename import ParameterRename
