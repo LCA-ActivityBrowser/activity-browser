@@ -21,6 +21,8 @@ class DatabaseDuplicate(ABAction):
     tool_tip = "Make a duplicate of this database"
     db_name: str
 
+    dialog: "DuplicateDatabaseDialog"
+
     def __init__(self, database_name: Union[str, Callable], parent: QtCore.QObject):
         super().__init__(parent, db_name=database_name)
 
@@ -42,7 +44,7 @@ class DatabaseDuplicate(ABAction):
             )
             return
 
-        DuplicateDatabaseDialog(
+        self.dialog = DuplicateDatabaseDialog(
             self.db_name,
             new_name,
             application.main_window
