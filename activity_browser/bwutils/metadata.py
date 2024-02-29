@@ -114,7 +114,7 @@ class MetaDataStore(object):
         except (UnknownObject, ActivityDataset.DoesNotExist):
             # Situation 1: activity has been deleted (metadata needs to be deleted)
             log.warning('Deleting activity from metadata:', key)
-            self.dataframe.drop(key, inplace=True)
+            self.dataframe.drop(key, inplace=True, errors="ignore")
             # print('Dimensions of the Metadata:', self.dataframe.shape)
             return
 
