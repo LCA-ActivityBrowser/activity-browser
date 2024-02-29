@@ -15,7 +15,7 @@ def ab_app():
     after session is complete.
     """
     bw.projects._use_temp_directory()
-    bi.restore_project_directory(os.path.join(os.getcwd(), "pytest_base.gz"), "default", overwrite_existing=True)
+    bi.restore_project_directory(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pytest_base.gz"), "default", overwrite_existing=True)
 
     application.main_window = MainWindow(application)
     application.show()
