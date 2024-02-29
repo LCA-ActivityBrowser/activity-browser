@@ -15,10 +15,11 @@ class ExchangeUncertaintyModify(ABAction):
     icon = qicons.edit
     title = "Modify uncertainty"
     exchanges: List[Any]
+    wizard: UncertaintyWizard
 
     def __init__(self, exchanges: Union[List[Any], Callable], parent: QtCore.QObject):
         super().__init__(parent, exchanges=exchanges)
 
     def onTrigger(self, toggled):
-        wizard = UncertaintyWizard(self.exchanges[0], application.main_window)
-        wizard.show()
+        self.wizard = UncertaintyWizard(self.exchanges[0], application.main_window)
+        self.wizard.show()

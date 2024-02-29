@@ -61,12 +61,18 @@ class ExchangeController(QObject):
         recalculate_exchanges = False
 
         for field, value in data.items():
-            if field == "formula":
+            if field == "amount":
+                exchange["amount"] = float(value)
+
+            elif field == "formula":
                 edit_exchange_formula(exchange, value)
                 recalculate_exchanges = True
 
-            if field in {"loc", "scale", "shape", "minimum", "maximum"}:
+            elif field in {"loc", "scale", "shape", "minimum", "maximum"}:
                 edit_exchange_uncertainty(exchange, field, value)
+
+            else:
+                exchange[field] = value
 
         exchange.save()
         bw.databases.set_modified(exchange["output"][0])
