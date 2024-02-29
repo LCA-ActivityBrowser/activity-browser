@@ -17,6 +17,7 @@ class CFUncertaintyModify(ABAction):
     title = "Modify uncertainty"
     method_name: tuple
     char_factors: List[tuple]
+    wizard: UncertaintyWizard
 
     def __init__(self,
                  method_name: Union[tuple, Callable],
@@ -26,9 +27,9 @@ class CFUncertaintyModify(ABAction):
         super().__init__(parent, method_name=method_name, char_factors=char_factors)
 
     def onTrigger(self, toggled):
-        wizard = UncertaintyWizard(self.char_factors[0], application.main_window)
-        wizard.complete.connect(self.wizardDone)
-        wizard.show()
+        self.wizard = UncertaintyWizard(self.char_factors[0], application.main_window)
+        self.wizard.complete.connect(self.wizardDone)
+        self.wizard.show()
 
     def wizardDone(self, cf: tuple, uncertainty: dict):
         """Update the CF with new uncertainty information, possibly converting
