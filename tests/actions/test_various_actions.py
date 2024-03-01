@@ -6,9 +6,8 @@ from activity_browser import actions, project_controller, database_controller, s
 from activity_browser.ui.widgets import EcoinventVersionDialog
 
 
+@pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_default_install(ab_app, monkeypatch, qtbot):
-    if os.environ["TEST_FAST"]: return
-
     project_name = "biosphere_project"
     project_controller.new_project(project_name)
 
@@ -34,9 +33,8 @@ def test_default_install(ab_app, monkeypatch, qtbot):
     assert len(bw.methods) == 762
 
 
+@pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_biosphere_update(ab_app, monkeypatch, qtbot):
-    if os.environ["TEST_FAST"]: return
-
     project_name = "biosphere_project"
     project_controller.change_project(project_name, reload=True)
 
