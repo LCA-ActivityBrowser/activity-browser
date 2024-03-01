@@ -5,6 +5,7 @@ from activity_browser.ui.widgets.dialog import TupleNameDialog
 from stats_arrays.distributions import NormalUncertainty, UndefinedUncertainty, UniformUncertainty
 from PySide2 import QtWidgets
 
+
 def test_cf_amount_modify(ab_app):
     method = ("A_methods", "methods", "method")
     key = ('biosphere3', '595f08d9-6304-497e-bb7d-48b6d2d8bff3')

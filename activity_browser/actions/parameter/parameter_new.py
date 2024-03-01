@@ -29,20 +29,21 @@ class ParameterNew(ABAction):
     icon = qicons.add
     title = "New parameter..."
     activity_key: Optional[Tuple[str, str]]
+    wizard: "ParameterWizard"
 
     def __init__(self, activity_key: Optional[Union[Tuple[str, str], Callable]], parent: QtCore.QObject):
         super().__init__(parent, activity_key=activity_key)
 
     def onTrigger(self, toggled):
         # instantiate the ParameterWizard
-        wizard = ParameterWizard(self.activity_key, application.main_window)
+        self.wizard = ParameterWizard(self.activity_key, application.main_window)
 
         # return if the wizard is canceled
-        if wizard.exec_() != wizard.Accepted: return
+        if self.wizard.exec_() != self.wizard.Accepted: return
 
         # gather wizard variables
-        selection = wizard.selected
-        data = wizard.param_data
+        selection = self.wizard.selected
+        data = self.wizard.param_data
 
         # check whether the name is valid, otherwise return
         name = data.get("name")
