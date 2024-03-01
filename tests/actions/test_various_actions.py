@@ -1,4 +1,5 @@
 import pytest
+import os
 import brightway2 as bw
 from PySide2 import QtWidgets
 from activity_browser import actions, project_controller, database_controller, signals
@@ -6,6 +7,8 @@ from activity_browser.ui.widgets import EcoinventVersionDialog
 
 
 def test_default_install(ab_app, monkeypatch, qtbot):
+    if os.environ["TEST_FAST"]: return
+
     project_name = "biosphere_project"
     project_controller.new_project(project_name)
 
@@ -32,6 +35,8 @@ def test_default_install(ab_app, monkeypatch, qtbot):
 
 
 def test_biosphere_update(ab_app, monkeypatch, qtbot):
+    if os.environ["TEST_FAST"]: return
+
     project_name = "biosphere_project"
     project_controller.change_project(project_name, reload=True)
 
@@ -78,3 +83,5 @@ def test_settings_wizard_open(ab_app):
     action.trigger()
 
     assert action.wizard.isVisible()
+
+    action.wizard.destroy()

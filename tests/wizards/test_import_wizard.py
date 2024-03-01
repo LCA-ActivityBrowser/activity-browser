@@ -25,7 +25,7 @@ from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
 #         )
 
 
-def test_open_db_wizard(qtbot, ab_app):
+def test_open_db_wizard(ab_app, qtbot):
     """Open the wizard itself."""
     qtbot.waitForWindowShown(ab_app.main_window)
     wizard = DatabaseImportWizard(ab_app.main_window)

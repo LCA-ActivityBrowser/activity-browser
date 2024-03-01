@@ -24,7 +24,7 @@ from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 #         menu_bar.export_db_action.trigger()
 
 
-def test_open_export_wizard(qtbot, ab_app):
+def test_open_export_wizard(ab_app, qtbot):
     """Actually open the export wizard."""
     qtbot.waitForWindowShown(ab_app.main_window)
     wizard = DatabaseExportWizard(ab_app.main_window)
