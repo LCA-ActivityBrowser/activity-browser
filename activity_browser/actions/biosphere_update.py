@@ -17,6 +17,8 @@ class BiosphereUpdate(ABAction):
     icon = application.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload)
     title = "Update biosphere..."
 
+    updater: BiosphereUpdater
+
     def onTrigger(self, toggled):
         """ Open a popup with progression bar and run through the different
         functions for adding ecoinvent biosphere flows.
@@ -42,5 +44,5 @@ class BiosphereUpdate(ABAction):
         ei_versions = sorted_versions[:sorted_versions.index(version) + 1]
 
         # show updating dialog
-        dialog = BiosphereUpdater(ei_versions, application.main_window)
-        dialog.show()
+        self.updater = BiosphereUpdater(ei_versions, application.main_window)
+        self.updater.show()

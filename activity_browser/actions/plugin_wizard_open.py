@@ -8,7 +8,8 @@ class PluginWizardOpen(ABAction):
     """ABAction to open the PluginWizard"""
     icon = qicons.plugin
     title = "Plugin manager..."
+    wizard: PluginsManagerWizard
 
     def onTrigger(self, toggled):
-        wizard = PluginsManagerWizard(application.main_window)
-        wizard.show()
+        self.wizard = PluginsManagerWizard(application.main_window)
+        self.wizard.show()

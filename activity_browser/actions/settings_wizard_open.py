@@ -8,7 +8,8 @@ class SettingsWizardOpen(ABAction):
     """ABAction to open the SettingsWizard"""
     icon = qicons.settings
     title = "Settings..."
+    wizard: SettingsWizard
 
     def onTrigger(self, toggled):
-        wizard = SettingsWizard(application.main_window)
-        wizard.show()
+        self.wizard = SettingsWizard(application.main_window)
+        self.wizard.show()

@@ -20,16 +20,17 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.thread = UpdateBiosphereThread(ei_versions, self)
         self.setMaximum(self.thread.total_patches)
         self.thread.progress.connect(self.update_progress)
-        self.thread.finished.connect(self.finished)
+        self.thread.finished.connect(self.thread_finished)
         self.thread.start()
 
-    def finished(self, result: int = None) -> None:
+    def thread_finished(self, result: int = None) -> None:
         outcome = result or 0
         self.thread.exit(outcome)
         self.setMaximum(1)
         self.setValue(1)
         signals.database_changed.emit(bw.config.biosphere)
         signals.databases_changed.emit()
+        self.done(outcome)
 
     @Slot(int)
     def update_progress(self, current: int):
