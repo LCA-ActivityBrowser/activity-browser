@@ -60,7 +60,7 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
     action = actions.BiosphereUpdate(None)
     action.trigger()
 
-    with qtbot.waitSignal(action.updater.finished, timeout=60*1000): pass
+    with qtbot.waitSignal(action.updater.finished, timeout=5*60*1000): pass
 
     assert database_controller.record_count("biosphere3") == 4743
 
