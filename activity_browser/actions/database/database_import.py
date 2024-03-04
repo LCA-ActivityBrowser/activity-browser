@@ -9,7 +9,8 @@ class DatabaseImport(ABAction):
     icon = qicons.import_db
     title = "Import database..."
     tool_tip = "Import a new database"
+    wizard: DatabaseImportWizard
 
     def onTrigger(self, toggled):
-        wizard = DatabaseImportWizard(application.main_window)
-        wizard.show()
+        self.wizard = DatabaseImportWizard(application.main_window)
+        self.wizard.show()

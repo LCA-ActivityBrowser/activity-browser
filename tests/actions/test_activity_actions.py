@@ -5,8 +5,15 @@ from activity_browser import actions, database_controller
 from activity_browser.ui.widgets.dialog import LocationLinkingDialog, ActivityLinkingDialog
 
 
-def test_activity_delete(ab_app):
+def test_activity_delete(ab_app, monkeypatch):
     key = ('activity_tests', '330b935a46bc4ad39530ab7df012f38b')
+
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox, 'warning',
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes)
+    )
+
+
     assert bw.projects.current == "default"
     assert bw.get_activity(key)
 

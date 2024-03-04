@@ -45,11 +45,19 @@ def test_database_duplicate(ab_app, monkeypatch, qtbot):
 
 def test_database_export(ab_app):
     # TODO: implement when we've redone the export wizard and actions
+    action = actions.DatabaseExport(None)
+    action.trigger()
+    assert action.wizard.isVisible()
+    action.wizard.destroy()
     return
 
 
 def test_database_import(ab_app):
     # TODO: implement when we've redone the import wizard and actions
+    action = actions.DatabaseImport(None)
+    action.trigger()
+    assert action.wizard.isVisible()
+    action.wizard.destroy()
     return
 
 
@@ -61,12 +69,23 @@ def test_database_new(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ('db_that_is_new', True))
     )
 
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox, 'information',
+        staticmethod(lambda *args, **kwargs: True)
+    )
+
     assert bw.projects.current == "default"
     assert new_db not in bw.databases
 
     actions.DatabaseNew(None).trigger()
 
     assert new_db in bw.databases
+
+    db_number = len(bw.databases)
+
+    actions.DatabaseNew(None).trigger()
+
+    assert db_number == len(bw.databases)
 
 
 def test_database_relink(ab_app, monkeypatch):

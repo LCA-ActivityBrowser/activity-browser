@@ -13,6 +13,8 @@ class DatabaseExport(ABAction):
     title = "Export database..."
     tool_tip = "Export a database from this project"
 
+    wizard: DatabaseExportWizard
+
     def onTrigger(self, toggled):
-        wizard = DatabaseExportWizard(application.main_window)
-        wizard.show()
+        self.wizard = DatabaseExportWizard(application.main_window)
+        self.wizard.show()
