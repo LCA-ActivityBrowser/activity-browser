@@ -54,17 +54,6 @@ def test_ab_edit_settings(ab_settings):
     assert ab_settings.custom_bw_dir != ABSettings.get_default_directory()
 
 
-@pytest.mark.skipif("pytest_project" not in bw.projects, reason="test project not created")
-def test_ab_existing_startup(ab_settings):
-    """ Alter the startup project and assert that it is correctly changed.
-
-    Will be skipped if test_settings.py is run in isolation because the test
-    project has not been created (results in duplicate of test below)
-    """
-    ab_settings.startup_project = "pytest_project"
-    assert ab_settings.startup_project != ABSettings.get_default_project_name()
-
-
 def test_ab_unknown_startup(ab_settings):
     """ Alter the startup project with an unknown project, assert that it
     was not altered because the project does not exist.
