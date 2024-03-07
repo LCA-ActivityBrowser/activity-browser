@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
-import traceback
 
-from .logger import log
+from .logger import log, exception_hook, file_handler
 from .application import application
 from .signals import signals
 from .settings import ab_settings, project_settings
@@ -13,15 +12,12 @@ from .plugin import Plugin
 
 
 def run_activity_browser():
-    log.info(f'The Activity Browser log file can be found at {log.log_file_path()}')
     log.info(f'Activity Browser version: {version}')
+    log.info(f'The log file can be found at {file_handler.filepath}')
 
     application.main_window = MainWindow(application)
     project_controller.load_settings()
     application.show()
-
-    def exception_hook(*args):
-        log.warning(''.join(traceback.format_exception(*args)))
 
     sys.excepthook = exception_hook
 
