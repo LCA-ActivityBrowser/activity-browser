@@ -27,7 +27,6 @@ class MethodsTable(ABFilterableDataFrameView):
             lambda p: signals.method_selected.emit(self.model.get_method(p))
         )
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         signals.new_method.connect(self.sync)
         signals.method_deleted.connect(self.sync)
 
@@ -38,13 +37,6 @@ class MethodsTable(ABFilterableDataFrameView):
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
         self.model.sync(query)
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        self.setColumnHidden(self.model.method_col, True)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        ))
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -99,13 +91,11 @@ class MethodsTree(ABDictTreeView):
         # set model
         self.model = MethodsTreeModel(self)
         self.setModel(self.model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.optional_expand)
         self.model.sync()
         self.setColumnHidden(self.model.method_col, True)
 
     def _connect_signals(self):
-        super()._connect_signals()
         self.doubleClicked.connect(self.method_selected)
         signals.new_method.connect(self.open_method)
         signals.method_deleted.connect(self.open_method)
@@ -260,7 +250,6 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_filter_data)
         self.read_only = True
         self.setAcceptDrops(not self.read_only)
@@ -276,14 +265,6 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         if col in [2]:
             # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
             self.model.modify_cf(self.selectedIndexes()[0])
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        self.setColumnHidden(self.model.cf_column, True)
-        self.hide_uncertain()
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        ))
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:

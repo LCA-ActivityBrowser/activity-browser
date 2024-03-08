@@ -43,14 +43,6 @@ class BaseParameterTable(ABDataFrameView):
         )
         self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        super().custom_view_sizing()
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        self.setColumnHidden(self.model.param_col, True)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Have the parameter test to see if it can be deleted safely.
@@ -93,8 +85,6 @@ class BaseParameterTable(ABDataFrameView):
 
     def comment_column(self, show: bool):
         self.setColumnHidden(self.model.comment_col, not show)
-
-        super().custom_view_sizing()
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
@@ -176,11 +166,6 @@ class ActivityParameterTable(BaseParameterTable):
         # Set dropEnabled
         self.setDragDropMode(ABDataFrameView.DropOnly)
         self.setAcceptDrops(True)
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        super().custom_view_sizing()
-        self.setColumnHidden(self.model.group_col, True)
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         """ Check that the dragged row is from the databases table
@@ -269,4 +254,4 @@ class ExchangesTable(ABDictTreeView):
         super().__init__(parent)
         self.model = ParameterTreeModel(parent=self)
         self.setModel(self.model)
-        self.model.updated.connect(self.custom_view_sizing)
+

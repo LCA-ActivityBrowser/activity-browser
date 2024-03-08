@@ -80,16 +80,9 @@ class CSActivityTable(CSGenericTable):
         self.model = CSActivityModel(self)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.setToolTip("Drag Activities from the Activities table to include them as a reference flow\n"
                         "Click and drag to re-order individual rows of the table\n"
                         "Hold CTRL and click to select multiple rows to open or delete them.")
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self):
-        self.setColumnHidden(6, True)
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -152,17 +145,9 @@ class CSMethodsTable(CSGenericTable):
         super().__init__(parent)
         self.model = CSMethodsModel(self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.setToolTip("Drag impact categories from the impact categories tree/table to include them \n"
                         "Click and drag to re-order individual rows of the table\n"
                         "Hold CTRL and click to select multiple rows to open or delete them.")
-
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self):
-        self.setColumnHidden(3, True)
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
 
     def to_python(self):
         return self.model.methods
@@ -216,7 +201,6 @@ class ScenarioImportTable(ABDataFrameView):
         super().__init__(parent=parent)
         self.model = ScenarioImportModel(None, self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
 
     def sync(self, names: list):
         self.model.sync(names)

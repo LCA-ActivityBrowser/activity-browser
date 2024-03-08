@@ -47,7 +47,6 @@ class DatabasesTable(ABDataFrameView):
             lambda: signals.new_activity.emit(self.selected_db_name)
         )
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -220,7 +219,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
         self.doubleClicked.connect(self.open_activity_tab)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
         self.model.updated.connect(self.update_filter_settings)
 

@@ -66,17 +66,6 @@ class BaseExchangeTable(ABDataFrameView):
             lambda: self.model.copy_exchanges_for_SDF(self.selectedIndexes())
         )
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
-
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Ensure the `exchange` column is hidden whenever the table is shown.
-        """
-        super().custom_view_sizing()
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        self.setColumnHidden(self.model.exchange_column, True)
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -157,13 +146,6 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Ensure the `exchange` column is hidden whenever the table is shown.
-        """
-        super().custom_view_sizing()
-        self.show_uncertainty()
-
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
@@ -178,7 +160,6 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
-        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -221,11 +202,6 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.table_name = "biosphere"
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        super().custom_view_sizing()
-        self.show_uncertainty()
-
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
@@ -240,7 +216,6 @@ class BiosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
-        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
