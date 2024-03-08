@@ -444,8 +444,6 @@ class InventoryTab(NewAnalysisTab):
         self.table.table_name = 'Inventory_' + self.parent.cs_name
         self.layout.addWidget(self.table)
 
-        self.layout.addStretch(1)
-
         self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
         self.connect_signals()
 

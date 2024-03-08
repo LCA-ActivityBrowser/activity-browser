@@ -13,6 +13,8 @@ class LCAResultsTable(ABDataFrameView):
 class InventoryTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.horizontalHeader().setStretchLastSection(True)
+
         self.model = InventoryModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.update_filter_data)
