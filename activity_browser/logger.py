@@ -1,185 +1,376 @@
+import os
+import sys
+import time
 import inspect
 import logging
-import os
-import time
+import threading
 import appdirs
 
+from traceback import extract_tb
+from io import StringIO
+from types import TracebackType
+from typing import TextIO, Type
 
-class ABHandler(object):
+WHITELIST = ["activity_browser", "brightway2", "bw2data", "bw2io", "C/C++"]
+EXTENDED_CONSOLE = os.environ.get("AB_EXTENDED_CONSOLE", False)
+SIMPLE_CONSOLE = os.environ.get("AB_SIMPLE_CONSOLE", False)
+
+
+class LowLevelStdIO:
     """
-    Creates two logging streams, one to the console (with >=INFORMATION logs)
-    the second to a file specified with the name argument (with >=DEBUG logs)
-    and attaches these to a logger created in the calling modules.
-
-    There are 4 available levels in AB, increasing in importance:
-    - DEBUG
-    - INFO
-    - WARNING
-    - ERROR
-    - CRITICAL is available in logging but not implemented in AB
-    See also: https://docs.python.org/3/library/logging.html#levels
-
-    Provides the formats and initialization procedures for the logging streams.
+    This class will replace the filehandles of the supplied StdIO with own ones so changes to said stream can be caught.
+    It will instantiate a capturing thread that will read lines from the stream and log them using a logger called
+    "C/C++". The original StdIO filehandle is preserved so we can still write to it using the "write" method.
     """
-    log = None
-    file_path = None
-    stream_handler = None
-    file_handler = None
-    qt_handler = None
+    def __init__(self, stdio: TextIO):
+        # Save a copy of the true StdIO
+        self.fileno = stdio.fileno()
+        self.true_stdio = os.dup(self.fileno)
 
-    def __init__(self, name: str = None):
-        self.module_name = name
+        # create a pipe and place the inlet on top of the StdIO using os.dup2
+        self.pipe_out, self.pipe_in = os.pipe()
+        os.dup2(self.pipe_in, self.fileno)
+        os.close(self.pipe_in)
 
-    @staticmethod
-    def initialize_with_logger(logger: logging.Logger):
+        # initiate a thread with capture as target, and as daemon so it closes when ab closes
+        self.thread = threading.Thread(target=self.capture, daemon=True)
+
+        # initiate a logger with "C/C++" as name
+        self.logger = logging.getLogger("C/C++")
+
+    def capture(self):
+        # open the output of the pipe as a line-file
+        readfile = os.fdopen(self.pipe_out)
+        while True:
+            # read the next line, or block until there is one
+            data = readfile.readline()
+
+            # log the line as PRINT
+            self.logger.log(25, data)
+
+    def start_capture(self, thread_name=None):
+        # create a thread with the name for recognition, start the thread
+        self.thread.setName(thread_name)
+        self.thread.start()
+
+        # return self for easy chaining during instantiation
+        return self
+
+    def write(self, line: str):
+        # access the original stdio and write a line to it
+        os.write(self.true_stdio, line.encode())
+
+
+class HighLevelStdIO(StringIO):
+    """
+    This subclass of StringIO may be used to replace the normal sys.stdout and sys.stderr streams. If anything is
+    written to them by a python module it is caught here and put in our logging workflow which will eventually write
+    them directly to the LowLevelStdIO.
+
+    Benefit of catching them here instead of all at the LowLevelStdIO is that we can access the context of the call and
+    create appropriate logger calls.
+    """
+
+    def write(self, string: str):
+        """Capture write calls made to this StdIO"""
+        log.print(string)
+
+
+class ABConsoleHandler(logging.Handler):
+    """
+    LogHandler for the console. Make sure they are all in the same format. Adds badges, and if extended logs are enabled
+    also the time and a (shortened) logger name.
+    """
+    badge = {
+        "INFO": "\u001b[48;5;24m\u001b[38;5;255m INFO  \u001b[0m",
+        "DEBUG": "\u001b[48;5;90m\u001b[38;5;255m DEBUG \u001b[0m",
+        "EXCEPTION": "\u001b[48;5;88m\u001b[38;5;255m EXCPT \u001b[0m",
+        "ERROR": "\u001b[48;5;88m\u001b[38;5;255m ERROR \u001b[0m",
+        "WARNING": "\u001b[48;5;130m\u001b[38;5;255m WARN  \u001b[0m",
+        "PRINT": "\u001b[7m PRINT \u001b[0m",
+    }
+
+    alias = {
+        "activity_browser": "AB",
+        "brightway2": "BW2"
+    }
+
+    extended_debug = os.environ.get("EXTEND_DEBUG", False)
+
+    def __init__(self, low_level_stdio: LowLevelStdIO):
+        super().__init__()
+        self.stdio = low_level_stdio
+
+    def handle(self, record: logging.LogRecord):
+        """Handle a new LogRecord"""
+        # filter
+        if not self.filter(record): return
+
+        # format message
+        message = self.format_log(record)
+        self.stdio.write(message)
+
+        if record.exc_info:
+            exc_message = self.format_exception(record.exc_info[2])
+            self.stdio.write(exc_message)
+
+    def format_log(self, record: logging.LogRecord) -> str:
+        """Format a LogRecord"""
+        # format message to a single line
+        message = " ".join(str(record.msg).split("\n"))
+        message = message + " ".join([str(arg) for arg in record.args])
+
+        # if there is no message left, return nothing
+        if message == " ": return ""
+
+        # clean-up if the message is a C++ error message
+        if message.startswith('[') and message.index(':') < message.index(']'):
+            # most likely a c++ error log, otherwise, very bad luck
+            i = message.index(']') + 2
+            message = message[i:]
+
+        # retrieve the badge
+        badge = self.badge[record.levelname]
+        if record.exc_info:
+            badge = self.badge["EXCEPTION"]
+
+        # that's all we need for a regular console
+        if not EXTENDED_CONSOLE: return f"{badge} {message}\n"
+
+        # get a clean timestamp
+        time_stamp = time.asctime()[11:19]
+
+        source_str = self.format_source(record.name)
+
+        return f"{time_stamp} {source_str}{badge} {message}\n"
+
+    def format_source(self, name: str) -> str:
         """
-        Will initialize the handlers for the logging streams and check that the file handler
-        is properly setup before linking to the passed Logger object.
-
-        Parameters
-        ----------
-        logger: an object of type logging.Logger obtained in the calling module with getLogger()
+        The entire source may be too long for the console window. Here we replace known sources with their alias, only
+        use the first two modules and cut it short if it's still too long
         """
-        name = logger.name + ABHandler.timestamp() + '.log'
+        # create list of the module string
+        module_split = name.split('.')
+
+        # switch a possible alias
+        for key, alias in self.alias.items():
+            if key == module_split[0]:
+                module_split[0] = alias
+
+        # rebuild only the first two modules
+        source_str = ".".join(module_split[:2])
+
+        # adjust length
+        if len(source_str) >= 20:
+            source_str = source_str[:16] + "..."
+
+        return source_str.ljust(20)
+
+    def format_exception(self, traceback: TracebackType) -> str:
+        """Format the traceback of an exception"""
+        space = 7
+        if EXTENDED_CONSOLE:
+            space = 37
+
+        traceback = extract_tb(traceback)
+        message = "\u001b[38;5;1m\u001b[1m"
+        for frame in traceback:
+            line1 = f'{space * " "}File "{frame.filename}", line {frame.lineno}, in {frame.name}\n'
+            line2 = f"{space * ' '} {frame.line}\n"
+            message = message + line1 + line2
+        message = f"{message}\u001b[0m"
+        return message
+
+
+class ABFileHandler(logging.Handler):
+    """
+    LogHandler for the log files. Formats them in semicolon separated CSV files for easy reading.
+    """
+    headers = ["time", "type", "thread", "name", "file location", "line number", "function name", "message"]
+
+    def __init__(self):
+        super().__init__()
+
+        # create a unique filename based on the datetime
+        self.filename = "ab_logs" + self.timestamp() + '.csv'
+
+        # set dir and create it if it doesn't exist yet
         dir_path = appdirs.user_log_dir('ActivityBrowser', 'ActivityBrowser')
         os.makedirs(dir_path, exist_ok=True)
-        ABHandler.clean_directory(dir_path)
-        ABHandler.file_path = os.path.join(dir_path, name)
-        ABHandler.stream_handler = logging.StreamHandler()
-        ABHandler.file_handler = logging.FileHandler(ABHandler.file_path)
 
-        log_format = logging.Formatter("%(asctime)s-%(levelname)s - %(ABmodule)s: %(message)s")
+        # create final filepath of the logfile of this session
+        self.filepath = os.path.join(dir_path, self.filename)
 
-        console_format = logging.Formatter("%(message)s")
-        ABHandler.stream_handler.setFormatter(console_format)
-        ABHandler.file_handler.setFormatter(log_format)
+        # set the global file location
+        global log_file_location
+        log_file_location = self.filepath
 
-        ABHandler.stream_handler.setLevel(logging.INFO)
-        ABHandler.file_handler.setLevel(logging.DEBUG)
+        # create the logfile and write the headers
+        with open(self.filepath, 'a') as log_file:
+            log_file.write(";".join(self.headers) + "\n")
 
-        ABHandler.qt_handler = ABLogHandler()
-        ABHandler.qt_handler.setFormatter(console_format)
+    def handle(self, record: logging.LogRecord):
+        """Handle a new LogRecord"""
+        # filter
+        if not self.filter(record): return
 
-        return ABHandler.setup_with_logger(logger)
+        # format the message from the record
+        message = self.format(record)
 
-    @classmethod
-    def setup_with_logger(cls, logger: logging.Logger = None, module: str = None) -> object:
-        """
-        Links the logger object to the different stream handlers. This avoids the process of
-        creating new handlers and should be the general method to call for linking the
-        logging.Logger objects.
+        # append to the logfile
+        with open(self.filepath, 'a') as log_file:
+            log_file.write(message)
 
-        Parameters
-        ----------
-        logger: an object of type logging.Logger requiring setup with logging.Handlers
-        module: name of the logging module
+            # if there's exception info, write the exception traceback to the file as well
+            if record.exc_info:
+                exc_message = self.format_exception(record.exc_info[2])
+                log_file.write(exc_message)
 
-        Returns
-        -------
-        ABHandler: the logging handler
+    def format(self, record: logging.LogRecord) -> str:
+        """Format a LogRecord"""
+        # format message to a single line
+        message = " ".join(str(record.msg).split("\n"))
+        message = message + " ".join([str(arg) for arg in record.args])
 
-        """
+        # if there is no message left, return nothing
+        if message == " ": return ""
 
-        ABHandler.log = logger
-        assert ABHandler.log is not None
+        # make sure there a no semicolons
+        message.replace(';', ':')
 
-        ABHandler.log.addHandler(ABHandler.stream_handler)
-        ABHandler.log.addHandler(ABHandler.file_handler)
-        ABHandler.log.addHandler(ABHandler.qt_handler)
-        ABHandler.log.setLevel(logging.INFO)
+        # convert time
+        struct_time = time.localtime(record.created)
+        readable_time = time.strftime("%H:%M.%S", struct_time)
 
-        if module is not None:
-            return ABHandler(module)
-        return ABHandler("root")
+        line = f"{readable_time};{record.levelname};{record.threadName};{record.name};{record.pathname};{record.lineno};{record.funcName};{message}"
+        return f"{line}\n"
 
-    @staticmethod
-    def timestamp() -> str:
+    def format_exception(self, traceback: TracebackType) -> str:
+        """Format the traceback of an exception"""
+        # extract the traceback
+        traceback = extract_tb(traceback)
+        message = ""
+
+        # append a line for each frame in the traceback
+        for frame in traceback:
+            line = f";TRACEBACK;;;{frame.filename};{frame.lineno};{frame.name};{frame.line}"
+            message = f"{message}{line}\n"
+
+        # return the string containing multiple lines
+        return message
+
+    def timestamp(self) -> str:
         """Return a timestamped string, the format provided is:
         day of the year _ month _ day - hour _ minute _ second"""
         stmp = time.localtime()
         return f"-{stmp.tm_year}-{stmp.tm_mon}-{stmp.tm_mday}_{stmp.tm_hour}-{stmp.tm_min}-{stmp.tm_sec}"
 
-    @staticmethod
-    def clean_directory(dirpath: str) -> None:
-        """Clean the Activity-Browser/log directory of all files older than 365 days"""
-        time_limit = time.time() - 24*3600*365
-        for file in os.listdir(dirpath):
-            filepath = os.path.join(dirpath, file)
-            if os.stat(filepath).st_mtime < time_limit:
-                os.remove(filepath)
 
-    def log_file_path(self) -> str:
-        return ABHandler.file_path
+class LoggingProxy:
+    """
+    Official logging documentation states that loggers should be initiated per module using the __name__ attribute of
+    said module. Doing this for each module is in my opinion messy and unneeded. Enter: this proxy that modules can use
+    by importing log from the activity_browser module. By logging via this proxy the loggers are initiated dynamically
+    through inspecting the frame in which the proxy was called.
+    """
+    def debug(self, msg, *args):
+        self.log(10, msg, *args)
 
-    def message(self, *args) -> str:
-        str_ = ''
-        for arg in args:
-            if not isinstance(arg, str):
-                str_ += str(arg)
-            else:
-                str_ += arg
-        return str_
+    def info(self, msg, *args):
+        self.log(20, msg, *args)
 
-    def debug(self, msg: str, *args) -> None:
-        ABHandler.log.debug(self.message(msg, *args), extra={'ABmodule': self.get_module()})
+    def warning(self, msg, *args):
+        self.log(30, msg, *args)
 
-    def info(self, msg: str, *args) -> None:
-        ABHandler.log.info(self.message(msg, *args), extra={'ABmodule': self.get_module()})
+    def warn(self, msg, *args):
+        self.log(30, msg, *args)
 
-    def warning(self, msg: str, *args) -> None:
-        ABHandler.log.warning(self.message(msg, *args), extra={'ABmodule': self.get_module()})
+    def error(self, msg, *args):
+        self.log(40, msg, *args)
 
-    def error(self, msg: str = None, *args, **kwargs) -> None:
-        """Provides a wrapper for the Logger.error method. This is to keep the logging messages
-        consistent with previous practices. Exception handling is provided through the use of
-        kwargs
+    def exception(self, msg, *args, exc_info):
+        self.log(40, msg, *args, stack_level=3, exc_info=exc_info)
 
-        Parameters
-        ----------
-        msg, *args: strings that form the logging message, multiple strings allowed
-        **kwargs: provided for the handling of stack traces, the two arguments taken here are:
-                error=''
-                exc_info=bool
+    def print(self, msg):
+        self.log(25, msg,  stack_level=3)
 
-        Returns
-        -------
-
+    def log(self, level: int, msg, *args, stack_level: int = 2, exc_info: tuple = None):
         """
-        if msg is not None:
-            ABHandler.log.error(self.message(msg, *args), extra={'ABmodule': self.get_module()})
+        Get all logrecord info ourselves by inspecting the stack and log it by requesting a logger with the __name__ of
+        the module from which the proxy was called.
 
-        exc_info = True  # TODO Move this error handling with the use of kwargs into a single error message
-        if kwargs and 'error' in kwargs:
-            if 'exc_info' in kwargs:
-                exc_info = kwargs['exc_info']
-            ABHandler.log.error(kwargs['error'], exc_info=exc_info)
+        Do not use directly: it will inspect a frame too high in that case.
+        """
+        # get frame info from 2 frames up in the stack, retrieve the name of the module
+        frame_info = inspect.stack()[stack_level]
+        name = inspect.getmodule(frame_info.frame).__name__
 
-    def addHandler(self, handler) -> None:
-        ABHandler.log.addHandler(handler)
+        # already solve args
+        msg = msg + " ".join([str(arg) for arg in args])
 
-    def setLevel(self, level, root: bool = False) -> None:
-        if root:
-            ABHandler.log.root.setLevel(level)
-        else:
-            ABHandler.log.setLevel(level)
-    
-    def get_module(self) -> str:
-        """Finds module based on the current callstack and returns the name as string"""
-        frame = inspect.stack()[2]
-        module = inspect.getmodule(frame[0])
-        return module.__name__
+        # create a LogRecord using all the supplied information
+        record = logging.LogRecord(
+            name=name,
+            level=level,
+            pathname=frame_info.filename,
+            lineno=frame_info.lineno,
+            msg=msg,
+            args=tuple(),
+            exc_info=exc_info,
+            func=frame_info.function
+        )
 
-
-class ABLogHandler(logging.Handler):
-    """Customizing a handler for running within a separate thread, emitting logs to the main
-    thread."""
-    def __init__(self):
-        super().__init__()
-        self.setLevel(logging.INFO)
-
-    def emit(self, record):
-        msg = self.format(record)
+        # get the logger with the module's name and let it handle the record
+        logger = logging.getLogger(name)
+        logger.handle(record)
 
 
-logger = logging.getLogger('ab_logs')
-log = ABHandler.initialize_with_logger(logger)
+def exception_hook(error: Type[BaseException], message: BaseException, traceback: TracebackType):
+    """Exception hook to catch and log exceptions"""
+    exc_info = (error, message, traceback)
+    log.exception(f"{error.__name__}: {message}", exc_info=exc_info)
+
+
+def log_filter(record: logging.LogRecord) -> bool:
+    for name in WHITELIST:
+        if record.name.startswith(name): return True
+    return False
+
+
+def basic_setup():
+    logging.addLevelName(25, "PRINT")
+    logging.basicConfig()
+    logging.getLogger().addFilter(log_filter)
+
+
+def advanced_setup():
+    # replace the low and high level StdIO's
+    low_level_stdout = LowLevelStdIO(sys.stdout).start_capture("StdoutCapture")
+    low_level_stderr = LowLevelStdIO(sys.stderr).start_capture("StderrCapture")
+
+    sys.stdout = HighLevelStdIO()
+    sys.stderr = HighLevelStdIO()
+
+    # setting up our own logger
+    root = logging.getLogger()
+    root.setLevel("DEBUG")
+    logging.addLevelName(25, "PRINT")
+
+    # setting up the console handler
+    console_handler = ABConsoleHandler(low_level_stdout)
+    console_handler.addFilter(log_filter)
+    root.addHandler(console_handler)
+
+    # setting up the file handler
+    file_handler = ABFileHandler()
+    file_handler.addFilter(log_filter)
+    root.addHandler(file_handler)
+
+
+log = LoggingProxy()
+log_file_location = None
+
+if SIMPLE_CONSOLE:
+    basic_setup()
+else:
+    advanced_setup()
