@@ -39,9 +39,13 @@ class ABDataFrameView(QTableView):
 
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
-        self.setSortingEnabled(True)
+        self.setSortingEnabled(False)
+
+        self.horizontalHeader().setStretchLastSection(True)
+        self.horizontalHeader().setHighlightSections(False)
+
         self.verticalHeader().setDefaultSectionSize(22)  # row height
-        self.verticalHeader().setVisible(True)
+        self.verticalHeader().setVisible(False)
         # Use a custom ViewOnly delegate by default.
         # Can be overridden table-wide or per column in child classes.
         self.setItemDelegate(ViewOnlyDelegate(self))
