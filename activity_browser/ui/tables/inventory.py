@@ -23,10 +23,6 @@ class DatabasesTable(ABDataFrameView):
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum
-        ))
         self.relink_action = QtWidgets.QAction(
             qicons.edit, "Relink the database", None
         )
