@@ -76,7 +76,6 @@ class ABParameterTable(QWidget):
         layout = QVBoxLayout()
         layout.addLayout(headerLayout)
         layout.addWidget(table)
-        layout.addStretch(1)
         return layout
 
     def get_table(self):
