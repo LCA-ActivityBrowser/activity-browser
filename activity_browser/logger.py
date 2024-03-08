@@ -82,11 +82,11 @@ class ABConsoleHandler(logging.Handler):
     also the time and a (shortened) logger name.
     """
     badge = {
-        "INFO": "\u001b[48;5;24m INFO  \u001b[0m",
-        "DEBUG": "\u001b[48;5;90m DEBUG \u001b[0m",
-        "EXCEPTION": "\u001b[48;5;88m EXCPT \u001b[0m",
-        "ERROR": "\u001b[48;5;88m ERROR \u001b[0m",
-        "WARNING": "\u001b[48;5;130m WARN  \u001b[0m",
+        "INFO": "\u001b[48;5;24m\u001b[38;5;255m INFO  \u001b[0m",
+        "DEBUG": "\u001b[48;5;90m\u001b[38;5;255m DEBUG \u001b[0m",
+        "EXCEPTION": "\u001b[48;5;88m\u001b[38;5;255m EXCPT \u001b[0m",
+        "ERROR": "\u001b[48;5;88m\u001b[38;5;255m ERROR \u001b[0m",
+        "WARNING": "\u001b[48;5;130m\u001b[38;5;255m WARN  \u001b[0m",
         "PRINT": "\u001b[7m PRINT \u001b[0m",
     }
 
