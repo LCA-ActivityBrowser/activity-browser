@@ -5,3 +5,4 @@ dependencies:
   - pytest
   - pytest-qt
   - pytest-mock
+  - pytest-env

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 
-from .logger import log, exception_hook, file_handler
+from .logger import log, exception_hook, log_file_location
 from .application import application
 from .signals import signals
 from .settings import ab_settings, project_settings
@@ -13,7 +13,8 @@ from .plugin import Plugin
 
 def run_activity_browser():
     log.info(f'Activity Browser version: {version}')
-    log.info(f'The log file can be found at {file_handler.filepath}')
+    if log_file_location:
+        log.info(f'The log file can be found at {log_file_location}')
 
     application.main_window = MainWindow(application)
     project_controller.load_settings()

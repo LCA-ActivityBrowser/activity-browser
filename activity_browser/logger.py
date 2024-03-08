@@ -11,6 +11,10 @@ from io import StringIO
 from types import TracebackType
 from typing import TextIO, Type
 
+WHITELIST = ["activity_browser", "brightway2", "bw2data", "bw2io", "C/C++"]
+EXTENDED_CONSOLE = os.environ.get("AB_EXTENDED_CONSOLE", False)
+SIMPLE_CONSOLE = os.environ.get("AB_SIMPLE_CONSOLE", False)
+
 
 class LowLevelStdIO:
     """
@@ -32,7 +36,7 @@ class LowLevelStdIO:
         self.thread = threading.Thread(target=self.capture, daemon=True)
 
         # initiate a logger with "C/C++" as name
-        self.logger = custom_logger("C/C++")
+        self.logger = logging.getLogger("C/C++")
 
     def capture(self):
         # open the output of the pipe as a line-file
@@ -67,22 +71,9 @@ class HighLevelStdIO(StringIO):
     create appropriate logger calls.
     """
 
-    filters = [
-        "pyprind"
-    ]
-
     def write(self, string: str):
         """Capture write calls made to this StdIO"""
-        # get the modulename from the context
-        module = get_module(height=2)
-
-        # apply the (very simple) filter
-        for name in self.filters:
-            if name in module: return
-
-        # get a custom logger using the module name and log as PRINT
-        logger = custom_logger(module)
-        logger.log(25, string)
+        log.print(string)
 
 
 class ABConsoleHandler(logging.Handler):
@@ -106,19 +97,27 @@ class ABConsoleHandler(logging.Handler):
 
     extended_debug = os.environ.get("EXTEND_DEBUG", False)
 
+    def __init__(self, low_level_stdio: LowLevelStdIO):
+        super().__init__()
+        self.stdio = low_level_stdio
+
     def handle(self, record: logging.LogRecord):
         """Handle a new LogRecord"""
+        # filter
+        if not self.filter(record): return
+
+        # format message
         message = self.format_log(record)
-        low_level_stdout.write(message)
+        self.stdio.write(message)
 
         if record.exc_info:
             exc_message = self.format_exception(record.exc_info[2])
-            low_level_stdout.write(exc_message)
+            self.stdio.write(exc_message)
 
     def format_log(self, record: logging.LogRecord) -> str:
         """Format a LogRecord"""
         # format message to a single line
-        message = " ".join(record.msg.split("\n"))
+        message = " ".join(str(record.msg).split("\n"))
         message = message + " ".join([str(arg) for arg in record.args])
 
         # if there is no message left, return nothing
@@ -136,7 +135,7 @@ class ABConsoleHandler(logging.Handler):
             badge = self.badge["EXCEPTION"]
 
         # that's all we need for a regular console
-        if not self.extended_debug: return f"{badge} {message}\n"
+        if not EXTENDED_CONSOLE: return f"{badge} {message}\n"
 
         # get a clean timestamp
         time_stamp = time.asctime()[11:19]
@@ -170,7 +169,7 @@ class ABConsoleHandler(logging.Handler):
     def format_exception(self, traceback: TracebackType) -> str:
         """Format the traceback of an exception"""
         space = 7
-        if self.extended_debug:
+        if EXTENDED_CONSOLE:
             space = 37
 
         traceback = extract_tb(traceback)
@@ -202,12 +201,19 @@ class ABFileHandler(logging.Handler):
         # create final filepath of the logfile of this session
         self.filepath = os.path.join(dir_path, self.filename)
 
+        # set the global file location
+        global log_file_location
+        log_file_location = self.filepath
+
         # create the logfile and write the headers
         with open(self.filepath, 'a') as log_file:
             log_file.write(";".join(self.headers) + "\n")
 
     def handle(self, record: logging.LogRecord):
         """Handle a new LogRecord"""
+        # filter
+        if not self.filter(record): return
+
         # format the message from the record
         message = self.format(record)
 
@@ -223,7 +229,7 @@ class ABFileHandler(logging.Handler):
     def format(self, record: logging.LogRecord) -> str:
         """Format a LogRecord"""
         # format message to a single line
-        message = " ".join(record.msg.split("\n"))
+        message = " ".join(str(record.msg).split("\n"))
         message = message + " ".join([str(arg) for arg in record.args])
 
         # if there is no message left, return nothing
@@ -282,10 +288,13 @@ class LoggingProxy:
     def error(self, msg, *args):
         self.log(40, msg, *args)
 
-    def exception(self, msg, *args):
-        self.log(40, msg, *args)
+    def exception(self, msg, *args, exc_info):
+        self.log(40, msg, *args, stack_level=3, exc_info=exc_info)
 
-    def log(self, level: int, msg, *args):
+    def print(self, msg):
+        self.log(25, msg,  stack_level=3)
+
+    def log(self, level: int, msg, *args, stack_level: int = 2, exc_info: tuple = None):
         """
         Get all logrecord info ourselves by inspecting the stack and log it by requesting a logger with the __name__ of
         the module from which the proxy was called.
@@ -293,8 +302,11 @@ class LoggingProxy:
         Do not use directly: it will inspect a frame too high in that case.
         """
         # get frame info from 2 frames up in the stack, retrieve the name of the module
-        frame_info = inspect.stack()[2]
+        frame_info = inspect.stack()[stack_level]
         name = inspect.getmodule(frame_info.frame).__name__
+
+        # already solve args
+        msg = msg + " ".join([str(arg) for arg in args])
 
         # create a LogRecord using all the supplied information
         record = logging.LogRecord(
@@ -303,8 +315,8 @@ class LoggingProxy:
             pathname=frame_info.filename,
             lineno=frame_info.lineno,
             msg=msg,
-            args=args,
-            exc_info=None,
+            args=tuple(),
+            exc_info=exc_info,
             func=frame_info.function
         )
 
@@ -313,55 +325,52 @@ class LoggingProxy:
         logger.handle(record)
 
 
-def get_module(height: int = 0) -> str:
-    """Finds module based on the current callstack and returns the name as string"""
-    frame_info = inspect.stack()[height]
-    return inspect.getmodule(frame_info.frame).__name__
-
-
 def exception_hook(error: Type[BaseException], message: BaseException, traceback: TracebackType):
     """Exception hook to catch and log exceptions"""
-    source = get_module(2)
-    logger = custom_logger(source)
-
     exc_info = (error, message, traceback)
-    logger.exception(f"{error.__name__}: {message}", exc_info=exc_info)
+    log.exception(f"{error.__name__}: {message}", exc_info=exc_info)
 
 
-def custom_logger(name: str):
-    """
-    Create a logger with the given name and hooks it into the AB handlers. Propagation is disabled to make sure there is
-    no duplicate logging if this function is called multiple times.
-    """
-    logger = logging.getLogger(name)
-    logger.setLevel("DEBUG")
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-    logger.propagate = False
-    return logger
+def log_filter(record: logging.LogRecord) -> bool:
+    for name in WHITELIST:
+        if record.name.startswith(name): return True
+    return False
 
 
-def root_logger():
-    ab_logger = logging.getLogger("activity_browser")
-    ab_logger.setLevel("DEBUG")
-    ab_logger.addHandler(console_handler)
-    ab_logger.addHandler(file_handler)
-    return ab_logger
+def basic_setup():
+    logging.addLevelName(25, "PRINT")
+    logging.basicConfig()
+    logging.getLogger().addFilter(log_filter)
 
 
-# add our own level name for printed logs
-logging.addLevelName(25, "PRINT")
+def advanced_setup():
+    # replace the low and high level StdIO's
+    low_level_stdout = LowLevelStdIO(sys.stdout).start_capture("StdoutCapture")
+    low_level_stderr = LowLevelStdIO(sys.stderr).start_capture("StderrCapture")
 
-# setting up our own logger
-console_handler = ABConsoleHandler()
-file_handler = ABFileHandler()
-root_logger()
+    sys.stdout = HighLevelStdIO()
+    sys.stderr = HighLevelStdIO()
 
-# replace the low and high level StdIO's
-low_level_stdout = LowLevelStdIO(sys.stdout).start_capture("StdoutCapture")
-low_level_stderr = LowLevelStdIO(sys.stderr).start_capture("StderrCapture")
+    # setting up our own logger
+    root = logging.getLogger()
+    root.setLevel("DEBUG")
+    logging.addLevelName(25, "PRINT")
 
-sys.stdout = HighLevelStdIO()
-sys.stderr = HighLevelStdIO()
+    # setting up the console handler
+    console_handler = ABConsoleHandler(low_level_stdout)
+    console_handler.addFilter(log_filter)
+    root.addHandler(console_handler)
+
+    # setting up the file handler
+    file_handler = ABFileHandler()
+    file_handler.addFilter(log_filter)
+    root.addHandler(file_handler)
+
 
 log = LoggingProxy()
+log_file_location = None
+
+if SIMPLE_CONSOLE:
+    basic_setup()
+else:
+    advanced_setup()
