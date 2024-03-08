@@ -85,6 +85,7 @@ class CSActivityModel(CSGenericModel):
         signals.calculation_setup_selected.connect(self.sync)
         signals.databases_changed.connect(self.sync)
         signals.database_changed.connect(self.check_activities)
+        signals.delete_database_confirmed.connect(self.check_activities)
         # after editing the model, signal that the calculation setup has changed.
         self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 

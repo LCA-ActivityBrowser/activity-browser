@@ -161,6 +161,8 @@ class CSetupController(QObject):
         signals.rename_calculation_setup.connect(self.rename_calculation_setup)
         signals.delete_calculation_setup.connect(self.delete_calculation_setup)
 
+        signals.delete_database_confirmed.connect(self.sync_calculation_setups)
+
     @Slot(name="createCalculationSetup")
     def new_calculation_setup(self) -> None:
         name, ok = QtWidgets.QInputDialog.getText(
@@ -244,6 +246,33 @@ class CSetupController(QObject):
             )
             return False
         return True
+
+    def sync_calculation_setups(self):
+        """
+        Checks whether all the functional unit keys are still available, otherwise removes them from the CS
+        """
+        for name, cs in bw.calculation_setups.items():
+            inventory = cs["inv"]
+            remove = []
+            for i, fu in enumerate(inventory):
+                # try to get the activity from the key
+                try:
+                    bw.get_activity(list(fu.keys())[0])
+                # if that fails add index to removal list in reverse order
+                except:
+                    remove.insert(0, i)
+
+            # if there's nothing to remove: continue
+            if not remove: continue
+
+            # else remove the indexed fu's one by one
+            log.info(f"Removing {len(remove)} functional unit(s) from CS: {name}")
+            for i in remove:
+                log.debug(f"Removing {inventory[i]} from CS: {name}")
+                inventory.pop(i)
+
+            # and finally update the calculation setup
+            bw.calculation_setups[name] = cs
 
 
 class ImpactCategoryController(QObject):
