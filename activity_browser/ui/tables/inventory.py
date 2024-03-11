@@ -101,6 +101,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model = ActivitiesBiosphereModel(parent=self)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
+        self.setSelectionBehavior(self.SelectRows)
 
         # contextmenu items
         self.open_activity_action = QtWidgets.QAction(
@@ -135,6 +136,15 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             qicons.superstructure, 'Exchanges for scenario difference file', None
         )
         self.connect_signals()
+
+    def selected_keys(self):
+        indices = self.selectedIndexes()
+        keys = []
+        for index in indices:
+            key = self.model.get_key(index)
+            if key in keys: continue
+            keys.append(key)
+        return keys
 
     @property
     def database_name(self) -> str:

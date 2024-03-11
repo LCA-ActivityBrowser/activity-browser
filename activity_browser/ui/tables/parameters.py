@@ -190,7 +190,7 @@ class ActivityParameterTable(BaseParameterTable):
             )
             return
 
-        keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
+        keys = db_table.selected_keys()
         event.accept()
         signals.add_activity_parameters.emit(keys)
 

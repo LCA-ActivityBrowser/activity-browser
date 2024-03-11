@@ -83,7 +83,7 @@ class BaseExchangeTable(ABDataFrameView):
 
     def dropEvent(self, event):
         source_table = event.source()
-        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+        keys = source_table.selected_keys()
         event.accept()
         signals.exchanges_add.emit(keys, self.key)
 
