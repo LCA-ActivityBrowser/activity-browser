@@ -39,7 +39,7 @@ class ABDataFrameView(QTableView):
 
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
-        self.setSortingEnabled(False)
+        self.setSortingEnabled(True)
 
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setHighlightSections(False)
