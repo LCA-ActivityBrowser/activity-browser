@@ -249,8 +249,11 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
+
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.set_filter_data)
+        self.model.updated.connect(lambda: self.setColumnHidden(5, True))
+
         self.read_only = True
         self.setAcceptDrops(not self.read_only)
 

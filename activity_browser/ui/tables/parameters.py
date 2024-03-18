@@ -44,6 +44,9 @@ class BaseParameterTable(ABDataFrameView):
         self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
         self.model.updated.connect(self.update_proxy_model)
 
+        # hide raw parameter column
+        self.model.updated.connect(lambda: self.setColumnHidden(self.model.param_col, True))
+
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Have the parameter test to see if it can be deleted safely.
         """
@@ -162,6 +165,7 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(7, ListDelegate(self))
         self.setItemDelegateForColumn(9, StringDelegate(self))
         self.setItemDelegateForColumn(10, ViewOnlyUncertaintyDelegate(self))
+
 
         # Set dropEnabled
         self.setDragDropMode(ABDataFrameView.DropOnly)
