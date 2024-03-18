@@ -43,6 +43,7 @@ class ABDataFrameView(QTableView):
 
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setHighlightSections(False)
+        self.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
 
         self.verticalHeader().setDefaultSectionSize(22)  # row height
         self.verticalHeader().setVisible(False)

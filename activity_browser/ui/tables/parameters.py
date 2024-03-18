@@ -46,6 +46,7 @@ class BaseParameterTable(ABDataFrameView):
 
         # hide raw parameter column
         self.model.updated.connect(lambda: self.setColumnHidden(self.model.param_col, True))
+        self.model.updated.connect(lambda: self.resizeColumnToContents(0))
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Have the parameter test to see if it can be deleted safely.
