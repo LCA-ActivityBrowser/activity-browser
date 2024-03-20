@@ -177,7 +177,7 @@ class ABSettings(BaseSettings):
 class ProjectSettings(BaseSettings):
     """
     Handles user settings which are specific to projects. Created initially to handle read-only/writable database status
-    Code based on ABSettings class, if more different types of settings are needed, could inherit from a base.py class
+    Code based on ABSettings class, if more different types of settings are needed, could inherit from a base class
 
     structure: singleton, loaded dependent on which project is selected.
         Persisted on disc, Stored in the BW2 projects data folder for each project

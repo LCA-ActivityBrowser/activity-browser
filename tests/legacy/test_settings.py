@@ -29,7 +29,7 @@ def project_settings(qtbot, ab_app):
 
 
 def test_base_class():
-    """ Test that the base.py class raises an error on initialization
+    """ Test that the base class raises an error on initialization
     """
     current_path = os.path.dirname(os.path.abspath(__file__))
     with pytest.raises(NotImplementedError):
