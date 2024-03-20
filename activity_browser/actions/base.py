@@ -34,7 +34,7 @@ class ABAction(QtWidgets.QAction):
     def onToggle(self, checked):
         raise NotImplementedError
 
-    def button(self) -> QtWidgets.QToolButton:
+    def get_button(self) -> QtWidgets.QToolButton:
         button = QtWidgets.QToolButton(self.parent())
         button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         button.setDefaultAction(self)

@@ -91,9 +91,7 @@ class FormulaDialog(QtWidgets.QDialog):
         self.text_field.setCompleter(completer)
         self.parameters.doubleClicked.connect(self.append_parameter_name)
 
-        self.new_parameter_button = QtWidgets.QToolButton(self)
-        self.new_parameter_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.new_parameter_button.setDefaultAction(ParameterNew(self.get_key, self))
+        self.new_parameter_button = ParameterNew(self.get_key, self).get_button()
 
         self.calculator = CalculatorButtons(self)
         self.calculator.button_press.connect(self.text_field.insert)

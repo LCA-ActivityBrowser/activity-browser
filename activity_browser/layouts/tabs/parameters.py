@@ -88,10 +88,7 @@ class ABParameterTable(QWidget):
 class ABProjectParameter(ABParameterTable):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.new_parameter_button = QtWidgets.QToolButton(self)
-        self.new_parameter_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.new_parameter_button.setDefaultAction(ParameterNew(("", ""), self))
-
+        self.new_parameter_button = ParameterNew(("", ""), self).get_button()
         self.header = "Project:"
         self.table = ProjectParameterTable(self)
 
@@ -103,9 +100,7 @@ class ABDatabaseParameter(ABParameterTable):
         super().__init__(parent)
         self.header = "Database:"
 
-        self.new_parameter_button = QtWidgets.QToolButton(self)
-        self.new_parameter_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.new_parameter_button.setDefaultAction(ParameterNew(("db", ""), self))
+        self.new_parameter_button = ParameterNew(("db", ""), self).get_button()
 
         self.table = DataBaseParameterTable(self)
 

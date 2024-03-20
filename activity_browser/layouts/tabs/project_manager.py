@@ -68,9 +68,9 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.projects_list = ProjectListWidget()
 
         # Buttons
-        self.new_project_button = ProjectNew(self).button()
-        self.copy_project_button = ProjectDuplicate(self).button()
-        self.delete_project_button = ProjectDelete(self).button()
+        self.new_project_button = ProjectNew(self).get_button()
+        self.copy_project_button = ProjectDuplicate(self).get_button()
+        self.delete_project_button = ProjectDelete(self).get_button()
 
         self.construct_layout()
 
@@ -110,17 +110,9 @@ class DatabaseWidget(QtWidgets.QWidget):
         )
 
         # Buttons
-        self.add_default_data_button = QtWidgets.QToolButton(self)
-        self.add_default_data_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.add_default_data_button.setDefaultAction(DefaultInstall(self))
-
-        self.new_database_button = QtWidgets.QToolButton(self)
-        self.new_database_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.new_database_button.setDefaultAction(DatabaseNew(self))
-
-        self.import_database_button = QtWidgets.QToolButton(self)
-        self.import_database_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.import_database_button.setDefaultAction(DatabaseImport(self))
+        self.add_default_data_button = DefaultInstall(self).get_button()
+        self.new_database_button = DatabaseNew(self).get_button()
+        self.import_database_button = DatabaseImport(self).get_button()
 
         self._construct_layout()
 

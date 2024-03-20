@@ -102,21 +102,10 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList(self)
 
-        self.new_cs_button = QtWidgets.QToolButton(self)
-        self.new_cs_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.new_cs_button.setDefaultAction(CSNew(self))
-
-        self.duplicate_cs_button = QtWidgets.QToolButton(self)
-        self.duplicate_cs_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.duplicate_cs_button.setDefaultAction(CSDuplicate(self.list_widget.currentText, self))
-
-        self.delete_cs_button = QtWidgets.QToolButton(self)
-        self.delete_cs_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.delete_cs_button.setDefaultAction(CSDelete(self.list_widget.currentText, self))
-
-        self.rename_cs_button = QtWidgets.QToolButton(self)
-        self.rename_cs_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.rename_cs_button.setDefaultAction(CSRename(self.list_widget.currentText, self))
+        self.new_cs_button = CSNew(self).get_button()
+        self.duplicate_cs_button = CSDuplicate(self.list_widget.currentText, self).get_button()
+        self.delete_cs_button = CSDelete(self.list_widget.currentText, self).get_button()
+        self.rename_cs_button = CSRename(self.list_widget.currentText, self).get_button()
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()
