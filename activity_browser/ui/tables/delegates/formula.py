@@ -5,8 +5,7 @@ from asteval import Interpreter
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser.signals import signals
-from ....actions import ParameterNew
+from activity_browser import signals, actions
 
 
 class CalculatorButtons(QtWidgets.QWidget):
@@ -91,7 +90,7 @@ class FormulaDialog(QtWidgets.QDialog):
         self.text_field.setCompleter(completer)
         self.parameters.doubleClicked.connect(self.append_parameter_name)
 
-        self.new_parameter_button = ParameterNew(self.get_key, self).get_button()
+        self.new_parameter_button = actions.ParameterNew(self.get_key, self).get_button()
 
         self.calculator = CalculatorButtons(self)
         self.calculator.button_press.connect(self.text_field.insert)

@@ -12,7 +12,6 @@ from .models import (
 )
 from .views import ABDataFrameView
 from ..icons import qicons
-from ...actions import ExchangeNew
 
 
 class BaseExchangeTable(ABDataFrameView):
@@ -78,7 +77,7 @@ class BaseExchangeTable(ABDataFrameView):
         source_table = event.source()
         keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
         event.accept()
-        ExchangeNew(keys, self.key, self).trigger()
+        actions.ExchangeNew(keys, self.key, self).trigger()
 
     def get_usable_parameters(self):
         return self.model.get_usable_parameters()

@@ -11,12 +11,11 @@ from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
 from PySide2 import QtWidgets
 
-from activity_browser import log, signals, application
+from activity_browser import log, signals, application, actions, parameter_controller, exchange_controller
 from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
-from ....controllers import parameter_controller, exchange_controller
-from ....actions import ParameterRename
+
 
 class BaseParameterModel(EditablePandasModel):
     COLUMNS = []
@@ -96,7 +95,7 @@ class BaseParameterModel(EditablePandasModel):
         group = self.get_group(proxy)
         param = self.get_parameter(proxy)
 
-        ParameterRename(param, self).trigger()
+        actions.ParameterRename(param, self).trigger()
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)

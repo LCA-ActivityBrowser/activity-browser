@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
+from activity_browser import actions, signals
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -9,8 +10,7 @@ from ...ui.tables import (
     ProjectListWidget,
     ActivitiesBiosphereTable,
 )
-from ...signals import signals
-from ...actions import DatabaseImport, DatabaseNew, DefaultInstall, ProjectNew, ProjectDuplicate, ProjectDelete
+
 
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -68,9 +68,9 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.projects_list = ProjectListWidget()
 
         # Buttons
-        self.new_project_button = ProjectNew(self).get_button()
-        self.copy_project_button = ProjectDuplicate(self).get_button()
-        self.delete_project_button = ProjectDelete(self).get_button()
+        self.new_project_button = actions.ProjectNew(self).get_button()
+        self.copy_project_button = actions.ProjectDuplicate(self).get_button()
+        self.delete_project_button = actions.ProjectDelete(self).get_button()
 
         self.construct_layout()
 
@@ -110,9 +110,9 @@ class DatabaseWidget(QtWidgets.QWidget):
         )
 
         # Buttons
-        self.add_default_data_button = DefaultInstall(self).get_button()
-        self.new_database_button = DatabaseNew(self).get_button()
-        self.import_database_button = DatabaseImport(self).get_button()
+        self.add_default_data_button = actions.DefaultInstall(self).get_button()
+        self.new_database_button = actions.DatabaseNew(self).get_button()
+        self.import_database_button = actions.DatabaseImport(self).get_button()
 
         self._construct_layout()
 

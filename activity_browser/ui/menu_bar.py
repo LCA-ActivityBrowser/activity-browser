@@ -3,10 +3,9 @@ import brightway2 as bw
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
+from activity_browser import actions, signals
 from ..info import __version__ as ab_version
 from .icons import qicons
-from ..signals import signals
-from ..actions import *
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -19,11 +18,11 @@ class MenuBar(QtWidgets.QMenuBar):
         self.tools_menu = QtWidgets.QMenu('&Tools', self.window)
         self.help_menu = QtWidgets.QMenu('&Help', self.window)
 
-        self.update_biosphere_action = BiosphereUpdate(self)
-        self.export_db_action = DatabaseExport(self)
-        self.import_db_action = DatabaseImport(self)
-        self.manage_plugins_action = PluginWizardOpen(self)
-        self.manage_settings_action = SettingsWizardOpen(self)
+        self.update_biosphere_action = actions.BiosphereUpdate(self)
+        self.export_db_action = actions.DatabaseExport(self)
+        self.import_db_action = actions.DatabaseImport(self)
+        self.manage_plugins_action = actions.PluginWizardOpen(self)
+        self.manage_settings_action = actions.SettingsWizardOpen(self)
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)

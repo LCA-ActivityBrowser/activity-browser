@@ -5,9 +5,8 @@ from brightway2 import calculation_setups
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 
-from activity_browser import log, signals
+from activity_browser import log, signals, actions
 from .base import BaseRightTab
-from ...actions import CSNew, CSDuplicate, CSDelete, CSRename
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
 from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
@@ -102,10 +101,10 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList(self)
 
-        self.new_cs_button = CSNew(self).get_button()
-        self.duplicate_cs_button = CSDuplicate(self.list_widget.currentText, self).get_button()
-        self.delete_cs_button = CSDelete(self.list_widget.currentText, self).get_button()
-        self.rename_cs_button = CSRename(self.list_widget.currentText, self).get_button()
+        self.new_cs_button = actions.CSNew(self).get_button()
+        self.duplicate_cs_button = actions.CSDuplicate(self.list_widget.currentText, self).get_button()
+        self.delete_cs_button = actions.CSDelete(self.list_widget.currentText, self).get_button()
+        self.rename_cs_button = actions.CSRename(self.list_widget.currentText, self).get_button()
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()

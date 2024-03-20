@@ -4,9 +4,7 @@ from PySide2.QtCore import Slot
 from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PySide2.QtWidgets import QAction, QMenu, QMessageBox
 
-from ...settings import project_settings
-from ...signals import signals
-from ...actions import ParameterNewAutomatic
+from activity_browser import actions, project_settings, signals
 from ..icons import qicons
 from .delegates import *
 from .models import (
@@ -208,7 +206,7 @@ class ActivityParameterTable(BaseParameterTable):
 
         keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
         event.accept()
-        ParameterNewAutomatic(keys, self).trigger()
+        actions.ParameterNewAutomatic(keys, self).trigger()
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Override and activate QTableView.contextMenuEvent()

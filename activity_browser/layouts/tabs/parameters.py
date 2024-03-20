@@ -11,9 +11,8 @@ from PySide2.QtWidgets import (
 )
 from xlsxwriter.exceptions import FileCreateError
 
+from activity_browser import actions, signals
 from ...bwutils.manager import ParameterManager
-from ...signals import signals
-from ...actions import ParameterNew
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
 from ...ui.tables import (
@@ -88,7 +87,7 @@ class ABParameterTable(QWidget):
 class ABProjectParameter(ABParameterTable):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.new_parameter_button = ParameterNew(("", ""), self).get_button()
+        self.new_parameter_button = actions.ParameterNew(("", ""), self).get_button()
         self.header = "Project:"
         self.table = ProjectParameterTable(self)
 
@@ -100,7 +99,7 @@ class ABDatabaseParameter(ABParameterTable):
         super().__init__(parent)
         self.header = "Database:"
 
-        self.new_parameter_button = ParameterNew(("db", ""), self).get_button()
+        self.new_parameter_button = actions.ParameterNew(("db", ""), self).get_button()
 
         self.table = DataBaseParameterTable(self)
 
