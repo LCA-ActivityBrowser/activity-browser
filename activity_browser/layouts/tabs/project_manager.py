@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
+from activity_browser import actions, signals
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -9,7 +10,7 @@ from ...ui.tables import (
     ProjectListWidget,
     ActivitiesBiosphereTable,
 )
-from ...signals import signals
+
 
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -67,22 +68,11 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.projects_list = ProjectListWidget()
 
         # Buttons
-        self.new_project_button = QtWidgets.QPushButton(qicons.add, "New")
-        self.new_project_button.setToolTip('Make a new project')
-        self.copy_project_button = QtWidgets.QPushButton(qicons.copy, "Copy")
-        self.copy_project_button.setToolTip('Copy the project')
-        self.delete_project_button = QtWidgets.QPushButton(
-            qicons.delete, "Delete"
-        )
-        self.delete_project_button.setToolTip('Delete the project')
+        self.new_project_button = actions.ProjectNew(self).get_button()
+        self.copy_project_button = actions.ProjectDuplicate(self).get_button()
+        self.delete_project_button = actions.ProjectDelete(self).get_button()
 
         self.construct_layout()
-        self.connect_signals()
-
-    def connect_signals(self):
-        self.new_project_button.clicked.connect(signals.new_project.emit)
-        self.delete_project_button.clicked.connect(signals.delete_project.emit)
-        self.copy_project_button.clicked.connect(signals.copy_project.emit)
 
     def construct_layout(self):
         h_widget = QtWidgets.QWidget()
@@ -120,21 +110,11 @@ class DatabaseWidget(QtWidgets.QWidget):
         )
 
         # Buttons
-        self.add_default_data_button = QtWidgets.QPushButton(
-            qicons.import_db, "Add default data (biosphere flows and impact categories)"
-        )
-        self.new_database_button = QtWidgets.QPushButton(qicons.add, "New")
-        self.new_database_button.setToolTip('Make a new database')
-        self.import_database_button = QtWidgets.QPushButton(qicons.import_db, "Import")
-        self.import_database_button.setToolTip('Import a new database')
+        self.add_default_data_button = actions.DefaultInstall(self).get_button()
+        self.new_database_button = actions.DatabaseNew(self).get_button()
+        self.import_database_button = actions.DatabaseImport(self).get_button()
 
         self._construct_layout()
-        self._connect_signals()
-
-    def _connect_signals(self):
-        self.add_default_data_button.clicked.connect(signals.install_default_data.emit)
-        self.import_database_button.clicked.connect(signals.import_database.emit)
-        self.new_database_button.clicked.connect(signals.add_database.emit)
 
     def _construct_layout(self):
         header_widget = QtWidgets.QWidget()

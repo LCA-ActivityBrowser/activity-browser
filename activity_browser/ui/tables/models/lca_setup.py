@@ -84,6 +84,9 @@ class CSActivityModel(CSGenericModel):
 
     @property
     def activities(self) -> list:
+        # if no dataframe is present return empty list
+        if not isinstance(self._dataframe, pd.DataFrame): return []
+        # else return the selected activities
         selection = self._dataframe.loc[:, ["Amount", "key"]].to_dict(orient="records")
         return [{x["key"]: x["Amount"]} for x in selection]
 

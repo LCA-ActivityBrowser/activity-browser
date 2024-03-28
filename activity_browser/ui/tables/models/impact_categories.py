@@ -30,15 +30,6 @@ class MethodsListModel(DragPandasModel):
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.method_col]
 
-    @Slot(QModelIndex, name="copyMethod")
-    def copy_method(self, proxy: QModelIndex) -> None:
-        method = self.get_method(proxy)
-        signals.copy_method.emit(method, proxy)
-
-    def delete_method(self, proxy: QModelIndex) -> None:
-        method = self.get_method(proxy)
-        signals.delete_method.emit(method, proxy)
-
     @Slot(tuple, name="filterOnMethod")
     def filter_on_method(self, method: tuple) -> None:
         query = ", ".join(method)
@@ -255,11 +246,6 @@ class MethodsTreeModel(BaseTreeModel):
             return queries
         return methods
 
-    @Slot(QModelIndex, name="copyMethod")
-    def copy_method(self, level: tuple) -> None:
-        method = self.get_method(level)
-        signals.copy_method.emit(method, level[0])
-
     @Slot(QModelIndex, name="deleteMethod")
     def delete_method(self, level: tuple) -> None:
         method = self.get_method(level)
@@ -312,7 +298,6 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         self.different_column_types = {k: 'num' for k in self.UNCERTAINTY + ['Amount']}
         self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
         signals.method_modified.connect(self.sync)
-        self.dataChanged.connect(lambda: signals.cf_changed.emit())  # when a cell is changed, emit this signal
 
     @property
     def uncertain_cols(self) -> list:
@@ -364,74 +349,6 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         """Get the name of the column of the selected cell."""
         idx = self.proxy_to_source(proxy)
         return self.COLUMNS[idx.column()]
-
-    @Slot(QModelIndex, name="modifyCFUncertainty")
-    def modify_uncertainty(self, proxy: QModelIndex) -> None:
-        """Need to know both keys to select the correct exchange to update."""
-        method_cf = self.get_cf(proxy)
-        wizard = UncertaintyWizard(method_cf, self.parent())
-        wizard.complete.connect(self.modify_cf_uncertainty)
-        wizard.show()
-
-    @Slot(list, name="removeCFUncertainty")
-    def remove_uncertainty(self, proxy_indexes: Iterator[QModelIndex]) -> None:
-        to_be_modified = [self.get_cf(p) for p in proxy_indexes]
-        signals.remove_cf_uncertainties.emit(to_be_modified, self.method.name)
-
-    @Slot(list, name="deleteCF")
-    def delete_cf(self, proxy_indexes: Iterator[QModelIndex]) -> None:
-        to_delete = [self.get_cf(p) for p in proxy_indexes]
-        confirm = QMessageBox()
-        confirm.setIcon(QMessageBox.Warning)
-        confirm.setWindowTitle("Confirm deletion")
-        confirm.setText("Are you sure you want to delete "+str(len(to_delete))+" Characterization Factor(s) from this IC?")
-        confirm.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        confirmed = confirm.exec()
-        if confirmed == QMessageBox.Ok:
-            log.info("Deleting CF(s):", to_delete)
-            signals.delete_cf_method.emit(to_delete, self.method.name)
-
-    @Slot(tuple, object, name="modifyCfUncertainty")
-    def modify_cf_uncertainty(self, cf: tuple, uncertainty: dict) -> None:
-        """Update the CF with new uncertainty information, possibly converting
-        the second item in the tuple to a dictionary without losing information.
-        """
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(uncertainty)
-        else:
-            uncertainty["amount"] = data[1]
-            data[1] = uncertainty
-        signals.edit_method_cf.emit(tuple(data), self.method.name)
-
-    @Slot(tuple, object, name="modifyCfUncertainty")
-    def modify_cf(self, proxy: QModelIndex) -> None:
-        """Update the CF with new data, possibly converting
-        the second item in the tuple to a dictionary without losing information.
-
-        Parameters
-        ----------
-        proxy : QModelIndex
-            The Qt object of the selected cell in the table.
-        """
-        cf = self.get_cf(proxy)
-        col_name = self.get_col_from_index(proxy)
-        new_val = self.get_value(proxy)
-        new_data = {col_name: new_val}
-
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(new_data)
-        else:
-            if col_name == 'amount':
-                # if the new value we're writing is indeed 'amount', write that value, otherwise, just take the current
-                amt = new_val
-            else:
-                amt = data[1]
-
-            new_data["amount"] = amt
-            data[1] = new_data
-        signals.edit_method_cf.emit(tuple(data), self.method.name)
 
     def set_filterable_columns(self, hide: bool) -> None:
         filterable_cols = {col: i for i, col in enumerate(self.HEADERS[:-1])}

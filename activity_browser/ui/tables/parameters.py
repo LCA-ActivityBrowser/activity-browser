@@ -4,8 +4,7 @@ from PySide2.QtCore import Slot
 from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PySide2.QtWidgets import QAction, QMenu, QMessageBox
 
-from ...settings import project_settings
-from ...signals import signals
+from activity_browser import actions, project_settings, signals
 from ..icons import qicons
 from .delegates import *
 from .models import (
@@ -197,7 +196,7 @@ class ActivityParameterTable(BaseParameterTable):
         db_table = event.source()
 
         if project_settings.settings["read-only-databases"].get(
-                db_table.database_name, True):
+                db_table.current_database(), True):
             QMessageBox.warning(
                 self, "Not allowed",
                 "Cannot set activity parameters on read-only databases",
@@ -207,7 +206,7 @@ class ActivityParameterTable(BaseParameterTable):
 
         keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
         event.accept()
-        signals.add_activity_parameters.emit(keys)
+        actions.ParameterNewAutomatic(keys, self).trigger()
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Override and activate QTableView.contextMenuEvent()

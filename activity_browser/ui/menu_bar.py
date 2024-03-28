@@ -3,9 +3,9 @@ import brightway2 as bw
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
+from activity_browser import actions, signals
 from ..info import __version__ as ab_version
 from .icons import qicons
-from ..signals import signals
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -18,20 +18,11 @@ class MenuBar(QtWidgets.QMenuBar):
         self.tools_menu = QtWidgets.QMenu('&Tools', self.window)
         self.help_menu = QtWidgets.QMenu('&Help', self.window)
 
-        self.update_biosphere_action = QtWidgets.QAction(
-            window.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload),
-            "&Update biosphere...", None
-        )
-        self.export_db_action = QtWidgets.QAction(
-            self.window.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon),
-            "&Export database...", None
-        )
-        self.import_db_action = QtWidgets.QAction(
-            qicons.import_db, '&Import database...', None
-        )
-        self.manage_plugins_action = QtWidgets.QAction(
-            qicons.plugin, '&Plugins...', None
-        )
+        self.update_biosphere_action = actions.BiosphereUpdate(self)
+        self.export_db_action = actions.DatabaseExport(self)
+        self.import_db_action = actions.DatabaseImport(self)
+        self.manage_plugins_action = actions.PluginWizardOpen(self)
+        self.manage_settings_action = actions.SettingsWizardOpen(self)
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
@@ -47,21 +38,13 @@ class MenuBar(QtWidgets.QMenuBar):
     def connect_signals(self):
         signals.project_selected.connect(self.biosphere_exists)
         signals.databases_changed.connect(self.biosphere_exists)
-        self.update_biosphere_action.triggered.connect(signals.update_biosphere.emit)
-        self.export_db_action.triggered.connect(signals.export_database.emit)
-        self.import_db_action.triggered.connect(signals.import_database.emit)
-        self.manage_plugins_action.triggered.connect(signals.manage_plugins.emit)
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
         self.file_menu.addAction(self.import_db_action)
         self.file_menu.addAction(self.export_db_action)
         self.file_menu.addAction(self.update_biosphere_action)
-        self.file_menu.addAction(
-            qicons.settings,
-            '&Settings...',
-            signals.edit_settings.emit
-        )
+        self.file_menu.addAction(self.manage_settings_action)
 
     def setup_view_menu(self) -> None:
         """Build the menu for viewing or hiding specific tabs"""

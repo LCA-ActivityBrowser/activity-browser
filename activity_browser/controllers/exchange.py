@@ -6,22 +6,13 @@ from PySide2.QtCore import QObject, Slot
 
 from activity_browser import signals, application
 from activity_browser.bwutils import AB_metadata, commontasks as bc
-from activity_browser.ui.wizards import UncertaintyWizard
 
 
 class ExchangeController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
-        signals.exchanges_deleted.connect(self.delete_exchanges)
-        signals.exchanges_add.connect(self.add_exchanges)
-        signals.exchanges_add_w_values.connect(self.add_exchanges)
-        signals.exchange_modified.connect(self.modify_exchange)
-        signals.exchange_uncertainty_wizard.connect(self.edit_exchange_uncertainty)
-        signals.exchange_uncertainty_modified.connect(self.modify_exchange_uncertainty)
-        signals.exchange_pedigree_modified.connect(self.modify_exchange_pedigree)
 
-    @Slot(list, tuple, name="addExchangesToKey")
-    def add_exchanges(self, from_keys: Iterator[tuple], to_key: tuple, new_values: dict = {}) -> None:
+    def add_exchanges(self, from_keys: Iterator[tuple], to_key: tuple, new_values: dict = None) -> None:
         """
         Add new exchanges.
 
@@ -48,7 +39,7 @@ class ExchangeController(QObject):
             else:
                 exc['type'] = 'unknown'
             # add optional exchange values
-            if new_vals := new_values.get(key, {}):
+            if new_values and (new_vals := new_values.get(key, {})):
                 for field_name, value in new_vals.items():
                     if value:
                         exc[field_name] = value
@@ -57,7 +48,6 @@ class ExchangeController(QObject):
         AB_metadata.update_metadata(to_key)
         signals.database_changed.emit(to_key[0])
 
-    @Slot(list, name="deleteExchanges")
     def delete_exchanges(self, exchanges: Iterator[ExchangeProxyBase]) -> None:
         db_changed = set()
         for exc in exchanges:
@@ -67,50 +57,29 @@ class ExchangeController(QObject):
             bw.databases.set_modified(db)
             signals.database_changed.emit(db)
 
-    @staticmethod
-    @Slot(object, str, object, name="editExchange")
-    def modify_exchange(exchange: ExchangeProxyBase, field: str, value) -> None:
-        # The formula field needs special handling.
-        if field == "formula":
-            if field in exchange and (value == "" or value is None):
-                # Remove formula entirely.
-                del exchange[field]
-                if "original_amount" in exchange:
-                    # Restore the original amount, if possible
-                    exchange["amount"] = exchange["original_amount"]
-                    del exchange["original_amount"]
-            if value:
-                # At least set the formula, possibly also store the amount
-                if field not in exchange:
-                    exchange["original_amount"] = exchange["amount"]
+    def edit_exchange(self, exchange: ExchangeProxyBase, data: dict):
+        recalculate_exchanges = False
+
+        for field, value in data.items():
+            if field == "amount":
+                exchange["amount"] = float(value)
+
+            elif field == "formula":
+                edit_exchange_formula(exchange, value)
+                recalculate_exchanges = True
+
+            elif field in {"loc", "scale", "shape", "minimum", "maximum"}:
+                edit_exchange_uncertainty(exchange, field, value)
+
+            else:
                 exchange[field] = value
-        else:
-            exchange[field] = value
+
         exchange.save()
         bw.databases.set_modified(exchange["output"][0])
-        if field == "formula":
-            # If a formula was set, removed or changed, recalculate exchanges
-            signals.exchange_formula_changed.emit(exchange["output"])
         signals.database_changed.emit(exchange["output"][0])
 
-    @Slot(object, name="runUncertaintyWizard")
-    def edit_exchange_uncertainty(self, exc: ExchangeProxyBase) -> None:
-        """Explicitly call the wizard here for altering the uncertainty."""
-        wizard = UncertaintyWizard(exc, application.main_window)
-        wizard.show()
-
-    @staticmethod
-    @Slot(object, object, name="modifyExchangeUncertainty")
-    def modify_exchange_uncertainty(exc: ExchangeProxyBase, unc_dict: dict) -> None:
-        unc_fields = {"loc", "scale", "shape", "minimum", "maximum"}
-        for k, v in unc_dict.items():
-            if k in unc_fields and isinstance(v, str):
-                # Convert empty values into nan, accepted by stats_arrays
-                v = float("nan") if not v else float(v)
-            exc[k] = v
-        exc.save()
-        bw.databases.set_modified(exc["output"][0])
-        signals.database_changed.emit(exc["output"][0])
+        if recalculate_exchanges:
+            signals.exchange_formula_changed.emit(exchange["output"])
 
     @staticmethod
     @Slot(object, object, name="modifyExchangePedigree")
@@ -119,6 +88,28 @@ class ExchangeController(QObject):
         exc.save()
         bw.databases.set_modified(exc["output"][0])
         signals.database_changed.emit(exc["output"][0])
+
+
+def edit_exchange_formula(exchange: ExchangeProxyBase, value):
+    if "formula" in exchange and (value == "" or value is None):
+        # Remove formula entirely.
+        del exchange["formula"]
+        if "original_amount" in exchange:
+            # Restore the original amount, if possible
+            exchange["amount"] = exchange["original_amount"]
+            del exchange["original_amount"]
+    if value:
+        # At least set the formula, possibly also store the amount
+        if "formula" not in exchange:
+            exchange["original_amount"] = exchange["amount"]
+        exchange["formula"] = value
+
+
+def edit_exchange_uncertainty(exchange: ExchangeProxyBase, field: str, value):
+    if isinstance(value, str):
+        value = float("nan") if not value else float(value)
+
+    exchange[field] = value
 
 
 exchange_controller = ExchangeController(application)

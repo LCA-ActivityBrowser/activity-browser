@@ -3,7 +3,6 @@ from .activity import ActivityDataGrid, DetailsGroupBox
 from .biosphere_update import BiosphereUpdater
 from .comparison_switch import SwitchComboBox
 from .cutoff_menu import CutoffMenu
-from .database_copy import CopyDatabaseDialog
 from .dialog import (
     ForceInputDialog, TupleNameDialog, ExcelReadDialog,
     DatabaseLinkingDialog, DefaultBiosphereDialog,

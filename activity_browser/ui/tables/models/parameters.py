@@ -9,8 +9,9 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
 from asteval import Interpreter
 from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
+from PySide2 import QtWidgets
 
-from activity_browser import log, signals
+from activity_browser import log, signals, application, actions, parameter_controller, exchange_controller
 from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
@@ -80,17 +81,25 @@ class BaseParameterModel(EditablePandasModel):
         """Take the index and update the underlying brightway Parameter."""
         param = self.get_parameter(index)
         field = self._dataframe.columns[index.column()]
-        signals.parameter_modified.emit(param, field, index.data())
+
+        try:
+            parameter_controller.modify_parameter(param, field, index.data())
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(
+                application.main_window, "Could not save changes", str(e),
+                QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+            )
 
     @Slot(QModelIndex, name="startRenameParameter")
     def handle_parameter_rename(self, proxy: QModelIndex) -> None:
         group = self.get_group(proxy)
         param = self.get_parameter(proxy)
-        signals.rename_parameter.emit(param, group)
+
+        actions.ParameterRename(param, self).trigger()
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        signals.delete_parameter.emit(param)
+        parameter_controller.delete_parameter(param)
 
     @Slot(name="modifyParameterUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
@@ -101,7 +110,7 @@ class BaseParameterModel(EditablePandasModel):
     @Slot(name="unsetParameterUncertainty")
     def remove_uncertainty(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        signals.parameter_uncertainty_modified.emit(param, uc.EMPTY_UNCERTAINTY)
+        parameter_controller.modify_parameter_uncertainty(param, uc.EMPTY_UNCERTAINTY)
 
     def handle_double_click(self, proxy: QModelIndex) -> None:
         column = proxy.column()
@@ -233,9 +242,7 @@ class ActivityParameterModel(BaseParameterModel):
         except:
             # Can occur if an activity parameter exists for a removed activity.
             log.info("Activity {} no longer exists, removing parameter.".format(row["key"]))
-            signals.clear_activity_parameter.emit(
-                parameter.database, parameter.code, parameter.group
-            )
+            parameter_controller.clear_broken_activity_parameter(parameter.database, parameter.code, parameter.group)
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
@@ -247,7 +254,7 @@ class ActivityParameterModel(BaseParameterModel):
     @staticmethod
     @Slot(tuple, name="addActivityParameter")
     def add_parameter(key: tuple) -> None:
-        signals.add_activity_parameter.emit(key)
+        parameter_controller.auto_add_parameter(key)
 
     def get_activity_groups(self, proxy, ignore_groups: list = None) -> Iterable[str]:
         """ Helper method to look into the Group and determine which if any
@@ -355,7 +362,7 @@ class ParameterItem(TreeItem):
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
                 log.warning("Broken exchange: {}, removing.".format(e))
-                signals.exchanges_deleted.emit([exc])
+                exchange_controller.delete_exchanges([exc])
 
 
 class ParameterTreeModel(BaseTreeModel):
@@ -419,7 +426,7 @@ class ParameterTreeModel(BaseTreeModel):
         group = bc.build_activity_group_name(key)
         if not (ActivityParameter.select()
                 .where(ActivityParameter.group == group).count()):
-            signals.add_activity_parameter.emit(key)
+            parameter_controller.auto_add_parameter(key)
 
         act = bw.get_activity(key)
         with bw.parameters.db.atomic():

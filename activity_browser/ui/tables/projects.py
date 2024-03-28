@@ -3,6 +3,7 @@ from bw2data import projects
 from PySide2.QtWidgets import QComboBox
 from PySide2.QtCore import Qt
 from ...signals import signals
+from ...controllers import project_controller
 
 
 class ProjectListWidget(QComboBox):
@@ -26,4 +27,4 @@ class ProjectListWidget(QComboBox):
         self.setCurrentIndex(index)
 
     def on_activated(self, index):
-        signals.change_project.emit(self.project_names[index])
+        project_controller.change_project(self.project_names[index])

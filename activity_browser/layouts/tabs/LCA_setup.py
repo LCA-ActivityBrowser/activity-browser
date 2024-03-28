@@ -5,7 +5,7 @@ from brightway2 import calculation_setups
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 
-from activity_browser import log, signals
+from activity_browser import log, signals, actions
 from .base import BaseRightTab
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -101,10 +101,10 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList(self)
 
-        self.new_cs_button = QtWidgets.QPushButton(qicons.add, "New")
-        self.copy_cs_button = QtWidgets.QPushButton(qicons.copy, "Copy")
-        self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
-        self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.new_cs_button = actions.CSNew(self).get_button()
+        self.duplicate_cs_button = actions.CSDuplicate(self.list_widget.currentText, self).get_button()
+        self.delete_cs_button = actions.CSDelete(self.list_widget.currentText, self).get_button()
+        self.rename_cs_button = actions.CSRename(self.list_widget.currentText, self).get_button()
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()
@@ -114,7 +114,7 @@ class LCASetupTab(QtWidgets.QWidget):
         name_row.addWidget(header('Calculation Setup:'))
         name_row.addWidget(self.list_widget)
         name_row.addWidget(self.new_cs_button)
-        name_row.addWidget(self.copy_cs_button)
+        name_row.addWidget(self.duplicate_cs_button)
         name_row.addWidget(self.rename_cs_button)
         name_row.addWidget(self.delete_cs_button)
         name_row.addStretch(1)
@@ -163,19 +163,6 @@ class LCASetupTab(QtWidgets.QWidget):
     def connect_signals(self):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
-
-        self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
-        self.copy_cs_button.clicked.connect(
-            lambda: signals.copy_calculation_setup.emit(self.list_widget.name)
-        )
-        self.delete_cs_button.clicked.connect(
-            lambda x: signals.delete_calculation_setup.emit(
-                self.list_widget.name
-        ))
-        self.rename_cs_button.clicked.connect(
-            lambda x: signals.rename_calculation_setup.emit(
-                self.list_widget.name
-        ))
         signals.calculation_setup_changed.connect(self.save_cs_changes)
         self.calculation_type.currentIndexChanged.connect(self.select_calculation_type)
 
@@ -232,7 +219,7 @@ class LCASetupTab(QtWidgets.QWidget):
         # show/hide items from name_row
         self.rename_cs_button.setVisible(show)
         self.delete_cs_button.setVisible(show)
-        self.copy_cs_button.setVisible(show)
+        self.duplicate_cs_button.setVisible(show)
         self.list_widget.setVisible(show)
         # show/hide items from calc_row
         self.calculate_button.setVisible(show)
