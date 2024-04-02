@@ -94,7 +94,7 @@ def test_activity_graph(ab_app):
 
 def test_activity_new(ab_app, monkeypatch):
     database_name = "activity_tests"
-    records = database_controller.record_count(database_name)
+    records = len(database_controller.get(database_name))
 
     monkeypatch.setattr(
         QtWidgets.QInputDialog, 'getText',
@@ -103,7 +103,7 @@ def test_activity_new(ab_app, monkeypatch):
 
     actions.ActivityNew(database_name, None).trigger()
 
-    assert records < database_controller.record_count(database_name)
+    assert records < len(database_controller.get(database_name))
 
 
 def test_activity_open(ab_app):

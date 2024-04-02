@@ -29,7 +29,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
     with qtbot.waitSignal(signals.databases_changed, timeout=5 * 60 * 1000): pass
 
     assert "biosphere3" in bw.databases
-    assert database_controller.record_count("biosphere3") == 4324
+    assert len(database_controller.get("biosphere3")) == 4324
     assert len(bw.methods) == 762
 
 
@@ -53,14 +53,14 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
 
     assert bw.projects.current == project_name
     assert "biosphere3" in bw.databases
-    assert database_controller.record_count("biosphere3") == 4324
+    assert len(database_controller.get("biosphere3")) == 4324
 
     action = actions.BiosphereUpdate(None)
     action.trigger()
 
     with qtbot.waitSignal(action.updater.finished, timeout=5*60*1000): pass
 
-    assert database_controller.record_count("biosphere3") == 4743
+    assert len(database_controller.get("biosphere3")) == 4743
 
 
 def test_plugin_wizard_open(ab_app):

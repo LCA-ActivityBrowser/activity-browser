@@ -114,6 +114,7 @@ class TestParameterNew:
         assert wizard.pages[1].isVisible()
         assert not wizard.pages[1].database.isHidden()
         wizard.pages[1].name.setText("parameter_test")
+        wizard.pages[1].database.setCurrentText("activity_tests")
         wizard.done(1)
         assert not wizard.isVisible()
         assert wizard.param_data == param_data

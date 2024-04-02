@@ -4,7 +4,7 @@ import pandas as pd
 import brightway2 as bw
 from PySide2 import QtCore
 
-from activity_browser import signals, application, activity_controller, exchange_controller
+from activity_browser import signals, application, activity_controller, exchange_controller, database_controller
 from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
@@ -124,9 +124,10 @@ class ActivityDuplicateToLoc(ABAction):
         signals.safe_open_activity_tab.emit(new_act.key)
 
         # send signals to relevant locations
-        bw.databases.set_modified(self.db_name)
-        signals.database_changed.emit(self.db_name)
-        signals.databases_changed.emit()
+        database_controller.set_modified(self.db_name)
+        
+        signals.database_changed.emit(self.db_name)  # legacy
+        signals.databases_changed.emit()  # legacy
 
     def find_candidate(self, dbs, exch, old_location, new_location, use_alternatives, alternatives) -> Optional[object]:
         """Find a candidate to replace the exchange with."""

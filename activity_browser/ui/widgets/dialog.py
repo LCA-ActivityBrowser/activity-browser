@@ -6,9 +6,8 @@ import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
+from activity_browser import project_settings, signals, database_controller
 from activity_browser.bwutils.superstructure import get_sheet_names
-from activity_browser.settings import project_settings
-from activity_browser.signals import signals
 from ..threading import ABThread
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
@@ -561,7 +560,7 @@ class DefaultBiosphereThread(ABThread):
 
     def run_safely(self):
         project = "<b>{}</b>".format(bw.projects.current)
-        if "biosphere3" not in bw.databases:
+        if "biosphere3" not in database_controller:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")

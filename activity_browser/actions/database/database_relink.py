@@ -3,7 +3,7 @@ from typing import Union, Callable
 import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application, signals
+from activity_browser import application, signals, database_controller
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import DatabaseLinkingDialog, DatabaseLinkingResultsDialog
@@ -28,7 +28,7 @@ class DatabaseRelink(ABAction):
 
         # find the dependencies of the database and construct a list of suitable candidates
         depends = db.find_dependents()
-        options = [(depend, bw.databases.list) for depend in depends]
+        options = [(depend, list(database_controller)) for depend in depends]
 
         # construct a dialog in which the user chan choose which depending database to connect to which candidate
         dialog = DatabaseLinkingDialog.relink_sqlite(self.db_name, options, application.main_window)

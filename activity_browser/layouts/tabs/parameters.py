@@ -11,7 +11,7 @@ from PySide2.QtWidgets import (
 )
 from xlsxwriter.exceptions import FileCreateError
 
-from activity_browser import actions, signals
+from activity_browser import actions, signals, database_controller
 from ...bwutils.manager import ParameterManager
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
@@ -106,7 +106,7 @@ class ABDatabaseParameter(ABParameterTable):
         self.setLayout(self.create_layout(self.header, self.new_parameter_button, self.table))
 
     def set_enabled(self, trigger):
-        if not bw.databases:
+        if not list(database_controller):
             self.new_parameter_button.setEnabled(False)
         else:
             self.new_parameter_button.setEnabled(True)
@@ -289,7 +289,7 @@ can be used within the formula!</p>
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases
-        if not bw.databases:
+        if not list(database_controller):
             self.database_table.set_enabled(False)
         else:
             self.database_table.set_enabled(True)
