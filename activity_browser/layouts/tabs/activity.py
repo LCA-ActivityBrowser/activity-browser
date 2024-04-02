@@ -4,6 +4,7 @@ from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
+from activity_browser import database_controller
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
 from ...ui.tables import (BiosphereExchangeTable, DownstreamExchangeTable,
@@ -202,7 +203,7 @@ class ActivityTab(QtWidgets.QWidget):
     @Slot(name="populatePage")
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
-        if self.db_name in bw.databases:
+        if self.db_name in database_controller:
             # Avoid a weird signal interaction in the tests
             try:
                 self.activity = bw.get_activity(self.key)  # Refresh activity.

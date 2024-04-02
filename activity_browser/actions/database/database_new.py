@@ -3,10 +3,9 @@ from typing import Union, Callable, Any
 import brightway2 as bw
 from PySide2 import QtWidgets
 
-from activity_browser import application
+from activity_browser import application, database_controller, project_settings
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
-from activity_browser.controllers import database_controller
 
 
 class DatabaseNew(ABAction):
@@ -28,7 +27,7 @@ class DatabaseNew(ABAction):
 
         if not ok or not name: return
 
-        if name in bw.databases:
+        if name in database_controller:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible",
@@ -36,4 +35,5 @@ class DatabaseNew(ABAction):
             )
             return
 
-        database_controller.new_database(name)
+        database_controller.add(name)
+        project_settings.add_db(name, False)

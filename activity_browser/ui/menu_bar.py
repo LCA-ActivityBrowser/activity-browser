@@ -3,7 +3,7 @@ import brightway2 as bw
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
-from activity_browser import actions, signals
+from activity_browser import actions, signals, database_controller
 from ..info import __version__ as ab_version
 from .icons import qicons
 
@@ -108,6 +108,6 @@ For license information please see the copyright on <a href="https://github.com/
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
         """
-        exists = True if bw.config.biosphere in bw.databases else False
+        exists = True if bw.config.biosphere in database_controller else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)

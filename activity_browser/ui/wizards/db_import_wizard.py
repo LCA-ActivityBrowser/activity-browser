@@ -16,7 +16,7 @@ from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser import signals, log
+from activity_browser import signals, log, database_controller
 from ..threading import ABThread
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
@@ -404,7 +404,7 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in bw.databases:
+        if db_name in database_controller:
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
                 db_name, bw.projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
@@ -645,7 +645,7 @@ class ImportPage(QtWidgets.QWizardPage):
         """
         self.main_worker_thread.exit(1)
 
-        options = [(db, bw.databases.list) for db in missing]
+        options = [(db, list(database_controller)) for db in missing]
         linker = DatabaseLinkingDialog.relink_bw2package(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -669,7 +669,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.exit(1)
 
         # Iterate through the missing databases, asking user input.
-        options = [(db, bw.databases.list) for db in missing]
+        options = [(db, list(database_controller)) for db in missing]
         linker = DatabaseLinkingDialog.relink_excel(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -904,8 +904,8 @@ class MainWorkerThread(ABThread):
             import_signals.import_failure.emit(("Relinking failed", e.args[0]))
 
     def delete_canceled_db(self):
-        if self.db_name in bw.databases:
-            del bw.databases[self.db_name]
+        if self.db_name in database_controller:
+            del database_controller[self.db_name]
             log.info(f'Database {self.db_name} deleted!')
 
 

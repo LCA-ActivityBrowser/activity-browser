@@ -77,7 +77,7 @@ class CSActivityModel(CSGenericModel):
         self.HEADERS = self.HEADERS + ["key"]
 
         signals.calculation_setup_selected.connect(self.sync)
-        signals.databases_changed.connect(self.sync)
+        #signals.databases_changed.connect(self.sync)
         signals.database_changed.connect(self.check_activities)
         # after editing the model, signal that the calculation setup has changed.
         self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
