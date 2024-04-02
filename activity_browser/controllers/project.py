@@ -6,7 +6,6 @@ from bw2data.backends.peewee import SubstitutableDatabase
 from PySide2.QtCore import QObject, Signal
 
 from activity_browser import log, signals, ab_settings, application
-from activity_browser.bwutils import commontasks as bc
 
 
 class ProjectController(QObject):
@@ -17,7 +16,7 @@ class ProjectController(QObject):
         super().__init__(parent)
 
     def switch_brightway2_dir_path(self, dirpath: str) -> None:
-        if bc.switch_brightway2_dir(dirpath):
+        if switch_brightway2_dir(dirpath):
             self.change_project(ab_settings.startup_project, reload=True)
             signals.databases_changed.emit()
 
@@ -183,5 +182,27 @@ class NewProjectController(QObject):
 
         self.project_switched.emit()
 
+def switch_brightway2_dir(dirpath):
+    bw_base = bw.projects._base_data_dir
+    if dirpath == bw_base:
+        log.info('dirpath already loaded')
+        return False
+    try:
+        assert os.path.isdir(dirpath)
+        bw.projects._base_data_dir = dirpath
+        bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
+        # create folder if it does not yet exist
+        if not os.path.isdir(bw.projects._base_logs_dir):
+            os.mkdir(bw.projects._base_logs_dir)
+        # load new brightway directory
+        bw.projects.db = SubstitutableDatabase(
+            os.path.join(bw.projects._base_data_dir, "projects.db"),
+            [ProjectDataset]
+        )
+        log.info('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        return True
+    except AssertionError:
+        log.error('Could not access BW_DIR as specified in settings.py')
+        return False
 
 project_controller = ProjectController(application)

@@ -2,9 +2,10 @@ from typing import Union, Callable, List
 
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application, project_settings, activity_controller
+from activity_browser import application, project_settings, activity_controller, activity_controller
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
+from activity_browser.bwutils import commontasks
 
 
 class ActivityDuplicateToDB(ABAction):
@@ -22,7 +23,7 @@ class ActivityDuplicateToDB(ABAction):
 
     def onTrigger(self, toggled):
         # get bw activity objects from keys
-        activities = activity_controller.get_activities(self.activity_keys)
+        activities = [activity_controller.get(key) for key in self.activity_keys]
 
         # get valid databases (not the original database, or locked databases)
         origin_db = next(iter(activities)).get("database")
@@ -52,5 +53,6 @@ class ActivityDuplicateToDB(ABAction):
 
         # otherwise move all supplied activities to the db using the controller
         for activity in activities:
-            activity_controller.duplicate_activity_to_db(target_db, activity)
+            new_code = commontasks.generate_copy_code((target_db, activity["code"]))
+            activity.copy(code=new_code, database=target_db)
 

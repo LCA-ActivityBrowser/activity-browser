@@ -1,11 +1,11 @@
 from typing import Union, Callable, Optional
 
 import pandas as pd
-import brightway2 as bw
 from PySide2 import QtCore
 
-from activity_browser import signals, application, activity_controller, exchange_controller, database_controller
-from activity_browser.bwutils import AB_metadata
+from activity_browser import signals, application
+from activity_browser import activity_controller, database_controller, exchange_controller
+from activity_browser.bwutils import AB_metadata, commontasks
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 from ...ui.widgets import LocationLinkingDialog
@@ -24,12 +24,12 @@ class ActivityDuplicateToLoc(ABAction):
         super().__init__(parent, activity_key=activity_key)
 
     def onTrigger(self, toggled):
-        act = activity_controller.get_activities(self.activity_key)[0]
-        self.db_name = act.key[0]
+        activity = activity_controller.get(self.activity_key)
+        self.db_name = activity["database"]
 
         # get list of dependent databases for activity and load to MetaDataStore
         databases = []
-        for exchange in act.technosphere():
+        for exchange in activity.technosphere():
             databases.append(exchange.input[0])
         if self.db_name not in databases:  # add own database if it wasn't added already
             databases.append(self.db_name)
@@ -45,11 +45,11 @@ class ActivityDuplicateToLoc(ABAction):
 
         # get the location to relink
         db = dbs[self.db_name]
-        old_location = db.loc[db['key'] == act.key]['location'].iloc[0]
+        old_location = db.loc[db['key'] == activity.key]['location'].iloc[0]
 
         # trigger dialog with autocomplete-writeable-dropdown-list
         options = (old_location, locations)
-        dialog = LocationLinkingDialog.relink_location(act['name'], options, application.main_window)
+        dialog = LocationLinkingDialog.relink_location(activity['name'], options, application.main_window)
 
         if dialog.exec_() != LocationLinkingDialog.Accepted: return
 
@@ -76,7 +76,7 @@ class ActivityDuplicateToLoc(ABAction):
         # to look for that.
 
         # get exchanges that we want to relink
-        for exch in act.technosphere():
+        for exch in activity.technosphere():
             candidate = self.find_candidate(dbs, exch, old_location, new_location, use_alternatives, alternatives)
             if candidate is None:
                 continue  # no suitable candidate was found, try the next exchange
@@ -91,20 +91,24 @@ class ActivityDuplicateToLoc(ABAction):
             successful_links[candidate['key'].iloc[0]] = values
 
         # now, create a new activity by copying the old one
-        new_code = activity_controller.generate_copy_code(act.key)
-        new_act = act.copy(new_code)
+        new_code = commontasks.generate_copy_code(activity.key)
+        new_act = activity.copy(new_code)
+
         # update production exchanges
         for exc in new_act.production():
-            if exc.input.key == act.key:
+            if exc.input.key == activity.key:
                 exc.input = new_act
                 exc.save()
+
         # update 'products'
         for product in new_act.get('products', []):
-            if product.get('input') == act.key:
+            if product.get('input') == activity.key:
                 product.input = new_act.key
-        new_act.save()
+
         # save the new location to the activity
-        activity_controller.modify_activity(new_act.key, 'location', new_location)
+        new_act['location'] = new_location
+
+        new_act.save()
 
         # get exchanges that we want to delete
         del_exch = []  # delete these exchanges

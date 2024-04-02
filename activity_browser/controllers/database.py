@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from typing import List
 
-from bw2data.backends.peewee import SQLiteBackend, Activity
+from bw2data.backends.peewee import SQLiteBackend
 from bw2data import databases, Database
 from PySide2.QtCore import QObject, Signal, SignalInstance
 
-from activity_browser import log, signals, application, project_settings
+from activity_browser import signals, application
+from activity_browser.bwutils import AB_metadata
+from .activity import ABActivity, activity_controller
 
 
 class DatabaseController(QObject):
@@ -79,6 +81,10 @@ class ABDatabase(QObject):
         self.bw_database.register()
         self.setObjectName(name)
 
+        activity_controller.new_activity.connect(self._activity_link)
+        activity_controller.activity_changed.connect(self._activity_link)
+        activity_controller.activity_deleted.connect(self._activity_link)
+
     def __iter__(self):
         for activity in self.bw_database:
             yield ABActivity.from_activity(activity)
@@ -86,7 +92,12 @@ class ABDatabase(QObject):
     def __len__(self):
         return len(self.bw_database)
 
-    # mirroring database properties
+    def _activity_link(self, activity):
+        if activity["database"] != self.name: return
+        self.data_changed.emit()
+
+
+        # mirroring database properties
     @property
     def name(self):
         return self.bw_database.name
@@ -137,7 +148,15 @@ class ABDatabase(QObject):
 
     def new_activity(self, code, **kwargs):
         activity = self.bw_database.new_activity(code, **kwargs)
-        self.data_changed.emit()
+        activity.save()
+
+        activity_controller.new_activity.emit(activity)
+
+        # legacy
+        AB_metadata.update_metadata(activity.key)
+        signals.database_changed.emit(self.name)
+        signals.databases_changed.emit()
+
         return ABActivity.from_activity(activity)
 
     def search(self, string, **kwargs):
@@ -151,17 +170,6 @@ class ABDatabase(QObject):
             # implement something like the following
             # activity_controller.changed.emit(key)
             return
-
-
-class ABActivity(Activity):
-    # THIS WILL MOVE STILL
-    @classmethod
-    def from_activity(cls, activity: Activity):
-        return cls(activity._document)
-
-    def save(self):
-        super().save()
-        # emit activity_changed
 
 
 database_controller = DatabaseController(application)
