@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import traceback
 
-from bw2calc.errors import BW2CalcError
 from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout, QApplication
 
 from activity_browser import log, signals
+from activity_browser.bwutils import errors
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
-from ...bwutils.errors import ABError
 
 
 class LCAResultsTab(ABTab):
@@ -58,7 +57,7 @@ class LCAResultsTab(ABTab):
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])
             signals.show_tab.emit("LCA results")
-        except (BW2CalcError, ABError) as e:
+        except (errors.BW2CalcError, errors.ABError) as e:
             initial, *other = e.args
             log.error(traceback.format_exc())
             QApplication.restoreOverrideCursor()

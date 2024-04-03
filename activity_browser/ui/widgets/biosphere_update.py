@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import brightway2 as bw
 import bw2io.data as data
-from bw2data.errors import ValidityError
 from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from activity_browser import log, signals
+from activity_browser.bwutils import errors
 from ..threading import ABThread
 
 
@@ -55,6 +55,6 @@ class UpdateBiosphereThread(ABThread):
                 log.debug(f'Applying biosphere patch: {patch}')
                 update_bio = getattr(data, patch)
                 update_bio()
-        except ValidityError as e:
+        except errors.ValidityError as e:
             log.error(f'Could not patch biosphere: {str(e)}')
             self.exit(1)

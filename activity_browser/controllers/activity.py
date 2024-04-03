@@ -8,14 +8,14 @@ from activity_browser.bwutils import AB_metadata
 
 class ABActivity(Activity):
     @classmethod
-    def from_activity(cls, activity: Activity):
+    def from_activity(cls, activity: Activity) -> "ABActivity":
         return cls(activity._document)
 
-    def save(self):
+    def save(self) -> None:
         super().save()
         activity_controller.activity_changed.emit(self)
 
-    def delete(self):
+    def delete(self) -> None:
         super().delete()
         activity_controller.activity_deleted.emit(self)
 
@@ -25,7 +25,7 @@ class ABActivity(Activity):
         signals.databases_changed.emit()
         signals.calculation_setup_changed.emit()
 
-    def copy(self, code=None, **kwargs):
+    def copy(self, code=None, **kwargs) -> None:
         activity = super().copy(code, **kwargs)
         activity_controller.new_activity.emit(activity)
 

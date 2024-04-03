@@ -21,37 +21,37 @@ class DatabaseController(QObject):
         signals.project_selected.connect(self.load)
 
     # mimicking the iterable behaviour of bw2data.meta.databases
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> dict:
         return databases[item]
 
-    def __iter__(self):
+    def __iter__(self) -> dict:
         for database in databases:
             yield database
 
-    def __delitem__(self, name):
+    def __delitem__(self, name) -> None:
         del databases[name]
         self.get(name).deleteLater()
         signals.delete_database_confirmed.emit(name)  # legacy
         signals.databases_changed.emit()
 
     # mirroring all public methods of bw2data.meta.databases
-    def increment_version(self, database, number=None):
+    def increment_version(self, database, number=None) -> None:
         databases.increment_version(database, number)
         self.metadata_changed.emit()
 
     def version(self, database):
         return databases.version(database)
 
-    def set_modified(self, database):
+    def set_modified(self, database) -> None:
         databases.set_modified(database)
         self.metadata_changed.emit()
 
-    def set_dirty(self, database):
+    def set_dirty(self, database) -> None:
         databases.set_dirty(database)
         self.metadata_changed.emit()
 
     # extending functionality
-    def load(self):
+    def load(self) -> None:
         for child in self.children():
             child.deleteLater()
         for db_name in databases:
@@ -60,7 +60,7 @@ class DatabaseController(QObject):
     def get(self, database) -> "ABDatabase":
         return self.findChild(ABDatabase, database)
 
-    def add(self, name):
+    def add(self, name) -> None:
         ABDatabase(name, self)
         self.metadata_changed.emit()
         signals.databases_changed.emit()  # legacy
@@ -85,37 +85,36 @@ class ABDatabase(QObject):
         activity_controller.activity_changed.connect(self._activity_link)
         activity_controller.activity_deleted.connect(self._activity_link)
 
-    def __iter__(self):
+    def __iter__(self) -> ABActivity:
         for activity in self.bw_database:
             yield ABActivity.from_activity(activity)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.bw_database)
 
-    def _activity_link(self, activity):
+    def _activity_link(self, activity) -> None:
         if activity["database"] != self.name: return
         self.data_changed.emit()
 
-
-        # mirroring database properties
+    # mirroring database properties
     @property
-    def name(self):
+    def name(self) -> str:
         return self.bw_database.name
 
     @property
-    def backend(self):
+    def backend(self) -> str:
         return self.bw_database.backend
 
     @property
-    def filename(self):
+    def filename(self) -> str:
         return self.bw_database.filename
 
     @property
-    def order_by(self):
+    def order_by(self) -> str:
         return self.bw_database.order_by
 
     @property
-    def registered(self):
+    def registered(self) -> bool:
         return self.bw_database.registered
 
     @property
@@ -129,24 +128,24 @@ class ABDatabase(QObject):
         return self.bw_database.find_graph_dependents()
 
     # methods for database manipulation
-    def copy(self, name):
+    def copy(self, name) -> None:
         self.bw_database.copy(name)
         self.parent().add(name)
 
-    def delete(self):
+    def delete(self) -> None:
         self.bw_database.delete()
         self.deleted.emit()
 
     # methods returning activity proxies
-    def random(self, filters=True, true_random=False):
+    def random(self, filters=True, true_random=False) -> ABActivity:
         activity = self.bw_database.random(filters, true_random)
         return ABActivity.from_activity(activity)
 
-    def get(self, code):
+    def get(self, code) -> ABActivity:
         activity = self.bw_database.get(code)
         return ABActivity.from_activity(activity)
 
-    def new_activity(self, code, **kwargs):
+    def new_activity(self, code, **kwargs) -> ABActivity:
         activity = self.bw_database.new_activity(code, **kwargs)
         activity.save()
 
@@ -159,7 +158,7 @@ class ABDatabase(QObject):
 
         return ABActivity.from_activity(activity)
 
-    def search(self, string, **kwargs):
+    def search(self, string, **kwargs) -> List[ABActivity]:
         result = self.bw_database.search(string, **kwargs)
         return [ABActivity.from_activity(activity) for activity in result]
 

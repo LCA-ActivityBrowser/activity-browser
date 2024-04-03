@@ -8,19 +8,17 @@ from pathlib import Path
 import eidl
 import requests
 import brightway2 as bw
-from bw2data.errors import InvalidExchange, UnknownObject
 from bw2io import SingleOutputEcospold2Importer
-from bw2io.errors import InvalidPackage, StrategyError
 from bw2io.extractors import Ecospold2DataExtractor
 from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
 from activity_browser import signals, log, database_controller
+from activity_browser.bwutils import errors
 from ..threading import ABThread
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
-from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
@@ -828,9 +826,9 @@ class MainWorkerThread(ABThread):
                 import_signals.finished.emit()
             else:
                 self.delete_canceled_db()
-        except ImportCanceledError:
+        except errors.ImportCanceledError:
             self.delete_canceled_db()
-        except InvalidExchange:
+        except errors.InvalidExchange:
             # Likely caused by new version of ecoinvent not finding required
             # biosphere flows.
             self.delete_canceled_db()
@@ -867,29 +865,29 @@ class MainWorkerThread(ABThread):
                 import_signals.finished.emit()
             else:
                 self.delete_canceled_db()
-        except InvalidPackage as e:
+        except errors.InvalidPackage as e:
             # BW2package import failed, required databases are missing
             self.delete_canceled_db()
             import_signals.missing_dbs.emit(e.args[1])
-        except ImportCanceledError:
+        except errors.ImportCanceledError:
             self.delete_canceled_db()
-        except InvalidExchange:
+        except errors.InvalidExchange:
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Missing exchanges", "The import has failed, likely due missing exchanges.")
             )
-        except UnknownObject as e:
+        except errors.UnknownObject as e:
             # BW2Package import failed because the object was not understood
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Unknown object", str(e))
             )
-        except StrategyError as e:
+        except errors.StrategyError as e:
             # Excel import failed because extra databases were found, relink
             log.error("Could not link exchanges, here are 10 examples.:") # THREAD UNSAFE FUNCTIONS
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
-        except LinkingFailed as e:
+        except errors.LinkingFailed as e:
             # Excel import failed after asking user to relink.
             error = (
                 "Unlinked exchanges",
@@ -1188,7 +1186,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
         for i, filename in enumerate(file_list, start=1):
             if import_signals.cancel_sentinel:
                 log.info(f'Extraction canceled at position {i}!')
-                raise ImportCanceledError
+                raise errors.ImportCanceledError
 
             data.append(cls.extract_activity(dir_path, filename, db_name))
             import_signals.extraction_progress.emit(i, total)
@@ -1209,7 +1207,7 @@ class ActivityBrowserBackend(SQLiteBackend):
         index = args[0]
         if import_signals.cancel_sentinel:
             log.info(f'\nWriting canceled at position {index}!')
-            raise ImportCanceledError
+            raise errors.ImportCanceledError
         import_signals.db_progress.emit(index+1, self.total)
         return super()._efficient_write_dataset(*args, **kwargs)
 

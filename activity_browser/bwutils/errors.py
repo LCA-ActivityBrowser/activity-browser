@@ -9,6 +9,9 @@ errors.
 
 """
 
+from bw2calc.errors import BW2CalcError
+from bw2data.errors import ValidityError, InvalidExchange, UnknownObject
+from bw2io.errors import InvalidPackage, StrategyError
 
 class ABError(Exception):
     """To be used as a generic Activity-Browser Error that will not lead to the AB crashing out"""
