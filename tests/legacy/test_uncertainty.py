@@ -4,7 +4,6 @@ Use the existing parameters to look at the uncertainty and edit it in
 multiple ways
 """
 import brightway2 as bw
-from PySide2 import QtCore, QtWidgets
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
 
@@ -12,11 +11,10 @@ from activity_browser import project_controller
 from activity_browser.bwutils.uncertainty import (
     ExchangeUncertaintyInterface, CFUncertaintyInterface, get_uncertainty_interface
 )
-from activity_browser.ui.tables.delegates import UncertaintyDelegate
-from activity_browser.ui.tables.parameters import ProjectParameterTable
+
 
 def test_exchange_interface(qtbot, ab_app):
-    project_controller.change_project("default")
+    project_controller.set_current("default")
     flow = bw.Database(bw.config.biosphere).random()
     db = bw.Database("testdb")
     act_key = ("testdb", "act_unc")

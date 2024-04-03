@@ -1,11 +1,9 @@
-import brightway2 as bw
 from PySide2 import QtWidgets
 
-from activity_browser import application, ab_settings, log
-from activity_browser.actions.base import ABAction
+from activity_browser import application, ab_settings, project_controller
+from activity_browser.actions.base import ABAction, dialog_on_error
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import ProjectDeletionDialog
-from activity_browser.controllers import project_controller
 
 
 class ProjectDelete(ABAction):
@@ -16,9 +14,10 @@ class ProjectDelete(ABAction):
     title = "Delete"
     tool_tip = "Delete the project"
 
+    @dialog_on_error
     def onTrigger(self, toggled):
         # get the current project
-        project_to_delete = bw.projects.current
+        project_to_delete = project_controller.current
 
         # if it's the startup project: reject deletion and inform user
         if project_to_delete == ab_settings.startup_project:
@@ -30,24 +29,16 @@ class ProjectDelete(ABAction):
 
         # open a delete dialog for the user to confirm, return if user rejects
         delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(application.main_window,
-                                                                                bw.projects.current)
+                                                                                project_controller.current)
         if delete_dialog.exec_() != ProjectDeletionDialog.Accepted: return
 
         # try to delete the project, delete directory if user specified so
-        try:
-            project_controller.delete_project(delete_dialog.deletion_warning_checked())
-        # if an exception occurs, show warning box en log exception
-        except Exception as exception:
-            log.error(str(exception))
-            QtWidgets.QMessageBox.warning(
-                application.main_window,
-                "An error occured",
-                "An error occured during project deletion. Please check the logs for more information."
-            )
-            # if all goes well show info box that the project is deleted
-        else:
-            QtWidgets.QMessageBox.information(
-                application.main_window,
-                "Project deleted",
-                "Project succesfully deleted"
-            )
+        project_controller.set_current(ab_settings.startup_project)
+        project_controller.delete_project(project_to_delete, delete_dialog.deletion_warning_checked())
+
+        # inform the user of successful deletion
+        QtWidgets.QMessageBox.information(
+            application.main_window,
+            "Project deleted",
+            "Project successfully deleted"
+        )

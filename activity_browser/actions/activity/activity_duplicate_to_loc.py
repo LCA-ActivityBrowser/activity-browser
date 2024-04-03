@@ -24,7 +24,7 @@ class ActivityDuplicateToLoc(ABAction):
         super().__init__(parent, activity_key=activity_key)
 
     def onTrigger(self, toggled):
-        activity = activity_controller.get(self.activity_key)
+        activity = activity_controller.get(self.activity_key[0])
         self.db_name = activity["database"]
 
         # get list of dependent databases for activity and load to MetaDataStore

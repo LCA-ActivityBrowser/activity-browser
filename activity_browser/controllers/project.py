@@ -1,127 +1,74 @@
 import os
 
-import brightway2 as bw
 from bw2data.project import projects, ProjectDataset
 from bw2data.backends.peewee import SubstitutableDatabase
-from PySide2.QtCore import QObject, Signal
+from PySide2.QtCore import QObject, Signal, SignalInstance
 
-from activity_browser import log, signals, ab_settings, application
+from activity_browser import log, signals, application
 
 
 class ProjectController(QObject):
-    """The controller that handles all of the AB features on the level of
-    a brightway project.
-    """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def switch_brightway2_dir_path(self, dirpath: str) -> None:
-        if switch_brightway2_dir(dirpath):
-            self.change_project(ab_settings.startup_project, reload=True)
-            signals.databases_changed.emit()
-
-    def load_settings(self) -> None:
-        if ab_settings.settings:
-            log.info("Loading user settings:")
-            self.switch_brightway2_dir_path(dirpath=ab_settings.current_bw_dir)
-            self.change_project(ab_settings.startup_project)
-        log.info('Brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        log.info('Brightway2 active project: {}'.format(bw.projects.current))
-
-    @staticmethod
-    def change_project(name: str = "default", reload: bool = False) -> None:
-        """Change the project, this clears all tabs and metadata related to
-        the current project.
-        """
-        # check whether the project does exist, otherwise return
-        if name not in bw.projects: 
-            log.info(f"Project does not exist: {name}")
-            return
-        
-        if name != bw.projects.current or reload:
-            bw.projects.set_current(name)
-        signals.project_selected.emit()
-        log.info("Loaded project:", name)
-
-    def new_project(self, name: str):
-        bw.projects.set_current(name)
-        self.change_project(name, reload=True)
-        signals.projects_changed.emit()
-
-    def duplicate_project(self, new_name: str):
-        bw.projects.copy_project(new_name, switch=True)
-        self.change_project(new_name)
-        signals.projects_changed.emit()
-
-    def delete_project(self, delete_dir=False):
-        """
-        Delete the currently active project. Reject if it's the last one.
-        """
-        project_to_delete = bw.projects.current
-
-        # change from the project to be deleted, to the startup project
-        self.change_project(ab_settings.startup_project, reload=True)
-
-        # try to delete the project, delete directory if user specified so
-        bw.projects.delete_project(
-            project_to_delete,
-            delete_dir=delete_dir
-            )
-
-        signals.projects_changed.emit()
-
-
-class NewProjectController(QObject):
 
     """The controller that handles all of the AB features on the level of
     a brightway project.
     """
-    projects_changed = Signal()
-    project_switched = Signal()
+    projects_changed: SignalInstance = Signal()
+    project_switched: SignalInstance = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
     # mimicking the iterable behaviour of bw2data.projects
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> dict:
         return projects[item]
 
-    def __iter__(self):
+    def __iter__(self) -> str:
         for project in projects:
             yield project
 
-    # mirroring all public properties and methods of bw2data.projects
+    # mirroring all public properties of bw2data.projects
     @property
-    def current(self):
+    def current(self) -> str:
         return projects.current
 
     @property
-    def dir(self):
+    def dir(self) -> str:
         return projects.dir
 
     @property
-    def logs_dir(self):
+    def logs_dir(self) -> str:
         return projects.logs_dir
 
     @property
-    def output_dir(self):
+    def output_dir(self) -> str:
         return projects.logs_dir
 
     @property
-    def read_only(self):
+    def read_only(self) -> bool:
         return projects.read_only
 
-    def copy_project(self, new_name, switch=True):
+    # mirroring all public methods of bw2data.projects
+    def copy_project(self, new_name, switch=True) -> None:
         projects.copy_project(new_name, switch)
 
         signals.projects_changed.emit()
         self.projects_changed.emit()
 
-    def create_project(self, name=None, **kwargs):
+        if not switch: return
+
+        signals.project_selected.emit()
+        signals.databases_changed.emit()
+
+        self.project_switched.emit()
+
+    def create_project(self, name=None, **kwargs) -> None:
         projects.create_project(name, **kwargs)
 
         signals.projects_changed.emit()
+        signals.project_selected.emit()
+
         self.projects_changed.emit()
+        self.project_switched.emit()
 
     def delete_project(self, name=None, delete_dir=False) -> str:
         """
@@ -129,12 +76,12 @@ class NewProjectController(QObject):
         """
         current_project = projects.delete_project(name, delete_dir)
 
-        signals.projects_changed.emit()
+        signals.projects_changed.emit()  # legacy
         self.projects_changed.emit()
 
         return current_project
 
-    def purge_deleted_directories(self):
+    def purge_deleted_directories(self) -> int:
         number_of_directories = projects.purge_deleted_directories()
 
         return number_of_directories
@@ -147,7 +94,7 @@ class NewProjectController(QObject):
         path = projects.request_directory(name)
         return path
 
-    def set_current(self, name, writable=True, update=True):
+    def set_current(self, name, writable=True, update=True) -> None:
         log.info(f"Loading brightway2 project: {name}")
         projects.set_current(name, writable, update)
 
@@ -160,10 +107,14 @@ class NewProjectController(QObject):
     def change_project(self, name: str = "default", reload: bool = False) -> None:
         self.set_current(name)
 
-    def new_project(self, name: str):
+    def new_project(self, name: str) -> None:
         self.create_project(name)
 
     # brightway extensions
+    @property
+    def base_dir(self) -> str:
+        return projects._base_data_dir
+
     def switch_dir(self, path: str) -> None:
         log.info(f"Switching project directory to: {path}")
 
@@ -182,27 +133,5 @@ class NewProjectController(QObject):
 
         self.project_switched.emit()
 
-def switch_brightway2_dir(dirpath):
-    bw_base = bw.projects._base_data_dir
-    if dirpath == bw_base:
-        log.info('dirpath already loaded')
-        return False
-    try:
-        assert os.path.isdir(dirpath)
-        bw.projects._base_data_dir = dirpath
-        bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
-        # create folder if it does not yet exist
-        if not os.path.isdir(bw.projects._base_logs_dir):
-            os.mkdir(bw.projects._base_logs_dir)
-        # load new brightway directory
-        bw.projects.db = SubstitutableDatabase(
-            os.path.join(bw.projects._base_data_dir, "projects.db"),
-            [ProjectDataset]
-        )
-        log.info('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        return True
-    except AssertionError:
-        log.error('Could not access BW_DIR as specified in settings.py')
-        return False
 
 project_controller = ProjectController(application)

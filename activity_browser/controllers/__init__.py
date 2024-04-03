@@ -7,8 +7,6 @@ from .activity import activity_controller
 from .plugin import plugin_controller
 from .utilities import utilities_controller
 from .exchange import exchange_controller
-
-# still to move
 from .impact_category import impact_category_controller
 
 

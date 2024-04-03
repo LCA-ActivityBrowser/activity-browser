@@ -1,4 +1,20 @@
 from PySide2 import QtWidgets, QtGui, QtCore
+from activity_browser import application
+
+
+def dialog_on_error(func):
+    def function(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as exception:
+            QtWidgets.QMessageBox.warning(
+                application.main_window,
+                "An error occured",
+                exception.args[0]
+            )
+            raise exception
+
+    return function
 
 
 class ABAction(QtWidgets.QAction):
@@ -18,7 +34,7 @@ class ABAction(QtWidgets.QAction):
         super().__init__(self.icon, self.title, parent)
         self.kwargs = kwargs
 
-        self.triggered.connect(self.onTrigger)
+        self.triggered.connect(lambda checked: self.onTrigger(checked))
         self.toggled.connect(self.onToggle)
 
         if self.tool_tip:
@@ -37,11 +53,11 @@ class ABAction(QtWidgets.QAction):
         else: return value
 
     def onTrigger(self, checked):
-        """Fuction to be called when the action is triggered, implement in subclass"""
+        """Function to be called when the action is triggered, implement in subclass"""
         raise NotImplementedError
 
     def onToggle(self, checked):
-        """Fuction to be called when the action is toggled, implement in subclass"""
+        """Function to be called when the action is toggled, implement in subclass"""
         raise NotImplementedError
 
     def get_button(self) -> QtWidgets.QToolButton:
@@ -50,3 +66,5 @@ class ABAction(QtWidgets.QAction):
         button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         button.setDefaultAction(self)
         return button
+
+

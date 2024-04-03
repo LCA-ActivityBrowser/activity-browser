@@ -1,8 +1,9 @@
 import brightway2 as bw
 from PySide2 import QtWidgets
+from PySide2.QtCore import Slot
 
 from activity_browser import application, project_controller
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import ABAction, dialog_on_error
 from activity_browser.ui.icons import qicons
 
 
@@ -16,6 +17,7 @@ class ProjectDuplicate(ABAction):
     title = "Duplicate"
     tool_tip = "Duplicate the project"
 
+    @dialog_on_error
     def onTrigger(self, toggled):
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
@@ -33,4 +35,4 @@ class ProjectDuplicate(ABAction):
             )
             return
 
-        project_controller.duplicate_project(name)
+        project_controller.copy_project(name)

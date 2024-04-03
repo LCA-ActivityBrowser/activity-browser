@@ -25,7 +25,7 @@ class ABActivity(Activity):
         signals.databases_changed.emit()
         signals.calculation_setup_changed.emit()
 
-    def copy(self, code=None, **kwargs) -> None:
+    def copy(self, code=None, **kwargs) -> "ABActivity":
         activity = super().copy(code, **kwargs)
         activity_controller.new_activity.emit(activity)
 
@@ -33,6 +33,8 @@ class ABActivity(Activity):
         AB_metadata.update_metadata(activity.key)
         signals.database_changed.emit(self["database"])
         signals.databases_changed.emit()
+
+        return ABActivity.from_activity(activity)
 
 
 class ActivityController(QObject):
