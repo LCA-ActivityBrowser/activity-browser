@@ -1,6 +1,3 @@
-from typing import Union, Callable, Any
-
-import brightway2 as bw
 from PySide2 import QtWidgets
 
 from activity_browser import application, database_controller, project_settings

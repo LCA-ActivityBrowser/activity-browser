@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-import brightway2 as bw
 from brightway2 import calculation_setups
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt

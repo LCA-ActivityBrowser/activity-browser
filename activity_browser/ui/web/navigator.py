@@ -5,12 +5,11 @@ import os
 from copy import deepcopy
 from typing import Optional
 
-import brightway2 as bw
 import networkx as nx
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import log, signals
+from activity_browser import log, signals, database_controller, activity_controller
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 
@@ -209,7 +208,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            self.new_graph(bw.Database(self.selected_db).random().key)
+            self.new_graph(database_controller.get(self.selected_db).random().key)
         else:
             QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
 
@@ -248,7 +247,7 @@ class Graph(BaseGraph):
     @staticmethod
     def upstream_and_downstream_nodes(key: tuple) -> (list, list):
         """Returns the upstream and downstream activity objects for a key. """
-        activity = bw.get_activity(key)
+        activity = activity_controller.get(key)
         upstream_nodes = [ex.input for ex in activity.technosphere()]
         downstream_nodes = [ex.output for ex in activity.upstream()]
         return upstream_nodes, downstream_nodes
@@ -259,7 +258,7 @@ class Graph(BaseGraph):
 
         act.upstream refers to downstream exchanges; brightway is confused here)
         """
-        activity = bw.get_activity(key)
+        activity = activity_controller.get(key)
         return [ex for ex in activity.technosphere()], [ex for ex in activity.upstream()]
 
     @staticmethod
@@ -286,7 +285,7 @@ class Graph(BaseGraph):
         Returns:
                 JSON data as a string
         """
-        self.central_activity = bw.get_activity(key)
+        self.central_activity = activity_controller.get(key)
 
         # add nodes
         up_nodes, down_nodes = Graph.upstream_and_downstream_nodes(key)
@@ -335,7 +334,7 @@ class Graph(BaseGraph):
         if key == self.central_activity.key:
             log.warning("Cannot remove central activity.")
             return
-        act = bw.get_activity(key)
+        act = activity_controller.get(key)
         self.nodes.remove(act)
         if self.direct_only:
             self.remove_outside_exchanges()
@@ -376,7 +375,7 @@ class Graph(BaseGraph):
 
         count = 1
         for count, key in enumerate(orphaned_node_ids, 1):
-            act = bw.get_activity(key)
+            act = activity_controller.get(key)
             log.info(act["name"], act["location"])
             self.nodes.remove(act)
         log.info("\nRemoved ORPHANED nodes:", count)

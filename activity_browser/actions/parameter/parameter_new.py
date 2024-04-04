@@ -1,6 +1,5 @@
 from typing import Union, Callable, Optional, Tuple
 
-import brightway2 as bw
 from activity_browser.bwutils import commontasks as bc
 from PySide2 import QtCore, QtWidgets, QtGui
 

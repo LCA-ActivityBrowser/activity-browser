@@ -56,12 +56,14 @@ class ProjectController(QObject):
         if not switch: return
 
         self.project_switched.emit()
+        signals.project_selected.emit()  # legacy
 
     def create_project(self, name=None, **kwargs) -> None:
         projects.create_project(name, **kwargs)
 
         self.projects_changed.emit()
         self.project_switched.emit()
+        signals.project_selected.emit()  # legacy
 
     def delete_project(self, name=None, delete_dir=False) -> str:
         """
@@ -71,6 +73,7 @@ class ProjectController(QObject):
 
         self.projects_changed.emit()
         self.project_switched.emit()
+        signals.project_selected.emit()  # legacy
 
         return current_project
 
@@ -92,6 +95,7 @@ class ProjectController(QObject):
         projects.set_current(name, writable, update)
 
         self.project_switched.emit()
+        signals.project_selected.emit()  # legacy
 
     # backwards compatibility
     def change_project(self, name: str = "default", reload: bool = False) -> None:

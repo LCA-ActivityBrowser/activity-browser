@@ -7,11 +7,9 @@ import brightway2 as bw
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
-from PySide2.QtWidgets import QMessageBox
 
 from activity_browser import log, signals
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
-from ...wizards import UncertaintyWizard
 
 
 class MethodsListModel(DragPandasModel):
