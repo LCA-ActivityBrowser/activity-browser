@@ -4,7 +4,7 @@ from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import database_controller
+from activity_browser import database_controller, activity_controller
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
 from ...ui.tables import (BiosphereExchangeTable, DownstreamExchangeTable,
@@ -23,11 +23,11 @@ class ActivitiesTab(ABTab):
         self.setTabsClosable(True)
         self.connect_signals()
 
-
     def connect_signals(self):
+        activity_controller.activity_changed.connect(self.sync_activity_name)
+
         signals.unsafe_open_activity_tab.connect(self.unsafe_open_activity_tab)
         signals.safe_open_activity_tab.connect(self.safe_open_activity_tab)
-        signals.activity_modified.connect(self.update_activity_name)
         self.tabCloseRequested.connect(self.close_tab)
         signals.close_activity_tab.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
@@ -65,11 +65,11 @@ class ActivitiesTab(ABTab):
         self.open_activity_tab(key)
 
     @Slot(tuple, str, object, name="updateActivityName")
-    def update_activity_name(self, key, field, value):
-        if key in self.tabs and field == 'name':
+    def sync_activity_name(self, activity):
+        if activity.key in self.tabs:
             try:
-                index = self.indexOf(self.tabs[key])
-                self.setTabText(index, value)
+                index = self.indexOf(self.tabs[activity.key])
+                self.setTabText(index, activity["name"])
             except:
                 pass
 
@@ -194,7 +194,6 @@ class ActivityTab(QtWidgets.QWidget):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
         signals.database_changed.connect(self.populate)
         signals.parameters_changed.connect(self.populate)
-        # signals.activity_modified.connect(self.update_activity_values)
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:
@@ -323,9 +322,4 @@ class ActivityTab(QtWidgets.QWidget):
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
-
-    # def update_activity_values(self, key, field, value):
-    #     """Update activity values."""
-    #     if key == self.key:
-    #         self.activity[field] = value
 

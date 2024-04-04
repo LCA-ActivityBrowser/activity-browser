@@ -51,7 +51,6 @@ class ProjectController(QObject):
     def copy_project(self, new_name, switch=True) -> None:
         projects.copy_project(new_name, switch)
 
-        signals.projects_changed.emit()
         self.projects_changed.emit()
 
         if not switch: return
@@ -64,7 +63,6 @@ class ProjectController(QObject):
     def create_project(self, name=None, **kwargs) -> None:
         projects.create_project(name, **kwargs)
 
-        signals.projects_changed.emit()
         signals.project_selected.emit()
 
         self.projects_changed.emit()
@@ -76,7 +74,6 @@ class ProjectController(QObject):
         """
         current_project = projects.delete_project(name, delete_dir)
 
-        signals.projects_changed.emit()  # legacy
         self.projects_changed.emit()
 
         return current_project

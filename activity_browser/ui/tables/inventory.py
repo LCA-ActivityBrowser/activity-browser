@@ -106,7 +106,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc(lambda: self.selected_keys()[0], self)
         self.delete_activity_action = ActivityDelete(self.selected_keys, self)
         self.relink_activity_exch_action = ActivityRelink(self.selected_keys, self)
-        self.duplicate_other_db_action = ActivityDuplicateToDB(self.selected_keys, self)
+        self.duplicate_other_db_action = ActivityDuplicateToDB(self.selected_keys, None, self)
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, 'Exchanges for scenario difference file', None
         )

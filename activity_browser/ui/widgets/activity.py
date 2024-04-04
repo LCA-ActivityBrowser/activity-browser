@@ -2,10 +2,9 @@
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtWidgets import QMessageBox
 
+from activity_browser import actions, signals, project_settings
 from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import qicons
-from ...settings import project_settings
-from ...signals import signals
 from ...bwutils import AB_metadata
 
 
@@ -157,23 +156,13 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.blockSignals(False)
 
     def duplicate_confirm_dialog(self, target_db):
-        """ Get user confirmation for duplication action """
-        title = "Duplicate activity to new database"
-        text = "Copy {} to {} and open as new tab?".format(
-            self.parent.activity.get('name', 'Error: Name of activity not found'), target_db)
-
-        user_choice = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if user_choice == QMessageBox.Yes:
-            signals.duplicate_activity_to_db.emit(target_db, self.parent.activity)
-        # todo: give user more options in the dialog:
-        #   * retain / delete version in current db
-        #   * open / don't open new tab
-
+        actions.ActivityDuplicateToDB([self.parent.activity], target_db, self).trigger()
         # change selected database item back to original (index=0), to avoid confusing user
         # block and unblock signals to prevent unwanted extra emits from the automated change
         self.database_combo.blockSignals(True)
         self.database_combo.setCurrentIndex(0)
         self.database_combo.blockSignals(False)
+        return
 
     def set_activity_fields_read_only(self, read_only=True):
         """ called on init after widgets instantiated
