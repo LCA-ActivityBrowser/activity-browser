@@ -361,8 +361,8 @@ class ParameterItem(TreeItem):
                 parent.appendChild(item)
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
-                log.warning("Broken exchange: {}, removing.".format(e))
-                exchange_controller.delete_exchanges([exc])
+                log.warning(f"Broken exchange: {e}, removing.")
+                actions.ExchangeDelete([exc], None).trigger()
 
 
 class ParameterTreeModel(BaseTreeModel):

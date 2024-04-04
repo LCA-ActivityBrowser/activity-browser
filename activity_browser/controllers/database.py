@@ -96,6 +96,9 @@ class ABDatabase(QObject):
         if activity["database"] != self.name: return
         self.data_changed.emit()
 
+        # legacy
+        signals.database_changed.emit(self.name)
+
     # mirroring database properties
     @property
     def name(self) -> str:

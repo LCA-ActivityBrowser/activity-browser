@@ -59,8 +59,8 @@ class BaseExchangeModel(EditablePandasModel):
             return row
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
-            log.info("Broken exchange: {}, removing.".format(e))
-            exchange_controller.delete_exchanges([exchange])
+            log.warning(f"Broken exchange: {e}, removing.")
+            actions.ExchangeDelete([exchange], self).trigger()
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)

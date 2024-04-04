@@ -6,6 +6,7 @@ from .activity.activity_graph import ActivityGraph
 from .activity.activity_duplicate_to_loc import ActivityDuplicateToLoc
 from .activity.activity_delete import ActivityDelete
 from .activity.activity_duplicate_to_db import ActivityDuplicateToDB
+from .activity.activity_modify import ActivityModify
 
 from .calculation_setup.cs_new import CSNew
 from .calculation_setup.cs_delete import CSDelete

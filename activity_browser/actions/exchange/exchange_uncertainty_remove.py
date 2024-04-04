@@ -6,6 +6,7 @@ from activity_browser import exchange_controller
 from ..base import ABAction
 from ...ui.icons import qicons
 from ...bwutils import uncertainty
+from ...controllers.exchange import ABExchange
 
 
 class ExchangeUncertaintyRemove(ABAction):
@@ -21,4 +22,9 @@ class ExchangeUncertaintyRemove(ABAction):
 
     def onTrigger(self, toggled):
         for exchange in self.exchanges:
-            exchange_controller.edit_exchange(exchange, uncertainty.EMPTY_UNCERTAINTY)
+            ab_exchange = ABExchange.from_exchange(exchange)
+
+            for key, value in uncertainty.EMPTY_UNCERTAINTY.items():
+                ab_exchange[key] = value
+
+            ab_exchange.save()

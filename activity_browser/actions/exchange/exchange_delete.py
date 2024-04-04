@@ -3,6 +3,7 @@ from typing import Union, Callable, List, Any
 from PySide2 import QtCore
 
 from activity_browser import exchange_controller
+from ...controllers.exchange import ABExchange
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -19,4 +20,7 @@ class ExchangeDelete(ABAction):
         super().__init__(parent, exchanges=exchanges)
 
     def onTrigger(self, toggled):
-        exchange_controller.delete_exchanges(self.exchanges)
+        for exchange in self.exchanges:
+            # get an exchange that sends signals, should become obsolete in due time
+            ab_exchange = ABExchange.from_exchange(exchange)
+            ab_exchange.delete()

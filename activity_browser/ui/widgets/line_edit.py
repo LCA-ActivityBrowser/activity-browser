@@ -3,7 +3,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtGui import QTextFormat
 
-from ...signals import signals
+from activity_browser import actions, signals
 
 
 class SignalledLineEdit(QtWidgets.QLineEdit):
@@ -27,7 +27,7 @@ class SignalledLineEdit(QtWidgets.QLineEdit):
         after = self.text()
         if self._before != after:
             self._before = after
-            signals.activity_modified.emit(self._key, self._field, after)
+            actions.ActivityModify(self._key, self._field, after, self).trigger()
 
 
 class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
@@ -52,7 +52,7 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
     def focusOutEvent(self, event):
         after = self.toPlainText()
         if self._before != after:
-            signals.activity_modified.emit(self._key, self._field, after)
+            actions.ActivityModify(self._key, self._field, after, self).trigger()
         super().focusOutEvent(event)
 
     def refresh_text(self, text: str) -> None:
@@ -91,7 +91,7 @@ class SignalledComboEdit(QtWidgets.QComboBox):
         after = self.currentText()
         if self._before != after:
             self._before = after
-            signals.activity_modified.emit(self._key, self._field, after)
+            actions.ActivityModify(self._key, self._field, after, self).trigger()
         super(SignalledComboEdit, self).focusOutEvent(event)
 
     # def showPopup(self):

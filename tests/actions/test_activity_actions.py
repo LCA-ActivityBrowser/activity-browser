@@ -13,7 +13,6 @@ def test_activity_delete(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes)
     )
 
-
     assert bw.projects.current == "default"
     assert bw.get_activity(key)
 
@@ -73,7 +72,7 @@ def test_activity_duplicate_to_loc(ab_app, monkeypatch):
     assert bw.get_activity(key).as_dict()["location"] == "MOON"
     with pytest.raises(Exception): bw.get_activity(dup_key)
 
-    actions.ActivityDuplicateToLoc([key], None).trigger()
+    actions.ActivityDuplicateToLoc(key, None).trigger()
 
     assert bw.get_activity(key).as_dict()["location"] == "MOON"
     assert bw.get_activity(dup_key).as_dict()["location"] == "GLO"
