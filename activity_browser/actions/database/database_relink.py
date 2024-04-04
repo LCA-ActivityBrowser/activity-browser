@@ -56,5 +56,5 @@ class DatabaseRelink(ABAction):
             relinking_dialog.open_activity()
 
         # TODO move refactor so signals are owned by controllers instead
-        signals.database_changed.emit(self.db_name)
-        signals.databases_changed.emit()
+        database_controller.metadata_changed.emit()  # this should change
+        database_controller.database_changed.emit(self.db_name)  # this should change

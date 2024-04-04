@@ -3,7 +3,7 @@ import brightway2 as bw
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
-from activity_browser import actions, signals, database_controller
+from activity_browser import actions, signals, database_controller, project_controller
 from ..info import __version__ as ab_version
 from .icons import qicons
 
@@ -36,8 +36,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.project_selected.connect(self.biosphere_exists)
-        signals.databases_changed.connect(self.biosphere_exists)
+        project_controller.project_switched.connect(self.biosphere_exists)
+        database_controller.metadata_changed.connect(self.biosphere_exists)
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""

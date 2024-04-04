@@ -4,7 +4,7 @@ import bw2io.data as data
 from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser import log, signals
+from activity_browser import log, database_controller
 from activity_browser.bwutils import errors
 from ..threading import ABThread
 
@@ -28,8 +28,8 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.thread.exit(outcome)
         self.setMaximum(1)
         self.setValue(1)
-        signals.database_changed.emit(bw.config.biosphere)
-        signals.databases_changed.emit()
+        database_controller.metadata_changed.emit()  # this should change in the long run
+        database_controller.database_changed.emit(bw.config.biosphere)  # this should change in the long run
         self.done(outcome)
 
     @Slot(int)

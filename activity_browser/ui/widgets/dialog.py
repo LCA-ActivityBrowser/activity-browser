@@ -536,9 +536,9 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
-        # project_controller.change_project(bw.projects.current)
-        # signals.project_selected.emit()
-        signals.databases_changed.emit()
+
+        database_controller.metadata_changed.emit()  # this should change in the long run
+
         self.done(result or 0)
 
     def check_patches(self):

@@ -620,7 +620,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.finished_label.setText('<b>Finished!</b>')
         self.complete = True
         self.completeChanged.emit()
-        signals.databases_changed.emit()
+        database_controller.metadata_changed.emit()  # this should change in the long run
 
     @Slot()
     def update_unarchive(self) -> None:

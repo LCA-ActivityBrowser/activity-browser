@@ -8,17 +8,19 @@ from PySide2.QtCore import QObject, Signal, SignalInstance
 from activity_browser import signals, application
 from activity_browser.bwutils import AB_metadata
 from .activity import ABActivity, activity_controller
+from .project import project_controller
 
 
 class DatabaseController(QObject):
     metadata_changed: SignalInstance = Signal()
     database_changed: SignalInstance = Signal(str)
+    database_deleted: SignalInstance = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.load()
 
-        signals.project_selected.connect(self.load)
+        project_controller.project_switched.connect(self.load)
 
     # mimicking the iterable behaviour of bw2data.meta.databases
     def __getitem__(self, item) -> dict:
@@ -31,8 +33,9 @@ class DatabaseController(QObject):
     def __delitem__(self, name) -> None:
         del databases[name]
         self.get(name).deleteLater()
-        signals.delete_database_confirmed.emit(name)  # legacy
-        signals.databases_changed.emit()
+
+        self.metadata_changed.emit()
+        self.database_deleted.emit(name)
 
     # mirroring all public methods of bw2data.meta.databases
     def increment_version(self, database, number=None) -> None:
@@ -61,14 +64,13 @@ class DatabaseController(QObject):
         return self.findChild(ABDatabase, database)
 
     def add(self, name) -> None:
-        ABDatabase(name, self)
+        db = ABDatabase(name, self)
+        db.data_changed.connect(lambda: self.database_changed.emit(db.name))
         self.metadata_changed.emit()
-        signals.databases_changed.emit()  # legacy
 
 
 class ABDatabase(QObject):
     data_changed: SignalInstance = Signal()
-    deleted: SignalInstance = Signal()
 
     def __init__(self, name: str, parent: DatabaseController):
         super().__init__()
@@ -136,8 +138,7 @@ class ABDatabase(QObject):
         self.parent().add(name)
 
     def delete(self) -> None:
-        self.bw_database.delete()
-        self.deleted.emit()
+        del database_controller[self.name]
 
     # methods returning activity proxies
     def random(self, filters=True, true_random=False) -> ABActivity:
@@ -156,8 +157,6 @@ class ABDatabase(QObject):
 
         # legacy
         AB_metadata.update_metadata(activity.key)
-        signals.database_changed.emit(self.name)
-        signals.databases_changed.emit()
 
         return ABActivity.from_activity(activity)
 

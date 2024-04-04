@@ -14,32 +14,29 @@ class ABActivity(Activity):
 
     def save(self) -> None:
         super().save()
-        activity_controller.activity_changed.emit(self)
 
         # legacy
         AB_metadata.update_metadata(self.key)
-        signals.database_changed.emit(self["database"])
-        signals.databases_changed.emit()
         signals.calculation_setup_changed.emit()
+
+        activity_controller.activity_changed.emit(self)
 
     def delete(self) -> None:
         super().delete()
-        activity_controller.activity_deleted.emit(self)
 
         # legacy
         AB_metadata.update_metadata(self.key)
-        signals.database_changed.emit(self["database"])
-        signals.databases_changed.emit()
         signals.calculation_setup_changed.emit()
+
+        activity_controller.activity_deleted.emit(self)
 
     def copy(self, code=None, **kwargs) -> "ABActivity":
         activity = super().copy(code, **kwargs)
-        activity_controller.new_activity.emit(activity)
 
         # legacy
         AB_metadata.update_metadata(activity.key)
-        signals.database_changed.emit(self["database"])
-        signals.databases_changed.emit()
+
+        activity_controller.new_activity.emit(activity)
 
         return ABActivity.from_activity(activity)
 

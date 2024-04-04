@@ -48,7 +48,7 @@ def test_activity_duplicate_to_db(ab_app, monkeypatch):
     assert bw.get_activity(key)
     with pytest.raises(Exception): bw.get_activity(dup_key)
 
-    actions.ActivityDuplicateToDB([key], None).trigger()
+    actions.ActivityDuplicateToDB([key], None, None).trigger()
 
     assert bw.get_activity(key)
     assert bw.get_activity(dup_key)

@@ -65,8 +65,4 @@ class ActivityRelink(ABAction):
                 examples
             )
             relinking_dialog.exec_()
-            activity = relinking_dialog.open_activity()
 
-        # TODO signals should be owned by controllers: refactor
-        signals.database_changed.emit(activity['name'])
-        signals.databases_changed.emit()

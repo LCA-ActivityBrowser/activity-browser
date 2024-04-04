@@ -129,11 +129,6 @@ class ActivityDuplicateToLoc(ABAction):
         AB_metadata.update_metadata(new_act.key)
         signals.safe_open_activity_tab.emit(new_act.key)
 
-        # send signals to relevant locations
-        database_controller.set_modified(self.db_name)
-        
-        signals.database_changed.emit(self.db_name)  # legacy
-        signals.databases_changed.emit()  # legacy
 
     def find_candidate(self, dbs, exch, old_location, new_location, use_alternatives, alternatives) -> Optional[object]:
         """Find a candidate to replace the exchange with."""

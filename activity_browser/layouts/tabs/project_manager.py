@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import actions, signals
+from activity_browser import actions, signals, database_controller, project_controller
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -35,9 +35,10 @@ class ProjectTab(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.project_selected.connect(self.change_project)
+        project_controller.project_switched.connect(self.change_project)
+        database_controller.database_changed.connect(self.update_widgets)
+
         signals.database_selected.connect(self.update_widgets)
-        signals.database_changed.connect(self.update_widgets)
 
     def change_project(self):
         self.update_widgets()
@@ -152,12 +153,12 @@ class ActivityBiosphereTabs(ABTab):
         self.connect_signals()
 
     def connect_signals(self) -> None:
+        database_controller.database_deleted.connect(self.close_tab_by_tab_name)
+        database_controller.database_changed.connect(self.update_activity_biosphere_widget)
+        project_controller.project_switched.connect(self.close_all)
+
         self.tabCloseRequested.connect(self.close_tab)
         signals.database_selected.connect(self.open_or_focus_tab)
-        signals.database_changed.connect(self.update_activity_biosphere_widget)
-        signals.delete_database_confirmed.connect(self.close_tab_by_tab_name)
-
-        signals.project_selected.connect(self.close_all)
 
     def open_or_focus_tab(self, db_name: str) -> None:
         """Put focus on tab, if not open yet, open it.

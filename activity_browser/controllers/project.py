@@ -55,15 +55,10 @@ class ProjectController(QObject):
 
         if not switch: return
 
-        signals.project_selected.emit()
-        signals.databases_changed.emit()
-
         self.project_switched.emit()
 
     def create_project(self, name=None, **kwargs) -> None:
         projects.create_project(name, **kwargs)
-
-        signals.project_selected.emit()
 
         self.projects_changed.emit()
         self.project_switched.emit()
@@ -75,6 +70,7 @@ class ProjectController(QObject):
         current_project = projects.delete_project(name, delete_dir)
 
         self.projects_changed.emit()
+        self.project_switched.emit()
 
         return current_project
 
@@ -94,9 +90,6 @@ class ProjectController(QObject):
     def set_current(self, name, writable=True, update=True) -> None:
         log.info(f"Loading brightway2 project: {name}")
         projects.set_current(name, writable, update)
-
-        signals.project_selected.emit()
-        signals.databases_changed.emit()
 
         self.project_switched.emit()
 
@@ -124,9 +117,6 @@ class ProjectController(QObject):
             os.path.join(projects._base_data_dir, "projects.db"),
             [ProjectDataset]
         )
-
-        signals.project_selected.emit()
-        signals.databases_changed.emit()
 
         self.project_switched.emit()
 
