@@ -524,9 +524,6 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.finished.connect(self.thread_finished)
         self.biosphere_thread.start()
 
-        # finally, check if patches are available for this version and apply them
-        #self.biosphere_thread.finished.connect(self.check_patches)
-
     @Slot(int, str, name='updateThread')
     def update_progress(self, current: int, text: str) -> None:
         self.setValue(current)
@@ -537,7 +534,8 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.setValue(3)
         self.check_patches()
 
-        database_controller.metadata_changed.emit()  # this should change in the long run
+        database_controller.sync()  # this should change in the long run
+        database_controller.database_changed.emit(bw.config.biosphere)
 
         self.done(result or 0)
 

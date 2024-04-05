@@ -60,6 +60,22 @@ class DatabaseController(QObject):
         for db_name in databases:
             self.add(db_name)
 
+    def sync(self) -> None:
+        self.metadata_changed.emit()
+
+        child_names = [child.name for child in self.children()]
+        remove = [name for name in child_names if name not in databases]
+        add = [name for name in databases if name not in child_names]
+
+        if not remove and not add: return
+
+        for name in remove:
+            self.get(name).deleteLater()
+            self.database_deleted.emit(name)
+
+        for name in add:
+            self.add(name)
+
     def get(self, database) -> "ABDatabase":
         return self.findChild(ABDatabase, database)
 
@@ -132,10 +148,14 @@ class ABDatabase(QObject):
     def find_graph_dependents(self) -> List[str]:
         return self.bw_database.find_graph_dependents()
 
+    def process(self) -> None:
+        self.bw_database.process()
+        database_controller.sync()
+
     # methods for database manipulation
     def copy(self, name) -> None:
         self.bw_database.copy(name)
-        self.parent().add(name)
+        database_controller.add(name)
 
     def delete(self) -> None:
         del database_controller[self.name]

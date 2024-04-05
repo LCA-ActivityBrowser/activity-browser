@@ -1,9 +1,8 @@
 from typing import Union, Callable
 
-import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application, signals, database_controller
+from activity_browser import application, database_controller
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import DatabaseLinkingDialog, DatabaseLinkingResultsDialog
@@ -23,15 +22,16 @@ class DatabaseRelink(ABAction):
         super().__init__(parent, db_name=database_name)
 
     def onTrigger(self, toggled):
+        db_name = self.db_name
         # get brightway database object
-        db = bw.Database(self.db_name)
+        db = database_controller.get(db_name)
 
         # find the dependencies of the database and construct a list of suitable candidates
         depends = db.find_dependents()
         options = [(depend, list(database_controller)) for depend in depends]
 
         # construct a dialog in which the user chan choose which depending database to connect to which candidate
-        dialog = DatabaseLinkingDialog.relink_sqlite(self.db_name, options, application.main_window)
+        dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, application.main_window)
 
         # return if the user cancels
         if dialog.exec_() != DatabaseLinkingDialog.Accepted: return
@@ -42,7 +42,7 @@ class DatabaseRelink(ABAction):
 
         # relink using relink_exchanges_existing_db strategy
         for old, new in dialog.relink.items():
-            other = bw.Database(new)
+            other = database_controller.get(new)
             failed, succeeded, examples = relink_exchanges_existing_db(db, old, other)
             relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
 
@@ -54,7 +54,3 @@ class DatabaseRelink(ABAction):
                                                                                       relinking_results, examples)
             relinking_dialog.exec_()
             relinking_dialog.open_activity()
-
-        # TODO move refactor so signals are owned by controllers instead
-        database_controller.metadata_changed.emit()  # this should change
-        database_controller.database_changed.emit(self.db_name)  # this should change

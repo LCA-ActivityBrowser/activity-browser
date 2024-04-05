@@ -23,7 +23,8 @@ class DatabaseDelete(ABAction):
 
     def onTrigger(self, toggled):
         # get the record count from the database controller
-        database = database_controller.get(self.db_name)
+        db_name = self.db_name
+        database = database_controller.get(db_name)
         n_records = len(database)
 
         # ask the user for confirmation
@@ -37,8 +38,8 @@ class DatabaseDelete(ABAction):
         if response != response.Yes: return
 
         # instruct the DatabaseController to delete the database from the project.
-        del database_controller[self.db_name]
+        del database_controller[db_name]
 
-        Group.delete().where(Group.name == self.db_name).execute()
-        project_settings.remove_db(self.db_name)
+        Group.delete().where(Group.name == db_name).execute()
+        project_settings.remove_db(db_name)
 
