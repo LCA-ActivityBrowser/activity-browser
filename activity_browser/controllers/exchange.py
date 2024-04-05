@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from bw2data.backends.peewee.proxies import Exchanges, Exchange
 from PySide2.QtCore import QObject, Signal, SignalInstance
 
@@ -5,9 +7,13 @@ from activity_browser import application
 
 
 class ABExchange(Exchange):
+    previous_state: dict = {}
+
     @classmethod
     def from_exchange(cls, exchange: Exchange) -> "ABExchange":
-        return cls(exchange._document)
+        ab_exchange = cls(exchange._document)
+        ab_exchange.previous_state = deepcopy(exchange._document.data)
+        return ab_exchange
 
     def save(self) -> None:
         super().save()
@@ -21,19 +27,9 @@ class ABExchange(Exchange):
         from .activity import ABActivity
         return ABActivity.from_activity(super().input)
 
-    def _set_input(self, value):
-        exchange_controller.moving_exchange.emit(self)
-        super()._set_input(value)
-        exchange_controller.exchange_changed.emit(self)
-
     def _get_output(self):
         from .activity import ABActivity
         return ABActivity.from_activity(super().output)
-
-    def _set_output(self, value):
-        exchange_controller.moving_exchange.emit(self)
-        super()._set_output(value)
-        exchange_controller.exchange_changed.emit(self)
 
 
 class ABExchanges(Exchanges):
@@ -50,7 +46,6 @@ class ExchangeController(QObject):
     exchange_changed: SignalInstance = Signal(ABExchange)
     exchange_deleted: SignalInstance = Signal(ABExchange)
     new_exchange: SignalInstance = Signal(ABExchange)
-    moving_exchange: SignalInstance = Signal(ABExchange)
 
 
 exchange_controller = ExchangeController(application)

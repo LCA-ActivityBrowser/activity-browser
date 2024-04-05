@@ -32,13 +32,19 @@ class ABActivity(Activity):
 
     def copy(self, code=None, **kwargs) -> "ABActivity":
         activity = super().copy(code, **kwargs)
+        ab_activity = ABActivity.from_activity(activity)
 
         # legacy
-        AB_metadata.update_metadata(activity.key)
+        AB_metadata.update_metadata(ab_activity.key)
 
-        activity_controller.new_activity.emit(activity)
+        # copy creates a new activity, so emit accordingly
+        activity_controller.new_activity.emit(ab_activity)
 
-        return ABActivity.from_activity(activity)
+        # copy also creates new exchanges, so emit accordingly
+        for ab_exchange in ab_activity.exchanges():
+            exchange_controller.new_exchange.emit(ab_exchange)
+
+        return ab_activity
 
     # Exchange getters
     def exchanges(self) -> ABExchanges:
@@ -88,8 +94,16 @@ class ActivityController(QObject):
         exchange_controller.new_exchange.connect(self._exchange_link)
 
     def _exchange_link(self, exchange: ABExchange) -> None:
-        self._activity_changed_buffer.add(exchange.input)
-        self._activity_changed_buffer.add(exchange.output)
+        affected_keys = set()
+
+        # find affected keys in either the current or previous state
+        affected_keys.add(exchange.get("input", None))
+        affected_keys.add(exchange.get("output", None))
+        affected_keys.add(exchange.previous_state.get("input", None))
+        affected_keys.add(exchange.previous_state.get("output", None))
+
+        # update without any None-values
+        self._activity_changed_buffer.update([self.get(key) for key in affected_keys if key])
 
         self.thread().eventDispatcher().awake.connect(self._process_buffer)
 
