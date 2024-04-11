@@ -3,6 +3,7 @@ import brightway2 as bw
 import pandas as pd
 from PySide2.QtCore import Slot, QModelIndex
 
+from activity_browser import signals, project_controller
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.signals import signals
 from .base import PandasModel
@@ -14,7 +15,7 @@ class ActivitiesHistoryModel(PandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.key_col = 0
-        signals.project_selected.connect(self.sync)
+        project_controller.project_switched.connect(self.sync)
         signals.add_activity_to_history.connect(self.add_activity)
 
     def sync(self, df=None):

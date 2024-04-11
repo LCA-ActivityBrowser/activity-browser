@@ -19,7 +19,7 @@ def ab_app():
 
     application.main_window = MainWindow(application)
     application.show()
-    project_controller.change_project("default", True)
+    project_controller.set_current("default")
     yield application
     application.close()
 

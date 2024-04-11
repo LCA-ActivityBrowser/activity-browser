@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import actions, signals
+from activity_browser import actions, signals, project_controller
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -35,7 +35,7 @@ class ProjectTab(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.project_selected.connect(self.change_project)
+        project_controller.project_switched.connect(self.change_project)
         signals.database_selected.connect(self.update_widgets)
         signals.database_changed.connect(self.update_widgets)
 
@@ -157,7 +157,7 @@ class ActivityBiosphereTabs(ABTab):
         signals.database_changed.connect(self.update_activity_biosphere_widget)
         signals.delete_database_confirmed.connect(self.close_tab_by_tab_name)
 
-        signals.project_selected.connect(self.close_all)
+        project_controller.project_switched.connect(self.close_all)
 
     def open_or_focus_tab(self, db_name: str) -> None:
         """Put focus on tab, if not open yet, open it.
@@ -236,7 +236,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.reset_search_button.clicked.connect(self.table.reset_search)
         self.reset_search_button.clicked.connect(self.search_box.clear)
 
-        signals.project_selected.connect(self.search_box.clear)
+        project_controller.project_switched.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
 
         self.header_layout.addWidget(self.search_button)

@@ -6,9 +6,8 @@ import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
+from activity_browser import project_settings, signals, project_controller
 from activity_browser.bwutils.superstructure import get_sheet_names
-from activity_browser.settings import project_settings
-from activity_browser.signals import signals
 from ..threading import ABThread
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
@@ -16,7 +15,7 @@ from ...ui.widgets import BiosphereUpdater
 from ...info import __ei_versions__
 from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
 from ...utils import sort_semantic_versions
-from ...controllers import project_controller
+
 
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
@@ -537,8 +536,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
-        project_controller.change_project(bw.projects.current)
-        signals.project_selected.emit()
+        project_controller.set_current(bw.projects.current)
         self.done(result or 0)
 
     def check_patches(self):
@@ -560,7 +558,7 @@ class DefaultBiosphereThread(ABThread):
         self.version = version
 
     def run_safely(self):
-        project = "<b>{}</b>".format(bw.projects.current)
+        project = f"<b>{project_controller.current}</b>"
         if "biosphere3" not in bw.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)

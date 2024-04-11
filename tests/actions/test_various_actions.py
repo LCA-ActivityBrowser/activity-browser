@@ -9,7 +9,7 @@ from activity_browser.ui.widgets import EcoinventVersionDialog
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_default_install(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    project_controller.new_project(project_name)
+    project_controller.set_current(project_name)
 
     monkeypatch.setattr(
         EcoinventVersionDialog, 'exec_',
@@ -36,7 +36,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_biosphere_update(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    project_controller.change_project(project_name, reload=True)
+    project_controller.set_current(project_name)
 
     monkeypatch.setattr(
         QtWidgets.QMessageBox, 'question',

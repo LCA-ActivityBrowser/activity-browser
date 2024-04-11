@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 import os
 
-import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 from peewee import SqliteDatabase
 
-from activity_browser import log, signals, ab_settings
-from ...controllers import project_controller
+from activity_browser import log, ab_settings, project_controller
 
 
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.last_project = bw.projects.current
-        self.last_bwdir = bw.projects._base_data_dir
+        self.last_project = project_controller.current
+        self.last_bwdir = project_controller.base_dir
 
         self.setWindowTitle('Activity Browser Settings')
         self.settings_page = SettingsPage(self)
@@ -41,13 +39,13 @@ class SettingsWizard(QtWidgets.QWizard):
             log.info("Saved startup project as: ", new_startup_project)
 
         ab_settings.write_settings()
-        project_controller.switch_brightway2_dir_path(field)
+        project_controller.switch_dir(field)
 
     def cancel(self):
         log.info("Going back to before settings were changed.")
-        if bw.projects._base_data_dir != self.last_bwdir:
-            project_controller.switch_brightway2_dir_path(self.last_bwdir)
-            project_controller.change_project(self.last_project) # project changes only if directory is changed
+        if project_controller.base_dir != self.last_bwdir:
+            project_controller.switch_dir(self.last_bwdir)
+            project_controller.set_current(self.last_project)  # project changes only if directory is changed
 
 
 class SettingsPage(QtWidgets.QWizardPage):
@@ -230,7 +228,6 @@ class SettingsPage(QtWidgets.QWizardPage):
         if not initialization:
             self.changed()
 
-
     def combobox_add_dir(self, box: QtWidgets.QComboBox, path: str) -> None:
         """ Adds a single directory to the QComboBox."""
         box.blockSignals(True)
@@ -269,5 +266,3 @@ class SettingsPage(QtWidgets.QWizardPage):
 
     def isComplete(self):
         return self.complete
-
-

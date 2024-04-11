@@ -11,7 +11,6 @@ from PySide2 import QtWidgets
 from activity_browser import project_settings, signals, application
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from .parameter import ParameterController
-from ..ui.widgets import LocationLinkingDialog
 
 
 class ActivityController(QObject):

@@ -9,7 +9,7 @@ from bw2data.utils import natural_sort
 from PySide2.QtCore import Qt, QModelIndex, Slot
 from PySide2.QtWidgets import QApplication
 
-from activity_browser import log, project_settings, signals
+from activity_browser import log, project_settings, signals, project_controller
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from .base import PandasModel, DragPandasModel
 
@@ -19,7 +19,7 @@ class DatabasesModel(PandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        signals.project_selected.connect(self.sync)
+        project_controller.project_switched.connect(self.sync)
         signals.databases_changed.connect(self.sync)
 
     def get_db_name(self, proxy: QModelIndex) -> str:

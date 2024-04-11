@@ -5,7 +5,7 @@ from bw2data.parameters import Group
 from PySide2.QtCore import QObject, Slot
 
 from activity_browser import log, signals, project_settings, application
-from .project import ProjectController
+from .project import project_controller
 from ..bwutils import commontasks as bc
 
 
@@ -43,7 +43,7 @@ class DatabaseController(QObject):
         project_settings.remove_db(name)
         del bw.databases[name]
         Group.delete().where(Group.name == name).execute()
-        ProjectController.change_project(bw.projects.current, reload=True)
+        project_controller.set_current(bw.projects.current)
         signals.delete_database_confirmed.emit(name)
 
     @staticmethod

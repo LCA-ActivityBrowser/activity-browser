@@ -33,4 +33,4 @@ class ProjectDuplicate(ABAction):
             )
             return
 
-        project_controller.duplicate_project(name)
+        project_controller.copy_project(name)
