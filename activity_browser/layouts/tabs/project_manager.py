@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import actions, signals, project_controller
+from activity_browser import actions, signals, database_controller, project_controller
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -16,7 +16,7 @@ class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ProjectTab, self).__init__(parent)
         # main widgets
-        self.projects_widget = ProjectsWidget()
+        self.projects_widget = ProjectsWidget(self)
         self.databases_widget = DatabaseWidget(self)
         self.activity_biosphere_tabs = ActivityBiosphereTabs(self)
 
@@ -36,8 +36,9 @@ class ProjectTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         project_controller.project_switched.connect(self.change_project)
+        database_controller.metadata_changed.connect(self.update_widgets)
+
         signals.database_selected.connect(self.update_widgets)
-        signals.database_changed.connect(self.update_widgets)
 
     def change_project(self):
         self.update_widgets()
@@ -46,8 +47,6 @@ class ProjectTab(QtWidgets.QWidget):
         """Update widgets when a new database has been selected or the project has been changed.
         Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
         no_databases = len(self.activity_biosphere_tabs.tabs) == 0
-
-        self.databases_widget.update_widget()
 
         self.activity_biosphere_tabs.setVisible(not no_databases)
         self.resize_splitter()
@@ -63,8 +62,8 @@ class ProjectTab(QtWidgets.QWidget):
 
 
 class ProjectsWidget(QtWidgets.QWidget):
-    def __init__(self):
-        super(ProjectsWidget, self).__init__()
+    def __init__(self, parent):
+        super(ProjectsWidget, self).__init__(parent)
         self.projects_list = ProjectListWidget()
 
         # Buttons
@@ -116,6 +115,10 @@ class DatabaseWidget(QtWidgets.QWidget):
 
         self._construct_layout()
 
+        # Signals
+        database_controller.metadata_changed.connect(self.update_widget)
+        project_controller.project_switched.connect(self.update_widget)
+
     def _construct_layout(self):
         header_widget = QtWidgets.QWidget()
         header_layout = QtWidgets.QHBoxLayout()
@@ -152,21 +155,21 @@ class ActivityBiosphereTabs(ABTab):
         self.connect_signals()
 
     def connect_signals(self) -> None:
+        project_controller.project_switched.connect(self.close_all)
+
         self.tabCloseRequested.connect(self.close_tab)
         signals.database_selected.connect(self.open_or_focus_tab)
-        signals.database_changed.connect(self.update_activity_biosphere_widget)
-        signals.delete_database_confirmed.connect(self.close_tab_by_tab_name)
-
-        project_controller.project_switched.connect(self.close_all)
 
     def open_or_focus_tab(self, db_name: str) -> None:
         """Put focus on tab, if not open yet, open it.
         """
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
-            widget = ActivityBiosphereWidget(parent=self)
+            widget = ActivityBiosphereWidget(db_name, self)
             self.add_tab(widget, db_name)
             self.update_activity_biosphere_widget(db_name)
+
+            widget.destroyed.connect(lambda: self.tabs.pop(db_name) if db_name in self.tabs else None)
 
         # put the focus on this tab + send signal that this is the open db
         self.select_tab(self.tabs[db_name])
@@ -182,9 +185,13 @@ class ActivityBiosphereTabs(ABTab):
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
-    def __init__(self, parent):
+    def __init__(self, db_name: str, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
+        self.database = database_controller.get(db_name)
         self.table = ActivitiesBiosphereTable(self)
+
+        self.database.changed.connect(self.database_changed)
+        self.database.deleted.connect(self.deleteLater)
 
         # Header widget
         self.header_widget = QtWidgets.QWidget()
@@ -236,7 +243,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.reset_search_button.clicked.connect(self.table.reset_search)
         self.reset_search_button.clicked.connect(self.search_box.clear)
 
-        project_controller.project_switched.connect(self.search_box.clear)
+        signals.project_selected.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
 
         self.header_layout.addWidget(self.search_button)
@@ -245,3 +252,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def set_search_term(self):
         search_term = self.search_box.text().strip()
         self.table.search(search_term)
+
+    def database_changed(self, db):
+        # this should move to the model in the future
+        self.table.model.sync(db.name)

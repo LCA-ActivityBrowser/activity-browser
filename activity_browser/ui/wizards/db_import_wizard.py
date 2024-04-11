@@ -8,19 +8,17 @@ from pathlib import Path
 import eidl
 import requests
 import brightway2 as bw
-from bw2data.errors import InvalidExchange, UnknownObject
 from bw2io import SingleOutputEcospold2Importer
-from bw2io.errors import InvalidPackage, StrategyError
 from bw2io.extractors import Ecospold2DataExtractor
 from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser import signals, log
+from activity_browser import signals, log, database_controller
+from activity_browser.bwutils import errors
 from ..threading import ABThread
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
-from ...bwutils.errors import ImportCanceledError, LinkingFailed
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
@@ -99,7 +97,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     def update_downloader(self):
         self.downloader.version = self.version
         self.downloader.system_model = self.system_model
-    
+
     def done(self, result: int):
         """
         Reimplementation of the QWizard.done method which is called when the wizard is done
@@ -144,7 +142,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         while thread.isRunning():
             # make sure we stay responsive
             dispatcher.processEvents(QtCore.QEventLoop.AllEvents)
-        
+
         # return to normal
         self.setCursor(QtCore.Qt.ArrowCursor)
 
@@ -404,7 +402,7 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in bw.databases:
+        if db_name in database_controller:
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
                 db_name, bw.projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
@@ -622,7 +620,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.finished_label.setText('<b>Finished!</b>')
         self.complete = True
         self.completeChanged.emit()
-        signals.databases_changed.emit()
+        database_controller.metadata_changed.emit()  # this should change in the long run
 
     @Slot()
     def update_unarchive(self) -> None:
@@ -645,7 +643,7 @@ class ImportPage(QtWidgets.QWizardPage):
         """
         self.main_worker_thread.exit(1)
 
-        options = [(db, bw.databases.list) for db in missing]
+        options = [(db, list(database_controller)) for db in missing]
         linker = DatabaseLinkingDialog.relink_bw2package(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -669,7 +667,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.exit(1)
 
         # Iterate through the missing databases, asking user input.
-        options = [(db, bw.databases.list) for db in missing]
+        options = [(db, list(database_controller)) for db in missing]
         linker = DatabaseLinkingDialog.relink_excel(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -828,16 +826,16 @@ class MainWorkerThread(ABThread):
                 import_signals.finished.emit()
             else:
                 self.delete_canceled_db()
-        except ImportCanceledError:
+        except errors.ImportCanceledError:
             self.delete_canceled_db()
-        except InvalidExchange:
+        except errors.InvalidExchange:
             # Likely caused by new version of ecoinvent not finding required
             # biosphere flows.
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Missing exchanges", "The import failed as required biosphere"
-                 " exchanges are missing from the biosphere3 database. Please"
-                 " update the biosphere by using 'File' -> 'Update biosphere...'")
+                                      " exchanges are missing from the biosphere3 database. Please"
+                                      " update the biosphere by using 'File' -> 'Update biosphere...'")
             )
 
     def run_local_import(self):
@@ -867,29 +865,29 @@ class MainWorkerThread(ABThread):
                 import_signals.finished.emit()
             else:
                 self.delete_canceled_db()
-        except InvalidPackage as e:
+        except errors.InvalidPackage as e:
             # BW2package import failed, required databases are missing
             self.delete_canceled_db()
             import_signals.missing_dbs.emit(e.args[1])
-        except ImportCanceledError:
+        except errors.ImportCanceledError:
             self.delete_canceled_db()
-        except InvalidExchange:
+        except errors.InvalidExchange:
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Missing exchanges", "The import has failed, likely due missing exchanges.")
             )
-        except UnknownObject as e:
+        except errors.UnknownObject as e:
             # BW2Package import failed because the object was not understood
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 ("Unknown object", str(e))
             )
-        except StrategyError as e:
+        except errors.StrategyError as e:
             # Excel import failed because extra databases were found, relink
-            log.error("Could not link exchanges, here are 10 examples.:") # THREAD UNSAFE FUNCTIONS
+            log.error("Could not link exchanges, here are 10 examples.:")  # THREAD UNSAFE FUNCTIONS
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
-        except LinkingFailed as e:
+        except errors.LinkingFailed as e:
             # Excel import failed after asking user to relink.
             error = (
                 "Unlinked exchanges",
@@ -904,8 +902,8 @@ class MainWorkerThread(ABThread):
             import_signals.import_failure.emit(("Relinking failed", e.args[0]))
 
     def delete_canceled_db(self):
-        if self.db_name in bw.databases:
-            del bw.databases[self.db_name]
+        if self.db_name in database_controller:
+            del database_controller[self.db_name]
             log.info(f'Database {self.db_name} deleted!')
 
 
@@ -1171,6 +1169,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
     - qt and python multiprocessing don't like each other on windows
     - need to display progress in gui
     """
+
     @classmethod
     def extract(cls, dirpath: str, db_name: str, *args, **kwargs):
         dir_path = Path(dirpath)
@@ -1188,7 +1187,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
         for i, filename in enumerate(file_list, start=1):
             if import_signals.cancel_sentinel:
                 log.info(f'Extraction canceled at position {i}!')
-                raise ImportCanceledError
+                raise errors.ImportCanceledError
 
             data.append(cls.extract_activity(dir_path, filename, db_name))
             import_signals.extraction_progress.emit(i, total)
@@ -1209,8 +1208,8 @@ class ActivityBrowserBackend(SQLiteBackend):
         index = args[0]
         if import_signals.cancel_sentinel:
             log.info(f'\nWriting canceled at position {index}!')
-            raise ImportCanceledError
-        import_signals.db_progress.emit(index+1, self.total)
+            raise errors.ImportCanceledError
+        import_signals.db_progress.emit(index + 1, self.total)
         return super()._efficient_write_dataset(*args, **kwargs)
 
 

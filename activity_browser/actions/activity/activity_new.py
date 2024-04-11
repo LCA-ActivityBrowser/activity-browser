@@ -1,8 +1,9 @@
+from uuid import uuid4
 from typing import Union, Callable
 
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application, activity_controller
+from activity_browser import application, database_controller
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 
@@ -31,5 +32,17 @@ class ActivityNew(ABAction):
         # if no name is provided, or the user cancels, return
         if not ok or not name: return
 
-        # else, instruct the ActivityController to create a new activity
-        activity_controller.new_activity(self.database_name, name)
+        # create activity
+        data = {
+            "name": name,
+            "reference product": name,
+            "unit": "unit",
+            "type": "process"
+        }
+        database = database_controller.get(self.database_name)
+        new_act = database.new_activity(code=uuid4().hex, **data)
+        new_act.save()
+
+        # create the production exchange
+        production_exchange = new_act.new_exchange(input=new_act, amount=1, type="production")
+        production_exchange.save()

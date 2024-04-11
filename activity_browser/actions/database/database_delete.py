@@ -1,8 +1,9 @@
 from typing import Union, Callable
 
 from PySide2 import QtWidgets, QtCore
+from bw2data.parameters import Group
 
-from activity_browser import application, database_controller
+from activity_browser import application, database_controller, project_settings
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -22,7 +23,9 @@ class DatabaseDelete(ABAction):
 
     def onTrigger(self, toggled):
         # get the record count from the database controller
-        n_records = database_controller.record_count(self.db_name)
+        db_name = self.db_name
+        database = database_controller.get(db_name)
+        n_records = len(database)
 
         # ask the user for confirmation
         response = QtWidgets.QMessageBox.question(
@@ -35,5 +38,7 @@ class DatabaseDelete(ABAction):
         if response != response.Yes: return
 
         # instruct the DatabaseController to delete the database from the project.
-        database_controller.delete_database(self.db_name)
+        del database_controller[db_name]
 
+        Group.delete().where(Group.name == db_name).execute()
+        project_settings.remove_db(db_name)

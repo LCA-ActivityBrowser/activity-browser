@@ -1,9 +1,8 @@
 from typing import Union, Callable, List
 
-import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import signals, application
+from activity_browser import signals, application, database_controller
 from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog
@@ -28,12 +27,12 @@ class ActivityRelink(ABAction):
         key = self.activity_keys[0]
 
         # extract the brightway database and activity
-        db = bw.Database(key[0])
+        db = database_controller.get(key[0])
         activity = db.get(key[1])
 
         # find the dependents for the database and construct the alternatives in tuple format
         depends = db.find_dependents()
-        options = [(depend, bw.databases.list) for depend in depends]
+        options = [(depend, list(database_controller)) for depend in depends]
 
         # present the alternatives to the user in a linking dialog
         dialog = ActivityLinkingDialog.relink_sqlite(
@@ -51,7 +50,7 @@ class ActivityRelink(ABAction):
         # use the relink_activity_exchanges strategy to relink the exchanges of the activity
         relinking_results = {}
         for old, new in dialog.relink.items():
-            other = bw.Database(new)
+            other = database_controller.get(new)
             failed, succeeded, examples = relink_activity_exchanges(activity, old, other)
             relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
 
@@ -66,8 +65,3 @@ class ActivityRelink(ABAction):
                 examples
             )
             relinking_dialog.exec_()
-            activity = relinking_dialog.open_activity()
-
-        # TODO signals should be owned by controllers: refactor
-        signals.database_changed.emit(activity['name'])
-        signals.databases_changed.emit()

@@ -4,12 +4,11 @@ import functools
 
 import numpy as np
 import pandas as pd
-import brightway2 as bw
 from bw2data.utils import natural_sort
 from PySide2.QtCore import Qt, QModelIndex, Slot
 from PySide2.QtWidgets import QApplication
 
-from activity_browser import log, project_settings, signals, project_controller
+from activity_browser import log, project_settings, signals, database_controller, project_controller
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 from .base import PandasModel, DragPandasModel
 
@@ -20,7 +19,7 @@ class DatabasesModel(PandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         project_controller.project_switched.connect(self.sync)
-        signals.databases_changed.connect(self.sync)
+        database_controller.metadata_changed.connect(self.sync)
 
     def get_db_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)
@@ -28,16 +27,16 @@ class DatabasesModel(PandasModel):
 
     def sync(self):
         data = []
-        for name in natural_sort(bw.databases):
+        for name in natural_sort(database_controller):
             # get the modified time, in case it doesn't exist, just write 'now' in the correct format
-            dt = bw.databases[name].get("modified", datetime.datetime.now().isoformat())
+            dt = database_controller[name].get("modified", datetime.datetime.now().isoformat())
             dt = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
 
             # final column includes interactive checkbox which shows read-only state of db
             database_read_only = project_settings.db_is_readonly(name)
             data.append({
                 "Name": name,
-                "Depends": ", ".join(bw.databases[name].get("depends", [])),
+                "Depends": ", ".join(database_controller[name].get("depends", [])),
                 "Modified": dt,
                 "Records": bc.count_database_records(name),
                 "Read-only": database_read_only,
@@ -99,7 +98,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
             self.updated.emit()
             return
 
-        if db_name not in bw.databases:
+        if db_name not in database_controller:
             raise KeyError("This database does not exist!", db_name)
         self.database_name = db_name
         self.technosphere = bc.is_technosphere_db(db_name)

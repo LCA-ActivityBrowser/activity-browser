@@ -5,6 +5,7 @@ import brightway2 as bw
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
+from activity_browser import database_controller
 from activity_browser.bwutils import exporters as exp
 
 
@@ -95,7 +96,7 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
             [QtWidgets.QWizard.Stretch, QtWidgets.QWizard.FinishButton, QtWidgets.QWizard.CancelButton]
         )
         self.database.clear()
-        choices = ["-----"] + bw.databases.list
+        choices = ["-----"] + list(database_controller)
         self.database.addItems(choices)
         self.output_dir.setText(bw.projects.output_dir)
 

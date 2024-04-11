@@ -10,7 +10,7 @@ import networkx as nx
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import log, signals
+from activity_browser import log, signals, database_controller
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 
@@ -209,7 +209,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            self.new_graph(bw.Database(self.selected_db).random().key)
+            self.new_graph(database_controller.get(self.selected_db).random().key)
         else:
             QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
 

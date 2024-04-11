@@ -1,6 +1,5 @@
 from typing import Union, Callable
 
-import brightway2 as bw
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application, database_controller
@@ -27,7 +26,7 @@ class DatabaseDuplicate(ABAction):
         super().__init__(parent, db_name=database_name)
 
     def onTrigger(self, toggled):
-        assert self.db_name in bw.databases
+        assert self.db_name in database_controller
 
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
@@ -36,7 +35,7 @@ class DatabaseDuplicate(ABAction):
         )
         if not new_name or not ok: return
 
-        if new_name in bw.databases:
+        if new_name in database_controller:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible",
@@ -79,5 +78,5 @@ class DuplicateDatabaseThread(ABThread):
         self.copy_to = to_db
 
     def run_safely(self):
-        database_controller.duplicate_database(self.copy_from, self.copy_to)
-
+        database = database_controller.get(self.copy_from)
+        database.copy(self.copy_to)

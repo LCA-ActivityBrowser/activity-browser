@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-import brightway2 as bw
 from brightway2 import calculation_setups
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 
-from activity_browser import log, signals, actions
+from activity_browser import log, signals, actions, database_controller
 from .base import BaseRightTab
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -19,7 +18,6 @@ from ...bwutils.superstructure import (
     SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
     scenario_replace_databases, ABPopup, edit_superstructure_for_string
 )
-
 
 """
 Lifecycle of a calculation setup
@@ -84,6 +82,7 @@ State data
 The currently selected calculation setup is retrieved by getting the currently selected value in ``CSList``.
 
 """
+
 
 class LCASetupTab(QtWidgets.QWidget):
     DEFAULT = 0
@@ -226,7 +225,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.calculation_type.setVisible(show)
         # show/hide tables widgets
         self.splitter.setVisible(show)
-        self.no_setup_label.setVisible(not(show))
+        self.no_setup_label.setVisible(not (show))
 
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
@@ -247,6 +246,7 @@ class ScenarioImportPanel(BaseRightTab):
     MAX_TABLES = 5
 
     """Special kind of QWidget that contains one or more tables side by side."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -255,14 +255,14 @@ class ScenarioImportPanel(BaseRightTab):
         <p>1. <b>Flow-scenarios</b>: alternative values for exchanges (technosphere/biosphere flows) 
         (<i>scenario difference files</i>)</p>
         <p>2. <b>Parameter-scenarios</b>: alternative values for parameters <i>(parameter scenarios files)</i></p>
-        
+
         Further information is provided in this <a href="https://www.youtube.com/watch?v=3LPcpV1G_jg">video</a>. 
-        
+
         <p>If you need a template for these files, you can go to the <i>Parameters > Scenarios tab</i>. 
         Then click <i>Export parameter-scenarios</i> to obtain a parameter-scenarios file or   
         <i>Export as flow-scenarios</i> to obtain a flow-scenarios file 
         (you need at least one parameterized activity for the latter).</p> 
-        
+
         <br> <p> You can also work with <b>multiple scenario files</b> for which there are with two options:</p>
         <p>1. <b>Combine scenarios</b>: this yields all possible scenario combinations 
         (e.g. file 1: <i>S1, S2</i> and file 2: <i>A, B</i> yields <i>S1-A, S1-B, S2-A, S2-B</i>) 
@@ -280,7 +280,7 @@ class ScenarioImportPanel(BaseRightTab):
         # set-up the header
         panel_header = header("Scenarios:  ")
         panel_header.setToolTip("Left click on the question mark for help")
-        
+
         # set-up the control buttons
         self.table_btn = QtWidgets.QPushButton("Add scenarios", self)
 
@@ -309,8 +309,8 @@ class ScenarioImportPanel(BaseRightTab):
 
         # add the border and hide until further notice
         self.group_box = QtWidgets.QGroupBox()
-        self.group_box.setStyleSheet(style_group_box.border_title)        
-        self.group_box.setLayout(input_field_layout)  
+        self.group_box.setStyleSheet(style_group_box.border_title)
+        self.group_box.setLayout(input_field_layout)
         self.group_box.setDisabled(True)
 
         # set-up the help button
@@ -337,7 +337,7 @@ class ScenarioImportPanel(BaseRightTab):
         # statistics at the bottom of the widget
         self.stats_widget = QtWidgets.QLabel()
         self.update_stats()
-        
+
         # construct the full layout
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(tool_row)
@@ -347,7 +347,6 @@ class ScenarioImportPanel(BaseRightTab):
         self.setLayout(layout)
 
         self._connect_signals()
-        
 
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
@@ -369,7 +368,7 @@ class ScenarioImportPanel(BaseRightTab):
 
     def toggle_combine_type(self) -> None:
         """Called by signal when the combine type is switched by the user"""
-        try: 
+        try:
             # try to update the combined dataframe
             self.combined_dataframe()
         except:
@@ -379,7 +378,7 @@ class ScenarioImportPanel(BaseRightTab):
                 self.addition_choice.setChecked(True)
             if type == "addition":
                 self.product_choice.setChecked(True)
-        
+
     def get_combine_type(self) -> str:
         """Return the type of combination the user wants to do"""
         if self.product_choice.isChecked():
@@ -403,17 +402,17 @@ class ScenarioImportPanel(BaseRightTab):
             self._scenario_dataframe = pd.DataFrame()
             self.update_stats()
             return
-        
+
         # if the tables are empty, set the dataframe to be empty
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         if not data:
             self._scenario_dataframe = pd.DataFrame()
             self.update_stats()
             return
-        
+
         # check what kind of combination the user wants to do
         kind = self.get_combine_type()
-        
+
         # combine the data using SuperstructureManager and update the dataframe
         manager = SuperstructureManager(*data)
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
@@ -436,7 +435,7 @@ class ScenarioImportPanel(BaseRightTab):
         # remove from the self.tables list and the layout
         table_widget = self.tables.pop(index)
         self.scenario_tables.removeWidget(table_widget)
-        
+
         # update the other widgets with new indices
         for i, widget in enumerate(self.tables):
             widget.index = i
@@ -554,7 +553,6 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             )
             self.remove_btn.clicked.connect(parent.can_add_table)
 
-
     @_time_it_
     @Slot(name="loadScenarioFile")
     def load_action(self) -> None:
@@ -600,12 +598,12 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                     signals.parameter_scenario_sync.emit(self.index, df, include_default)
                 else:
                     # this is a wrong file type
-                    msg = "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"\
-                        " another file type was detected. Please check the file type of the attempted import, if it is"\
-                        " a scenario file make sure it contains a valid format.</p>"\
-                        "<p>A flow exchange scenario file requires the following headers:<br>" +\
-                        edit_superstructure_for_string(sep=", ", fhighlight='"') + "</p>"\
-                        "<p>A parameter scenario file requires the following:<br>" + edit_superstructure_for_string(
+                    msg = "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import" \
+                          " another file type was detected. Please check the file type of the attempted import, if it is" \
+                          " a scenario file make sure it contains a valid format.</p>" \
+                          "<p>A flow exchange scenario file requires the following headers:<br>" + \
+                          edit_superstructure_for_string(sep=", ", fhighlight='"') + "</p>" \
+                                                                                     "<p>A parameter scenario file requires the following:<br>" + edit_superstructure_for_string(
                         ["name", "group"], sep=", ", fhighlight='"') + "</p>"
                     critical = ABPopup.abCritical("Wrong file type", msg, QtWidgets.QPushButton("Cancel"))
                     QtWidgets.QApplication.restoreOverrideCursor()
@@ -658,8 +656,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @_time_it_
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
         dbs = set(df.loc[:, 'from database']).union(set(df.loc[:, 'to database']))
-        unlinkable = dbs.difference(bw.databases)
-        db_lst = list(bw.databases)
+        unlinkable = dbs.difference(database_controller)
+        db_lst = list(database_controller)
         relink = []
         for db in unlinkable:
             relink.append((db, db_lst))
@@ -667,7 +665,6 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if unlinkable:
             dialog = ScenarioDatabaseDialog.construct_dialog(self._parent, relink)
             if dialog.exec_() == dialog.Accepted:
-
                 # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
                 return scenario_replace_databases(df, dialog.relink)
                 # generate the required dialog

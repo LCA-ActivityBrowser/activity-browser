@@ -6,7 +6,7 @@ import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
-from activity_browser import project_settings, signals, project_controller
+from activity_browser import project_settings, signals, database_controller, project_controller
 from activity_browser.bwutils.superstructure import get_sheet_names
 from ..threading import ABThread
 from ..style import style_group_box, vertical_line
@@ -99,7 +99,7 @@ class TupleNameDialog(QtWidgets.QDialog):
         """
         Actions when the text within the TupleNameDialog is edited by the user
         """
-        # rebuild the combined name example 
+        # rebuild the combined name example
         self.view_name.setText(f"'({self.combined_names})'")
 
         # disable the button (and its outline) when all fields are empty
@@ -524,9 +524,6 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.finished.connect(self.thread_finished)
         self.biosphere_thread.start()
 
-        # finally, check if patches are available for this version and apply them
-        #self.biosphere_thread.finished.connect(self.check_patches)
-
     @Slot(int, str, name='updateThread')
     def update_progress(self, current: int, text: str) -> None:
         self.setValue(current)
@@ -536,7 +533,10 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
-        project_controller.set_current(bw.projects.current)
+
+        database_controller.sync()  # this should change in the long run
+        database_controller.changed(bw.config.biosphere)
+
         self.done(result or 0)
 
     def check_patches(self):
@@ -559,7 +559,7 @@ class DefaultBiosphereThread(ABThread):
 
     def run_safely(self):
         project = f"<b>{project_controller.current}</b>"
-        if "biosphere3" not in bw.databases:
+        if "biosphere3" not in database_controller:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
