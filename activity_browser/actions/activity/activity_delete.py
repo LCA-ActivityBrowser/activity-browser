@@ -22,7 +22,7 @@ class ActivityDelete(ABAction):
 
     def onTrigger(self, toggled):
         # retrieve activity objects from the controller using the provided keys
-        activities = activity_controller.get_activities(self.activity_keys)
+        activities = [activity_controller.get(key) for key in self.activity_keys]
 
         # check for downstream processes
         if any(len(act.upstream()) > 0 for act in activities):
@@ -42,4 +42,5 @@ class ActivityDelete(ABAction):
             if choice == QtWidgets.QMessageBox.No: return
 
         # use the activity controller to delete multiple activities
-        activity_controller.delete_activities(self.activity_keys)
+        for act in activities:
+            act.delete()

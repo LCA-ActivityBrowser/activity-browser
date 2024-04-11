@@ -2,9 +2,11 @@ from typing import Union, Callable, List, Optional
 
 from PySide2 import QtCore
 
+from activity_browser.bwutils import commontasks
+
 from ..base import ABAction
 from ...ui.icons import qicons
-from ...controllers import exchange_controller
+from ...controllers import exchange_controller, activity_controller
 
 
 class ExchangeNew(ABAction):
@@ -24,4 +26,16 @@ class ExchangeNew(ABAction):
         super().__init__(parent, from_keys=from_keys, to_key=to_key)
 
     def onTrigger(self, toggled):
-        exchange_controller.add_exchanges(self.from_keys, self.to_key, None)
+        to_activity = activity_controller.get(self.to_key)
+        for from_key in self.from_keys:
+            exchange = to_activity.new_exchange(input=from_key, amount=1)
+
+            technosphere_db = commontasks.is_technosphere_db(from_key[0])
+            if technosphere_db is True:
+                exchange['type'] = 'technosphere'
+            elif technosphere_db is False:
+                exchange['type'] = 'biosphere'
+            else:
+                exchange['type'] = 'unknown'
+
+            exchange.save()

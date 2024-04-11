@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
 from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
+from activity_browser import database_controller, activity_controller, signals, project_settings
+from activity_browser.bwutils import commontasks as bc
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
 from ...ui.tables import (BiosphereExchangeTable, DownstreamExchangeTable,
                       ProductExchangeTable, TechnosphereExchangeTable)
 from ...ui.widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
-from ...bwutils import commontasks as bc
-from ...settings import project_settings
-from ...signals import signals
 
 
 class ActivitiesTab(ABTab):
@@ -22,11 +20,9 @@ class ActivitiesTab(ABTab):
         self.setTabsClosable(True)
         self.connect_signals()
 
-
     def connect_signals(self):
         signals.unsafe_open_activity_tab.connect(self.unsafe_open_activity_tab)
         signals.safe_open_activity_tab.connect(self.safe_open_activity_tab)
-        signals.activity_modified.connect(self.update_activity_name)
         self.tabCloseRequested.connect(self.close_tab)
         signals.close_activity_tab.connect(self.close_tab_by_tab_name)
         signals.project_selected.connect(self.close_all)
@@ -35,10 +31,10 @@ class ActivitiesTab(ABTab):
     def open_activity_tab(self, key: tuple, read_only: bool = True) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
-            act = bw.get_activity(key)
+            act = activity_controller.get(key)
             if not bc.is_technosphere_activity(act):
                 return
-            new_tab = ActivityTab(key, read_only=read_only)
+            new_tab = ActivityTab(key, read_only, self)
 
             # If this is a new or duplicated activity then we want to exit it
             # ditto check the Technosphere and Biosphere tables
@@ -47,10 +43,11 @@ class ActivitiesTab(ABTab):
                     if table.title() in ("Technosphere Flows:", "Biosphere Flows:"):
                         table.setChecked(True)
             self.tabs[key] = new_tab
-            self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
+            tab_index = self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
-            # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
-            # new_tab.setToolTip(bw.get_activity(key).as_dict()['name'])
+            new_tab.destroyed.connect(lambda: self.tabs.pop(key) if key in self.tabs else None)
+            new_tab.destroyed.connect(signals.hide_when_empty.emit)
+            new_tab.objectNameChanged.connect(lambda name: self.setTabText(tab_index, name))
 
         self.select_tab(self.tabs[key])
         signals.show_tab.emit("Activity Details")
@@ -62,15 +59,6 @@ class ActivitiesTab(ABTab):
     @Slot(tuple, name="safeOpenActivityTab")
     def safe_open_activity_tab(self, key: tuple) -> None:
         self.open_activity_tab(key)
-
-    @Slot(tuple, str, object, name="updateActivityName")
-    def update_activity_name(self, key, field, value):
-        if key in self.tabs and field == 'name':
-            try:
-                index = self.indexOf(self.tabs[key])
-                self.setTabText(index, value)
-            except:
-                pass
 
 
 class ActivityTab(QtWidgets.QWidget):
@@ -89,13 +77,14 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, key: tuple, parent=None, read_only=True):
+    def __init__(self, key: tuple, read_only=True, parent=None):
         super(ActivityTab, self).__init__(parent)
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
         self.db_name = key[0]
-        self.activity = bw.get_activity(key)
+        self.activity = activity_controller.get(key)
+        self.database = database_controller.get(self.db_name)
 
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
@@ -191,9 +180,9 @@ class ActivityTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
-        signals.database_changed.connect(self.populate)
+        self.activity.changed.connect(self.populate)
+        self.activity.deleted.connect(self.deleteLater)
         signals.parameters_changed.connect(self.populate)
-        # signals.activity_modified.connect(self.update_activity_values)
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:
@@ -202,16 +191,19 @@ class ActivityTab(QtWidgets.QWidget):
     @Slot(name="populatePage")
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
-        if self.db_name in bw.databases:
+        if self.db_name in database_controller:
             # Avoid a weird signal interaction in the tests
             try:
-                self.activity = bw.get_activity(self.key)  # Refresh activity.
+                self.activity = activity_controller.get(self.key)  # Refresh activity.
             except DoesNotExist:
                 signals.close_activity_tab.emit(self.key)
                 return
         self.populate_description_box()
 
-        #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
+        # update the object name to be the activity name
+        self.setObjectName(self.activity["name"])
+
+        # fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
         self.production.model.sync(self.activity.production())
         self.technosphere.model.sync(self.activity.technosphere())
@@ -322,9 +314,3 @@ class ActivityTab(QtWidgets.QWidget):
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
-
-    # def update_activity_values(self, key, field, value):
-    #     """Update activity values."""
-    #     if key == self.key:
-    #         self.activity[field] = value
-

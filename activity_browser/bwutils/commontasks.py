@@ -10,6 +10,7 @@ from bw2data.proxies import ActivityProxyBase
 from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 from activity_browser import log
+from .metadata import AB_metadata
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
@@ -61,31 +62,6 @@ def format_activity_label(key, style='pnl', max_length=40):
         else:
             return wrap_text(str(key))
     return wrap_text(label, max_length=max_length)
-
-
-# Switch brightway directory
-def switch_brightway2_dir(dirpath):
-    bw_base = bw.projects._base_data_dir
-    if dirpath == bw_base:
-        log.info('dirpath already loaded')
-        return False
-    try:
-        assert os.path.isdir(dirpath)
-        bw.projects._base_data_dir = dirpath
-        bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
-        # create folder if it does not yet exist
-        if not os.path.isdir(bw.projects._base_logs_dir):
-            os.mkdir(bw.projects._base_logs_dir)
-        # load new brightway directory
-        bw.projects.db = SubstitutableDatabase(
-            os.path.join(bw.projects._base_data_dir, "projects.db"),
-            [ProjectDataset]
-        )
-        log.info('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
-        return True
-    except AssertionError:
-        log.error('Could not access BW_DIR as specified in settings.py')
-        return False
 
 
 def cleanup_deleted_bw_projects() -> None:
@@ -219,6 +195,21 @@ def identify_activity_type(activity):
         return "marketgroup"
     else:
         return "production"
+
+
+def generate_copy_code(key: tuple) -> str:
+    """Generate a new code to use when copying an activity"""
+    db, code = key
+    metadata = AB_metadata.get_database_metadata(db)
+    if '_copy' in code:
+        code = code.split('_copy')[0]
+    copies = metadata["key"].apply(
+        lambda x: x[1] if code in x[1] and "_copy" in x[1] else None
+    ).dropna().to_list() if not metadata.empty else []
+    if not copies:
+        return f"{code}_copy1"
+    n = max((int(c.split('_copy')[1]) for c in copies))
+    return f"{code}_copy{n + 1}"
 
 
 # EXCHANGES

@@ -10,7 +10,7 @@ from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import log, signals, actions, exchange_controller
+from activity_browser import log, signals, actions
 from activity_browser.bwutils import (
     PedigreeMatrix, commontasks as bc
 )
@@ -59,8 +59,8 @@ class BaseExchangeModel(EditablePandasModel):
             return row
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
-            log.info("Broken exchange: {}, removing.".format(e))
-            exchange_controller.delete_exchanges([exchange])
+            log.warning(f"Broken exchange: {e}, removing.")
+            actions.ExchangeDelete([exchange], self).trigger()
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)
@@ -97,7 +97,7 @@ class BaseExchangeModel(EditablePandasModel):
             actions.ExchangeModify(exchange, {field: value}, self).trigger()
         else:
             act_key = exchange.output.key
-            signals.activity_modified.emit(act_key, field, value)
+            actions.ActivityModify(act_key, field, value, self).trigger()
         return super().setData(index, value, role)
 
     def get_usable_parameters(self):
