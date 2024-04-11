@@ -5,7 +5,7 @@ from PySide2.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import log, signals, application, parameter_controller, exchange_controller
+from activity_browser import log, signals, application, parameter_controller, exchange_controller, actions
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
@@ -75,9 +75,9 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """
         self.amount_mean_test()
         if self.obj.data_type == "exchange":
-            exchange_controller.edit_exchange(self.obj.data, self.uncertainty_info)
+            actions.ExchangeModify(self.obj.data, self.uncertainty_info, self).trigger()
             if self.using_pedigree:
-                exchange_controller.edit_exchange(self.obj.data, {"pedigree": self.pedigree.matrix.factors})
+                actions.ExchangeModify(self.obj.data, {"pedigree": self.pedigree.matrix.factors}, self).trigger()
         elif self.obj.data_type == "parameter":
             parameter_controller.modify_parameter_uncertainty(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:

@@ -61,7 +61,7 @@ def test_exchange_modify(ab_app):
     from_key = ('exchange_tests', '0e1dc99927284e45af17d546414a3ccd')
     exchange = [exchange for exchange in bw.get_activity(key).exchanges() if exchange.input.key == from_key]
 
-    new_data = {"amount": "200"}
+    new_data = {"amount": 200}
 
     assert bw.projects.current == "default"
     assert len(exchange) == 1

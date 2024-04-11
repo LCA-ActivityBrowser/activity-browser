@@ -11,7 +11,7 @@ from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
 from PySide2 import QtWidgets
 
-from activity_browser import log, signals, application, actions, parameter_controller, exchange_controller
+from activity_browser import log, signals, application, actions, parameter_controller
 from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
@@ -361,8 +361,8 @@ class ParameterItem(TreeItem):
                 parent.appendChild(item)
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
-                log.warning("Broken exchange: {}, removing.".format(e))
-                exchange_controller.delete_exchanges([exc])
+                log.warning(f"Broken exchange: {e}, removing.")
+                actions.ExchangeDelete([exc], None).trigger()
 
 
 class ParameterTreeModel(BaseTreeModel):
