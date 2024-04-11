@@ -535,7 +535,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.check_patches()
 
         database_controller.sync()  # this should change in the long run
-        database_controller.database_changed.emit(bw.config.biosphere)
+        database_controller.changed(bw.config.biosphere)
 
         self.done(result or 0)
 

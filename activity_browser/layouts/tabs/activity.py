@@ -3,16 +3,14 @@ from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import database_controller, activity_controller
+from activity_browser import database_controller, activity_controller, signals, project_settings
+from activity_browser.bwutils import commontasks as bc
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
 from ...ui.tables import (BiosphereExchangeTable, DownstreamExchangeTable,
                       ProductExchangeTable, TechnosphereExchangeTable)
 from ...ui.widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels import ABTab
-from ...bwutils import commontasks as bc
-from ...settings import project_settings
-from ...signals import signals
 
 
 class ActivitiesTab(ABTab):
@@ -23,8 +21,6 @@ class ActivitiesTab(ABTab):
         self.connect_signals()
 
     def connect_signals(self):
-        activity_controller.activity_changed.connect(self.sync_activity_name)
-
         signals.unsafe_open_activity_tab.connect(self.unsafe_open_activity_tab)
         signals.safe_open_activity_tab.connect(self.safe_open_activity_tab)
         self.tabCloseRequested.connect(self.close_tab)
@@ -38,7 +34,7 @@ class ActivitiesTab(ABTab):
             act = activity_controller.get(key)
             if not bc.is_technosphere_activity(act):
                 return
-            new_tab = ActivityTab(key, read_only=read_only)
+            new_tab = ActivityTab(key, read_only, self)
 
             # If this is a new or duplicated activity then we want to exit it
             # ditto check the Technosphere and Biosphere tables
@@ -47,7 +43,11 @@ class ActivitiesTab(ABTab):
                     if table.title() in ("Technosphere Flows:", "Biosphere Flows:"):
                         table.setChecked(True)
             self.tabs[key] = new_tab
-            self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
+            tab_index = self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
+
+            new_tab.destroyed.connect(lambda: self.tabs.pop(key) if key in self.tabs else None)
+            new_tab.destroyed.connect(signals.hide_when_empty.emit)
+            new_tab.objectNameChanged.connect(lambda name: self.setTabText(tab_index, name))
 
         self.select_tab(self.tabs[key])
         signals.show_tab.emit("Activity Details")
@@ -59,15 +59,6 @@ class ActivitiesTab(ABTab):
     @Slot(tuple, name="safeOpenActivityTab")
     def safe_open_activity_tab(self, key: tuple) -> None:
         self.open_activity_tab(key)
-
-    @Slot(tuple, str, object, name="updateActivityName")
-    def sync_activity_name(self, activity):
-        if activity.key in self.tabs:
-            try:
-                index = self.indexOf(self.tabs[activity.key])
-                self.setTabText(index, activity["name"])
-            except:
-                pass
 
 
 class ActivityTab(QtWidgets.QWidget):
@@ -86,13 +77,14 @@ class ActivityTab(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
-    def __init__(self, key: tuple, parent=None, read_only=True):
+    def __init__(self, key: tuple, read_only=True, parent=None):
         super(ActivityTab, self).__init__(parent)
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
         self.db_name = key[0]
         self.activity = activity_controller.get(key)
+        self.database = database_controller.get(self.db_name)
 
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
@@ -188,7 +180,8 @@ class ActivityTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
-        signals.database_changed.connect(self.populate)
+        self.activity.changed.connect(self.populate)
+        self.activity.deleted.connect(self.deleteLater)
         signals.parameters_changed.connect(self.populate)
 
     @Slot(name="openGraph")
@@ -207,7 +200,10 @@ class ActivityTab(QtWidgets.QWidget):
                 return
         self.populate_description_box()
 
-        #  fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
+        # update the object name to be the activity name
+        self.setObjectName(self.activity["name"])
+
+        # fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         # todo: add count of results for each exchange table, to label above each table
         self.production.model.sync(self.activity.production())
         self.technosphere.model.sync(self.activity.technosphere())

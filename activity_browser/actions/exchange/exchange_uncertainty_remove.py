@@ -2,11 +2,10 @@ from typing import Union, Callable, List, Any
 
 from PySide2 import QtCore
 
-from activity_browser import exchange_controller
+from activity_browser.bwutils.data import ABExchange
 from ..base import ABAction
 from ...ui.icons import qicons
 from ...bwutils import uncertainty
-from ...controllers.exchange import ABExchange
 
 
 class ExchangeUncertaintyRemove(ABAction):

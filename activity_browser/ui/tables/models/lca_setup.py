@@ -7,7 +7,7 @@ import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
-from activity_browser import log, signals
+from activity_browser import log, signals, activity_controller
 from activity_browser.bwutils import commontasks as bc
 from .base import EditablePandasModel, PandasModel
 
@@ -71,15 +71,14 @@ class CSActivityModel(CSGenericModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+
         self.current_cs = None
         self.key_col = 0
+        self._activities = []
 
         self.HEADERS = self.HEADERS + ["key"]
 
-        signals.calculation_setup_selected.connect(self.sync)
-        #signals.databases_changed.connect(self.sync)
-        signals.database_changed.connect(self.check_activities)
-        # after editing the model, signal that the calculation setup has changed.
+        signals.calculation_setup_selected.connect(self.load)
         self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 
     @property
@@ -90,28 +89,22 @@ class CSActivityModel(CSGenericModel):
         selection = self._dataframe.loc[:, ["Amount", "key"]].to_dict(orient="records")
         return [{x["key"]: x["Amount"]} for x in selection]
 
-    def check_activities(self, db):
-        if db == 'biosphere3': return  # if biosphere changed, we don't need to check as it doesn't have activities.
-        databases = [list(k.keys())[0][0] for k in self.activities]
-        if db in databases:
-            self.sync()
-
     def get_key(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.key_col]
 
-    @Slot(str, name="syncModel")
-    def sync(self, name: str = None):
-        if len(bw.calculation_setups) == 0:
-            self._dataframe = pd.DataFrame(columns=self.HEADERS)
-            self.updated.emit()
-            return
-        if self.current_cs is None and name is None:
-            raise ValueError("'name' cannot be None if no name is set")
-        if name:
-            assert name in bw.calculation_setups, "Given calculation setup does not exist."
-            self.current_cs = name
+    def load(self, name: str):
+        assert name in bw.calculation_setups, "Given calculation setup does not exist."
 
+        for act in self._activities:
+            act.changed.disconnect(self.sync)
+        self._activities.clear()
+
+        self.current_cs = name
+        self.sync()
+
+    def sync(self):
+        assert self.current_cs, "CS Model not yet loaded"
         fus = bw.calculation_setups.get(self.current_cs, {}).get('inv', [])
         df = pd.DataFrame([
             self.build_row(key, amount) for func_unit in fus
@@ -124,7 +117,7 @@ class CSActivityModel(CSGenericModel):
 
     def build_row(self, key: tuple, amount: float = 1.0) -> dict:
         try:
-            act = bw.get_activity(key)
+            act = activity_controller.get(key)
             if act.get("type", "process") != "process":
                 raise TypeError("Activity is not of type 'process'")
             row = {
@@ -132,6 +125,10 @@ class CSActivityModel(CSGenericModel):
                 for key in self.HEADERS[:-1]
             }
             row.update({"Amount": amount, "key": key})
+
+            act.changed.connect(self.sync)
+            self._activities.append(act)
+
             return row
         except (TypeError, ActivityDataset.DoesNotExist):
             log.error("Could not load key '{}' in Calculation Setup '{}'".format(str(key), self.current_cs))
@@ -140,8 +137,13 @@ class CSActivityModel(CSGenericModel):
     @Slot(name="deleteRows")
     def delete_rows(self, proxies: list) -> None:
         indices = (self.proxy_to_source(p) for p in proxies)
-        rows = [i.row() for i in indices]
-        self._dataframe = self._dataframe.drop(rows, axis=0).reset_index(drop=True)
+        rows = {i.row() for i in indices}
+
+        for key in [self._dataframe.at[row, "key"] for row in rows]:
+            activity = activity_controller.get(key)
+            activity.changed.disconnect(self.sync)
+
+        self._dataframe = self._dataframe.drop(rows).reset_index(drop=True)
         self.updated.emit()
         signals.calculation_setup_changed.emit()  # Trigger update of CS in brightway
 
@@ -152,7 +154,7 @@ class CSActivityModel(CSGenericModel):
             k, v = zip(*fu.items())
             data.append(self.build_row(k[0], v[0]))
         if data:
-            self._dataframe = pd.concat([self._dataframe,pd.DataFrame(data)], ignore_index=True)
+            self._dataframe = pd.concat([self._dataframe, pd.DataFrame(data)], ignore_index=True)
             self.updated.emit()
             signals.calculation_setup_changed.emit()
 

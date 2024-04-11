@@ -29,7 +29,7 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.setMaximum(1)
         self.setValue(1)
         database_controller.sync()
-        database_controller.database_changed.emit(bw.config.biosphere)  # this should change in the long run
+        database_controller.changed(bw.config.biosphere)  # this should change in the long run
         self.done(outcome)
 
     @Slot(int)

@@ -2,9 +2,9 @@ from typing import Union, Callable, Any
 
 from PySide2 import QtCore
 
+from activity_browser.bwutils.data import ABExchange
 from ..base import ABAction
 from ...ui.icons import qicons
-from ...controllers.exchange import ABExchange
 
 
 class ExchangeModify(ABAction):

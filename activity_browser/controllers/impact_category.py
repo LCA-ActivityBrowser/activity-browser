@@ -2,6 +2,9 @@
 from typing import List
 
 import brightway2 as bw
+
+from bw2data.method import Method
+
 from PySide2.QtCore import QObject, Slot
 
 from activity_browser import log, signals, application

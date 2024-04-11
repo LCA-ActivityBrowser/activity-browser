@@ -32,5 +32,6 @@ class DatabaseNew(ABAction):
             )
             return
 
-        database_controller.add(name)
+        db = database_controller.get(name)
+        db.register()
         project_settings.add_db(name, False)

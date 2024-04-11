@@ -41,6 +41,7 @@ class ActivityNew(ABAction):
         }
         database = database_controller.get(self.database_name)
         new_act = database.new_activity(code=uuid4().hex, **data)
+        new_act.save()
 
         # create the production exchange
         production_exchange = new_act.new_exchange(input=new_act, amount=1, type="production")

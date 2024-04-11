@@ -12,17 +12,6 @@ from .layouts.main import MainWindow
 from .plugin import Plugin
 
 
-def controller_logger():
-    database_controller.database_deleted.connect(lambda x: log.info(f"database_deleted: {x}"))
-    database_controller.database_changed.connect(lambda x: log.info(f"database_changed: {x}"))
-
-    activity_controller.activity_changed.connect(lambda x: log.info(f"activity_changed: {x}"))
-    activity_controller.activity_deleted.connect(lambda x: log.info(f"activity_deleted: {x}"))
-
-    exchange_controller.new_exchange.connect(lambda x: log.info(f"new_exchange: {x}"))
-    exchange_controller.exchange_changed.connect(lambda x: log.info(f"exchange_changed: {x}"))
-    exchange_controller.exchange_deleted.connect(lambda x: log.info(f"exchange_deleted: {x}"))
-
 def load_settings() -> None:
     if ab_settings.settings:
         log.info("Loading user settings:")
@@ -38,7 +27,6 @@ def run_activity_browser():
 
     application.main_window = MainWindow(application)
     load_settings()
-    controller_logger()
     application.show()
 
     def exception_hook(*args):

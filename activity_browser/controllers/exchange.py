@@ -1,51 +1,56 @@
-from copy import deepcopy
+from typing import Union
 
-from bw2data.backends.peewee.proxies import Exchanges, Exchange
 from PySide2.QtCore import QObject, Signal, SignalInstance
+from bw2data.backends.peewee.schema import ExchangeDataset
 
+import activity_browser.bwutils.data as ABData
 from activity_browser import application
+from .base import VirtualDatapoint
 
 
-class ABExchange(Exchange):
-    previous_state: dict = {}
+class VirtualExchange(VirtualDatapoint):
+    changed = Signal(ABData.ABActivity)
+    deleted = Signal(ABData.ABActivity)
 
-    @classmethod
-    def from_exchange(cls, exchange: Exchange) -> "ABExchange":
-        ab_exchange = cls(exchange._document)
-        ab_exchange.previous_state = deepcopy(exchange._document.data)
-        return ab_exchange
+    @property
+    def input(self):
+        try:
+            ds = ExchangeDataset.get_by_id(self.data_point.id)
+            return ds.input_database, ds.input_code
+        except:
+            return None, None
 
-    def save(self) -> None:
-        super().save()
-        exchange_controller.exchange_changed.emit(self)
-
-    def delete(self) -> None:
-        super().delete()
-        exchange_controller.exchange_deleted.emit(self)
-
-    def _get_input(self):
-        from .activity import ABActivity
-        return ABActivity.from_activity(super().input)
-
-    def _get_output(self):
-        from .activity import ABActivity
-        return ABActivity.from_activity(super().output)
-
-
-class ABExchanges(Exchanges):
-    def __iter__(self):
-        for obj in self._get_queryset():
-            yield ABExchange(obj)
-
-    def delete(self):
-        for exchange in self:
-            exchange.delete()
+    @property
+    def output(self):
+        try:
+            ds = ExchangeDataset.get_by_id(self.data_point.id)
+            return ds.ouput_database, ds.ouput_code
+        except:
+            return None, None
 
 
 class ExchangeController(QObject):
-    exchange_changed: SignalInstance = Signal(ABExchange)
-    exchange_deleted: SignalInstance = Signal(ABExchange)
-    new_exchange: SignalInstance = Signal(ABExchange)
+    _dummy = VirtualExchange()
+
+    def get_virtual(self, exchange: ABData.ABExchange, create=False) -> VirtualExchange:
+        virtual_exchange = self.findChild(VirtualExchange, str(exchange.id))
+
+        if virtual_exchange: return virtual_exchange
+        elif create: return VirtualExchange(exchange.id, exchange, self)
+        else: return self._dummy
+
+    def changed(self, exchange: ABData.ABExchange):
+        virtual_exchange = self.findChild(VirtualExchange, str(exchange.id))
+        if not virtual_exchange: return
+        virtual_exchange.changed.emit(exchange)
+
+    def deleted(self, exchange: ABData.ABExchange):
+        virtual_exchange = self.findChild(VirtualExchange, str(exchange.id))
+        if not virtual_exchange: return
+        virtual_exchange.deleted.emit(exchange)
+
+    def get(self, exchange_id: int):
+        return ABData.ABExchange(ExchangeDataset.get_by_id(exchange_id))
 
 
 exchange_controller = ExchangeController(application)

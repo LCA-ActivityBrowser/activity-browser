@@ -21,11 +21,13 @@ class ABTab(QtWidgets.QTabWidget):
         """Optional function to accept the index of the selected tab."""
         pass  # NotImplementedError is not used as this function gets called often and not neccecarily used.
 
-    def add_tab(self, obj, tab_name):
+    def add_tab(self, obj: QtWidgets.QWidget, tab_name):
         """Default addTab method and add item to self.tabs
         """
         self.tabs[tab_name] = obj
         self.addTab(obj, tab_name)
+
+
 
     def select_tab(self, obj):
         """Brings tab to focus."""
