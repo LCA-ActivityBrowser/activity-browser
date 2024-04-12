@@ -1,9 +1,8 @@
 from typing import Union, Callable
 
-import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, calculation_setup_controller
+from activity_browser import application, cs_controller, signals, log
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -33,7 +32,7 @@ class CSRename(ABAction):
         if not ok or not new_name: return
 
         # throw error if the name is already present, and return
-        if new_name in bw.calculation_setups.keys():
+        if new_name in cs_controller.keys():
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
@@ -42,4 +41,7 @@ class CSRename(ABAction):
             return
 
         # instruct the CalculationSetupController to rename the CS to the new name
-        calculation_setup_controller.rename_calculation_setup(self.cs_name, new_name)
+        cs_controller[new_name] = cs_controller[self.cs_name].copy()
+        del cs_controller[self.cs_name]
+        signals.calculation_setup_selected.emit(new_name)
+        log.info("Renamed calculation setup from {} to {}".format(cs_name, new_name))

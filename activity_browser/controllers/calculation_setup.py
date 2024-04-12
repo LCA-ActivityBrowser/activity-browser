@@ -1,37 +1,67 @@
-import brightway2 as bw
-from PySide2.QtCore import QObject
+from bw2data import calculation_setups
+from PySide2.QtCore import QObject, Signal, SignalInstance
 
-from activity_browser import log, signals, application
-
-
-class CalculationSetupController(QObject):
-    """The controller that handles brightway features related to
-    calculation setups.
-    """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def new_calculation_setup(self, name) -> None:
-        bw.calculation_setups[name] = {'inv': [], 'ia': []}
-        signals.calculation_setup_selected.emit(name)
-        log.info("New calculation setup: {}".format(name))
-
-    def duplicate_calculation_setup(self, cs_name: str, new_name: str) -> None:
-        bw.calculation_setups[new_name] = bw.calculation_setups[cs_name].copy()
-        signals.calculation_setup_selected.emit(new_name)
-        log.info("Copied calculation setup {} as {}".format(cs_name, new_name))
-
-    def delete_calculation_setup(self, cs_name: str) -> None:
-        del bw.calculation_setups[cs_name]
-        signals.set_default_calculation_setup.emit()
-        signals.delete_calculation_setup.emit(cs_name)
-        log.info(f"Deleted calculation setup: {cs_name}")
-
-    def rename_calculation_setup(self, cs_name: str, new_name: str) -> None:
-        bw.calculation_setups[new_name] = bw.calculation_setups[cs_name].copy()
-        del bw.calculation_setups[cs_name]
-        signals.calculation_setup_selected.emit(new_name)
-        log.info("Renamed calculation setup from {} to {}".format(cs_name, new_name))
+import activity_browser.bwutils.data as ABData
+from activity_browser import application
+from .base import VirtualDatapoint
 
 
-calculation_setup_controller = CalculationSetupController(application)
+class VirtualCalculationSetup(VirtualDatapoint):
+    changed: SignalInstance = Signal(ABData.ABCalculationSetup)
+    deleted: SignalInstance = Signal(ABData.ABCalculationSetup)
+
+    data_point: ABData.ABCalculationSetup
+
+
+class CSController(QObject):
+    _dummy = VirtualCalculationSetup()
+
+    # mimicking the iterable behaviour of bw2data.meta.calculation_setups
+    def __getitem__(self, item) -> dict:
+        return ABData.ABCalculationSetup(item, **calculation_setups[item])
+
+    def __setitem__(self, key, value):
+        calculation_setups[key] = dict(value)
+
+        virtual_cs = self.findChild(VirtualCalculationSetup, key)
+        if not virtual_cs: return
+        virtual_cs.changed.emit(self[key])
+
+    def __delitem__(self, key):
+        cs = self[key]
+
+        del calculation_setups[key]
+
+        virtual_cs = self.findChild(VirtualCalculationSetup, key)
+        if not virtual_cs: return
+        virtual_cs.changed.emit(cs)
+        virtual_cs.deleted.emit(cs)
+
+    def __iter__(self) -> dict:
+        for name in calculation_setups:
+            yield name
+
+    def keys(self):
+        for key in calculation_setups.keys():
+            yield key
+
+    def items(self):
+        for key in calculation_setups:
+            yield key, self[key]
+
+    def get(self, name, default=None):
+        try:
+            return self[name]
+        except KeyError as e:
+            if default: return default
+            raise e
+
+    def get_virtual(self, cs: ABData.ABCalculationSetup, create=False):
+        virtual_database = self.findChild(VirtualCalculationSetup, cs.name)
+
+        if virtual_database: return virtual_database
+        elif create: return VirtualCalculationSetup(cs.name, cs, self)
+        else: return self._dummy
+
+
+cs_controller = CSController(application)

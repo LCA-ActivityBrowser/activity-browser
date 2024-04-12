@@ -27,7 +27,6 @@ class LCAResultsTab(ABTab):
 
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
-        signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project_selected.connect(self.close_all)
         signals.parameters_changed.connect(self.close_all)
@@ -57,6 +56,10 @@ class LCAResultsTab(ABTab):
             self.tabs[name] = new_tab
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])
+
+            new_tab.destroyed.connect(lambda: self.tabs.pop(name, None))
+            new_tab.destroyed.connect(signals.hide_when_empty.emit)
+
             signals.show_tab.emit("LCA results")
         except (BW2CalcError, ABError) as e:
             initial, *other = e.args

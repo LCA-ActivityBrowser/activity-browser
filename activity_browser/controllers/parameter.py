@@ -5,8 +5,8 @@ import brightway2 as bw
 from bw2data.parameters import *
 from PySide2.QtCore import QObject
 
+import activity_browser.bwutils.commontasks as bc
 from activity_browser import signals, application
-from activity_browser.bwutils import commontasks as bc
 
 
 class ParameterController(QObject):

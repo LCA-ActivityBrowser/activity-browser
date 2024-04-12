@@ -7,7 +7,7 @@ import brightway2 as bw
 from bw2data.backends.peewee import ActivityDataset
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
-from activity_browser import log, signals, activity_controller
+from activity_browser import log, signals, activity_controller, cs_controller
 from activity_browser.bwutils import commontasks as bc
 from .base import EditablePandasModel, PandasModel
 
@@ -94,7 +94,7 @@ class CSActivityModel(CSGenericModel):
         return self._dataframe.iat[idx.row(), self.key_col]
 
     def load(self, name: str):
-        assert name in bw.calculation_setups, "Given calculation setup does not exist."
+        assert name in cs_controller, "Given calculation setup does not exist."
 
         for act in self._activities:
             act.changed.disconnect(self.sync)
@@ -105,7 +105,7 @@ class CSActivityModel(CSGenericModel):
 
     def sync(self):
         assert self.current_cs, "CS Model not yet loaded"
-        fus = bw.calculation_setups.get(self.current_cs, {}).get('inv', [])
+        fus = cs_controller.get(self.current_cs, {}).get('inv', [])
         df = pd.DataFrame([
             self.build_row(key, amount) for func_unit in fus
             for key, amount in func_unit.items()
@@ -188,21 +188,21 @@ class CSMethodsModel(CSGenericModel):
 
         if self.current_cs is not None or name is not None:
             self.current_cs = name
-            filter_methods(bw.calculation_setups[self.current_cs].get('ia', []))
+            filter_methods(cs_controller[self.current_cs].get('ia', []))
             self.sync(self.current_cs)
         else:
-            for name, cs in bw.calculation_setups.items():
+            for name, cs in cs_controller.items():
                 filter_methods(cs['ia'])
             self.sync()
 
     @Slot(str, name="syncModel")
     def sync(self, name: str = None) -> None:
         if name:
-            assert name in bw.calculation_setups, "Given calculation setup does not exist."
+            assert name in cs_controller, "Given calculation setup does not exist."
             self.current_cs = name
             self._dataframe = pd.DataFrame([
                 self.build_row(method)
-                for method in bw.calculation_setups[self.current_cs].get("ia", [])
+                for method in cs_controller[self.current_cs].get("ia", [])
             ], columns=self.HEADERS)
         self.updated.emit()
 

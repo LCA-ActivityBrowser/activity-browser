@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
 
+import activity_browser.controllers as ABCtrl
 from activity_browser import log
 from .manager import MonteCarloParameterManager
 
@@ -16,13 +17,13 @@ from .manager import MonteCarloParameterManager
 class MonteCarloLCA(object):
     """A Monte Carlo LCA for multiple reference flows and methods loaded from a calculation setup."""
     def __init__(self, cs_name):
-        if cs_name not in bw.calculation_setups:
+        if cs_name not in ABCtrl.cs_controller:
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
 
         self.cs_name = cs_name
-        self.cs = bw.calculation_setups[cs_name]
+        self.cs = ABCtrl.cs_controller[cs_name]
         self.seed = None
         self.cf_rngs = {}
         self.CF_rng_vectors = {}

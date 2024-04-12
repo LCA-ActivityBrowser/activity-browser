@@ -261,3 +261,18 @@ class ABDatabase(SQLiteBackend):
 
         # no need to signal activities or exchanges. They are brand-new so won't have any slots connected to them right
         # now anyway. Any old activities or exchanges will have been deleted by this method.
+
+
+class ABCalculationSetup(dict):
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(**kwargs)
+        self.name = name
+
+    @property
+    def changed(self) -> SignalInstance:
+        return ABCtrl.cs_controller.get_virtual(self, create=True).changed
+
+    @property
+    def deleted(self) -> SignalInstance:
+        return ABCtrl.cs_controller.get_virtual(self, create=True).deleted

@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-import brightway2 as bw
 from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
 
-from activity_browser import log, signals
+from activity_browser import log, signals, cs_controller
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
@@ -21,7 +19,7 @@ class CSList(QtWidgets.QComboBox):
     def sync(self, name):
         self.blockSignals(True)
         self.clear()
-        keys = sorted(bw.calculation_setups)
+        keys = sorted(cs_controller)
         self.insertItems(0, keys)
         self.blockSignals(False)
         self.setCurrentIndex(keys.index(name))

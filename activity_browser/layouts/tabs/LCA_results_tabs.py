@@ -17,7 +17,7 @@ from PySide2.QtWidgets import (
 )
 from stats_arrays.errors import InvalidParamsError
 
-from activity_browser import log, signals
+from activity_browser import log, signals, cs_controller
 from .base import BaseRightTab
 from ...bwutils import (
     Contributions, MonteCarloLCA, MLCA,
@@ -129,6 +129,8 @@ class LCAResultsSubTab(QTabWidget):
         self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
         QApplication.restoreOverrideCursor()
+
+        cs_controller[self.cs_name].changed.connect(self.deleteLater)
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""
