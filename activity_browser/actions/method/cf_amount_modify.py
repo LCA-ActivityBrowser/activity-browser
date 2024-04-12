@@ -2,7 +2,7 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser import  impact_category_controller
+from activity_browser import ic_controller
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -27,13 +27,15 @@ class CFAmountModify(ABAction):
         super().__init__(parent, method_name=method_name, char_factors=char_factors, amount=amount)
 
     def onTrigger(self, toggled):
-        char_factor = list(self.char_factors[0])
-        if isinstance(char_factor[1], dict):
-            char_factor[1]['amount'] = self.amount
-        else:
-            char_factor[1] = self.amount
-        char_factor = tuple(char_factor)
+        method = ic_controller.get(self.method_name)
+        method_dict = method.load_dict()
+        cf = self.char_factors[0]
 
-        impact_category_controller.write_char_factors(self.method_name, [char_factor])
+        if isinstance(cf[1], dict):
+            method_dict[cf[0]]['amount'] = self.amount
+        else:
+            method_dict[cf[0]] = self.amount
+
+        method.write_dict(method_dict)
 
 

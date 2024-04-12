@@ -17,6 +17,7 @@ def test_cf_amount_modify(ab_app):
 
     actions.CFAmountModify(method, cf, 200, None).trigger()
 
+    cf = [cf for cf in bw.Method(method).load() if cf[0] == key]
     assert cf[0][1] == 200.0 or cf[0][1]['amount'] == 200.0
 
 

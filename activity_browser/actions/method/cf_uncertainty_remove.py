@@ -2,7 +2,7 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser import impact_category_controller
+from activity_browser import ic_controller
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -33,10 +33,16 @@ class CFUncertaintyRemove(ABAction):
             # else replace the uncertainty dict with the float found in the amount field of said dict
             cleaned_cfs.append((cf[0], cf[1]['amount']))
 
-        # if the list is empty we don't need to call the controller
+        # if the list is empty we can return
         if not cleaned_cfs: return
 
-        # else, instruct the controller to rewrite the characterization factors that had uncertainty dicts.
-        impact_category_controller.write_char_factors(self.method_name, cleaned_cfs)
+        # else write the cf's to the method
+        method = ic_controller.get(self.method_name)
+        method_dict = method.load_dict()
+
+        for cf in cleaned_cfs:
+            method_dict[cf[0]] = cf[1]
+
+        method.write_dict(method_dict)
 
 

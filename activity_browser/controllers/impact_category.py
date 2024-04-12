@@ -1,74 +1,67 @@
-# -*- coding: utf-8 -*-
-from typing import List
+from bw2data import methods
+from PySide2.QtCore import QObject, Signal, SignalInstance
 
-import brightway2 as bw
-from PySide2.QtCore import QObject, Slot
+import activity_browser.bwutils.data as ABData
+from activity_browser import application
+from .base import VirtualDatapoint
 
-from activity_browser import log, signals, application
+
+class VirtualMethod(VirtualDatapoint):
+    changed: SignalInstance = Signal(ABData.ABMethod)
+    deleted: SignalInstance = Signal(ABData.ABMethod)
+
+    data_point: ABData.ABMethod
+
+    @property
+    def name(self) -> tuple:
+        return self.data_point.name if self.data_point else (None,)
 
 
-class ImpactCategoryController(QObject):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        signals.delete_cf_method.connect(self.delete_method_from_cf)
+class ICController(QObject):
+    metadata_changed: SignalInstance = Signal()
 
-    def duplicate_methods(self, methods: List[bw.Method], new_names: List[tuple]):
-        for method, new_name in zip(methods, new_names):
-            if new_name in bw.methods:
-                raise Exception("New method name already in use")
-            method.copy(new_name)
-            log.info(f"Copied method {method.name} into {new_name}")
-        signals.new_method.emit()
+    _dummy: VirtualMethod = VirtualMethod()
+    _cache: dict = methods.data.copy()
 
-    def delete_methods(self, methods: List[bw.Method]) -> None:
-        """Call delete on the (first) selected method and present confirmation dialog."""
+    # mimicking the iterable behaviour of bw2data.meta.methods
+    def __getitem__(self, item) -> dict:
+        return methods[item]
+
+    def __iter__(self) -> dict:
         for method in methods:
-            method.deregister()
-            log.info(f"Deleted method {method.name}")
-        signals.method_deleted.emit()
+            yield method
 
-    def write_char_factors(self, method: tuple, char_factors: List[tuple], overwrite=True):
-        method = bw.Method(method)
-        cfs = method.load()
+    def __delitem__(self, name) -> None:
+        ABData.ABMethod(name).deregister()
 
-        for cf in char_factors:
-            index = next((i for i, c in enumerate(cfs) if c[0] == cf[0]), None)
+    def random(self):
+        return methods.random()
 
-            if index is not None and overwrite:
-                cfs[index] = cf
-            elif index is not None and not overwrite:
-                raise Exception("CF already exist in method, will not overwrite")
-            else:
-                cfs.append(cf)
+    def get_virtual(self, method: ABData.ABMethod, create=False) -> VirtualMethod:
+        virtual_method = self.findChild(VirtualMethod, str(method.name))
 
-        method.write(cfs)
-        signals.method_modified.emit(method.name)
+        if virtual_method: return virtual_method
+        elif create: return VirtualMethod(method.name, method, self)
+        else: return self._dummy
 
-    def delete_char_factors(self, method, char_factors: List[tuple]):
-        if not char_factors: return
+    def changed(self, method: ABData.ABMethod):
+        virtual_method = self.findChild(VirtualMethod, str(method.name))
+        if not virtual_method: return
+        virtual_method.changed.emit(method)
 
-        method = bw.Method(method)
-        cfs = method.load()
-        delete_keys, _ = list(zip(*char_factors))
+    def deleted(self, method: ABData.ABMethod):
+        virtual_method = self.findChild(VirtualMethod, str(method.name))
+        if not virtual_method: return
+        virtual_method.deleted.emit(method)
 
-        new_cfs = [cf for cf in cfs if cf[0] not in delete_keys]
+    def get(self, ic_tuple: tuple) -> ABData.ABMethod:
+        return ABData.ABMethod(ic_tuple)
 
-        method.write(new_cfs)
-        signals.method_modified.emit(method.name)
+    def sync(self):
+        if self._cache == methods.data: return
 
-    @Slot(tuple, tuple, name="deleteMethodFromCF")
-    def delete_method_from_cf(self, to_delete: tuple, method: tuple):
-        method = bw.Method(method)
-        cfs = method.load()
-        delete_list = []
-        for i in cfs:
-            for d in to_delete:
-                if i[0][0] == d[0][0] and i[0][1] == d[0][1]:
-                    delete_list.append(i)
-        for d in delete_list:
-            cfs.remove(d)
-        method.write(cfs)
-        signals.method_modified.emit(method.name)
+        self._cache = methods.data.copy
+        self.metadata_changed.emit()
 
 
-impact_category_controller = ImpactCategoryController(application)
+ic_controller = ICController(application)

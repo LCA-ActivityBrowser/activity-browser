@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
 from typing import Iterable
 
 import pandas as pd
 import numpy as np
-import brightway2 as bw
-from bw2data.backends.peewee import ActivityDataset
+from bw2data.backends.peewee import ActivityDataset  # error import
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
-from activity_browser import log, signals, activity_controller, cs_controller
+from activity_browser import log, signals, activity_controller, cs_controller, ic_controller
 from activity_browser.bwutils import commontasks as bc
 from .base import EditablePandasModel, PandasModel
 
@@ -74,7 +72,7 @@ class CSActivityModel(CSGenericModel):
 
         self.current_cs = None
         self.key_col = 0
-        self._activities = []
+        self._activities = {}
 
         self.HEADERS = self.HEADERS + ["key"]
 
@@ -93,14 +91,14 @@ class CSActivityModel(CSGenericModel):
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.key_col]
 
-    def load(self, name: str):
-        assert name in cs_controller, "Given calculation setup does not exist."
+    def load(self, cs_name: str):
+        assert cs_name in cs_controller, "Given calculation setup does not exist."
 
         for act in self._activities:
             act.changed.disconnect(self.sync)
         self._activities.clear()
 
-        self.current_cs = name
+        self.current_cs = cs_name
         self.sync()
 
     def sync(self):
@@ -127,21 +125,24 @@ class CSActivityModel(CSGenericModel):
             row.update({"Amount": amount, "key": key})
 
             act.changed.connect(self.sync)
-            self._activities.append(act)
+            self._activities[act.key] = act
 
             return row
         except (TypeError, ActivityDataset.DoesNotExist):
-            log.error("Could not load key '{}' in Calculation Setup '{}'".format(str(key), self.current_cs))
+            log.error(f"Could not load key '{key}' in Calculation Setup '{self.current_cs}'")
             return {}
 
     @Slot(name="deleteRows")
     def delete_rows(self, proxies: list) -> None:
+        """Delete one or more activities from the Reference flows table"""
         indices = (self.proxy_to_source(p) for p in proxies)
         rows = {i.row() for i in indices}
 
+        # we can disconnect from the deleted activities
         for key in [self._dataframe.at[row, "key"] for row in rows]:
             activity = activity_controller.get(key)
             activity.changed.disconnect(self.sync)
+            del self._activities[activity.key]
 
         self._dataframe = self._dataframe.drop(rows).reset_index(drop=True)
         self.updated.emit()
@@ -165,62 +166,78 @@ class CSMethodsModel(CSGenericModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.current_cs = None
-        signals.calculation_setup_selected.connect(self.update_cs)
-        signals.method_deleted.connect(
-            lambda: self.update_cs(self.current_cs))
+        self._methods = {}
+        signals.calculation_setup_selected.connect(self.load)
 
     @property
     def methods(self) -> list:
         return [] if self._dataframe is None else self._dataframe.loc[:, "method"].to_list()
 
-    @Slot(name="UpdateBWCalculationSetup")
-    def update_cs(self, name: str = None) -> None:
-        """Updates and syncs the bw.calculation_setups for the Impact categories. Removes any
-        Impact category from a calculation setup if it is not present in the current environment"""
-        def filter_methods(cs):
-            """Filters any methods out from the calculation setup if they aren't in bw.methods"""
-            i = 0
-            while i < len(cs):
-                if cs[i] not in bw.methods:
-                    cs.pop(i)
-                else:
-                    i += 1
+    def load(self, cs_name: str) -> None:
+        """
+        Load a calculation setup defined by cs_name into the methods table.
+        """
+        assert cs_name in cs_controller, "Given calculation setup does not exist."
 
-        if self.current_cs is not None or name is not None:
-            self.current_cs = name
-            filter_methods(cs_controller[self.current_cs].get('ia', []))
-            self.sync(self.current_cs)
-        else:
-            for name, cs in cs_controller.items():
-                filter_methods(cs['ia'])
-            self.sync()
+        # disconnect from all the previous methods so any virtual methods delete if appropriate
+        for method in self._methods:
+            method.changed.disconnect(self.sync)
+        self._methods.clear()
 
-    @Slot(str, name="syncModel")
-    def sync(self, name: str = None) -> None:
-        if name:
-            assert name in cs_controller, "Given calculation setup does not exist."
-            self.current_cs = name
-            self._dataframe = pd.DataFrame([
-                self.build_row(method)
-                for method in cs_controller[self.current_cs].get("ia", [])
-            ], columns=self.HEADERS)
+        # set the provided cs as current and synchronize our data
+        self.current_cs = cs_name
+        self.sync()
+
+    def sync(self) -> None:
+        """
+        Synchronize the methods table for the current calculation setup. Any methods that are not present in
+        the cs_controller will be omitted.
+        """
+        assert self.current_cs, "CS Model not yet loaded"
+
+        # collect all method tuples from calculation setup that are also actually available
+        method_tuples = [mthd for mthd in cs_controller[self.current_cs].get("ia", []) if mthd in ic_controller]
+
+        # build rows for all the collected methods and store in our dataframe
+        self._dataframe = pd.DataFrame([self.build_row(mthd) for mthd in method_tuples], columns=self.HEADERS)
+
         self.updated.emit()
 
-    @staticmethod
-    def build_row(method: tuple) -> dict:
-        method_metadata = bw.methods[method]
-        return {
-            "Name": ', '.join(method),
+    def build_row(self, method_tuple: tuple) -> dict:
+        """
+        Build a single row for the methods table and connect the table to the method we're building the row for.
+        """
+        # gather data using the given method_tuple
+        method_metadata = ic_controller[method_tuple]
+        method = ic_controller.get(method_tuple)
+
+        # construct a row dictionary
+        row = {
+            "Name": ', '.join(method_tuple),
             "Unit": method_metadata.get('unit', "Unknown"),
             "# CFs": method_metadata.get('num_cfs', 0),
-            "method": method,
+            "method": method_tuple,
         }
+
+        # if the method changes we need to sync
+        method.changed.connect(self.sync)
+        self._methods[method.name] = method
+
+        return row
 
     @Slot(list, name="deleteRows")
     def delete_rows(self, proxies: list) -> None:
+        """Delete one or more methods from the Impact categories table"""
         indices = (self.proxy_to_source(p) for p in proxies)
-        rows = [i.row() for i in indices]
-        self._dataframe = self._dataframe.drop(rows, axis=0).reset_index(drop=True)
+        rows = {i.row() for i in indices}
+
+        # we can disconnect from the deleted methods
+        for method_tuple in [self._dataframe.at[row, "method"] for row in rows]:
+            method = ic_controller.get(method_tuple)
+            method.changed.disconnect(self.sync)
+            del self._methods[method.name]
+
+        self._dataframe = self._dataframe.drop(rows).reset_index(drop=True)
         self.updated.emit()
         signals.calculation_setup_changed.emit()  # Trigger update of CS in brightway
 

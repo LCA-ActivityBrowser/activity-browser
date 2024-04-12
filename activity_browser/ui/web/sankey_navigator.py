@@ -4,12 +4,12 @@ import os
 import time
 from typing import List
 
-import brightway2 as bw
+import brightway2 as bw  # for graphtraversal function
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from activity_browser import log, signals, activity_controller, cs_controller, database_controller
+from activity_browser import log, signals, activity_controller, cs_controller, database_controller, ic_controller
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
@@ -233,7 +233,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             # store the metadata from this calculation
             data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
                                 'score': data["lca"].score,
-                                'unit': bw.Method(method).metadata["unit"],
+                                'unit': ic_controller.get(method).metadata["unit"],
                                 'act_dict': data["lca"].activity_dict.items()}
             # drop LCA object as it's useless from now on
             del data["lca"]
@@ -257,7 +257,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            method = bw.methods.random()
+            method = ic_controller.random()
             act = database_controller.get(self.selected_db).random()
             demand = {act: 1.0}
             self.update_sankey(demand, method)

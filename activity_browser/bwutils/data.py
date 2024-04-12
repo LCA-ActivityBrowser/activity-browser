@@ -2,9 +2,10 @@ from typing import List
 
 from bw2data.backends import SQLiteBackend
 from bw2data.backends.peewee.proxies import Activity, Exchange, Exchanges
+from bw2data.method import Method
 from PySide2.QtCore import SignalInstance
 
-import activity_browser.controllers as ABCtrl
+import activity_browser.controllers as ctrl
 from activity_browser import signals
 from .metadata import AB_metadata
 
@@ -19,11 +20,11 @@ class ABExchange(Exchange):
 
     @property
     def changed(self) -> SignalInstance:
-        return ABCtrl.exchange_controller.get_virtual(self, create=True).changed
+        return ctrl.exchange_controller.get_virtual(self, create=True).changed
 
     @property
     def deleted(self) -> SignalInstance:
-        return ABCtrl.exchange_controller.get_virtual(self, create=True).deleted
+        return ctrl.exchange_controller.get_virtual(self, create=True).deleted
 
     @property
     def id(self) -> int:
@@ -31,7 +32,7 @@ class ABExchange(Exchange):
 
     def save(self) -> None:
         super().save()
-        ABCtrl.exchange_controller.changed(self)
+        ctrl.exchange_controller.changed(self)
 
         acts = set()
 
@@ -43,27 +44,27 @@ class ABExchange(Exchange):
 
         for activity in acts:
             dbs.add(activity["database"])
-            ABCtrl.activity_controller.changed(activity)
+            ctrl.activity_controller.changed(activity)
 
         for db_name in dbs:
-            db = ABCtrl.database_controller.get(db_name)
-            ABCtrl.database_controller.changed(db)
+            db = ctrl.database_controller.get(db_name)
+            ctrl.database_controller.changed(db)
 
         self.moved_IO.clear()
 
     def delete(self) -> None:
         super().delete()
-        ABCtrl.exchange_controller.changed(self)
-        ABCtrl.exchange_controller.deleted(self)
+        ctrl.exchange_controller.changed(self)
+        ctrl.exchange_controller.deleted(self)
 
-        ABCtrl.activity_controller.changed(self.input)
-        ABCtrl.activity_controller.changed(self.output)
+        ctrl.activity_controller.changed(self.input)
+        ctrl.activity_controller.changed(self.output)
 
-        in_db = ABCtrl.database_controller.get(self.input["database"])
-        ABCtrl.database_controller.changed(in_db)
+        in_db = ctrl.database_controller.get(self.input["database"])
+        ctrl.database_controller.changed(in_db)
 
-        out_db = ABCtrl.database_controller.get(self.output["database"])
-        ABCtrl.database_controller.changed(out_db)
+        out_db = ctrl.database_controller.get(self.output["database"])
+        ctrl.database_controller.changed(out_db)
 
     def _get_input(self):
         return ABActivity.from_activity(super().input)
@@ -100,11 +101,11 @@ class ABActivity(Activity):
 
     @property
     def changed(self) -> SignalInstance:
-        return ABCtrl.activity_controller.get_virtual(self, create=True).changed
+        return ctrl.activity_controller.get_virtual(self, create=True).changed
 
     @property
     def deleted(self) -> SignalInstance:
-        return ABCtrl.activity_controller.get_virtual(self, create=True).deleted
+        return ctrl.activity_controller.get_virtual(self, create=True).deleted
 
     def save(self) -> None:
         super().save()
@@ -113,10 +114,10 @@ class ABActivity(Activity):
         AB_metadata.update_metadata(self.key)
         signals.calculation_setup_changed.emit()
 
-        ABCtrl.activity_controller.changed(self)
+        ctrl.activity_controller.changed(self)
 
-        db = ABCtrl.database_controller.get(self["database"])
-        ABCtrl.database_controller.changed(db)
+        db = ctrl.database_controller.get(self["database"])
+        ctrl.database_controller.changed(db)
 
     def delete(self) -> None:
         # exchange deletions are signalled through ABExchanges in the superclass
@@ -126,8 +127,8 @@ class ABActivity(Activity):
         AB_metadata.update_metadata(self.key)
         signals.calculation_setup_changed.emit()
 
-        ABCtrl.activity_controller.changed(self)
-        ABCtrl.activity_controller.deleted(self)
+        ctrl.activity_controller.changed(self)
+        ctrl.activity_controller.deleted(self)
 
     def copy(self, code=None, **kwargs) -> "ABActivity":
         activity = super().copy(code, **kwargs)
@@ -137,8 +138,8 @@ class ABActivity(Activity):
         AB_metadata.update_metadata(ab_activity.key)
 
         # copy creates a new activity, so update accordingly
-        db = ABCtrl.database_controller.get(self["database"])
-        ABCtrl.database_controller.changed(db)
+        db = ctrl.database_controller.get(self["database"])
+        ctrl.database_controller.changed(db)
 
         return ab_activity
 
@@ -183,11 +184,11 @@ class ABDatabase(SQLiteBackend):
 
     @property
     def changed(self) -> SignalInstance:
-        return ABCtrl.database_controller.get_virtual(self, create=True).changed
+        return ctrl.database_controller.get_virtual(self, create=True).changed
 
     @property
     def deleted(self) -> SignalInstance:
-        return ABCtrl.database_controller.get_virtual(self, create=True).deleted
+        return ctrl.database_controller.get_virtual(self, create=True).deleted
 
     def __iter__(self) -> "ABActivity":
         for doc in self._get_queryset():
@@ -196,11 +197,11 @@ class ABDatabase(SQLiteBackend):
     # mirroring database properties
     def process(self) -> None:
         super().process()
-        ABCtrl.database_controller.sync()
+        ctrl.database_controller.sync()
 
     def register(self, **kwargs):
         super().register(**kwargs)
-        ABCtrl.database_controller.sync()
+        ctrl.database_controller.sync()
 
     # methods for database manipulation
     def copy(self, name) -> "ABDatabase":
@@ -209,25 +210,25 @@ class ABDatabase(SQLiteBackend):
 
     def delete(self, keep_params=False, warn=True) -> None:
         # get all affected activities and exchanges that have virtual counterparts (i.e. have signals attached to them)
-        acts = [ABCtrl.activity_controller.get(act.key)
-                for act in ABCtrl.activity_controller.children()
+        acts = [ctrl.activity_controller.get(act.key)
+                for act in ctrl.activity_controller.children()
                 if act.key[0] == self.name]
 
-        excs = [ABCtrl.exchange_controller.get(exc.id)
-                for exc in ABCtrl.exchange_controller.children()
+        excs = [ctrl.exchange_controller.get(exc.id)
+                for exc in ctrl.exchange_controller.children()
                 if exc.input[0] == self.name or exc.output[0] == self.name]
 
         super().delete(keep_params, warn)
 
         # emit the deleted db, affected activities, and affected exchanges
-        ABCtrl.database_controller.changed(self)
-        ABCtrl.database_controller.deleted(self)
+        ctrl.database_controller.changed(self)
+        ctrl.database_controller.deleted(self)
 
-        for activity in acts: ABCtrl.activity_controller.changed(activity)
-        for activity in acts: ABCtrl.activity_controller.deleted(activity)
+        for activity in acts: ctrl.activity_controller.changed(activity)
+        for activity in acts: ctrl.activity_controller.deleted(activity)
 
-        for exchange in excs: ABCtrl.exchange_controller.changed(exchange)
-        for exchange in excs: ABCtrl.exchange_controller.deleted(exchange)
+        for exchange in excs: ctrl.exchange_controller.changed(exchange)
+        for exchange in excs: ctrl.exchange_controller.deleted(exchange)
 
     # methods returning activity proxies
     def random(self, filters=True, true_random=False) -> ABActivity:
@@ -257,7 +258,7 @@ class ABDatabase(SQLiteBackend):
     # methods directly changing data
     def write(self, data, process=True):
         super().write(data, process)
-        ABCtrl.database_controller.changed(self)
+        ctrl.database_controller.changed(self)
 
         # no need to signal activities or exchanges. They are brand-new so won't have any slots connected to them right
         # now anyway. Any old activities or exchanges will have been deleted by this method.
@@ -271,8 +272,50 @@ class ABCalculationSetup(dict):
 
     @property
     def changed(self) -> SignalInstance:
-        return ABCtrl.cs_controller.get_virtual(self, create=True).changed
+        return ctrl.cs_controller.get_virtual(self, create=True).changed
 
     @property
     def deleted(self) -> SignalInstance:
-        return ABCtrl.cs_controller.get_virtual(self, create=True).deleted
+        return ctrl.cs_controller.get_virtual(self, create=True).deleted
+
+
+class ABMethod(Method):
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @property
+    def changed(self) -> SignalInstance:
+        return ctrl.ic_controller.get_virtual(self, create=True).changed
+
+    @property
+    def deleted(self) -> SignalInstance:
+        return ctrl.ic_controller.get_virtual(self, create=True).deleted
+
+    def write(self, data, process=True):
+        super().write(data, process)
+
+        ctrl.ic_controller.changed(self)
+        ctrl.ic_controller.sync()
+
+    def copy(self, name=None) -> "ABMethod":
+        new_method = super().copy(name)
+
+        ctrl.ic_controller.sync()
+
+        return new_method
+
+    def deregister(self):
+        super().deregister()
+
+        ctrl.ic_controller.changed(self)
+        ctrl.ic_controller.deleted(self)
+        ctrl.ic_controller.sync()
+
+    # extending Brightway Functionality
+
+    def load_dict(self) -> dict:
+        return {cf[0]: cf[1] for cf in self.load()}
+
+    def write_dict(self, data: dict, process=True):
+        self.write(list(data.items()), process)

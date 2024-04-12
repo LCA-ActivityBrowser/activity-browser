@@ -2,7 +2,7 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser import application, impact_category_controller
+from activity_browser import application, ic_controller
 from ..base import ABAction
 from ...ui.icons import qicons
 from ...ui.wizards import UncertaintyWizard
@@ -35,12 +35,15 @@ class CFUncertaintyModify(ABAction):
         """Update the CF with new uncertainty information, possibly converting
         the second item in the tuple to a dictionary without losing information.
         """
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(uncertainty)
-        else:
-            uncertainty["amount"] = data[1]
-            data[1] = uncertainty
+        method = ic_controller.get(self.method_name)
+        method_dict = method.load_dict()
 
-        impact_category_controller.write_char_factors(self.method_name, [tuple(data)])
+        if isinstance(cf[1], dict):
+            cf[1].update(uncertainty)
+            method_dict[cf[0]] = cf[1]
+        else:
+            uncertainty["amount"] = cf[1]
+            method_dict[cf[0]] = uncertainty
+
+        method.write_dict(method_dict)
 

@@ -44,4 +44,4 @@ class CSRename(ABAction):
         cs_controller[new_name] = cs_controller[self.cs_name].copy()
         del cs_controller[self.cs_name]
         signals.calculation_setup_selected.emit(new_name)
-        log.info("Renamed calculation setup from {} to {}".format(cs_name, new_name))
+        log.info(f"Renamed calculation setup from {self.cs_name} to {new_name}")

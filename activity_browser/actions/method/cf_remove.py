@@ -2,7 +2,7 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, impact_category_controller
+from activity_browser import application, ic_controller
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -36,7 +36,10 @@ class CFRemove(ABAction):
         # return if the users cancels
         if warning == QtWidgets.QMessageBox.No: return
 
-        # else remove the char_factors
-        impact_category_controller.delete_char_factors(self.method_name, self.char_factors)
+        method = ic_controller.get(self.method_name)
+        method_dict = method.load_dict()
 
+        for cf in self.char_factors:
+            method_dict.pop(cf[0])
 
+        method.write_dict(method_dict)

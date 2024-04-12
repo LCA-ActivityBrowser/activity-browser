@@ -1,9 +1,8 @@
 from typing import Union, Callable, List, Optional
 
-import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, impact_category_controller
+from activity_browser import application, log, ic_controller
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -32,9 +31,9 @@ class MethodDelete(ABAction):
 
         # check whether we're dealing with a leaf or node. If it's a node, select all underlying methods for deletion
         if self.level is not None and self.level != 'leaf':
-            methods = [bw.Method(method) for method in bw.methods if set(selected_method).issubset(method)]
+            methods = [ic_controller.get(method) for method in ic_controller if set(selected_method).issubset(method)]
         else:
-            methods = [bw.Method(selected_method)]
+            methods = [ic_controller.get(selected_method)]
 
         # warn the user about the pending deletion
         warning = QtWidgets.QMessageBox.warning(application.main_window,
@@ -48,4 +47,6 @@ class MethodDelete(ABAction):
         if warning == QtWidgets.QMessageBox.No: return
 
         # instruct the controller to delete the selected methods
-        impact_category_controller.delete_methods(methods)
+        for method in methods:
+            method.deregister()
+            log.info(f"Deleted method {method.name}")
