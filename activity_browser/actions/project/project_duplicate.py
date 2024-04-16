@@ -1,7 +1,7 @@
-import brightway2 as bw
 from PySide2 import QtWidgets
 
-from activity_browser import application, project_controller
+from activity_browser import application
+from activity_browser.brightway.bw2data import projects
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -20,12 +20,12 @@ class ProjectDuplicate(ABAction):
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             "Duplicate current project",
-            f"Duplicate current project ({bw.projects.current}) to new name:" + " " * 10
+            f"Duplicate current project ({projects.current}) to new name:" + " " * 10
         )
 
         if not ok or not name: return
 
-        if name in bw.projects:
+        if name in projects:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible.",
@@ -33,4 +33,4 @@ class ProjectDuplicate(ABAction):
             )
             return
 
-        project_controller.copy_project(name)
+        projects.copy_project(name)

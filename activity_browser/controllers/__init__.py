@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from .project import project_controller
 from .parameter import parameter_controller
 from .database import database_controller
 from .calculation_setup import cs_controller

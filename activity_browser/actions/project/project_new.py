@@ -1,9 +1,9 @@
 from PySide2 import QtWidgets
 
 from activity_browser import application
+from activity_browser.brightway.bw2data import projects
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
-from activity_browser.controllers import project_controller
 
 
 class ProjectNew(ABAction):
@@ -25,7 +25,7 @@ class ProjectNew(ABAction):
 
         if not ok or not name: return
 
-        if name in project_controller:
+        if name in projects:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible.",
@@ -33,5 +33,5 @@ class ProjectNew(ABAction):
             )
             return
 
-        project_controller.create_project(name)
-        project_controller.set_current(name)
+        projects.create_project(name)
+        projects.set_current(name)

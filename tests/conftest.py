@@ -6,7 +6,7 @@ import brightway2 as bw
 import bw2io as bi
 import pytest
 
-from activity_browser import application, MainWindow, project_controller
+from activity_browser import application, MainWindow
 
 
 @pytest.fixture(scope='session')
@@ -19,7 +19,7 @@ def ab_app():
 
     application.main_window = MainWindow(application)
     application.show()
-    project_controller.set_current("default")
+    bw.projects.set_current("default")
     yield application
     application.close()
 

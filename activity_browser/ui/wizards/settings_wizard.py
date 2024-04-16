@@ -4,14 +4,15 @@ import os
 from PySide2 import QtWidgets, QtCore
 from peewee import SqliteDatabase
 
-from activity_browser import log, ab_settings, project_controller
+from activity_browser import log, ab_settings
+from activity_browser.brightway.bw2data import projects
 
 
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.last_project = project_controller.current
-        self.last_bwdir = project_controller.base_dir
+        self.last_project = projects.current
+        self.last_bwdir = projects.base_dir
 
         self.setWindowTitle('Activity Browser Settings')
         self.settings_page = SettingsPage(self)
@@ -39,13 +40,13 @@ class SettingsWizard(QtWidgets.QWizard):
             log.info("Saved startup project as: ", new_startup_project)
 
         ab_settings.write_settings()
-        project_controller.switch_dir(field)
+        projects.switch_dir(field)
 
     def cancel(self):
         log.info("Going back to before settings were changed.")
-        if project_controller.base_dir != self.last_bwdir:
-            project_controller.switch_dir(self.last_bwdir)
-            project_controller.set_current(self.last_project)  # project changes only if directory is changed
+        if projects.base_dir != self.last_bwdir:
+            projects.switch_dir(self.last_bwdir)
+            projects.set_current(self.last_project)  # project changes only if directory is changed
 
 
 class SettingsPage(QtWidgets.QWizardPage):

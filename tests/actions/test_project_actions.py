@@ -1,12 +1,12 @@
 import brightway2 as bw
 from PySide2 import QtWidgets
-from activity_browser import actions, project_controller, ab_settings
+from activity_browser import actions, ab_settings
 from activity_browser.ui.widgets import ProjectDeletionDialog
 
 
 def test_project_delete(ab_app, monkeypatch):
     project_name = "project_to_delete"
-    project_controller.set_current(project_name)
+    bw.projects.set_current(project_name)
 
     monkeypatch.setattr(
         ProjectDeletionDialog, 'exec_',
@@ -33,7 +33,7 @@ def test_project_delete(ab_app, monkeypatch):
 def test_project_duplicate(ab_app, monkeypatch):
     project_name = "project_to_duplicate"
     dup_project_name = "duplicated_project"
-    project_controller.set_current(project_name)
+    bw.projects.set_current(project_name)
 
     monkeypatch.setattr(
         QtWidgets.QInputDialog, 'getText',

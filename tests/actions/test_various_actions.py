@@ -2,14 +2,14 @@ import pytest
 import os
 import brightway2 as bw
 from PySide2 import QtWidgets
-from activity_browser import actions, project_controller, database_controller, signals
+from activity_browser import actions, database_controller, signals
 from activity_browser.ui.widgets import EcoinventVersionDialog
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_default_install(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    project_controller.set_current(project_name)
+    bw.projects.set_current(project_name)
 
     monkeypatch.setattr(
         EcoinventVersionDialog, 'exec_',
@@ -36,7 +36,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_biosphere_update(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    project_controller.set_current(project_name)
+    bw.projects.set_current(project_name)
 
     monkeypatch.setattr(
         QtWidgets.QMessageBox, 'question',

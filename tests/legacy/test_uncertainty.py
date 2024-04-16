@@ -7,14 +7,14 @@ import brightway2 as bw
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
 
-from activity_browser import project_controller, ic_controller
+from activity_browser import ic_controller
 from activity_browser.bwutils.uncertainty import (
     ExchangeUncertaintyInterface, CFUncertaintyInterface, get_uncertainty_interface
 )
 
 
 def test_exchange_interface(qtbot, ab_app):
-    project_controller.set_current("default")
+    bw.projects.set_current("default")
     flow = bw.Database(bw.config.biosphere).random()
     db = bw.Database("testdb")
     act_key = ("testdb", "act_unc")

@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 from PySide2.QtCore import Slot
 
-from activity_browser import signals, project_controller
+from activity_browser import signals
+from activity_browser.brightway.bw2data import projects
 from activity_browser.bwutils.utils import Parameters
 from .base import PandasModel
 
@@ -16,7 +17,7 @@ class ScenarioModel(PandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        project_controller.project_switched.connect(self.sync)
+        projects.current_changed.connect(self.sync)
         signals.parameters_changed.connect(self.rebuild_table)
         signals.parameter_renamed.connect(self.update_param_name)
 

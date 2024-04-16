@@ -2,7 +2,7 @@
 from PySide2.QtWidgets import QComboBox
 from PySide2.QtCore import Qt
 
-from activity_browser import project_controller
+from activity_browser.brightway.bw2data import projects
 
 
 class ProjectListWidget(QComboBox):
@@ -13,17 +13,18 @@ class ProjectListWidget(QComboBox):
 
     def connect_signals(self):
         self.activated.connect(self.on_activated)
-        project_controller.projects_changed.connect(self.sync)
-        project_controller.project_switched.connect(self.sync)
+        projects.list_changed.connect(self.sync)
+        projects.current_changed.connect(self.sync)
 
     def sync(self):
         self.clear()
-        self.project_names = sorted([project.name for project in project_controller])
+        self.project_names = sorted([project.name for project in projects])
         self.addItems(self.project_names)
         for i, name in enumerate(self.project_names):
             self.setItemData(i, name, Qt.ToolTipRole)
-        index = self.project_names.index(project_controller.current)
+        index = self.project_names.index(projects.current)
         self.setCurrentIndex(index)
 
     def on_activated(self, index):
-        project_controller.set_current(self.project_names[index])
+        # TODO: create an action for this
+        projects.set_current(self.project_names[index])

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtCore import QObject, Signal
+from PySide2.QtCore import QObject, Signal, SignalInstance
 
 
 class ABSignals(QObject):
@@ -135,4 +135,11 @@ class ABSignals(QObject):
     manage_plugins = Signal()  # Trigger the plugins dialog
 
 
+class ProjectUpdater(QObject):
+    current_changed: SignalInstance = Signal()
+    list_changed: SignalInstance = Signal()
+
+
 signals = ABSignals()
+project_updater = ProjectUpdater()
+
