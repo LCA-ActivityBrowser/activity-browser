@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pathlib import Path
 from typing import List, Tuple
 
@@ -6,9 +5,10 @@ import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
-from activity_browser import project_settings, signals, database_controller, ic_controller
-from activity_browser.brightway.bw2data import projects
+from activity_browser import project_settings, signals, ic_controller
+from activity_browser.brightway.bw2data import projects, databases
 from activity_browser.bwutils.superstructure import get_sheet_names
+
 from ..threading import ABThread
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
@@ -534,10 +534,6 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
-
-        database_controller.sync()  # this should change in the long run
-        database_controller.changed(bw.config.biosphere)
-
         self.done(result or 0)
 
     def check_patches(self):
@@ -560,7 +556,7 @@ class DefaultBiosphereThread(ABThread):
 
     def run_safely(self):
         project = f"<b>{projects.current}</b>"
-        if "biosphere3" not in database_controller:
+        if "biosphere3" not in databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")

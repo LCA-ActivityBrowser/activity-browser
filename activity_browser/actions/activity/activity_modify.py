@@ -2,7 +2,7 @@ from typing import Union, Callable
 
 from PySide2 import QtCore
 
-from activity_browser import activity_controller
+from activity_browser.brightway.bw2data import get_activity
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 
@@ -27,6 +27,6 @@ class ActivityModify(ABAction):
         super().__init__(parent, activity_key=activity_key, field=field, value=value)
 
     def onTrigger(self, toggled):
-        activity = activity_controller.get(self.activity_key)
+        activity = get_activity(self.activity_key)
         activity[self.field] = self.value
         activity.save()

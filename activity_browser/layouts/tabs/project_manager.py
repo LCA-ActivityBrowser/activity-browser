@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import actions, signals, database_controller
-from activity_browser.brightway.bw2data import projects
+from activity_browser import actions, signals
+from activity_browser.brightway.bw2data import projects, databases, Database
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -37,7 +36,7 @@ class ProjectTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         projects.current_changed.connect(self.change_project)
-        database_controller.metadata_changed.connect(self.update_widgets)
+        databases.metadata_changed.connect(self.update_widgets)
 
         signals.database_selected.connect(self.update_widgets)
 
@@ -117,7 +116,7 @@ class DatabaseWidget(QtWidgets.QWidget):
         self._construct_layout()
 
         # Signals
-        database_controller.metadata_changed.connect(self.update_widget)
+        databases.metadata_changed.connect(self.update_widget)
         projects.current_changed.connect(self.update_widget)
 
     def _construct_layout(self):
@@ -188,7 +187,7 @@ class ActivityBiosphereTabs(ABTab):
 class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, db_name: str, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
-        self.database = database_controller.get(db_name)
+        self.database = Database(db_name)
         self.table = ActivitiesBiosphereTable(self)
 
         self.database.changed.connect(self.database_changed)

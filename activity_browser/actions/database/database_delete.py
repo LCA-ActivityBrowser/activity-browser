@@ -3,7 +3,8 @@ from typing import Union, Callable
 from PySide2 import QtWidgets, QtCore
 from bw2data.parameters import Group
 
-from activity_browser import application, database_controller, project_settings
+from activity_browser import application, project_settings
+from activity_browser.brightway.bw2data import Database, databases
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -24,7 +25,7 @@ class DatabaseDelete(ABAction):
     def onTrigger(self, toggled):
         # get the record count from the database controller
         db_name = self.db_name
-        database = database_controller.get(db_name)
+        database = Database(db_name)
         n_records = len(database)
 
         # ask the user for confirmation
@@ -38,7 +39,7 @@ class DatabaseDelete(ABAction):
         if response != response.Yes: return
 
         # instruct the DatabaseController to delete the database from the project.
-        del database_controller[db_name]
+        del databases[db_name]
 
         Group.delete().where(Group.name == db_name).execute()
         project_settings.remove_db(db_name)

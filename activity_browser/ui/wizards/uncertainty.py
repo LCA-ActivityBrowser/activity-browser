@@ -5,7 +5,7 @@ from PySide2.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import log, signals, application, parameter_controller, exchange_controller, actions
+from activity_browser import log, signals, application, parameter_controller, actions
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
@@ -141,7 +141,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
             )
             if choice == QtWidgets.QMessageBox.Yes:
                 if self.obj.data_type == "exchange":
-                    exchange_controller.edit_exchange(self.obj.data, {"amount": mean})
+                    actions.ExchangeModify(self.obj.data, {"amount": mean}, self).trigger()
 
                 elif self.obj.data_type == "parameter":
                     signals.parameter_modified.emit(self.obj.data, "amount", mean)

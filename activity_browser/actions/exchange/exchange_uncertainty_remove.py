@@ -2,7 +2,6 @@ from typing import Union, Callable, List, Any
 
 from PySide2 import QtCore
 
-from activity_browser.bwutils.data import ABExchange
 from ..base import ABAction
 from ...ui.icons import qicons
 from ...bwutils import uncertainty
@@ -21,9 +20,7 @@ class ExchangeUncertaintyRemove(ABAction):
 
     def onTrigger(self, toggled):
         for exchange in self.exchanges:
-            ab_exchange = ABExchange.from_exchange(exchange)
-
             for key, value in uncertainty.EMPTY_UNCERTAINTY.items():
-                ab_exchange[key] = value
+                exchange[key] = value
 
-            ab_exchange.save()
+            exchange.save()

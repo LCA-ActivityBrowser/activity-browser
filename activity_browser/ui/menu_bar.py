@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-import brightway2 as bw
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
-from activity_browser import actions, signals, database_controller
-from activity_browser.brightway.bw2data import projects
+from activity_browser import actions, signals
+from activity_browser.brightway.bw2data import projects, databases, config
+
 from ..info import __version__ as ab_version
 from .icons import qicons
 
@@ -38,7 +37,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def connect_signals(self):
         projects.current_changed.connect(self.biosphere_exists)
-        database_controller.metadata_changed.connect(self.biosphere_exists)
+        databases.metadata_changed.connect(self.biosphere_exists)
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
@@ -109,7 +108,7 @@ For license information please see the copyright on <a href="https://github.com/
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
         """
-        exists = True if bw.config.biosphere in database_controller else False
+        exists = True if config.biosphere in databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
 

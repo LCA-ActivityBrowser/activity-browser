@@ -3,7 +3,8 @@ from typing import Union, Callable, Optional, Tuple
 from activity_browser.bwutils import commontasks as bc
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from activity_browser import application, parameter_controller, database_controller
+from activity_browser import application, parameter_controller
+from activity_browser.brightway.bw2data import databases
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -184,7 +185,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
         elif self.parent.selected == 1:
             self.name.clear()
             self.database.clear()
-            dbs = list(database_controller)
+            dbs = list(databases)
             self.database.insertItems(0, dbs)
             if self.key[0] in dbs:
                 self.database.setCurrentIndex(

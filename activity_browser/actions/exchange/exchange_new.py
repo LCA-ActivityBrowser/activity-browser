@@ -1,12 +1,12 @@
-from typing import Union, Callable, List, Optional
+from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
 from activity_browser.bwutils import commontasks
+from activity_browser.brightway.bw2data import get_activity
 
 from ..base import ABAction
 from ...ui.icons import qicons
-from ...controllers import exchange_controller, activity_controller
 
 
 class ExchangeNew(ABAction):
@@ -26,7 +26,7 @@ class ExchangeNew(ABAction):
         super().__init__(parent, from_keys=from_keys, to_key=to_key)
 
     def onTrigger(self, toggled):
-        to_activity = activity_controller.get(self.to_key)
+        to_activity = get_activity(self.to_key)
         for from_key in self.from_keys:
             exchange = to_activity.new_exchange(input=from_key, amount=1)
 

@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import brightway2 as bw
 import bw2io.data as data
 from bw2data.errors import ValidityError
 from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser import log, signals, database_controller
+from activity_browser import log
 from ..threading import ABThread
 
 
@@ -28,10 +27,6 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.thread.exit(outcome)
         self.setMaximum(1)
         self.setValue(1)
-
-        database_controller.sync()
-        database_controller.changed(database_controller.get(bw.config.biosphere))
-
         self.done(outcome)
 
     @Slot(int)

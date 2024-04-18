@@ -3,8 +3,10 @@ from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import database_controller, activity_controller, signals, project_settings
+from activity_browser import signals, project_settings
+from activity_browser.brightway.bw2data import databases, get_activity, Database
 from activity_browser.bwutils import commontasks as bc
+
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
 from ...ui.tables import (BiosphereExchangeTable, DownstreamExchangeTable,
@@ -31,7 +33,7 @@ class ActivitiesTab(ABTab):
     def open_activity_tab(self, key: tuple, read_only: bool = True) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
-            act = activity_controller.get(key)
+            act = get_activity(key)
             if not bc.is_technosphere_activity(act):
                 return
             new_tab = ActivityTab(key, read_only, self)
@@ -83,8 +85,8 @@ class ActivityTab(QtWidgets.QWidget):
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
         self.db_name = key[0]
-        self.activity = activity_controller.get(key)
-        self.database = database_controller.get(self.db_name)
+        self.activity = get_activity(key)
+        self.database = Database(self.db_name)
 
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
@@ -191,10 +193,10 @@ class ActivityTab(QtWidgets.QWidget):
     @Slot(name="populatePage")
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
-        if self.db_name in database_controller:
+        if self.db_name in databases:
             # Avoid a weird signal interaction in the tests
             try:
-                self.activity = activity_controller.get(self.key)  # Refresh activity.
+                self.activity = get_activity(self.key)  # Refresh activity.
             except DoesNotExist:
                 signals.close_activity_tab.emit(self.key)
                 return

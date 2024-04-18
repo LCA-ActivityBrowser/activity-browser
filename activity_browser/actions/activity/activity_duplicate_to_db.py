@@ -2,7 +2,8 @@ from typing import Union, Callable, List, Optional
 
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application, project_settings, activity_controller
+from activity_browser import application, project_settings
+from activity_browser.brightway.bw2data import get_activity
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 from activity_browser.bwutils import commontasks
@@ -29,7 +30,7 @@ class ActivityDuplicateToDB(ABAction):
 
     def onTrigger(self, toggled):
         # get bw activity objects from keys
-        self.activities = [activity_controller.get(key) for key in self.activity_keys]
+        self.activities = [get_activity(key) for key in self.activity_keys]
 
         if self.to_db and not self.confirm_db(): return
 

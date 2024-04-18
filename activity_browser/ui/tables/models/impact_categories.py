@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import log, signals, ic_controller, activity_controller
+from activity_browser import signals, ic_controller
+from activity_browser.brightway.bw2data import get_activity
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
 
@@ -316,7 +317,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     @classmethod
     def build_row(cls, method_cf: tuple) -> dict:
         key, amount = method_cf[:2]
-        flow = activity_controller.get(key)
+        flow = get_activity(key)
         row = {
             cls.HEADERS[i]: flow.get(c) for i, c in enumerate(cls.COLUMNS)
         }

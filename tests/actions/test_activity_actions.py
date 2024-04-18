@@ -1,7 +1,9 @@
 import pytest
 import brightway2 as bw
 from PySide2 import QtWidgets
-from activity_browser import actions, database_controller
+
+from activity_browser import actions
+from activity_browser.brightway.bw2data import Database
 from activity_browser.ui.widgets.dialog import LocationLinkingDialog, ActivityLinkingDialog
 
 
@@ -93,7 +95,7 @@ def test_activity_graph(ab_app):
 
 def test_activity_new(ab_app, monkeypatch):
     database_name = "activity_tests"
-    records = len(database_controller.get(database_name))
+    records = len(Database(database_name))
 
     monkeypatch.setattr(
         QtWidgets.QInputDialog, 'getText',
@@ -102,7 +104,7 @@ def test_activity_new(ab_app, monkeypatch):
 
     actions.ActivityNew(database_name, None).trigger()
 
-    assert records < len(database_controller.get(database_name))
+    assert records < len(Database(database_name))
 
 
 def test_activity_open(ab_app):

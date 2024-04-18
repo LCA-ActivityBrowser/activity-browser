@@ -32,12 +32,13 @@ patch_dict = {}
 def patched():
     obj = inspect.stack()[1].frame.f_locals.get("self", None)
 
-    if obj == None: raise ValueError("Not called for a method")
-    if obj.__class__ not in patch_dict: raise ValueError("No patched attributes for this object")
+    if obj is None: raise ValueError("Not called for a method")
+    match = [key for key in patch_dict if isinstance(obj, key)]
+    if not match: raise ValueError("No patched attributes for this object")
 
     patch_namespace = Namespace()
 
-    for name, value in patch_dict[obj.__class__].items():
+    for name, value in patch_dict[match[0]].items():
         if hasattr(value, "__call__"):
             value = functools.partial(value, obj)
         setattr(patch_namespace, name, value)

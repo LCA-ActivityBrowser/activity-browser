@@ -2,7 +2,6 @@ from typing import Union, Callable, List, Any
 
 from PySide2 import QtCore
 
-from activity_browser.bwutils.data import ABExchange
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -20,6 +19,5 @@ class ExchangeFormulaRemove(ABAction):
 
     def onTrigger(self, toggled):
         for exchange in self.exchanges:
-            ab_exchange = ABExchange.from_exchange(exchange)
-            del ab_exchange["formula"]
-            ab_exchange.save()
+            del exchange["formula"]
+            exchange.save()

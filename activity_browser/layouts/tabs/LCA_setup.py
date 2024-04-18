@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-from brightway2 import calculation_setups
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 
-from activity_browser import log, signals, actions, database_controller
+from activity_browser import log, signals, actions
+from activity_browser.brightway.bw2data import databases, calculation_setups
 from .base import BaseRightTab
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -656,8 +656,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @_time_it_
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
         dbs = set(df.loc[:, 'from database']).union(set(df.loc[:, 'to database']))
-        unlinkable = dbs.difference(database_controller)
-        db_lst = list(database_controller)
+        unlinkable = dbs.difference(databases)
+        db_lst = list(databases)
         relink = []
         for db in unlinkable:
             relink.append((db, db_lst))

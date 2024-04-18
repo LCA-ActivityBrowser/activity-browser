@@ -9,7 +9,8 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from activity_browser import log, signals, activity_controller, cs_controller, database_controller, ic_controller
+from activity_browser import log, signals, cs_controller, ic_controller
+from activity_browser.brightway.bw2data import get_activity, Database
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
@@ -170,7 +171,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         self.cs = cs_name or self.cs
         self.func_units = [
-            {activity_controller.get(k): v for k, v in fu.items()}
+            {get_activity(k): v for k, v in fu.items()}
             for fu in cs_controller[self.cs]['inv']
         ]
         self.methods = cs_controller[self.cs]['ia']
@@ -258,7 +259,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
             method = ic_controller.random()
-            act = database_controller.get(self.selected_db).random()
+            act = Database(self.selected_db).random()
             demand = {act: 1.0}
             self.update_sankey(demand, method)
         else:
@@ -289,7 +290,7 @@ class Graph(BaseGraph):
         build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
 
         valid_nodes = (
-            (activity_controller.get(reverse_activity_dict[idx]), v)
+            (get_activity(reverse_activity_dict[idx]), v)
             for idx, v in data["nodes"].items() if idx != -1
         )
         valid_edges = (
@@ -309,7 +310,7 @@ class Graph(BaseGraph):
     def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
         act, amount = demand[0], demand[1]
         if type(act) is tuple:
-            act = activity_controller.get(act)
+            act = get_activity(act)
         format_str = ("Reference flow: {:.2g} {} {} | {} | {} <br>"
                       "Total impact: {:.2g} {}")
         return format_str.format(
@@ -353,7 +354,7 @@ class Graph(BaseGraph):
         """
 
         def build_json_edge(edge: dict) -> dict:
-            p = activity_controller.get(reverse_dict[edge["from"]])
+            p = get_activity(reverse_dict[edge["from"]])
             from_key = reverse_dict[edge["from"]]
             to_key = reverse_dict[edge["to"]]
             return {

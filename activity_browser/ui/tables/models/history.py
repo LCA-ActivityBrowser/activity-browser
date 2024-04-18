@@ -1,8 +1,8 @@
 import pandas as pd
 from PySide2.QtCore import Slot, QModelIndex
 
-from activity_browser import signals, activity_controller
-from activity_browser.brightway.bw2data import projects
+from activity_browser import signals
+from activity_browser.brightway.bw2data import projects, get_activity
 from activity_browser.bwutils import commontasks as bc
 from .base import PandasModel
 
@@ -32,7 +32,7 @@ class ActivitiesHistoryModel(PandasModel):
             self._dataframe.drop(row.index, inplace=True)
         else:
             # Data didn't exist, so build a new row with the key
-            ds = activity_controller.get(key)
+            ds = get_activity(key)
             data = {
                 h: ds.get(bc.AB_names_to_bw_keys.get(h), "")
                 for h in self.HEADERS[:-1]

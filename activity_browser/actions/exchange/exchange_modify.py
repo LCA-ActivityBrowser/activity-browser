@@ -2,7 +2,6 @@ from typing import Union, Callable, Any
 
 from PySide2 import QtCore
 
-from activity_browser.bwutils.data import ABExchange
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -20,9 +19,7 @@ class ExchangeModify(ABAction):
         super().__init__(parent, exchange=exchange, data_=data)
 
     def onTrigger(self, toggled):
-        ab_exchange = ABExchange.from_exchange(self.exchange)
-
         for key, value in self.data_.items():
-            ab_exchange[key] = value
+            self.exchange[key] = value
 
-        ab_exchange.save()
+        self.exchange.save()

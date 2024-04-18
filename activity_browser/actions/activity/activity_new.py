@@ -3,7 +3,8 @@ from typing import Union, Callable
 
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application, database_controller
+from activity_browser import application
+from activity_browser.brightway.bw2data import Database
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 
@@ -39,7 +40,7 @@ class ActivityNew(ABAction):
             "unit": "unit",
             "type": "process"
         }
-        database = database_controller.get(self.database_name)
+        database = Database(self.database_name)
         new_act = database.new_activity(code=uuid4().hex, **data)
         new_act.save()
 

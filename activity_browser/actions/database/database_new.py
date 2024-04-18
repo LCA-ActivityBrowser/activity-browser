@@ -1,6 +1,7 @@
 from PySide2 import QtWidgets
 
-from activity_browser import application, database_controller, project_settings
+from activity_browser import application, project_settings
+from activity_browser.brightway.bw2data import Database, databases
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -24,7 +25,7 @@ class DatabaseNew(ABAction):
 
         if not ok or not name: return
 
-        if name in database_controller:
+        if name in databases:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible",
@@ -32,6 +33,6 @@ class DatabaseNew(ABAction):
             )
             return
 
-        db = database_controller.get(name)
+        db = Database(name)
         db.register()
         project_settings.add_db(name, False)

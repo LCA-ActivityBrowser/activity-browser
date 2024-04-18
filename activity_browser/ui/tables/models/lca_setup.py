@@ -5,7 +5,8 @@ import numpy as np
 from bw2data.backends.peewee import ActivityDataset  # error import
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
-from activity_browser import log, signals, activity_controller, cs_controller, ic_controller
+from activity_browser import log, signals, cs_controller, ic_controller
+from activity_browser.brightway.bw2data import get_activity
 from activity_browser.bwutils import commontasks as bc
 from .base import EditablePandasModel, PandasModel
 
@@ -94,7 +95,7 @@ class CSActivityModel(CSGenericModel):
     def load(self, cs_name: str):
         assert cs_name in cs_controller, "Given calculation setup does not exist."
 
-        for act in self._activities:
+        for act in self._activities.values():
             act.changed.disconnect(self.sync)
         self._activities.clear()
 
@@ -115,7 +116,7 @@ class CSActivityModel(CSGenericModel):
 
     def build_row(self, key: tuple, amount: float = 1.0) -> dict:
         try:
-            act = activity_controller.get(key)
+            act = get_activity(key)
             if act.get("type", "process") != "process":
                 raise TypeError("Activity is not of type 'process'")
             row = {
@@ -140,7 +141,7 @@ class CSActivityModel(CSGenericModel):
 
         # we can disconnect from the deleted activities
         for key in [self._dataframe.at[row, "key"] for row in rows]:
-            activity = activity_controller.get(key)
+            activity = get_activity(key)
             activity.changed.disconnect(self.sync)
             del self._activities[activity.key]
 
@@ -180,7 +181,7 @@ class CSMethodsModel(CSGenericModel):
         assert cs_name in cs_controller, "Given calculation setup does not exist."
 
         # disconnect from all the previous methods so any virtual methods delete if appropriate
-        for method in self._methods:
+        for method in self._methods.values():
             method.changed.disconnect(self.sync)
         self._methods.clear()
 
