@@ -2,8 +2,10 @@ from typing import Union, Callable, List, Optional
 
 from PySide2 import QtCore
 
-from activity_browser import application, log, ic_controller
+from activity_browser import application, log
+from activity_browser.brightway.bw2data import Method, methods
 from activity_browser.ui.widgets import TupleNameDialog
+
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -30,9 +32,9 @@ class MethodDuplicate(ABAction):
 
         # check whether we're dealing with a leaf or node. If it's a node, select all underlying methods for duplication
         if self.level is not None and self.level != 'leaf':
-            methods = [ic_controller.get(method) for method in ic_controller if set(selected_method).issubset(method)]
+            all_methods = [Method(method) for method in methods if set(selected_method).issubset(method)]
         else:
-            methods = [ic_controller.get(selected_method)]
+            all_methods = [Method(selected_method)]
 
         # retrieve the new name(s) from the user and return if canceled
         dialog = TupleNameDialog.get_combined_name(
@@ -42,11 +44,11 @@ class MethodDuplicate(ABAction):
 
         # for each method to be duplicated, construct a new location
         location = dialog.result_tuple
-        new_names = [location + method.name[len(location):] for method in methods]
+        new_names = [location + method.name[len(location):] for method in all_methods]
 
         # instruct the ImpactCategoryController to duplicate the methods to the new locations
-        for method, new_name in zip(methods, new_names):
-            if new_name in ic_controller: raise Exception("New method name already in use")
+        for method, new_name in zip(all_methods, new_names):
+            if new_name in methods: raise Exception("New method name already in use")
             method.copy(new_name)
             log.info(f"Copied method {method.name} into {new_name}")
 

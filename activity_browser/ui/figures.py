@@ -9,7 +9,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide2 import QtWidgets
 
-from activity_browser import log, ic_controller
+from activity_browser import log
+from activity_browser.brightway.bw2data import methods
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
 
@@ -86,7 +87,7 @@ class LCAResultsBarChart(Plot):
 
         # labels
         self.ax.set_yticks(np.arange(len(labels)))
-        self.ax.set_xlabel(ic_controller[method].get('unit'))
+        self.ax.set_xlabel(methods[method].get('unit'))
         self.ax.set_title(', '.join([m for m in method]))
         # self.ax.set_yticklabels(labels, minor=False)
 
@@ -272,7 +273,7 @@ class MonteCarloPlot(Plot):
             # self.ax.axvline(df[col].median(), color=color)
             self.ax.axvline(df[col].mean(), color=color)
 
-        self.ax.set_xlabel(ic_controller[method]["unit"])
+        self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel('Probability')
         self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ) #ncol=2
 

@@ -4,7 +4,9 @@ from typing import Iterable
 from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Slot
 
-from activity_browser import actions, ic_controller
+from activity_browser import actions
+from activity_browser.brightway.bw2data import methods
+
 from ...signals import signals
 from ..icons import qicons
 from .views import ABDictTreeView, ABFilterableDataFrameView, ABDataFrameView
@@ -34,7 +36,7 @@ class MethodsTable(ABFilterableDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
 
-        ic_controller.metadata_changed.connect(self.sync)
+        methods.metadata_changed.connect(self.sync)
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""
@@ -110,7 +112,7 @@ class MethodsTree(ABDictTreeView):
     def _connect_signals(self):
         super()._connect_signals()
         self.doubleClicked.connect(self.method_selected)
-        ic_controller.metadata_changed.connect(self.open_method)
+        methods.metadata_changed.connect(self.open_method)
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:

@@ -2,7 +2,9 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser import application, ic_controller
+from activity_browser import application
+from activity_browser.brightway.bw2data import Method
+
 from ..base import ABAction
 from ...ui.icons import qicons
 from ...ui.wizards import UncertaintyWizard
@@ -35,7 +37,7 @@ class CFUncertaintyModify(ABAction):
         """Update the CF with new uncertainty information, possibly converting
         the second item in the tuple to a dictionary without losing information.
         """
-        method = ic_controller.get(self.method_name)
+        method = Method(self.method_name)
         method_dict = method.load_dict()
 
         if isinstance(cf[1], dict):

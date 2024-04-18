@@ -7,7 +7,7 @@ import numpy as np
 
 import activity_browser.bwutils.commontasks as bc
 from activity_browser import log
-from activity_browser.signals import projects_updater
+from activity_browser.signals import qprojects
 
 
 # todo: extend store over several projects
@@ -40,7 +40,7 @@ class MetaDataStore(object):
         self.dataframe = pd.DataFrame()
         self.databases = set()
 
-        projects_updater.current_changed.connect(self.reset_metadata)
+        qprojects.current_changed.connect(self.reset_metadata)
 
     def add_metadata(self, db_names_list: list) -> None:
         """"Include data from the brightway databases.

@@ -9,8 +9,8 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from activity_browser import log, signals, ic_controller
-from activity_browser.brightway.bw2data import get_activity, Database, calculation_setups
+from activity_browser import log, signals
+from activity_browser.brightway.bw2data import get_activity, Database, calculation_setups, methods
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
@@ -234,7 +234,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             # store the metadata from this calculation
             data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
                                 'score': data["lca"].score,
-                                'unit': ic_controller.get(method).metadata["unit"],
+                                'unit': methods[method]["unit"],
                                 'act_dict': data["lca"].activity_dict.items()}
             # drop LCA object as it's useless from now on
             del data["lca"]

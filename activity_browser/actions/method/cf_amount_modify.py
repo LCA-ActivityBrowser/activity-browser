@@ -2,7 +2,7 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser import ic_controller
+from activity_browser.brightway.bw2data import Method
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -27,7 +27,7 @@ class CFAmountModify(ABAction):
         super().__init__(parent, method_name=method_name, char_factors=char_factors, amount=amount)
 
     def onTrigger(self, toggled):
-        method = ic_controller.get(self.method_name)
+        method = Method(self.method_name)
         method_dict = method.load_dict()
         cf = self.char_factors[0]
 

@@ -5,8 +5,8 @@ import brightway2 as bw
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
-from activity_browser import project_settings, signals, ic_controller
-from activity_browser.brightway.bw2data import projects, databases
+from activity_browser import project_settings, signals
+from activity_browser.brightway.bw2data import projects, databases, methods
 from activity_browser.bwutils.superstructure import get_sheet_names
 
 from ..threading import ABThread
@@ -560,7 +560,7 @@ class DefaultBiosphereThread(ABThread):
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
-        if not len(ic_controller):
+        if not len(methods):
             self.update.emit(1, "Creating default LCIA methods for {}".format(project))
             bw.create_default_lcia_methods()
         if not len(bw.migrations):

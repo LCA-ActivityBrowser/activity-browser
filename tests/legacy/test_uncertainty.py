@@ -7,7 +7,7 @@ import brightway2 as bw
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
 
-from activity_browser import ic_controller
+from activity_browser.brightway.bw2data import methods, Method
 from activity_browser.bwutils.uncertainty import (
     ExchangeUncertaintyInterface, CFUncertaintyInterface, get_uncertainty_interface
 )
@@ -40,8 +40,8 @@ def test_exchange_interface(qtbot, ab_app):
 
 @pytest.mark.xfail(reason="Selected CF was already uncertain")
 def test_cf_interface(qtbot, ab_app):
-    key = ic_controller.random()
-    method = ic_controller.get(key).load()
+    key = methods.random()
+    method = Method(key).load()
     cf = next(f for f in method)
 
     assert isinstance(cf, tuple)

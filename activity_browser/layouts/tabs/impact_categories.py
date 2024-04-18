@@ -1,7 +1,9 @@
 from PySide2 import QtCore, QtWidgets
 from ...ui.icons import qicons
 
-from activity_browser import signals, ic_controller
+from activity_browser import signals
+from activity_browser.brightway.bw2data import Method
+
 from ...ui.style import header, horizontal_line
 from ...ui.tables import MethodCharacterizationFactorsTable, MethodsTable, MethodsTree
 from ..panels import ABTab
@@ -32,7 +34,7 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
         container.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(container)
 
-        self.method = ic_controller.get(method_tuple)
+        self.method = Method(method_tuple)
         self.cf_table.model.load(self.method)
         self.cf_table.show()
         self.panel.select_tab(self)

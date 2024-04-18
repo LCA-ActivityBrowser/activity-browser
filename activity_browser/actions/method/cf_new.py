@@ -1,9 +1,10 @@
 from typing import Union, Callable, List
 
-import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, ic_controller
+from activity_browser import application
+from activity_browser.brightway.bw2data import Method
+
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -26,7 +27,7 @@ class CFNew(ABAction):
 
     def onTrigger(self, toggled):
         # load old cf's from the Method
-        method_dict = ic_controller.get(self.method_name).load_dict()
+        method_dict = Method(self.method_name).load_dict()
 
         # use only the keys that don't already exist within the method
         unique_keys = [key for key in self.keys if key not in method_dict]
@@ -48,4 +49,4 @@ class CFNew(ABAction):
             method_dict[key] = 0.0
 
         # write the updated dict to the method
-        ic_controller.get(self.method_name).write_dict(method_dict)
+        Method(self.method_name).write_dict(method_dict)

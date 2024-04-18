@@ -2,7 +2,9 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, ic_controller
+from activity_browser import application
+from activity_browser.brightway.bw2data import Method
+
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -36,7 +38,7 @@ class CFRemove(ABAction):
         # return if the users cancels
         if warning == QtWidgets.QMessageBox.No: return
 
-        method = ic_controller.get(self.method_name)
+        method = Method(self.method_name)
         method_dict = method.load_dict()
 
         for cf in self.char_factors:

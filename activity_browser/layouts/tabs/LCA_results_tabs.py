@@ -19,7 +19,7 @@ from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import log, signals
 from activity_browser.brightway.bw2data import calculation_setups
-from activity_browser.signals import calculation_setups_updater
+from activity_browser.signals import qcalculation_setups
 
 from .base import BaseRightTab
 from ...bwutils import (
@@ -134,7 +134,7 @@ class LCAResultsSubTab(QTabWidget):
         self.currentChanged.connect(self.generate_content_on_click)
         QApplication.restoreOverrideCursor()
 
-        calculation_setups_updater.metadata_changed.connect(self.check_cs)
+        qcalculation_setups.metadata_changed.connect(self.check_cs)
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""

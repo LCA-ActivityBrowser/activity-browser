@@ -2,7 +2,7 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser import ic_controller
+from activity_browser.brightway.bw2data import Method
 from ..base import ABAction
 from ...ui.icons import qicons
 
@@ -37,7 +37,7 @@ class CFUncertaintyRemove(ABAction):
         if not cleaned_cfs: return
 
         # else write the cf's to the method
-        method = ic_controller.get(self.method_name)
+        method = Method(self.method_name)
         method_dict = method.load_dict()
 
         for cf in cleaned_cfs:

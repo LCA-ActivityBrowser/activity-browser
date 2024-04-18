@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2.QtCore import QObject, Signal, SignalInstance, Qt
 
-from bw2data import get_activity
+from bw2data import get_activity, Method
 from bw2data.backends.peewee.proxies import Activity, Exchange
 
 
@@ -138,7 +138,26 @@ class ABSignals(QObject):
     manage_plugins = Signal()  # Trigger the plugins dialog
 
 
-class QDatastore(QObject):
+class QUpdater(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.cache = {}
+    
+    def emitLater(self, signal_name: str, *args):
+        if not isinstance(getattr(self, signal_name), SignalInstance):
+            raise ValueError("Signal name not valid on this QObject")
+        self.cache[signal_name] = args
+        self.thread().eventDispatcher().awake.connect(self.emit_cache, Qt.UniqueConnection)
+
+    def emit_cache(self):
+        for key, value in self.cache.items():
+            signal = getattr(self, key)
+            signal.emit(*value)
+        self.cache.clear()
+        self.thread().eventDispatcher().awake.disconnect(self.emit_cache)
+    
+
+class QDatastore(QUpdater):
     changed: SignalInstance = Signal(object)
     deleted: SignalInstance = Signal(object)
 
@@ -163,27 +182,12 @@ class QDatastore(QObject):
             self.setParent(None)
             self.deleteLater()
 
-    def emitLater(self, signal_name: str, *args):
-        if not isinstance(getattr(self, signal_name), SignalInstance):
-            raise ValueError("Signal name not valid on this QObject")
-        self.cache[signal_name] = args
-        self.thread().eventDispatcher().awake.connect(self.emit_cache, Qt.UniqueConnection)
 
-    def emit_cache(self):
-        for key, value in self.cache.items():
-            signal = getattr(self, key)
-            signal.emit(*value)
-        self.cache.clear()
-        self.thread().eventDispatcher().awake.disconnect(self.emit_cache)
-
-
-class Updater(QObject):
+class QDatabaseList(QObject):
+    
     def __iter__(self):
         for child in self.findChildren(QDatastore):
             yield child
-
-
-class DatabaseUpdater(Updater):
 
     def get_or_create(self, database):
         db_name = database if isinstance(database, str) else database.name
@@ -194,7 +198,11 @@ class DatabaseUpdater(Updater):
         else: return QDatastore(self, name=db_name)
 
 
-class ActivityUpdater(Updater):
+class QActivityList(QObject):
+
+    def __iter__(self):
+        for child in self.findChildren(QDatastore):
+            yield child
 
     def get_or_create(self, activity):
         activity = activity if isinstance(activity, Activity) else get_activity(activity)
@@ -208,7 +216,11 @@ class ActivityUpdater(Updater):
             return QDatastore(self, **doc.__data__)
 
 
-class ExchangeUpdater(Updater):
+class QExchangeList(QObject):
+
+    def __iter__(self):
+        for child in self.findChildren(QDatastore):
+            yield child
 
     def get_or_create(self, exchange: Exchange):
         doc = exchange._document
@@ -220,78 +232,48 @@ class ExchangeUpdater(Updater):
             return QDatastore(self, **doc.__data__)
 
 
-class ProjectsUpdater(QObject):
+class QMethodList(QObject):
+
+    def __iter__(self):
+        for child in self.findChildren(QDatastore):
+            yield child
+
+    def get_or_create(self, method: Method):
+        qmethod = [qmethod for qmethod in self.children() if qmethod["name"] == method.name]
+
+        if qmethod:
+            return qmethod[0]
+        else:
+            return QDatastore(self, name=method.name)
+
+
+class QProjects(QUpdater):
     current_changed: SignalInstance = Signal()
     list_changed: SignalInstance = Signal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.cache = {}
 
-    def emitLater(self, signal_name: str, *args):
-        if not isinstance(getattr(self, signal_name), SignalInstance):
-            raise ValueError("Signal name not valid on this QObject")
-        self.cache[signal_name] = args
-        self.thread().eventDispatcher().awake.connect(self.emit_cache, Qt.UniqueConnection)
-
-    def emit_cache(self):
-        for key, value in self.cache.items():
-            signal = getattr(self, key)
-            signal.emit(*value)
-        self.cache.clear()
-        self.thread().eventDispatcher().awake.disconnect(self.emit_cache)
-
-
-class DatabasesUpdater(QObject):
+class QDatabases(QUpdater):
     metadata_changed: SignalInstance = Signal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.cache = {}
 
-    def emitLater(self, signal_name: str, *args):
-        if not isinstance(getattr(self, signal_name), SignalInstance):
-            raise ValueError("Signal name not valid on this QObject")
-        self.cache[signal_name] = args
-        self.thread().eventDispatcher().awake.connect(self.emit_cache, Qt.UniqueConnection)
-
-    def emit_cache(self):
-        for key, value in self.cache.items():
-            signal = getattr(self, key)
-            signal.emit(*value)
-        self.cache.clear()
-        self.thread().eventDispatcher().awake.disconnect(self.emit_cache)
-
-
-class CalculationSetupsUpdater(QObject):
+class QCalculationSetups(QUpdater):
     metadata_changed: SignalInstance = Signal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.cache = {}
 
-    def emitLater(self, signal_name: str, *args):
-        if not isinstance(getattr(self, signal_name), SignalInstance):
-            raise ValueError("Signal name not valid on this QObject")
-        self.cache[signal_name] = args
-        self.thread().eventDispatcher().awake.connect(self.emit_cache, Qt.UniqueConnection)
-
-    def emit_cache(self):
-        for key, value in self.cache.items():
-            signal = getattr(self, key)
-            signal.emit(*value)
-        self.cache.clear()
-        self.thread().eventDispatcher().awake.disconnect(self.emit_cache)
+class QMethods(QUpdater):
+    metadata_changed: SignalInstance = Signal()
 
 
 signals = ABSignals()
 
-projects_updater = ProjectsUpdater()
-databases_updater = DatabasesUpdater()
-calculation_setups_updater = CalculationSetupsUpdater()
+qprojects = QProjects()
+qdatabases = QDatabases()
+qcalculation_setups = QCalculationSetups()
+qmethods = QMethods()
 
-database_updater = DatabaseUpdater()
-activity_updater = ActivityUpdater()
-exchange_updater = ExchangeUpdater()
+qdatabase_list = QDatabaseList()
+qactivity_list = QActivityList()
+qexchange_list = QExchangeList()
+qmethod_list = QMethodList()
 
-projects_updater.current_changed.connect(signals.project_selected.emit)
+qprojects.current_changed.connect(signals.project_selected.emit)
