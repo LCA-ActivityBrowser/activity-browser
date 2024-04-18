@@ -263,9 +263,32 @@ class DatabasesUpdater(QObject):
         self.thread().eventDispatcher().awake.disconnect(self.emit_cache)
 
 
+class CalculationSetupsUpdater(QObject):
+    metadata_changed: SignalInstance = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.cache = {}
+
+    def emitLater(self, signal_name: str, *args):
+        if not isinstance(getattr(self, signal_name), SignalInstance):
+            raise ValueError("Signal name not valid on this QObject")
+        self.cache[signal_name] = args
+        self.thread().eventDispatcher().awake.connect(self.emit_cache, Qt.UniqueConnection)
+
+    def emit_cache(self):
+        for key, value in self.cache.items():
+            signal = getattr(self, key)
+            signal.emit(*value)
+        self.cache.clear()
+        self.thread().eventDispatcher().awake.disconnect(self.emit_cache)
+
+
 signals = ABSignals()
+
 projects_updater = ProjectsUpdater()
 databases_updater = DatabasesUpdater()
+calculation_setups_updater = CalculationSetupsUpdater()
 
 database_updater = DatabaseUpdater()
 activity_updater = ActivityUpdater()

@@ -2,7 +2,8 @@ from typing import Union, Callable
 
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, cs_controller, signals, log
+from activity_browser import application, signals, log
+from activity_browser.brightway.bw2data import calculation_setups
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -32,7 +33,7 @@ class CSDuplicate(ABAction):
         if not ok or not new_name: return
 
         # throw error if the name is already present, and return
-        if new_name in cs_controller.keys():
+        if new_name in calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
@@ -40,6 +41,6 @@ class CSDuplicate(ABAction):
             )
             return
 
-        cs_controller[new_name] = cs_controller[self.cs_name].copy()
+        calculation_setups[new_name] = calculation_setups[self.cs_name].copy()
         signals.calculation_setup_selected.emit(new_name)
         log.info(f"Copied calculation setup {self.cs_name} as {new_name}")

@@ -4,9 +4,9 @@ from typing import Union, Callable
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import application, log, signals
+from activity_browser.brightway.bw2data import calculation_setups
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
-from activity_browser.controllers import cs_controller
 
 
 class CSDelete(ABAction):
@@ -34,7 +34,7 @@ class CSDelete(ABAction):
         if warning == QtWidgets.QMessageBox.No: return
 
         try:
-            del cs_controller[self.cs_name]
+            del calculation_setups[self.cs_name]
             signals.set_default_calculation_setup.emit()
             log.info(f"Deleted calculation setup: {self.cs_name}")
         except Exception as e:

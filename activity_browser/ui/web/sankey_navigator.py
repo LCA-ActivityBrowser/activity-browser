@@ -9,8 +9,8 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from activity_browser import log, signals, cs_controller, ic_controller
-from activity_browser.brightway.bw2data import get_activity, Database
+from activity_browser import log, signals, ic_controller
+from activity_browser.brightway.bw2data import get_activity, Database, calculation_setups
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
@@ -172,9 +172,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.cs = cs_name or self.cs
         self.func_units = [
             {get_activity(k): v for k, v in fu.items()}
-            for fu in cs_controller[self.cs]['inv']
+            for fu in calculation_setups[self.cs]['inv']
         ]
-        self.methods = cs_controller[self.cs]['ia']
+        self.methods = calculation_setups[self.cs]['ia']
         self.func_unit_cb.clear()
         fu_acts = [list(fu.keys())[0] for fu in self.func_units]
         self.func_unit_cb.addItems([f"{repr(a)} | {a._data.get('database')}" for a in fu_acts])

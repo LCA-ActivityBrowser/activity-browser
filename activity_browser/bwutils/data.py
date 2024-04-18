@@ -4,21 +4,6 @@ from PySide2.QtCore import SignalInstance
 import activity_browser.controllers as ctrl
 
 
-class ABCalculationSetup(dict):
-
-    def __init__(self, name: str, **kwargs):
-        super().__init__(**kwargs)
-        self.name = name
-
-    @property
-    def changed(self) -> SignalInstance:
-        return ctrl.cs_controller.get_virtual(self, create=True).changed
-
-    @property
-    def deleted(self) -> SignalInstance:
-        return ctrl.cs_controller.get_virtual(self, create=True).deleted
-
-
 class ABMethod(Method):
 
     def __hash__(self):

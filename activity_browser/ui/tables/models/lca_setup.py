@@ -5,8 +5,8 @@ import numpy as np
 from bw2data.backends.peewee import ActivityDataset  # error import
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
-from activity_browser import log, signals, cs_controller, ic_controller
-from activity_browser.brightway.bw2data import get_activity
+from activity_browser import log, signals, ic_controller
+from activity_browser.brightway.bw2data import get_activity, calculation_setups
 from activity_browser.bwutils import commontasks as bc
 from .base import EditablePandasModel, PandasModel
 
@@ -93,7 +93,7 @@ class CSActivityModel(CSGenericModel):
         return self._dataframe.iat[idx.row(), self.key_col]
 
     def load(self, cs_name: str):
-        assert cs_name in cs_controller, "Given calculation setup does not exist."
+        assert cs_name in calculation_setups, "Given calculation setup does not exist."
 
         for act in self._activities.values():
             act.changed.disconnect(self.sync)
@@ -104,7 +104,7 @@ class CSActivityModel(CSGenericModel):
 
     def sync(self):
         assert self.current_cs, "CS Model not yet loaded"
-        fus = cs_controller.get(self.current_cs, {}).get('inv', [])
+        fus = calculation_setups.get(self.current_cs, {}).get('inv', [])
         df = pd.DataFrame([
             self.build_row(key, amount) for func_unit in fus
             for key, amount in func_unit.items()
@@ -178,7 +178,7 @@ class CSMethodsModel(CSGenericModel):
         """
         Load a calculation setup defined by cs_name into the methods table.
         """
-        assert cs_name in cs_controller, "Given calculation setup does not exist."
+        assert cs_name in calculation_setups, "Given calculation setup does not exist."
 
         # disconnect from all the previous methods so any virtual methods delete if appropriate
         for method in self._methods.values():
@@ -197,7 +197,7 @@ class CSMethodsModel(CSGenericModel):
         assert self.current_cs, "CS Model not yet loaded"
 
         # collect all method tuples from calculation setup that are also actually available
-        method_tuples = [mthd for mthd in cs_controller[self.current_cs].get("ia", []) if mthd in ic_controller]
+        method_tuples = [mthd for mthd in calculation_setups[self.current_cs].get("ia", []) if mthd in ic_controller]
 
         # build rows for all the collected methods and store in our dataframe
         self._dataframe = pd.DataFrame([self.build_row(mthd) for mthd in method_tuples], columns=self.HEADERS)

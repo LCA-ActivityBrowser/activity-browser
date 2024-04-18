@@ -1,9 +1,9 @@
 from PySide2 import QtWidgets
 
 from activity_browser import application, log, signals
+from activity_browser.brightway.bw2data import calculation_setups
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
-from activity_browser.controllers import cs_controller
 
 
 class CSNew(ABAction):
@@ -27,7 +27,7 @@ class CSNew(ABAction):
         if not ok or not name: return
 
         # throw error if the name is already present, and return
-        if name in cs_controller.keys():
+        if name in calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
@@ -36,6 +36,6 @@ class CSNew(ABAction):
             return
 
         # instruct the CalculationSetupController to create a CS with the new name
-        cs_controller[name] = {'inv': [], 'ia': []}
+        calculation_setups[name] = {'inv': [], 'ia': []}
         signals.calculation_setup_selected.emit(name)
         log.info(f"New calculation setup: {name}")

@@ -17,7 +17,10 @@ from PySide2.QtWidgets import (
 )
 from stats_arrays.errors import InvalidParamsError
 
-from activity_browser import log, signals, cs_controller
+from activity_browser import log, signals
+from activity_browser.brightway.bw2data import calculation_setups
+from activity_browser.signals import calculation_setups_updater
+
 from .base import BaseRightTab
 from ...bwutils import (
     Contributions, MonteCarloLCA, MLCA,
@@ -89,6 +92,7 @@ class LCAResultsSubTab(QTabWidget):
         super().__init__(parent)
         self.data = data
         self.cs_name = self.data.get('cs_name')
+        self.cs = calculation_setups[self.cs_name]
         self.has_scenarios = False if data.get('calculation_type') == 'simple' else True
         self.mlca: Optional[Union[MLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
@@ -130,7 +134,7 @@ class LCAResultsSubTab(QTabWidget):
         self.currentChanged.connect(self.generate_content_on_click)
         QApplication.restoreOverrideCursor()
 
-        cs_controller[self.cs_name].changed.connect(self.deleteLater)
+        calculation_setups_updater.metadata_changed.connect(self.check_cs)
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""
@@ -179,6 +183,10 @@ class LCAResultsSubTab(QTabWidget):
             if not filepath.endswith(".xlsx"):
                 filepath += ".xlsx"
             df.to_excel(filepath)
+
+    def check_cs(self):
+        if self.cs != calculation_setups.get(self.cs_name, None):
+            self.deleteLater()
 
 
 class NewAnalysisTab(BaseRightTab):

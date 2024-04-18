@@ -31,6 +31,9 @@ class ICController(QObject):
         for method in methods:
             yield method
 
+    def __len__(self):
+        return len(methods)
+
     def __delitem__(self, name) -> None:
         ABData.ABMethod(name).deregister()
 

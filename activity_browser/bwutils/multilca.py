@@ -8,7 +8,7 @@ import brightway2 as bw
 from bw2analyzer import ContributionAnalysis
 from PySide2.QtWidgets import QMessageBox, QApplication
 
-import activity_browser.controllers as ABCtrl
+from activity_browser.brightway.bw2data import calculation_setups
 from activity_browser import log
 from .commontasks import wrap_text
 from .metadata import AB_metadata
@@ -107,7 +107,7 @@ class MLCA(object):
     """
     def __init__(self, cs_name: str):
         try:
-            cs = ABCtrl.cs_controller[cs_name]
+            cs = calculation_setups[cs_name]
         except KeyError:
             raise ValueError(
                 f"{cs_name} is not a known `calculation_setup`."

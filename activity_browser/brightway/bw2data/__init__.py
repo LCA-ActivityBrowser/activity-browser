@@ -1,7 +1,7 @@
 from bw2data import *
 
 from .project import projects
-from .meta import databases
+from .meta import databases, calculation_setups
 
 from .backends import convert_backend
 from .utils import get_activity
