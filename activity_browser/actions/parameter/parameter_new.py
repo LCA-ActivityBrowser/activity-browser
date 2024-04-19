@@ -3,8 +3,8 @@ from typing import Union, Callable, Optional, Tuple
 from activity_browser.bwutils import commontasks as bc
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from activity_browser import application, parameter_controller
-from activity_browser.brightway.bw2data import databases
+from activity_browser import application
+from activity_browser.brightway.bw2data import databases, parameters
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -54,13 +54,13 @@ class ParameterNew(ABAction):
 
         # select the right group and instruct the controller to create the parameter there
         if selection == 0:
-            parameter_controller.add_parameter("project", data)
+            parameters.new_project_parameters([data])
         elif selection == 1:
             db = data.pop("database")
-            parameter_controller.add_parameter(db, data)
+            parameters.new_database_parameters([data], db)
         elif selection == 2:
             group = data.pop("group")
-            parameter_controller.add_parameter(group, data)
+            parameters.new_activity_parameters([data], group)
 
 
 class ParameterWizard(QtWidgets.QWizard):

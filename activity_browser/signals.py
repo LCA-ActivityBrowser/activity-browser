@@ -2,6 +2,7 @@
 from PySide2.QtCore import QObject, Signal, SignalInstance, Qt
 
 from bw2data import get_activity, Method
+from bw2data.parameters import ParameterBase, ProjectParameter, DatabaseParameter, ActivityParameter
 from bw2data.backends.peewee.proxies import Activity, Exchange
 
 
@@ -76,21 +77,21 @@ class ABSignals(QObject):
     exchange_pedigree_modified = Signal(object, object)  # The pedigree uncertainty data for this exchange was modified | exchange object, pedigree data
 
     # Parameters
-    add_parameter = Signal(tuple)  # Trigger dialog to add parameter to this exchange | key of exchange
-    add_activity_parameter = Signal(tuple)  # Add a parameter to this exchange | key of exchange
-    add_activity_parameters = Signal(list)  # Add parameter to these exchanges | list of exchange keys
+    # add_parameter = Signal(tuple)  # Trigger dialog to add parameter to this exchange | key of exchange
+    # add_activity_parameter = Signal(tuple)  # Add a parameter to this exchange | key of exchange
+    # add_activity_parameters = Signal(list)  # Add parameter to these exchanges | list of exchange keys
     added_parameter = Signal(str, str, str)  # This parameter has been added | name of the parameter, amount, type (project, database or activity)
     parameters_changed = Signal()  # The parameters have changed
-    rename_parameter = Signal(object, str)  # Trigger dialog to rename parameter | parameter object, type (project, database or activity)
+    # rename_parameter = Signal(object, str)  # Trigger dialog to rename parameter | parameter object, type (project, database or activity)
     parameter_renamed = Signal(str, str, str)  # This parameter was renamed | old name, type (project, database or activity), new name
-    exchange_formula_changed = Signal(tuple)  # The formula for an exchange in this activity was changed | key of activity
-    parameter_modified = Signal(object, str, object)  # This parameter was modified | parameter object, name of the changed field, new content of the field
-    parameter_uncertainty_modified = Signal(object, dict)  # The uncertainty data for this parameter was modified | parameter object, uncertainty data
-    parameter_pedigree_modified = Signal(object, object)  # The pedigree uncertainty data for this parameter was modified | parameter object, pedigree data
-    delete_parameter = Signal(object)  # Delete this parameter | proxy index of the table view of the parameter
+    # exchange_formula_changed = Signal(tuple)  # The formula for an exchange in this activity was changed | key of activity
+    # parameter_modified = Signal(object, str, object)  # This parameter was modified | parameter object, name of the changed field, new content of the field
+    # parameter_uncertainty_modified = Signal(object, dict)  # The uncertainty data for this parameter was modified | parameter object, uncertainty data
+    # parameter_pedigree_modified = Signal(object, object)  # The pedigree uncertainty data for this parameter was modified | parameter object, pedigree data
+    # delete_parameter = Signal(object)  # Delete this parameter | proxy index of the table view of the parameter
     parameter_scenario_sync = Signal(int, object, bool)  # Synchronize this data for table | index of the table, dataframe with scenario data, include default scenario
     parameter_superstructure_built = Signal(int, object)  # Superstructure built from scenarios | index of the table, dataframe with scenario data
-    clear_activity_parameter = Signal(str, str, str)  # Clear this parameter | name of database, name of code, name of group
+    # clear_activity_parameter = Signal(str, str, str)  # Clear this parameter | name of database, name of code, name of group
 
     # Calculation Setups
     new_calculation_setup = Signal()  # Trigger dialog for a new calculation setup
@@ -247,6 +248,20 @@ class QMethodList(QObject):
             return QDatastore(self, name=method.name)
 
 
+class QParameterList(QObject):
+    def __iter__(self):
+        for child in self.findChildren(QDatastore):
+            yield child
+
+    def get_or_create(self, parameter: ParameterBase):
+        qparam = [qparam for qparam in self.children() if qparam["key"] == parameter.key]
+
+        if qparam:
+            return qparam[0]
+        else:
+            return QDatastore(self, key=parameter.key)
+
+
 class QProjects(QUpdater):
     current_changed: SignalInstance = Signal()
     list_changed: SignalInstance = Signal()
@@ -264,16 +279,22 @@ class QMethods(QUpdater):
     metadata_changed: SignalInstance = Signal()
 
 
+class QParameters(QUpdater):
+    parameters_changed: SignalInstance = Signal()
+
+
 signals = ABSignals()
 
 qprojects = QProjects()
 qdatabases = QDatabases()
 qcalculation_setups = QCalculationSetups()
 qmethods = QMethods()
+qparameters = QParameters()
 
 qdatabase_list = QDatabaseList()
 qactivity_list = QActivityList()
 qexchange_list = QExchangeList()
 qmethod_list = QMethodList()
+qparameter_list = QParameterList()
 
 qprojects.current_changed.connect(signals.project_selected.emit)

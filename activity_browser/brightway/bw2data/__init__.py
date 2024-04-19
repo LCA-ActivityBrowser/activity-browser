@@ -4,6 +4,7 @@ from .project import projects
 from .meta import databases, calculation_setups, methods
 from .method import Method
 from .utils import get_activity
+from .parameters import parameters
 
 
 # import importlib

@@ -1,9 +1,12 @@
 from typing import Union, Callable, List, Tuple
 
 import brightway2 as bw
-from PySide2 import QtCore, QtWidgets, QtGui
+from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, parameter_controller
+from activity_browser import application
+
+from activity_browser.bwutils import commontasks
+from activity_browser.brightway.bw2data.parameters import ActivityParameter
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -33,6 +36,19 @@ class ParameterNewAutomatic(ABAction):
                     QtWidgets.QMessageBox.Ok,
                     QtWidgets.QMessageBox.Ok
                 )
-                continue
-            parameter_controller.auto_add_parameter(key)
+                return
+
+            prep_name = commontasks.clean_activity_name(act.get("name"))
+            group = commontasks.build_activity_group_name(key, prep_name)
+            count = ActivityParameter.select().where(ActivityParameter.group == group).count()
+
+            row = {
+                "name": "{}_{}".format(prep_name, count + 1),
+                "amount": act.get("amount", 1.0),
+                "formula": act.get("formula", ""),
+                "database": key[0],
+                "code": key[1],
+            }
+            # Save the new parameter
+            bw.parameters.new_activity_parameters([row], group)
 

@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import log, signals, application, parameter_controller, actions
+from activity_browser import log, application, actions
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
@@ -79,9 +78,9 @@ class UncertaintyWizard(QtWidgets.QWizard):
             if self.using_pedigree:
                 actions.ExchangeModify(self.obj.data, {"pedigree": self.pedigree.matrix.factors}, self).trigger()
         elif self.obj.data_type == "parameter":
-            parameter_controller.modify_parameter_uncertainty(self.obj.data, self.uncertainty_info)
+            actions.ParameterModify(self.obj.data, "data", self.uncertainty_info, self).trigger()
             if self.using_pedigree:
-                parameter_controller.modify_parameter_pedigree(self.obj.data, self.pedigree.matrix.factors)
+                actions.ParameterModify(self.obj.data, "data", self.pedigree.matrix.factors, self).trigger()
         elif self.obj.data_type == "cf":
             self.complete.emit(self.obj.data, self.uncertainty_info)
 
@@ -144,9 +143,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
                     actions.ExchangeModify(self.obj.data, {"amount": mean}, self).trigger()
 
                 elif self.obj.data_type == "parameter":
-                    signals.parameter_modified.emit(self.obj.data, "amount", mean)
                     try:
-                        parameter_controller.modify_parameter(self.obj.data, "amount", mean)
+                        actions.ParameterModify(self.obj.data, "amount", mean, self).trigger()
                     except Exception as e:
                         QtWidgets.QMessageBox.warning(
                             application.main_window, "Could not save changes", str(e),

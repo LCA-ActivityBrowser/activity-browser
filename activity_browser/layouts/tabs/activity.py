@@ -6,6 +6,7 @@ from PySide2.QtCore import Slot
 from activity_browser import signals, project_settings
 from activity_browser.brightway.bw2data import databases, get_activity, Database
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.signals import qparameters
 
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
@@ -184,7 +185,7 @@ class ActivityTab(QtWidgets.QWidget):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
         self.activity.changed.connect(self.populate)
         self.activity.deleted.connect(self.deleteLater)
-        signals.parameters_changed.connect(self.populate)
+        qparameters.parameters_changed.connect(self.populate)
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:

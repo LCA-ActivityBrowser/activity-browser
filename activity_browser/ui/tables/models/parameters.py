@@ -11,8 +11,8 @@ from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
 from PySide2 import QtWidgets
 
-from activity_browser import log, signals, application, actions, parameter_controller
-from activity_browser.bwutils import commontasks as bc, uncertainty as uc
+from activity_browser import log, signals, application, actions
+from activity_browser.signals import qprojects, qparameters
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
 
@@ -28,9 +28,9 @@ class BaseParameterModel(EditablePandasModel):
         self.param_col = 0
         self.comment_col = 0
         self.dataChanged.connect(self.edit_single_parameter)
-        signals.project_selected.connect(self.sync)
-        signals.parameters_changed.connect(self.sync)
-        signals.added_parameter.connect(self.sync)
+
+        qprojects.current_changed.connect(self.sync)
+        qparameters.parameters_changed.connect(self.sync)
 
     def get_parameter(self, proxy: QModelIndex) -> object:
         idx = self.proxy_to_source(proxy)
@@ -83,7 +83,7 @@ class BaseParameterModel(EditablePandasModel):
         field = self._dataframe.columns[index.column()]
 
         try:
-            parameter_controller.modify_parameter(param, field, index.data())
+            actions.ParameterModify(param, field, index.data(), self).trigger()
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 application.main_window, "Could not save changes", str(e),
@@ -99,7 +99,7 @@ class BaseParameterModel(EditablePandasModel):
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        parameter_controller.delete_parameter(param)
+        actions.ParameterDelete(param, self).trigger()
 
     @Slot(name="modifyParameterUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
@@ -110,7 +110,7 @@ class BaseParameterModel(EditablePandasModel):
     @Slot(name="unsetParameterUncertainty")
     def remove_uncertainty(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        parameter_controller.modify_parameter_uncertainty(param, uc.EMPTY_UNCERTAINTY)
+        actions.ParameterUncertaintyRemove(param, self).trigger()
 
     def handle_double_click(self, proxy: QModelIndex) -> None:
         column = proxy.column()
@@ -242,7 +242,7 @@ class ActivityParameterModel(BaseParameterModel):
         except:
             # Can occur if an activity parameter exists for a removed activity.
             log.info("Activity {} no longer exists, removing parameter.".format(row["key"]))
-            parameter_controller.clear_broken_activity_parameter(parameter.database, parameter.code, parameter.group)
+            actions.ParameterClearBroken(parameter, self).trigger()
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
@@ -250,11 +250,6 @@ class ActivityParameterModel(BaseParameterModel):
         # Replace the namedtuple with the actual ActivityParameter
         row["parameter"] = ActivityParameter.get_by_id(parameter.id)
         return row
-
-    @staticmethod
-    @Slot(tuple, name="addActivityParameter")
-    def add_parameter(key: tuple) -> None:
-        parameter_controller.auto_add_parameter(key)
 
     def get_activity_groups(self, proxy, ignore_groups: list = None) -> Iterable[str]:
         """ Helper method to look into the Group and determine which if any
@@ -389,7 +384,6 @@ class ParameterTreeModel(BaseTreeModel):
         super().__init__(parent)
         self.root = ParameterItem.build_root(self.HEADERS)
         self.setup_model_data()
-        signals.exchange_formula_changed.connect(self.parameterize_exchanges)
 
     def setup_model_data(self) -> None:
         """ First construct the root, then process the data.
@@ -416,21 +410,3 @@ class ParameterTreeModel(BaseTreeModel):
         })
         self.setup_model_data()
         self.updated.emit()
-
-    @Slot(tuple, name="parameterizeExchanges")
-    def parameterize_exchanges(self, key: tuple) -> None:
-        """ Used whenever a formula is set on an exchange in an activity.
-
-        If no `ActivityParameter` exists for the key, generate one immediately
-        """
-        group = bc.build_activity_group_name(key)
-        if not (ActivityParameter.select()
-                .where(ActivityParameter.group == group).count()):
-            parameter_controller.auto_add_parameter(key)
-
-        act = bw.get_activity(key)
-        with bw.parameters.db.atomic():
-            bw.parameters.remove_exchanges_from_group(group, act)
-            bw.parameters.add_exchanges_to_group(group, act)
-            ActivityParameter.recalculate_exchanges(group)
-        signals.parameters_changed.emit()

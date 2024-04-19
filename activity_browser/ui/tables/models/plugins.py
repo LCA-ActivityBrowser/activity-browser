@@ -5,8 +5,9 @@ import pandas as pd
 from PySide2.QtCore import QModelIndex
 
 from activity_browser.settings import project_settings, ab_settings
-from activity_browser.signals import signals
+from activity_browser.signals import qprojects, qparameters
 from .base import PandasModel
+
 
 class PluginsModel(PandasModel):
     HEADERS = ["use", "name", "author", "version"]
@@ -14,8 +15,8 @@ class PluginsModel(PandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.plugins_list = []
-        signals.project_selected.connect(self.sync)
-        signals.parameters_changed.connect(self.sync)
+        qprojects.current_changed.connect(self.sync)
+        qparameters.parameters_changed.connect(self.sync)
 
     def get_plugin_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)

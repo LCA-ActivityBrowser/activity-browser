@@ -6,6 +6,7 @@ from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout, QApplication
 
 from activity_browser import log, signals
+from activity_browser.signals import qparameters, qprojects
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
 from ...bwutils.errors import ABError
@@ -28,8 +29,8 @@ class LCAResultsTab(ABTab):
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
         self.tabCloseRequested.connect(self.close_tab)
-        signals.project_selected.connect(self.close_all)
-        signals.parameters_changed.connect(self.close_all)
+        qprojects.current_changed.connect(self.close_all)
+        qparameters.parameters_changed.connect(self.close_all)
 
     @Slot(str, name="removeSetup")
     def remove_setup(self, name: str):

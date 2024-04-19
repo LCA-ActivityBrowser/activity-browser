@@ -3,7 +3,7 @@ from typing import Union, Callable, Any
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import application
-from activity_browser.controllers import parameter_controller
+from activity_browser.brightway.bw2data.parameters import parameters, ActivityParameter, DatabaseParameter, ProjectParameter
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -31,7 +31,12 @@ class ParameterRename(ABAction):
         if not ok or not new_name: return
 
         try:
-            parameter_controller.rename_parameter(self.parameter, new_name)
+            if isinstance(self.parameter, ProjectParameter):
+                parameters.rename_project_parameter(self.parameter, new_name, update_dependencies=True)
+            if isinstance(self.parameter, DatabaseParameter):
+                parameters.rename_database_parameter(self.parameter, new_name, update_dependencies=True)
+            if isinstance(self.parameter, ActivityParameter):
+                parameters.rename_activity_parameter(self.parameter, new_name, update_dependencies=True)
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 application.main_window, "Could not save changes", str(e),

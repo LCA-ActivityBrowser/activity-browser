@@ -10,6 +10,7 @@ from PySide2.QtWidgets import (
 from xlsxwriter.exceptions import FileCreateError
 
 from activity_browser import actions, signals
+from activity_browser.signals import qparameters, qprojects
 from activity_browser.brightway.bw2data import databases
 
 from ...bwutils.manager import ParameterManager
@@ -214,8 +215,8 @@ can be used within the formula!</p>
 """
 
     def _connect_signals(self):
-        signals.project_selected.connect(self.build_tables)
-        signals.parameters_changed.connect(self.build_tables)
+        qprojects.current_changed.connect(self.build_tables)
+        qparameters.parameters_changed.connect(self.build_tables)
         #        self.new_project_param.clicked.connect(
         #            lambda: signals.add_parameter.emit(None)
         #        )
@@ -361,8 +362,8 @@ class ParameterExchangesTab(BaseRightTab):
 """
 
     def _connect_signals(self):
-        signals.project_selected.connect(self.build_tables)
-        signals.parameters_changed.connect(self.build_tables)
+        qprojects.current_changed.connect(self.build_tables)
+        qparameters.parameters_changed.connect(self.build_tables)
 
     def _construct_layout(self):
         """ Construct the widget layout for the exchanges parameters tab

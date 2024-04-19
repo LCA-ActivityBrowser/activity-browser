@@ -40,6 +40,11 @@ from .method.cf_uncertainty_remove import CFUncertaintyRemove
 from .parameter.parameter_new import ParameterNew
 from .parameter.parameter_new_automatic import ParameterNewAutomatic
 from .parameter.parameter_rename import ParameterRename
+from .parameter.parameter_delete import ParameterDelete
+from .parameter.parameter_modify import ParameterModify
+from .parameter.parameter_uncertainty_remove import ParameterUncertaintyRemove
+from .parameter.parameter_uncertainty_modify import ParameterUncertaintyModify
+from .parameter.parameter_clear_broken import ParameterClearBroken
 
 from .project.project_new import ProjectNew
 from .project.project_duplicate import ProjectDuplicate

@@ -26,15 +26,29 @@ def patch_superclass(cls):
 
     return cls
 
+
+def patch_attribute(obj, name):
+    def inner(obj, name, fn):
+        # saving the attribute that we'll be patching
+        patch_dict[obj] = patch_dict.get(obj, {})
+        patch_dict[obj].update({name: getattr(obj, name, None)})
+
+        setattr(obj, name, fn)
+        return
+
+    return functools.partial(inner, obj, name)
+
+
 patch_dict = {}
 
 
-def patched():
-    obj = inspect.stack()[1].frame.f_locals.get("self", None)
+def patched(obj=None):
+    if not obj: obj = inspect.stack()[1].frame.f_locals.get("self", None)
 
     if obj is None: raise ValueError("Not called for a method")
     match = [key for key in patch_dict if isinstance(obj, key)]
-    if not match: raise ValueError("No patched attributes for this object")
+    if not match:
+        raise ValueError("No patched attributes for this object")
 
     patch_namespace = Namespace()
 

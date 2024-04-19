@@ -850,7 +850,7 @@ class MainWorkerThread(ABThread):
                 result = ABExcelImporter.simple_automated_import(
                     self.archive_path, self.db_name, self.relink
                 )
-                signals.parameters_changed.emit()
+                # signals.parameters_changed.emit()
             else:
                 result = ABPackage.import_file(self.archive_path, relink=self.relink, rename=self.db_name)
             if not import_signals.cancel_sentinel:
