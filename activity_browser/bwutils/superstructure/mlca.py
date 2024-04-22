@@ -171,6 +171,7 @@ class SuperstructureMLCA(MLCA):
                     delattr(self.lca, "solver")
 
             # TODO: Check if this doesnt break stuff
+            # TODO: Update: It does..
             try:
                 if kind == "technosphere":
                     MB.fix_supply_use(idx, sample)
