@@ -4,16 +4,25 @@ import os
 import time
 from typing import List
 
-import brightway2 as bw  # for graphtraversal function
+import bw2calc as bc
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
 from activity_browser import log, signals
-from activity_browser.brightway.bw2data import get_activity, Database, calculation_setups, methods
+from activity_browser.brightway import bd
+from activity_browser.brightway.bw2data.backends import ActivityDataset
+
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
+
+try:
+    # test whether we're running bw25
+    from bw2calc.graph_traversal import AssumedDiagonalGraphTraversal as GraphTraversal
+except:
+    # fall back on regular bw
+    from bw2calc import GraphTraversal
 
 
 # TODO:
@@ -171,10 +180,10 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         self.cs = cs_name or self.cs
         self.func_units = [
-            {get_activity(k): v for k, v in fu.items()}
-            for fu in calculation_setups[self.cs]['inv']
+            {bd.get_activity(k): v for k, v in fu.items()}
+            for fu in bd.calculation_setups[self.cs]['inv']
         ]
-        self.methods = calculation_setups[self.cs]['ia']
+        self.methods = bd.calculation_setups[self.cs]['ia']
         self.func_unit_cb.clear()
         fu_acts = [list(fu.keys())[0] for fu in self.func_units]
         self.func_unit_cb.addItems([f"{repr(a)} | {a._data.get('database')}" for a in fu_acts])
@@ -226,15 +235,18 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method,
-                                                                              cutoff=cut_off, max_calc=max_calc)
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
             else:
-                data = bw.GraphTraversal().calculate(demand, method,
-                                                     cutoff=cut_off, max_calc=max_calc)
+                try:
+                    data = GraphTraversal().calculate(demand, method, cutoff=cut_off, max_calc=max_calc)
+                except:
+                    lca = bc.LCA(demand, method)
+                    data = GraphTraversal().calculate(lca, cutoff=cut_off, max_calc=max_calc)
+                    data["lca"] = lca
             # store the metadata from this calculation
             data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
                                 'score': data["lca"].score,
-                                'unit': methods[method]["unit"],
+                                'unit': bd.methods[method]["unit"],
                                 'act_dict': data["lca"].activity_dict.items()}
             # drop LCA object as it's useless from now on
             del data["lca"]
@@ -258,8 +270,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            method = ic_controller.random()
-            act = Database(self.selected_db).random()
+            method = bd.methods.random()
+            act = bd.Database(self.selected_db).random()
             demand = {act: 1.0}
             self.update_sankey(demand, method)
         else:
@@ -290,7 +302,7 @@ class Graph(BaseGraph):
         build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
 
         valid_nodes = (
-            (get_activity(reverse_activity_dict[idx]), v)
+            (bd.get_activity(reverse_activity_dict[idx]), v)
             for idx, v in data["nodes"].items() if idx != -1
         )
         valid_edges = (
@@ -309,8 +321,8 @@ class Graph(BaseGraph):
     @staticmethod
     def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
         act, amount = demand[0], demand[1]
-        if type(act) is tuple:
-            act = get_activity(act)
+        if type(act) is tuple or type(act) is int:
+            act = bd.get_activity(act)
         format_str = ("Reference flow: {:.2g} {} {} | {} | {} <br>"
                       "Total impact: {:.2g} {}")
         return format_str.format(
@@ -354,9 +366,9 @@ class Graph(BaseGraph):
         """
 
         def build_json_edge(edge: dict) -> dict:
-            p = get_activity(reverse_dict[edge["from"]])
-            from_key = reverse_dict[edge["from"]]
-            to_key = reverse_dict[edge["to"]]
+            p = bd.get_activity(reverse_dict[edge["from"]])
+            from_key = id_to_key(reverse_dict[edge["from"]])
+            to_key = id_to_key(reverse_dict[edge["to"]])
             return {
                 "source_id": from_key[1],
                 "target_id": to_key[1],
@@ -373,3 +385,8 @@ class Graph(BaseGraph):
             }
 
         return build_json_edge
+
+
+def id_to_key(id):
+    if isinstance(id, tuple): return id
+    return ActivityDataset.get_by_id(id).database, ActivityDataset.get_by_id(id).code

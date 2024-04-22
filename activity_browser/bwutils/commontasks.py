@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
 import hashlib
-import os
 import textwrap
 
 import arrow
-import brightway2 as bw
-from bw2data import databases
-from bw2data.proxies import ActivityProxyBase
-from bw2data.project import ProjectDataset, SubstitutableDatabase
 
 from activity_browser import log
+from activity_browser.brightway import bd
 from .metadata import AB_metadata
+
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
@@ -34,7 +30,7 @@ def wrap_text(string: str, max_length: int = 80) -> str:
 
 def format_activity_label(key, style='pnl', max_length=40):
     try:
-        act = bw.get_activity(key)
+        act = bd.get_activity(key)
 
         if style == 'pnl':
             label = '\n'.join([act.get('reference product', ''), act.get('name', ''),
@@ -69,7 +65,7 @@ def cleanup_deleted_bw_projects() -> None:
 
     NOTE: This cannot be done from within the AB.
     """
-    n_dir = bw.projects.purge_deleted_directories()
+    n_dir = bd.projects.purge_deleted_directories()
     log.info('Deleted {} unused project directories!'.format(n_dir))
 
 
@@ -78,8 +74,8 @@ def get_database_metadata(name):
     """ Returns a dictionary with database meta-information. """
     d = dict()
     d['Name'] = name
-    d['Depends'] = "; ".join(databases[name].get('depends', []))
-    dt = databases[name].get('modified', '')
+    d['Depends'] = "; ".join(bd.databases[name].get('depends', []))
+    dt = bd.databases[name].get('modified', '')
     if dt:
         dt = arrow.get(dt).humanize()
     d['Last modified'] = dt
@@ -88,16 +84,16 @@ def get_database_metadata(name):
 
 def is_technosphere_db(db_name: str) -> bool:
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
-    if not db_name in bw.databases:
+    if not db_name in bd.databases:
         raise KeyError("Not an existing database:", db_name)
-    act = bw.Database(db_name).random()
+    act = bd.Database(db_name).random()
     if act is None or act.get("type", "process") == "process":
         return True
     else:
         return False
 
 
-def is_technosphere_activity(activity: ActivityProxyBase) -> bool:
+def is_technosphere_activity(activity: bd.Node) -> bool:
     """ Avoid database lookups by testing the activity for a type, calls the
     above method if the field does not exist.
     """
@@ -110,7 +106,7 @@ def count_database_records(name: str) -> int:
     """To account for possible brightway database types that do not implement
     the __len__ method.
     """
-    db = bw.Database(name)
+    db = bd.Database(name)
     try:
         return len(db)
     except TypeError as e:
@@ -177,7 +173,7 @@ def build_activity_group_name(key: tuple, name: str = None) -> str:
     simple_hash = hashlib.md5(":".join(key).encode()).hexdigest()
     if name:
         return "{}_{}".format(name, simple_hash)
-    act = bw.get_activity(key)
+    act = bd.get_activity(key)
     clean = clean_activity_name(act.get("name"))
     return "{}_{}".format(clean, simple_hash)
 
@@ -220,8 +216,8 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
     data = []
     for exc in exchanges:
         try:
-            from_act = bw.get_activity(exc.get('input'))
-            to_act = bw.get_activity(exc.get('output'))
+            from_act = bd.get_activity(exc.get('input'))
+            to_act = bd.get_activity(exc.get('output'))
 
             row = {
                 'from activity name': from_act.get('name', ''),
@@ -250,7 +246,7 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
 def get_exchanges_from_a_list_of_activities(activities: list, as_keys: bool = False) -> list:
     """Get all exchanges in a list of activities."""
     if as_keys:
-        activities = [bw.get_activity(key) for key in activities]
+        activities = [bd.get_activity(key) for key in activities]
     exchanges = []
     for act in activities:
         for exc in act.exchanges():
@@ -261,8 +257,8 @@ def get_exchanges_from_a_list_of_activities(activities: list, as_keys: bool = Fa
 # LCIA
 def unit_of_method(method: tuple) -> str:
     """Attempt to return the unit of the given method."""
-    assert method in bw.methods
-    return bw.methods[method].get("unit", "unit")
+    assert method in bd.methods
+    return bd.methods[method].get("unit", "unit")
 
 
 def get_LCIA_method_name_dict(keys: list) -> dict:

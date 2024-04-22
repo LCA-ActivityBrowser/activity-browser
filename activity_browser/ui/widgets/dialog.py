@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import List, Tuple
 
-import brightway2 as bw
+import bw2io as bi
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
 from activity_browser import project_settings, signals
-from activity_browser.brightway.bw2data import projects, databases, methods
+from activity_browser.brightway import bd
 from activity_browser.bwutils.superstructure import get_sheet_names
 
 from ..threading import ABThread
@@ -555,17 +555,17 @@ class DefaultBiosphereThread(ABThread):
         self.version = version
 
     def run_safely(self):
-        project = f"<b>{projects.current}</b>"
-        if "biosphere3" not in databases:
+        project = f"<b>{bd.projects.current}</b>"
+        if "biosphere3" not in bd.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
-        if not len(methods):
+        if not len(bd.methods):
             self.update.emit(1, "Creating default LCIA methods for {}".format(project))
-            bw.create_default_lcia_methods()
-        if not len(bw.migrations):
+            bi.create_default_lcia_methods()
+        if not len(bi.migrations):
             self.update.emit(2, "Creating core data migrations for {}".format(project))
-            bw.create_core_migrations()
+            bi.create_core_migrations()
 
 
 class FilterManagerDialog(QtWidgets.QDialog):

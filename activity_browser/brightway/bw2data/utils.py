@@ -1,5 +1,5 @@
 from bw2data.utils import *
-from activity_browser.brightway.bw2data.backends.peewee.proxies import Activity
+from activity_browser.brightway.bw2data.backends.proxies import Activity
 
 
 def get_activity(key) -> Activity:

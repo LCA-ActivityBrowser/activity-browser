@@ -1,5 +1,5 @@
 from PySide2.QtCore import QThread
-import brightway2 as bw
+from activity_browser.brightway import bd
 
 
 class ABThread(QThread):
@@ -20,7 +20,7 @@ class ABThread(QThread):
         Closes all connections for this thread
         todo: move to an appropriate controller
         """
-        for _, SubstitutableDatabase in bw.config.sqlite3_databases:
+        for _, SubstitutableDatabase in bd.config.sqlite3_databases:
             if not SubstitutableDatabase.db.is_closed():
                 SubstitutableDatabase.db.close()
 

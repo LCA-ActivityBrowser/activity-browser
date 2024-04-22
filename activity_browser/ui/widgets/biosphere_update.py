@@ -1,17 +1,16 @@
-import brightway2 as bw
 import bw2io.data as data
-from bw2data.errors import ValidityError
 from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from activity_browser import log
+from activity_browser.brightway import bd
 from ..threading import ABThread
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
     def __init__(self, ei_versions, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Updating '{}' database".format(bw.config.biosphere))
+        self.setWindowTitle("Updating '{}' database".format(bd.config.biosphere))
         self.setLabelText("Adding new flows to biosphere database")
         self.setRange(0, 0)
         self.show()
@@ -52,6 +51,6 @@ class UpdateBiosphereThread(ABThread):
                 log.debug(f'Applying biosphere patch: {patch}')
                 update_bio = getattr(data, patch)
                 update_bio()
-        except ValidityError as e:
+        except bd.errors.ValidityError as e:
             log.error(f'Could not patch biosphere: {str(e)}')
             self.exit(1)

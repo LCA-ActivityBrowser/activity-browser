@@ -1,4 +1,8 @@
-from bw2data.backends.peewee.proxies import *
+try:
+    from bw2data.backends.peewee.proxies import *
+except ModuleNotFoundError:
+    # we're running bw25
+    from bw2data.backends.proxies import *
 
 from activity_browser.signals import qdatabase_list, qactivity_list, qexchange_list
 from activity_browser.brightway.patching import patch_superclass, patched

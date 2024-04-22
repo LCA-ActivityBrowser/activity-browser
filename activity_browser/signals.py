@@ -2,9 +2,12 @@
 from PySide2.QtCore import QObject, Signal, SignalInstance, Qt
 
 from bw2data import get_activity, Method
-from bw2data.parameters import ParameterBase, ProjectParameter, DatabaseParameter, ActivityParameter
-from bw2data.backends.peewee.proxies import Activity, Exchange
-
+from bw2data.parameters import ParameterBase
+try:
+    from bw2data.backends.peewee.proxies import Activity, Exchange
+except ModuleNotFoundError:
+    # we're running Brightway 25
+    from bw2data.backends import Activity, Exchange
 
 class ABSignals(QObject):
     """ Signals used for the Activity Browser should be defined here.

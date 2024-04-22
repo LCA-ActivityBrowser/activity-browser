@@ -2,7 +2,10 @@ import bw2data.project as project
 
 import os
 
-from bw2data.backends.peewee import SubstitutableDatabase
+try:
+    from bw2data.backends.peewee import SubstitutableDatabase
+except ModuleNotFoundError:
+    from bw2data.backends import SubstitutableDatabase
 
 from activity_browser.signals import qprojects
 from ..patching import patch_superclass, patched

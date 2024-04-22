@@ -94,7 +94,7 @@ class ABTab(QtWidgets.QTabWidget):
         if widget in self.tabs.values():
             del self.tabs[tab_name]
             widget.deleteLater()
-            self.removeTab(index)
+        self.removeTab(index)
         signals.hide_when_empty.emit()  # needs to be a signal as we want the super-tab to receive this...
 
     def close_tab_by_tab_name(self, tab_name):

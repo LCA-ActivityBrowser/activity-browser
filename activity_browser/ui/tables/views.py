@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
 import os
 from typing import Optional
 
-from bw2data.filesystem import safe_filename
+from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtCore import QSize, Qt, Slot, QPoint, Signal, QRect, QTimer
-from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
-    QHeaderView, QStyle, QStyleOptionButton, QLineEdit, QWidgetAction, QWidget, QHBoxLayout, QToolButton
-from PySide2.QtGui import QKeyEvent, QDoubleValidator
 
 from activity_browser import log, ab_settings
+from activity_browser.brightway import bd
+
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
 from .models.base import ABSortProxyModel
@@ -16,7 +14,7 @@ from ..icons import qicons
 from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 
 
-class ABDataFrameView(QTableView):
+class ABDataFrameView(QtWidgets.QTableView):
     """ Base class for showing pandas dataframe objects as tables.
     """
     ALL_FILTER = "All Files (*.*)"
@@ -26,8 +24,8 @@ class ABDataFrameView(QTableView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setVerticalScrollMode(QTableView.ScrollPerPixel)
-        self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
+        self.setVerticalScrollMode(QtWidgets.QTableView.ScrollPerPixel)
+        self.setHorizontalScrollMode(QtWidgets.QTableView.ScrollPerPixel)
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
@@ -80,9 +78,9 @@ class ABDataFrameView(QTableView):
 
         Uses the application directory for AB
         """
-        safe_name = safe_filename(default_file_name, add_hash=False)
+        safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
         caption = caption or "Choose location to save lca results"
-        filepath, _ = QFileDialog.getSaveFileName(
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self, caption=caption,
             dir=os.path.join(ab_settings.data_dir, safe_name),
             filter=file_filter or self.ALL_FILTER,
@@ -110,7 +108,7 @@ class ABDataFrameView(QTableView):
                 filepath += '.xlsx'
             self.model.to_excel(filepath)
 
-    @Slot(QKeyEvent, name="copyEvent")
+    @Slot(QtGui.QKeyEvent, name="copyEvent")
     def keyPressEvent(self, e):
         """ Allow user to copy selected data from the table
 
@@ -189,7 +187,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
             self.header_context_menu()
 
     def header_context_menu(self) -> None:
-        menu = QMenu(self)
+        menu = QtWidgets.QMenu(self)
         menu.setToolTipsVisible(True)
 
         col_type = self.model.different_column_types.get(
@@ -197,17 +195,17 @@ class ABFilterableDataFrameView(ABDataFrameView):
             'str')
 
         # quick-filter bar
-        self.input_line = QLineEdit()
+        self.input_line = QtWidgets.QLineEdit()
         self.input_line.setFocusPolicy(Qt.StrongFocus)
         if col_type == 'num':
-            self.input_line.setValidator(QDoubleValidator())
-        search = QToolButton()
+            self.input_line.setValidator(QtGui.QDoubleValidator())
+        search = QtWidgets.QToolButton()
         search.setIcon(qicons.search)
         search.clicked.connect(menu.close)
-        quick_filter_layout = QHBoxLayout()
+        quick_filter_layout = QtWidgets.QHBoxLayout()
         quick_filter_layout.addWidget(self.input_line)
         quick_filter_layout.addWidget(search)
-        quick_filter_widget = QWidget()
+        quick_filter_widget = QtWidgets.QWidget()
         quick_filter_widget.setLayout(quick_filter_layout)
         quick_filter_widget.setToolTip("Filter this column on the input,\n"
                                        "press 'enter' or the search button to filter")
@@ -218,18 +216,18 @@ class ABFilterableDataFrameView(ABDataFrameView):
             self.input_line.setPlaceholderText('Quick filter ...')
         self.input_line.textChanged.connect(self.debounce_quick_filter.start)
         self.input_line.returnPressed.connect(menu.close)
-        QAline = QWidgetAction(self)
+        QAline = QtWidgets.QWidgetAction(self)
         QAline.setDefaultWidget(quick_filter_widget)
         menu.addAction(QAline)
 
         # More filters submenu
-        mf_menu = QMenu(menu)
+        mf_menu = QtWidgets.QMenu(menu)
         mf_menu.setToolTipsVisible(True)
         mf_menu.setIcon(qicons.filter)
         mf_menu.setTitle('More filters')
         filter_actions = []
         for i, f in enumerate(self.FILTER_TYPES[col_type]):
-            fa = QAction(text=f)
+            fa = QtWidgets.QAction(text=f)
             fa.setToolTip(self.FILTER_TYPES[col_type + '_tt'][i])
             fa.triggered.connect(self.simple_filter_dialog)
             filter_actions.append(fa)
@@ -237,12 +235,12 @@ class ABFilterableDataFrameView(ABDataFrameView):
             mf_menu.addAction(fa)
         menu.addMenu(mf_menu)
         # edit filters main menu
-        filter_man = QAction(qicons.edit, 'Manage filters')
+        filter_man = QtWidgets.QAction(qicons.edit, 'Manage filters')
         filter_man.triggered.connect(self.filter_manager_dialog)
         filter_man.setToolTip("Open the filter management menu")
         menu.addAction(filter_man)
         # delete column filters option
-        col_del = QAction(qicons.delete, 'Remove column filters')
+        col_del = QtWidgets.QAction(qicons.delete, 'Remove column filters')
         col_del.triggered.connect(self.reset_column_filters)
         col_del.setToolTip('Remove all filters on this column')
         menu.addAction(col_del)
@@ -250,7 +248,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         if isinstance(self.filters, dict) and self.filters.get(self.selected_column, False):
             col_del.setEnabled(True)
         # delete all filters option
-        all_del = QAction(qicons.delete, 'Remove all filters')
+        all_del = QtWidgets.QAction(qicons.delete, 'Remove all filters')
         all_del.triggered.connect(self.reset_filters)
         all_del.setToolTip('Remove all filters in this table')
         menu.addAction(all_del)
@@ -261,7 +259,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         # Show existing filters for column
         if isinstance(self.filters, dict) and self.filters.get(self.selected_column, False):
             menu.addSeparator()
-            active_filters_label = QAction(qicons.filter, 'Active column filters:')
+            active_filters_label = QtWidgets.QAction(qicons.filter, 'Active column filters:')
             active_filters_label.setEnabled(False)
             menu.addAction(active_filters_label)
             active_filters = []
@@ -271,7 +269,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
                 else:
                     q = filter_data[1]
                 filter_str = ': '.join([filter_data[0], q])
-                f = QAction(text=filter_str)
+                f = QtWidgets.QAction(text=filter_str)
                 f.setEnabled(False)
                 active_filters.append(f)
             for f in active_filters:
@@ -391,18 +389,18 @@ class ABFilterableDataFrameView(ABDataFrameView):
 
     def apply_filters(self) -> None:
         if self.filters:
-            QApplication.setOverrideCursor(Qt.WaitCursor)
+            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             # only allow filters that are for columns that may be filtered on
             filters = {k: v for k, v in self.filters.items() if k in list(self.model.filterable_columns.values()) + ['mode']}
             self.proxy_model.set_filters(self.model.get_filter_mask(filters))
             self.header.has_active_filters = list(filters.keys())
-            QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
         else:
             self.reset_filters()
 
     def reset_column_filters(self) -> None:
         """Reset all filters for this column."""
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
         f = self.filters
         if f.get(self.selected_column, False):
             f.pop(self.selected_column)
@@ -415,19 +413,19 @@ class ABFilterableDataFrameView(ABDataFrameView):
         else:
             self.header.has_active_filters = list(self.filters.keys())
             self.apply_filters()
-        QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def reset_filters(self) -> None:
         """Reset all filters for this entire table."""
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
         self.write_filters(None)
         self.header.has_active_filters = []
         self.prev_quick_filter = {}
         self.proxy_model.clear_filters()
-        QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
 
-class CustomHeader(QHeaderView):
+class CustomHeader(QtWidgets.QHeaderView):
     """Header which has a filter button on each cell that can trigger a signal.
 
     Largely based on https://stackoverflow.com/a/30938728
@@ -456,9 +454,9 @@ class CustomHeader(QHeaderView):
         self._y_offset = int(rect.height() - self._width)
 
         if logical_index in self.column_indices:
-            option = QStyleOptionButton()
+            option = QtWidgets.QStyleOptionButton()
             option.rect = QRect(rect.x() + self._x_offset, rect.y() + self._y_offset, self._width, self._height)
-            option.state = QStyle.State_Enabled | QStyle.State_Active
+            option.state = QtWidgets.QStyle.State_Enabled | QtWidgets.QStyle.State_Active
 
             # put the filter icon onto the label
             if logical_index in self.has_active_filters:
@@ -468,7 +466,7 @@ class CustomHeader(QHeaderView):
             option.iconSize = QSize(16, 16)
 
             # set the settings to a PushButton
-            self.style().drawControl(QStyle.CE_PushButton, option, painter)
+            self.style().drawControl(QtWidgets.QStyle.CE_PushButton, option, painter)
 
     def mousePressEvent(self, event):
         index = self.logicalIndexAt(event.pos())
@@ -539,7 +537,7 @@ class ABMultiColumnSortProxyModel(ABSortProxyModel):
         return matched
 
 
-class ABDictTreeView(QTreeView):
+class ABDictTreeView(QtWidgets.QTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setUniformRowHeights(True)

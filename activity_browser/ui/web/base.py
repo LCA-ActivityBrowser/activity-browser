@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import os
 from abc import abstractmethod
@@ -7,9 +6,9 @@ from typing import Type
 
 from PySide2 import QtWebEngineWidgets, QtWebChannel, QtWidgets
 from PySide2.QtCore import Signal, Slot, QObject, Qt, QUrl
-from bw2data.filesystem import safe_filename
 
 from activity_browser import log, ab_settings, signals
+from activity_browser.brightway import bd
 from . import webutils
 from ... import utils
 from ...ui.icons import qicons
@@ -103,7 +102,7 @@ ALL_FILTER = "All Files (*.*)"
 
 def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
     default = default_file_name or "Graph SVG Export"
-    safe_name = safe_filename(default, add_hash=False)
+    safe_name = bd.utils.safe_filename(default, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         caption='Choose location to save svg',
         dir=os.path.join(ab_settings.data_dir, safe_name),

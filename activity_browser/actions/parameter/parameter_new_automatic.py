@@ -1,11 +1,11 @@
 from typing import Union, Callable, List, Tuple
 
-import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import application
 
 from activity_browser.bwutils import commontasks
+from activity_browser.brightway import bd
 from activity_browser.brightway.bw2data.parameters import ActivityParameter
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
@@ -26,7 +26,7 @@ class ParameterNewAutomatic(ABAction):
 
     def onTrigger(self, toggled):
         for key in self.activity_keys:
-            act = bw.get_activity(key)
+            act = bd.get_activity(key)
             if act.get("type", "process") != "process":
                 issue = f"Activity must be 'process' type, '{act.get('name')}' is type '{act.get('type')}'."
                 QtWidgets.QMessageBox.warning(
@@ -50,5 +50,5 @@ class ParameterNewAutomatic(ABAction):
                 "code": key[1],
             }
             # Save the new parameter
-            bw.parameters.new_activity_parameters([row], group)
+            bd.parameters.new_activity_parameters([row], group)
 

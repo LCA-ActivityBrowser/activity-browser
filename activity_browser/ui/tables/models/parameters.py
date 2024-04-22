@@ -3,16 +3,14 @@ import itertools
 from typing import Iterable
 
 import pandas as pd
-import brightway2 as bw
-from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
-                                ProjectParameter)
 from asteval import Interpreter
 from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
 from PySide2 import QtWidgets
 
-from activity_browser import log, signals, application, actions
-from activity_browser.signals import qprojects, qparameters
+from activity_browser import log, application, actions
+from activity_browser.brightway import bd
+from activity_browser.brightway.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, Group
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
 
@@ -29,8 +27,8 @@ class BaseParameterModel(EditablePandasModel):
         self.comment_col = 0
         self.dataChanged.connect(self.edit_single_parameter)
 
-        qprojects.current_changed.connect(self.sync)
-        qparameters.parameters_changed.connect(self.sync)
+        bd.projects.current_changed.connect(self.sync)
+        bd.parameters.parameters_changed.connect(self.sync)
 
     def get_parameter(self, proxy: QModelIndex) -> object:
         idx = self.proxy_to_source(proxy)
@@ -238,11 +236,11 @@ class ActivityParameterModel(BaseParameterModel):
         # Combine the 'database' and 'code' fields of the parameter into a 'key'
         row["key"] = (parameter.database, parameter.code)
         try:
-            act = bw.get_activity(row["key"])
+            act = bd.get_activity(row["key"])
         except:
             # Can occur if an activity parameter exists for a removed activity.
             log.info("Activity {} no longer exists, removing parameter.".format(row["key"]))
-            actions.ParameterClearBroken(parameter, self).trigger()
+            actions.ParameterClearBroken(parameter, None).trigger()
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
@@ -342,11 +340,11 @@ class ParameterItem(TreeItem):
         """ Take the given activity parameter, retrieve the matching activity
         and construct tree-items for each exchange with a `formula` field.
         """
-        act = bw.get_activity((act_param.database, act_param.code))
+        act = bd.get_activity((act_param.database, act_param.code))
 
         for exc in [exc for exc in act.exchanges() if "formula" in exc]:
             try:
-                act_input = bw.get_activity(exc.input)
+                act_input = bd.get_activity(exc.input)
                 item = cls([
                     act_input.get("name"),
                     parent.data(1),
@@ -394,7 +392,7 @@ class ParameterTreeModel(BaseTreeModel):
             ParameterItem.build_item(param, self.root)
         for param in self._data.get("activity", []):
             try:
-                _ = bw.get_activity((param.database, param.code))
+                _ = bd.get_activity((param.database, param.code))
             except:
                 continue
             ParameterItem.build_item(param, self.root)

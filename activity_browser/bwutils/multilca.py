@@ -1,20 +1,21 @@
-# -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Union
 from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-import brightway2 as bw
-from bw2analyzer import ContributionAnalysis
+import bw2calc as bc
+import bw2analyzer as ba
 from PySide2.QtWidgets import QMessageBox, QApplication
 
-from activity_browser.brightway.bw2data import calculation_setups
 from activity_browser import log
+from activity_browser.brightway import bd
+from activity_browser.brightway.bw2data.backends import ActivityDataset
 from .commontasks import wrap_text
 from .metadata import AB_metadata
 from .errors import ReferenceFlowValueError
 
-ca = ContributionAnalysis()
+ca = ba.ContributionAnalysis()
+
 
 class MLCA(object):
     """Wrapper class for performing LCA calculations with many reference flows and impact categories.
@@ -105,9 +106,10 @@ class MLCA(object):
         If the given `cs_name` cannot be found in brightway calculation_setups
 
     """
+
     def __init__(self, cs_name: str):
         try:
-            cs = calculation_setups[cs_name]
+            cs = bd.calculation_setups[cs_name]
         except KeyError:
             raise ValueError(
                 f"{cs_name} is not a known `calculation_setup`."
@@ -175,13 +177,13 @@ class MLCA(object):
         for fu in self.func_units:
             key = next(iter(fu))
             amt = fu[key]
-            act = bw.get_activity(key)
+            act = bd.get_activity(key)
             self.func_unit_translation_dict[f'{act[name]} | {act[ref_prod]} | {act[db]} | {amt}'] = fu
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_unit_translation_dict.keys())
 
     def _construct_lca(self):
-        return bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+        return bc.LCA(demand=self.func_units_dict, method=self.methods[0])
 
     def _perform_calculations(self):
         """ Isolates the code which performs calculations to allow subclasses
@@ -189,7 +191,12 @@ class MLCA(object):
         """
         for row, func_unit in enumerate(self.func_units):
             # Do the LCA for the current reference flow
-            self.lca.redo_lci(func_unit)
+            try:
+                self.lca.redo_lci(func_unit)
+            except:
+                # bw25 compatibility
+                key = list(func_unit.keys())[0]
+                self.lca.redo_lci({bd.get_activity(key).id: func_unit[key]})
 
             # Now update the:
             # - Scaling factors
@@ -232,19 +239,20 @@ class MLCA(object):
     def all_databases(self) -> set:
         """ Get all databases linked to the reference flows.
         """
+
         def get_dependents(dbs: set, dependents: list) -> set:
-            for dep in (bw.databases[db].get('depends', []) for db in dependents):
+            for dep in (bd.databases[db].get('depends', []) for db in dependents):
                 if not dbs.issuperset(dep):
                     dbs = get_dependents(dbs.union(dep), dep)
             return dbs
 
-        databases = set(f[0] for f in self.fu_activity_keys)
-        databases = get_dependents(databases, list(databases))
+        dbs = set(f[0] for f in self.fu_activity_keys)
+        dbs = get_dependents(dbs, list(dbs))
         # In rare cases, the default biosphere is not found as a dependency, see:
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/298
         # Always include it.
-        databases.add(bw.config.biosphere)
-        return databases
+        dbs.add(bd.config.biosphere)
+        return dbs
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         data = self.lca_scores[:, index]
@@ -385,7 +393,7 @@ class Contributions(object):
             cont_per.update({
                 ('Total', ''): contributions[col, :].sum(),
                 ('Rest', ''): contributions[col, :].sum() - top_contribution[:, 0].sum(),
-                })
+            })
             for value, index in top_contribution:
                 cont_per.update({rev_dict[index]: value})
             topcontribution_dict.update({fu_or_method: cont_per})
@@ -455,7 +463,7 @@ class Contributions(object):
         df.columns = cls.get_labels(df.columns, fields=y_fields)
         # Coerce index to MultiIndex if it currently isn't
         if not isinstance(df.index, pd.MultiIndex):
-            df.index = pd.MultiIndex.from_tuples(df.index)
+            df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index))
 
         # get metadata for rows
         keys = [k for k in df.index if k in AB_metadata.index]
@@ -502,6 +510,7 @@ class Contributions(object):
 
         # replace all 0 values with NaN and drop all rows with only NaNs
         # EXCEPT for the special keys
+        df.index = ids_to_keys(df.index)
         index = df.loc[df.index.difference(special_keys)].replace(0, np.nan).dropna(how='all').index.union(special_keys)
         df = df.loc[index]
 
@@ -528,7 +537,7 @@ class Contributions(object):
         if "unit" not in df.columns:
             return df
         keys = df.index[~df["index"].isin({"Total", "Rest"})]
-        unit = bw.Method(method).metadata.get("unit") if method else "unit"
+        unit = bd.Method(method).metadata.get("unit") if method else "unit"
         df.loc[keys, "unit"] = unit
         return df
 
@@ -536,9 +545,9 @@ class Contributions(object):
     def _build_inventory(inventory: dict, indices: dict, columns: list,
                          fields: list) -> pd.DataFrame:
         df = pd.DataFrame(inventory)
-        df.index = pd.MultiIndex.from_tuples(indices.values())
+        df.index = pd.MultiIndex.from_tuples(ids_to_keys(indices.values()))
         df.columns = Contributions.get_labels(columns, max_length=30)
-        metadata = AB_metadata.get_metadata(list(indices.values()), fields)
+        metadata = AB_metadata.get_metadata(list(ids_to_keys(indices.values())), fields)
         joined = metadata.join(df)
         joined.reset_index(inplace=True, drop=True)
         return joined
@@ -760,3 +769,6 @@ class Contributions(object):
         self.adjust_table_unit(labelled_df, method)
         return labelled_df
 
+
+def ids_to_keys(index_list):
+    return [bd.get_activity(i).key if isinstance(i, int) else i for i in index_list]

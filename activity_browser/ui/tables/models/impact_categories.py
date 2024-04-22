@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numbers
 from copy import deepcopy
 from typing import Iterator, Optional
@@ -8,7 +7,8 @@ import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import signals
-from activity_browser.brightway.bw2data import get_activity, methods
+from activity_browser.brightway import bd
+
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
 
@@ -35,7 +35,7 @@ class MethodsListModel(DragPandasModel):
 
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
-        sorted_names = sorted([(", ".join(method), method) for method in methods])
+        sorted_names = sorted([(", ".join(method), method) for method in bd.methods])
         if query:
             sorted_names = (
                 m for m in sorted_names if query.lower() in m[0].lower()
@@ -49,7 +49,7 @@ class MethodsListModel(DragPandasModel):
 
     @staticmethod
     def build_row(method_obj) -> dict:
-        method = methods[method_obj[1]]
+        method = bd.methods[method_obj[1]]
         return {
             "Name": method_obj[0],
             "Unit": method.get("unit", "Unknown"),
@@ -141,7 +141,7 @@ class MethodsTreeModel(BaseTreeModel):
 
         Trigger this at init and when a method is added/deleted.
         """
-        sorted_names = sorted([(", ".join(method), method) for method in methods])
+        sorted_names = sorted([(", ".join(method), method) for method in bd.methods])
         self._dataframe = pd.DataFrame([
             MethodsListModel.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
@@ -318,7 +318,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     @classmethod
     def build_row(cls, method_cf: tuple) -> dict:
         key, amount = method_cf[:2]
-        flow = get_activity(key)
+        flow = bd.get_activity(tuple(key))
         row = {
             cls.HEADERS[i]: flow.get(c) for i, c in enumerate(cls.COLUMNS)
         }

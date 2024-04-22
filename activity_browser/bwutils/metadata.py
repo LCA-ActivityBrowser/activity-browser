@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
 from bw2data.errors import UnknownObject
-from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 import numpy as np
 
 import activity_browser.bwutils.commontasks as bc
 from activity_browser import log
-from activity_browser.signals import qprojects
+from activity_browser.brightway import bd
+from activity_browser.brightway.bw2data.backends import ActivityDataset
 
 
 # todo: extend store over several projects
@@ -40,7 +39,7 @@ class MetaDataStore(object):
         self.dataframe = pd.DataFrame()
         self.databases = set()
 
-        qprojects.current_changed.connect(self.reset_metadata)
+        bd.projects.current_changed.connect(self.reset_metadata)
 
     def add_metadata(self, db_names_list: list) -> None:
         """"Include data from the brightway databases.
@@ -67,14 +66,14 @@ class MetaDataStore(object):
         dfs.append(self.dataframe)
         log.info('Current shape and databases in the MetaDataStore:', self.dataframe.shape, self.databases)
         for db_name in new:
-            if db_name not in bw.databases:
+            if db_name not in bd.databases:
                 raise ValueError('This database does not exist:', db_name)
 
             log.info('Adding:', db_name)
             self.databases.add(db_name)
 
             # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
-            df = pd.DataFrame(bw.Database(db_name))
+            df = pd.DataFrame(bd.Database(db_name))
             df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
             df.index = pd.MultiIndex.from_tuples(df["key"])
 
@@ -114,7 +113,7 @@ class MetaDataStore(object):
             The specific activity to update in the MetaDataStore
         """
         try:
-            act = bw.get_activity(key)  # if this does not work, it has been deleted (see except:).
+            act = bd.get_activity(key)  # if this does not work, it has been deleted (see except:).
         except (UnknownObject, ActivityDataset.DoesNotExist):
             # Situation 1: activity has been deleted (metadata needs to be deleted)
             log.warning('Deleting activity from metadata:', key)

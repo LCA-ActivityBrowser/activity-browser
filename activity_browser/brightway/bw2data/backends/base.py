@@ -1,6 +1,10 @@
-from bw2data.backends.peewee.database import *
+try:
+    from bw2data.backends.peewee.database import *
+except ModuleNotFoundError:
+    # we're running bw25
+    from bw2data.backends.base import *
 
-from bw2data.backends.peewee.proxies import Activity, ActivityDataset, Exchange, ExchangeDataset
+from .proxies import Activity, ActivityDataset, Exchange, ExchangeDataset
 
 from activity_browser.signals import qdatabase_list, qactivity_list, qexchange_list
 from activity_browser.brightway.patching import patch_superclass, patched
@@ -17,11 +21,7 @@ class SQLiteBackend(SQLiteBackend):
     def deleted(self):
         return qdatabase_list.get_or_create(self).deleted
 
-    @property
-    def tag(self) -> str:
-        return self.name
-
-    def delete(self, keep_params=False, warn=True) -> None:
+    def delete(self, *args, **kwargs) -> None:
         # get all affected activities and exchanges that have virtual counterparts (i.e. have signals attached to them)
         acts = [(Activity(ActivityDataset.get_by_id(qact.id)), qact)
                 for qact in qactivity_list
@@ -31,7 +31,7 @@ class SQLiteBackend(SQLiteBackend):
                 for qexc in qexchange_list
                 if qexc["input_database"] == self.name or qexc["output_database"] == self.name]
 
-        patched().delete(keep_params, warn)
+        patched().delete(*args, **kwargs)
 
         # emit the deleted db, affected activities, and affected exchanges
         [qdb.emitLater("changed", self) for qdb in qdatabase_list if qdb["name"] == self.name]

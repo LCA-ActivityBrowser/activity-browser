@@ -7,16 +7,15 @@ from pathlib import Path
 
 import eidl
 import requests
-import brightway2 as bw
-from bw2io import SingleOutputEcospold2Importer
+from bw2io import SingleOutputEcospold2Importer, BW2Package
 from bw2io.extractors import Ecospold2DataExtractor
-from bw2data.backends import SQLiteBackend
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser import signals, log
-from activity_browser.brightway.bw2data import databases
+from activity_browser import log
+from activity_browser.brightway import bd
 from activity_browser.bwutils import errors
+
 from ..threading import ABThread
 from ..style import style_group_box
 from ..widgets import DatabaseLinkingDialog
@@ -403,9 +402,9 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in databases:
+        if db_name in bd.databases:
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
-                db_name, bw.projects.current)
+                db_name, bd.projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
             return False
         else:
@@ -438,7 +437,7 @@ class ConfirmationPage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         self.current_project_label.setText(
-            'Current Project: <b>{}</b>'.format(bw.projects.current))
+            'Current Project: <b>{}</b>'.format(bd.projects.current))
         self.db_name_label.setText(
             'Name of the new database: <b>{}</b>'.format(self.field('db_name')))
         if self.wizard.import_type == 'directory':
@@ -643,7 +642,7 @@ class ImportPage(QtWidgets.QWizardPage):
         """
         self.main_worker_thread.exit(1)
 
-        options = [(db, list(databases)) for db in missing]
+        options = [(db, list(bd.databases)) for db in missing]
         linker = DatabaseLinkingDialog.relink_bw2package(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -667,7 +666,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.exit(1)
 
         # Iterate through the missing databases, asking user input.
-        options = [(db, list(databases)) for db in missing]
+        options = [(db, list(bd.databases)) for db in missing]
         linker = DatabaseLinkingDialog.relink_excel(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -767,9 +766,9 @@ class MainWorkerThread(ABThread):
                 import_signals.extraction_progress.emit(0, 0)
                 import_signals.strategy_progress.emit(0, 0)
                 import_signals.db_progress.emit(0, 0)
-                bw.BW2Package.import_file(str(temp_dir.joinpath("forwast.bw2package")))
+                BW2Package.import_file(str(temp_dir.joinpath("forwast.bw2package")))
             if self.db_name.lower() != 'forwast':
-                bw.Database('forwast').rename(self.db_name)
+                bd.Database('forwast').rename(self.db_name)
             if not import_signals.cancel_sentinel:
                 import_signals.extraction_progress.emit(1, 1)
                 import_signals.strategy_progress.emit(1, 1)
@@ -902,8 +901,8 @@ class MainWorkerThread(ABThread):
             import_signals.import_failure.emit(("Relinking failed", e.args[0]))
 
     def delete_canceled_db(self):
-        if self.db_name in databases:
-            del databases[self.db_name]
+        if self.db_name in bd.databases:
+            del bd.databases[self.db_name]
             log.info(f'Database {self.db_name} deleted!')
 
 
@@ -1195,7 +1194,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
         return data
 
 
-class ActivityBrowserBackend(SQLiteBackend):
+class ActivityBrowserBackend(bd.backends.SQLiteBackend):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1213,7 +1212,7 @@ class ActivityBrowserBackend(SQLiteBackend):
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
-bw.config.backends['activitybrowser'] = ActivityBrowserBackend
+bd.config.backends['activitybrowser'] = ActivityBrowserBackend
 
 
 class ImportSignals(QtCore.QObject):

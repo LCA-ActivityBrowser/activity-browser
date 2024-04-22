@@ -4,9 +4,9 @@ from zipfile import ZipFile
 
 from bw2io.importers import Ecospold2BiosphereImporter
 from bw2io.importers.ecospold2_biosphere import EMISSIONS_CATEGORIES
-from bw2data.utils import recursive_str_to_unicode
 
 from activity_browser import log
+from activity_browser.brightway import bd
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
 
@@ -29,7 +29,7 @@ def create_default_biosphere3(version) -> None:
 class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
     """Reimplementation of bw2io.importers Ecospold2BiosphereImporter to import legacy biosphere from AB data"""
 
-    def extract(self, version):
+    def extract(self, version, filepath=None):
         def extract_flow_data(o):
             ds = {
                 "categories": (
@@ -64,7 +64,7 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
                 root = objectify.parse(file).getroot()
 
         log.debug(f'Installing biosphere {use_version} for chosen version {version}')
-        flow_data = recursive_str_to_unicode(
+        flow_data = bd.utils.recursive_str_to_unicode(
             [extract_flow_data(ds) for ds in root.iterchildren()]
         )
 
