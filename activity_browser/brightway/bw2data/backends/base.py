@@ -15,14 +15,22 @@ class SQLiteBackend(SQLiteBackend):
 
     @property
     def changed(self):
+        """
+        Shorthand for connecting to the database QUpdater. Developers can instantiate a Database from bw2data and
+        connect directly, instead of importing the related QUpdater via activity_browser.signals
+        """
         return qdatabase_list.get_or_create(self).changed
 
     @property
     def deleted(self):
+        """
+        Shorthand for connecting to the database QUpdater. Developers can instantiate a Database from bw2data and
+        connect directly, instead of importing the related QUpdater via activity_browser.signals
+        """
         return qdatabase_list.get_or_create(self).deleted
 
     def delete(self, *args, **kwargs) -> None:
-        # get all affected activities and exchanges that have virtual counterparts (i.e. have signals attached to them)
+        # get all affected activities and exchanges that have QUpdater counterparts (i.e. have signals attached to them)
         acts = [(Activity(ActivityDataset.get_by_id(qact.id)), qact)
                 for qact in qactivity_list
                 if qact["database"] == self.name]
@@ -31,7 +39,8 @@ class SQLiteBackend(SQLiteBackend):
                 for qexc in qexchange_list
                 if qexc["input_database"] == self.name or qexc["output_database"] == self.name]
 
-        patched().delete(*args, **kwargs)
+        # execute the patched function for standard functionality
+        patched[SQLiteBackend]["delete"](self, *args, **kwargs)
 
         # emit the deleted db, affected activities, and affected exchanges
         [qdb.emitLater("changed", self) for qdb in qdatabase_list if qdb["name"] == self.name]
@@ -44,4 +53,4 @@ class SQLiteBackend(SQLiteBackend):
         for exc, qexc in excs: qexc.emitLater("deleted", exc)
 
     def get(self, code) -> Activity:
-        return patched().get(code)
+        return patched[SQLiteBackend]["get"](self, code)

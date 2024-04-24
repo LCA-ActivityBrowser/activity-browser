@@ -168,9 +168,8 @@ class LCASetupTab(QtWidgets.QWidget):
         # Slots
         signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
         signals.project_selected.connect(self.set_default_calculation_setup)
-        signals.calculation_setup_selected.connect(lambda: self.show_details())
-        signals.calculation_setup_selected.connect(self.enable_calculations)
         signals.calculation_setup_changed.connect(self.enable_calculations)
+        signals.calculation_setup_selected.connect(self.select_cs)
 
     def save_cs_changes(self):
         name = self.list_widget.name
@@ -206,13 +205,16 @@ class LCASetupTab(QtWidgets.QWidget):
     @Slot(name="toggleDefaultCalculation")
     def set_default_calculation_setup(self):
         self.calculation_type.setCurrentIndex(0)
-        if not len(calculation_setups):
+        cs = None if not calculation_setups else sorted(calculation_setups)[0]
+        signals.calculation_setup_selected.emit(cs)
+
+    def select_cs(self, name: str):
+        if not name:
             self.show_details(False)
             self.calculate_button.setEnabled(False)
         else:
-            signals.calculation_setup_selected.emit(
-                sorted(calculation_setups)[0]
-            )
+            self.show_details(True)
+            self.enable_calculations()
 
     def show_details(self, show: bool = True):
         # show/hide items from name_row

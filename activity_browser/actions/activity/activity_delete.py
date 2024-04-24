@@ -3,7 +3,8 @@ from typing import Union, Callable, List
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
-from activity_browser.brightway.bw2data import get_activity
+from activity_browser.brightway import bd
+from activity_browser.brightway.bw2data.parameters import ActivityParameter, Group, GroupDependency, parameters
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction
 
@@ -23,7 +24,7 @@ class ActivityDelete(ABAction):
 
     def onTrigger(self, toggled):
         # retrieve activity objects from the controller using the provided keys
-        activities = [get_activity(key) for key in self.activity_keys]
+        activities = [bd.get_activity(key) for key in self.activity_keys]
 
         # check for downstream processes
         if any(len(act.upstream()) > 0 for act in activities):
@@ -44,4 +45,20 @@ class ActivityDelete(ABAction):
 
         # use the activity controller to delete multiple activities
         for act in activities:
+            db, code = act.key
+
+            try:
+                group_name = ActivityParameter.get((ActivityParameter.database == db) & (ActivityParameter.code == code))
+
+                # remove activity parameters from its group
+                parameters.remove_from_group(group_name, act)
+
+                # Also clear the group if there are no more parameters in it
+                if not ActivityParameter.select().where(ActivityParameter.group == group_name).exists():
+                    Group.delete().where(Group.name == group_name).execute()
+                    GroupDependency.delete().where(GroupDependency.group == group_name).execute()
+            except ActivityParameter.DoesNotExist:
+                # no parameters found for this activity
+                pass
+
             act.delete()

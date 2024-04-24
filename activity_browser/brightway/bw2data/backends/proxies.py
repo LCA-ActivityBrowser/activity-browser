@@ -13,21 +13,26 @@ from bw2data import Database
 class Exchanges(Exchanges):
 
     def delete(self):
+        # gather all affected exchanges, activities and databases
         excs = list(self)
         acts = set()
         acts.update([exc.input for exc in excs])
         acts.update([exc.output for exc in excs])
         dbs = set([act["database"] for act in acts])
 
-        patched().delete()
+        # execute the patched function for standard functionality
+        patched[Exchanges]["delete"](self)
 
+        # emitting change through any existing exchange QUpdaters
         for exc in excs:
             [qexc.emitLater("changed", exc) for qexc in qexchange_list if qexc["id"] == exc._document.id]
             [qexc.emitLater("deleted", exc) for qexc in qexchange_list if qexc["id"] == exc._document.id]
 
+        # emitting change through any existing activity QUpdaters
         for act in acts:
             [qact.emitLater("changed", act) for qact in qactivity_list if qact["id"] == act._document.id]
 
+        # emitting change through any existing database QUpdaters
         for db_name in dbs:
             [qdb.emitLater("changed", Database(db_name)) for qdb in qdatabase_list if qdb["name"] == db_name]
 
@@ -37,17 +42,32 @@ class Activity(Activity):
 
     @property
     def changed(self):
+        """
+        Shorthand for connecting to the activity QUpdater. Developers can instantiate an Activity from bw2data and
+        connect directly, instead of importing the related QUpdater via activity_browser.signals
+        """
         return qactivity_list.get_or_create(self).changed
 
     @property
     def deleted(self):
+        """
+        Shorthand for connecting to the activity QUpdater. Developers can instantiate an Activity from bw2data and
+        connect directly, instead of importing the related QUpdater via activity_browser.signals
+        """
         return qactivity_list.get_or_create(self).deleted
 
     def save(self) -> None:
         from activity_browser.bwutils.metadata import AB_metadata
-        patched().save()
+
+        # execute the patched function for standard functionality
+        patched[Activity]["save"](self)
+
+        # this is called already within the patched function, but needs to be recalled now the data is actually updated
         databases.set_modified(self["database"])
+
+        # should eventually be replaced
         AB_metadata.update_metadata(self.key)
+
         # exchanges cannot be changed through the activity proxy save function
 
         # emitting change through any existing qactivities (should be 1 or None)
@@ -59,9 +79,15 @@ class Activity(Activity):
 
     def delete(self) -> None:
         from activity_browser.bwutils.metadata import AB_metadata
-        patched().delete()
+
+        # execute the patched function for standard functionality
+        patched[Activity]["delete"](self)
+
         databases.set_modified(self["database"])
+
+        # this is leading to a lot of calls and should eventually be dealt with
         AB_metadata.update_metadata(self.key)
+
         # exchange deletions will emit for themselves
 
         # emitting change through any existing qactivities (should be 1 or None)
@@ -77,19 +103,32 @@ class Activity(Activity):
 class Exchange(Exchange):
 
     def __init__(self, document=None, **kwargs):
-        patched().__init__(document, **kwargs)
+        # execute the patched function for standard functionality
+        patched[Exchange]["__init__"](self, document, **kwargs)
+
+        # we need to keep track of changed input and output activities, as they will have to be signalled too when the
+        # exchange is saved.
         self.moved_IO = []
 
     @property
     def changed(self):
+        """
+        Shorthand for connecting to the activity QUpdater. Developers can instantiate an Activity from bw2data and
+        connect directly, instead of importing the related QUpdater via activity_browser.signals
+        """
         return qexchange_list.get_or_create(self).changed
 
     @property
     def deleted(self):
+        """
+        Shorthand for connecting to the activity QUpdater. Developers can instantiate an Activity from bw2data and
+        connect directly, instead of importing the related QUpdater via activity_browser.signals
+        """
         return qexchange_list.get_or_create(self).deleted
 
     def save(self) -> None:
-        patched().save()
+        # execute the patched function for standard functionality
+        patched[Exchange]["save"](self)
 
         # emitting change through any existing qexchanges (should be 1 or None)
         [qexc.emitLater("changed", self) for qexc in qexchange_list if qexc["id"] == self._document.id]
@@ -115,16 +154,18 @@ class Exchange(Exchange):
         self.moved_IO.clear()
 
     def delete(self) -> None:
-        patched().delete()
+        # execute the patched function for standard functionality
+        patched[Exchange]["delete"](self)
 
         # emitting change and deletion through any existing qexchanges (should be 1 or None)
         [qexc.emitLater("changed", self) for qexc in qexchange_list if qexc["id"] == self._document.id]
         [qexc.emitLater("deleted", self) for qexc in qexchange_list if qexc["id"] == self._document.id]
 
-        # emitting change and deletion through any existing qactivities (should be 1 or None)
+        # emitting change for any existing qactivities (should be 1 or None)
         [qact.emitLater("changed", self.input) for qact in qactivity_list if qact["id"] == self.input._document.id]
         [qact.emitLater("changed", self.output) for qact in qactivity_list if qact["id"] == self.output._document.id]
 
+        # emitting change for related databases
         in_db = Database(self.input["database"])
         [qdb.emitLater("changed", in_db) for qdb in qdatabase_list if qdb["name"] == in_db.name]
 

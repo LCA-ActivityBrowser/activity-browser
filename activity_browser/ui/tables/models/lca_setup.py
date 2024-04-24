@@ -93,14 +93,16 @@ class CSActivityModel(CSGenericModel):
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.key_col]
 
-    def load(self, cs_name: str):
-        assert cs_name in bd.calculation_setups, "Given calculation setup does not exist."
+    def load(self, cs_name: str = None):
 
         for act in self._activities.values():
             act.changed.disconnect(self.sync)
         self._activities.clear()
 
         self.current_cs = cs_name
+
+        if not cs_name: return
+
         self.sync()
 
     def sync(self):
@@ -169,18 +171,17 @@ class CSMethodsModel(CSGenericModel):
         super().__init__(parent=parent)
         self.current_cs = None
         self._methods = {}
+
         signals.calculation_setup_selected.connect(self.load)
 
     @property
     def methods(self) -> list:
         return [] if self._dataframe is None else self._dataframe.loc[:, "method"].to_list()
 
-    def load(self, cs_name: str) -> None:
+    def load(self, cs_name: str = None) -> None:
         """
         Load a calculation setup defined by cs_name into the methods table.
         """
-        assert cs_name in bd.calculation_setups, "Given calculation setup does not exist."
-
         # disconnect from all the previous methods so any virtual methods delete if appropriate
         for method in self._methods.values():
             method.changed.disconnect(self.sync)
@@ -188,6 +189,9 @@ class CSMethodsModel(CSGenericModel):
 
         # set the provided cs as current and synchronize our data
         self.current_cs = cs_name
+
+        if not cs_name: return
+
         self.sync()
 
     def sync(self) -> None:

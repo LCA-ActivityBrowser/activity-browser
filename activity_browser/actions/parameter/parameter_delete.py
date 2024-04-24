@@ -3,7 +3,7 @@ from typing import Union, Callable, Any
 from PySide2 import QtCore
 
 from activity_browser.brightway.bw2data import get_activity
-from activity_browser.brightway.bw2data.parameters import ActivityParameter, Group, parameters
+from activity_browser.brightway.bw2data.parameters import ActivityParameter, Group, GroupDependency, parameters
 from activity_browser.actions.base import ABAction
 from activity_browser.ui.icons import qicons
 
@@ -24,7 +24,7 @@ class ParameterDelete(ABAction):
             db = self.parameter.database
             code = self.parameter.code
             amount = (ActivityParameter.select()
-                      .where(ActivityParameter.database == db & ActivityParameter.code == code)
+                      .where((ActivityParameter.database == db) & (ActivityParameter.code == code))
                       .count())
 
             if amount > 1:
@@ -34,10 +34,10 @@ class ParameterDelete(ABAction):
                 act = get_activity((db, code))
                 parameters.remove_from_group(group, act)
                 # Also clear the group if there are no more parameters in it
-                exists = (ActivityParameter.select()
-                          .where(ActivityParameter.group == group).exists())
-                if not exists:
+
+                if not ActivityParameter.select().where(ActivityParameter.group == group).exists():
                     Group.delete().where(Group.name == group).execute()
+                    GroupDependency.delete().where(GroupDependency.group == group).execute()
         else:
             self.parameter.delete_instance()
         # After deleting things, recalculate and signal changes

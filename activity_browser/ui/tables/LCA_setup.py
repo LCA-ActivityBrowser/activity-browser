@@ -19,6 +19,7 @@ class CSList(QtWidgets.QComboBox):
         signals.calculation_setup_selected.connect(self.sync)
 
     def sync(self, name):
+        if not name: return
         self.blockSignals(True)
         self.clear()
         keys = sorted(calculation_setups)
