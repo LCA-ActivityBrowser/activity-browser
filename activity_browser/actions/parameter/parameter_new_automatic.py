@@ -38,12 +38,11 @@ class ParameterNewAutomatic(ABAction):
                 )
                 return
 
-            prep_name = commontasks.clean_activity_name(act.get("name"))
-            group = commontasks.build_activity_group_name(key, prep_name)
+            group = act._document.id
             count = ActivityParameter.select().where(ActivityParameter.group == group).count()
 
             row = {
-                "name": "{}_{}".format(prep_name, count + 1),
+                "name": "dummy_parameter",
                 "amount": act.get("amount", 1.0),
                 "formula": act.get("formula", ""),
                 "database": key[0],

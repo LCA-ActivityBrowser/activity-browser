@@ -37,11 +37,12 @@ class ExchangeModify(ABAction):
 
         If no `ActivityParameter` exists for the key, generate one immediately
         """
-        group = commontasks.build_activity_group_name(key)
+        act = get_activity(key)
+        group = act._document.id
         if not ActivityParameter.select().where(ActivityParameter.group == group).count():
             ParameterNewAutomatic([key], None).trigger()
 
-        act = get_activity(key)
+
         with parameters.db.atomic():
             parameters.remove_exchanges_from_group(group, act)
             parameters.add_exchanges_to_group(group, act)

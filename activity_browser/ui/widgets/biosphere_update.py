@@ -22,11 +22,11 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.thread.start()
 
     def thread_finished(self, result: int = None) -> None:
-        outcome = result or 0
-        self.thread.exit(outcome)
+        # outcome = result or 0
+        # self.thread.exit(outcome)
         self.setMaximum(1)
         self.setValue(1)
-        self.done(outcome)
+        self.done(result or 0)
 
     @Slot(int)
     def update_progress(self, current: int):

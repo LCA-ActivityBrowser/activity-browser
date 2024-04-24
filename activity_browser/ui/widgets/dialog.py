@@ -531,7 +531,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.setLabelText(text)
 
     def thread_finished(self, result: int = None) -> None:
-        self.biosphere_thread.exit(result or 0)
+        # self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
         self.done(result or 0)
@@ -560,12 +560,12 @@ class DefaultBiosphereThread(ABThread):
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
-        if not len(bd.methods):
-            self.update.emit(1, "Creating default LCIA methods for {}".format(project))
-            bi.create_default_lcia_methods()
-        if not len(bi.migrations):
-            self.update.emit(2, "Creating core data migrations for {}".format(project))
-            bi.create_core_migrations()
+        # if not len(bd.methods):
+        #     self.update.emit(1, "Creating default LCIA methods for {}".format(project))
+        #     bi.create_default_lcia_methods()
+        # if not len(bi.migrations):
+        #     self.update.emit(2, "Creating core data migrations for {}".format(project))
+        #     bi.create_core_migrations()
 
 
 class FilterManagerDialog(QtWidgets.QDialog):

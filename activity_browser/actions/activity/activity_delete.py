@@ -48,7 +48,8 @@ class ActivityDelete(ABAction):
             db, code = act.key
 
             try:
-                group_name = ActivityParameter.get((ActivityParameter.database == db) & (ActivityParameter.code == code))
+                group_name = ActivityParameter.get(
+                    (ActivityParameter.database == db) & (ActivityParameter.code == code)).group
 
                 # remove activity parameters from its group
                 parameters.remove_from_group(group_name, act)

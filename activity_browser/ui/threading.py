@@ -1,4 +1,4 @@
-from PySide2.QtCore import QThread
+from PySide2.QtCore import QThread, QEventLoop
 from activity_browser.brightway import bd
 
 
@@ -14,11 +14,11 @@ class ABThread(QThread):
         except Exception as e:
             self.close_connections()
             raise e
+        self.eventDispatcher().wakeUp()
 
     def close_connections(self):
         """
         Closes all connections for this thread
-        todo: move to an appropriate controller
         """
         for _, SubstitutableDatabase in bd.config.sqlite3_databases:
             if not SubstitutableDatabase.db.is_closed():

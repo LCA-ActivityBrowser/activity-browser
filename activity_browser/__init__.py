@@ -2,8 +2,8 @@
 import sys
 import traceback
 
-from activity_browser.brightway import bw2data
 from .logger import log
+from activity_browser.brightway import bw2data
 from .application import application
 from .signals import signals
 from .settings import ab_settings, project_settings

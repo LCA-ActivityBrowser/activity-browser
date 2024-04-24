@@ -128,7 +128,7 @@ class CSActivityModel(CSGenericModel):
             }
             row.update({"Amount": amount, "key": key})
 
-            act.changed.connect(self.sync)
+            act.changed.connect(self.sync, Qt.UniqueConnection)
             self._activities[act.key] = act
 
             return row
@@ -226,7 +226,7 @@ class CSMethodsModel(CSGenericModel):
         }
 
         # if the method changes we need to sync
-        method.changed.connect(self.sync)
+        method.changed.connect(self.sync, Qt.UniqueConnection)
         self._methods[method.name] = method
 
         return row
