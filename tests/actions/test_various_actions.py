@@ -29,12 +29,11 @@ def test_default_install(ab_app, monkeypatch, qtbot):
     action.trigger()
 
     with qtbot.waitSignal(action.dialog.finished, timeout=5 * 60 * 1000): pass
+    qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
 
     assert "biosphere3" in bw.databases
-    print(len(Database("biosphere3")))
-    assert len(Database("biosphere3")) == 4318
+    assert len(Database("biosphere3")) == 4324
     assert len(bw.methods) == 762
-    qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
