@@ -7,6 +7,7 @@
 #define MyAppURL "https://www.example.com/"
 #define MyAppExeName "ActivityBrowser.exe"
 #define CondaEnvCreator "ab_installer.exe"
+#define CondaEnvDeletor "ab_uninstaller.exe"
 #define MyAppAssocName MyAppName + ""
 #define MyAppAssocExt ".myp"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
@@ -60,3 +61,6 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#CondaEnvCreator}"; Flags: runhidden
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "{app}\{#CondaEnvDeletor}"; Flags: runhidden
