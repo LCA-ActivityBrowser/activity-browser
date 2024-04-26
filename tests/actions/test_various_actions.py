@@ -33,6 +33,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
     print(len(Database("biosphere3")))
     assert len(Database("biosphere3")) == 4318
     assert len(bw.methods) == 762
+    qtbot.waitUntil(lambda: len(Database("biosphere3")) == 4324)
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
@@ -55,7 +56,7 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
 
     assert bw.projects.current == project_name
     assert "biosphere3" in bw.databases
-    assert len(Database("biosphere3")) == 4318
+    assert len(Database("biosphere3")) == 4324
 
     action = actions.BiosphereUpdate(None)
     action.trigger()
