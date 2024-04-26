@@ -7,6 +7,7 @@
 #define MyAppURL "https://www.example.com/"
 #define MyAppExeName "ActivityBrowser.exe"
 #define CondaEnvCreator "ab_installer.exe"
+#define CondaEnvDeletor "ab_uninstaller.exe"
 #define MyAppAssocName MyAppName + ""
 #define MyAppAssocExt ".myp"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
@@ -40,8 +41,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\thijs\Desktop\AB installer\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\thijs\Desktop\AB installer\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\OneDrive\Bureaublad\activity-browser\AB installer\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\OneDrive\Bureaublad\activity-browser\AB installer\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\OneDrive\Bureaublad\activity-browser\AB installer\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -59,3 +61,6 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#CondaEnvCreator}"; Flags: runhidden
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "{app}\{#CondaEnvDeletor}"; Flags: runhidden
