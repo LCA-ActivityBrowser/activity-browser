@@ -4,6 +4,7 @@ import brightway2 as bw
 from PySide2 import QtWidgets
 from activity_browser import actions, signals
 from activity_browser.brightway.bw2data import Database
+from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.widgets import EcoinventVersionDialog
 
 
@@ -33,7 +34,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
     print(len(Database("biosphere3")))
     assert len(Database("biosphere3")) == 4318
     assert len(bw.methods) == 762
-    qtbot.waitUntil(lambda: len(Database("biosphere3")) == 4324)
+    qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
