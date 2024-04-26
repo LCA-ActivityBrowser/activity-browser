@@ -146,14 +146,14 @@ class TestParameterNew:
 
 def test_parameter_new_automatic(ab_app):
     key = ('activity_tests', 'be8fb2776c354aa7ad61d8348828f3af')
-    group = "activity_22cfa9e9ef870ff4a93cbf5d3beff363"
+    group = bw.get_activity(key)._document.id
 
     assert bw.projects.current == "default"
-    assert "activity_1" not in ActivityParameter.load(group).keys()
+    assert "dummy_parameter" not in ActivityParameter.load(group).keys()
 
     actions.ParameterNewAutomatic([key], None).trigger()
 
-    assert "activity_1" in ActivityParameter.load(group).keys()
+    assert "dummy_parameter" in ActivityParameter.load(group).keys()
 
 def test_parameter_rename(ab_app, monkeypatch):
     parameter = list(ProjectParameter.select().where(ProjectParameter.name == "parameter_to_rename"))[0]
