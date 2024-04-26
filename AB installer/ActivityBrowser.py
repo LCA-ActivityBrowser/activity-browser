@@ -1,20 +1,15 @@
+import os
 import subprocess
 
-def launch_activity_browser(env_name):
-    # Launch the AB
-    try:
-        launchABCommand = f'conda activate {env_name} && activity-browser'
-        subprocess.run(launchABCommand, shell=True)
-    except subprocess.CalledProcessError as e:
-        print("Error launching the Activity Browser:", e)
+# Define environment directory
+envDir = "ActivityBrowserEnviroment"
 
-    # deactivate the AB enviroment
-    try:
-        deactivateABCommand = f'conda deactivate {env_name}'
-        subprocess.run(deactivateABCommand, shell=True)
-    except subprocess.CalledProcessError as e:
-        print("Error deactivating the Activity Browser", e)
+# Activate the environment and run the activity-browser command
+activate_script = os.path.join(envDir, "Scripts", "activate")
+activate_cmd = f"source {activate_script}" if os.name != "nt" else f"call {activate_script}"
+subprocess.run(f"{activate_cmd} && activity-browser", shell=True)
 
-if __name__ == "__main__":
-    env_name = "ActivityBrowser"
-    launch_activity_browser(env_name)
+# Deactivate the environment and run the activity-browser command
+deactivate_script = os.path.join(envDir, "Scripts", "deactivate")
+deactivate_cmd = f"source {deactivate_script}" if os.name != "nt" else f"call {deactivate_script}"
+subprocess.run(deactivate_cmd, shell=True)
