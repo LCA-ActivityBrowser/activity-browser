@@ -2,7 +2,7 @@ import os
 import subprocess
 
 # Define environment directory
-envDir = "ActivityBrowserEnvironment"
+envDir = "ActivityBrowserEnviroment"
 
 # Create the environment directory
 os.makedirs(envDir, exist_ok=True)  # Create directory with intermediate folders if needed

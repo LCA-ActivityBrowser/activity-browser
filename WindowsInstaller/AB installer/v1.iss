@@ -41,9 +41,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\AB installer\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\AB installer\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\AB installer\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\PythonScript\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
