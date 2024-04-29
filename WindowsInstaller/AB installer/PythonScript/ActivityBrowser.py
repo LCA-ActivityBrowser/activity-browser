@@ -2,7 +2,7 @@ import os
 import subprocess
 
 # Define environment directory
-envDir = "ActivityBrowserEnviroment"
+envDir = "ActivityBrowserEnvironment"
 
 # Activate the environment and run the activity-browser command
 activate_script = os.path.join(envDir, "Scripts", "activate")
