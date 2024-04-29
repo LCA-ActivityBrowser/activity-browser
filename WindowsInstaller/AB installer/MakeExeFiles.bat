@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 rem Set the path to the directory containing Python script files
-set "python_script_dir=C:\Users\rcjvi\OneDrive\Bureaublad\activity-browser\AB installer\PythonScript"
+set "python_script_dir=C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\PythonScript"
 
 rem Navigate to the directory containing Python script files
 cd /d "%python_script_dir%"

@@ -1,7 +1,11 @@
-import subprocess
+import shutil
+import os
 
-uninstall_command = f"conda remove -n ActivityBrowser --all --yes"
-subprocess.run(uninstall_command, shell=True, check=True)
+current_directory = os.getcwd()
+directory_path = os.path.join(current_directory, "ActivityBrowserEnvironment")
 
-remove_env_command = "conda env remove -n ActivityBrowser --yes"
-subprocess.run(remove_env_command, shell=True, check=True)
+try:
+    shutil.rmtree(directory_path)
+    print(f"Directory '{directory_path}' successfully removed.")
+except FileNotFoundError:
+    print(f"Directory '{directory_path}' not found.")
