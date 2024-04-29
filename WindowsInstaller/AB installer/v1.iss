@@ -42,10 +42,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\PythonScript\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\rcjvi\OneDrive\Documenten\GitHub\activity-browser\AB installer\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\thijs\Documents\activity-browser-installer\WindowsInstaller\AB installer\PythonScript\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\thijs\Documents\activity-browser-installer\WindowsInstaller\AB installer\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\thijs\Documents\activity-browser-installer\WindowsInstaller\AB installer\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\activity-browser-installer\WindowsInstaller\AB installer\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
