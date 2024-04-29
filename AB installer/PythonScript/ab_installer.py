@@ -1,10 +1,11 @@
 import os
 import subprocess
 
-# Get the current directory
-current_dir = os.getcwd()
+# Define environment directory
+envDir = "ActivityBrowserEnviroment"
 
-# Create environment ab
-create_env_command = f"conda create -n ActivityBrowser -c conda-forge --solver libmamba activity-browser --yes"
-subprocess.run(create_env_command, shell=True, check=True)
+# Create the environment directory
+os.makedirs(envDir, exist_ok=True)  # Create directory with intermediate folders if needed
 
+# Extract the environment
+subprocess.run(["tar", "-xzf", "ActivityBrowser.tar.gz", "-C", envDir])
