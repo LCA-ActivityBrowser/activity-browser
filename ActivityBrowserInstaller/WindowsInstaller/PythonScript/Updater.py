@@ -26,11 +26,23 @@ class downloadThread(QObject):
         super().__init__(parent)
 
     def run(self, user, repo):
+        """
+        Download the latest version of the Activity Browser from the GitHub repository.
+
+        Parameters:
+        - user (str): GitHub username of the repository owner.
+        - repo (str): Name of the GitHub repository.
+
+        Emits:
+        - finished: Signal indicating that the download process is finished.
+        - progressChanged: Signal indicating the progress of the download process.
+        """
         url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
         response = requests.get(url)
         data = response.json()
 
         if 'assets' not in data:
+            # Emit signal to update the label with error message
             self.updateLabel.emit("No 'assets' in the response data")
             return
 
@@ -42,6 +54,7 @@ class downloadThread(QObject):
                 break
 
         if exeUrl is None:
+            # Emit signal to update the label with error message
             self.updateLabel.emit("No exe file found in the release")
             return
 
@@ -55,9 +68,11 @@ class downloadThread(QObject):
                         f.write(chunk)
                         bytesDownloaded += len(chunk)
                         progress = int(bytesDownloaded / totalSize * 100)
+                        # Emit signal to update the progress bar
                         self.progressChanged.emit(progress)
             self.finished.emit()
         else:
+            # Emit signal to update the label with error message
             self.updateLabel.emit(f"Failed to download file: {response.status_code}")
 
 class updaterWindow(QDialog):
@@ -107,44 +122,78 @@ class updaterWindow(QDialog):
         self.setLayout(layout)
 
     def updateLabel(self, message):
+         """
+        Update the message label with the specified text.
+
+        Parameters:
+        - message (str): The text to display in the message label.
+        """
         self.messageLabel.setText(message)
         QApplication.processEvents()
     
     def showProgressBar(self):
+        """Show the progress bar."""
         self.progressBar.show()
     
     def updateProgress(self, value):
+        """
+        Update the progress bar with the specified value.
+
+        Parameters:
+        - value (int): The value to set the progress bar to.
+        """
         self.progressBar.setValue(value)
 
     def center(self):
+        """Center the window on the screen."""
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
     def remindLater(self):
+        """Close the window."""
         self.close()
 
     def installNow(self):
+        """Initiate the download and installation process."""
         self.updateLabel("Downloading the installer for the newest version...")
         self.showProgressBar()
         threading.Thread(target=self.downloadThread.run, args=("ThisIsSomeone", "activity-browser")).start()
 
     def onDownloadFinished(self):
+        """Open the installer after download completion and close the window."""
         self.updateLabel("Installer downloaded. Opening...")
         os.startfile("activity-browser.exe")
         self.close()
         sys.exit()
 
     def getLatestRelease(self, user, repo):
-        # Get the most recent version of the Activity Browser from the GitHub API.
+        """
+         Get the most recent version of the Activity Browser from the GitHub API.
+
+        Parameters:
+        - user (str): GitHub username of the repository owner.
+        - repo (str): Name of the GitHub repository.
+
+        Returns:
+        - str: The latest release version.
+        """
         url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
         response = requests.get(url)
         data = response.json()
         return data['tag_name']
 
     def getActivityBrowserVersion(self, directory="."):
-        # Get the version number of the ActivityBrowser file in the specified directory.
+        """
+        Get the version number of the ActivityBrowser file in the specified directory.
+
+        Parameters:
+        - directory (str): The directory to search for the ActivityBrowser file.
+
+        Returns:
+        - str: The version number of the ActivityBrowser file.
+        """
         try:
             for filename in os.listdir(directory):
                 match = re.match(r'ActivityBrowser-(\d+\.\d+\.\d+)', filename)
