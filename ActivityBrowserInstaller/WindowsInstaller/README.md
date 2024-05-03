@@ -22,7 +22,7 @@ This README provides instructions for installing the Activity Browser (AB) using
    - Install Inno Setup from the internet. You need this program to compile the setup file.
    - Run `ActivityBrowserInstallerConfig.iss` after making required modifications:
    	- Open the file and adjust the 4 lines under the "[Files]" section to have your own file paths.
-      Only changes the ... in the lines, except for the fourth line, also change the FILENAME of the tar.gz file:
+      Only change the ... in the lines, except for the fourth line, also change the FILENAME of the tar.gz file:
       "...\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\{#appExeName}"; DestDir: "{app}";
       "...\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
       "...\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
