@@ -24,7 +24,7 @@ DefaultDirName={autopf}\{#appName}
 ChangesAssociations=yes
 DefaultGroupName={#appName}
 AllowNoIcons=yes
-OutputBaseFilename=ActivityBrowserSetup
+OutputBaseFilename=ActivityBrowser-{#appVersion}-Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -37,7 +37,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\{#appExeName}"; DestDir: "{app}";
+Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\{#appExeName}"; DestDir: "{app}"; \
+DestName: "ActivityBrowser-{#appVersion}.exe"
 Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
 Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
@@ -51,7 +52,7 @@ Root: HKA; Subkey: "Software\Classes\{#appAssocExt}\shell\open\command"; ValueTy
 Root: HKA; Subkey: "Software\Classes\Applications\{#appExeName}\SupportedTypes"; ValueType: string; ValueName: ".myp"; ValueData: ""
 
 [Icons]
-Name: "{group}\{#appName}"; Filename: "{app}\{#appExeName}"
+Name: "{group}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"
 Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: desktopicon
 
