@@ -12,8 +12,8 @@
 
 import os
 import subprocess
-from Updater import updaterWindow
 import re
+import requests
 
 def getLatestRelease(user, repo):
         # Get the most recent version of the Activity Browser from the GitHub API.
@@ -29,10 +29,10 @@ def getActivityBrowserVersion(directory="."):
             match = re.match(r'ActivityBrowser-(\d+\.\d+\.\d+)', filename)
             if match:
                 return match.group(1)
-        self.updateLabel("ActivityBrowser file not found in the directory.")
+        print("ActivityBrowser file not found in the directory.")
         return None
     except FileNotFoundError:
-        self.updateLabel(f"Directory '{directory}' not found.")
+        print(f"Directory '{directory}' not found.")
         return None
 
 def compareVersions(version1, version2):
@@ -63,7 +63,7 @@ def compareVersions(version1, version2):
 envDir = "ActivityBrowserEnvironment"
 
 newestVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
-installedVersion = getActivityBrowserVersion("ThisIsSomeone", "activity-browser")
+installedVersion = getActivityBrowserVersion()
 isOldVersion = compareVersions(newestVersion, installedVersion)
 
 if isOldVersion:
