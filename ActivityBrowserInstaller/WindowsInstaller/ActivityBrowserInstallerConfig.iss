@@ -41,7 +41,9 @@ Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrow
 DestName: "ActivityBrowser-{#appVersion}.exe"
 Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\ab.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\icon.ico" ; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -52,13 +54,14 @@ Root: HKA; Subkey: "Software\Classes\{#appAssocExt}\shell\open\command"; ValueTy
 Root: HKA; Subkey: "Software\Classes\Applications\{#appExeName}\SupportedTypes"; ValueType: string; ValueName: ".myp"; ValueData: ""
 
 [Icons]
-Name: "{group}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"
-Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: desktopicon
+Name: "{group}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; IconFilename: "{app}\icon.ico"
+Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\icon.ico"
+Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: desktopicon; IconFilename: "{app}\icon.ico"
+
 
 [Run]
-Filename: "{app}\{#condaEnvCreator}"; Flags: runhidden
-Filename: "{app}\{#appExeName}"; Description: "{cm:LaunchProgram,{#StringChange(appName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#condaEnvCreator}"; Flags: runhidden ; StatusMsg: "Installing the Conda Environment"
+Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; Description: "{cm:LaunchProgram,{#StringChange(appName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "{app}\{#condaEnvDeletor}"; Flags: runhidden
