@@ -60,6 +60,7 @@ Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: deskto
 
 
 [Run]
+Filename: "{app}\{#condaEnvDeletor}"; Flags: runhidden ; StatusMsg: "Removing Conda Environment if exists"
 Filename: "{app}\{#condaEnvCreator}"; Flags: runhidden ; StatusMsg: "Installing the Conda Environment"
 Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; Description: "{cm:LaunchProgram,{#StringChange(appName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 

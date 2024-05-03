@@ -13,15 +13,58 @@
 import os
 import subprocess
 from Updater import updaterWindow
+import re
+
+def getLatestRelease(user, repo):
+        # Get the most recent version of the Activity Browser from the GitHub API.
+        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        response = requests.get(url)
+        data = response.json()
+        return data['tag_name']
+
+def getActivityBrowserVersion(directory="."):
+    # Get the version number of the ActivityBrowser file in the specified directory.
+    try:
+        for filename in os.listdir(directory):
+            match = re.match(r'ActivityBrowser-(\d+\.\d+\.\d+)', filename)
+            if match:
+                return match.group(1)
+        self.updateLabel("ActivityBrowser file not found in the directory.")
+        return None
+    except FileNotFoundError:
+        self.updateLabel(f"Directory '{directory}' not found.")
+        return None
+
+def compareVersions(version1, version2):
+    """
+    Compare two version strings in the format 'X.Y.Z' and determine if the second version is newer than the first.
+
+    Parameters:
+    - version1 (str): The first version string to compare.
+    - version2 (str): The second version string to compare.
+
+    Returns:
+    - bool: True if version2 is newer than version1, False otherwise.
+    """
+    v1Components = [int(x) for x in version1.split('.')]
+    v2Components = [int(x) for x in version2.split('.')]
+
+    if v1Components[0] < v2Components[0]:
+        return True
+    elif v1Components[0] == v2Components[0]:
+        if v1Components[1] < v2Components[1]:
+            return True
+        elif v1Components[1] == v2Components[1]:
+            if v1Components[2] < v2Components[2]:
+                return True
+    return False
 
 # Define environment directory
 envDir = "ActivityBrowserEnvironment"
 
-updater = updaterWindow()
-
-newestVersion = updater.getLatestRelease("ThisIsSomeone", "activity-browser")
-installedVersion = updater.getActivityBrowserVersion("ThisIsSomeone", "activity-browser")
-isOldVersion = updater.compareVersions(newestVersion, installedVersion)
+newestVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
+installedVersion = getActivityBrowserVersion("ThisIsSomeone", "activity-browser")
+isOldVersion = compareVersions(newestVersion, installedVersion)
 
 if isOldVersion:
     subprocess.run(["Updater.exe"])
