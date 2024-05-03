@@ -1,3 +1,15 @@
+"""
+- Updater.py
+- Date of File Creation: 29/05/2024
+- Contributors: Thijs Groeneweg & Ruben Visser
+- Date and Author of Last Modification: 03/05/2024 - Ruben Visser
+- Synopsis of the File's purpose:
+    This Python script checks for updates of an application from a GitHub repository, prompts the user to install
+    the latest version if available, and handles the download and installation process with a progress bar.
+    There are two classes, downloadThread downloads the Activity Browser and the updaterWindow does everything for the
+    UI. The downloadWindow has two events, to which the updateWindow listens to update the UI to change the download progress.
+"""
+
 import threading
 import requests
 import os
@@ -6,9 +18,9 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
 from PyQt5.QtCore import QTimer, QObject, pyqtSignal
 
-class DownloadThread(QObject):
+class downloadThread(QObject):
     finished = pyqtSignal()
-    progress_changed = pyqtSignal(int)
+    progressChanged = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -19,7 +31,7 @@ class DownloadThread(QObject):
         data = response.json()
 
         if 'assets' not in data:
-            self.update_label.emit("No 'assets' in the response data")
+            self.updateLabel.emit("No 'assets' in the response data")
             return
 
         assets = data['assets']
@@ -30,23 +42,23 @@ class DownloadThread(QObject):
                 break
 
         if exeUrl is None:
-            self.update_label.emit("No exe file found in the release")
+            self.updateLabel.emit("No exe file found in the release")
             return
 
         response = requests.get(exeUrl, stream=True)
-        total_size = int(response.headers.get('content-length', 0))
-        bytes_downloaded = 0
+        totalSize = int(response.headers.get('content-length', 0))
+        bytesDownloaded = 0
         if response.status_code == 200:
             with open("activity-browser.exe", 'wb') as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
-                        bytes_downloaded += len(chunk)
-                        progress = int(bytes_downloaded / total_size * 100)
-                        self.progress_changed.emit(progress)
+                        bytesDownloaded += len(chunk)
+                        progress = int(bytesDownloaded / totalSize * 100)
+                        self.progressChanged.emit(progress)
             self.finished.emit()
         else:
-            self.update_label.emit(f"Failed to download file: {response.status_code}")
+            self.updateLabel.emit(f"Failed to download file: {response.status_code}")
 
 class updaterWindow(QDialog):
     def __init__(self, parent=None):
@@ -54,14 +66,14 @@ class updaterWindow(QDialog):
         self.setWindowTitle("New Version Found!")
         self.resize(400, 200)
         self.center()
-        self.download_thread = DownloadThread()
-        self.download_thread.finished.connect(self.on_download_finished)
-        self.download_thread.progress_changed.connect(self.update_progress)
+        self.downloadThread = downloadThread()
+        self.downloadThread.finished.connect(self.onDownloadFinished)
+        self.downloadThread.progressChanged.connect(self.updateProgress)
 
         # Check if we have the newest version of the Activity Browser installed.
         currentVersion = self.getActivityBrowserVersion()
         newestVersion = self.getLatestRelease(user="ThisIsSomeone", repo="activity-browser")
-        isOldVersion = self.compare_versions(currentVersion, newestVersion)
+        isOldVersion = self.compareVersions(currentVersion, newestVersion)
 
         if not isOldVersion:
             # If not an old version, close the window
@@ -70,39 +82,39 @@ class updaterWindow(QDialog):
 
         layout = QVBoxLayout()
 
-        self.message_label = QLabel("A new version of the Activity Browser was found! "
+        self.messageLabel = QLabel("A new version of the Activity Browser was found! "
                                     "Do you want to download and install the newest version now? "
                                     "You can also download other versions manually from "
                                     "<a href='https://github.com/LCA-ActivityBrowser/activity-browser'>"
                                     "https://github.com/LCA-ActivityBrowser/activity-browser</a>.")
-        self.message_label.setOpenExternalLinks(True)
-        layout.addWidget(self.message_label)
+        self.messageLabel.setOpenExternalLinks(True)
+        layout.addWidget(self.messageLabel)
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.hide()
-        layout.addWidget(self.progress_bar)
+        self.progressBar = QProgressBar()
+        self.progressBar.setRange(0, 100)
+        self.progressBar.hide()
+        layout.addWidget(self.progressBar)
 
-        button_layout = QHBoxLayout()
-        remind_button = QPushButton("Remind me later")
-        remind_button.clicked.connect(self.remind_later)
-        install_button = QPushButton("Install now")
-        install_button.clicked.connect(self.install_now)
-        button_layout.addWidget(remind_button)
-        button_layout.addWidget(install_button)
-        layout.addLayout(button_layout)
+        buttonLayout = QHBoxLayout()
+        remindButton = QPushButton("Remind me later")
+        remindButton.clicked.connect(self.remindLater)
+        installButton = QPushButton("Install now")
+        installButton.clicked.connect(self.installNow)
+        buttonLayout.addWidget(remindButton)
+        buttonLayout.addWidget(installButton)
+        layout.addLayout(buttonLayout)
 
         self.setLayout(layout)
 
-    def update_label(self, message):
-        self.message_label.setText(message)
+    def updateLabel(self, message):
+        self.messageLabel.setText(message)
         QApplication.processEvents()
     
-    def show_progress_bar(self):
-        self.progress_bar.show()
+    def showProgressBar(self):
+        self.progressBar.show()
     
-    def update_progress(self, value):
-        self.progress_bar.setValue(value)
+    def updateProgress(self, value):
+        self.progressBar.setValue(value)
 
     def center(self):
         qr = self.frameGeometry()
@@ -110,16 +122,16 @@ class updaterWindow(QDialog):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def remind_later(self):
+    def remindLater(self):
         self.close()
 
-    def install_now(self):
-        self.update_label("Downloading the installer for the newest version...")
-        self.show_progress_bar()
-        threading.Thread(target=self.download_thread.run, args=("ThisIsSomeone", "activity-browser")).start()
+    def installNow(self):
+        self.updateLabel("Downloading the installer for the newest version...")
+        self.showProgressBar()
+        threading.Thread(target=self.downloadThread.run, args=("ThisIsSomeone", "activity-browser")).start()
 
-    def on_download_finished(self):
-        self.update_label("Installer downloaded. Opening...")
+    def onDownloadFinished(self):
+        self.updateLabel("Installer downloaded. Opening...")
         os.startfile("activity-browser.exe")
         self.close()
         sys.exit()
@@ -138,13 +150,13 @@ class updaterWindow(QDialog):
                 match = re.match(r'ActivityBrowser-(\d+\.\d+\.\d+)', filename)
                 if match:
                     return match.group(1)
-            self.update_label("ActivityBrowser file not found in the directory.")
+            self.updateLabel("ActivityBrowser file not found in the directory.")
             return None
         except FileNotFoundError:
-            self.update_label(f"Directory '{directory}' not found.")
+            self.updateLabel(f"Directory '{directory}' not found.")
             return None
 
-    def compare_versions(self, version1, version2):
+    def compareVersions(self, version1, version2):
       """
       Compare two version strings in the format 'X.Y.Z' and determine if the second version is newer than the first.
 
@@ -155,16 +167,16 @@ class updaterWindow(QDialog):
       Returns:
       - bool: True if version2 is newer than version1, False otherwise.
       """
-      v1_components = [int(x) for x in version1.split('.')]
-      v2_components = [int(x) for x in version2.split('.')]
+      v1Components = [int(x) for x in version1.split('.')]
+      v2Components = [int(x) for x in version2.split('.')]
 
-      if v1_components[0] < v2_components[0]:
+      if v1Components[0] < v2Components[0]:
           return True
-      elif v1_components[0] == v2_components[0]:
-          if v1_components[1] < v2_components[1]:
+      elif v1Components[0] == v2Components[0]:
+          if v1Components[1] < v2Components[1]:
               return True
-          elif v1_components[1] == v2_components[1]:
-              if v1_components[2] < v2_components[2]:
+          elif v1Components[1] == v2Components[1]:
+              if v1Components[2] < v2Components[2]:
                   return True
       return False
 
