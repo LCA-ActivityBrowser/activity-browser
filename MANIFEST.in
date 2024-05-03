@@ -1,0 +1,10 @@
+include *.txt
+include README.md
+recursive-include activity_browser *.py
+recursive-include activity_browser *.html
+recursive-include activity_browser *.png
+recursive-include activity_browser *.svg
+recursive-include activity_browser *.js
+recursive-include activity_browser *.css
+recursive-include activity_browser *.txt
+recursive-include activity_browser *.zip
