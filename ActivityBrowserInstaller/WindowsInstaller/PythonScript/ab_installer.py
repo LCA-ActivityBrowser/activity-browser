@@ -15,7 +15,7 @@ import subprocess
 envDir = "ActivityBrowserEnvironment"
 
 # Create the environment directory
-os.makedirs(envDir, exist_ok=True)  # Create directory with intermediate folders if needed
+os.makedirs(envDir, exist_ok=True) 
 
 # Extract the environment
 subprocess.run(["tar", "-xzf", "ActivityBrowser.tar.gz", "-C", envDir])
