@@ -3,11 +3,12 @@ import requests
 import os
 import re
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
 from PyQt5.QtCore import QTimer, QObject, pyqtSignal
 
 class DownloadThread(QObject):
     finished = pyqtSignal()
+    progress_changed = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -33,11 +34,16 @@ class DownloadThread(QObject):
             return
 
         response = requests.get(exeUrl, stream=True)
+        total_size = int(response.headers.get('content-length', 0))
+        bytes_downloaded = 0
         if response.status_code == 200:
             with open("activity-browser.exe", 'wb') as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
+                        bytes_downloaded += len(chunk)
+                        progress = int(bytes_downloaded / total_size * 100)
+                        self.progress_changed.emit(progress)
             self.finished.emit()
         else:
             self.update_label.emit(f"Failed to download file: {response.status_code}")
@@ -50,6 +56,7 @@ class updaterWindow(QDialog):
         self.center()
         self.download_thread = DownloadThread()
         self.download_thread.finished.connect(self.on_download_finished)
+        self.download_thread.progress_changed.connect(self.update_progress)
 
         # Check if we have the newest version of the Activity Browser installed.
         currentVersion = self.getActivityBrowserVersion()
@@ -71,6 +78,11 @@ class updaterWindow(QDialog):
         self.message_label.setOpenExternalLinks(True)
         layout.addWidget(self.message_label)
 
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.hide()
+        layout.addWidget(self.progress_bar)
+
         button_layout = QHBoxLayout()
         remind_button = QPushButton("Remind me later")
         remind_button.clicked.connect(self.remind_later)
@@ -85,6 +97,12 @@ class updaterWindow(QDialog):
     def update_label(self, message):
         self.message_label.setText(message)
         QApplication.processEvents()
+    
+    def show_progress_bar(self):
+        self.progress_bar.show()
+    
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
 
     def center(self):
         qr = self.frameGeometry()
@@ -97,6 +115,7 @@ class updaterWindow(QDialog):
 
     def install_now(self):
         self.update_label("Downloading the installer for the newest version...")
+        self.show_progress_bar()
         threading.Thread(target=self.download_thread.run, args=("ThisIsSomeone", "activity-browser")).start()
 
     def on_download_finished(self):
