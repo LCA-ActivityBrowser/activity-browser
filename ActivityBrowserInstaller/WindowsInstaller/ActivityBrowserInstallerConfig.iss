@@ -37,10 +37,11 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\{#appExeName}"; DestDir: "{app}";
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
-Source: "C:\Users\thijs\Documents\GitHub\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\{#appExeName}"; DestDir: "{app}";
+Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\ab.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\icon.ico" ; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -51,12 +52,13 @@ Root: HKA; Subkey: "Software\Classes\{#appAssocExt}\shell\open\command"; ValueTy
 Root: HKA; Subkey: "Software\Classes\Applications\{#appExeName}\SupportedTypes"; ValueType: string; ValueName: ".myp"; ValueData: ""
 
 [Icons]
-Name: "{group}\{#appName}"; Filename: "{app}\{#appExeName}"
-Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: desktopicon
+Name: "{group}\{#appName}"; Filename: "{app}\{#appExeName}"; IconFilename: "{app}\icon.ico"
+Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\icon.ico"
+Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: desktopicon; IconFilename: "{app}\icon.ico"
+
 
 [Run]
-Filename: "{app}\{#condaEnvCreator}"; Flags: runhidden
+Filename: "{app}\{#condaEnvCreator}"; Flags: runhidden ; StatusMsg: "Installing the Conda Environment"
 Filename: "{app}\{#appExeName}"; Description: "{cm:LaunchProgram,{#StringChange(appName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
