@@ -46,6 +46,9 @@ def compareVersions(version1, version2):
     Returns:
     - bool: True if version2 is newer than version1, False otherwise.
     """
+    if version1 is None or version2 is None:
+        return False
+    
     v1Components = [int(x) for x in version1.split('.')]
     v2Components = [int(x) for x in version2.split('.')]
 
@@ -64,10 +67,10 @@ envDir = "ActivityBrowserEnvironment"
 
 newestVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
 installedVersion = getActivityBrowserVersion()
-isOldVersion = compareVersions(newestVersion, installedVersion)
+isOldVersion = compareVersions(installedVersion, newestVersion)
 
 if isOldVersion:
-    subprocess.run(["Updater.exe"])
+    subprocess.run("powershell Start-Process 'Updater.exe' -Verb runAs", shell=True)
 else:
     # Activate the environment and run the activity-browser command
     activateScript = os.path.join(envDir, "Scripts", "activate")
