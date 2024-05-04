@@ -2,7 +2,7 @@
 - Updater.py
 - Date of File Creation: 29/05/2024
 - Contributors: Thijs Groeneweg & Ruben Visser
-- Date and Author of Last Modification: 03/05/2024 - Ruben Visser
+- Date and Author of Last Modification: 03/05/2024 - Thijs Groeneweg
 - Synopsis of the File's purpose:
     This Python script checks for updates of an application from a GitHub repository, prompts the user to install
     the latest version if available, and handles the download and installation process with a progress bar.
@@ -15,6 +15,7 @@ import requests
 import os
 import re
 import sys
+import subprocess
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
 from PyQt5.QtCore import QTimer, QObject, pyqtSignal
 
@@ -85,16 +86,6 @@ class updaterWindow(QDialog):
         self.downloadThread.finished.connect(self.onDownloadFinished)
         self.downloadThread.progressChanged.connect(self.updateProgress)
 
-        # Check if we have the newest version of the Activity Browser installed.
-        currentVersion = self.getActivityBrowserVersion()
-        newestVersion = self.getLatestRelease(user="ThisIsSomeone", repo="activity-browser")
-        isOldVersion = self.compareVersions(currentVersion, newestVersion)
-
-        if not isOldVersion:
-            # If not an old version, close the window
-            self.close()
-            return
-
         layout = QVBoxLayout()
 
         self.messageLabel = QLabel("A new version of the Activity Browser was found! "
@@ -104,6 +95,16 @@ class updaterWindow(QDialog):
                                     "https://github.com/LCA-ActivityBrowser/activity-browser</a>.")
         self.messageLabel.setOpenExternalLinks(True)
         layout.addWidget(self.messageLabel)
+
+        # Check if we have the newest version of the Activity Browser installed.
+        currentVersion = self.getActivityBrowserVersion()
+        newestVersion = self.getLatestRelease(user="ThisIsSomeone", repo="activity-browser")
+        isOldVersion = self.compareVersions(currentVersion, newestVersion)
+
+        if not isOldVersion:
+            # If not an old version, close the window
+            self.close()
+            return
 
         self.progressBar = QProgressBar()
         self.progressBar.setRange(0, 100)
@@ -122,7 +123,7 @@ class updaterWindow(QDialog):
         self.setLayout(layout)
 
     def updateLabel(self, message):
-         """
+        """
         Update the message label with the specified text.
 
         Parameters:
@@ -151,9 +152,18 @@ class updaterWindow(QDialog):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+    def closeEvent(self, event):
+        """
+        Override the closeEvent method to call sys.exit() when the close button is clicked.
+        """
+        sys.exit()
+
     def remindLater(self):
         """Close the window."""
+        # Open the Activity Browser and close the updater window
+        subprocess.Popen([self.getActivityBrowserEXE()])
         self.close()
+        sys.exit()
 
     def installNow(self):
         """Initiate the download and installation process."""
@@ -204,6 +214,24 @@ class updaterWindow(QDialog):
         except FileNotFoundError:
             self.updateLabel(f"Directory '{directory}' not found.")
             return None
+        
+    def getActivityBrowserEXE(self, directory="."):
+        """
+        Get the path of the ActivityBrowser executable file.
+
+        Returns:
+        - str: The path of the ActivityBrowser executable file.
+        """
+        try:
+            for filename in os.listdir(directory):
+                match = re.match(r'ActivityBrowser-(\d+\.\d+\.\d+)', filename)
+                if match:
+                    return filename
+            self.updateLabel("ActivityBrowser file not found in the directory.")
+            return None
+        except FileNotFoundError:
+            self.updateLabel(f"Directory '{directory}' not found.")
+            return None
 
     def compareVersions(self, version1, version2):
       """
@@ -231,6 +259,7 @@ class updaterWindow(QDialog):
 
 
 if __name__ == "__main__":
+    # Check if the script is running as an administrator for changing files in ActivityBrowser directory      
     app = QApplication(sys.argv)
     window = updaterWindow()
     window.exec_()
