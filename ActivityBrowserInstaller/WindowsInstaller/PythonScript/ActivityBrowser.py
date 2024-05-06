@@ -15,6 +15,16 @@ import subprocess
 import re
 import requests
 from packaging.version import parse
+import argparse
+
+def parse_args():
+    """
+    Parse command line arguments. The only argument is --skip-update-check, which skips checking for updates.
+    """	
+    parser = argparse.ArgumentParser(description="Run the Activity Browser.")
+    parser.add_argument("--skip-update-check", action="store_true",
+                        help="Skip checking for updates.")
+    return parser.parse_args()
 
 def getLatestRelease(user: str, repo: str) -> str:
     """
@@ -76,24 +86,30 @@ def runActivityBrowser() -> None:
     """
     Activate the Activity Browser environment and run the activity-browser.
     """
-    # Activate the environment and run the activity-browser command
-    activateScript = os.path.join("ActivityBrowserEnvironment", "Scripts", "activate")
-    activateCmd = f"source {activateScript}" if os.name != "nt" else f"call {activateScript}"
-    subprocess.run(f"{activateCmd} && activity-browser", shell=True)
+    # Get the absolute path to the activate and deactivate scripts
+    activate_script = os.path.join("ActivityBrowserEnvironment", "Scripts", "activate")
+    deactivate_script = os.path.join("ActivityBrowserEnvironment", "Scripts", "deactivate")
 
-    # Deactivate the environment and run the activity-browser command
-    deactivateScript = os.path.join("ActivityBrowserEnvironment", "Scripts", "deactivate")
-    deactivateCmd = f"source {deactivateScript}" if os.name != "nt" else f"call {deactivateScript}"
-    subprocess.run(f"{deactivateCmd} && activity-browser", shell=True)
+    # Use the absolute paths to run the activity-browser command
+    activate_cmd = f"source {activate_script}" if os.name != "nt" else f"call {activate_script}"
+    deactivate_cmd = f"source {deactivate_script}" if os.name != "nt" else f"call {deactivate_script}"
+
+    os.system(f"{activate_cmd} && activity-browser")
+    os.system(f"{deactivate_cmd}")
 
 if __name__ == "__main__":
-    # Check if the ActivityBrowser file is up to date
-    newestVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
-    installedVersion = getActivityBrowserVersion()
-    isOldVersion = isSecondIputVersionNewer(installedVersion, newestVersion)
+    args = parse_args()
 
-    if isOldVersion:
-        # Run the Updater.exe file to update the ActivityBrowser as administrator
-        subprocess.run("powershell Start-Process 'Updater.exe' -Verb runAs", shell=True)
+    if not args.skip_update_check:
+        # Check if the ActivityBrowser file is up to date
+        newestVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
+        installedVersion = getActivityBrowserVersion()
+        isOldVersion = isSecondIputVersionNewer(installedVersion, newestVersion)
+
+        if isOldVersion:
+            # Run the ActivityBrowser Updater.exe file to update the ActivityBrowser as administrator
+            subprocess.run("powershell Start-Process 'ActivityBrowser Updater.exe' -Verb runAs", shell=True)
+        else:
+            runActivityBrowser()
     else:
         runActivityBrowser()
