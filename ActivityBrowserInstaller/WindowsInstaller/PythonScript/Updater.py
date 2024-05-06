@@ -178,10 +178,10 @@ class updaterWindow(QDialog):
         buttonLayout = QHBoxLayout()
         remindButton = QPushButton("Remind me later")
         remindButton.clicked.connect(self.remindLater)
-        installButton = QPushButton("Install now")
-        installButton.clicked.connect(self.installNow)
+        self.installButton = QPushButton("Install now")
+        self.installButton.clicked.connect(self.installNow)
         buttonLayout.addWidget(remindButton)
-        buttonLayout.addWidget(installButton)
+        buttonLayout.addWidget(self.installButton)
         layout.addLayout(buttonLayout)
 
         self.setLayout(layout)
@@ -229,9 +229,9 @@ class updaterWindow(QDialog):
         sys.exit()
     
     def remindLater(self) -> None:
-        """Close the window."""
-        # Open the Activity Browser and close the updater window
-        runActivityBrowser()
+        """Open the Activity Browser and close the updater window."""
+        # Run using a separate thread to avoid blocking the UI
+        threading.Thread(target=runActivityBrowser).start()
         self.exitApplication()
 
     def onDownloadFinished(self) -> None:
