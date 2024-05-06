@@ -84,6 +84,7 @@ def runActivityBrowser() -> None:
     # Deactivate the environment and run the activity-browser command
     deactivateScript = os.path.join("ActivityBrowserEnvironment", "Scripts", "deactivate")
     deactivateCmd = f"source {deactivateScript}" if os.name != "nt" else f"call {deactivateScript}"
+    subprocess.run(f"{deactivateCmd} && activity-browser", shell=True)
 
 if __name__ == "__main__":
     # Check if the ActivityBrowser file is up to date
