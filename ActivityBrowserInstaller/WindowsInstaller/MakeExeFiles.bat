@@ -11,7 +11,7 @@ for %%f in (*.py) do (
     rem Extract file name without extension
     set "filename=%%~nf"
     
-    if "!filename!"=="Updater" (
+    if "!filename!"=="ActivityBrowser Updater" (
         rem Run PyInstaller to create standalone executable with specified icon and --uac-admin. The updater requires admin privileges to update the application files.
         pyinstaller --onefile --icon=icon.ico --uac-admin "%%f"
     ) else (
