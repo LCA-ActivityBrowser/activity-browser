@@ -241,16 +241,14 @@ class updaterWindow(QDialog):
         self.exitApplication()
 
     def onDownloadFinished(self) -> None:
-        """Open the installer after download completion and close the window. Delete the temporary directory after the installer has finished."""
+        """Open the installer after download completion and close the window."""
         self.updateLabel("Installer downloaded. Opening...")
         file_path = os.path.join(TEMP_DIR, INSTALLER_FILENAME)
         try:
             # Hide the updater window
             self.hide()
-            # Start the installer and wait for it to finish
-            subprocess.check_call([file_path])
-            # After the installer has finished, delete the temporary directory
-            shutil.rmtree(TEMP_DIR)
+            # Start the installer
+            subprocess.Popen([file_path])
         except Exception as e:
             print(f"An error occurred: {str(e)}")
         self.exitApplication()
