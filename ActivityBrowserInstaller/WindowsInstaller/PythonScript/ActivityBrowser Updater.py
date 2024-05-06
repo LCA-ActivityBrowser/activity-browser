@@ -19,7 +19,7 @@ import os
 import sys
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
 from PyQt5.QtCore import QObject, pyqtSignal
-from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer, runActivityBrowser
+from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer
 
 # Define constants
 INSTALLER_FILENAME = "activity-browser.exe"
@@ -186,6 +186,12 @@ class updaterWindow(QDialog):
 
         self.setLayout(layout)
 
+    def runActivityBrowser(self) -> None:
+        """
+        Activate the Activity Browser environment and run the activity-browser.
+        """
+        subprocess.run(["start", "ActivityBrowser.exe", "--skip-update-check"], check=True, shell=True)
+
     def updateLabel(self, message: str) -> None:
         """
         Update the message label with the specified text.
@@ -230,8 +236,8 @@ class updaterWindow(QDialog):
     
     def remindLater(self) -> None:
         """Open the Activity Browser and close the updater window."""
-        # Run using a separate thread to avoid blocking the UI
-        threading.Thread(target=runActivityBrowser).start()
+        self.hide()
+        self.runActivityBrowser()
         self.exitApplication()
 
     def onDownloadFinished(self) -> None:
