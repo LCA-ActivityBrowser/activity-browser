@@ -2,7 +2,7 @@
 - Updater.py
 - Date of File Creation: 29/05/2024
 - Contributors: Thijs Groeneweg & Ruben Visser
-- Date and Author of Last Modification: 03/05/2024 - Thijs Groeneweg
+- Date and Author of Last Modification: 06/05/2024 - Thijs Groeneweg
 - Synopsis of the File's purpose:
     This Python script checks for updates of an application from a GitHub repository, prompts the user to install
     the latest version if available, and handles the download and installation process with a progress bar.
@@ -13,11 +13,13 @@
 import threading
 import requests
 import os
-import re
 import sys
-import subprocess
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
-from PyQt5.QtCore import QTimer, QObject, pyqtSignal
+from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
+from PyQt5.QtCore import QObject, pyqtSignal
+from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer, runActivityBrowser
+
+# Define constants
+INSTALLER_FILENAME = "activity-browser.exe"
 
 class downloadThread(QObject):
     finished = pyqtSignal()
@@ -26,59 +28,116 @@ class downloadThread(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-    def run(self, user, repo):
+    def getLatestReleaseData(self, user: str, repo: str) -> dict:
         """
-        Download the latest version of the Activity Browser from the GitHub repository.
+        Fetches the latest release data for a given GitHub repository.
 
         Parameters:
-        - user (str): GitHub username of the repository owner.
-        - repo (str): Name of the GitHub repository.
+        user (str): The username of the repository owner.
+        repo (str): The name of the repository.
 
-        Emits:
-        - finished: Signal indicating that the download process is finished.
-        - progressChanged: Signal indicating the progress of the download process.
+        Returns:
+        dict: A dictionary containing the 'assets' data of the latest release. 
+            If 'assets' is not present in the response data, emits an updateLabel signal with a message and returns None.
         """
         url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
         response = requests.get(url)
         data = response.json()
 
         if 'assets' not in data:
-            # Emit signal to update the label with error message
             self.updateLabel.emit("No 'assets' in the response data")
-            return
+            return None
 
-        assets = data['assets']
-        exeUrl = None
+        return data['assets']
+
+    def findExeUrl(self, assets: list) -> str:
+        """
+        Finds the download URL of the .exe file from the list of assets.
+
+        Parameters:
+        assets (list): A list of dictionaries, each representing an asset of a GitHub release.
+
+        Returns:
+        str: The download url of the .exe file. If no .exe file is found, emits an updateLabel signal with a message and returns None.
+        """
         for asset in assets:
             if asset['name'].endswith('.exe'):
-                exeUrl = asset['browser_download_url']
-                break
+                return asset['browser_download_url']
 
-        if exeUrl is None:
-            # Emit signal to update the label with error message
-            self.updateLabel.emit("No exe file found in the release")
-            return
+        self.updateLabel.emit("No exe file found in the release")
+        return None
 
-        response = requests.get(exeUrl, stream=True)
-        totalSize = int(response.headers.get('content-length', 0))
-        bytesDownloaded = 0
+    def downloadFile(self, url: str, filename: str) -> None:
+        """
+        Downloads a file from a given URL and saves it with a specified filename.
+
+        Parameters:
+        url (str): The URL of the file to download.
+        filename (str): The name to save the downloaded file as.
+
+        Returns:
+        None
+
+        Emits:
+        progressChanged: Emits the download progress as a percentage.
+        finished: Emits when the download is complete.
+        updateLabel: Emits a message if the download fails, with the HTTP status code.
+        """
+        # Get the total size of the file to download, so we can calculate the download progress
+        try:
+            response = requests.get(url, stream=True)
+            totalSize = int(response.headers.get('content-length', 0))
+            bytesDownloaded = 0
+        except requests.exceptions.RequestException as e:
+            self.updateLabel.emit(f"Failed to download file: {str(e)}")
+
+        # Download the file in chunks and write it to the specified filename
         if response.status_code == 200:
-            with open("activity-browser.exe", 'wb') as f:
+            with open(filename, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
                         bytesDownloaded += len(chunk)
                         progress = int(bytesDownloaded / totalSize * 100)
-                        # Emit signal to update the progress bar
                         self.progressChanged.emit(progress)
             self.finished.emit()
         else:
-            # Emit signal to update the label with error message
+            # If the download fails, emit a signal with the HTTP status code
             self.updateLabel.emit(f"Failed to download file: {response.status_code}")
 
+    def run(self, user: str, repo: str) -> None:
+        """
+        Runs the update process for a specified GitHub repository.
+
+        This function fetches the latest release data for the repository, finds the download URL of the .exe file in the release assets, and downloads the file.
+
+        Parameters:
+        user (str): The username of the repository owner.
+        repo (str): The name of the repository.
+
+        Returns:
+        None
+
+        If the latest release data does not contain any assets, or if no .exe file is found in the assets, the function returns early.
+        """
+        try:
+            assets = self.getLatestReleaseData(user, repo)
+            if assets is None:
+                return
+
+            exeUrl = self.findExeUrl(assets)
+            if exeUrl is None:
+                return
+
+            self.downloadFile(exeUrl, INSTALLER_FILENAME)
+        except Exception as e:
+            self.updateLabel.emit(f"An error occurred: {str(e)}")
+
 class updaterWindow(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, user: str, repo: str, parent=None):
         super(updaterWindow, self).__init__(parent)
+        self.user = user
+        self.repo = repo
         self.setWindowTitle("New Version Found!")
         self.resize(400, 200)
         self.center()
@@ -97,13 +156,13 @@ class updaterWindow(QDialog):
         layout.addWidget(self.messageLabel)
 
         # Check if we have the newest version of the Activity Browser installed.
-        currentVersion = self.getActivityBrowserVersion()
-        newestVersion = self.getLatestRelease(user="ThisIsSomeone", repo="activity-browser")
-        isOldVersion = self.compareVersions(currentVersion, newestVersion)
+        currentVersion = getActivityBrowserVersion()
+        newestVersion = getLatestRelease(user="ThisIsSomeone", repo="activity-browser")
+        isOldVersion = isSecondIputVersionNewer(currentVersion, newestVersion)
 
         if not isOldVersion:
             # If not an old version, close the window
-            self.close()
+            self.exitApplication()
             return
 
         self.progressBar = QProgressBar()
@@ -122,7 +181,7 @@ class updaterWindow(QDialog):
 
         self.setLayout(layout)
 
-    def updateLabel(self, message):
+    def updateLabel(self, message: str) -> None:
         """
         Update the message label with the specified text.
 
@@ -132,11 +191,11 @@ class updaterWindow(QDialog):
         self.messageLabel.setText(message)
         QApplication.processEvents()
     
-    def showProgressBar(self):
+    def showProgressBar(self) -> None:
         """Show the progress bar."""
         self.progressBar.show()
     
-    def updateProgress(self, value):
+    def updateProgress(self, value: int) -> None:
         """
         Update the progress bar with the specified value.
 
@@ -145,122 +204,48 @@ class updaterWindow(QDialog):
         """
         self.progressBar.setValue(value)
 
-    def center(self):
+    def center(self) -> None:
         """Center the window on the screen."""
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def closeEvent(self, event):
+    def installNow(self) -> None:
+        """Initiate the download and installation process."""
+        self.installButton.setDisabled(True)
+        self.updateLabel("Downloading the installer for the newest version...")
+        self.showProgressBar()
+        threading.Thread(target=self.downloadThread.run, args=(self.user, self.repo)).start()
+    
+    def exitApplication(self) -> None:
+        """Close the window and exit the application."""
+        self.close()
+        sys.exit()
+    
+    def remindLater(self) -> None:
+        """Close the window."""
+        # Open the Activity Browser and close the updater window
+        runActivityBrowser()
+        self.exitApplication()
+
+    def onDownloadFinished(self) -> None:
+        """Open the installer after download completion and close the window."""
+        self.updateLabel("Installer downloaded. Opening...")
+        os.startfile(INSTALLER_FILENAME)
+        self.exitApplication()
+
+    def closeEvent(self, event) -> None:
         """
         Override the closeEvent method to call sys.exit() when the close button is clicked.
         """
-        sys.exit()
-
-    def remindLater(self):
-        """Close the window."""
-        # Open the Activity Browser and close the updater window
-        subprocess.Popen([self.getActivityBrowserEXE()])
-        self.close()
-        sys.exit()
-
-    def installNow(self):
-        """Initiate the download and installation process."""
-        self.updateLabel("Downloading the installer for the newest version...")
-        self.showProgressBar()
-        threading.Thread(target=self.downloadThread.run, args=("ThisIsSomeone", "activity-browser")).start()
-
-    def onDownloadFinished(self):
-        """Open the installer after download completion and close the window."""
-        self.updateLabel("Installer downloaded. Opening...")
-        os.startfile("activity-browser.exe")
-        self.close()
-        sys.exit()
-
-    def getLatestRelease(self, user, repo):
-        """
-         Get the most recent version of the Activity Browser from the GitHub API.
-
-        Parameters:
-        - user (str): GitHub username of the repository owner.
-        - repo (str): Name of the GitHub repository.
-
-        Returns:
-        - str: The latest release version.
-        """
-        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
-        response = requests.get(url)
-        data = response.json()
-        return data['tag_name']
-
-    def getActivityBrowserVersion(self, directory="."):
-        """
-        Get the version number of the ActivityBrowser file in the specified directory.
-
-        Parameters:
-        - directory (str): The directory to search for the ActivityBrowser file.
-
-        Returns:
-        - str: The version number of the ActivityBrowser file.
-        """
-        try:
-            for filename in os.listdir(directory):
-                match = re.match(r'ActivityBrowser-(\d+\.\d+\.\d+)', filename)
-                if match:
-                    return match.group(1)
-            self.updateLabel("ActivityBrowser file not found in the directory.")
-            return None
-        except FileNotFoundError:
-            self.updateLabel(f"Directory '{directory}' not found.")
-            return None
-        
-    def getActivityBrowserEXE(self, directory="."):
-        """
-        Get the path of the ActivityBrowser executable file.
-
-        Returns:
-        - str: The path of the ActivityBrowser executable file.
-        """
-        try:
-            for filename in os.listdir(directory):
-                match = re.match(r'ActivityBrowser-(\d+\.\d+\.\d+)', filename)
-                if match:
-                    return filename
-            self.updateLabel("ActivityBrowser file not found in the directory.")
-            return None
-        except FileNotFoundError:
-            self.updateLabel(f"Directory '{directory}' not found.")
-            return None
-
-    def compareVersions(self, version1, version2):
-      """
-      Compare two version strings in the format 'X.Y.Z' and determine if the second version is newer than the first.
-
-      Parameters:
-      - version1 (str): The first version string to compare.
-      - version2 (str): The second version string to compare.
-
-      Returns:
-      - bool: True if version2 is newer than version1, False otherwise.
-      """
-      v1Components = [int(x) for x in version1.split('.')]
-      v2Components = [int(x) for x in version2.split('.')]
-
-      if v1Components[0] < v2Components[0]:
-          return True
-      elif v1Components[0] == v2Components[0]:
-          if v1Components[1] < v2Components[1]:
-              return True
-          elif v1Components[1] == v2Components[1]:
-              if v1Components[2] < v2Components[2]:
-                  return True
-      return False
+        self.destroy()
+        self.exitApplication()
 
 
 if __name__ == "__main__":
     # Check if the script is running as an administrator for changing files in ActivityBrowser directory      
     app = QApplication(sys.argv)
-    window = updaterWindow()
+    window = updaterWindow(user="ThisIsSomeone", repo="activity-browser")
     window.exec_()
     sys.exit(app.exec_())
