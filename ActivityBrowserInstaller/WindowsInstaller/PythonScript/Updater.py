@@ -10,7 +10,10 @@
     UI. The downloadWindow has two events, to which the updateWindow listens to update the UI to change the download progress.
 """
 
+import tempfile
 import threading
+import subprocess
+import shutil
 import requests
 import os
 import sys
@@ -20,6 +23,7 @@ from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecon
 
 # Define constants
 INSTALLER_FILENAME = "activity-browser.exe"
+TEMP_DIR = tempfile.gettempdir()
 
 class downloadThread(QObject):
     finished = pyqtSignal()
@@ -69,7 +73,7 @@ class downloadThread(QObject):
 
     def downloadFile(self, url: str, filename: str) -> None:
         """
-        Downloads a file from a given URL and saves it with a specified filename.
+        Downloads a file from a given URL and saves it with a specified filename in a temporary directory.
 
         Parameters:
         url (str): The URL of the file to download.
@@ -91,9 +95,10 @@ class downloadThread(QObject):
         except requests.exceptions.RequestException as e:
             self.updateLabel.emit(f"Failed to download file: {str(e)}")
 
-        # Download the file in chunks and write it to the specified filename
+        # Download the file in chunks and write it to the specified filename in a temporary directory
         if response.status_code == 200:
-            with open(filename, 'wb') as f:
+            file_path = os.path.join(TEMP_DIR, filename)
+            with open(file_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
@@ -230,9 +235,18 @@ class updaterWindow(QDialog):
         self.exitApplication()
 
     def onDownloadFinished(self) -> None:
-        """Open the installer after download completion and close the window."""
+        """Open the installer after download completion and close the window. Delete the temporary directory after the installer has finished."""
         self.updateLabel("Installer downloaded. Opening...")
-        os.startfile(INSTALLER_FILENAME)
+        file_path = os.path.join(TEMP_DIR, INSTALLER_FILENAME)
+        try:
+            # Hide the updater window
+            self.hide()
+            # Start the installer and wait for it to finish
+            subprocess.check_call([file_path])
+            # After the installer has finished, delete the temporary directory
+            shutil.rmtree(TEMP_DIR)
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
         self.exitApplication()
 
     def closeEvent(self, event) -> None:
@@ -241,7 +255,6 @@ class updaterWindow(QDialog):
         """
         self.destroy()
         self.exitApplication()
-
 
 if __name__ == "__main__":
     # Check if the script is running as an administrator for changing files in ActivityBrowser directory      
