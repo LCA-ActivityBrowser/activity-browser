@@ -176,11 +176,11 @@ class updaterWindow(QDialog):
         layout.addWidget(self.progressBar)
 
         buttonLayout = QHBoxLayout()
-        remindButton = QPushButton("Remind me later")
-        remindButton.clicked.connect(self.remindLater)
+        self.remindButton = QPushButton("Remind me later")
+        self.remindButton.clicked.connect(self.remindLater)
         self.installButton = QPushButton("Install now")
         self.installButton.clicked.connect(self.installNow)
-        buttonLayout.addWidget(remindButton)
+        buttonLayout.addWidget(self.remindButton)
         buttonLayout.addWidget(self.installButton)
         layout.addLayout(buttonLayout)
 
@@ -237,6 +237,7 @@ class updaterWindow(QDialog):
     def installNow(self) -> None:
         """Initiate the download and installation process."""
         self.installButton.setDisabled(True)
+        self.remindButton.setDisabled(True)
         self.updateLabel("Downloading the installer for the newest version...")
         self.showProgressBar()
         threading.Thread(target=self.downloadThread.run, args=(self.user, self.repo)).start()
