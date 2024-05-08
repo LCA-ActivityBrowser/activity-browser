@@ -17,7 +17,7 @@ import requests
 from packaging.version import parse
 import argparse
 
-def parse_args():
+def parseArgs():
     """
     Parse command line arguments. The only argument is --skip-update-check, which skips checking for updates.
     """	
@@ -98,7 +98,7 @@ def runActivityBrowser() -> None:
     os.system(f"{deactivate_cmd}")
 
 if __name__ == "__main__":
-    args = parse_args()
+    args = parseArgs()
 
     if not args.skip_update_check:
         # Check if the ActivityBrowser file is up to date
