@@ -185,12 +185,24 @@ class updaterWindow(QDialog):
         layout.addLayout(buttonLayout)
 
         self.setLayout(layout)
+    
+    def getActivityBrowserFilename(self) -> str:
+        """
+        Get the filename of the ActivityBrowser executable in the current directory.
+
+        Returns:
+        - str: The filename of the ActivityBrowser executable.
+        """
+        for filename in os.listdir("."):
+            if filename.startswith("ActivityBrowser-"):
+                return filename
+        return None
 
     def runActivityBrowser(self) -> None:
         """
         Activate the Activity Browser environment and run the activity-browser.
         """
-        subprocess.run(["start", "ActivityBrowser.exe", "--skip-update-check"], check=True, shell=True)
+        subprocess.run(["start", self.getActivityBrowserFilename(), "--skip-update-check"], check=True, shell=True)
 
     def updateLabel(self, message: str) -> None:
         """
@@ -232,7 +244,7 @@ class updaterWindow(QDialog):
     def exitApplication(self) -> None:
         """Close the window and exit the application."""
         self.close()
-        sys.exit()
+        sys.exit(app.exec_())
     
     def remindLater(self) -> None:
         """Open the Activity Browser and close the updater window."""
