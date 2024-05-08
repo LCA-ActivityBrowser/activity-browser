@@ -38,13 +38,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall; AfterInstall: RunUninstaller
-Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ActivityBrowser.exe"; DestDir: "{app}"; \
-DestName: "ActivityBrowser-{#AppVersion}.exe"; Flags: ignoreversion
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: RunUninstaller
 Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
 Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
 Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\icon.ico" ; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
 Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ActivityBrowser Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ActivityBrowser.exe"; DestDir: "{app}"; \
+DestName: "ActivityBrowser-{#AppVersion}.exe"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -72,6 +72,7 @@ procedure RunUninstaller;
 var
   ResultCode: Integer;
 begin
+  WizardForm.FilenameLabel.Caption := 'Removing ActivityBrowser environment and startup file if they exist...';
   if not Exec(ExpandConstant('{app}\{#condaEnvDeletor}'), '', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
   begin
     MsgBox('Failed to run ' + '{#condaEnvDeletor}' + '. The error code was ' + IntToStr(ResultCode) + '.', mbError, MB_OK);
