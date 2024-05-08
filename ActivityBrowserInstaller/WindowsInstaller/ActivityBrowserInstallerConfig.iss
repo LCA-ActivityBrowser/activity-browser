@@ -57,7 +57,7 @@ Root: HKA; Subkey: "Software\Classes\Applications\{#appExeName}\SupportedTypes";
 [Icons]
 Name: "{group}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; IconFilename: "{app}\icon.ico"
 Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\icon.ico"
-Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: desktopicon; IconFilename: "{app}\icon.ico"
+Name: "{autodesktop}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; Tasks: desktopicon; IconFilename: "{app}\icon.ico"
 
 
 [Run]
