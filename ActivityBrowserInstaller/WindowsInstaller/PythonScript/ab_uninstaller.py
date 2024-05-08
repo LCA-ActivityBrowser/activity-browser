@@ -12,19 +12,30 @@
 
 import shutil
 import os
-from ActivityBrowser import getActivityBrowserVersion
 
-currentDirectory = os.getcwd()
-directoryPath = os.path.join(currentDirectory, "ActivityBrowserEnvironment")
+def getActivityBrowserFilename() -> str:
+        """
+        Get the filename of the ActivityBrowser executable in the current directory.
 
-try:
-    shutil.rmtree(directoryPath)
-    print(f"Directory '{directoryPath}' successfully removed.")
-except FileNotFoundError:
-    print(f"Directory '{directoryPath}' not found.")
+        Returns:
+        - str: The filename of the ActivityBrowser executable.
+        """
+        for filename in os.listdir("."):
+            if filename.startswith("ActivityBrowser-"):
+                return filename
+        return None
 
-try:
-    # Remove ActivityBrowser-<version> file
-    os.remove("ActivityBrowser-" + getActivityBrowserVersion())
-except FileNotFoundError:
-    print("ActivityBrowser file not found in the directory.")
+if __name__ == "__main__":
+    currentDirectory = os.getcwd()
+    directoryPath = os.path.join(currentDirectory, "ActivityBrowserEnvironment")
+
+    try:
+        shutil.rmtree(directoryPath)
+        print(f"Directory '{directoryPath}' successfully removed.")
+    except FileNotFoundError:
+        print(f"Directory '{directoryPath}' not found.")
+
+    try:
+        os.remove(getActivityBrowserFilename())
+    except FileNotFoundError:
+        print("ActivityBrowser file not found in the directory.")
