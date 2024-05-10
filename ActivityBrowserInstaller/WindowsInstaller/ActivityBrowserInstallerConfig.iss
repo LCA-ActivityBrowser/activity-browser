@@ -9,6 +9,7 @@
 #define appAssocName AppName + ""
 #define appAssocExt ".myp"
 #define appAssocKey StringChange(appAssocName, " ", "") + appAssocExt
+#define PascalScripting
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -24,7 +25,7 @@ DefaultDirName={autopf}\{#appName}
 ChangesAssociations=yes
 DefaultGroupName={#appName}
 AllowNoIcons=yes
-OutputBaseFilename=ActivityBrowserSetup
+OutputBaseFilename=ActivityBrowser-{#appVersion}-Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -37,11 +38,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\{#appExeName}"; DestDir: "{app}";
-Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
-Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\ab.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
-Source: "C:\Users\rcjvi\Documents\activity-browser\ActivityBrowserInstaller\WindowsInstaller\icon.ico" ; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_uninstaller.exe"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: RunUninstaller
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ab_installer.exe"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\ActivityBrowser.tar.gz"; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\icon.ico" ; DestDir: "{app}"; Flags: ignoreversion deleteafterinstall
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ActivityBrowser Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\thijs\Documents\activity-browser-installer\ActivityBrowserInstaller\WindowsInstaller\PythonScript\dist\ActivityBrowser.exe"; DestDir: "{app}"; \
+DestName: "ActivityBrowser-{#AppVersion}.exe"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -52,14 +55,25 @@ Root: HKA; Subkey: "Software\Classes\{#appAssocExt}\shell\open\command"; ValueTy
 Root: HKA; Subkey: "Software\Classes\Applications\{#appExeName}\SupportedTypes"; ValueType: string; ValueName: ".myp"; ValueData: ""
 
 [Icons]
-Name: "{group}\{#appName}"; Filename: "{app}\{#appExeName}"; IconFilename: "{app}\icon.ico"
+Name: "{group}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; IconFilename: "{app}\icon.ico"
 Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\icon.ico"
-Name: "{autodesktop}\{#appName}"; Filename: "{app}\{#appExeName}"; Tasks: desktopicon; IconFilename: "{app}\icon.ico"
-
+Name: "{autodesktop}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; Tasks: desktopicon; IconFilename: "{app}\icon.ico"
 
 [Run]
 Filename: "{app}\{#condaEnvCreator}"; Flags: runhidden ; StatusMsg: "Installing the Conda Environment"
-Filename: "{app}\{#appExeName}"; Description: "{cm:LaunchProgram,{#StringChange(appName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; Description: "{cm:LaunchProgram,{#StringChange(appName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "{app}\{#condaEnvDeletor}"; Flags: runhidden
+
+[Code]
+procedure RunUninstaller;
+var
+  ResultCode: Integer;
+begin
+  WizardForm.FilenameLabel.Caption := 'Removing ActivityBrowser environment and startup file if they exist...';
+  if not Exec(ExpandConstant('{app}\{#condaEnvDeletor}'), '', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    MsgBox('Failed to run ' + '{#condaEnvDeletor}' + '. The error code was ' + IntToStr(ResultCode) + '.', mbError, MB_OK);
+  end;
+end;
