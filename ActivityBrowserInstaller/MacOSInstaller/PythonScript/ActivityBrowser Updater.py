@@ -22,7 +22,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer
 
 # Define constants
-INSTALLER_FILENAME = "activity-browser.exe"
+INSTALLER_FILENAME = "activity-browser.app"
 TEMP_DIR = tempfile.gettempdir()
 
 class downloadThread(QObject):
@@ -56,19 +56,19 @@ class downloadThread(QObject):
 
     def findExeUrl(self, assets: list) -> str:
         """
-        Finds the download URL of the .exe file from the list of assets.
+        Finds the download URL of the .app file from the list of assets.
 
         Parameters:
         assets (list): A list of dictionaries, each representing an asset of a GitHub release.
 
         Returns:
-        str: The download url of the .exe file. If no .exe file is found, emits an updateLabel signal with a message and returns None.
+        str: The download url of the .app file. If no .app file is found, emits an updateLabel signal with a message and returns None.
         """
         for asset in assets:
-            if asset['name'].endswith('.exe'):
+            if asset['name'].endswith('.app'):
                 return asset['browser_download_url']
 
-        self.updateLabel.emit("No exe file found in the release")
+        self.updateLabel.emit("No app file found in the release")
         return None
 
     def downloadFile(self, url: str, filename: str) -> None:
@@ -114,7 +114,7 @@ class downloadThread(QObject):
         """
         Runs the update process for a specified GitHub repository.
 
-        This function fetches the latest release data for the repository, finds the download URL of the .exe file in the release assets, and downloads the file.
+        This function fetches the latest release data for the repository, finds the download URL of the .app file in the release assets, and downloads the file.
 
         Parameters:
         user (str): The username of the repository owner.
@@ -123,18 +123,18 @@ class downloadThread(QObject):
         Returns:
         None
 
-        If the latest release data does not contain any assets, or if no .exe file is found in the assets, the function returns early.
+        If the latest release data does not contain any assets, or if no .app file is found in the assets, the function returns early.
         """
         try:
             assets = self.getLatestReleaseData(user, repo)
             if assets is None:
                 return
 
-            exeUrl = self.findExeUrl(assets)
-            if exeUrl is None:
+            appUrl = self.findappUrl(assets)
+            if appUrl is None:
                 return
 
-            self.downloadFile(exeUrl, INSTALLER_FILENAME)
+            self.downloadFile(appUrl, INSTALLER_FILENAME)
         except Exception as e:
             self.updateLabel.emit(f"An error occurred: {str(e)}")
 
