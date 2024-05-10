@@ -59,7 +59,6 @@ Name: "{group}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe";
 Name: "{group}\{cm:UninstallProgram,{#appName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\icon.ico"
 Name: "{autodesktop}\{#appName}"; Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; Tasks: desktopicon; IconFilename: "{app}\icon.ico"
 
-
 [Run]
 Filename: "{app}\{#condaEnvCreator}"; Flags: runhidden ; StatusMsg: "Installing the Conda Environment"
 Filename: "{app}\ActivityBrowser-{#appVersion}.exe"; Description: "{cm:LaunchProgram,{#StringChange(appName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
