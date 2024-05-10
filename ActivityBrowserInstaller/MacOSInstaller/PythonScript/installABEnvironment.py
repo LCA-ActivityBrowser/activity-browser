@@ -1,3 +1,12 @@
+"""
+- installABEnvironment.py
+- Date of File Creation: 10/05/2024
+- Contributors: Thijs Groeneweg & Ruben Visser & Bryan Owee
+- Date and Author of Last Modification: 10/05/2024 - Thijs Groeneweg
+- Synopsis of the File's purpose:
+    This script installs the 'ab' Conda environment with the 'activity-browser' package from conda-forge.
+"""
+
 import subprocess
 
 def installABEnvironMent():

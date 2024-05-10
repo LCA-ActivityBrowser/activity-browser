@@ -1,8 +1,8 @@
 """
-- Updater.py
-- Date of File Creation: 29/05/2024
+- ActivityBrowser Updater.py
+- Date of File Creation: 10/05/2024
 - Contributors: Thijs Groeneweg & Ruben Visser
-- Date and Author of Last Modification: 06/05/2024 - Thijs Groeneweg
+- Date and Author of Last Modification: 10/05/2024 - Thijs Groeneweg
 - Synopsis of the File's purpose:
     This Python script checks for updates of an application from a GitHub repository, prompts the user to install
     the latest version if available, and handles the download and installation process with a progress bar.
