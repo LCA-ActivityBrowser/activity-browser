@@ -9,8 +9,3 @@ if ! conda env list | grep -q "\bab\b"; then
     conda create -y -n ab -c conda-forge activity-browser
 fi
 
-# Activate the 'ab' environment
-conda activate ab
-
-# Run the 'activity-browser' command
-activity-browser
