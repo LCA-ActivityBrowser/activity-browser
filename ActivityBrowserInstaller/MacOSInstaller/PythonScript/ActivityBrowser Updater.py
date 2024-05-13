@@ -261,9 +261,7 @@ class updaterWindow(QDialog):
         """
         Activate the Activity Browser environment and run the activity-browser.
         """
-        self.hide()
         openActivityBrowser(skipUpdateCheck=True)
-        self.exitApplication()
 
     def updateLabel(self, message: str) -> None:
         """
