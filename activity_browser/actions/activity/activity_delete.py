@@ -1,30 +1,27 @@
-from typing import Union, Callable, List
+from typing import List
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.brightway import bd
 from activity_browser.brightway.bw2data.parameters import ActivityParameter, Group, GroupDependency, parameters
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import NewABAction
 
 
-class ActivityDelete(ABAction):
+class ActivityDelete(NewABAction):
     """
     ABAction to delete one or multiple activities if supplied by activity keys. Will check if an activity has any
     downstream processes and ask the user whether they want to continue if so. Exchanges from any downstream processes
     will be removed
     """
     icon = qicons.delete
-    title = 'Delete ***'
-    activity_keys: List[tuple]
+    text = 'Delete ***'
 
-    def __init__(self, activity_keys: Union[List[tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run(activity_keys: List[tuple]):
         # retrieve activity objects from the controller using the provided keys
-        activities = [bd.get_activity(key) for key in self.activity_keys]
+        activities = [bd.get_activity(key) for key in activity_keys]
 
         # check for downstream processes
         if any(len(act.upstream()) > 0 for act in activities):

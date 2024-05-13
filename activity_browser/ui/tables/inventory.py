@@ -33,7 +33,7 @@ class DatabasesTable(ABDataFrameView):
         ))
 
         self.relink_action = DatabaseRelink(self.current_database, self)
-        self.new_activity_action = ActivityNew(self.current_database, self)
+        self.new_activity_action = ActivityNew.get_action(self.current_database)
         self.delete_db_action = DatabaseDelete(self.current_database, self)
         self.duplicate_db_action = DatabaseDuplicate(self.current_database, self)
 
@@ -99,14 +99,14 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
         # context-menu items
-        self.open_activity_action = ActivityOpen(self.selected_keys, self)
-        self.open_activity_graph_action = ActivityGraph(self.selected_keys, self)
-        self.new_activity_action = ActivityNew(self.current_database, self)
-        self.duplicate_activity_action = ActivityDuplicate(self.selected_keys, self)
-        self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc(lambda: self.selected_keys()[0], self)
-        self.delete_activity_action = ActivityDelete(self.selected_keys, self)
-        self.relink_activity_exch_action = ActivityRelink(self.selected_keys, self)
-        self.duplicate_other_db_action = ActivityDuplicateToDB(self.selected_keys, None, self)
+        self.open_activity_action = ActivityOpen.get_action(self.selected_keys)
+        self.open_activity_graph_action = ActivityGraph.get_action(self.selected_keys)
+        self.new_activity_action = ActivityNew.get_action(self.current_database)
+        self.duplicate_activity_action = ActivityDuplicate.get_action(self.selected_keys)
+        self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc.get_action(lambda: self.selected_keys()[0])
+        self.delete_activity_action = ActivityDelete.get_action(self.selected_keys)
+        self.relink_activity_exch_action = ActivityRelink.get_action(self.selected_keys)
+        self.duplicate_other_db_action = ActivityDuplicateToDB.get_action(self.selected_keys)
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, 'Exchanges for scenario difference file', None
         )

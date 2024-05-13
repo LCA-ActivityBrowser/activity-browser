@@ -97,7 +97,7 @@ class BaseExchangeModel(EditablePandasModel):
             actions.ExchangeModify(exchange, {field: value}, self).trigger()
         else:
             act_key = exchange.output.key
-            actions.ActivityModify(act_key, field, value, self).trigger()
+            actions.ActivityModify.run(act_key, field, value)
         return super().setData(index, value, role)
 
     def get_usable_parameters(self):

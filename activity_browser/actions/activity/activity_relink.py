@@ -1,39 +1,36 @@
-from typing import Union, Callable, List
+from typing import List
 
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import signals, application
-from activity_browser.brightway.bw2data import Database, databases, get_activity
+from activity_browser import application
+from activity_browser.brightway import bd
 from activity_browser.bwutils.strategies import relink_activity_exchanges
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import NewABAction
 from activity_browser.ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog
 from activity_browser.ui.icons import qicons
 
 
-class ActivityRelink(ABAction):
+class ActivityRelink(NewABAction):
     """
     ABAction to relink the exchanges of an activity to exchanges from another database.
 
     This action only uses the first key from activity_keys
     """
     icon = qicons.edit
-    title = "Relink the activity exchanges"
-    activity_keys: List[tuple]
+    text = "Relink the activity exchanges"
 
-    def __init__(self, activity_keys: Union[List[tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run(activity_keys: List[tuple]):
         # this action only uses the first key supplied to activity_keys
-        key = self.activity_keys[0]
+        key = activity_keys[0]
 
         # extract the brightway database and activity
-        db = Database(key[0])
-        activity = get_activity(key)
+        db = bd.Database(key[0])
+        activity = bd.get_activity(key)
 
         # find the dependents for the database and construct the alternatives in tuple format
         depends = db.find_dependents()
-        options = [(depend, list(databases)) for depend in depends]
+        options = [(depend, list(bd.databases)) for depend in depends]
 
         # present the alternatives to the user in a linking dialog
         dialog = ActivityLinkingDialog.relink_sqlite(
@@ -51,7 +48,7 @@ class ActivityRelink(ABAction):
         # use the relink_activity_exchanges strategy to relink the exchanges of the activity
         relinking_results = {}
         for old, new in dialog.relink.items():
-            other = Database(new)
+            other = bd.Database(new)
             failed, succeeded, examples = relink_activity_exchanges(activity, old, other)
             relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
 

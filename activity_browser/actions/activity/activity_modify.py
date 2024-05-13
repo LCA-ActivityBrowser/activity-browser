@@ -4,29 +4,20 @@ from PySide2 import QtCore
 
 from activity_browser.brightway.bw2data import get_activity
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import NewABAction
 
 
-class ActivityModify(ABAction):
+class ActivityModify(NewABAction):
     """
     ABAction to delete one or multiple activities if supplied by activity keys. Will check if an activity has any
     downstream processes and ask the user whether they want to continue if so. Exchanges from any downstream processes
     will be removed
     """
     icon = qicons.edit
-    title = 'Modify Activity'
-    activity_key: tuple
-    field: str
-    value: any
+    text = 'Modify Activity'
 
-    def __init__(self,
-                 activity_key: Union[tuple, Callable],
-                 field: Union[str, Callable],
-                 value: Union[any, Callable],
-                 parent: QtCore.QObject):
-        super().__init__(parent, activity_key=activity_key, field=field, value=value)
-
-    def onTrigger(self, toggled):
-        activity = get_activity(self.activity_key)
-        activity[self.field] = self.value
+    @staticmethod
+    def run(activity_key: tuple, field: str, value: any):
+        activity = get_activity(activity_key)
+        activity[field] = value
         activity.save()

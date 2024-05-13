@@ -26,7 +26,7 @@ class SignalledLineEdit(QtWidgets.QLineEdit):
         after = self.text()
         if self._before != after:
             self._before = after
-            actions.ActivityModify(self._key, self._field, after, self).trigger()
+            actions.ActivityModify.run(self._key, self._field, after)
 
 
 class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
@@ -51,7 +51,7 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
     def focusOutEvent(self, event):
         after = self.toPlainText()
         if self._before != after:
-            actions.ActivityModify(self._key, self._field, after, self).trigger()
+            actions.ActivityModify.run(self._key, self._field, after)
         super().focusOutEvent(event)
 
     def refresh_text(self, text: str) -> None:
@@ -76,5 +76,5 @@ class SignalledComboEdit(QtWidgets.QComboBox):
         after = self.currentText()
         if self._before != after:
             self._before = after
-            actions.ActivityModify(self._key, self._field, after, self).trigger()
+            actions.ActivityModify.run(self._key, self._field, after)
         super(SignalledComboEdit, self).focusOutEvent(event)

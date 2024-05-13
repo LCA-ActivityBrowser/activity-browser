@@ -4,35 +4,31 @@ import pandas as pd
 from PySide2 import QtCore
 
 from activity_browser import signals, application
-from activity_browser.brightway.bw2data import get_activity
+from activity_browser.brightway import bd
 from activity_browser.bwutils import AB_metadata, commontasks
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import NewABAction
 from ...ui.widgets import LocationLinkingDialog
 
 
-class ActivityDuplicateToLoc(ABAction):
+class ActivityDuplicateToLoc(NewABAction):
     """
     ABAction to duplicate an activity and possibly their exchanges to a new location.
     """
     icon = qicons.copy
-    title = 'Duplicate activity to new location'
-    activity_key: tuple
-    db_name: str
+    text = 'Duplicate activity to new location'
 
-    def __init__(self, activity_key: Union[tuple, Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_key=activity_key)
-
-    def onTrigger(self, toggled):
-        activity = get_activity(self.activity_key)
-        self.db_name = activity["database"]
+    @classmethod
+    def run(cls, activity_key: tuple):
+        activity = bd.get_activity(activity_key)
+        db_name = activity["database"]
 
         # get list of dependent databases for activity and load to MetaDataStore
         databases = []
         for exchange in activity.technosphere():
             databases.append(exchange.input[0])
-        if self.db_name not in databases:  # add own database if it wasn't added already
-            databases.append(self.db_name)
+        if db_name not in databases:  # add own database if it wasn't added already
+            databases.append(db_name)
 
         # load all dependent databases to MetaDataStore
         dbs = {db: AB_metadata.get_database_metadata(db) for db in databases}
@@ -44,7 +40,7 @@ class ActivityDuplicateToLoc(ABAction):
         locations.sort()
 
         # get the location to relink
-        db = dbs[self.db_name]
+        db = dbs[db_name]
         old_location = db.loc[db['key'] == activity.key]['location'].iloc[0]
 
         # trigger dialog with autocomplete-writeable-dropdown-list
@@ -114,7 +110,7 @@ class ActivityDuplicateToLoc(ABAction):
         # get exchanges that we want to delete
         # del_exch = []  # delete these exchanges
         for exch in new_act.technosphere():
-            candidate = self.find_candidate(dbs, exch, old_location, new_location, use_alternatives, alternatives)
+            candidate = cls.find_candidate(db_name, dbs, exch, old_location, new_location, use_alternatives, alternatives)
             if candidate is None: continue  # no suitable candidate was found, try the next exchange
             exch.input = candidate["key"][0]
             exch.save()
@@ -129,14 +125,15 @@ class ActivityDuplicateToLoc(ABAction):
         AB_metadata.update_metadata(new_act.key)
         signals.safe_open_activity_tab.emit(new_act.key)
 
-    def find_candidate(self, dbs, exch, old_location, new_location, use_alternatives, alternatives) -> Optional[object]:
+    @staticmethod
+    def find_candidate(db_name, dbs, exch, old_location, new_location, use_alternatives, alternatives) -> Optional[object]:
         """Find a candidate to replace the exchange with."""
         current_db = exch.input[0]
-        if current_db == self.db_name:
+        if current_db == db_name:
             db = dbs[current_db]
         else:  # if the exchange is not from the current database, also check the current
             # (user may have added their own alternative dependents already)
-            db = pd.concat([dbs[current_db], dbs[self.db_name]])
+            db = pd.concat([dbs[current_db], dbs[db_name]])
 
         if db.loc[db['key'] == exch.input]['location'].iloc[0] != old_location:
             return  # this exchange has a location we're not trying to re-link

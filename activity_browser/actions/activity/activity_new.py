@@ -1,27 +1,23 @@
 from uuid import uuid4
-from typing import Union, Callable
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.brightway.bw2data import Database
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import NewABAction
 
 
-class ActivityNew(ABAction):
+class ActivityNew(NewABAction):
     """
     ABAction to create a new activity. Prompts the user to supply a name. Returns if no name is supplied or if the user
     cancels. Otherwise, instructs the ActivityController to create a new activity.
     """
     icon = qicons.add
-    title = "New activity"
-    database_name: str
+    text = "New activity"
 
-    def __init__(self, database_name: Union[str, Callable], parent: QtCore.QObject):
-        super().__init__(parent, database_name=database_name)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run(database_name: str):
         # ask the user to provide a name for the new activity
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
@@ -40,7 +36,7 @@ class ActivityNew(ABAction):
             "unit": "unit",
             "type": "process"
         }
-        database = Database(self.database_name)
+        database = Database(database_name)
         new_act = database.new_activity(code=uuid4().hex, **data)
         new_act.save()
 

@@ -18,7 +18,7 @@ def test_activity_delete(ab_app, monkeypatch):
     assert bw.projects.current == "default"
     assert bw.get_activity(key)
 
-    actions.ActivityDelete([key], None).trigger()
+    actions.ActivityDelete.run([key])
 
     with pytest.raises(Exception): bw.get_activity(key)
 
@@ -31,7 +31,7 @@ def test_activity_duplicate(ab_app):
     assert bw.get_activity(key)
     with pytest.raises(Exception): bw.get_activity(dup_key)
 
-    actions.ActivityDuplicate([key], None).trigger()
+    actions.ActivityDuplicate.run([key])
 
     assert bw.get_activity(key)
     assert bw.get_activity(dup_key)
@@ -50,7 +50,7 @@ def test_activity_duplicate_to_db(ab_app, monkeypatch):
     assert bw.get_activity(key)
     with pytest.raises(Exception): bw.get_activity(dup_key)
 
-    actions.ActivityDuplicateToDB([key], None, None).trigger()
+    actions.ActivityDuplicateToDB.run([key])
 
     assert bw.get_activity(key)
     assert bw.get_activity(dup_key)
@@ -74,7 +74,7 @@ def test_activity_duplicate_to_loc(ab_app, monkeypatch):
     assert bw.get_activity(key).as_dict()["location"] == "MOON"
     with pytest.raises(Exception): bw.get_activity(dup_key)
 
-    actions.ActivityDuplicateToLoc(key, None).trigger()
+    actions.ActivityDuplicateToLoc.run(key)
 
     assert bw.get_activity(key).as_dict()["location"] == "MOON"
     assert bw.get_activity(dup_key).as_dict()["location"] == "GLO"
@@ -88,7 +88,7 @@ def test_activity_graph(ab_app):
     assert bw.get_activity(key)
     assert key not in panel.tabs
 
-    actions.ActivityGraph([key], None).trigger()
+    actions.ActivityGraph.run([key])
 
     assert key in panel.tabs
 
@@ -102,7 +102,7 @@ def test_activity_new(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ('activity_that_is_new', True))
     )
 
-    actions.ActivityNew(database_name, None).trigger()
+    actions.ActivityNew.run(database_name)
 
     assert records < len(Database(database_name))
 
@@ -115,7 +115,7 @@ def test_activity_open(ab_app):
     assert bw.get_activity(key)
     assert key not in panel.tabs
 
-    actions.ActivityOpen([key], None).trigger()
+    actions.ActivityOpen.run([key])
 
     assert key in panel.tabs
     assert panel.isVisible()
@@ -139,6 +139,6 @@ def test_activity_relink(ab_app, monkeypatch, qtbot):
     assert bw.projects.current == "default"
     assert list(bw.get_activity(key).exchanges())[1].input.key == from_key
 
-    actions.ActivityRelink([key], None).trigger()
+    actions.ActivityRelink.run([key])
 
     assert list(bw.get_activity(key).exchanges())[1].input.key == to_key

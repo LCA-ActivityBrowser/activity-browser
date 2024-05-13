@@ -155,7 +155,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.blockSignals(False)
 
     def duplicate_confirm_dialog(self, target_db):
-        actions.ActivityDuplicateToDB([self.parent.activity], target_db, self).trigger()
+        actions.ActivityDuplicateToDB.run([self.parent.activity], target_db)
         # change selected database item back to original (index=0), to avoid confusing user
         # block and unblock signals to prevent unwanted extra emits from the automated change
         self.database_combo.blockSignals(True)

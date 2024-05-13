@@ -50,3 +50,40 @@ class ABAction(QtWidgets.QAction):
         button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         button.setDefaultAction(self)
         return button
+
+
+class NewABAction:
+    icon: QtGui.QIcon = None
+    text: str = None
+    tooltip: str = None
+
+    @staticmethod
+    def run(*args, **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def triggered(cls, *args, **kwargs):
+
+        args = [arg if not callable(arg) else arg() for arg in args]
+        kwargs = {k: v if not callable(v) else v() for k, v in kwargs.items()}
+
+        cls.run(*args, **kwargs)
+
+    @classmethod
+    def get_action(cls, *args, **kwargs) -> QtWidgets.QAction:
+        action = QtWidgets.QAction(cls.icon, cls.text, None)
+        action.setToolTip(cls.tooltip)
+
+        action.triggered.connect(lambda: cls.triggered(*args, **kwargs))
+
+        return action
+
+    @classmethod
+    def get_button(cls, *args, **kwargs):
+        """Convenience function to return a button that has this ABAction as default action."""
+        button = QtWidgets.QToolButton(None)
+        action = cls.get_action(*args, **kwargs)
+
+        button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        button.setDefaultAction(action)
+        return button
