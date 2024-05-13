@@ -20,6 +20,7 @@ import os
 import sys
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
 from PyQt5.QtCore import QObject, pyqtSignal
+from ActivityBrowser import openActivityBrowser
 
 # Define constants
 INSTALLER_FILENAME = "activity-browser.app.zip"
@@ -260,7 +261,7 @@ class updaterWindow(QDialog):
         """
         Activate the Activity Browser environment and run the activity-browser.
         """
-        subprocess.run(["open", self.getActivityBrowserFilename(), "--skip-update-check"], check=True, shell=True)
+        openActivityBrowser(skipUpdateCheck=True)
 
     def updateLabel(self, message: str) -> None:
         """
