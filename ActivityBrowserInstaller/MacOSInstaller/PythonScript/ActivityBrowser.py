@@ -25,9 +25,7 @@ def runActivityBrowser(command, scriptPath):
 
 def runUpdater():
     updaterPath = resourcePath('ActivityBrowser Updater.py')
-
-    command = [sys.executable, updaterPath]
-    subprocess.run(command, shell=True)
+    os.system(f'python "{updaterPath}"')
 
 def openActivityBrowser(skipUpdateCheck):
     baseDir = os.path.dirname(__file__)
