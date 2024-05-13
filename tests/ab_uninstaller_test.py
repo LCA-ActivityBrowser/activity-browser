@@ -26,8 +26,12 @@ class TestCleanupScript(unittest.TestCase):
         open(dummy_file_path, "a").close()
 
     def testUninstall(self):
+        # Determine the path of the current directory where this script is located
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Set the path to the ab_installer.py based on the path of this test script
+        ab_uninstaller_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_uninstaller.py")
         # Run the uninstall script
-        subprocess.run(["python", "ab_uninstaller.py"])
+        subprocess.run(["python", ab_uninstaller_path])
         # Check if the environment and the exe file is removed
         self.assertFalse(os.path.exists(self.test_dir), f"Directory '{self.test_dir}' should be removed.")
 

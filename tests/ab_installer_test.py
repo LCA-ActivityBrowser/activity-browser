@@ -33,8 +33,13 @@ class TestEnvironmentExtraction(unittest.TestCase):
         os.remove("ActivityBrowser.tar.gz")
 
     def test_environment_extraction(self):
+        # Determine the path of the current directory where this script is located
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Set the path to the ab_installer.py based on the path of this test script
+        ab_installer_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_installer.py")
+
         # Run the installation code
-        subprocess.run(["python", "ab_installer.py"])
+        subprocess.run(["python", ab_installer_path])
         self.env_dir = "ActivityBrowserEnvironment"
 
         # Check if the directory is created
