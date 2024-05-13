@@ -12,41 +12,39 @@
 
 import os
 import subprocess
-import unittest
 import tarfile
 import shutil
+import pytest
 
-class TestEnvironmentExtraction(unittest.TestCase):
-    def setUp(self):
-        if not os.path.exists("Scripts"):
-            os.makedirs("Scripts")
+@pytest.fixture(scope="module")
+def setup_environment():
+    if not os.path.exists("Scripts"):
+        os.makedirs("Scripts")
 
-        # Create a tarball file "ActivityBrowser.tar.gz" to simulate the installation process
-        with tarfile.open("ActivityBrowser.tar.gz", "w:gz") as tar:
-            # Add the "Scripts" folder to the Tarbal file to check whether the tar unpacks correctly
-            tar.add("Scripts", arcname="Scripts")
+    # Create a tarball file "ActivityBrowser.tar.gz" to simulate the installation process
+    with tarfile.open("ActivityBrowser.tar.gz", "w:gz") as tar:
+        # Add the "Scripts" folder to the Tarball file to check whether the tar unpacks correctly
+        tar.add("Scripts", arcname="Scripts")
 
-    def tearDown(self):
-        # Delete al the created folders and Tarbal file
-        shutil.rmtree("Scripts")
-        shutil.rmtree("ActivityBrowserEnvironment")
-        os.remove("ActivityBrowser.tar.gz")
+    yield
 
-    def test_environment_extraction(self):
-        # Determine the path of the current directory where this script is located
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Set the path to the ab_installer.py based on the path of this test script
-        ab_installer_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_installer.py")
+    # Delete all the created folders and Tarball file
+    shutil.rmtree("Scripts")
+    shutil.rmtree("ActivityBrowserEnvironment")
+    os.remove("ActivityBrowser.tar.gz")
 
-        # Run the installation code
-        subprocess.run(["python", ab_installer_path])
-        self.env_dir = "ActivityBrowserEnvironment"
+def test_environment_extraction(setup_environment):
+    # Determine the path of the current directory where this script is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Set the path to the ab_installer.py based on the path of this test script
+    ab_installer_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_installer.py")
 
-        # Check if the directory is created
-        self.assertTrue(os.path.exists(self.env_dir))
+    # Run the installation code
+    subprocess.run(["python", ab_installer_path])
+    env_dir = "ActivityBrowserEnvironment"
 
-        # Check if files are extracted into the directory
-        self.assertTrue(os.path.exists(os.path.join(self.env_dir, "Scripts")))
+    # Check if the directory is created
+    assert os.path.exists(env_dir)
 
-if __name__ == '__main__':
-    unittest.main()
+    # Check if files are extracted into the directory
+    assert os.path.exists(os.path.join(env_dir, "Scripts"))

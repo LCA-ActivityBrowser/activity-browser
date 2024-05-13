@@ -9,32 +9,38 @@
     the uninstallation script removes a specified directory ("ActivityBrowserEnvironment").
 """
 
-import unittest
 import os
 import subprocess
+import pytest
 
-class TestCleanupScript(unittest.TestCase):
-    def setUp(self):
-        # Create a dummy ActivityBrowser environment for testing
-        self.test_dir = "ActivityBrowserEnvironment"
-        os.makedirs(self.test_dir)
+@pytest.fixture(scope="module")
+def setup_environment():
+    # Create a dummy ActivityBrowser environment for testing
+    test_dir = "ActivityBrowserEnvironment"
+    os.makedirs(test_dir)
 
-        current_directory = os.getcwd()
+    current_directory = os.getcwd()
 
-        # Create a dummy ActivityBrowser exe file for testing in the current directory
-        dummy_file_path = os.path.join(current_directory, "ActivityBrowser-Test.exe")
-        open(dummy_file_path, "a").close()
+    # Create a dummy ActivityBrowser exe file for testing in the current directory
+    dummy_file_path = os.path.join(current_directory, "ActivityBrowser-Test.exe")
+    open(dummy_file_path, "a").close()
 
-    def testUninstall(self):
-        # Determine the path of the current directory where this script is located
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Set the path to the ab_installer.py based on the path of this test script
-        ab_uninstaller_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_uninstaller.py")
-        # Run the uninstall script
-        subprocess.run(["python", ab_uninstaller_path])
-        # Check if the environment and the exe file is removed
-        self.assertFalse(os.path.exists(self.test_dir), f"Directory '{self.test_dir}' should be removed.")
+    yield test_dir
 
-if __name__ == "__main__":
-    unittest.main()
+    # Clean up after the test
+    if os.path.exists(test_dir):
+        os.rmdir(test_dir)
+    if os.path.exists(dummy_file_path):
+        os.remove(dummy_file_path)
+
+def test_uninstall(setup_environment):
+    # Determine the path of the current directory where this script is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Set the path to the ab_installer.py based on the path of this test script
+    ab_uninstaller_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_uninstaller.py")
+    # Run the uninstall script
+    subprocess.run(["python", ab_uninstaller_path])
+    # Check if the environment and the exe file is removed
+    assert not os.path.exists(setup_environment), f"Directory '{setup_environment}' should be removed."
+
 
