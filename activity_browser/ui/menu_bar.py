@@ -19,8 +19,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.help_menu = QtWidgets.QMenu('&Help', self.window)
 
         self.update_biosphere_action = actions.BiosphereUpdate(self)
-        self.export_db_action = actions.DatabaseExport(self)
-        self.import_db_action = actions.DatabaseImport(self)
+        self.export_db_action = actions.DatabaseExport.get_action()
+        self.import_db_action = actions.DatabaseImport.get_action()
         self.manage_plugins_action = actions.PluginWizardOpen(self)
         self.manage_settings_action = actions.SettingsWizardOpen(self)
 

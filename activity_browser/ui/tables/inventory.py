@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 from typing import List
 
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Slot
 
-from activity_browser import application
-from activity_browser.actions import *
+from activity_browser import actions
 from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
@@ -32,10 +30,10 @@ class DatabasesTable(ABDataFrameView):
             QtWidgets.QSizePolicy.Maximum
         ))
 
-        self.relink_action = DatabaseRelink(self.current_database, self)
-        self.new_activity_action = ActivityNew.get_action(self.current_database)
-        self.delete_db_action = DatabaseDelete(self.current_database, self)
-        self.duplicate_db_action = DatabaseDuplicate(self.current_database, self)
+        self.relink_action = actions.DatabaseRelink.get_action(self.current_database)
+        self.new_activity_action = actions.ActivityNew.get_action(self.current_database)
+        self.delete_db_action = actions.DatabaseDelete.get_action(self.current_database)
+        self.duplicate_db_action = actions.DatabaseDuplicate.get_action(self.current_database)
 
         self.model = DatabasesModel(parent=self)
         self._connect_signals()
@@ -99,14 +97,14 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
         # context-menu items
-        self.open_activity_action = ActivityOpen.get_action(self.selected_keys)
-        self.open_activity_graph_action = ActivityGraph.get_action(self.selected_keys)
-        self.new_activity_action = ActivityNew.get_action(self.current_database)
-        self.duplicate_activity_action = ActivityDuplicate.get_action(self.selected_keys)
-        self.duplicate_activity_new_loc_action = ActivityDuplicateToLoc.get_action(lambda: self.selected_keys()[0])
-        self.delete_activity_action = ActivityDelete.get_action(self.selected_keys)
-        self.relink_activity_exch_action = ActivityRelink.get_action(self.selected_keys)
-        self.duplicate_other_db_action = ActivityDuplicateToDB.get_action(self.selected_keys)
+        self.open_activity_action = actions.ActivityOpen.get_action(self.selected_keys)
+        self.open_activity_graph_action = actions.ActivityGraph.get_action(self.selected_keys)
+        self.new_activity_action = actions.ActivityNew.get_action(self.current_database)
+        self.dup_activity_action = actions.ActivityDuplicate.get_action(self.selected_keys)
+        self.dup_activity_new_loc_action = actions.ActivityDuplicateToLoc.get_action(lambda: self.selected_keys()[0])
+        self.delete_activity_action = actions.ActivityDelete.get_action(self.selected_keys)
+        self.relink_activity_exch_action = actions.ActivityRelink.get_action(self.selected_keys)
+        self.dup_other_db_action = actions.ActivityDuplicateToDB.get_action(self.selected_keys)
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, 'Exchanges for scenario difference file', None
         )
@@ -128,20 +126,20 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         if len(self.selectedIndexes()) > 1:
             # more than 1 activity is selected
             act = 'activities'
-            self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         elif len(self.selectedIndexes()) == 1 and self.db_read_only:
             act = 'activity'
-            self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         else:
             act = 'activity'
-            self.duplicate_activity_new_loc_action.setEnabled(True)
+            self.dup_activity_new_loc_action.setEnabled(True)
             self.relink_activity_exch_action.setEnabled(True)
 
         self.open_activity_action.setText(f'Open {act}')
         self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
-        self.duplicate_activity_action.setText(f'Duplicate {act}')
+        self.dup_activity_action.setText(f'Duplicate {act}')
         self.delete_activity_action.setText(f'Delete {act}')
 
         menu = QtWidgets.QMenu()
@@ -156,9 +154,9 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         submenu_dupl = QtWidgets.QMenu(menu)
         submenu_dupl.setTitle(f'Duplicate {act}')
         submenu_dupl.setIcon(qicons.copy)
-        submenu_dupl.addAction(self.duplicate_activity_action)
-        submenu_dupl.addAction(self.duplicate_activity_new_loc_action)
-        submenu_dupl.addAction(self.duplicate_other_db_action)
+        submenu_dupl.addAction(self.dup_activity_action)
+        submenu_dupl.addAction(self.dup_activity_new_loc_action)
+        submenu_dupl.addAction(self.dup_other_db_action)
         # submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
         submenu_copy.setTitle('Copy to clipboard')
@@ -233,7 +231,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         if self.current_database() == db_name:
             self.db_read_only = db_read_only
             self.new_activity_action.setEnabled(not self.db_read_only)
-            self.duplicate_activity_action.setEnabled(not self.db_read_only)
+            self.dup_activity_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
-            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
+            self.dup_activity_new_loc_action.setEnabled(not self.db_read_only)
             self.relink_activity_exch_action.setEnabled(not self.db_read_only)

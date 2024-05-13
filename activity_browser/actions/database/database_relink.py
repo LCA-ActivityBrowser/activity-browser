@@ -1,35 +1,30 @@
-from typing import Union, Callable
-
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
-from activity_browser.brightway.bw2data import Database, databases
-from activity_browser.actions.base import ABAction
+from activity_browser.brightway import bd
+from activity_browser.actions.base import NewABAction
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import DatabaseLinkingDialog, DatabaseLinkingResultsDialog
 from activity_browser.bwutils.strategies import relink_exchanges_existing_db
 
 
-class DatabaseRelink(ABAction):
+class DatabaseRelink(NewABAction):
     """
     ABAction to relink the dependencies of a database.
     """
     icon = qicons.edit
-    title = "Relink the database"
+    text = "Relink the database"
     tool_tip = "Relink the dependencies of this database"
-    db_name: str
 
-    def __init__(self, database_name: Union[str, Callable], parent: QtCore.QObject):
-        super().__init__(parent, db_name=database_name)
-
-    def onTrigger(self, toggled):
-        db_name = self.db_name
+    @staticmethod
+    def run(db_name: str):
+        db_name = db_name
         # get brightway database object
-        db = Database(db_name)
+        db = bd.Database(db_name)
 
         # find the dependencies of the database and construct a list of suitable candidates
         depends = db.find_dependents()
-        options = [(depend, list(databases)) for depend in depends]
+        options = [(depend, list(bd.databases)) for depend in depends]
 
         # construct a dialog in which the user chan choose which depending database to connect to which candidate
         dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, application.main_window)
@@ -43,7 +38,7 @@ class DatabaseRelink(ABAction):
 
         # relink using relink_exchanges_existing_db strategy
         for old, new in dialog.relink.items():
-            other = Database(new)
+            other = bd.Database(new)
             failed, succeeded, examples = relink_exchanges_existing_db(db, old, other)
             relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
 
