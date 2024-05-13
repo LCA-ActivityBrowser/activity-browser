@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 import argparse
-import stat
+import subprocess
 
 def resourcePath(relativePath):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -26,12 +26,9 @@ def runActivityBrowser(command, scriptPath):
 def runUpdater():
     updaterPath = resourcePath('ActivityBrowser Updater.py')
 
-    # Add execute permissions
-    os.chmod(updaterPath, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
     # Prepare the command
-    command = [updaterPath]
-    runActivityBrowser(command, updaterPath)
+    command = ['python', updaterPath]
+    subprocess.run(command, shell=True)
 
 def openActivityBrowser(skipUpdateCheck):
     baseDir = os.path.dirname(__file__)
