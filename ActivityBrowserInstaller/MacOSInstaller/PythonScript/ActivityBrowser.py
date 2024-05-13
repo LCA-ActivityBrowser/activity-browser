@@ -16,7 +16,7 @@ def resourcePath(relativePath):
 def runActivityBrowser(command, scriptPath):
     try:
         # Run the command using Python
-        subprocess.run(["open"] + command, check=True)
+        subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
     except FileNotFoundError:
