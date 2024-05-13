@@ -308,7 +308,7 @@ class updaterWindow(QDialog):
     
     def remindLater(self) -> None:
         """Open the Activity Browser and close the updater window."""
-        self.hide()
+        self.showMinimized() 
         self.runActivityBrowser()
         self.exitApplication()
 
