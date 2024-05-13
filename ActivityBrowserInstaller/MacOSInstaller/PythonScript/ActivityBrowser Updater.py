@@ -260,7 +260,7 @@ class updaterWindow(QDialog):
         """
         Activate the Activity Browser environment and run the activity-browser.
         """
-        subprocess.run(["start", self.getActivityBrowserFilename(), "--skip-update-check"], check=True, shell=True)
+        subprocess.run(["open", self.getActivityBrowserFilename(), "--skip-update-check"], check=True, shell=True)
 
     def updateLabel(self, message: str) -> None:
         """
