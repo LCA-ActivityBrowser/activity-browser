@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBo
 from PyQt5.QtCore import QObject, pyqtSignal
 
 # Define constants
-INSTALLER_FILENAME = "activity-browser.app"
+INSTALLER_FILENAME = "activity-browser.app.zip"
 TEMP_DIR = tempfile.gettempdir()
 
 class downloadThread(QObject):
@@ -55,7 +55,7 @@ class downloadThread(QObject):
 
         return data['assets']
 
-    def findExeUrl(self, assets: list) -> str:
+    def findAppUrl(self, assets: list) -> str:
         """
         Finds the download URL of the .app file from the list of assets.
 
@@ -131,7 +131,7 @@ class downloadThread(QObject):
             if assets is None:
                 return
 
-            appUrl = self.findappUrl(assets)
+            appUrl = self.findAppUrl(assets)
             if appUrl is None:
                 return
 
