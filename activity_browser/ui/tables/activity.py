@@ -26,11 +26,12 @@ class BaseExchangeTable(ABDataFrameView):
             QtWidgets.QSizePolicy.Maximum)
         )
 
-        self.delete_exchange_action = actions.ExchangeDelete(self.selected_exchanges, self)
-        self.remove_formula_action = actions.ExchangeFormulaRemove(self.selected_exchanges, self)
-        self.modify_uncertainty_action = actions.ExchangeUncertaintyModify(self.selected_exchanges, self)
-        self.remove_uncertainty_action = actions.ExchangeUncertaintyRemove(self.selected_exchanges, self)
-        self.copy_exchanges_for_SDF_action = actions.ExchangeCopySDF(self.selected_exchanges, self)
+        self.delete_exchange_action = actions.ExchangeDelete.get_action(self.selected_exchanges)
+        self.remove_formula_action = actions.ExchangeFormulaRemove.get_action(self.selected_exchanges)
+        self.modify_uncertainty_action = actions.ExchangeUncertaintyModify.get_action(self.selected_exchanges)
+        self.remove_uncertainty_action = actions.ExchangeUncertaintyRemove.get_action(self.selected_exchanges)
+        self.copy_exchanges_for_SDF_action = actions.ExchangeCopySDF.get_action(self.selected_exchanges)
+
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
         self.downstream = False
@@ -77,7 +78,7 @@ class BaseExchangeTable(ABDataFrameView):
         source_table = event.source()
         keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
         event.accept()
-        actions.ExchangeNew(keys, self.key, self).trigger()
+        actions.ExchangeNew.run(keys, self.key)
 
     def get_usable_parameters(self):
         return self.model.get_usable_parameters()

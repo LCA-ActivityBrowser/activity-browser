@@ -1,25 +1,20 @@
-from typing import Union, Callable, List, Any
+from typing import List, Any
 
-from PySide2 import QtCore
-
-from ..base import ABAction
-from ...ui.icons import qicons
-from ...bwutils import uncertainty
+from activity_browser.actions.base import NewABAction
+from activity_browser.ui.icons import qicons
+from activity_browser.bwutils import uncertainty
 
 
-class ExchangeUncertaintyRemove(ABAction):
+class ExchangeUncertaintyRemove(NewABAction):
     """
     ABAction to clear the uncertainty of one or multiple exchanges.
     """
     icon = qicons.delete
-    title = "Remove uncertainty/-ies"
-    exchanges: List[Any]
+    text = "Remove uncertainty/-ies"
 
-    def __init__(self, exchanges: Union[List[Any], Callable], parent: QtCore.QObject):
-        super().__init__(parent, exchanges=exchanges)
-
-    def onTrigger(self, toggled):
-        for exchange in self.exchanges:
+    @staticmethod
+    def run(exchanges: List[Any]):
+        for exchange in exchanges:
             for key, value in uncertainty.EMPTY_UNCERTAINTY.items():
                 exchange[key] = value
 

@@ -60,7 +60,7 @@ class BaseExchangeModel(EditablePandasModel):
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
             log.warning(f"Broken exchange: {e}, removing.")
-            actions.ExchangeDelete([exchange], self).trigger()
+            actions.ExchangeDelete.run([exchange])
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)
@@ -75,7 +75,7 @@ class BaseExchangeModel(EditablePandasModel):
         col = proxy.column()
         if self._dataframe.columns[col] in {'Uncertainty', 'pedigree', 'loc', 'scale',
                                             'shape', 'minimum', 'maximum'}:
-            actions.ExchangeUncertaintyModify([self.get_exchange(proxy)], self).trigger()
+            actions.ExchangeUncertaintyModify.run([self.get_exchange(proxy)])
 
     @Slot(list, name="openActivities")
     def open_activities(self, proxies: list) -> None:
@@ -94,7 +94,7 @@ class BaseExchangeModel(EditablePandasModel):
         field = bc.AB_names_to_bw_keys.get(header, header)
         exchange = self._dataframe.iat[index.row(), self.exchange_column]
         if field in self.VALID_FIELDS:
-            actions.ExchangeModify(exchange, {field: value}, self).trigger()
+            actions.ExchangeModify.run(exchange, {field: value})
         else:
             act_key = exchange.output.key
             actions.ActivityModify.run(act_key, field, value)

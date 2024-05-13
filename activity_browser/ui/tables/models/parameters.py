@@ -355,7 +355,7 @@ class ParameterItem(TreeItem):
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
                 log.warning(f"Broken exchange: {e}, removing.")
-                actions.ExchangeDelete([exc], None).trigger()
+                actions.ExchangeDelete.run([exc])
 
 
 class ParameterTreeModel(BaseTreeModel):

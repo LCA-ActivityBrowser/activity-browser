@@ -74,9 +74,9 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """
         self.amount_mean_test()
         if self.obj.data_type == "exchange":
-            actions.ExchangeModify(self.obj.data, self.uncertainty_info, self).trigger()
+            actions.ExchangeModify.run(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:
-                actions.ExchangeModify(self.obj.data, {"pedigree": self.pedigree.matrix.factors}, self).trigger()
+                actions.ExchangeModify.run(self.obj.data, {"pedigree": self.pedigree.matrix.factors})
         elif self.obj.data_type == "parameter":
             actions.ParameterModify(self.obj.data, "data", self.uncertainty_info, self).trigger()
             if self.using_pedigree:
@@ -140,7 +140,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
             )
             if choice == QtWidgets.QMessageBox.Yes:
                 if self.obj.data_type == "exchange":
-                    actions.ExchangeModify(self.obj.data, {"amount": mean}, self).trigger()
+                    actions.ExchangeModify.run(self.obj.data, {"amount": mean})
 
                 elif self.obj.data_type == "parameter":
                     try:

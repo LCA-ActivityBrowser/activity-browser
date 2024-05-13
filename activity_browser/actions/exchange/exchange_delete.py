@@ -1,23 +1,17 @@
-from typing import Union, Callable, List, Any
+from typing import List, Any
 
-from PySide2 import QtCore
-
-from ..base import ABAction
-from ...ui.icons import qicons
+from activity_browser.actions.base import NewABAction
+from activity_browser.ui.icons import qicons
 
 
-class ExchangeDelete(ABAction):
+class ExchangeDelete(NewABAction):
     """
     ABAction to delete one or more exchanges from an activity.
     """
     icon = qicons.delete
-    title = "Delete exchange(s)"
-    exchanges: List[Any]
+    text = "Delete exchange(s)"
 
-    def __init__(self, exchanges: Union[List[Any], Callable], parent: QtCore.QObject):
-        super().__init__(parent, exchanges=exchanges)
-
-    def onTrigger(self, toggled):
-        for exchange in self.exchanges:
-            # get an exchange that sends signals, should become obsolete in due time
+    @staticmethod
+    def run(exchanges: List[Any]):
+        for exchange in exchanges:
             exchange.delete()

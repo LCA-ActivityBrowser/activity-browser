@@ -13,7 +13,7 @@ class DatabaseNew(NewABAction):
     new database with the chosen name.
     """
     icon = qicons.add
-    title = "New database..."
+    text = "New database..."
     tool_tip = "Make a new database"
 
     @staticmethod

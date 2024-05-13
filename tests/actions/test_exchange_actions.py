@@ -1,8 +1,9 @@
 import pytest
 import platform
 import brightway2 as bw
-from activity_browser import actions
-from PySide2 import QtWidgets, QtGui
+from activity_browser import actions, application
+from activity_browser.ui.wizards import UncertaintyWizard
+from PySide2 import QtGui
 from stats_arrays.distributions import NormalUncertainty, UndefinedUncertainty
 
 
@@ -21,7 +22,7 @@ def test_exchange_copy_sdf(ab_app):
     assert len(exchange) == 1
     assert clipboard.text() == "FAILED"
 
-    actions.ExchangeCopySDF(exchange, None).trigger()
+    actions.ExchangeCopySDF.run(exchange)
 
     assert clipboard.text() != "FAILED"
 
@@ -37,7 +38,7 @@ def test_exchange_delete(ab_app):
     assert len(exchange) == 1
     assert exchange[0].as_dict() in [exchange.as_dict() for exchange in bw.get_activity(key).exchanges()]
 
-    actions.ExchangeDelete(exchange, None).trigger()
+    actions.ExchangeDelete.run(exchange)
 
     assert exchange[0].as_dict() not in [exchange.as_dict() for exchange in bw.get_activity(key).exchanges()]
 
@@ -51,7 +52,7 @@ def test_exchange_formula_remove(ab_app):
     assert len(exchange) == 1
     assert exchange[0].as_dict()["formula"]
 
-    actions.ExchangeFormulaRemove(exchange, None).trigger()
+    actions.ExchangeFormulaRemove.run(exchange)
 
     with pytest.raises(KeyError): assert exchange[0].as_dict()["formula"]
 
@@ -67,7 +68,7 @@ def test_exchange_modify(ab_app):
     assert len(exchange) == 1
     assert exchange[0].amount == 1.0
 
-    actions.ExchangeModify(exchange[0], new_data, None).trigger()
+    actions.ExchangeModify.run(exchange[0], new_data)
 
     assert exchange[0].amount == 200.0
 
@@ -79,7 +80,7 @@ def test_exchange_new(ab_app):
     assert bw.projects.current == "default"
     assert not [exchange for exchange in bw.get_activity(key).exchanges() if exchange.input.key == from_key]
 
-    actions.ExchangeNew([from_key], key, None).trigger()
+    actions.ExchangeNew.run([from_key], key)
 
     assert len([exchange for exchange in bw.get_activity(key).exchanges() if exchange.input.key == from_key]) == 1
 
@@ -89,17 +90,16 @@ def test_exchange_uncertainty_modify(ab_app):
     from_key = ('exchange_tests', '5ad223731bd244e997623b0958744017')
     exchange = [exchange for exchange in bw.get_activity(key).exchanges() if exchange.input.key == from_key]
 
-    action = actions.ExchangeUncertaintyModify(exchange, None)
-
     assert bw.projects.current == "default"
     assert len(exchange) == 1
-    with pytest.raises(Exception): assert action.wizard
 
-    action.trigger()
+    actions.ExchangeUncertaintyModify.run(exchange)
 
-    assert action.wizard.isVisible()
+    wizard = application.main_window.findChild(UncertaintyWizard)
 
-    action.wizard.destroy()
+    assert wizard.isVisible()
+
+    wizard.destroy()
 
 
 def test_exchange_uncertainty_remove(ab_app):
@@ -111,6 +111,6 @@ def test_exchange_uncertainty_remove(ab_app):
     assert len(exchange) == 1
     assert exchange[0].uncertainty_type == NormalUncertainty
 
-    actions.ExchangeUncertaintyRemove(exchange, None).trigger()
+    actions.ExchangeUncertaintyRemove.run(exchange)
 
     assert exchange[0].uncertainty_type == UndefinedUncertainty
