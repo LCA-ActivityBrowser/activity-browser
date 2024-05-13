@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-def run_install_script():
+def openActivityBrowser():
     # Get the directory of the current script
     base_dir = os.path.dirname(__file__)
 
@@ -17,4 +17,4 @@ def run_install_script():
         print(f"Error: The script '{script_path}' does not exist or is not accessible.")
 
 if __name__ == "__main__":
-    run_install_script()
+    openActivityBrowser()
