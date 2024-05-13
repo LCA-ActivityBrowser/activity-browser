@@ -1,5 +1,5 @@
 """
-- ab_uninstaller.py
+- ab_uninstaller_test.py
 - Date of File Creation: 10/05/2024
 - Contributors: Ruben Visser
 - Date and Author of Last Modification: 10/05/2024 - Ruben Visser
