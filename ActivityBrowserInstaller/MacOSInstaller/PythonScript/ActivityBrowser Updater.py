@@ -28,6 +28,7 @@ TEMP_DIR = tempfile.gettempdir()
 class downloadThread(QObject):
     finished = pyqtSignal()
     progressChanged = pyqtSignal(int)
+    updateLabel = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -149,6 +150,7 @@ class updaterWindow(QDialog):
         self.downloadThread = downloadThread()
         self.downloadThread.finished.connect(self.onDownloadFinished)
         self.downloadThread.progressChanged.connect(self.updateProgress)
+        self.downloadThread.updateLabel.connect(self.updateLabel)
 
         layout = QVBoxLayout()
 
