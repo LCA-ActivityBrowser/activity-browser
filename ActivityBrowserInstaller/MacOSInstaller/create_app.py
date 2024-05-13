@@ -1,6 +1,7 @@
+import os
 import subprocess
 
-def build_macos_app():
+def build_macos_app(filename):
     try:
         # PyInstaller command with specified parameters
         command = [
@@ -8,10 +9,10 @@ def build_macos_app():
             '-y',
             '--onefile',
             '--windowed',
-            '--name', 'ActivityBrowser',
-            '--add-data=./openActivityBrowser.py:.',
+            '--name', filename,
+            '--add-data=./' + filename + ':.',
             '--add-data=./openActivityBrowser.sh:.',
-            'openActivityBrowser.py'
+            filename
         ]
 
         # Execute the PyInstaller command
@@ -20,4 +21,7 @@ def build_macos_app():
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    build_macos_app()
+    directory = '.'  # Replace with your directory
+    for filename in os.listdir(directory):
+        if filename.endswith('.py'):
+            build_macos_app(filename)
