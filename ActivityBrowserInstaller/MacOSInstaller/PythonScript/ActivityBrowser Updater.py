@@ -66,7 +66,7 @@ class downloadThread(QObject):
         str: The download url of the .app file. If no .app file is found, emits an updateLabel signal with a message and returns None.
         """
         for asset in assets:
-            if asset['name'].endswith('.app'):
+            if asset['name'].endswith('.app.zip'):
                 return asset['browser_download_url']
 
         self.updateLabel.emit("No app file found in the release")
