@@ -1,31 +1,26 @@
-from typing import Union, Callable
-
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
 from activity_browser import application, signals, log
-from activity_browser.brightway.bw2data import calculation_setups
-from activity_browser.actions.base import ABAction
+from activity_browser.brightway import bd
+from activity_browser.actions.base import NewABAction
 from activity_browser.ui.icons import qicons
 
 
-class CSRename(ABAction):
+class CSRename(NewABAction):
     """
     ABAction to rename a calculation setup. Prompts the user for a new name. Returns if the user cancels, or if a CS
     with the same name is already present within the project. If all is right, instructs the CalculationSetupController
     to rename the CS.
     """
     icon = qicons.edit
-    title = "Rename"
-    cs_name: str
+    text = "Rename"
 
-    def __init__(self, cs_name: Union[str, Callable], parent: QtCore.QObject):
-        super().__init__(parent, cs_name=cs_name)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run(cs_name: str):
         # prompt the user to give a name for the new calculation setup
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
-            f"Rename '{self.cs_name}'",
+            f"Rename '{cs_name}'",
             "New name of this calculation setup:" + " " * 10
         )
 
@@ -33,7 +28,7 @@ class CSRename(ABAction):
         if not ok or not new_name: return
 
         # throw error if the name is already present, and return
-        if new_name in calculation_setups:
+        if new_name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
@@ -42,7 +37,7 @@ class CSRename(ABAction):
             return
 
         # instruct the CalculationSetupController to rename the CS to the new name
-        calculation_setups[new_name] = calculation_setups[self.cs_name].copy()
-        del calculation_setups[self.cs_name]
+        bd.calculation_setups[new_name] = bd.calculation_setups[cs_name].copy()
+        del bd.calculation_setups[cs_name]
         signals.calculation_setup_selected.emit(new_name)
-        log.info(f"Renamed calculation setup from {self.cs_name} to {new_name}")
+        log.info(f"Renamed calculation setup from {cs_name} to {new_name}")

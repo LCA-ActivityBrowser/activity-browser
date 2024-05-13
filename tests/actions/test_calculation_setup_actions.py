@@ -19,7 +19,7 @@ def test_cs_delete(ab_app, monkeypatch):
     assert bw.projects.current == "default"
     assert cs in bw.calculation_setups
 
-    actions.CSDelete(cs, None).trigger()
+    actions.CSDelete.run(cs)
 
     assert cs not in bw.calculation_setups
 
@@ -37,7 +37,7 @@ def test_cs_duplicate(ab_app, monkeypatch):
     assert cs in bw.calculation_setups
     assert dup_cs not in bw.calculation_setups
 
-    actions.CSDuplicate(cs, None).trigger()
+    actions.CSDuplicate.run(cs)
 
     assert cs in bw.calculation_setups
     assert dup_cs in bw.calculation_setups
@@ -54,7 +54,7 @@ def test_cs_new(ab_app, monkeypatch):
     assert bw.projects.current == "default"
     assert new_cs not in bw.calculation_setups
 
-    actions.CSNew(None).trigger()
+    actions.CSNew.run()
 
     assert new_cs in bw.calculation_setups
 
@@ -74,7 +74,7 @@ def test_cs_rename(ab_app, monkeypatch):
     assert cs in bw.calculation_setups
     assert renamed_cs not in bw.calculation_setups
 
-    actions.CSRename(cs, None).trigger()
+    actions.CSRename.run(cs)
 
     assert cs not in bw.calculation_setups
     assert renamed_cs in bw.calculation_setups
