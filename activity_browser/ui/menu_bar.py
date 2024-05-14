@@ -106,8 +106,8 @@ class MenuBar(QtWidgets.QMenuBar):
 Activity Browser - a graphical interface for Brightway2.<br><br>
 Application version: <b>{}</b><br><br>
 All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
-For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/master#copyright">this page</a>.<br><br>
-For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/LICENSE.txt">this page</a>.<br><br>
+For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright">this page</a>.<br><br>
+For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt">this page</a>.<br><br>
 """
         msgBox = QtWidgets.QMessageBox(parent=self.window)
         msgBox.setWindowTitle('About the Activity Browser')

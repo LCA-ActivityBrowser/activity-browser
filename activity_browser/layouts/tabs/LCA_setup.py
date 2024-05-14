@@ -292,11 +292,11 @@ class ScenarioImportPanel(BaseRightTab):
         <br> <p> You can also work with <b>multiple scenario files</b> for which there are with two options:</p>
         <p>1. <b>Combine scenarios</b>: this yields all possible scenario combinations 
         (e.g. file 1: <i>S1, S2</i> and file 2: <i>A, B</i> yields <i>S1-A, S1-B, S2-A, S2-B</i>) 
-        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_product_combination.png"> here </a>
+        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/resources/sdf_product_combination.png"> here </a>
         for an example</p>
         <p>2. <b>Extend scenarios</b>: scenarios from file 2 extend scenarios of file 1 
         (only possible if scenario names are identical in all files, e.g. everywhere <i>S1, S2</i>).
-        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_addition_combinations.png"> here
+        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/resources/sdf_addition_combinations.png"> here
         </a> for an example</p> 
         """
 

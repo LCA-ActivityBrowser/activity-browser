@@ -8,7 +8,7 @@ package:
 
 source:
   # Note for future: https://conda-forge.org/docs/maintainer/adding_pkgs.html#tarballs-no-repos
-  git_rev: master
+  git_rev: main
   git_url: https://github.com/LCA-ActivityBrowser/activity-browser.git
 
 build:
