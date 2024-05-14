@@ -1,9 +1,10 @@
 import brightway2 as bw
-import pytest
-from activity_browser import actions
-from activity_browser.ui.widgets.dialog import TupleNameDialog
 from stats_arrays.distributions import NormalUncertainty, UndefinedUncertainty, UniformUncertainty
 from PySide2 import QtWidgets
+
+from activity_browser import actions, application
+from activity_browser.ui.widgets.dialog import TupleNameDialog
+from activity_browser.ui.wizards import UncertaintyWizard
 
 
 def test_cf_amount_modify(ab_app):
@@ -15,7 +16,7 @@ def test_cf_amount_modify(ab_app):
     assert len(cf) == 1
     assert cf[0][1] == 1.0 or cf[0][1]['amount'] == 1.0
 
-    actions.CFAmountModify(method, cf, 200, None).trigger()
+    actions.CFAmountModify.run(method, cf, 200)
 
     cf = [cf for cf in bw.Method(method).load() if cf[0] == key]
     assert cf[0][1] == 200.0 or cf[0][1]['amount'] == 200.0
@@ -29,7 +30,7 @@ def test_cf_new(ab_app):
     assert bw.projects.current == "default"
     assert len(cf) == 0
 
-    actions.CFNew(method, [key], None).trigger()
+    actions.CFNew.run(method, [key])
 
     cf = [cf for cf in bw.Method(method).load() if cf[0] == key]
 
@@ -50,7 +51,7 @@ def test_cf_remove(ab_app, monkeypatch):
     assert bw.projects.current == "default"
     assert len(cf) == 1
 
-    actions.CFRemove(method, cf, None).trigger()
+    actions.CFRemove.run(method, cf)
 
     cf = [cf for cf in bw.Method(method).load() if cf[0] == key]
     assert len(cf) == 0
@@ -64,20 +65,18 @@ def test_cf_uncertainty_modify(ab_app):
     uncertainty = {'loc': float('nan'), 'maximum': 10.0, 'minimum': 1.0, 'negative': False, 'scale': float('nan'),
                    'shape': float('nan'), 'uncertainty type': 4}
 
-    action = actions.CFUncertaintyModify(method, cf, None)
-
     assert bw.projects.current == "default"
     assert len(cf) == 1
     assert cf[0][1].get("uncertainty type") == NormalUncertainty.id
 
-    with pytest.raises(Exception): assert action.wizard
+    actions.CFUncertaintyModify.run(method, cf)
 
-    action.trigger()
+    wizard = application.main_window.findChild(UncertaintyWizard)
 
-    assert action.wizard.isVisible()
+    assert wizard.isVisible()
 
-    action.wizard.destroy()
-    action.wizardDone(new_cf_tuple, uncertainty)
+    wizard.destroy()
+    actions.CFUncertaintyModify.wizard_done(method, new_cf_tuple, uncertainty)
 
     cf = [cf for cf in bw.Method(method).load() if cf[0] == key]
 
@@ -94,7 +93,7 @@ def test_cf_uncertainty_remove(ab_app):
     assert len(cf) == 1
     assert cf[0][1].get("uncertainty type") == NormalUncertainty.id
 
-    actions.CFUncertaintyRemove(method, cf, None).trigger()
+    actions.CFUncertaintyRemove.run(method, cf)
 
     cf = [cf for cf in bw.Method(method).load() if cf[0] == key]
     assert cf[0][1] == 1.0 or cf[0][1].get("uncertainty type") == UndefinedUncertainty.id
@@ -114,8 +113,8 @@ def test_method_delete(ab_app, monkeypatch):
     assert method in bw.methods
     assert branched_method in bw.methods
 
-    actions.MethodDelete([method], 'leaf', None).trigger()
-    actions.MethodDelete([branch], 'branch', None).trigger()
+    actions.MethodDelete.run([method], 'leaf')
+    actions.MethodDelete.run([branch], 'branch')
 
     assert method not in bw.methods
     assert branched_method not in bw.methods
@@ -139,7 +138,7 @@ def test_method_duplicate(ab_app, monkeypatch):
     assert method in bw.methods
     assert duplicated_method not in bw.methods
 
-    actions.MethodDuplicate([method], 'leaf', None).trigger()
+    actions.MethodDuplicate.run([method], 'leaf')
 
     assert method in bw.methods
     assert duplicated_method in bw.methods

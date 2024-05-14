@@ -1,43 +1,33 @@
-from typing import Union, Callable, List
-
-from PySide2 import QtCore
+from typing import List
+from functools import partial
 
 from activity_browser import application
-from activity_browser.brightway.bw2data import Method
+from activity_browser.brightway import bd
+from activity_browser.actions.base import NewABAction
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.wizards import UncertaintyWizard
 
-from ..base import ABAction
-from ...ui.icons import qicons
-from ...ui.wizards import UncertaintyWizard
 
-
-class CFUncertaintyModify(ABAction):
+class CFUncertaintyModify(NewABAction):
     """
     ABAction to launch the UncertaintyWizard for Characterization Factor and handles the output by writing the
     uncertainty data using the ImpactCategoryController to the Characterization Factor in question.
     """
     icon = qicons.edit
-    title = "Modify uncertainty"
-    method_name: tuple
-    char_factors: List[tuple]
-    wizard: UncertaintyWizard
+    text = "Modify uncertainty"
 
-    def __init__(self,
-                 method_name: Union[tuple, Callable],
-                 char_factors: Union[List[tuple], Callable],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, method_name=method_name, char_factors=char_factors)
+    @classmethod
+    def run(cls, method_name: tuple, char_factors: List[tuple]):
+        wizard = UncertaintyWizard(char_factors[0], application.main_window)
+        wizard.complete.connect(partial(cls.wizard_done, method_name))
+        wizard.show()
 
-    def onTrigger(self, toggled):
-        self.wizard = UncertaintyWizard(self.char_factors[0], application.main_window)
-        self.wizard.complete.connect(self.wizardDone)
-        self.wizard.show()
-
-    def wizardDone(self, cf: tuple, uncertainty: dict):
+    @staticmethod
+    def wizard_done(method_name: tuple, cf: tuple, uncertainty: dict):
         """Update the CF with new uncertainty information, possibly converting
         the second item in the tuple to a dictionary without losing information.
         """
-        method = Method(self.method_name)
+        method = bd.Method(method_name)
         method_dict = method.load_dict()
 
         if isinstance(cf[1], dict):

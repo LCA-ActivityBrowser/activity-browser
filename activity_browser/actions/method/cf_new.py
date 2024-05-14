@@ -1,39 +1,30 @@
-from typing import Union, Callable, List
+from typing import List
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
 from activity_browser import application
-from activity_browser.brightway.bw2data import Method
+from activity_browser.brightway import bd
+from activity_browser.actions.base import NewABAction
+from activity_browser.ui.icons import qicons
 
-from ..base import ABAction
-from ...ui.icons import qicons
 
-
-class CFNew(ABAction):
+class CFNew(NewABAction):
     """
     ABAction to add a new characterization flow to a method through one or more elementary-flow keys.
     """
     icon = qicons.add
-    title = "New characterization factor"
-    method_name: tuple
-    keys: List[tuple]
+    text = "New characterization factor"
 
-    def __init__(self,
-                 method_name: Union[tuple, Callable],
-                 keys: Union[List[tuple], Callable],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, method_name=method_name, keys=keys)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run(method_name: tuple, keys: List[tuple]):
         # load old cf's from the Method
-        method_dict = Method(self.method_name).load_dict()
+        method_dict = bd.Method(method_name).load_dict()
 
         # use only the keys that don't already exist within the method
-        unique_keys = [key for key in self.keys if key not in method_dict]
+        unique_keys = [key for key in keys if key not in method_dict]
 
         # if there are non-unique keys warn the user that these won't be added
-        if len(unique_keys) < len(self.keys):
+        if len(unique_keys) < len(keys):
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Duplicate characterization factors",
@@ -49,4 +40,4 @@ class CFNew(ABAction):
             method_dict[key] = 0.0
 
         # write the updated dict to the method
-        Method(self.method_name).write_dict(method_dict)
+        bd.Method(method_name).write_dict(method_dict)

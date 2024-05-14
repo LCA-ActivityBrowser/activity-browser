@@ -26,8 +26,8 @@ class MethodsTable(ABFilterableDataFrameView):
         if isinstance(self.model.filterable_columns, dict):
             self.header.column_indices = list(self.model.filterable_columns.values())
 
-        self.duplicate_method_action = actions.MethodDuplicate(self.selected_methods, None, self)
-        self.delete_method_action = actions.MethodDelete(self.selected_methods, None, self)
+        self.duplicate_method_action = actions.MethodDuplicate.get_action(self.selected_methods, None)
+        self.delete_method_action = actions.MethodDelete.get_action(self.selected_methods, None)
 
         self.connect_signals()
 
@@ -106,8 +106,8 @@ class MethodsTree(ABDictTreeView):
         self.model.sync()
         self.setColumnHidden(self.model.method_col, True)
 
-        self.duplicate_method_action = actions.MethodDuplicate(self.selected_methods, self.tree_level, self)
-        self.delete_method_action = actions.MethodDelete(self.selected_methods, self.tree_level, self)
+        self.duplicate_method_action = actions.MethodDuplicate.get_action(self.selected_methods, self.tree_level)
+        self.delete_method_action = actions.MethodDelete.get_action(self.selected_methods, self.tree_level)
 
     def _connect_signals(self):
         super()._connect_signals()
@@ -255,9 +255,9 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         self.read_only = True
         self.setAcceptDrops(not self.read_only)
 
-        self.remove_cf_action = actions.CFRemove(self.method_name, self.selected_cfs, self)
-        self.modify_uncertainty_action = actions.CFUncertaintyModify(self.method_name, self.selected_cfs, self)
-        self.remove_uncertainty_action = actions.CFUncertaintyRemove(self.method_name, self.selected_cfs, self)
+        self.remove_cf_action = actions.CFRemove.get_action(self.method_name, self.selected_cfs)
+        self.modify_uncertainty_action = actions.CFUncertaintyModify.get_action(self.method_name, self.selected_cfs)
+        self.remove_uncertainty_action = actions.CFUncertaintyRemove.get_action(self.method_name, self.selected_cfs)
 
         self.model.dataChanged.connect(self.cell_edited)
 
@@ -277,7 +277,7 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         if column in [2]:
             # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
             new_amount = self.model.get_value(cell)
-            actions.CFAmountModify(self.method_name, self.selected_cfs, new_amount, self).trigger()
+            actions.CFAmountModify.run(self.method_name, self.selected_cfs, new_amount)
 
     @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
@@ -326,5 +326,5 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         if not isinstance(source_table, ActivitiesBiosphereTable):
             return
         event.accept()
-        actions.CFNew(self.method_name, keys, self).trigger()
+        actions.CFNew.run(self.method_name, keys)
         # TODO: Resize the view if the table did not already take up the full height.

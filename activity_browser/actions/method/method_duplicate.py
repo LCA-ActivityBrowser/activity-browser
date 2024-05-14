@@ -1,40 +1,29 @@
-from typing import Union, Callable, List, Optional
-
-from PySide2 import QtCore
+from typing import List
 
 from activity_browser import application, log
-from activity_browser.brightway.bw2data import Method, methods
+from activity_browser.brightway import bd
 from activity_browser.ui.widgets import TupleNameDialog
+from activity_browser.actions.base import NewABAction
+from activity_browser.ui.icons import qicons
 
-from ..base import ABAction
-from ...ui.icons import qicons
 
-
-class MethodDuplicate(ABAction):
+class MethodDuplicate(NewABAction):
     """
     ABAction to duplicate a method, or node with all underlying methods to a new name specified by the user.
     """
     icon = qicons.copy
-    title = "Duplicate Impact Category"
-    methods: List[tuple]
-    level: tuple
+    text = "Duplicate Impact Category"
 
-    def __init__(self,
-                 methods: Union[List[tuple], Callable],
-                 level: Optional[Union[tuple, Callable]],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, methods=methods, level=level)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run(methods: List[tuple], level: str):
         # this action can handle only one selected method for now
-        selected_method = self.methods[0]
+        selected_method = methods[0]
 
         # check whether we're dealing with a leaf or node. If it's a node, select all underlying methods for duplication
-        if self.level is not None and self.level != 'leaf':
-            all_methods = [Method(method) for method in methods if set(selected_method).issubset(method)]
+        if level is not None and level != 'leaf':
+            all_methods = [bd.Method(method) for method in bd.methods if set(selected_method).issubset(method)]
         else:
-            all_methods = [Method(selected_method)]
+            all_methods = [bd.Method(selected_method)]
 
         # retrieve the new name(s) from the user and return if canceled
         dialog = TupleNameDialog.get_combined_name(
