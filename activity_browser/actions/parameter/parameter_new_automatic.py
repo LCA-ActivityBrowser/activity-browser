@@ -1,16 +1,16 @@
-from typing import Union, Callable, List, Tuple
+from typing import List, Tuple
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
 from activity_browser import application
 
-from activity_browser.bwutils import commontasks
 from activity_browser.brightway import bd
 from activity_browser.brightway.bw2data.parameters import ActivityParameter
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import NewABAction
 from activity_browser.ui.icons import qicons
 
-class ParameterNewAutomatic(ABAction):
+
+class ParameterNewAutomatic(NewABAction):
     """
     ABAction for the automatic creation of a new parameter.
 
@@ -18,14 +18,11 @@ class ParameterNewAutomatic(ABAction):
     TODO: will actually need to be reworked together with the parameters.
     """
     icon = qicons.add
-    title = "New parameter..."
-    activity_keys: List[Tuple]
+    text = "New parameter..."
 
-    def __init__(self, activity_keys: Union[List[Tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
-
-    def onTrigger(self, toggled):
-        for key in self.activity_keys:
+    @staticmethod
+    def run(activity_keys: List[Tuple]):
+        for key in activity_keys:
             act = bd.get_activity(key)
             if act.get("type", "process") != "process":
                 issue = f"Activity must be 'process' type, '{act.get('name')}' is type '{act.get('type')}'."

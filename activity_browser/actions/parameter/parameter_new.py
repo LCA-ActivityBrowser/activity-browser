@@ -1,11 +1,11 @@
-from typing import Union, Callable, Optional, Tuple
+from typing import Tuple
 
-from activity_browser.bwutils import commontasks as bc
 from PySide2 import QtCore, QtWidgets, QtGui
 
 from activity_browser import application
-from activity_browser.brightway.bw2data import databases, parameters
-from activity_browser.actions.base import ABAction
+from activity_browser.bwutils import commontasks as bc
+from activity_browser.brightway import bd
+from activity_browser.actions.base import NewABAction
 from activity_browser.ui.icons import qicons
 
 PARAMETER_STRINGS = (
@@ -20,29 +20,26 @@ PARAMETER_FIELDS = (
 )
 
 
-class ParameterNew(ABAction):
+class ParameterNew(NewABAction):
     """
-    ABAction to create a new Parameter. Opens the ParameterWizard, returns if the wizard is canceled. Else, checks
-    whether the name is valid, and then instructs the ParameterController to put the new parameter in the right group.
+    ABAction to create a new Parameter. Opens the ParameterWizard, returns if the wizard is canceled. Else,
+    checks whether the name is valid, and then instructs the ParameterController to put the new parameter in the
+    right group.
     """
     icon = qicons.add
-    title = "New parameter..."
-    activity_key: Optional[Tuple[str, str]]
-    wizard: "ParameterWizard"
+    text = "New parameter..."
 
-    def __init__(self, activity_key: Optional[Union[Tuple[str, str], Callable]], parent: QtCore.QObject):
-        super().__init__(parent, activity_key=activity_key)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run(activity_key: Tuple[str, str]):
         # instantiate the ParameterWizard
-        self.wizard = ParameterWizard(self.activity_key, application.main_window)
+        wizard = ParameterWizard(activity_key, application.main_window)
 
         # return if the wizard is canceled
-        if self.wizard.exec_() != self.wizard.Accepted: return
+        if wizard.exec_() != wizard.Accepted: return
 
         # gather wizard variables
-        selection = self.wizard.selected
-        data = self.wizard.param_data
+        selection = wizard.selected
+        data = wizard.param_data
 
         # check whether the name is valid, otherwise return
         name = data.get("name")
@@ -54,13 +51,13 @@ class ParameterNew(ABAction):
 
         # select the right group and instruct the controller to create the parameter there
         if selection == 0:
-            parameters.new_project_parameters([data])
+            bd.parameters.new_project_parameters([data])
         elif selection == 1:
             db = data.pop("database")
-            parameters.new_database_parameters([data], db)
+            bd.parameters.new_database_parameters([data], db)
         elif selection == 2:
             group = data.pop("group")
-            parameters.new_activity_parameters([data], group)
+            bd.parameters.new_activity_parameters([data], group)
 
 
 class ParameterWizard(QtWidgets.QWizard):
@@ -185,7 +182,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
         elif self.parent.selected == 1:
             self.name.clear()
             self.database.clear()
-            dbs = list(databases)
+            dbs = list(bd.databases)
             self.database.insertItems(0, dbs)
             if self.key[0] in dbs:
                 self.database.setCurrentIndex(

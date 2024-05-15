@@ -24,7 +24,7 @@ class TestParameterNew:
         assert bw.projects.current == "default"
         assert "project_parameter_to_be_created" not in ProjectParameter.load().keys()
 
-        actions.ParameterNew(key, None).trigger()
+        actions.ParameterNew.run(key)
 
         assert "project_parameter_to_be_created" in ProjectParameter.load().keys()
 
@@ -46,7 +46,7 @@ class TestParameterNew:
         assert bw.projects.current == "default"
         assert "database_parameter_to_be_created" not in DatabaseParameter.load("activity_tests").keys()
 
-        actions.ParameterNew(key, None).trigger()
+        actions.ParameterNew.run(key)
 
         assert "database_parameter_to_be_created" in DatabaseParameter.load("activity_tests").keys()
 
@@ -71,7 +71,7 @@ class TestParameterNew:
         assert bw.projects.current == "default"
         assert "activity_parameter_to_be_created" not in ActivityParameter.load(group).keys()
 
-        actions.ParameterNew(key, None).trigger()
+        actions.ParameterNew.run(key)
 
         assert "activity_parameter_to_be_created" in ActivityParameter.load(group).keys()
 
@@ -151,9 +151,10 @@ def test_parameter_new_automatic(ab_app):
     assert bw.projects.current == "default"
     assert "dummy_parameter" not in ActivityParameter.load(group).keys()
 
-    actions.ParameterNewAutomatic([key], None).trigger()
+    actions.ParameterNewAutomatic.run([key])
 
     assert "dummy_parameter" in ActivityParameter.load(group).keys()
+
 
 def test_parameter_rename(ab_app, monkeypatch):
     parameter = list(ProjectParameter.select().where(ProjectParameter.name == "parameter_to_rename"))[0]
@@ -166,7 +167,7 @@ def test_parameter_rename(ab_app, monkeypatch):
     assert bw.projects.current == "default"
     assert "renamed_parameter" not in ProjectParameter.load().keys()
 
-    actions.ParameterRename(parameter, None).trigger()
+    actions.ParameterRename.run(parameter)
 
     assert "parameter_to_rename" not in ProjectParameter.load().keys()
     assert "renamed_parameter" in ProjectParameter.load().keys()

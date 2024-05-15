@@ -206,7 +206,7 @@ class ActivityParameterTable(BaseParameterTable):
 
         keys = [db_table.get_key(i) for i in db_table.selectedIndexes()]
         event.accept()
-        actions.ParameterNewAutomatic(keys, self).trigger()
+        actions.ParameterNewAutomatic.run(keys)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Override and activate QTableView.contextMenuEvent()

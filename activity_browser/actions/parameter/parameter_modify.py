@@ -1,6 +1,4 @@
-from typing import Union, Callable, Any
-
-from PySide2 import QtCore
+from typing import Any
 
 from activity_browser.brightway.bw2data import parameters
 from activity_browser.actions.base import ABAction
@@ -12,23 +10,14 @@ class ParameterModify(ABAction):
     ABAction to delete an existing parameter.
     """
     icon = qicons.edit
-    title = "Modify Parameter"
-    parameter: Any
-    field: str
-    value: any
+    text = "Modify Parameter"
 
-    def __init__(self,
-                 parameter: Union[Any, Callable],
-                 field: Union[str, Callable],
-                 value: Union[any, Callable],
-                 parent: QtCore.QObject):
-        super().__init__(parent, parameter=parameter, field=field, value=value)
-
-    def onTrigger(self, toggled):
-        if self.field == "data":
-            self.parameter.data.update(self.value)
+    @staticmethod
+    def run(parameter: Any, field: str, value: any):
+        if field == "data":
+            parameter.data.update(value)
         else:
-            setattr(self.parameter, self.field, self.value)
-        self.parameter.save()
+            setattr(parameter, field, value)
+        parameter.save()
 
         parameters.recalculate()

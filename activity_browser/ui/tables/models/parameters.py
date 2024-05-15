@@ -81,7 +81,7 @@ class BaseParameterModel(EditablePandasModel):
         field = self._dataframe.columns[index.column()]
 
         try:
-            actions.ParameterModify(param, field, index.data(), self).trigger()
+            actions.ParameterModify.run(param, field, index.data())
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 application.main_window, "Could not save changes", str(e),
@@ -93,11 +93,11 @@ class BaseParameterModel(EditablePandasModel):
         group = self.get_group(proxy)
         param = self.get_parameter(proxy)
 
-        actions.ParameterRename(param, self).trigger()
+        actions.ParameterRename.run(param)
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        actions.ParameterDelete(param, self).trigger()
+        actions.ParameterDelete.run(param)
 
     @Slot(name="modifyParameterUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
@@ -108,7 +108,7 @@ class BaseParameterModel(EditablePandasModel):
     @Slot(name="unsetParameterUncertainty")
     def remove_uncertainty(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        actions.ParameterUncertaintyRemove(param, self).trigger()
+        actions.ParameterUncertaintyRemove.run(param)
 
     def handle_double_click(self, proxy: QModelIndex) -> None:
         column = proxy.column()
@@ -240,7 +240,7 @@ class ActivityParameterModel(BaseParameterModel):
         except:
             # Can occur if an activity parameter exists for a removed activity.
             log.info("Activity {} no longer exists, removing parameter.".format(row["key"]))
-            actions.ParameterClearBroken(parameter, None).trigger()
+            actions.ParameterClearBroken.run(parameter)
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")

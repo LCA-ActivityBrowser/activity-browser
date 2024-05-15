@@ -78,9 +78,9 @@ class UncertaintyWizard(QtWidgets.QWizard):
             if self.using_pedigree:
                 actions.ExchangeModify.run(self.obj.data, {"pedigree": self.pedigree.matrix.factors})
         elif self.obj.data_type == "parameter":
-            actions.ParameterModify(self.obj.data, "data", self.uncertainty_info, self).trigger()
+            actions.ParameterModify.run(self.obj.data, "data", self.uncertainty_info)
             if self.using_pedigree:
-                actions.ParameterModify(self.obj.data, "data", self.pedigree.matrix.factors, self).trigger()
+                actions.ParameterModify.run(self.obj.data, "data", self.pedigree.matrix.factors)
         elif self.obj.data_type == "cf":
             self.complete.emit(self.obj.data, self.uncertainty_info)
 
@@ -144,7 +144,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
                 elif self.obj.data_type == "parameter":
                     try:
-                        actions.ParameterModify(self.obj.data, "amount", mean, self).trigger()
+                        actions.ParameterModify.run(self.obj.data, "amount", mean)
                     except Exception as e:
                         QtWidgets.QMessageBox.warning(
                             application.main_window, "Could not save changes", str(e),

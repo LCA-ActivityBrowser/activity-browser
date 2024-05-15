@@ -1,28 +1,19 @@
-from typing import Union, Callable, Any
+from typing import Any
 
-from PySide2 import QtCore
-
-from activity_browser.brightway.bw2data import parameters
-from activity_browser.actions.base import ABAction
+from activity_browser.brightway import bd
+from activity_browser.actions.base import NewABAction
 from activity_browser.ui.icons import qicons
 
 
-class ParameterUncertaintyModify(ABAction):
+class ParameterUncertaintyModify(NewABAction):
     """
-    ABAction to delete an existing parameter.
+    ABAction to modify the uncertainty of an existing parameter.
     """
-    icon = qicons.delete
-    title = "Remove parameter uncertainty"
-    parameter: Any
-    uncertainty_dict: dict
+    icon = qicons.edit
+    text = "Modify parameter uncertainty"
 
-    def __init__(self,
-                 parameter: Union[Any, Callable],
-                 uncertainty_dict: [dict, Callable],
-                 parent: QtCore.QObject):
-        super().__init__(parent, parameter=parameter, uncertainty_dict=uncertainty_dict)
-
-    def onTrigger(self, toggled):
-        self.parameter.data.update(self.uncertainty_dict)
-        self.parameter.save()
-        parameters.recalculate()
+    @staticmethod
+    def run(parameter: Any, uncertainty_dict: dict):
+        parameter.data.update(uncertainty_dict)
+        parameter.save()
+        bd.parameters.recalculate()

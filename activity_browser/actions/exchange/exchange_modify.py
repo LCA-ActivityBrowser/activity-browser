@@ -34,7 +34,7 @@ class ExchangeModify(NewABAction):
         act = bd.get_activity(key)
         group = act._document.id
         if not ActivityParameter.select().where(ActivityParameter.group == group).count():
-            ParameterNewAutomatic([key], None).trigger()
+            ParameterNewAutomatic.run([key])
 
 
         with bd.parameters.db.atomic():
