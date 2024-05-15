@@ -1,22 +1,20 @@
 from activity_browser import application
-from .base import ABAction
-from ..ui.widgets import DefaultBiosphereDialog, EcoinventVersionDialog
-from ..ui.icons import qicons
+from activity_browser.actions.base import NewABAction
+from activity_browser.ui.widgets import DefaultBiosphereDialog, EcoinventVersionDialog
+from activity_browser.ui.icons import qicons
 
 
-class DefaultInstall(ABAction):
+class DefaultInstall(NewABAction):
     """
     ABAction to install all the default data: biosphere, IC's etcetera.
     """
     icon = qicons.import_db
-    title = "Add default data (biosphere flows and impact categories)"
+    text = "Add default data (biosphere flows and impact categories)"
 
-    dialog: DefaultBiosphereDialog
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run():
         version_dialog = EcoinventVersionDialog(application.main_window)
         if version_dialog.exec_() != EcoinventVersionDialog.Accepted: return
         version = version_dialog.options.currentText()
 
-        self.dialog = DefaultBiosphereDialog(version[:3], application.main_window)  # only read Major/Minor part of version
-        self.dialog.show()
+        DefaultBiosphereDialog(version[:3], application.main_window).show()  # only read Major/Minor part of version

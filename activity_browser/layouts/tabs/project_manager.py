@@ -109,7 +109,7 @@ class DatabaseWidget(QtWidgets.QWidget):
         )
 
         # Buttons
-        self.add_default_data_button = actions.DefaultInstall(self).get_button()
+        self.add_default_data_button = actions.DefaultInstall.get_button()
         self.new_database_button = actions.DatabaseNew.get_button()
         self.import_database_button = actions.DatabaseImport.get_button()
 

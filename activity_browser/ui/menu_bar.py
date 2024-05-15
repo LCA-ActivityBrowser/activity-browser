@@ -2,7 +2,7 @@ from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
 from activity_browser import actions, signals
-from activity_browser.brightway.bw2data import projects, databases, config
+from activity_browser.brightway import bd
 
 from ..info import __version__ as ab_version
 from .icons import qicons
@@ -18,11 +18,11 @@ class MenuBar(QtWidgets.QMenuBar):
         self.tools_menu = QtWidgets.QMenu('&Tools', self.window)
         self.help_menu = QtWidgets.QMenu('&Help', self.window)
 
-        self.update_biosphere_action = actions.BiosphereUpdate(self)
+        self.update_biosphere_action = actions.BiosphereUpdate.get_action()
         self.export_db_action = actions.DatabaseExport.get_action()
         self.import_db_action = actions.DatabaseImport.get_action()
-        self.manage_plugins_action = actions.PluginWizardOpen(self)
-        self.manage_settings_action = actions.SettingsWizardOpen(self)
+        self.manage_plugins_action = actions.PluginWizardOpen.get_action()
+        self.manage_settings_action = actions.SettingsWizardOpen.get_action()
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
@@ -36,8 +36,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.connect_signals()
 
     def connect_signals(self):
-        projects.current_changed.connect(self.biosphere_exists)
-        databases.metadata_changed.connect(self.biosphere_exists)
+        bd.projects.current_changed.connect(self.biosphere_exists)
+        bd.databases.metadata_changed.connect(self.biosphere_exists)
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
@@ -108,7 +108,7 @@ For license information please see the copyright on <a href="https://github.com/
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
         """
-        exists = True if config.biosphere in databases else False
+        exists = True if bd.config.biosphere in bd.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
 

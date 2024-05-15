@@ -2,10 +2,13 @@ import pytest
 import os
 import brightway2 as bw
 from PySide2 import QtWidgets
-from activity_browser import actions, signals
+from activity_browser import actions, application
 from activity_browser.brightway.bw2data import Database
 from activity_browser.bwutils import AB_metadata
-from activity_browser.ui.widgets import EcoinventVersionDialog
+from activity_browser.ui.widgets import EcoinventVersionDialog, DefaultBiosphereDialog, BiosphereUpdater
+from activity_browser.ui.wizards.settings_wizard import SettingsWizard
+from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWizard
+
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
@@ -24,11 +27,12 @@ def test_default_install(ab_app, monkeypatch, qtbot):
 
     assert bw.projects.current == project_name
     assert "biosphere3" not in bw.databases
+    assert not application.main_window.findChild(DefaultBiosphereDialog)
 
-    action = actions.DefaultInstall(None)
-    action.trigger()
+    actions.DefaultInstall.run()
 
-    with qtbot.waitSignal(action.dialog.finished, timeout=5 * 60 * 1000): pass
+    dialog = application.main_window.findChild(DefaultBiosphereDialog)
+    with qtbot.waitSignal(dialog.finished, timeout=5 * 60 * 1000): pass
     qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
 
     assert "biosphere3" in bw.databases
@@ -58,31 +62,29 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
     assert "biosphere3" in bw.databases
     assert len(Database("biosphere3")) == 4324
 
-    action = actions.BiosphereUpdate(None)
-    action.trigger()
+    actions.BiosphereUpdate.run()
 
-    with qtbot.waitSignal(action.updater.finished, timeout=5*60*1000): pass
+    dialog = application.main_window.findChild(BiosphereUpdater)
+    with qtbot.waitSignal(dialog.finished, timeout=5*60*1000): pass
 
     assert len(Database("biosphere3")) == 4743
 
 
 def test_plugin_wizard_open(ab_app):
-    action = actions.PluginWizardOpen(None)
+    assert not application.main_window.findChild(PluginsManagerWizard)
 
-    with pytest.raises(AttributeError): assert not action.wizard.isVisible()
+    actions.PluginWizardOpen.run()
 
-    action.trigger()
+    assert application.main_window.findChild(PluginsManagerWizard).isVisible()
 
-    assert action.wizard.isVisible()
+    application.main_window.findChild(PluginsManagerWizard).destroy()
 
 
 def test_settings_wizard_open(ab_app):
-    action = actions.SettingsWizardOpen(None)
+    assert not application.main_window.findChild(SettingsWizard)
 
-    with pytest.raises(AttributeError): assert not action.wizard.isVisible()
+    actions.SettingsWizardOpen.run()
 
-    action.trigger()
+    assert application.main_window.findChild(SettingsWizard).isVisible()
 
-    assert action.wizard.isVisible()
-
-    action.wizard.destroy()
+    application.main_window.findChild(SettingsWizard).destroy()

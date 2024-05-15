@@ -1,15 +1,14 @@
 from activity_browser import application
-from .base import ABAction
-from ..ui.icons import qicons
-from ..ui.wizards.plugins_manager_wizard import PluginsManagerWizard
+from activity_browser.actions.base import NewABAction
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 
 
-class PluginWizardOpen(ABAction):
+class PluginWizardOpen(NewABAction):
     """ABAction to open the PluginWizard"""
     icon = qicons.plugin
-    title = "Plugin manager..."
-    wizard: PluginsManagerWizard
+    text = "Plugin manager..."
 
-    def onTrigger(self, toggled):
-        self.wizard = PluginsManagerWizard(application.main_window)
-        self.wizard.show()
+    @staticmethod
+    def run():
+        PluginsManagerWizard(None, application.main_window).show()
