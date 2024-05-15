@@ -19,7 +19,7 @@ class MethodsListModel(DragPandasModel):
         super().__init__(parent=parent)
         self.method_col = 0
         self.different_column_types = {'# CFs': 'num'}
-        signals.project_selected.connect(self.sync)
+        bd.projects.current_changed.connect(self.sync)
 
         # needed to trigger creation of self.filterable_columns, which relies on method_col existing
         self.sync()
@@ -97,7 +97,7 @@ class MethodsTreeModel(BaseTreeModel):
 
         self.setup_model_data()
 
-        signals.project_selected.connect(self.setup_and_sync)
+        bd.projects.current_changed.connect(self.setup_and_sync)
 
     def flags(self, index):
         res = super().flags(index) | Qt.ItemIsDragEnabled

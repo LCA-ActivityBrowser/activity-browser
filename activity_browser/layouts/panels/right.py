@@ -70,7 +70,7 @@ class GraphExplorerTab(ABTab):
 
     def connect_signals(self):
         self.tabCloseRequested.connect(self.close_tab)
-        signals.project_selected.connect(self.close_all)
+        bd.projects.current_changed.connect(self.close_all)
         signals.open_activity_graph_tab.connect(self.add_tab)
 
     def add_tab(self, key, select=True):

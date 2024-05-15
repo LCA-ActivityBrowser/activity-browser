@@ -4,9 +4,8 @@ from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import signals, project_settings
-from activity_browser.brightway.bw2data import databases, get_activity, Database
+from activity_browser.brightway import bd
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.signals import qparameters
 
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
@@ -28,13 +27,13 @@ class ActivitiesTab(ABTab):
         signals.safe_open_activity_tab.connect(self.safe_open_activity_tab)
         self.tabCloseRequested.connect(self.close_tab)
         signals.close_activity_tab.connect(self.close_tab_by_tab_name)
-        signals.project_selected.connect(self.close_all)
+        bd.projects.current_changed.connect(self.close_all)
 
     @Slot(tuple, name="openActivityTab")
     def open_activity_tab(self, key: tuple, read_only: bool = True) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
-            act = get_activity(key)
+            act = bd.get_activity(key)
             if not bc.is_technosphere_activity(act):
                 return
             new_tab = ActivityTab(key, read_only, self)
@@ -86,8 +85,8 @@ class ActivityTab(QtWidgets.QWidget):
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
         self.db_name = key[0]
-        self.activity = get_activity(key)
-        self.database = Database(self.db_name)
+        self.activity = bd.get_activity(key)
+        self.database = bd.Database(self.db_name)
 
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
@@ -185,7 +184,7 @@ class ActivityTab(QtWidgets.QWidget):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
         self.activity.changed.connect(self.populate)
         self.activity.deleted.connect(self.deleteLater)
-        qparameters.parameters_changed.connect(self.populate)
+        bd.parameters.parameters_changed.connect(self.populate)
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:
@@ -194,10 +193,10 @@ class ActivityTab(QtWidgets.QWidget):
     @Slot(name="populatePage")
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
-        if self.db_name in databases:
+        if self.db_name in bd.databases:
             # Avoid a weird signal interaction in the tests
             try:
-                self.activity = get_activity(self.key)  # Refresh activity.
+                self.activity = bd.get_activity(self.key)  # Refresh activity.
             except DoesNotExist:
                 signals.close_activity_tab.emit(self.key)
                 return
@@ -220,13 +219,6 @@ class ActivityTab(QtWidgets.QWidget):
         """Populate the activity description."""
         self.activity_description.refresh_text(self.activity.get('comment', ''))
         self.activity_description.setReadOnly(self.read_only)
-
-        # the <font> html-tag has no effect besides making the tooltip rich text
-        # this is required for line breaks of long comments
-        # self.checkbox_activity_description.setToolTip(
-        #     '<font>{}</font>'.format(self.activity_description.toPlainText())
-        # )
-        # self.activity_description.adjust_size()
 
     @Slot(name="toggleDescription")
     def toggle_activity_description_visibility(self) -> None:

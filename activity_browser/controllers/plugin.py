@@ -5,6 +5,7 @@ from pkgutil import iter_modules
 from PySide2.QtCore import QObject
 
 from activity_browser import log, signals, project_settings, ab_settings, application
+from activity_browser.brightway import bd
 
 
 class PluginController(QObject):
@@ -17,7 +18,7 @@ class PluginController(QObject):
         self.load_plugins()
 
     def connect_signals(self):
-        signals.project_selected.connect(self.reload_plugins)
+        bd.projects.current_changed.connect(self.reload_plugins)
         signals.plugin_selected.connect(self.add_plugin)
 
     def load_plugins(self):

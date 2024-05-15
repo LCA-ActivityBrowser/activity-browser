@@ -1,7 +1,7 @@
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import actions, signals
-from activity_browser.brightway.bw2data import projects, databases, Database
+from activity_browser.brightway import bd
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -35,8 +35,8 @@ class ProjectTab(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        projects.current_changed.connect(self.change_project)
-        databases.metadata_changed.connect(self.update_widgets)
+        bd.projects.current_changed.connect(self.change_project)
+        bd.databases.metadata_changed.connect(self.update_widgets)
 
         signals.database_selected.connect(self.update_widgets)
 
@@ -116,8 +116,8 @@ class DatabaseWidget(QtWidgets.QWidget):
         self._construct_layout()
 
         # Signals
-        databases.metadata_changed.connect(self.update_widget)
-        projects.current_changed.connect(self.update_widget)
+        bd.databases.metadata_changed.connect(self.update_widget)
+        bd.projects.current_changed.connect(self.update_widget)
 
     def _construct_layout(self):
         header_widget = QtWidgets.QWidget()
@@ -155,7 +155,7 @@ class ActivityBiosphereTabs(ABTab):
         self.connect_signals()
 
     def connect_signals(self) -> None:
-        projects.current_changed.connect(self.close_all)
+        bd.projects.current_changed.connect(self.close_all)
 
         self.tabCloseRequested.connect(self.close_tab)
         signals.database_selected.connect(self.open_or_focus_tab)
@@ -187,7 +187,7 @@ class ActivityBiosphereTabs(ABTab):
 class ActivityBiosphereWidget(QtWidgets.QWidget):
     def __init__(self, db_name: str, parent):
         super(ActivityBiosphereWidget, self).__init__(parent)
-        self.database = Database(db_name)
+        self.database = bd.Database(db_name)
         self.table = ActivitiesBiosphereTable(self)
 
         self.database.changed.connect(self.database_changed)
@@ -243,7 +243,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.reset_search_button.clicked.connect(self.table.reset_search)
         self.reset_search_button.clicked.connect(self.search_box.clear)
 
-        signals.project_selected.connect(self.search_box.clear)
+        bd.projects.current_changed.connect(self.search_box.clear)
         self.header_layout.addWidget(self.search_box)
 
         self.header_layout.addWidget(self.search_button)

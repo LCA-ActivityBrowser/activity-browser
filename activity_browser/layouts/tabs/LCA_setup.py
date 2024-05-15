@@ -4,7 +4,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 
 from activity_browser import log, signals, actions
-from activity_browser.brightway.bw2data import databases, calculation_setups
+from activity_browser.brightway import bd
 from .base import BaseRightTab
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box
@@ -167,14 +167,14 @@ class LCASetupTab(QtWidgets.QWidget):
 
         # Slots
         signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
-        signals.project_selected.connect(self.set_default_calculation_setup)
+        bd.projects.current_changed.connect(self.set_default_calculation_setup)
         signals.calculation_setup_changed.connect(self.enable_calculations)
         signals.calculation_setup_selected.connect(self.select_cs)
 
     def save_cs_changes(self):
         name = self.list_widget.name
         if name:
-            calculation_setups[name] = {
+            bd.calculation_setups[name] = {
                 'inv': self.activities_table.to_python(),
                 'ia': self.methods_table.to_python()
             }
@@ -205,7 +205,7 @@ class LCASetupTab(QtWidgets.QWidget):
     @Slot(name="toggleDefaultCalculation")
     def set_default_calculation_setup(self):
         self.calculation_type.setCurrentIndex(0)
-        cs = None if not calculation_setups else sorted(calculation_setups)[0]
+        cs = None if not bd.calculation_setups else sorted(bd.calculation_setups)[0]
         signals.calculation_setup_selected.emit(cs)
 
     def select_cs(self, name: str):
@@ -354,8 +354,8 @@ class ScenarioImportPanel(BaseRightTab):
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
         self.save_scenario.clicked.connect(self.save_action)
-        signals.project_selected.connect(self.clear_tables)
-        signals.project_selected.connect(self.can_add_table)
+        bd.projects.current_changed.connect(self.clear_tables)
+        bd.projects.current_changed.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
@@ -658,8 +658,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @_time_it_
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
         dbs = set(df.loc[:, 'from database']).union(set(df.loc[:, 'to database']))
-        unlinkable = dbs.difference(databases)
-        db_lst = list(databases)
+        unlinkable = dbs.difference(bd.databases)
+        db_lst = list(bd.databases)
         relink = []
         for db in unlinkable:
             relink.append((db, db_lst))

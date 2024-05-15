@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtWidgets
 from ...ui.icons import qicons
 
 from activity_browser import signals
-from activity_browser.brightway.bw2data import Method
+from activity_browser.brightway import bd
 
 from ...ui.style import header, horizontal_line
 from ...ui.tables import MethodCharacterizationFactorsTable, MethodsTable, MethodsTree
@@ -34,7 +34,7 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
         container.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(container)
 
-        self.method = Method(method_tuple)
+        self.method = bd.Method(method_tuple)
         self.cf_table.model.load(self.method)
         self.cf_table.show()
         self.panel.select_tab(self)
@@ -147,7 +147,7 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.textChanged.connect(self.debounce_search.start)
 
         self.reset_search_button.clicked.connect(self.search_box.clear)
-        signals.project_selected.connect(self.search_box.clear)
+        bd.projects.current_changed.connect(self.search_box.clear)
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
@@ -169,7 +169,7 @@ class CharacterizationFactorsTab(ABTab):
         # signals
         signals.method_selected.connect(self.open_method_tab)
         self.tabCloseRequested.connect(self.close_tab)
-        signals.project_selected.connect(self.close_all)
+        bd.projects.current_changed.connect(self.close_all)
 
     def open_method_tab(self, method):
         if method not in self.tabs:

@@ -10,6 +10,7 @@ except ModuleNotFoundError:
     # we're running Brightway 25
     from bw2data.backends import Activity, Exchange
 
+
 class ABSignals(QObject):
     """ Signals used for the Activity Browser should be defined here.
     While arguments can be passed to signals, it is good practice not to do this if possible.
@@ -29,7 +30,7 @@ class ABSignals(QObject):
     # new_project = Signal()  # Start a new project
     # copy_project = Signal()  # Copy a project
     # delete_project = Signal()  # Delete a project
-    project_selected = Signal()  # A project was selected (opened)
+    # project_selected = Signal()  # A project was selected (opened)
     # projects_changed = Signal()  # The list of projects changed
 
     # Database
@@ -383,5 +384,3 @@ qactivity_list = QActivityList()
 qexchange_list = QExchangeList()
 qmethod_list = QMethodList()
 qparameter_list = QParameterList()
-
-qprojects.current_changed.connect(signals.project_selected.emit)

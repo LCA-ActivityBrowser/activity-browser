@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-#from typing import Iterable, List, Tuple
 from typing import Iterable, Tuple
 
 from PySide2.QtCore import Slot
-#from PySide2.QtWidgets import QComboBox
 
-from activity_browser.signals import signals
+from activity_browser.brightway import bd
 from .models import ScenarioModel
 from .views import ABDataFrameView
 
@@ -24,7 +21,7 @@ class ScenarioTable(ABDataFrameView):
         self.model = ScenarioModel(self)
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.custom_view_sizing)
-        signals.project_selected.connect(self.group_column)
+        bd.projects.current_changed.connect(self.group_column)
 
     @Slot(bool, name="showGroupColumn")
     def group_column(self, shown: bool = False) -> None:
