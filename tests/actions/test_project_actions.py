@@ -20,12 +20,12 @@ def test_project_delete(ab_app, monkeypatch):
 
     assert bw.projects.current == project_name
 
-    actions.ProjectDelete(None).trigger()
+    actions.ProjectDelete.run()
 
     assert bw.projects.current == ab_settings.startup_project
     assert project_name not in bw.projects
 
-    actions.ProjectDelete(None).trigger()
+    actions.ProjectDelete.run()
 
     assert bw.projects.current == ab_settings.startup_project
 
@@ -47,14 +47,14 @@ def test_project_duplicate(ab_app, monkeypatch):
     assert bw.projects.current == project_name
     assert dup_project_name not in bw.projects
 
-    actions.ProjectDuplicate(None).trigger()
+    actions.ProjectDuplicate.run()
 
     assert bw.projects.current == dup_project_name
     assert project_name in bw.projects
 
     projects_number = len(bw.projects)
 
-    actions.ProjectDuplicate(None).trigger()
+    actions.ProjectDuplicate.run()
 
     assert len(bw.projects) == projects_number
 
@@ -73,12 +73,12 @@ def test_project_new(ab_app, monkeypatch):
 
     assert project_name not in bw.projects
 
-    actions.ProjectNew(None).trigger()
+    actions.ProjectNew.run()
 
     assert project_name in bw.projects
 
     projects_number = len(bw.projects)
 
-    actions.ProjectNew(None).trigger()
+    actions.ProjectNew.run()
 
     assert len(bw.projects) == projects_number

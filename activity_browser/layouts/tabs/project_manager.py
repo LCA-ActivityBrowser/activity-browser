@@ -67,9 +67,9 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.projects_list = ProjectListWidget()
 
         # Buttons
-        self.new_project_button = actions.ProjectNew(self).get_button()
-        self.copy_project_button = actions.ProjectDuplicate(self).get_button()
-        self.delete_project_button = actions.ProjectDelete(self).get_button()
+        self.new_project_button = actions.ProjectNew.get_button()
+        self.copy_project_button = actions.ProjectDuplicate.get_button()
+        self.delete_project_button = actions.ProjectDelete.get_button()
 
         self.construct_layout()
 

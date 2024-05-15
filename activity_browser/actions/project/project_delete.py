@@ -1,23 +1,24 @@
 from PySide2 import QtWidgets
 
 from activity_browser import application, ab_settings
-from activity_browser.brightway.bw2data import projects
-from activity_browser.actions.base import ABAction
+from activity_browser.brightway import bd
+from activity_browser.actions.base import NewABAction
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import ProjectDeletionDialog
 
 
-class ProjectDelete(ABAction):
+class ProjectDelete(NewABAction):
     """
     ABAction to delete the currently active project. Return if it's the startup project.
     """
     icon = qicons.delete
-    title = "Delete"
+    text = "Delete"
     tool_tip = "Delete the project"
 
-    def onTrigger(self, toggled):
+    @staticmethod
+    def run():
         # get the current project
-        project_to_delete = projects.current
+        project_to_delete = bd.projects.current
 
         # if it's the startup project: reject deletion and inform user
         if project_to_delete == ab_settings.startup_project:
@@ -29,12 +30,12 @@ class ProjectDelete(ABAction):
 
         # open a delete dialog for the user to confirm, return if user rejects
         delete_dialog = ProjectDeletionDialog.construct_project_deletion_dialog(application.main_window,
-                                                                                projects.current)
+                                                                                bd.projects.current)
         if delete_dialog.exec_() != ProjectDeletionDialog.Accepted: return
 
         # try to delete the project, delete directory if user specified so
-        projects.set_current(ab_settings.startup_project)
-        projects.delete_project(project_to_delete, delete_dialog.deletion_warning_checked())
+        bd.projects.set_current(ab_settings.startup_project)
+        bd.projects.delete_project(project_to_delete, delete_dialog.deletion_warning_checked())
 
         # inform the user of successful deletion
         QtWidgets.QMessageBox.information(
