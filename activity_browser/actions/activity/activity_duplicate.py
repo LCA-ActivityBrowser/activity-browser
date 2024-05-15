@@ -5,10 +5,10 @@ from PySide2 import QtCore
 from activity_browser.brightway.bw2data import get_activity
 from activity_browser.bwutils import commontasks
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 
 
-class ActivityDuplicate(NewABAction):
+class ActivityDuplicate(ABAction):
     """
     Duplicate one or multiple activities using their keys. Proxy action to call the controller.
     """
@@ -16,6 +16,7 @@ class ActivityDuplicate(NewABAction):
     text = 'Duplicate ***'
 
     @staticmethod
+    @exception_dialogs
     def run(activity_keys: List[tuple]):
         activities = [get_activity(key) for key in activity_keys]
 

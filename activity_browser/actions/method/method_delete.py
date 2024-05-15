@@ -4,11 +4,11 @@ from PySide2 import QtWidgets
 
 from activity_browser import application, log
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class MethodDelete(NewABAction):
+class MethodDelete(ABAction):
     """
     ABAction to remove one or multiple methods. First check whether the method is a node or leaf. If it's a node, also
     include all underlying methods. Ask the user for confirmation, and return if canceled. Otherwise, remove all found
@@ -18,6 +18,7 @@ class MethodDelete(NewABAction):
     text = "Delete Impact Category"
 
     @staticmethod
+    @exception_dialogs
     def run(methods: List[tuple], level: str):
         # this action can handle only one selected method for now
         selected_method = methods[0]

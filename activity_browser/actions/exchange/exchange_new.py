@@ -2,11 +2,11 @@ from typing import List
 
 from activity_browser.bwutils import commontasks
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class ExchangeNew(NewABAction):
+class ExchangeNew(ABAction):
     """
     ABAction to create a new exchange for an activity.
     """
@@ -14,6 +14,7 @@ class ExchangeNew(NewABAction):
     text = "Add exchanges"
 
     @staticmethod
+    @exception_dialogs
     def run(from_keys: List[tuple], to_key: tuple):
         to_activity = bd.get_activity(to_key)
         for from_key in from_keys:

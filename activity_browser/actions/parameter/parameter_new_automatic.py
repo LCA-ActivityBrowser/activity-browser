@@ -6,11 +6,11 @@ from activity_browser import application
 
 from activity_browser.brightway import bd
 from activity_browser.brightway.bw2data.parameters import ActivityParameter
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class ParameterNewAutomatic(NewABAction):
+class ParameterNewAutomatic(ABAction):
     """
     ABAction for the automatic creation of a new parameter.
 
@@ -21,6 +21,7 @@ class ParameterNewAutomatic(NewABAction):
     text = "New parameter..."
 
     @staticmethod
+    @exception_dialogs
     def run(activity_keys: List[Tuple]):
         for key in activity_keys:
             act = bd.get_activity(key)

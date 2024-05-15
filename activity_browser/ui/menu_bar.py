@@ -18,11 +18,11 @@ class MenuBar(QtWidgets.QMenuBar):
         self.tools_menu = QtWidgets.QMenu('&Tools', self.window)
         self.help_menu = QtWidgets.QMenu('&Help', self.window)
 
-        self.update_biosphere_action = actions.BiosphereUpdate.get_action()
-        self.export_db_action = actions.DatabaseExport.get_action()
-        self.import_db_action = actions.DatabaseImport.get_action()
-        self.manage_plugins_action = actions.PluginWizardOpen.get_action()
-        self.manage_settings_action = actions.SettingsWizardOpen.get_action()
+        self.update_biosphere_action = actions.BiosphereUpdate.get_QAction()
+        self.export_db_action = actions.DatabaseExport.get_QAction()
+        self.import_db_action = actions.DatabaseImport.get_QAction()
+        self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
+        self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)

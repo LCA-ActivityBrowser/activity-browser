@@ -5,13 +5,13 @@ from PySide2 import QtWidgets
 from activity_browser import application, project_settings
 from activity_browser.brightway import bd
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks
 
 from .activity_open import ActivityOpen
 
 
-class ActivityDuplicateToDB(NewABAction):
+class ActivityDuplicateToDB(ABAction):
     """
     ABAction to duplicate an activity to another database. Asks the user to what database they want to copy the activity
     to, returns if there are no valid databases or when the user cancels. Otherwise uses the activity controller to
@@ -21,6 +21,7 @@ class ActivityDuplicateToDB(NewABAction):
     text = 'Duplicate to other database'
 
     @classmethod
+    @exception_dialogs
     def run(cls, activity_keys: List[tuple], to_db: str = None):
         # get bw activity objects from keys
         activities = [bd.get_activity(key) for key in activity_keys]

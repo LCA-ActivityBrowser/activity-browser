@@ -2,12 +2,12 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
 
 
-class DatabaseDuplicate(NewABAction):
+class DatabaseDuplicate(ABAction):
     """
     ABAction to duplicate a database. Asks the user to provide a new name for the database, and returns when the name is
     already in use by an existing database. Then it shows a progress dialogue which will construct a new thread in which
@@ -19,6 +19,7 @@ class DatabaseDuplicate(NewABAction):
     tool_tip = "Make a duplicate of this database"
 
     @staticmethod
+    @exception_dialogs
     def run(db_name: str):
         assert db_name in bd.databases
 

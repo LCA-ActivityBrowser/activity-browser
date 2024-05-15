@@ -7,11 +7,11 @@ from activity_browser import signals, application
 from activity_browser.brightway import bd
 from activity_browser.bwutils import AB_metadata, commontasks
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from ...ui.widgets import LocationLinkingDialog
 
 
-class ActivityDuplicateToLoc(NewABAction):
+class ActivityDuplicateToLoc(ABAction):
     """
     ABAction to duplicate an activity and possibly their exchanges to a new location.
     """
@@ -19,6 +19,7 @@ class ActivityDuplicateToLoc(NewABAction):
     text = 'Duplicate activity to new location'
 
     @classmethod
+    @exception_dialogs
     def run(cls, activity_key: tuple):
         activity = bd.get_activity(activity_key)
         db_name = activity["database"]

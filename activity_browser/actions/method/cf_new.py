@@ -4,11 +4,11 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class CFNew(NewABAction):
+class CFNew(ABAction):
     """
     ABAction to add a new characterization flow to a method through one or more elementary-flow keys.
     """
@@ -16,6 +16,7 @@ class CFNew(NewABAction):
     text = "New characterization factor"
 
     @staticmethod
+    @exception_dialogs
     def run(method_name: tuple, keys: List[tuple]):
         # load old cf's from the Method
         method_dict = bd.Method(method_name).load_dict()

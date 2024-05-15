@@ -5,12 +5,12 @@ from PySide2 import QtWidgets, QtCore
 from activity_browser import application
 from activity_browser.brightway import bd
 from activity_browser.bwutils.strategies import relink_activity_exchanges
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog
 from activity_browser.ui.icons import qicons
 
 
-class ActivityRelink(NewABAction):
+class ActivityRelink(ABAction):
     """
     ABAction to relink the exchanges of an activity to exchanges from another database.
 
@@ -20,6 +20,7 @@ class ActivityRelink(NewABAction):
     text = "Relink the activity exchanges"
 
     @staticmethod
+    @exception_dialogs
     def run(activity_keys: List[tuple]):
         # this action only uses the first key supplied to activity_keys
         key = activity_keys[0]

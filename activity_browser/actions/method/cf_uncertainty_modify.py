@@ -3,12 +3,12 @@ from functools import partial
 
 from activity_browser import application
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.wizards import UncertaintyWizard
 
 
-class CFUncertaintyModify(NewABAction):
+class CFUncertaintyModify(ABAction):
     """
     ABAction to launch the UncertaintyWizard for Characterization Factor and handles the output by writing the
     uncertainty data using the ImpactCategoryController to the Characterization Factor in question.
@@ -17,6 +17,7 @@ class CFUncertaintyModify(NewABAction):
     text = "Modify uncertainty"
 
     @classmethod
+    @exception_dialogs
     def run(cls, method_name: tuple, char_factors: List[tuple]):
         wizard = UncertaintyWizard(char_factors[0], application.main_window)
         wizard.complete.connect(partial(cls.wizard_done, method_name))

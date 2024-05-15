@@ -100,10 +100,10 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList(self)
 
-        self.new_cs_button = actions.CSNew.get_button()
-        self.duplicate_cs_button = actions.CSDuplicate.get_button(self.list_widget.currentText)
-        self.delete_cs_button = actions.CSDelete.get_button(self.list_widget.currentText)
-        self.rename_cs_button = actions.CSRename.get_button(self.list_widget.currentText)
+        self.new_cs_button = actions.CSNew.get_QButton()
+        self.duplicate_cs_button = actions.CSDuplicate.get_QButton(self.list_widget.currentText)
+        self.delete_cs_button = actions.CSDelete.get_QButton(self.list_widget.currentText)
+        self.rename_cs_button = actions.CSRename.get_QButton(self.list_widget.currentText)
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()

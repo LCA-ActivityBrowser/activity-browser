@@ -67,9 +67,9 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.projects_list = ProjectListWidget()
 
         # Buttons
-        self.new_project_button = actions.ProjectNew.get_button()
-        self.copy_project_button = actions.ProjectDuplicate.get_button()
-        self.delete_project_button = actions.ProjectDelete.get_button()
+        self.new_project_button = actions.ProjectNew.get_QButton()
+        self.copy_project_button = actions.ProjectDuplicate.get_QButton()
+        self.delete_project_button = actions.ProjectDelete.get_QButton()
 
         self.construct_layout()
 
@@ -109,9 +109,9 @@ class DatabaseWidget(QtWidgets.QWidget):
         )
 
         # Buttons
-        self.add_default_data_button = actions.DefaultInstall.get_button()
-        self.new_database_button = actions.DatabaseNew.get_button()
-        self.import_database_button = actions.DatabaseImport.get_button()
+        self.add_default_data_button = actions.DefaultInstall.get_QButton()
+        self.new_database_button = actions.DatabaseNew.get_QButton()
+        self.import_database_button = actions.DatabaseImport.get_QButton()
 
         self._construct_layout()
 

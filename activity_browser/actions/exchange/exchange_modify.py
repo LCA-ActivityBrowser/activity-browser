@@ -1,6 +1,6 @@
 from typing import Any
 
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.brightway import bd
 from activity_browser.brightway.bw2data.parameters import ActivityParameter
@@ -8,7 +8,7 @@ from activity_browser.brightway.bw2data.parameters import ActivityParameter
 from ..parameter.parameter_new_automatic import ParameterNewAutomatic
 
 
-class ExchangeModify(NewABAction):
+class ExchangeModify(ABAction):
     """
     ABAction to modify an exchange with the supplied data.
     """
@@ -16,6 +16,7 @@ class ExchangeModify(NewABAction):
     text = "Modify exchange"
 
     @classmethod
+    @exception_dialogs
     def run(cls, exchange: Any, data: dict):
         for key, value in data.items():
             exchange[key] = value

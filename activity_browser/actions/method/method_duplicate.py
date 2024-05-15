@@ -3,11 +3,11 @@ from typing import List
 from activity_browser import application, log
 from activity_browser.brightway import bd
 from activity_browser.ui.widgets import TupleNameDialog
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class MethodDuplicate(NewABAction):
+class MethodDuplicate(ABAction):
     """
     ABAction to duplicate a method, or node with all underlying methods to a new name specified by the user.
     """
@@ -15,6 +15,7 @@ class MethodDuplicate(NewABAction):
     text = "Duplicate Impact Category"
 
     @staticmethod
+    @exception_dialogs
     def run(methods: List[tuple], level: str):
         # this action can handle only one selected method for now
         selected_method = methods[0]

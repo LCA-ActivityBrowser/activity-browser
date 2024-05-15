@@ -5,10 +5,10 @@ from PySide2 import QtWidgets
 from activity_browser import application
 from activity_browser.brightway.bw2data import Database
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 
 
-class ActivityNew(NewABAction):
+class ActivityNew(ABAction):
     """
     ABAction to create a new activity. Prompts the user to supply a name. Returns if no name is supplied or if the user
     cancels. Otherwise, instructs the ActivityController to create a new activity.
@@ -17,6 +17,7 @@ class ActivityNew(NewABAction):
     text = "New activity"
 
     @staticmethod
+    @exception_dialogs
     def run(database_name: str):
         # ask the user to provide a name for the new activity
         name, ok = QtWidgets.QInputDialog.getText(

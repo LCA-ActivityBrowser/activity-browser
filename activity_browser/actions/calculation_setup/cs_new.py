@@ -2,11 +2,11 @@ from PySide2 import QtWidgets
 
 from activity_browser import application, log, signals
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class CSNew(NewABAction):
+class CSNew(ABAction):
     """
     ABAction to create a new Calculation Setup. Prompts the user for a name for the new CS. Returns if the user cancels,
     or when a CS with the same name is already present within the project. Otherwise, instructs the CSController to
@@ -16,6 +16,7 @@ class CSNew(NewABAction):
     text = "New"
 
     @staticmethod
+    @exception_dialogs
     def run():
         # prompt the user to give a name for the new calculation setup
         name, ok = QtWidgets.QInputDialog.getText(

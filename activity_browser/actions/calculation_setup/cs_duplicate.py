@@ -4,11 +4,11 @@ from PySide2 import QtCore, QtWidgets
 
 from activity_browser import application, signals, log
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class CSDuplicate(NewABAction):
+class CSDuplicate(ABAction):
     """
     ABAction to duplicate a calculation setup. Prompts the user for a new name. Returns if the user cancels, or if a CS
     with the same name is already present within the project. If all is right, instructs the CalculationSetupController
@@ -18,6 +18,7 @@ class CSDuplicate(NewABAction):
     text = "Duplicate"
 
     @staticmethod
+    @exception_dialogs
     def run(cs_name: str):
         # prompt the user to give a name for the new calculation setup
         new_name, ok = QtWidgets.QInputDialog.getText(

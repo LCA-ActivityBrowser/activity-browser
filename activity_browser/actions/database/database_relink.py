@@ -2,13 +2,13 @@ from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import DatabaseLinkingDialog, DatabaseLinkingResultsDialog
 from activity_browser.bwutils.strategies import relink_exchanges_existing_db
 
 
-class DatabaseRelink(NewABAction):
+class DatabaseRelink(ABAction):
     """
     ABAction to relink the dependencies of a database.
     """
@@ -17,6 +17,7 @@ class DatabaseRelink(NewABAction):
     tool_tip = "Relink the dependencies of this database"
 
     @staticmethod
+    @exception_dialogs
     def run(db_name: str):
         db_name = db_name
         # get brightway database object

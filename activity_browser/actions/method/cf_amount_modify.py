@@ -1,11 +1,11 @@
 from typing import List
 
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class CFAmountModify(NewABAction):
+class CFAmountModify(ABAction):
     """
     ABAction to modify the amount of a characterization factor within a method. Updates the CF-Tuple's second value
     directly if there's no uncertainty dict. Otherwise, changes the "amount" from the uncertainty dict.
@@ -14,6 +14,7 @@ class CFAmountModify(NewABAction):
     text = "Modify amount"
 
     @staticmethod
+    @exception_dialogs
     def run(method_name: tuple, char_factors: List[tuple], amount: float):
         method = bd.Method(method_name)
         method_dict = method.load_dict()

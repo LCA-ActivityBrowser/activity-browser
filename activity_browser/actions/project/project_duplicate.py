@@ -2,11 +2,11 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class ProjectDuplicate(NewABAction):
+class ProjectDuplicate(ABAction):
     """
     ABAction to duplicate a project. Asks the user for a new name. Returns if no name is given, the user cancels, or
     when the name is already in use by another project. Else, instructs the ProjectController to duplicate the current
@@ -17,6 +17,7 @@ class ProjectDuplicate(NewABAction):
     tool_tip = "Duplicate the project"
 
     @staticmethod
+    @exception_dialogs
     def run():
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,

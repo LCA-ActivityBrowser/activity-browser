@@ -2,11 +2,11 @@ from typing import Any
 
 from activity_browser.brightway.bw2data import get_activity
 from activity_browser.brightway.bw2data.parameters import ActivityParameter, Group, GroupDependency, parameters
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class ParameterDelete(NewABAction):
+class ParameterDelete(ABAction):
     """
     ABAction to delete an existing parameter.
     """
@@ -14,6 +14,7 @@ class ParameterDelete(NewABAction):
     text = "Delete parameter..."
 
     @staticmethod
+    @exception_dialogs
     def run(parameter: Any):
         if isinstance(parameter, ActivityParameter):
             db = parameter.database

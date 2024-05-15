@@ -1,11 +1,11 @@
 from typing import Any
 
 from activity_browser.brightway.bw2data.parameters import ActivityParameter, Group, GroupDependency, parameters
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class ParameterClearBroken(NewABAction):
+class ParameterClearBroken(ABAction):
     """
     Take the given information and attempt to remove all the downstream parameter information.
     """
@@ -13,6 +13,7 @@ class ParameterClearBroken(NewABAction):
     text = "Clear broken parameter"
 
     @staticmethod
+    @exception_dialogs
     def run(parameter: Any):
         db = parameter.database
         code = parameter.code

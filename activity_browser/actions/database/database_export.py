@@ -1,11 +1,11 @@
 from PySide2 import QtWidgets
 
 from activity_browser import application
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 
 
-class DatabaseExport(NewABAction):
+class DatabaseExport(ABAction):
     """
     ABAction to open the DatabaseExportWizard.
     """
@@ -14,5 +14,6 @@ class DatabaseExport(NewABAction):
     tool_tip = "Export a database from this project"
 
     @staticmethod
+    @exception_dialogs
     def run():
         DatabaseExportWizard(application.main_window).show()

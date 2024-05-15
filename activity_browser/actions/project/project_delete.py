@@ -2,12 +2,12 @@ from PySide2 import QtWidgets
 
 from activity_browser import application, ab_settings
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import ProjectDeletionDialog
 
 
-class ProjectDelete(NewABAction):
+class ProjectDelete(ABAction):
     """
     ABAction to delete the currently active project. Return if it's the startup project.
     """
@@ -16,6 +16,7 @@ class ProjectDelete(NewABAction):
     tool_tip = "Delete the project"
 
     @staticmethod
+    @exception_dialogs
     def run():
         # get the current project
         project_to_delete = bd.projects.current

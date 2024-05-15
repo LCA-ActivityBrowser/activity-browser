@@ -6,10 +6,10 @@ from activity_browser import application
 from activity_browser.brightway import bd
 from activity_browser.brightway.bw2data.parameters import ActivityParameter, Group, GroupDependency, parameters
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 
 
-class ActivityDelete(NewABAction):
+class ActivityDelete(ABAction):
     """
     ABAction to delete one or multiple activities if supplied by activity keys. Will check if an activity has any
     downstream processes and ask the user whether they want to continue if so. Exchanges from any downstream processes
@@ -19,6 +19,7 @@ class ActivityDelete(NewABAction):
     text = 'Delete ***'
 
     @staticmethod
+    @exception_dialogs
     def run(activity_keys: List[tuple]):
         # retrieve activity objects from the controller using the provided keys
         activities = [bd.get_activity(key) for key in activity_keys]

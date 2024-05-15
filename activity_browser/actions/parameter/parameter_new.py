@@ -5,7 +5,7 @@ from PySide2 import QtCore, QtWidgets, QtGui
 from activity_browser import application
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 PARAMETER_STRINGS = (
@@ -20,7 +20,7 @@ PARAMETER_FIELDS = (
 )
 
 
-class ParameterNew(NewABAction):
+class ParameterNew(ABAction):
     """
     ABAction to create a new Parameter. Opens the ParameterWizard, returns if the wizard is canceled. Else,
     checks whether the name is valid, and then instructs the ParameterController to put the new parameter in the
@@ -30,6 +30,7 @@ class ParameterNew(NewABAction):
     text = "New parameter..."
 
     @staticmethod
+    @exception_dialogs
     def run(activity_key: Tuple[str, str]):
         # instantiate the ParameterWizard
         wizard = ParameterWizard(activity_key, application.main_window)

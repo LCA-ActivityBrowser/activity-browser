@@ -1,11 +1,11 @@
 from typing import Any
 
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class ParameterUncertaintyModify(NewABAction):
+class ParameterUncertaintyModify(ABAction):
     """
     ABAction to modify the uncertainty of an existing parameter.
     """
@@ -13,6 +13,7 @@ class ParameterUncertaintyModify(NewABAction):
     text = "Modify parameter uncertainty"
 
     @staticmethod
+    @exception_dialogs
     def run(parameter: Any, uncertainty_dict: dict):
         parameter.data.update(uncertainty_dict)
         parameter.save()

@@ -1,11 +1,11 @@
 from typing import List
 
 from activity_browser.brightway import bd
-from activity_browser.actions.base import NewABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
-class CFUncertaintyRemove(NewABAction):
+class CFUncertaintyRemove(ABAction):
     """
     ABAction to remove the uncertainty from one or multiple Characterization Factors.
     """
@@ -13,6 +13,7 @@ class CFUncertaintyRemove(NewABAction):
     text = "Remove uncertainty"
 
     @staticmethod
+    @exception_dialogs
     def run(method_name: tuple, char_factors: List[tuple]):
         # create a list of CF's of which the uncertainty dict is removed
         cleaned_cfs = []

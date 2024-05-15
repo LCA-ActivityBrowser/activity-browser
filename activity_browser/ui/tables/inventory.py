@@ -30,10 +30,10 @@ class DatabasesTable(ABDataFrameView):
             QtWidgets.QSizePolicy.Maximum
         ))
 
-        self.relink_action = actions.DatabaseRelink.get_action(self.current_database)
-        self.new_activity_action = actions.ActivityNew.get_action(self.current_database)
-        self.delete_db_action = actions.DatabaseDelete.get_action(self.current_database)
-        self.duplicate_db_action = actions.DatabaseDuplicate.get_action(self.current_database)
+        self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
+        self.new_activity_action = actions.ActivityNew.get_QAction(self.current_database)
+        self.delete_db_action = actions.DatabaseDelete.get_QAction(self.current_database)
+        self.duplicate_db_action = actions.DatabaseDuplicate.get_QAction(self.current_database)
 
         self.model = DatabasesModel(parent=self)
         self._connect_signals()
@@ -97,14 +97,14 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
 
         # context-menu items
-        self.open_activity_action = actions.ActivityOpen.get_action(self.selected_keys)
-        self.open_activity_graph_action = actions.ActivityGraph.get_action(self.selected_keys)
-        self.new_activity_action = actions.ActivityNew.get_action(self.current_database)
-        self.dup_activity_action = actions.ActivityDuplicate.get_action(self.selected_keys)
-        self.dup_activity_new_loc_action = actions.ActivityDuplicateToLoc.get_action(lambda: self.selected_keys()[0])
-        self.delete_activity_action = actions.ActivityDelete.get_action(self.selected_keys)
-        self.relink_activity_exch_action = actions.ActivityRelink.get_action(self.selected_keys)
-        self.dup_other_db_action = actions.ActivityDuplicateToDB.get_action(self.selected_keys)
+        self.open_activity_action = actions.ActivityOpen.get_QAction(self.selected_keys)
+        self.open_activity_graph_action = actions.ActivityGraph.get_QAction(self.selected_keys)
+        self.new_activity_action = actions.ActivityNew.get_QAction(self.current_database)
+        self.dup_activity_action = actions.ActivityDuplicate.get_QAction(self.selected_keys)
+        self.dup_activity_new_loc_action = actions.ActivityDuplicateToLoc.get_QAction(lambda: self.selected_keys()[0])
+        self.delete_activity_action = actions.ActivityDelete.get_QAction(self.selected_keys)
+        self.relink_activity_exch_action = actions.ActivityRelink.get_QAction(self.selected_keys)
+        self.dup_other_db_action = actions.ActivityDuplicateToDB.get_QAction(self.selected_keys)
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, 'Exchanges for scenario difference file', None
         )
