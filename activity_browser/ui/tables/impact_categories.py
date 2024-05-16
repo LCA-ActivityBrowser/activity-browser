@@ -58,12 +58,12 @@ class MethodsTable(ABFilterableDataFrameView):
             return
 
         menu = QtWidgets.QMenu(self)
-        menu.addAction(self.duplicate_method_action)
-        menu.addAction(self.delete_method_action)
         menu.addAction(
             qicons.edit, "Inspect Impact Category",
             lambda: signals.method_selected.emit(self.model.get_method(self.currentIndex()))
         )
+        menu.addAction(self.duplicate_method_action)
+        menu.addAction(self.delete_method_action)
         menu.exec_(event.globalPos())
 
 
