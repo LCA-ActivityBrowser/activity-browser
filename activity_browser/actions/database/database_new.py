@@ -1,6 +1,6 @@
 from PySide2 import QtWidgets
 
-from activity_browser import application, project_settings
+from activity_browser import application, project_settings, signals
 from activity_browser.brightway import bd
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
@@ -38,3 +38,5 @@ class DatabaseNew(ABAction):
         db = bd.Database(name)
         db.register()
         project_settings.add_db(name, False)
+
+        signals.database_selected.emit(name)

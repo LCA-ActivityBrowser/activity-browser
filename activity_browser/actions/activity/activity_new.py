@@ -7,6 +7,8 @@ from activity_browser.brightway.bw2data import Database
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction, exception_dialogs
 
+from .activity_open import ActivityOpen
+
 
 class ActivityNew(ABAction):
     """
@@ -44,3 +46,5 @@ class ActivityNew(ABAction):
         # create the production exchange
         production_exchange = new_act.new_exchange(input=new_act, amount=1, type="production")
         production_exchange.save()
+
+        ActivityOpen.run([new_act.key])
