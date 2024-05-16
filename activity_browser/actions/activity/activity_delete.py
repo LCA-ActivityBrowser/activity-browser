@@ -60,4 +60,6 @@ class ActivityDelete(ABAction):
                 # no parameters found for this activity
                 pass
 
+            act.upstream().delete()
+
             act.delete()
