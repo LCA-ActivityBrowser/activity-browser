@@ -13,11 +13,41 @@ from bw2data import Database
 class Exchanges(Exchanges):
 
     def delete(self):
-        # gather all affected exchanges, activities and databases
-        excs = list(self)
-        acts = set()
-        acts.update([exc.input for exc in excs])
-        acts.update([exc.output for exc in excs])
+        # find only the exchanges that have qexchange counterparts within ourselves
+        exc_query = ExchangeDataset.id << [qexc["id"] for qexc in qexchange_list]
+        exc_args = self._args + [exc_query]
+        excs = [Exchange(doc) for doc in ExchangeDataset.select().where(*exc_args)]
+
+        # find only the input or output activities that have qactivity counterparts
+
+        # get all qactivity keys
+        act_keys = [(qact["database"], qact["code"]) for qact in qactivity_list]
+
+        # gather affected output activities
+
+        # construct a preliminary query using only the output code (this should get us very far)
+        act_query = ExchangeDataset.output_code << [key[1] for key in act_keys]
+
+        # combine with the existing query
+        act_args = self._args + [act_query]
+
+        # execute query to a set, and only select activities that are in act_keys
+        acts = {get_activity((doc.output_database, doc.output_code))
+                for doc in ExchangeDataset.select().where(*act_args)
+                if (doc.output_database, doc.output_code) in act_keys
+                }
+
+        # gather affected input activities
+
+        # same process as above but for input_code and input_database
+        act_query = ExchangeDataset.input_code << [key[1] for key in act_keys]
+        act_args = self._args + [act_query]
+        acts.update({get_activity((doc.input_database, doc.input_code))
+                     for doc in ExchangeDataset.select().where(*act_args)
+                     if (doc.input_database, doc.input_code) in act_keys
+                     })
+
+        # use the activities set to create a database set as well
         dbs = set([act["database"] for act in acts])
 
         # execute the patched function for standard functionality

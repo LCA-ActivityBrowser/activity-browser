@@ -100,7 +100,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
             return
 
         if db_name not in databases:
-            raise KeyError("This database does not exist!", db_name)
+            return
         self.database_name = db_name
         self.technosphere = bc.is_technosphere_db(db_name)
 
