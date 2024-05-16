@@ -182,7 +182,7 @@ class MetaDataStore(object):
             if bc.count_database_records(db_name) == 0:
                 return pd.DataFrame()
             self.add_metadata([db_name])
-        return self.dataframe.loc[self.dataframe['database'] == db_name]
+        return self.dataframe.loc[self.dataframe['database'] == db_name].copy(deep=True)
 
     @property
     def index(self):
