@@ -86,7 +86,10 @@ def is_technosphere_db(db_name: str) -> bool:
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
     if not db_name in bd.databases:
         raise KeyError("Not an existing database:", db_name)
-    act = bd.Database(db_name).random()
+    db = bd.Database(db_name)
+    if len(db) == 0:
+        return True
+    act = db.random()
     if act is None or act.get("type", "process") == "process":
         return True
     else:
