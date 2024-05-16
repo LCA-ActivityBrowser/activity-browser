@@ -21,9 +21,10 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Setup python ${{ matrix.python-version }} conda environment
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ matrix.python-version }}
+          miniconda-version: "latest"
       - name: Install activity-browser
         run: |
           conda create -y -n ab -c conda-forge --solver libmamba activity-browser python=${{ matrix.python-version }}
