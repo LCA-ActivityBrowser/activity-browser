@@ -31,9 +31,9 @@ class MethodDelete(ABAction):
 
         # warn the user about the pending deletion
         warning = QtWidgets.QMessageBox.warning(application.main_window,
-                                                f"Deleting Method: {selected_method}",
-                                                "Are you sure you want to delete this method and possible underlying "
-                                                "methods?",
+                                                "Deleting Method",
+                                                f"Are you sure you want to delete this method and possible underlying "
+                                                f"methods?\n\n{selected_method}",
                                                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                 QtWidgets.QMessageBox.No
                                                 )
