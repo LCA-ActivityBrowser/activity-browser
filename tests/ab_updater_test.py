@@ -11,6 +11,7 @@ to validate the download process.
 import os
 import tempfile
 import sys
+import PyQt5
 
 activity_browser_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript"))
 sys.path.append(activity_browser_path)
