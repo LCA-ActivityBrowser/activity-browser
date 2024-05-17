@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
 
-from activity_browser.brightway import bw2data
 from .logger import log, exception_hook, log_file_location
+from activity_browser.brightway import bw2data
 from .application import application
 from .signals import signals
 from .settings import ab_settings, project_settings
