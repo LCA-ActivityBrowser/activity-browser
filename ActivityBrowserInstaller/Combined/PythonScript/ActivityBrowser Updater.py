@@ -207,17 +207,8 @@ class updaterWindow(QDialog):
         Returns:
         - str: The filename of the ActivityBrowser executable.
         """
-        if OPERATING_SYSTEM == "Windows":
-            pattern = "ActivityBrowser-*.exe"
-        elif OPERATING_SYSTEM == "Darwin":  # macOS
-            pattern = "ActivityBrowser-*"
-        else:
-            # Handle unsupported operating systems
-            print("Unsupported operating system")
-            return None
-
         for filename in os.listdir("."):
-            if filename.startswith(pattern):
+            if filename.startswith("ActivityBrowser-"):
                 return filename
         return None
 
