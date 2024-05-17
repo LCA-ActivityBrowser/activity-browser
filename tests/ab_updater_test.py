@@ -4,7 +4,9 @@
 - Contributors: Ruben Visser
 - Date and Author of Last Modification: 17/05/2024 - Ruben Visser
 - Synopsis of the File's purpose:
-
+The Python script updates and verifies the download of an activity browser using external modules. It checks for
+the presence of the downloaded executable file in the temporary directory and provides a test function
+to validate the download process.
 """
 import os
 import tempfile
@@ -16,12 +18,25 @@ updater = __import__("ActivityBrowser Updater")
 downloadThread = updater.downloadThread()
 
 def checkDownload():
+    """
+    Checks the download of the activity browser executable.
+
+    Downloads the Activity Browser using an updater thread and verifies
+    the presence of the downloaded executable file 'activity-browser.exe'
+    in the temporary directory.
+    """
     downloadThread.run(user="ThisIsSomeone", repo="activity-browser")
     temp_dir = tempfile.gettempdir()
     files = os.listdir(temp_dir)
     assert "activity-browser.exe" in files
 
 def test_checkDownload():
+    """
+    Tests the download verification process.
+
+    Calls the checkDownload function to verify the download of the
+    activity browser executable and asserts the presence of the file.
+    """
     checkDownload()
 
 
