@@ -17,7 +17,13 @@ import shutil
 import pytest
 
 @pytest.fixture(scope="module")
-def setup_environment():
+def setupEnvironment():
+    """
+    Fixture to set up the environment for testing the ActivityBrowser installation process.
+
+    This fixture creates a temporary directory named "Scripts" and a tarball file named "ActivityBrowser.tar.gz"
+    containing the "Scripts" folder. It yields control to the test function.
+    """
     if not os.path.exists("Scripts"):
         os.makedirs("Scripts")
 
@@ -33,18 +39,28 @@ def setup_environment():
     shutil.rmtree("ActivityBrowserEnvironment")
     os.remove("ActivityBrowser.tar.gz")
 
-def test_environment_extraction(setup_environment):
+def test_environment_extraction(setupEnvironment):
+    """
+    Test case to verify the extraction of environment files during the ActivityBrowser installation process.
+
+    This test function uses the `setupEnvironment` fixture to set up a test environment with a tarball file
+    containing the "Scripts" folder. Then it runs the ActivityBrowser installation script and verifies that
+    the "ActivityBrowserEnvironment" directory is created and files are extracted into it.
+
+    Args:
+        setupEnvironment: Fixture to set up the environment for testing.
+    """
     # Determine the path of the current directory where this script is located
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    currentDir = os.path.dirname(os.path.abspath(__file__))
     # Set the path to the ab_installer.py based on the path of this test script
-    ab_installer_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_installer.py")
+    abInstallerPath = os.path.join(currentDir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_installer.py")
 
     # Run the installation code
-    subprocess.run(["python", ab_installer_path])
-    env_dir = "ActivityBrowserEnvironment"
+    subprocess.run(["python", abInstallerPath])
+    envDir = "ActivityBrowserEnvironment"
 
     # Check if the directory is created
-    assert os.path.exists(env_dir)
+    assert os.path.exists(envDir)
 
     # Check if files are extracted into the directory
-    assert os.path.exists(os.path.join(env_dir, "Scripts"))
+    assert os.path.exists(os.path.join(envDir, "Scripts"))

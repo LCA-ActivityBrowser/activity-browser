@@ -14,33 +14,53 @@ import subprocess
 import pytest
 
 @pytest.fixture(scope="module")
-def setup_environment():
-    # Create a dummy ActivityBrowser environment for testing
-    test_dir = "ActivityBrowserEnvironment"
-    os.makedirs(test_dir)
+def setupEnvironment():
+    """
+    Fixture to set up a dummy ActivityBrowser environment for testing.
 
-    current_directory = os.getcwd()
+    This fixture creates a temporary directory named "ActivityBrowserEnvironment" and a dummy
+    ActivityBrowser executable file named "ActivityBrowser-Test.exe" for testing purposes. It yields the
+    path of the temporary directory.
+
+    Yields:
+        str: The path of the temporary directory.
+    """
+    # Create a dummy ActivityBrowser environment for testing
+    testDir = "ActivityBrowserEnvironment"
+    os.makedirs(testDir)
+
+    currentDirectory = os.getcwd()
 
     # Create a dummy ActivityBrowser exe file for testing in the current directory
-    dummy_file_path = os.path.join(current_directory, "ActivityBrowser-Test.exe")
-    open(dummy_file_path, "a").close()
+    dummyFilePath = os.path.join(currentDirectory, "ActivityBrowser-Test.exe")
+    open(dummyFilePath, "a").close()
 
-    yield test_dir
+    yield testDir
 
     # Clean up after the test
-    if os.path.exists(test_dir):
-        os.rmdir(test_dir)
-    if os.path.exists(dummy_file_path):
-        os.remove(dummy_file_path)
+    if os.path.exists(testDir):
+        os.rmdir(testDir)
+    if os.path.exists(dummyFilePath):
+        os.remove(dummyFilePath)
 
-def test_uninstall(setup_environment):
+def testUninstall(setupEnvironment):
+    """
+    Test case to verify the uninstallation of the ActivityBrowser.
+
+    This test function uses the `setup_environment` fixture to set up a test environment with a dummy
+    ActivityBrowser installation. Then it runs the ActivityBrowser uninstallation script and verifies that the
+    temporary directory and the dummy executable file are removed.
+
+    Args:
+        setup_environment (str): The path of the temporary directory created by the `setup_environment` fixture.
+    """
     # Determine the path of the current directory where this script is located
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    currentDir = os.path.dirname(os.path.abspath(__file__))
     # Set the path to the ab_installer.py based on the path of this test script
-    ab_uninstaller_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_uninstaller.py")
+    abUninstallerPath = os.path.join(currentDir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_uninstaller.py")
     # Run the uninstall script
-    subprocess.run(["python", ab_uninstaller_path])
+    subprocess.run(["python", abUninstallerPath])
     # Check if the environment and the exe file is removed
-    assert not os.path.exists(setup_environment), f"Directory '{setup_environment}' should be removed."
+    assert not os.path.exists(setupEnvironment), f"Directory '{setupEnvironment}' should be removed."
 
 

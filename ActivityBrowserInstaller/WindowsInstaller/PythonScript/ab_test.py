@@ -1,42 +1,78 @@
+"""
+- ab_test.py
+- Date of File Creation: 17/05/2024
+- Contributors: Ruben Visser
+- Date and Author of Last Modification: 17/05/2024 - Ruben Visser
+- Synopsis of the File's purpose:
+This file has Python functions to test version management of an activity browser. It imports functions from
+'ActivityBrowser' to get the latest release version and the currently installed one. Key functions:
+delete_file(filename) removes a file, createOldVersion() makes an old version of the executable, createNewVersion()
+makes a new one, and there are tests to check version control.
+"""
+
 import os
-import pytest
-from ActivityBrowser import (
-    getLatestRelease,
-    getActivityBrowserVersion,
-    isSecondIputVersionNewer,
-)
+from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer
 
-@pytest.fixture
-def create_dummy_exe(tmpdir):
-    def _create(version):
-        dummy_exe = tmpdir.join(f"ActivityBrowser-{version}")
-        dummy_exe.write("test file")
-        return dummy_exe
-    return _create
+currentVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
 
-def test_version_comparison(tmpdir, create_dummy_exe):
-    # Step 1: Create a dummy EXE file with a version number of "1.0.0"
-    dummy_exe_low = create_dummy_exe("1.0.0")
+def delete_file(filename):
+    """
+    Delete a file if it exists.
 
-    # Obtain the version from the dummy EXE file
-    current_version = getActivityBrowserVersion(tmpdir)
+    Args:
+        filename (str): The name of the file to be deleted.
+    """
+    if os.path.exists(filename):
+        os.remove(filename)
+        print(f"{filename} is deleted.")
+    else:
+        print(f"{filename} does not exist.")
 
-    # Latest release version
-    latest_version = "3.1.2"
+def createOldVersion():
+    """
+    Create a dummy old version of the activity browser executable file.
+    """
+    filename = "ActivityBrowser-0.0.0.exe"
+    with open(filename, "w") as file:
+        pass
 
-    # Check if the latest release version is newer than the current version
-    assert isSecondIputVersionNewer(current_version, latest_version)
+def createNewVersion():
+    """
+    Create a dummy new version of the activity browser executable file.
+    """
+    filename = "ActivityBrowser-9.9.9.exe"
+    with open(filename, "w") as file:
+        pass
 
-    # Remove the dummy EXE file
-    os.remove(str(dummy_exe_low))
+def testOfGetVersion()
+    """
+    Test the functionality of getActivityBrowserVersion() function.
+    It checks if the installed version is correctly retrieved.
+    """
+    createOldVersion()
+    installedVersion = getActivityBrowserVersion()
+    assert installedVersion == "0.0.0"
+    delete_file("ActivityBrowser-0.0.0.exe")
 
-    # Step 2: Create a dummy EXE file with a version number of "4.0.0"
-    dummy_exe_high = create_dummy_exe("4.0.0")
+def testTrue():
+    """
+    Test the functionality of isSecondIputVersionNewer() function.
+    It checks if the function correctly identifies a newer version.
+    """
+    createOldVersion()
+    installedVersion = getActivityBrowserVersion()
+    assert isSecondIputVersionNewer(installedVersion, currentVersion)
+    delete_file("ActivityBrowser-0.0.0.exe")
 
-    # Obtain the version from the dummy EXE file
-    current_version = getActivityBrowserVersion(tmpdir)
+def testFalse():
+    """
+    Test the functionality of isSecondIputVersionNewer() function.
+    It checks if the function correctly identifies that a version
+    is not newer than the current version.
+    """
+    createNewVersion()
+    installedVersion = getActivityBrowserVersion()
+    assert not isSecondIputVersionNewer(installedVersion, currentVersion)
+    delete_file("ActivityBrowser-9.9.9.exe")
 
-    os.remove(str(dummy_exe_high))
 
-    # Check if the latest release version is newer than the current version
-    assert not isSecondIputVersionNewer(current_version, latest_version)
