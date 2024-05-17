@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
-import traceback
 
-from .logger import log
 from activity_browser.brightway import bw2data
+from .logger import log, exception_hook, log_file_location
 from .application import application
 from .signals import signals
 from .settings import ab_settings, project_settings
@@ -23,15 +22,13 @@ def load_settings() -> None:
 
 
 def run_activity_browser():
-    log.info(f'The Activity Browser log file can be found at {log.log_file_path()}')
     log.info(f'Activity Browser version: {version}')
+    if log_file_location:
+        log.info(f'The log file can be found at {log_file_location}')
 
     application.main_window = MainWindow(application)
     load_settings()
     application.show()
-
-    def exception_hook(*args):
-        log.warning(''.join(traceback.format_exception(*args)))
 
     sys.excepthook = exception_hook
 

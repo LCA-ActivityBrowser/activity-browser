@@ -2,7 +2,6 @@
 import logging
 import sys
 
-import brightway2 as bw
 from bw2data.parameters import ProjectParameter
 import numpy as np
 from PySide2.QtWidgets import QMessageBox, QWizard
@@ -13,18 +12,12 @@ from stats_arrays.distributions import (
 )
 
 from activity_browser.ui.wizards import UncertaintyWizard
-from activity_browser.signals import signals, qparameters
-from activity_browser.logger import ABHandler
+from activity_browser.signals import qparameters
 
 """
 Mess around with the uncertainty wizard.
 """
 
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, "uncertainty_wizard_test")
-
-log.setLevel(logging.INFO, True)
-log.propagate = True
 
 @pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_wizard_fail(ab_app, qtbot):
