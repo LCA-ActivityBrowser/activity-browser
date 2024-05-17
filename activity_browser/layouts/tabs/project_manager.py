@@ -91,7 +91,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
         self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Maximum)
         )
 
