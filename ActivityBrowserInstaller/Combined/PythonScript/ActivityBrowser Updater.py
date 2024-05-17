@@ -200,7 +200,7 @@ class updaterWindow(QDialog):
 
         self.setLayout(layout)
     
-    def getActivityBrowserFilename():
+    def getActivityBrowserFilename(self):
         """
         Get the filename of the ActivityBrowser executable in the current directory.
 
