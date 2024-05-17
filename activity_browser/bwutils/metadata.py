@@ -64,12 +64,12 @@ class MetaDataStore(object):
 
         dfs = list()
         dfs.append(self.dataframe)
-        log.info('Current shape and databases in the MetaDataStore:', self.dataframe.shape, self.databases)
+        log.debug('Current shape and databases in the MetaDataStore:', self.dataframe.shape, self.databases)
         for db_name in new:
             if db_name not in bd.databases:
                 raise ValueError('This database does not exist:', db_name)
 
-            log.info('Adding:', db_name)
+            log.debug('Adding:', db_name)
             self.databases.add(db_name)
 
             # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
@@ -116,7 +116,7 @@ class MetaDataStore(object):
             act = bd.get_activity(key)  # if this does not work, it has been deleted (see except:).
         except (UnknownObject, ActivityDataset.DoesNotExist):
             # Situation 1: activity has been deleted (metadata needs to be deleted)
-            log.warning('Deleting activity from metadata:', key)
+            log.debug('Deleting activity from metadata:', key)
             self.dataframe.drop(key, inplace=True, errors="ignore")
             # print('Dimensions of the Metadata:', self.dataframe.shape)
             return
@@ -127,13 +127,13 @@ class MetaDataStore(object):
             self.add_metadata([db])
         else:
             if key in self.dataframe.index:  # Situation 2: activity has been modified (metadata needs to be updated)
-                log.info('Updating activity in metadata: ', act, key)
+                log.debug('Updating activity in metadata: ', act, key)
                 for col in self.dataframe.columns:
                     self.dataframe.at[key, col] = act.get(col, '')
                 self.dataframe.at[key, 'key'] = act.key
 
             else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
-                log.info('Adding activity to metadata:', act, key)
+                log.debug('Adding activity to metadata:', act, key)
                 df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
                 df_new['key'] = [act.key]
                 self.dataframe = pd.concat([self.dataframe, df_new], sort=False)
@@ -143,7 +143,7 @@ class MetaDataStore(object):
     def reset_metadata(self) -> None:
         """Deletes metadata when the project is changed."""
         # todo: metadata could be collected across projects...
-        log.info('Reset metadata.')
+        log.debug('Reset metadata.')
         self.dataframe = pd.DataFrame()
         self.databases = set()
 
@@ -213,7 +213,7 @@ class MetaDataStore(object):
     def print_convenience_information(self, db_name: str) -> None:
         """ Reports how many unique locations and units the database has.
         """
-        log.info("{} unique locations and {} unique units in {}".format(
+        log.debug("{} unique locations and {} unique units in {}".format(
             len(self.get_locations(db_name)), len(self.get_units(db_name)),
             db_name
         ))
