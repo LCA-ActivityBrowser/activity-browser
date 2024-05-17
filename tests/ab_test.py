@@ -11,6 +11,9 @@ makes a new one, and there are tests to check version control.
 """
 
 import os
+import sys
+activity_browser_path = os.path.abspath(os.path.join(os.getcwd(), "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript"))
+sys.path.append(activity_browser_path)
 from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer
 
 currentVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
@@ -44,7 +47,7 @@ def createNewVersion():
     with open(filename, "w") as file:
         pass
 
-def testOfGetVersion()
+def testOfGetVersion():
     """
     Test the functionality of getActivityBrowserVersion() function.
     It checks if the installed version is correctly retrieved.
