@@ -12,7 +12,7 @@ makes a new one, and there are tests to check version control.
 
 import os
 import sys
-activity_browser_path = os.path.abspath(os.path.join(os.getcwd(), "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript"))
+activity_browser_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript"))
 sys.path.append(activity_browser_path)
 from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer
 
