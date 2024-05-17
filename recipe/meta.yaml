@@ -38,6 +38,7 @@ requirements:
     - qt-webengine
     - salib >=1.4
     - seaborn
+    - pyqt5
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
