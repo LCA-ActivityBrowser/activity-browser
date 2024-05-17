@@ -35,17 +35,17 @@ def createOldVersion():
     """
     Create a dummy old version of the activity browser executable file.
     """
-    filename = "ActivityBrowser-0.0.0.exe"
-    with open(filename, "w") as file:
-        pass
+    currentDirectory = os.getcwd()
+    dummyFilePath = os.path.join(currentDirectory, "ActivityBrowser-0.0.0.exe")
+    open(dummyFilePath, "a").close()
 
 def createNewVersion():
     """
     Create a dummy new version of the activity browser executable file.
     """
-    filename = "ActivityBrowser-9.9.9.exe"
-    with open(filename, "w") as file:
-        pass
+    currentDirectory = os.getcwd()
+    dummyFilePath = os.path.join(currentDirectory, "ActivityBrowser-9.9.9.exe")
+    open(dummyFilePath, "a").close()
 
 def testOfGetVersion():
     """
