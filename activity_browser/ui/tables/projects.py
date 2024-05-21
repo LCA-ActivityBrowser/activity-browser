@@ -2,6 +2,7 @@
 from PySide2.QtWidgets import QComboBox, QSizePolicy
 from PySide2.QtCore import Qt
 
+from activity_browser import actions
 from activity_browser.brightway import bd
 
 
@@ -39,5 +40,4 @@ class ProjectListWidget(QComboBox):
         self.setCurrentIndex(index)
 
     def on_activated(self, index):
-        # TODO: create an action for this
-        bd.projects.set_current(self.project_names[index])
+        actions.ProjectSwitch.run(self.project_names[index])

@@ -236,7 +236,7 @@ class ProjectSettings(BaseSettings):
         """ On switching project, attempt to read the settings for the new
         project.
         """
-        log.info("Reset project settings directory to:", bd.projects.dir)
+        log.info("Project settings directory: ", bd.projects.dir)
         self.settings_file = os.path.join(bd.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects

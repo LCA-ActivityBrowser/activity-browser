@@ -14,11 +14,10 @@ from .plugin import Plugin
 
 def load_settings() -> None:
     if ab_settings.settings:
-        log.info("Loading user settings:")
         bw2data.projects.switch_dir(ab_settings.current_bw_dir)
         bw2data.projects.set_current(ab_settings.startup_project)
     log.info(f'Brightway2 data directory: {bw2data.projects.base_dir}')
-    log.info(f'Brightway2 active project: {bw2data.projects.current}')
+    log.info(f'Brightway2 current project: {bw2data.projects.current}')
 
 
 def run_activity_browser():

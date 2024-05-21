@@ -14,6 +14,7 @@ from typing import TextIO, Type
 WHITELIST = ["activity_browser", "brightway2", "bw2data", "bw2io", "C/C++"]
 EXTENDED_CONSOLE = os.environ.get("AB_EXTENDED_CONSOLE", False)
 SIMPLE_CONSOLE = os.environ.get("AB_SIMPLE_CONSOLE", False)
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 
 class LowLevelStdIO:
@@ -94,8 +95,6 @@ class ABConsoleHandler(logging.Handler):
         "activity_browser": "AB",
         "brightway2": "BW2"
     }
-
-    extended_debug = os.environ.get("EXTEND_DEBUG", False)
 
     def __init__(self, low_level_stdio: LowLevelStdIO):
         super().__init__()
@@ -353,12 +352,12 @@ def advanced_setup():
 
     # setting up our own logger
     root = logging.getLogger()
-    root.setLevel("DEBUG")
     logging.addLevelName(25, "PRINT")
 
     # setting up the console handler
     console_handler = ABConsoleHandler(low_level_stdout)
     console_handler.addFilter(log_filter)
+    console_handler.setLevel(LOG_LEVEL)
     root.addHandler(console_handler)
 
     # setting up the file handler

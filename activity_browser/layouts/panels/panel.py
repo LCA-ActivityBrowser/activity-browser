@@ -45,7 +45,7 @@ class ABTab(QtWidgets.QTabWidget):
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
             if self.indexOf(tab) != -1:
-                log.info("-hiding tab:", tab_name)
+                log.debug("Hiding tab: ", tab_name)
                 tab.setVisible(False)
                 # Only explicitly alter the tab index if we're hiding the
                 # current tab itself.

@@ -326,5 +326,5 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         if not isinstance(source_table, ActivitiesBiosphereTable):
             return
         event.accept()
-        actions.CFNew.run(self.method_name, keys)
+        actions.CFNew.run(self.method_name(), keys)
         # TODO: Resize the view if the table did not already take up the full height.
