@@ -48,7 +48,7 @@ class ProjectTab(QtWidgets.QWidget):
         no_databases = len(self.activity_biosphere_tabs.tabs) == 0
 
         self.activity_biosphere_tabs.setVisible(not no_databases)
-        self.resize_splitter()
+        #self.resize_splitter()
 
     def resize_splitter(self):
         """Splitter sizes need to be reset (for some reason this is buggy if not done like this)"""

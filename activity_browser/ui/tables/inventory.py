@@ -25,10 +25,6 @@ class DatabasesTable(ABDataFrameView):
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum
-        ))
 
         self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
         self.new_activity_action = actions.ActivityNew.get_QAction(self.current_database)
