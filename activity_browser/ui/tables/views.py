@@ -3,6 +3,9 @@ from typing import Optional
 
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtCore import QSize, Qt, Slot, QPoint, Signal, QRect, QTimer
+from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, QMenu, QAction, \
+    QHeaderView, QStyle, QStyleOptionButton,QLineEdit, QWidgetAction, QWidget, QHBoxLayout, QToolButton, QSizePolicy
+from PySide2.QtGui import QKeyEvent, QDoubleValidator
 
 from activity_browser import log, ab_settings
 from activity_browser.brightway import bd
@@ -24,13 +27,21 @@ class ABDataFrameView(QtWidgets.QTableView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setVerticalScrollMode(QtWidgets.QTableView.ScrollPerPixel)
-        self.setHorizontalScrollMode(QtWidgets.QTableView.ScrollPerPixel)
+        self.setVerticalScrollMode(QTableView.ScrollPerPixel)
+        self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
+
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
+
+        self.horizontalHeader().setStretchLastSection(True)
+        self.horizontalHeader().setHighlightSections(False)
+        self.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
+
         self.verticalHeader().setDefaultSectionSize(22)  # row height
-        self.verticalHeader().setVisible(True)
+        self.verticalHeader().setVisible(False)
         # Use a custom ViewOnly delegate by default.
         # Can be overridden table-wide or per column in child classes.
         self.setItemDelegate(ViewOnlyDelegate(self))
@@ -42,13 +53,6 @@ class ABDataFrameView(QtWidgets.QTableView):
         self.model: Optional[PandasModel] = None
         self.proxy_model: Optional[ABSortProxyModel] = None
 
-    def get_max_height(self) -> int:
-        return (self.verticalHeader().count())*self.verticalHeader().defaultSectionSize() + \
-                 self.horizontalHeader().height() + self.horizontalScrollBar().height() + 5
-
-    def sizeHint(self) -> QSize:
-        return QSize(self.width(), self.get_max_height())
-
     def rowCount(self) -> int:
         return 0 if self.model is None else self.model.rowCount()
 
@@ -58,12 +62,6 @@ class ABDataFrameView(QtWidgets.QTableView):
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         self.setModel(self.proxy_model)
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Custom table resizing to perform after setting new (proxy) model.
-        """
-        self.setMaximumHeight(self.get_max_height())
 
     @Slot(name="exportToClipboard")
     def to_clipboard(self):
@@ -542,18 +540,6 @@ class ABDictTreeView(QtWidgets.QTreeView):
         super().__init__(parent)
         self.setUniformRowHeights(True)
         self.data = {}
-        self._connect_signals()
-
-    def _connect_signals(self):
-        self.expanded.connect(self.custom_view_sizing)
-        self.collapsed.connect(self.custom_view_sizing)
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Resize the first column (usually 'name') whenever an item is
-        expanded or collapsed.
-        """
-        self.resizeColumnToContents(0)
 
     @Slot(name="expandSelectedBranch")
     def expand_branch(self):

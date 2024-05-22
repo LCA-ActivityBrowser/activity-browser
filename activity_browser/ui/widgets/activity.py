@@ -29,6 +29,11 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
     @QtCore.Slot(name="showHideTable")
     def showhide(self):
         self.widget.setVisible(self.isChecked())
+        if not self.isChecked():
+            minimum_height = self.minimumSizeHint().height()
+            self.setMaximumHeight(minimum_height)
+        else:
+            self.setMaximumHeight(16777215)  # apparently this is the Qt default
 
     @QtCore.Slot(name="toggleEmptyTable")
     def toggle_empty_table(self) -> None:

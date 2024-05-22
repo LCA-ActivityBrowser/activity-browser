@@ -34,8 +34,6 @@ class MethodsTable(ABFilterableDataFrameView):
     def connect_signals(self):
         self.doubleClicked.connect(lambda p: signals.method_selected.emit(self.model.get_method(p)))
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
-
         methods.metadata_changed.connect(self.sync)
 
     def selected_methods(self) -> Iterable:
@@ -45,13 +43,6 @@ class MethodsTable(ABFilterableDataFrameView):
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
         self.model.sync(query)
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        self.setColumnHidden(self.model.method_col, True)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        ))
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -101,7 +92,6 @@ class MethodsTree(ABDictTreeView):
         # set model
         self.model = MethodsTreeModel(self)
         self.setModel(self.model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.optional_expand)
         self.model.sync()
         self.setColumnHidden(self.model.method_col, True)
@@ -110,7 +100,6 @@ class MethodsTree(ABDictTreeView):
         self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods, self.tree_level)
 
     def _connect_signals(self):
-        super()._connect_signals()
         self.doubleClicked.connect(self.method_selected)
         methods.metadata_changed.connect(self.open_method)
 
@@ -249,9 +238,11 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
+
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_filter_data)
+        self.model.updated.connect(lambda: self.setColumnHidden(5, True))
+
         self.read_only = True
         self.setAcceptDrops(not self.read_only)
 
@@ -278,14 +269,6 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
             # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
             new_amount = self.model.get_value(cell)
             actions.CFAmountModify.run(self.method_name, self.selected_cfs, new_amount)
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        self.setColumnHidden(self.model.cf_column, True)
-        self.hide_uncertain()
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        ))
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:

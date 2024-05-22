@@ -175,7 +175,7 @@ class ParameterManager(object):
         https://presamples.readthedocs.io/en/latest/index.html"""
         result = np.zeros(len(self.indices), dtype=object)
         for i, idx in enumerate(self.indices):
-            result[i] = (idx.input, idx.output, idx.input.database_type)
+            result[i] = (idx.input, idx.output, idx.flow_type)
         return result
 
     def arrays_from_scenarios(self, scenarios) -> (np.ndarray, np.ndarray):

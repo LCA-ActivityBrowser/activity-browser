@@ -79,7 +79,6 @@ class ABParameterTable(QWidget):
         layout = QVBoxLayout()
         layout.addLayout(headerLayout)
         layout.addWidget(table)
-        layout.addStretch(1)
         return layout
 
     def get_table(self):
@@ -381,7 +380,6 @@ class ParameterExchangesTab(BaseRightTab):
         layout.addWidget(row)
         layout.addWidget(horizontal_line())
         layout.addWidget(self.table, 2)
-        layout.addStretch(1)
         self.setLayout(layout)
 
     def build_tables(self) -> None:
@@ -474,7 +472,6 @@ class ParameterScenariosTab(BaseRightTab):
         row.addStretch(1)
         layout.addLayout(row)
         layout.addWidget(self.tbl)
-        layout.addStretch(1)
         self.setLayout(layout)
 
     @Slot(int, object, bool, name="processParameterScenarios")

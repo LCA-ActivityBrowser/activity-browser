@@ -29,7 +29,6 @@ class ProjectTab(QtWidgets.QWidget):
         self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
         self.overall_layout.addWidget(self.projects_widget)
         self.overall_layout.addWidget(self.splitter)
-        self.overall_layout.addStretch()
         self.setLayout(self.overall_layout)
 
         self.connect_signals()
@@ -175,6 +174,9 @@ class ActivityBiosphereTabs(ABTab):
         self.select_tab(self.tabs[db_name])
 
     def current_index_changed(self, current_index: int) -> None:
+        if current_index < 0:
+            self.hide()
+            return
         db_name = self.get_tab_name_from_index(current_index)
         signals.database_tab_open.emit(db_name)
 
@@ -213,11 +215,6 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.v_layout.addWidget(self.header_widget)
         self.v_layout.addWidget(self.table)
         self.setLayout(self.v_layout)
-
-        self.table.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
 
     def reset_widget(self):
         self.hide()

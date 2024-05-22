@@ -21,10 +21,6 @@ class BaseExchangeTable(ABDataFrameView):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.setAcceptDrops(False)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
 
         self.delete_exchange_action = actions.ExchangeDelete.get_QAction(self.selected_exchanges)
         self.remove_formula_action = actions.ExchangeFormulaRemove.get_QAction(self.selected_exchanges)
@@ -44,17 +40,6 @@ class BaseExchangeTable(ABDataFrameView):
             lambda: self.model.edit_cell(self.currentIndex())
         )
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
-
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Ensure the `exchange` column is hidden whenever the table is shown.
-        """
-        super().custom_view_sizing()
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        self.setColumnHidden(self.model.exchange_column, True)
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -76,7 +61,7 @@ class BaseExchangeTable(ABDataFrameView):
 
     def dropEvent(self, event):
         source_table = event.source()
-        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+        keys = source_table.selected_keys()
         event.accept()
         actions.ExchangeNew.run(keys, self.key)
 
@@ -138,13 +123,6 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Ensure the `exchange` column is hidden whenever the table is shown.
-        """
-        super().custom_view_sizing()
-        self.show_uncertainty()
-
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
@@ -159,7 +137,6 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
-        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -202,11 +179,6 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.table_name = "biosphere"
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        super().custom_view_sizing()
-        self.show_uncertainty()
-
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
@@ -221,7 +193,6 @@ class BiosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
-        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:

@@ -43,7 +43,6 @@ class DatabasesTable(ABDataFrameView):
             lambda p: signals.database_selected.emit(self.model.get_db_name(p))
         )
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -95,6 +94,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model = ActivitiesBiosphereModel(parent=self)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
+        self.setSelectionBehavior(self.SelectRows)
 
         # context-menu items
         self.open_activity_action = actions.ActivityOpen.get_QAction(self.selected_keys)
@@ -181,7 +181,6 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.doubleClicked.connect(self.open_activity_action.trigger)
 
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
         self.model.updated.connect(self.update_filter_settings)
 
