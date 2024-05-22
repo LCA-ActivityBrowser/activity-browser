@@ -24,6 +24,7 @@ class ProjectTab(QtWidgets.QWidget):
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.splitter.addWidget(self.databases_widget)
         self.splitter.addWidget(self.activity_biosphere_tabs)
+        self.splitter.moveSplitter(0, 1)
 
         self.overall_layout = QtWidgets.QVBoxLayout()
         self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
@@ -48,16 +49,6 @@ class ProjectTab(QtWidgets.QWidget):
         no_databases = len(self.activity_biosphere_tabs.tabs) == 0
 
         self.activity_biosphere_tabs.setVisible(not no_databases)
-        #self.resize_splitter()
-
-    def resize_splitter(self):
-        """Splitter sizes need to be reset (for some reason this is buggy if not done like this)"""
-        widgets = [self.databases_widget, self.activity_biosphere_tabs]
-        sizes = [x.sizeHint().height() for x in widgets]
-        tabheight = self.height()
-        if sum(sizes) > tabheight and sizes[1] > 0.75 * tabheight:
-            sizes[0] = sizes[1] // 3
-        self.splitter.setSizes(sizes)
 
 
 class ProjectsWidget(QtWidgets.QWidget):
@@ -111,6 +102,8 @@ class DatabaseWidget(QtWidgets.QWidget):
         self.add_default_data_button = actions.DefaultInstall.get_QButton()
         self.new_database_button = actions.DatabaseNew.get_QButton()
         self.import_database_button = actions.DatabaseImport.get_QButton()
+
+        self.setMinimumHeight(200)
 
         self._construct_layout()
 
