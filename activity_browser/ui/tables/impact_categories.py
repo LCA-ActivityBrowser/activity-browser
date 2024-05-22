@@ -89,6 +89,7 @@ class MethodsTree(ABDictTreeView):
         # set drag ability
         self.setDragEnabled(True)
         self.setDragDropMode(ABDictTreeView.DragOnly)
+
         # set model
         self.model = MethodsTreeModel(self)
         self.setModel(self.model)
@@ -96,8 +97,13 @@ class MethodsTree(ABDictTreeView):
         self.model.sync()
         self.setColumnHidden(self.model.method_col, True)
 
+        # set first column's size
+        self.setColumnWidth(0, 200)
+
         self.duplicate_method_action = actions.MethodDuplicate.get_QAction(self.selected_methods, self.tree_level)
         self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods, self.tree_level)
+
+        self._connect_signals()
 
     def _connect_signals(self):
         self.doubleClicked.connect(self.method_selected)
@@ -128,12 +134,12 @@ class MethodsTree(ABDictTreeView):
         expands = self.expanded_list()
         self.model.setup_model_data()
         self.model.sync()
-        iter = self.model.iterator(None)
-        while iter != None:
-            item = self.build_path(iter)
+        iterator = self.model.iterator(None)
+        while iterator != None:
+            item = self.build_path(iterator)
             if item in expands:
-                self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
-            iter = self.model.iterator(iter)
+                self.setExpanded(self.model.createIndex(iterator.row(), 0, iterator), True)
+            iterator = self.model.iterator(iterator)
 
     @Slot(QModelIndex, name="methodSelection")
     def method_selected(self):
