@@ -184,7 +184,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         return self.model.get_key(proxy)
 
     def selected_keys(self) -> List[tuple]:
-        return [self.model.get_key(index) for index in self.selectedIndexes()]
+        return list(set([self.model.get_key(index) for index in self.selectedIndexes()]))
 
     def update_filter_settings(self) -> None:
         # Write the column indices so only those columns get filter button
