@@ -1,4 +1,4 @@
-# AB Installer README
+# AB Installer README WINDOWS
 
 This README provides instructions for installing the Activity Browser (AB) using the provided installer.
 
@@ -34,8 +34,24 @@ This README provides instructions for installing the Activity Browser (AB) using
 
 ## Usage
 
-- The generated `ActivityBrowserSetup.exe` installs both AB and the Conda environment.
-- This can be uninstalled by your computer.
+- The generated `ActivityBrowserSetup.exe` installs the AB environment and copies the Conda environment.
 
 
 
+# AB Installer README MacOS
+
+This README provides instructions for installing the Activity Browser (AB) using the provided installer.
+
+## Installation Steps
+
+1. Navigate to the "AB installer" directory to find all necessary files for creating the installer.
+   - This directory can be found in …\activity-browser\ActivityBrowserInstaller
+
+2. To create the installer the AB Conda Environment needs to be present on the current computer:
+   - Run the createApp.py file to create the AB application
+   - In the createApp.py file, the variable directory may need to change to where the folder "PythonScript" is located.
+   - An example of this directory change: '/Users/peterwillem02/Documents/GitHub/SE2/activity-browser/ActivityBrowserInstaller/Combined/PythonScript'
+
+## Usage
+
+- Conda has to be installed on path
