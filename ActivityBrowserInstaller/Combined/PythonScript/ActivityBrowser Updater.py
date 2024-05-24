@@ -17,8 +17,8 @@ import requests
 import os
 import sys
 import platform
-from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
-from PyQt5.QtCore import QObject, pyqtSignal
+from PySide2.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDialog, QDesktopWidget, QProgressBar
+from PySide2.QtCore import QObject, Signal
 from ActivityBrowser import getLatestRelease, getActivityBrowserVersion, isSecondIputVersionNewer, openActivityBrowserMac
 
 # Define constants
@@ -36,8 +36,9 @@ else:
 TEMP_DIR = tempfile.gettempdir()
 
 class downloadThread(QObject):
-    finished = pyqtSignal()
-    progressChanged = pyqtSignal(int)
+    finished = Signal()
+    progressChanged = Signal(int)
+    updateLabel = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -163,6 +164,7 @@ class updaterWindow(QDialog):
         self.downloadThread = downloadThread()
         self.downloadThread.finished.connect(self.onDownloadFinished)
         self.downloadThread.progressChanged.connect(self.updateProgress)
+        self.downloadThread.updateLabel.connect(self.updateLabel)
 
         layout = QVBoxLayout()
 

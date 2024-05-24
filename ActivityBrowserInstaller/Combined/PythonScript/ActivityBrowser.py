@@ -50,11 +50,8 @@ def runActivityBrowserWindows(skipUpdateCheck) -> None:
         isOldVersion = isSecondIputVersionNewer(installedVersion, newestVersion)
 
         if isOldVersion:
-            try:
-                runUpdaterWindows()
-            except Exception as e:
-                print("Can not open the updater, did you decline the admin priviledges?" + e)
-                runActivityBrowserCommandsWindows()
+            runUpdaterWindows()
+            
         else:
             runActivityBrowserCommandsWindows()
     else:
@@ -80,11 +77,30 @@ def resourcePath(relativePath):
     return os.path.join(basePath, relativePath)
 
 def runUpdaterWindows():
-    subprocess.run("powershell Start-Process 'ActivityBrowser Updater.exe' -Verb runAs", shell=True)
+    try:
+        subprocess.run(
+            "powershell Start-Process 'ActivityBrowser Updater.exe' -Verb runAs",
+            shell=True,
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print("Failed to run the updater. Error code:", e.returncode)
+        runActivityBrowserCommandsWindows()
+    except Exception as e:
+        print("An unexpected error occurred:", str(e))
+        runActivityBrowserCommandsWindows()
 
 def runUpdaterMac():
-    updaterPath = resourcePath('ActivityBrowser Updater.py')
-    os.system(f'python "{updaterPath}"')
+    try:
+        updaterPath = resourcePath('ActivityBrowser Updater.py')
+        # Running the updater script using os.system and capturing the return code
+        return_code = os.system(f'python "{updaterPath}"')
+        if return_code != 0:
+            print("Can not open the updater, did you decline the admin privileges?")
+            openActivityBrowserMac(skipUpdateCheck=True)
+    except Exception as e:
+        print(f"An unexpected error occurred: {str(e)}")
+        openActivityBrowserMac(skipUpdateCheck=True)
 
 def openActivityBrowserMac(skipUpdateCheck):
     baseDir = os.path.dirname(__file__)
@@ -99,11 +115,7 @@ def openActivityBrowserMac(skipUpdateCheck):
         except FileNotFoundError:
             print(f"Error: The script '{scriptPath}' does not exist or is not accessible.")
     else:
-        try:
-            runUpdaterMac()
-        except Exception as e:
-            print("Can not open the updater, did you decline the admin priviledges?" + e)
-            subprocess.Popen(command)
+        runUpdaterMac()
 
 def main():
     args = parseArgs()
