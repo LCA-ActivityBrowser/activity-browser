@@ -37,7 +37,7 @@ def test_environment_extraction(setup_environment):
     # Determine the path of the current directory where this script is located
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # Set the path to the ab_installer.py based on the path of this test script
-    ab_installer_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript", "ab_installer.py")
+    ab_installer_path = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "PythonScript", "ab_installer.py")
 
     # Run the installation code
     subprocess.run(["python", ab_installer_path])
