@@ -62,14 +62,6 @@ def resourcePath(relativePath):
 
     return os.path.join(basePath, relativePath)
 
-def runActivityBrowserMac(command, scriptPath):
-    try:
-        subprocess.Popen(command)
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
-    except FileNotFoundError:
-        print(f"Error: The script '{scriptPath}' does not exist or is not accessible.")
-
 def runUpdaterMac():
     updaterPath = resourcePath('ActivityBrowser Updater.py')
     os.system(f'python "{updaterPath}"')
@@ -80,7 +72,12 @@ def openActivityBrowserMac(skipUpdateCheck):
 
     command = [scriptPath]
     if skipUpdateCheck:
-        runActivityBrowserMac(command, scriptPath)
+        try:
+           subprocess.Popen(command)
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+        except FileNotFoundError:
+            print(f"Error: The script '{scriptPath}' does not exist or is not accessible.")
     else:
         runUpdaterMac()
 
