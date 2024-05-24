@@ -57,7 +57,7 @@ def runActivityBrowserWindows(skipUpdateCheck) -> None:
     else:
         runActivityBrowserCommandsWindows()
 
-def runActivityBrowserCommandsWindows():
+def runActivityBrowserCommandsWindows() -> None:
     activate_script = os.path.join("ActivityBrowserEnvironment", "Scripts", "activate")
     deactivate_script = os.path.join("ActivityBrowserEnvironment", "Scripts", "deactivate")
 
@@ -67,7 +67,7 @@ def runActivityBrowserCommandsWindows():
     os.system(f"{activate_cmd} && activity-browser")
     os.system(f"{deactivate_cmd}")
 
-def resourcePath(relativePath):
+def resourcePath(relativePath: str) -> str:
     """Get absolute path to resource, works for dev and for PyInstaller on Mac."""
     try:
         basePath = sys._MEIPASS
@@ -76,7 +76,7 @@ def resourcePath(relativePath):
 
     return os.path.join(basePath, relativePath)
 
-def runUpdaterWindows():
+def runUpdaterWindows() -> None:
     try:
         subprocess.run(
             "powershell Start-Process 'ActivityBrowser Updater.exe' -Verb runAs",
@@ -90,7 +90,7 @@ def runUpdaterWindows():
         print("An unexpected error occurred:", str(e))
         runActivityBrowserCommandsWindows()
 
-def runUpdaterMac():
+def runUpdaterMac() -> None:
     try:
         updaterPath = resourcePath('ActivityBrowser Updater.py')
         # Running the updater script using os.system and capturing the return code
@@ -102,7 +102,7 @@ def runUpdaterMac():
         print(f"An unexpected error occurred: {str(e)}")
         openActivityBrowserMac(skipUpdateCheck=True)
 
-def openActivityBrowserMac(skipUpdateCheck):
+def openActivityBrowserMac(skipUpdateCheck: bool) -> None:
     baseDir = os.path.dirname(__file__)
     scriptPath = os.path.join(baseDir, 'openActivityBrowser.sh')
 
@@ -117,7 +117,7 @@ def openActivityBrowserMac(skipUpdateCheck):
     else:
         runUpdaterMac()
 
-def main():
+def main() -> None:
     args = parseArgs()
 
     if platform.system() == "Windows":
