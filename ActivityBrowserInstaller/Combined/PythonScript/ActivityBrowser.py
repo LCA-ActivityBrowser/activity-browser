@@ -42,8 +42,25 @@ def isSecondIputVersionNewer(version1: str, version2: str) -> bool:
         return False
     return parse(version1) < parse(version2)
 
-def runActivityBrowserWindows() -> None:
+def runActivityBrowserWindows(skipUpdateCheck) -> None:
     """Activate the Activity Browser environment and run the activity-browser on Windows."""
+    if not skipUpdateCheck:
+        newestVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
+        installedVersion = getActivityBrowserVersion()
+        isOldVersion = isSecondIputVersionNewer(installedVersion, newestVersion)
+
+        if isOldVersion:
+            try:
+                runUpdaterWindows()
+            except Exception as e:
+                print("Can not open the updater, did you decline the admin priviledges?" + e)
+                runActivityBrowserCommandsWindows()
+        else:
+            runActivityBrowserCommandsWindows()
+    else:
+        runActivityBrowserCommandsWindows()
+
+def runActivityBrowserCommandsWindows():
     activate_script = os.path.join("ActivityBrowserEnvironment", "Scripts", "activate")
     deactivate_script = os.path.join("ActivityBrowserEnvironment", "Scripts", "deactivate")
 
@@ -62,6 +79,9 @@ def resourcePath(relativePath):
 
     return os.path.join(basePath, relativePath)
 
+def runUpdaterWindows():
+    subprocess.run("powershell Start-Process 'ActivityBrowser Updater.exe' -Verb runAs", shell=True)
+
 def runUpdaterMac():
     updaterPath = resourcePath('ActivityBrowser Updater.py')
     os.system(f'python "{updaterPath}"')
@@ -79,23 +99,17 @@ def openActivityBrowserMac(skipUpdateCheck):
         except FileNotFoundError:
             print(f"Error: The script '{scriptPath}' does not exist or is not accessible.")
     else:
-        runUpdaterMac()
+        try:
+            runUpdaterMac()
+        except Exception as e:
+            print("Can not open the updater, did you decline the admin priviledges?" + e)
+            subprocess.Popen(command)
 
 def main():
     args = parseArgs()
 
     if platform.system() == "Windows":
-        if not args.skip_update_check:
-            newestVersion = getLatestRelease("ThisIsSomeone", "activity-browser")
-            installedVersion = getActivityBrowserVersion()
-            isOldVersion = isSecondIputVersionNewer(installedVersion, newestVersion)
-
-            if isOldVersion:
-                subprocess.run("powershell Start-Process 'ActivityBrowser Updater.exe' -Verb runAs", shell=True)
-            else:
-                runActivityBrowserWindows()
-        else:
-            runActivityBrowserWindows()
+        runActivityBrowserWindows(args.skip_update_check)
     elif platform.system() == "Darwin":  # macOS
         openActivityBrowserMac(args.skip_update_check)
     else:
