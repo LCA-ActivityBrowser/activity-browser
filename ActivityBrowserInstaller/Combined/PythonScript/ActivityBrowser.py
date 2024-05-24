@@ -121,7 +121,7 @@ def runActivityBrowserWindows(skipUpdateCheck) -> None:
     else:
         runActivityBrowserCommandsWindows()
 
-def runActivityBrowserCommandsWindows():
+def runActivityBrowserCommandsWindows() -> None:
     """
     Run the activity-browser commands on Windows.
 
@@ -143,7 +143,7 @@ def runActivityBrowserCommandsWindows():
     os.system(f"{activate_cmd} && activity-browser")
     os.system(f"{deactivate_cmd}")
 
-def resourcePath(relativePath):
+def resourcePath(relativePath) -> str:
     """
     Get the absolute path to a resource, working for both development and PyInstaller environments.
     This function is used to locate resources in a way that works during development as well as when the application
@@ -161,7 +161,7 @@ def resourcePath(relativePath):
 
     return os.path.join(basePath, relativePath)
 
-def runUpdaterWindows():
+def runUpdaterWindows() -> None:
     """
     Run the ActivityBrowser Updater on Windows.
 
@@ -188,7 +188,7 @@ def runUpdaterWindows():
         print("An unexpected error occurred:", str(e))
         runActivityBrowserCommandsWindows()
 
-def runUpdaterMac():
+def runUpdaterMac() -> None:
     """
     Run the ActivityBrowser Updater on macOS.
 
@@ -212,7 +212,7 @@ def runUpdaterMac():
         print(f"An unexpected error occurred: {str(e)}")
         openActivityBrowserMac(skipUpdateCheck=True)
 
-def openActivityBrowserMac(skipUpdateCheck):
+def openActivityBrowserMac(skipUpdateCheck) -> None:
     """
     Open the Activity Browser on macOS.
 
@@ -241,7 +241,7 @@ def openActivityBrowserMac(skipUpdateCheck):
     else:
         runUpdaterMac()
 
-def main():
+def main() -> None:
     """
     Main function to run the Activity Browser application.
 
