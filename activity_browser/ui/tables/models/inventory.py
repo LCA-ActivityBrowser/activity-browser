@@ -162,11 +162,11 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
     def copy_exchanges_for_SDF(self, proxies: list) -> None:
         if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
+            keys = {self.get_key(p) for p in proxies}
         else:
-            keys = [self.get_key(proxies[0])]
+            keys = {self.get_key(proxies[0])}
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        exchanges = bc.get_exchanges_from_a_list_of_activities(activities=keys,
+        exchanges = bc.get_exchanges_from_a_list_of_activities(activities=list(keys),
                                                                as_keys=True)
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)

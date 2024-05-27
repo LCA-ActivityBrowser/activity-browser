@@ -119,12 +119,12 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         if self.indexAt(event.pos()).row() == -1 and len(self.model._dataframe) != 0:
             return
 
-        if len(self.selectedIndexes()) > 1:
+        if len(self.selected_keys()) > 1:
             # more than 1 activity is selected
             act = 'activities'
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
-        elif len(self.selectedIndexes()) == 1 and self.db_read_only:
+        elif len(self.selected_keys()) == 1 and self.db_read_only:
             act = 'activity'
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
