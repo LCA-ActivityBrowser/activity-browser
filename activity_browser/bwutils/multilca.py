@@ -170,15 +170,16 @@ class MLCA(object):
         self.process_contributions = np.zeros(
             (len(self.func_units), len(self.methods), self.lca.technosphere_matrix.shape[0]))
 
-        name = 'name'
-        ref_prod = 'reference product'
-        db = 'database'
         self.func_unit_translation_dict = {}
         for fu in self.func_units:
             key = next(iter(fu))
-            amt = fu[key]
+            amount = fu[key]
             act = bd.get_activity(key)
-            self.func_unit_translation_dict[f'{act[name]} | {act[ref_prod]} | {act[db]} | {amt}'] = fu
+            self.func_unit_translation_dict[(f'{act["name"]} | '
+                                             f'{act["reference product"]} | '
+                                             f'{act["location"]} | '
+                                             f'{act["database"]} | '
+                                             f'{amount}')] = fu
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_unit_translation_dict.keys())
 
