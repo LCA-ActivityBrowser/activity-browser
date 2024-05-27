@@ -55,3 +55,4 @@ This README provides instructions for installing the Activity Browser (AB) using
 ## Usage
 
 - Conda has to be installed on path
+- The Activity Browser can be run using chmod +x <ActiviBrowser.app filename>. It needs to be run as chmod, because it needs permission to download files.
