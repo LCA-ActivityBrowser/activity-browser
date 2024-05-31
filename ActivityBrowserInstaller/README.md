@@ -1,3 +1,60 @@
+<!-- 
+README.md       
+Made on 11/03/2024         
+Contributed by Arian Farzad, Ruben Visser, Thijs Groeneweg and Bryan Owee
+Last edited on 27/05/2024
+
+Contains the README of the ABInstaller&Updater
+-->
+
+# Activity Browser Installer ✨
+<img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
+
+Welcome to the Activity Browser Installer & Updater, ABInstaller for short.
+This is a project from the Unpaid Interns team contributing to the main AB Project.
+You can find the repository for the Collaborative Activity Browser Project of ours [here]([https://github.com/ThisIsSomeone/activity-browser](https://github.com/ludev-nl/2024-11-Activity-Browser/).
+
+## The Project
+
+The ABInstaller was a project to build a proper installer and installer for the '[the Activity Browser](https://github.com/LCA-ActivityBrowser/activity-browser)'.
+This was a much-desired feature, as beforehand one would have to manually install the AB through Conda.
+The ABInstaller allows the generation of .exe or .app files that can be distributed to allow users an easier installation with the click of a few buttons.
+Outlined in this document will be the guidelines on how to generate such files.
+
+# Contents
+- [Installation](#installation)
+- [Getting started](#getting-started)
+    - [Running the CAB](#running-the-cab)
+    - [Resetting the Database](#resetting-the-database)
+- [Developers](#the-unpaid-interns)
+- [Copyright](#copyright)
+- [License](#license)
+
+## Installation
+
+## Getting Started
+
+### Running the CAB
+
+### Resetting the Database
+
+## The 'Unpaid Interns'
+
+The Unpaid Interns is a group of six students from Universiteit Leiden.
+They worked together on the ABInstaller as a group project for their Software Engineering course.
+
+The team consists out of:
+- [Thijs Groeneweg](https://github.com/ThijsGroeneweg) - Product Owner
+- [Arian Farzad](https://github.com/ThisIsSomeone) - Head of Documentation & Scrum Master
+- [Hannah Gibb](https://github.com/hjgibb) - Head of Communication
+- [Michiel van der Bijl](https://github.com/michiel9797) - Scribe
+- [Ruben Visser](https://github.com/rcjvisserleiden) - Head of Testing
+- [Bryan Owee](https://github.com/BryanOwee)
+
+This project was in due part possible to their mentor.
+- [Sjors Holtrop](https://github.com/sholtrop)
+
+
 # AB Installer README WINDOWS
 
 This README provides instructions for installing the Activity Browser (AB) using the provided installer.
