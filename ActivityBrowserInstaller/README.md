@@ -77,7 +77,7 @@ The team consists out of:
 - [Hannah Gibb](https://github.com/hjgibb) - Head of Communication
 - [Michiel van der Bijl](https://github.com/michiel9797) - Scribe
 - [Ruben Visser](https://github.com/rcjvisserleiden) - Head of Testing
-- [Bryan Owee](https://github.com/BryanOwee)
+- [Bryan Owee](https://github.com/BryanOwee) - Developer
 
 This project was in due part possible to their mentor.
 - [Sjors Holtrop](https://github.com/sholtrop)
