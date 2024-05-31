@@ -12,7 +12,7 @@ Contains the README of the ABInstaller&Updater
 
 Welcome to the Activity Browser Installer & Updater, ABInstaller for short.
 This is a project from the Unpaid Interns team contributing to the main AB Project.
-You can find the repository for the Collaborative Activity Browser Project of ours [here]([https://github.com/ThisIsSomeone/activity-browser](https://github.com/ludev-nl/2024-11-Activity-Browser/).
+You can find the repository for the Collaborative Activity Browser Project of ours [here](https://github.com/ludev-nl/2024-11-Activity-Browser/).
 
 ## The Project
 
@@ -23,43 +23,13 @@ Outlined in this document will be the guidelines on how to generate such files.
 
 # Contents
 - [Installation](#installation)
-- [Getting started](#getting-started)
-    - [Running the CAB](#running-the-cab)
-    - [Resetting the Database](#resetting-the-database)
+    - [Windows](#windows)
+    - [macOS](#macOS)
 - [Developers](#the-unpaid-interns)
-- [Copyright](#copyright)
-- [License](#license)
 
 ## Installation
 
-## Getting Started
-
-### Running the CAB
-
-### Resetting the Database
-
-## The 'Unpaid Interns'
-
-The Unpaid Interns is a group of six students from Universiteit Leiden.
-They worked together on the ABInstaller as a group project for their Software Engineering course.
-
-The team consists out of:
-- [Thijs Groeneweg](https://github.com/ThijsGroeneweg) - Product Owner
-- [Arian Farzad](https://github.com/ThisIsSomeone) - Head of Documentation & Scrum Master
-- [Hannah Gibb](https://github.com/hjgibb) - Head of Communication
-- [Michiel van der Bijl](https://github.com/michiel9797) - Scribe
-- [Ruben Visser](https://github.com/rcjvisserleiden) - Head of Testing
-- [Bryan Owee](https://github.com/BryanOwee)
-
-This project was in due part possible to their mentor.
-- [Sjors Holtrop](https://github.com/sholtrop)
-
-
-# AB Installer README WINDOWS
-
-This README provides instructions for installing the Activity Browser (AB) using the provided installer.
-
-## Installation Steps
+### Windows
 
 1. Navigate to the "AB installer" directory to find all necessary files for creating the installer.
    - This directory can be found in …\activity-browser\ActivityBrowserInstaller\WindowsInstaller
@@ -89,17 +59,9 @@ This README provides instructions for installing the Activity Browser (AB) using
 	- Click the run button or press F9 to compile the installer.
    - This generates the ActivityBrowserSetup.exe in the output file.
 
-## Usage
+     This file can now simply be distributed and is ready for use.
 
-- The generated `ActivityBrowserSetup.exe` installs the AB environment and copies the Conda environment.
-
-
-
-# AB Installer README MacOS
-
-This README provides instructions for installing the Activity Browser (AB) using the provided installer.
-
-## Installation Steps
+### macOS
 
 1. Navigate to the "AB installer" directory to find all necessary files for creating the installer.
    - This directory can be found in …\activity-browser\ActivityBrowserInstaller
@@ -109,6 +71,19 @@ This README provides instructions for installing the Activity Browser (AB) using
    - In the createApp.py file, the variable directory may need to change to where the folder "PythonScript" is located.
    - An example of this directory change: '/Users/peterwillem02/Documents/GitHub/SE2/activity-browser/ActivityBrowserInstaller/Combined/PythonScript'
 
-## Usage
 
-- Conda has to be installed on path
+## The 'Unpaid Interns'
+
+The Unpaid Interns is a group of six students from Universiteit Leiden.
+They worked together on the ABInstaller as a group project for their Software Engineering course.
+
+The team consists out of:
+- [Thijs Groeneweg](https://github.com/ThijsGroeneweg) - Product Owner
+- [Arian Farzad](https://github.com/ThisIsSomeone) - Head of Documentation & Scrum Master
+- [Hannah Gibb](https://github.com/hjgibb) - Head of Communication
+- [Michiel van der Bijl](https://github.com/michiel9797) - Scribe
+- [Ruben Visser](https://github.com/rcjvisserleiden) - Head of Testing
+- [Bryan Owee](https://github.com/BryanOwee)
+
+This project was in due part possible to their mentor.
+- [Sjors Holtrop](https://github.com/sholtrop)
