@@ -5,7 +5,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-import eidl
+import ecoinvent_interface
 import requests
 from bw2io import BW2Package, SingleOutputEcospold2Importer
 from bw2io.extractors import Ecospold2DataExtractor
@@ -344,7 +344,10 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        self.stored_dbs = eidl.eidlstorage.stored_dbs
+        # TODO: get this from eco_invent
+        #   previous stored_dbs was list just listing out all the database
+        #   locally available
+        self.stored_dbs = ecoinvent_interface.eidlstorage.stored_dbs
         self.stored_combobox.clear()
         self.stored_combobox.addItems(sorted(self.stored_dbs.keys()))
 
@@ -1039,7 +1042,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
 
 
 class LoginThread(QtCore.QThread):
-    def __init__(self, downloader, parent=None):
+    def __init__(self, downloader: "ABEcoinventDownloader", parent=None):
         super().__init__(parent)
         self.downloader = downloader
 
@@ -1048,7 +1051,12 @@ class LoginThread(QtCore.QThread):
         self.downloader.password = password
 
     def run(self):
-        self.downloader.login()
+        try:
+            self.downloader.login()
+        except Exception as e:
+            log.error(str(e), exc_info=True)
+            import_signals.login_success.emit(False)
+            import_signals.connection_problem.emit(("Unexpected error", str(e)))
 
 
 class EcoinventVersionPage(QtWidgets.QWizardPage):
@@ -1316,14 +1324,50 @@ class ImportSignals(QtCore.QObject):
 import_signals = ImportSignals()
 
 
-class ABEcoinventDownloader(eidl.EcoinventDownloader):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+# TODO: reimplement downloader using ecoinvent_interface
+class ABEcoinventDownloader(object):
+    def __init__(self, version=None, system_model=None):
+        self.version = version
+        self.system_model = system_model
         self.extraction_process = None
+        self._settings = ecoinvent_interface.Settings()
 
-    def login_success(self, success):
-        import_signals.login_success.emit(success)
+    @property
+    def username(self):
+        return self._settings.username
 
+    @username.setter
+    def username(self, value):
+        self._settings.username = value
+
+    @property
+    def password(self):
+        return self._settings.password
+
+    @password.setter
+    def password(self, value):
+        self._settings.password = value
+
+    def login(self):
+        release = ecoinvent_interface.EcoinventRelease(self._settings)
+        try:
+            release.login()
+            login_success = True
+        except (requests.ConnectTimeout, requests.ReadTimeout, requests.ConnectionError) as e:
+            login_success = False
+            self.handle_connection_timeout()
+        except requests.exceptions.HTTPError as e:
+            login_success = False
+            if e.response.status_code != 401:
+                log.error(
+                    "Unexpected status code (%d) received when trying to list ecoinvent_versions, response: %s",
+                    e.response.status_code,
+                    e.response.text
+                )
+
+        import_signals.login_success.emit(login_success)
+
+    # TODO: don't think we need this anymore
     def extract(self, target_dir):
         """Override extract method to redirect the stdout to dev null."""
         code = super().extract(target_dir=target_dir, stdout=subprocess.DEVNULL)
@@ -1334,9 +1378,8 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
 
     def handle_connection_timeout(self):
         msg = "The request timed out, please check your internet connection!"
-        if eidl.eidlstorage.stored_dbs:
-            msg += (
-                "\n\nIf you work offline you can use your previously downloaded databases"
-                + " via the archive option of the import wizard."
-            )
-        import_signals.connection_problem.emit(("Connection problem", msg))
+        # TODO: get this out of ecoinvent cache
+        # if eidl.eidlstorage.stored_dbs:
+        #    msg += ("\n\nIf you work offline you can use your previously downloaded databases" +
+        #            " via the archive option of the import wizard.")
+        import_signals.connection_problem.emit(('Connection problem', msg))
