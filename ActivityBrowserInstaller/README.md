@@ -65,6 +65,8 @@ Outlined in this document will be the guidelines on how to generate such files.
    - In the createApp.py file, the variable directory may need to change to where the folder "PythonScript" is located.
    - An example of this directory change: '/Users/peterwillem02/Documents/GitHub/SE2/activity-browser/ActivityBrowserInstaller/Combined/PythonScript'
 
+- Conda has to be installed on path
+- The Activity Browser can be run using chmod +x <ActiviBrowser.app filename>. It needs to be run as chmod, because it needs permission to download files.
 
 ## The 'Unpaid Interns'
 
