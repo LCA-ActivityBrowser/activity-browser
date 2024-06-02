@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import io
+from functools import lru_cache
 import subprocess
 import tempfile
 import zipfile
@@ -1062,7 +1063,7 @@ class LoginThread(QtCore.QThread):
 class EcoinventVersionPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
+        self.wizard: "DatabaseImportWizard" = self.parent()
         self.description_label = QtWidgets.QLabel(
             "Choose ecoinvent version and system model:"
         )
@@ -1083,27 +1084,17 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        if self.db_dict is None:
-            self.wizard.downloader.db_dict = (
-                self.wizard.downloader.get_available_files()
-            )
-            self.db_dict = self.wizard.downloader.db_dict
-        self.system_models = {
-            version: sorted(
-                {k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True
-            )
-            for version in sorted(
-                {k[0] for k in self.db_dict.keys() if k[0] in __ei_versions__},
-                reverse=True,
-            )
-        }
+        available_versions = self.wizard.downloader.list_versions()
+        shown_versions = set(
+            [version for version in available_versions if version in __ei_versions__]
+        )
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
-        if "universal" in self.system_models:
-            del self.system_models["universal"]
+        if "universal" in shown_versions:
+            shown_versions.remove("universal")
         self.version_combobox.clear()
         self.system_model_combobox.clear()
-        versions = sort_semantic_versions(self.system_models.keys())
+        versions = sort_semantic_versions(shown_versions)
         self.version_combobox.addItems(versions)
         if bool(self.version_combobox.count()):
             # Adding the items will cause system_model_combobox to update
@@ -1128,7 +1119,9 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         different ecoinvent version.
         """
         self.system_model_combobox.clear()
-        self.system_model_combobox.addItems(self.system_models[version])
+        items = self.wizard.downloader.list_system_models(version)
+        items = sorted(items, reverse=True)
+        self.system_model_combobox.addItems(items)
 
 
 class LocalDatabaseImportPage(QtWidgets.QWizardPage):
@@ -1331,6 +1324,10 @@ class ABEcoinventDownloader(object):
         self.system_model = system_model
         self.extraction_process = None
         self._settings = ecoinvent_interface.Settings()
+        self._release = ecoinvent_interface.EcoinventRelease(self._settings)
+
+    def update_ecoinvent_release(self):
+        self._release = ecoinvent_interface.EcoinventRelease(self._settings)
 
     @property
     def username(self):
@@ -1339,6 +1336,7 @@ class ABEcoinventDownloader(object):
     @username.setter
     def username(self, value):
         self._settings.username = value
+        self.update_ecoinvent_release()
 
     @property
     def password(self):
@@ -1347,13 +1345,18 @@ class ABEcoinventDownloader(object):
     @password.setter
     def password(self, value):
         self._settings.password = value
+        self.update_ecoinvent_release()
 
     def login(self):
         release = ecoinvent_interface.EcoinventRelease(self._settings)
         try:
             release.login()
             login_success = True
-        except (requests.ConnectTimeout, requests.ReadTimeout, requests.ConnectionError) as e:
+        except (
+            requests.ConnectTimeout,
+            requests.ReadTimeout,
+            requests.ConnectionError,
+        ) as e:
             login_success = False
             self.handle_connection_timeout()
         except requests.exceptions.HTTPError as e:
@@ -1362,10 +1365,18 @@ class ABEcoinventDownloader(object):
                 log.error(
                     "Unexpected status code (%d) received when trying to list ecoinvent_versions, response: %s",
                     e.response.status_code,
-                    e.response.text
+                    e.response.text,
                 )
 
         import_signals.login_success.emit(login_success)
+
+    @lru_cache(maxsize=1)
+    def list_versions(self):
+        return self._release.list_versions()
+
+    @lru_cache(maxsize=100)
+    def list_system_models(self, version: str):
+        return self._release.list_system_models(version)
 
     # TODO: don't think we need this anymore
     def extract(self, target_dir):
@@ -1382,4 +1393,4 @@ class ABEcoinventDownloader(object):
         # if eidl.eidlstorage.stored_dbs:
         #    msg += ("\n\nIf you work offline you can use your previously downloaded databases" +
         #            " via the archive option of the import wizard.")
-        import_signals.connection_problem.emit(('Connection problem', msg))
+        import_signals.connection_problem.emit(("Connection problem", msg))
