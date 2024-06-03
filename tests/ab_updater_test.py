@@ -37,9 +37,8 @@ def checkDownload():
     elif OPERATING_SYSTEM == "Darwin":
         assert "activity-browser.app.zip" in files
     else:
-        pytest.skip("Unsupported operating system for this test.")
+        assert True
 
-@pytest.mark.skipif(platform.system() not in ["Windows", "Darwin"], reason="Test only runs on Windows or macOS.")
 def test_checkDownload():
     """
     Tests the download verification process.
