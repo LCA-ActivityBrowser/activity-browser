@@ -18,7 +18,9 @@ import pytest
 activity_browser_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ActivityBrowserInstaller", "PythonScript"))
 sys.path.append(activity_browser_path)
 updater = __import__("ActivityBrowser Updater")
-downloadThread = updater.downloadThread()
+OPERATING_SYSTEM = platform.system()
+if OPERATING_SYSTEM == "Windows" or OPERATING_SYSTEM == "Darwin":
+    downloadThread = updater.downloadThread()
 
 def checkDownload():
     """
