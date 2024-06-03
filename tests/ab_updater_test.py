@@ -12,6 +12,8 @@ import os
 import tempfile
 import sys
 import PySide2
+import platform
+import pytest
 
 activity_browser_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ActivityBrowserInstaller", "PythonScript"))
 sys.path.append(activity_browser_path)
@@ -29,8 +31,15 @@ def checkDownload():
     downloadThread.run(user="ThisIsSomeone", repo="activity-browser")
     temp_dir = tempfile.gettempdir()
     files = os.listdir(temp_dir)
-    assert "activity-browser.exe" in files
+    OPERATING_SYSTEM = platform.system()
+    if OPERATING_SYSTEM == "Windows":
+        assert "activity-browser.exe" in files
+    elif OPERATING_SYSTEM == "Darwin":
+        assert "activity-browser.app.zip" in files
+    else:
+        pytest.skip("Unsupported operating system for this test.")
 
+@pytest.mark.skipif(platform.system() not in ["Windows", "Darwin"], reason="Test only runs on Windows or macOS.")
 def test_checkDownload():
     """
     Tests the download verification process.
