@@ -1,7 +1,8 @@
 #ActivityBrowser Updater.py
 #Made on 29/05/2024
 #Contributed by Thijs Groeneweg and Ruben Visser
-#Last edited on 03/06/2024
+#Documented by Arian Farzad
+#Last edited on 03/06/2024 by Arian Farzad
 
 #This Python script checks for updates of an application from a GitHub repository, prompts the user to install
 #the latest version if available, and handles the download and installation process with a progress bar.
