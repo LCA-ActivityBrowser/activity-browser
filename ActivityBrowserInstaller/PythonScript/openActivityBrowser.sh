@@ -1,5 +1,12 @@
 #!/bin/bash
 
+#openActivityBrowser.sh
+#Made on 17/05/2024
+#Contributed by Thijs Groeneweg and Bryan Owee
+#Last edited on 03/06/2024
+
+#Script for launching the AB that automatically activates the virtual environment
+
 # Initialize Conda in the shell session
 eval "$(conda shell.bash hook)"
 

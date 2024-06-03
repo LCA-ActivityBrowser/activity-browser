@@ -1,15 +1,14 @@
-"""
-- Updater.py
-- Date of File Creation: 29/05/2024
-- Contributors: Thijs Groeneweg & Ruben Visser
-- Date and Author of Last Modification: 06/05/2024 - Thijs Groeneweg
-- Synopsis of the File's purpose:
-    This Python script checks for updates of an application from a GitHub repository, prompts the user to install
-    the latest version if available, and handles the download and installation process with a progress bar.
-    There are two classes, downloadThread downloads the Activity Browser and the updaterWindow does everything for the
-    UI. The downloadWindow has two events, to which the updateWindow listens to update the UI to change the download progress.
-"""
+#ActivityBrowser Updater.py
+#Made on 29/05/2024
+#Contributed by Thijs Groeneweg and Ruben Visser
+#Last edited on 03/06/2024
 
+#This Python script checks for updates of an application from a GitHub repository, prompts the user to install
+#the latest version if available, and handles the download and installation process with a progress bar.
+#There are two classes, downloadThread downloads the Activity Browser and the updaterWindow does everything for the
+#UI. The downloadWindow has two events, to which the updateWindow listens to update the UI to change the download progress.
+
+#Imports
 import tempfile
 import threading
 import subprocess
