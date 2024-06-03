@@ -57,7 +57,7 @@ def testUninstall(setupEnvironment):
     # Determine the path of the current directory where this script is located
     currentDir = os.path.dirname(os.path.abspath(__file__))
     # Set the path to the ab_installer.py based on the path of this test script
-    abUninstallerPath = os.path.join(current_dir, "..", "ActivityBrowserInstaller", "PythonScript", "ab_uninstaller.py")
+    abUninstallerPath = os.path.join(currentDir, "..", "ActivityBrowserInstaller", "PythonScript", "ab_uninstaller.py")
 
     # Run the uninstall script
     subprocess.run(["python", abUninstallerPath])
