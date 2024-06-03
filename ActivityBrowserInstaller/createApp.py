@@ -1,3 +1,11 @@
+#createApp.py
+#Made on 17/05/2024
+#Contributed by Thijs Groeneweg and Bryan Owee
+#Last edited on 03/06/2024
+
+#Builds the app file for macOS
+
+
 import os
 import subprocess
 

@@ -1,3 +1,10 @@
+rem CreateABTarbal.bat
+rem Made on 24/05/2024
+rem Contributed by Thijs Groeneweg
+rem Last edited on 03/06/2024
+
+rem Packs the AB environment into a tarball
+
 @echo off
 
 rem Prompt user for environment name
