@@ -8,6 +8,7 @@
 #compresses a directory named "Scripts" into a tarball, and tests the extraction process.
 #The test_environment_extraction method executes a Python script (ab_installer.py), checks if the extraction
 #directory is created, and if files are correctly extracted.
+#TODO: Update description
 
 #Imports
 import os

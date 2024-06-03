@@ -8,6 +8,7 @@
 #"ActivityBrowserEnvironment" within that directory. It then attempts to remove this directory using shutil.rmtree().
 #If the directory is successfully removed, it prints a success message indicating the directory's removal.
 #If the directory is not found, it prints a message indicating that the directory was not found.
+#TODO: Update description
 
 #Imports
 import shutil

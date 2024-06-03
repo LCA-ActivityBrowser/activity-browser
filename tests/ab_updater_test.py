@@ -7,6 +7,7 @@
 #The Python script updates and verifies the download of an activity browser using external modules. It checks for
 #the presence of the downloaded executable file in the temporary directory and provides a test function
 #to validate the download process.
+#TODO: Update description
 
 #Imports
 import os

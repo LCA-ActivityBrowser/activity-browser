@@ -8,6 +8,7 @@
 #'ActivityBrowser' to get the latest release version and the currently installed one. Key functions:
 #delete_file(filename) removes a file, createOldVersion() makes an old version of the executable, createNewVersion()
 #makes a new one, and there are tests to check version control.
+#TODO: Update description
 
 import os
 import sys

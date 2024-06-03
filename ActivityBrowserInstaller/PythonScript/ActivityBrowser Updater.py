@@ -8,6 +8,7 @@
 #the latest version if available, and handles the download and installation process with a progress bar.
 #There are two classes, downloadThread downloads the Activity Browser and the updaterWindow does everything for the
 #UI. The downloadWindow has two events, to which the updateWindow listens to update the UI to change the download progress.
+#TODO: Update description
 
 #Imports
 import tempfile

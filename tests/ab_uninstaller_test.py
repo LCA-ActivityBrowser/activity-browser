@@ -7,6 +7,7 @@
 #The Python script is a unit test script designed to verify the functionality of an uninstallation script
 #("ab_uninstaller.py") for an application. It sets up a test environment, creates a dummy file, and tests whether
 #the uninstallation script removes a specified directory ("ActivityBrowserEnvironment").
+#TODO: Update description
 
 import os
 import subprocess
