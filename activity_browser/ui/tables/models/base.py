@@ -414,12 +414,24 @@ class BaseTreeModel(QAbstractItemModel):
     def sync(self, *args, **kwargs) -> None:
         pass
 
+
 class ABSortProxyModel(QSortFilterProxyModel):
     """Reimplementation to allow for sorting on the actual data in cells instead of the visible data.
 
     See this for context: https://github.com/LCA-ActivityBrowser/activity-browser/pull/1151
     """
-    def lessThan(self, left, right):
+    def lessThan(self, left, right) -> bool:
+        """Override to sort actual data, expects `left` and `right` are comparable.
+
+        If `left` and `right` are not the same type, we check if numerical and empty string are compared, if that is the
+        case, we assume empty string == 0.
+        Added this case for: https://github.com/LCA-ActivityBrowser/activity-browser/issues/1215"""
         left_data = self.sourceModel().data(left, 'sorting')
         right_data = self.sourceModel().data(right, 'sorting')
-        return left_data < right_data
+        if type(left_data) is type(right_data):
+            return left_data < right_data
+        elif type(left_data) in (int, float) and type(right_data) is str and right_data == "":
+            return left_data < 0
+        elif type(right_data) in (int, float) and type(left_data) is str and left_data == "":
+            return 0 < right_data
+        raise ValueError(f"Cannot compare {left_data} and {right_data}, incompatible types.")
