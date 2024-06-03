@@ -1,3 +1,12 @@
+rem MakeExeFiles.bat
+rem Made on 24/05/2024
+rem Contributed by Thijs Groeneweg
+rem Last edited on 03/06/2024
+
+rem Generates .exe files when called
+ 
+
+
 @echo off
 setlocal enabledelayedexpansion
 
