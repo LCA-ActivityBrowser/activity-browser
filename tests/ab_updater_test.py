@@ -28,11 +28,11 @@ def checkDownload():
     the presence of the downloaded executable file 'activity-browser.exe'
     in the temporary directory.
     """
+    OPERATING_SYSTEM = platform.system()
     if OPERATING_SYSTEM == "Windows" or OPERATING_SYSTEM == "Darwin":
         downloadThread.run(user="ThisIsSomeone", repo="activity-browser")
         temp_dir = tempfile.gettempdir()
         files = os.listdir(temp_dir)
-        OPERATING_SYSTEM = platform.system()
         if OPERATING_SYSTEM == "Windows":
             assert "activity-browser.exe" in files
         elif OPERATING_SYSTEM == "Darwin":
