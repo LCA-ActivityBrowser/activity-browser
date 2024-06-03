@@ -1,13 +1,14 @@
-"""
-- ab_updater_test.py
-- Date of File Creation: 13/05/2024
-- Contributors: Ruben Visser
-- Date and Author of Last Modification: 17/05/2024 - Ruben Visser
-- Synopsis of the File's purpose:
-The Python script updates and verifies the download of an activity browser using external modules. It checks for
-the presence of the downloaded executable file in the temporary directory and provides a test function
-to validate the download process.
-"""
+#ab_updater_test.py
+#Made on 13/05/2024
+#Contributed by Ruben Visser
+#Documented by Arian Farzad
+#Last edited on 03/06/2024 by Arian Farzad
+
+#The Python script updates and verifies the download of an activity browser using external modules. It checks for
+#the presence of the downloaded executable file in the temporary directory and provides a test function
+#to validate the download process.
+
+#Imports
 import os
 import tempfile
 import sys

@@ -1,15 +1,15 @@
-"""
-- ab_installer_test.py
-- Date of File Creation: 10/05/2024
-- Contributors: Ruben Visser
-- Date and Author of Last Modification: 10/05/2024 - Ruben Visser
-- Synopsis of the File's purpose:
-    This Python script contains a unittest test case named TestEnvironmentExtraction. It sets up an environment,
-    compresses a directory named "Scripts" into a tarball, and tests the extraction process.
-    The test_environment_extraction method executes a Python script (ab_installer.py), checks if the extraction
-    directory is created, and if files are correctly extracted.
-"""
+#ab_installer_test.py
+#Made on 10/05/2024
+#Contributed by Ruben Visser
+#Documented by Arian Farzad
+#Last edited on 03/06/2024 by Arian Farzad
 
+#This Python script contains a unittest test case named TestEnvironmentExtraction. It sets up an environment,
+#compresses a directory named "Scripts" into a tarball, and tests the extraction process.
+#The test_environment_extraction method executes a Python script (ab_installer.py), checks if the extraction
+#directory is created, and if files are correctly extracted.
+
+#Imports
 import os
 import subprocess
 import tarfile

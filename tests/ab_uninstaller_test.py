@@ -1,13 +1,12 @@
-"""
-- ab_uninstaller_test.py
-- Date of File Creation: 10/05/2024
-- Contributors: Ruben Visser
-- Date and Author of Last Modification: 10/05/2024 - Ruben Visser
-- Synopsis of the File's purpose:
-    The Python script is a unit test script designed to verify the functionality of an uninstallation script
-    ("ab_uninstaller.py") for an application. It sets up a test environment, creates a dummy file, and tests whether
-    the uninstallation script removes a specified directory ("ActivityBrowserEnvironment").
-"""
+#ab_uninstaller_test.py
+#Made on 17/05/2024
+#Contributed by Ruben Visser
+#Documented by Arian Farzad
+#Last edited on 03/06/2024 by Arian Farzad
+
+#The Python script is a unit test script designed to verify the functionality of an uninstallation script
+#("ab_uninstaller.py") for an application. It sets up a test environment, creates a dummy file, and tests whether
+#the uninstallation script removes a specified directory ("ActivityBrowserEnvironment").
 
 import os
 import subprocess

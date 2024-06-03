@@ -2,7 +2,8 @@
 README.md       
 Made on 11/03/2024         
 Contributed by Arian Farzad, Ruben Visser, Thijs Groeneweg and Bryan Owee
-Last edited on 27/05/2024
+Documented by Arian Farzad
+Last edited on 03/06/2024
 
 Contains the README of the ABInstaller&Updater
 -->

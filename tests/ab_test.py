@@ -1,14 +1,13 @@
-"""
-- ab_test.py
-- Date of File Creation: 17/05/2024
-- Contributors: Ruben Visser
-- Date and Author of Last Modification: 17/05/2024 - Ruben Visser
-- Synopsis of the File's purpose:
-This file has Python functions to test version management of an activity browser. It imports functions from
-'ActivityBrowser' to get the latest release version and the currently installed one. Key functions:
-delete_file(filename) removes a file, createOldVersion() makes an old version of the executable, createNewVersion()
-makes a new one, and there are tests to check version control.
-"""
+#ab_test.py
+#Made on 17/05/2024
+#Contributed by Ruben Visser
+#Documented by Arian Farzad
+#Last edited on 03/06/2024 by Arian Farzad
+
+#This file has Python functions to test version management of an activity browser. It imports functions from
+#'ActivityBrowser' to get the latest release version and the currently installed one. Key functions:
+#delete_file(filename) removes a file, createOldVersion() makes an old version of the executable, createNewVersion()
+#makes a new one, and there are tests to check version control.
 
 import os
 import sys
