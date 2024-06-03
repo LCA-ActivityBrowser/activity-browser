@@ -13,7 +13,7 @@ import tempfile
 import sys
 import PySide2
 
-activity_browser_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ActivityBrowserInstaller", "WindowsInstaller", "PythonScript"))
+activity_browser_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ActivityBrowserInstaller", "PythonScript"))
 sys.path.append(activity_browser_path)
 updater = __import__("ActivityBrowser Updater")
 downloadThread = updater.downloadThread()
