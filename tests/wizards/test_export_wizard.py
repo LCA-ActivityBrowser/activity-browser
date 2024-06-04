@@ -33,6 +33,5 @@ def test_open_export_wizard(ab_app, qtbot):
 
     # And close it down
     qtbot.mouseClick(
-        wizard.button(QtWidgets.QWizard.CancelButton),
-        QtCore.Qt.LeftButton
+        wizard.button(QtWidgets.QWizard.CancelButton), QtCore.Qt.LeftButton
     )

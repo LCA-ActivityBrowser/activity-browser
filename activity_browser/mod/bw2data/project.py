@@ -1,6 +1,6 @@
-from bw2data.project import *
-
 import os
+
+from bw2data.project import *
 
 try:
     from bw2data.backends.peewee import SubstitutableDatabase
@@ -9,12 +9,12 @@ except ModuleNotFoundError:
     from bw2data.backends import SubstitutableDatabase
 
 from activity_browser.signals import qprojects
+
 from ..patching import patch_superclass, patched
 
 
 @patch_superclass
 class ProjectManager(ProjectManager):
-
     @property
     def current_changed(self):
         """
@@ -81,8 +81,7 @@ class ProjectManager(ProjectManager):
 
         # open (or otherwise create) the projects.db at the given location
         projects.db = SubstitutableDatabase(
-            os.path.join(projects._base_data_dir, "projects.db"),
-            [ProjectDataset]
+            os.path.join(projects._base_data_dir, "projects.db"), [ProjectDataset]
         )
 
         # emit that the current project has changed through the qUpdater

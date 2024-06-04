@@ -1,13 +1,14 @@
-from typing import Union, Callable, Optional
+from typing import Callable, Optional, Union
 
 import pandas as pd
 from PySide2 import QtCore
 
-from activity_browser import signals, application
-from activity_browser.mod import bw2data as bd
-from activity_browser.bwutils import AB_metadata, commontasks
-from activity_browser.ui.icons import qicons
+from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.bwutils import AB_metadata, commontasks
+from activity_browser.mod import bw2data as bd
+from activity_browser.ui.icons import qicons
+
 from ...ui.widgets import LocationLinkingDialog
 
 
@@ -15,8 +16,9 @@ class ActivityDuplicateToLoc(ABAction):
     """
     ABAction to duplicate an activity and possibly their exchanges to a new location.
     """
+
     icon = qicons.copy
-    text = 'Duplicate activity to new location'
+    text = "Duplicate activity to new location"
 
     @classmethod
     @exception_dialogs
@@ -36,19 +38,22 @@ class ActivityDuplicateToLoc(ABAction):
         # get list of all unique locations in the dependent databases (sorted alphabetically)
         locations = []
         for db in dbs.values():
-            locations += db['location'].to_list()  # add all locations to one list
+            locations += db["location"].to_list()  # add all locations to one list
         locations = list(set(locations))  # reduce the list to only unique items
         locations.sort()
 
         # get the location to relink
         db = dbs[db_name]
-        old_location = db.loc[db['key'] == activity.key]['location'].iloc[0]
+        old_location = db.loc[db["key"] == activity.key]["location"].iloc[0]
 
         # trigger dialog with autocomplete-writeable-dropdown-list
         options = (old_location, locations)
-        dialog = LocationLinkingDialog.relink_location(activity['name'], options, application.main_window)
+        dialog = LocationLinkingDialog.relink_location(
+            activity["name"], options, application.main_window
+        )
 
-        if dialog.exec_() != LocationLinkingDialog.Accepted: return
+        if dialog.exec_() != LocationLinkingDialog.Accepted:
+            return
 
         # read the data from the dialog
         for old, new in dialog.relink.items():
@@ -99,20 +104,29 @@ class ActivityDuplicateToLoc(ABAction):
                 exc.save()
 
         # update 'products'
-        for product in new_act.get('products', []):
-            if product.get('input') == activity.key:
+        for product in new_act.get("products", []):
+            if product.get("input") == activity.key:
                 product.input = new_act.key
 
         # save the new location to the activity
-        new_act['location'] = new_location
+        new_act["location"] = new_location
 
         new_act.save()
 
         # get exchanges that we want to delete
         # del_exch = []  # delete these exchanges
         for exch in new_act.technosphere():
-            candidate = cls.find_candidate(db_name, dbs, exch, old_location, new_location, use_alternatives, alternatives)
-            if candidate is None: continue  # no suitable candidate was found, try the next exchange
+            candidate = cls.find_candidate(
+                db_name,
+                dbs,
+                exch,
+                old_location,
+                new_location,
+                use_alternatives,
+                alternatives,
+            )
+            if candidate is None:
+                continue  # no suitable candidate was found, try the next exchange
             exch.input = candidate["key"][0]
             exch.save()
             # del_exch.append(exch)
@@ -127,7 +141,9 @@ class ActivityDuplicateToLoc(ABAction):
         signals.safe_open_activity_tab.emit(new_act.key)
 
     @staticmethod
-    def find_candidate(db_name, dbs, exch, old_location, new_location, use_alternatives, alternatives) -> Optional[object]:
+    def find_candidate(
+        db_name, dbs, exch, old_location, new_location, use_alternatives, alternatives
+    ) -> Optional[object]:
         """Find a candidate to replace the exchange with."""
         current_db = exch.input[0]
         if current_db == db_name:
@@ -136,24 +152,26 @@ class ActivityDuplicateToLoc(ABAction):
             # (user may have added their own alternative dependents already)
             db = pd.concat([dbs[current_db], dbs[db_name]])
 
-        if db.loc[db['key'] == exch.input]['location'].iloc[0] != old_location:
+        if db.loc[db["key"] == exch.input]["location"].iloc[0] != old_location:
             return  # this exchange has a location we're not trying to re-link
 
         # get relevant data to match on
-        row = db.loc[db['key'] == exch.input]
-        name = row['name'].iloc[0]
-        prod = row['reference product'].iloc[0]
-        unit = row['unit'].iloc[0]
+        row = db.loc[db["key"] == exch.input]
+        name = row["name"].iloc[0]
+        prod = row["reference product"].iloc[0]
+        unit = row["unit"].iloc[0]
 
         # get candidates to match (must have same name, product and unit)
-        candidates = db.loc[(db['name'] == name)
-                            & (db['reference product'] == prod)
-                            & (db['unit'] == unit)]
+        candidates = db.loc[
+            (db["name"] == name)
+            & (db["reference product"] == prod)
+            & (db["unit"] == unit)
+        ]
         if len(candidates) <= 1:
             return  # this activity does not exist in this database with another location (1 is self)
 
         # check candidates for new_location
-        candidate = candidates.loc[candidates['location'] == new_location]
+        candidate = candidates.loc[candidates["location"] == new_location]
         if len(candidate) == 0 and not use_alternatives:
             return  # there is no candidate
         elif len(candidate) > 1:
@@ -161,10 +179,9 @@ class ActivityDuplicateToLoc(ABAction):
         elif len(candidate) == 0:
             # there are no candidates, but we can try alternatives
             for alt in alternatives:
-                candidate = candidates.loc[candidates['location'] == alt]
+                candidate = candidates.loc[candidates["location"] == alt]
                 if len(candidate) == 1:
                     break  # found an alternative in with this alternative location, stop looking
             if len(candidate) != 1:
                 return  # there are either no or multiple matches with alternative locations
         return candidate
-    

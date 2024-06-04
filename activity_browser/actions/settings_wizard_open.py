@@ -6,6 +6,7 @@ from activity_browser.ui.wizards.settings_wizard import SettingsWizard
 
 class SettingsWizardOpen(ABAction):
     """ABAction to open the SettingsWizard"""
+
     icon = qicons.settings
     text = "Settings..."
 

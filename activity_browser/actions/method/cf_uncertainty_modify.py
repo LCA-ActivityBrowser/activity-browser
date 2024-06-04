@@ -1,9 +1,9 @@
-from typing import List
 from functools import partial
+from typing import List
 
 from activity_browser import application
-from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.wizards import UncertaintyWizard
 
@@ -13,6 +13,7 @@ class CFUncertaintyModify(ABAction):
     ABAction to launch the UncertaintyWizard for Characterization Factor and handles the output by writing the
     uncertainty data using the ImpactCategoryController to the Characterization Factor in question.
     """
+
     icon = qicons.edit
     text = "Modify uncertainty"
 
@@ -39,4 +40,3 @@ class CFUncertaintyModify(ABAction):
             method_dict[cf[0]] = uncertainty
 
         method.write_dict(method_dict)
-

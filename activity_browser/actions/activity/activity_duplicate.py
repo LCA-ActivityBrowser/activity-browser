@@ -1,19 +1,20 @@
-from typing import Union, Callable, List
+from typing import Callable, List, Union
 
 from PySide2 import QtCore
 
-from activity_browser.mod.bw2data import get_activity
-from activity_browser.bwutils import commontasks
-from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.bwutils import commontasks
+from activity_browser.mod.bw2data import get_activity
+from activity_browser.ui.icons import qicons
 
 
 class ActivityDuplicate(ABAction):
     """
     Duplicate one or multiple activities using their keys. Proxy action to call the controller.
     """
+
     icon = qicons.copy
-    text = 'Duplicate ***'
+    text = "Duplicate ***"
 
     @staticmethod
     @exception_dialogs

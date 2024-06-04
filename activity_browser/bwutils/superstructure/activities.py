@@ -4,27 +4,39 @@ import pandas as pd
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
-FROM_ACT = pd.Index([
-    "from activity name", "from reference product", "from location",
-    "from database"
-])
-TO_ACT = pd.Index([
-    "to activity name", "to reference product", "to location", "to database",
-])
-FROM_BIOS = pd.Index([
-    "from activity name", "from categories", "from database"
-])
-TO_BIOS = pd.Index([
-    "to activity name", "to categories", "to database"
-])
-FROM_ALL = pd.Index([
-    "from activity name", "from reference product", "from location",
-    "from categories", "from database", "from key"
-])
-TO_ALL = pd.Index([
-    "to activity name", "to reference product", "to location", "to categories",
-    "to database", "to key"
-])
+FROM_ACT = pd.Index(
+    ["from activity name", "from reference product", "from location", "from database"]
+)
+TO_ACT = pd.Index(
+    [
+        "to activity name",
+        "to reference product",
+        "to location",
+        "to database",
+    ]
+)
+FROM_BIOS = pd.Index(["from activity name", "from categories", "from database"])
+TO_BIOS = pd.Index(["to activity name", "to categories", "to database"])
+FROM_ALL = pd.Index(
+    [
+        "from activity name",
+        "from reference product",
+        "from location",
+        "from categories",
+        "from database",
+        "from key",
+    ]
+)
+TO_ALL = pd.Index(
+    [
+        "to activity name",
+        "to reference product",
+        "to location",
+        "to categories",
+        "to database",
+        "to key",
+    ]
+)
 
 
 def process_ad_namedtuple(row) -> tuple:
@@ -63,8 +75,12 @@ def data_from_index(index: tuple) -> dict:
     from it.
     """
     from_key, to_key = index[0], index[1]
-    from_key, from_data = construct_ad_data(ActivityDataset.get(database=from_key[0], code=from_key[1]))
-    to_key, to_data = construct_ad_data(ActivityDataset.get(database=to_key[0], code=to_key[1]))
+    from_key, from_data = construct_ad_data(
+        ActivityDataset.get(database=from_key[0], code=from_key[1])
+    )
+    to_key, to_data = construct_ad_data(
+        ActivityDataset.get(database=to_key[0], code=to_key[1])
+    )
     return {
         "from activity name": from_data[0],
         "from reference product": from_data[1],
@@ -91,16 +107,23 @@ def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
         return {}
 
     names, products, locations, dbs = list(map(set, sub.iloc[:, 0:4].values.T))
-#    names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
-    query = (ActivityDataset
-             .select(ActivityDataset.name, ActivityDataset.product,
-                     ActivityDataset.location, ActivityDataset.database,
-                     ActivityDataset.code)
-             .where((ActivityDataset.name.in_(names)) &
-                    (ActivityDataset.product.in_(products)) &
-                    (ActivityDataset.location.in_(locations)) &
-                    (ActivityDataset.database.in_(dbs)))
-             .namedtuples())
+    #    names, products, locations, dbs = sub.iloc[:, 0:4].apply(set, axis=0)
+    query = (
+        ActivityDataset.select(
+            ActivityDataset.name,
+            ActivityDataset.product,
+            ActivityDataset.location,
+            ActivityDataset.database,
+            ActivityDataset.code,
+        )
+        .where(
+            (ActivityDataset.name.in_(names))
+            & (ActivityDataset.product.in_(products))
+            & (ActivityDataset.location.in_(locations))
+            & (ActivityDataset.database.in_(dbs))
+        )
+        .namedtuples()
+    )
     activities = dict(map(process_ad_namedtuple, query.iterator()))
     return activities
 
@@ -114,15 +137,20 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
         return {}
 
     names, categories, dbs = list(map(set, sub.iloc[:, 0:3].values.T))
-#    names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
-    query = (ActivityDataset
-             .select(ActivityDataset.name, ActivityDataset.data,
-                     ActivityDataset.database, ActivityDataset.code)
-             .where((ActivityDataset.name.in_(names)) &
-                    (ActivityDataset.database.in_(dbs)))
-             .namedtuples())
+    #    names, categories, dbs = sub.iloc[:, 0:3].apply(set, axis=0)
+    query = (
+        ActivityDataset.select(
+            ActivityDataset.name,
+            ActivityDataset.data,
+            ActivityDataset.database,
+            ActivityDataset.code,
+        )
+        .where((ActivityDataset.name.in_(names)) & (ActivityDataset.database.in_(dbs)))
+        .namedtuples()
+    )
     flows = dict(map(process_ad_flow, query.iterator()))
     return flows
+
 
 def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
     def build_match(row):
@@ -131,6 +159,7 @@ def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
         else:
             match = (row.iat[0], row.iat[1], row.iat[2])
         return matchbook.get(match, np.NaN)
+
     return df.apply(build_match, axis=1)
 
 
@@ -144,7 +173,9 @@ def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_activities_from_keys(df: pd.DataFrame, db: str = bd.config.biosphere) -> pd.DataFrame:
+def get_activities_from_keys(
+    df: pd.DataFrame, db: str = bd.config.biosphere
+) -> pd.DataFrame:
     """
     Uses the BW SQL database to generate a list of Activities from the input dataframe.
     Returns a pandas dataframe that contains any keys that do not identify to an Activity in BW.
@@ -155,27 +186,43 @@ def get_activities_from_keys(df: pd.DataFrame, db: str = bd.config.biosphere) ->
 
     db: the database name to check the Activities from the dataframe to
     """
-    data_f = df.loc[(df['from database'] == db)]
-    data_t = df.loc[(df['to database'] == db)]
+    data_f = df.loc[(df["from database"] == db)]
+    data_t = df.loc[(df["to database"] == db)]
     flows = set()
     if not data_f.empty:
-        f_db, f_keys = zip(*data_f.loc[:, 'from key'])# extract just the key, avoiding the database
-        fqry = (ActivityDataset
-                .select(ActivityDataset.code, ActivityDataset.database)
-                .where((ActivityDataset.database==db) &
-                    (ActivityDataset.code.in_(set(f_keys)))).namedtuples()) # produces an iterator for the activities
+        f_db, f_keys = zip(
+            *data_f.loc[:, "from key"]
+        )  # extract just the key, avoiding the database
+        fqry = (
+            ActivityDataset.select(ActivityDataset.code, ActivityDataset.database)
+            .where(
+                (ActivityDataset.database == db)
+                & (ActivityDataset.code.in_(set(f_keys)))
+            )
+            .namedtuples()
+        )  # produces an iterator for the activities
         flows.update(set(map(lambda row: (row.database, row.code), fqry.iterator())))
     if not data_t.empty:
-        t_db, t_keys = zip(*data_t.loc[:, 'to key'])# look at the above code block
-        tqry = (ActivityDataset
-             .select(ActivityDataset.code, ActivityDataset.database)
-             .where((ActivityDataset.database==db) &
-                    (ActivityDataset.code.in_(set(t_keys)))).namedtuples())
+        t_db, t_keys = zip(*data_t.loc[:, "to key"])  # look at the above code block
+        tqry = (
+            ActivityDataset.select(ActivityDataset.code, ActivityDataset.database)
+            .where(
+                (ActivityDataset.database == db)
+                & (ActivityDataset.code.in_(set(t_keys)))
+            )
+            .namedtuples()
+        )
 
         flows.update(set(map(lambda row: (row.database, row.code), tqry.iterator())))
-    absent = pd.concat([data_f.loc[~(data_f['from key'].isin(flows)) & (data_f['from database'] == db)],
-                        data_t.loc[~(data_t['to key'].isin(flows)) & (data_t['to database'] == db)]], ignore_index=False, axis=0)
+    absent = pd.concat(
+        [
+            data_f.loc[
+                ~(data_f["from key"].isin(flows)) & (data_f["from database"] == db)
+            ],
+            data_t.loc[~(data_t["to key"].isin(flows)) & (data_t["to database"] == db)],
+        ],
+        ignore_index=False,
+        axis=0,
+    )
     # absent includes those exchanges where one of the keys was not found in the respective database
     return absent
-
-

@@ -1,8 +1,8 @@
 from typing import List
 
 from activity_browser import signals
-from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
 
 
 class ActivityOpen(ABAction):
@@ -11,8 +11,9 @@ class ActivityOpen(ABAction):
 
     TODO: move away from using signals like this. Probably add a method to the MainWindow to add a panel instead.
     """
+
     icon = qicons.right
-    text = 'Open ***'
+    text = "Open ***"
 
     @staticmethod
     @exception_dialogs

@@ -3,10 +3,10 @@ from typing import List
 from PySide2 import QtWidgets
 
 from activity_browser import application, project_settings
-from activity_browser.mod import bw2data as bd
-from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks
+from activity_browser.mod import bw2data as bd
+from activity_browser.ui.icons import qicons
 
 from .activity_open import ActivityOpen
 
@@ -17,8 +17,9 @@ class ActivityDuplicateToDB(ABAction):
     to, returns if there are no valid databases or when the user cancels. Otherwise uses the activity controller to
     duplicate the activities to the chosen database.
     """
+
     icon = qicons.duplicate_to_other_database
-    text = 'Duplicate to other database'
+    text = "Duplicate to other database"
 
     @classmethod
     @exception_dialogs
@@ -26,11 +27,13 @@ class ActivityDuplicateToDB(ABAction):
         # get bw activity objects from keys
         activities = [bd.get_activity(key) for key in activity_keys]
 
-        if to_db and not cls.confirm_db(to_db): return
+        if to_db and not cls.confirm_db(to_db):
+            return
 
         target_db = to_db or cls.request_db(activities)
 
-        if not target_db: return
+        if not target_db:
+            return
 
         new_activity_keys = []
 
@@ -46,14 +49,16 @@ class ActivityDuplicateToDB(ABAction):
     def request_db(activities):
         # get valid databases (not the original database, or locked databases)
         origin_db = next(iter(activities)).get("database")
-        target_dbs = [db for db in project_settings.get_editable_databases() if db != origin_db]
+        target_dbs = [
+            db for db in project_settings.get_editable_databases() if db != origin_db
+        ]
 
         # return if there are no valid databases to duplicate to
         if not target_dbs:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "No target database",
-                "No valid target databases available. Create a new database or set one to writable (not read-only)."
+                "No valid target databases available. Create a new database or set one to writable (not read-only).",
             )
             return
 
@@ -64,11 +69,12 @@ class ActivityDuplicateToDB(ABAction):
             "Target database:",
             target_dbs,
             0,
-            False
+            False,
         )
 
         # return if the user didn't choose, or canceled
-        if not ok: return
+        if not ok:
+            return
 
         return target_db
 

@@ -7,7 +7,9 @@ from .list import ListDelegate
 from .string import StringDelegate
 from .uncertainty import UncertaintyDelegate
 from .viewonly import (
-    ViewOnlyDelegate, ViewOnlyFloatDelegate, ViewOnlyUncertaintyDelegate
+    ViewOnlyDelegate,
+    ViewOnlyFloatDelegate,
+    ViewOnlyUncertaintyDelegate,
 )
 
 __all__ = [

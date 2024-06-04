@@ -1,9 +1,10 @@
 import pandas as pd
-from PySide2.QtCore import Slot, QModelIndex
+from PySide2.QtCore import QModelIndex, Slot
 
 from activity_browser import signals
-from activity_browser.mod.bw2data import projects, get_activity
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.mod.bw2data import get_activity, projects
+
 from .base import PandasModel
 
 
@@ -34,13 +35,10 @@ class ActivitiesHistoryModel(PandasModel):
             # Data didn't exist, so build a new row with the key
             ds = get_activity(key)
             data = {
-                h: ds.get(bc.AB_names_to_bw_keys.get(h), "")
-                for h in self.HEADERS[:-1]
+                h: ds.get(bc.AB_names_to_bw_keys.get(h), "") for h in self.HEADERS[:-1]
             }
             data["key"] = key
-            row = pd.DataFrame(
-                [data], index=[0], columns=self.HEADERS
-            )
+            row = pd.DataFrame([data], index=[0], columns=self.HEADERS)
 
         # Rebuild model with dataframe, added activity is placed at start
         self.sync(pd.concat([row, self._dataframe]).reset_index(drop=True))

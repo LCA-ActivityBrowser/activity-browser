@@ -7,22 +7,21 @@ from pathlib import Path
 
 import eidl
 import requests
-from bw2io import SingleOutputEcospold2Importer, BW2Package
+from bw2io import BW2Package, SingleOutputEcospold2Importer
 from bw2io.extractors import Ecospold2DataExtractor
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from activity_browser import log
-from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import errors
+from activity_browser.mod import bw2data as bd
 
-from ..threading import ABThread
-from ..style import style_group_box
-from ..widgets import DatabaseLinkingDialog
 from ...bwutils.importers import ABExcelImporter, ABPackage
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
-
+from ..style import style_group_box
+from ..threading import ABThread
+from ..widgets import DatabaseLinkingDialog
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -114,7 +113,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         super().done(result)
 
     def closeEvent(self, event):
-        """ Close event now behaves similarly to cancel, because of self.reject.
+        """Close event now behaves similarly to cancel, because of self.reject.
 
         This allows the import wizard to be reused, ie starts from the beginning
         """
@@ -204,6 +203,7 @@ class ImportTypePage(QtWidgets.QWizardPage):
 
 class RemoteImportPage(QtWidgets.QWizardPage):
     """Contains all the options for remote importing of data."""
+
     OPTIONS = (
         ("ecoinvent (requires login)", "homepage", DatabaseImportWizard.EI_LOGIN),
         ("Forwast", "forwast", DatabaseImportWizard.DB_NAME),
@@ -233,8 +233,13 @@ class RemoteImportPage(QtWidgets.QWizardPage):
 
 class LocalImportPage(QtWidgets.QWizardPage):
     """Contains all the options for the local importing of data."""
+
     OPTIONS = (
-        ("Local 7z-archive of ecospold2 files", "archive", DatabaseImportWizard.ARCHIVE),
+        (
+            "Local 7z-archive of ecospold2 files",
+            "archive",
+            DatabaseImportWizard.ARCHIVE,
+        ),
         ("Local directory with ecospold2 files", "directory", DatabaseImportWizard.DIR),
         ("Local Excel file", "local", DatabaseImportWizard.EXCEL),
         ("Local brightway database file", "local", DatabaseImportWizard.LOCAL),
@@ -266,8 +271,8 @@ class ChooseDirPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.path_edit = QtWidgets.QLineEdit()
-        self.registerField('dirpath*', self.path_edit)
-        self.browse_button = QtWidgets.QPushButton('Browse')
+        self.registerField("dirpath*", self.path_edit)
+        self.browse_button = QtWidgets.QPushButton("Browse")
         self.browse_button.clicked.connect(self.get_directory)
 
         layout = QtWidgets.QVBoxLayout()
@@ -286,20 +291,23 @@ class ChooseDirPage(QtWidgets.QWizardPage):
     @Slot(name="getDirectory")
     def get_directory(self) -> None:
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 'Select directory with ecospold2 files')
+            self, "Select directory with ecospold2 files"
+        )
         self.path_edit.setText(path)
 
     def validatePage(self):
-        dir_path = Path(self.field('dirpath') or "")
+        dir_path = Path(self.field("dirpath") or "")
         if not dir_path.is_dir():
-            warning = 'Not a directory:<br>{}'.format(dir_path)
-            QtWidgets.QMessageBox.warning(self, 'Not a directory!', warning)
+            warning = "Not a directory:<br>{}".format(dir_path)
+            QtWidgets.QMessageBox.warning(self, "Not a directory!", warning)
             return False
         else:
             count = sum(1 for _ in dir_path.glob("*.spold"))
             if not count:
-                warning = 'No ecospold files found in this directory:<br>{}'.format(dir_path)
-                QtWidgets.QMessageBox.warning(self, 'No ecospold files!', warning)
+                warning = "No ecospold files found in this directory:<br>{}".format(
+                    dir_path
+                )
+                QtWidgets.QMessageBox.warning(self, "No ecospold files!", warning)
                 return False
             else:
                 return True
@@ -313,8 +321,8 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = parent
         self.path_edit = QtWidgets.QLineEdit()
-        self.registerField('archive_path*', self.path_edit)
-        self.browse_button = QtWidgets.QPushButton('Browse')
+        self.registerField("archive_path*", self.path_edit)
+        self.browse_button = QtWidgets.QPushButton("Browse")
         self.browse_button.clicked.connect(self.get_archive)
         self.stored_dbs = {}
         self.stored_combobox = QtWidgets.QComboBox()
@@ -346,24 +354,27 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
 
     @Slot(name="getArchiveFile")
     def get_archive(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Select 7z archive')
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select 7z archive")
         if path:
             self.path_edit.setText(path)
 
     def validatePage(self):
-        path = Path(self.field('archive_path') or "")
+        path = Path(self.field("archive_path") or "")
         if path.is_file():
             if path.suffix == ".7z":
                 return True
             else:
-                warning = ('Unexpected filetype: <b>{}</b><br>Import might not work.' +
-                           'Continue anyway?').format(path.suffix)
-                answer = QtWidgets.QMessageBox.question(self, 'Not a 7zip archive!', warning)
+                warning = (
+                    "Unexpected filetype: <b>{}</b><br>Import might not work."
+                    + "Continue anyway?"
+                ).format(path.suffix)
+                answer = QtWidgets.QMessageBox.question(
+                    self, "Not a 7zip archive!", warning
+                )
                 return answer == QtWidgets.QMessageBox.Yes
         else:
-            warning = 'File not found:<br>{}'.format(path)
-            QtWidgets.QMessageBox.warning(self, 'File not found!', warning)
+            warning = "File not found:<br>{}".format(path)
+            QtWidgets.QMessageBox.warning(self, "File not found!", warning)
             return False
 
     def nextId(self):
@@ -375,7 +386,7 @@ class DBNamePage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = parent
         self.name_edit = QtWidgets.QLineEdit()
-        self.registerField('db_name*', self.name_edit)
+        self.registerField("db_name*", self.name_edit)
 
         layout = QtWidgets.QVBoxLayout()
         box = QtWidgets.QGroupBox("Name of the new database:")
@@ -387,12 +398,12 @@ class DBNamePage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        if self.wizard.import_type == 'homepage':
+        if self.wizard.import_type == "homepage":
             version = self.wizard.version
             sys_mod = self.wizard.system_model
-            self.name_edit.setText(sys_mod + version.replace('.', ''))
-        elif self.wizard.import_type == 'forwast':
-            self.name_edit.setText('Forwast')
+            self.name_edit.setText(sys_mod + version.replace(".", ""))
+        elif self.wizard.import_type == "forwast":
+            self.name_edit.setText("Forwast")
         elif self.wizard.import_type == "local":
             filename = Path(self.field("archive_path")).name
             if "." in filename:
@@ -403,9 +414,10 @@ class DBNamePage(QtWidgets.QWizardPage):
     def validatePage(self):
         db_name = self.name_edit.text()
         if db_name in bd.databases:
-            warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
-                db_name, bd.projects.current)
-            QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
+            warning = "Database <b>{}</b> already exists in project <b>{}</b>!".format(
+                db_name, bd.projects.current
+            )
+            QtWidgets.QMessageBox.warning(self, "Database exists!", warning)
             return False
         else:
             return True
@@ -419,10 +431,10 @@ class ConfirmationPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = parent
         self.setCommitPage(True)
-        self.setButtonText(QtWidgets.QWizard.CommitButton, 'Import Database')
-        self.current_project_label = QtWidgets.QLabel('empty')
-        self.db_name_label = QtWidgets.QLabel('empty')
-        self.path_label = QtWidgets.QLabel('empty')
+        self.setButtonText(QtWidgets.QWizard.CommitButton, "Import Database")
+        self.current_project_label = QtWidgets.QLabel("empty")
+        self.db_name_label = QtWidgets.QLabel("empty")
+        self.path_label = QtWidgets.QLabel("empty")
 
         layout = QtWidgets.QVBoxLayout()
         box = QtWidgets.QGroupBox("Import Summary:")
@@ -437,31 +449,37 @@ class ConfirmationPage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         self.current_project_label.setText(
-            'Current Project: <b>{}</b>'.format(bd.projects.current))
+            "Current Project: <b>{}</b>".format(bd.projects.current)
+        )
         self.db_name_label.setText(
-            'Name of the new database: <b>{}</b>'.format(self.field('db_name')))
-        if self.wizard.import_type == 'directory':
+            "Name of the new database: <b>{}</b>".format(self.field("db_name"))
+        )
+        if self.wizard.import_type == "directory":
             self.path_label.setText(
-                'Path to directory with ecospold files:<br><b>{}</b>'.format(
-                    self.field('dirpath')))
-        elif self.wizard.import_type == 'archive':
+                "Path to directory with ecospold files:<br><b>{}</b>".format(
+                    self.field("dirpath")
+                )
+            )
+        elif self.wizard.import_type == "archive":
             self.path_label.setText(
-                'Path to 7z archive:<br><b>{}</b>'.format(
-                    self.field('archive_path')))
-        elif self.wizard.import_type == 'forwast':
+                "Path to 7z archive:<br><b>{}</b>".format(self.field("archive_path"))
+            )
+        elif self.wizard.import_type == "forwast":
             self.path_label.setOpenExternalLinks(True)
             self.path_label.setText(
-                'Download forwast from <a href="https://lca-net.com/projects/show/forwast/">' +
-                'https://lca-net.com/projects/show/forwast/</a>'
+                'Download forwast from <a href="https://lca-net.com/projects/show/forwast/">'
+                + "https://lca-net.com/projects/show/forwast/</a>"
             )
         elif self.wizard.import_type == "local":
-            self.path_label.setText("Path to local file:<br><b>{}</b>".format(
-                self.field("archive_path")
-            ))
+            self.path_label.setText(
+                "Path to local file:<br><b>{}</b>".format(self.field("archive_path"))
+            )
         else:
             self.path_label.setText(
-                'Ecoinvent version: <b>{}</b><br>Ecoinvent system model: <b>{}</b>'.format(
-                    self.wizard.version, self.wizard.system_model))
+                "Ecoinvent version: <b>{}</b><br>Ecoinvent system model: <b>{}</b>".format(
+                    self.wizard.version, self.wizard.system_model
+                )
+            )
 
     def validatePage(self):
         """
@@ -487,21 +505,25 @@ class ImportPage(QtWidgets.QWizardPage):
         self.wizard = parent
         self.complete = False
         self.relink_data = {}
-        self.extraction_label = QtWidgets.QLabel('Extracting XML data from ecospold files:')
+        self.extraction_label = QtWidgets.QLabel(
+            "Extracting XML data from ecospold files:"
+        )
         self.extraction_progressbar = QtWidgets.QProgressBar()
-        self.strategy_label = QtWidgets.QLabel('Applying brightway2 strategies:')
+        self.strategy_label = QtWidgets.QLabel("Applying brightway2 strategies:")
         self.strategy_progressbar = QtWidgets.QProgressBar()
-        db_label = QtWidgets.QLabel('Writing datasets to SQLite database:')
+        db_label = QtWidgets.QLabel("Writing datasets to SQLite database:")
         self.db_progressbar = QtWidgets.QProgressBar()
-        finalizing_label = QtWidgets.QLabel('Finalizing:')
+        finalizing_label = QtWidgets.QLabel("Finalizing:")
         self.finalizing_progressbar = QtWidgets.QProgressBar()
-        self.finished_label = QtWidgets.QLabel('')
+        self.finished_label = QtWidgets.QLabel("")
 
         layout = QtWidgets.QVBoxLayout()
-        self.download_label = QtWidgets.QLabel('Downloading data from ecoinvent homepage:')
+        self.download_label = QtWidgets.QLabel(
+            "Downloading data from ecoinvent homepage:"
+        )
         self.download_label.setVisible(False)
         self.download_progressbar = QtWidgets.QProgressBar()
-        self.unarchive_label = QtWidgets.QLabel('Decompressing the 7z archive:')
+        self.unarchive_label = QtWidgets.QLabel("Decompressing the 7z archive:")
         self.unarchive_progressbar = QtWidgets.QProgressBar()
         layout.addWidget(self.download_label)
         layout.addWidget(self.download_progressbar)
@@ -538,11 +560,16 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread = MainWorkerThread(self.wizard.downloader, self)
 
     def reset_progressbars(self) -> None:
-        for pb in [self.extraction_progressbar, self.strategy_progressbar,
-                   self.db_progressbar, self.finalizing_progressbar,
-                   self.download_progressbar, self.unarchive_progressbar]:
+        for pb in [
+            self.extraction_progressbar,
+            self.strategy_progressbar,
+            self.db_progressbar,
+            self.finalizing_progressbar,
+            self.download_progressbar,
+            self.unarchive_progressbar,
+        ]:
             pb.reset()
-        self.finished_label.setText('')
+        self.finished_label.setText("")
 
     def isComplete(self):
         return self.complete
@@ -562,21 +589,25 @@ class ImportPage(QtWidgets.QWizardPage):
         self.strategy_progressbar.setVisible(show_strategies)
         if show_download:
             self.download_progressbar.setRange(0, 0)
-        elif self.wizard.import_type == 'archive':
+        elif self.wizard.import_type == "archive":
             self.unarchive_progressbar.setRange(0, 0)
 
     def initializePage(self):
         self.reset_progressbars()
         self.init_progressbars()
         self.wizard.update_downloader()
-        if self.wizard.import_type == 'directory':
-            self.main_worker_thread.update(db_name=self.field('db_name'),
-                                           datasets_path=self.field('dirpath'))
-        elif self.wizard.import_type == 'archive':
-            self.main_worker_thread.update(db_name=self.field('db_name'),
-                                           archive_path=self.field('archive_path'))
-        elif self.wizard.import_type == 'forwast':
-            self.main_worker_thread.update(db_name=self.field('db_name'), use_forwast=True)
+        if self.wizard.import_type == "directory":
+            self.main_worker_thread.update(
+                db_name=self.field("db_name"), datasets_path=self.field("dirpath")
+            )
+        elif self.wizard.import_type == "archive":
+            self.main_worker_thread.update(
+                db_name=self.field("db_name"), archive_path=self.field("archive_path")
+            )
+        elif self.wizard.import_type == "forwast":
+            self.main_worker_thread.update(
+                db_name=self.field("db_name"), use_forwast=True
+            )
         elif self.wizard.import_type == "local":
             kwargs = {
                 "db_name": self.field("db_name"),
@@ -586,7 +617,7 @@ class ImportPage(QtWidgets.QWizardPage):
             }
             self.main_worker_thread.update(**kwargs)
         else:
-            self.main_worker_thread.update(db_name=self.field('db_name'))
+            self.main_worker_thread.update(db_name=self.field("db_name"))
         self.main_worker_thread.start()
 
     @Slot(int, int)
@@ -617,7 +648,7 @@ class ImportPage(QtWidgets.QWizardPage):
             self.main_worker_thread.quit()
         self.finalizing_progressbar.setMaximum(1)
         self.finalizing_progressbar.setValue(1)
-        self.finished_label.setText('<b>Finished!</b>')
+        self.finished_label.setText("<b>Finished!</b>")
         self.complete = True
         self.completeChanged.emit()
 
@@ -649,8 +680,12 @@ class ImportPage(QtWidgets.QWizardPage):
         else:
             # If the user at any point did not accept their choice, fail.
             import_signals.import_failure.emit(
-                ("Missing databases",
-                 "Package data links to database names that do not exist: {}".format(missing))
+                (
+                    "Missing databases",
+                    "Package data links to database names that do not exist: {}".format(
+                        missing
+                    ),
+                )
             )
             return
         # Restart the page
@@ -674,7 +709,7 @@ class ImportPage(QtWidgets.QWizardPage):
             error = (
                 "Unlinked exchanges",
                 "Excel data contains exchanges that could not be linked.",
-                exchanges
+                exchanges,
             )
             import_signals.import_failure_detailed.emit(
                 QtWidgets.QMessageBox.Warning, error
@@ -686,13 +721,15 @@ class ImportPage(QtWidgets.QWizardPage):
     @Slot(str, name="handleUnzipFailed")
     def report_failed_unarchive(self, file: str) -> None:
         """Handle the issue where the 7z file for ecoinvent/spold files is
-         in some way corrupted.
-         """
+        in some way corrupted.
+        """
         self.main_worker_thread.exit(1)
 
         error = (
             "Corrupted (.7z) archive",
-            "The archive '{}' is corrupted, please remove and re-download it.".format(file),
+            "The archive '{}' is corrupted, please remove and re-download it.".format(
+                file
+            ),
         )
         import_signals.import_failure_detailed.emit(
             QtWidgets.QMessageBox.Warning, error
@@ -704,7 +741,9 @@ class MainWorkerThread(ABThread):
     def __init__(self, downloader, parent=None):
         super().__init__(parent)
         self.downloader = downloader
-        self.forwast_url = 'https://lca-net.com/wp-content/uploads/forwast.bw2package.zip'
+        self.forwast_url = (
+            "https://lca-net.com/wp-content/uploads/forwast.bw2package.zip"
+        )
         self.db_name = None
         self.archive_path = None
         self.datasets_path = None
@@ -712,8 +751,15 @@ class MainWorkerThread(ABThread):
         self.use_local = None
         self.relink = {}
 
-    def update(self, db_name: str, archive_path=None, datasets_path=None,
-               use_forwast=False, use_local=False, relink=None) -> None:
+    def update(
+        self,
+        db_name: str,
+        archive_path=None,
+        datasets_path=None,
+        use_forwast=False,
+        use_local=False,
+        relink=None,
+    ) -> None:
         self.db_name = db_name
         self.archive_path = archive_path
         if datasets_path:
@@ -767,8 +813,8 @@ class MainWorkerThread(ABThread):
                 import_signals.strategy_progress.emit(0, 0)
                 import_signals.db_progress.emit(0, 0)
                 BW2Package.import_file(str(temp_dir.joinpath("forwast.bw2package")))
-            if self.db_name.lower() != 'forwast':
-                bd.Database('forwast').rename(self.db_name)
+            if self.db_name.lower() != "forwast":
+                bd.Database("forwast").rename(self.db_name)
             if not import_signals.cancel_sentinel:
                 import_signals.extraction_progress.emit(1, 1)
                 import_signals.strategy_progress.emit(1, 1)
@@ -817,10 +863,10 @@ class MainWorkerThread(ABThread):
                 str(import_dir),
                 self.db_name,
                 extractor=ActivityBrowserExtractor,
-                signal=import_signals.strategy_progress
+                signal=import_signals.strategy_progress,
             )
             importer.apply_strategies()
-            importer.write_database(backend='activitybrowser')
+            importer.write_database(backend="activitybrowser")
             if not import_signals.cancel_sentinel:
                 import_signals.finished.emit()
             else:
@@ -832,9 +878,12 @@ class MainWorkerThread(ABThread):
             # biosphere flows.
             self.delete_canceled_db()
             import_signals.import_failure.emit(
-                ("Missing exchanges", "The import failed as required biosphere"
-                                      " exchanges are missing from the biosphere3 database. Please"
-                                      " update the biosphere by using 'File' -> 'Update biosphere...'")
+                (
+                    "Missing exchanges",
+                    "The import failed as required biosphere"
+                    " exchanges are missing from the biosphere3 database. Please"
+                    " update the biosphere by using 'File' -> 'Update biosphere...'",
+                )
             )
 
     def run_local_import(self):
@@ -851,14 +900,19 @@ class MainWorkerThread(ABThread):
                 )
                 # signals.parameters_changed.emit()
             else:
-                result = ABPackage.import_file(self.archive_path, relink=self.relink, rename=self.db_name)
+                result = ABPackage.import_file(
+                    self.archive_path, relink=self.relink, rename=self.db_name
+                )
             if not import_signals.cancel_sentinel:
                 db = next(iter(result))
                 # With the changes to the ABExcelImporter and ABPackage classes
                 # this should not really trigger for data exported from AB.
                 if db.name != self.db_name:
-                    log.warning("renaming database '{}' to '{}', parameters lost.".format(
-                        db.name, self.db_name))
+                    log.warning(
+                        "renaming database '{}' to '{}', parameters lost.".format(
+                            db.name, self.db_name
+                        )
+                    )
                     db.rename(self.db_name)
                 import_signals.db_progress.emit(1, 1)
                 import_signals.finished.emit()
@@ -873,25 +927,30 @@ class MainWorkerThread(ABThread):
         except errors.InvalidExchange:
             self.delete_canceled_db()
             import_signals.import_failure.emit(
-                ("Missing exchanges", "The import has failed, likely due missing exchanges.")
+                (
+                    "Missing exchanges",
+                    "The import has failed, likely due missing exchanges.",
+                )
             )
         except errors.UnknownObject as e:
             # BW2Package import failed because the object was not understood
             self.delete_canceled_db()
-            import_signals.import_failure.emit(
-                ("Unknown object", str(e))
-            )
+            import_signals.import_failure.emit(("Unknown object", str(e)))
         except errors.StrategyError as e:
             # Excel import failed because extra databases were found, relink
-            log.error("Could not link exchanges, here are 10 examples.:")  # THREAD UNSAFE FUNCTIONS
+            log.error(
+                "Could not link exchanges, here are 10 examples.:"
+            )  # THREAD UNSAFE FUNCTIONS
             self.delete_canceled_db()
             import_signals.links_required.emit(e.args[0], e.args[1])
         except errors.LinkingFailed as e:
             # Excel import failed after asking user to relink.
             error = (
                 "Unlinked exchanges",
-                "Some exchanges could not be linked in databases: '[{}]'".format(", ".join(e.args[1])),
-                e.args[0]
+                "Some exchanges could not be linked in databases: '[{}]'".format(
+                    ", ".join(e.args[1])
+                ),
+                e.args[0],
             )
             import_signals.import_failure_detailed.emit(
                 QtWidgets.QMessageBox.Critical, error
@@ -903,7 +962,7 @@ class MainWorkerThread(ABThread):
     def delete_canceled_db(self):
         if self.db_name in bd.databases:
             del bd.databases[self.db_name]
-            log.info(f'Database {self.db_name} deleted!')
+            log.info(f"Database {self.db_name} deleted!")
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
@@ -912,11 +971,11 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.wizard = parent
         self.complete = False
         self.username_edit = QtWidgets.QLineEdit()
-        self.username_edit.setPlaceholderText('ecoinvent username')
+        self.username_edit.setPlaceholderText("ecoinvent username")
         self.password_edit = QtWidgets.QLineEdit()
-        self.password_edit.setPlaceholderText('ecoinvent password'),
+        self.password_edit.setPlaceholderText("ecoinvent password"),
         self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.login_button = QtWidgets.QPushButton('login')
+        self.login_button = QtWidgets.QPushButton("login")
         self.login_button.clicked.connect(self.login)
         self.password_edit.returnPressed.connect(self.login_button.click)
         self.success_label = QtWidgets.QLabel()
@@ -996,28 +1055,39 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.wizard = self.parent()
-        self.description_label = QtWidgets.QLabel('Choose ecoinvent version and system model:')
+        self.description_label = QtWidgets.QLabel(
+            "Choose ecoinvent version and system model:"
+        )
         self.db_dict = None
         self.system_models = {}
         self.version_combobox = QtWidgets.QComboBox()
-        self.version_combobox.currentTextChanged.connect(self.update_system_model_combobox)
+        self.version_combobox.currentTextChanged.connect(
+            self.update_system_model_combobox
+        )
         self.system_model_combobox = QtWidgets.QComboBox()
 
         layout = QtWidgets.QGridLayout()
         layout.addWidget(self.description_label, 0, 0, 1, 3)
-        layout.addWidget(QtWidgets.QLabel('Version: '), 1, 0)
+        layout.addWidget(QtWidgets.QLabel("Version: "), 1, 0)
         layout.addWidget(self.version_combobox, 1, 1, 1, 2)
-        layout.addWidget(QtWidgets.QLabel('System model: '), 2, 0)
+        layout.addWidget(QtWidgets.QLabel("System model: "), 2, 0)
         layout.addWidget(self.system_model_combobox, 2, 1, 1, 2)
         self.setLayout(layout)
 
     def initializePage(self):
         if self.db_dict is None:
-            self.wizard.downloader.db_dict = self.wizard.downloader.get_available_files()
+            self.wizard.downloader.db_dict = (
+                self.wizard.downloader.get_available_files()
+            )
             self.db_dict = self.wizard.downloader.db_dict
         self.system_models = {
-            version: sorted({k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True)
-            for version in sorted({k[0] for k in self.db_dict.keys() if k[0] in __ei_versions__}, reverse=True)
+            version: sorted(
+                {k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True
+            )
+            for version in sorted(
+                {k[0] for k in self.db_dict.keys() if k[0] in __ei_versions__},
+                reverse=True,
+            )
         }
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
@@ -1033,10 +1103,12 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             self.update_system_model_combobox(self.version_combobox.currentText())
         else:
             # Raise an error if the version_combobox is empty
-            import_signals.connection_problem.emit((
-                "Cannot find files",
-                "Cannot find any valid data with the given login credentials"
-            ))
+            import_signals.connection_problem.emit(
+                (
+                    "Cannot find files",
+                    "Cannot find any valid data with the given login credentials",
+                )
+            )
             self.wizard.back()
 
     def nextId(self):
@@ -1044,7 +1116,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
 
     @Slot(str)
     def update_system_model_combobox(self, version: str) -> None:
-        """ Updates the `system_model_combobox` whenever the user selects a
+        """Updates the `system_model_combobox` whenever the user selects a
         different ecoinvent version.
         """
         self.system_model_combobox.clear()
@@ -1096,7 +1168,10 @@ class LocalDatabaseImportPage(QtWidgets.QWizardPage):
         valid = path.suffix.lower() == ".bw2package"
         if exists and not valid:
             import_signals.import_failure.emit(
-                ("Invalid extension", "Expecting 'local' import database file to have '.bw2package' extension")
+                (
+                    "Invalid extension",
+                    "Expecting 'local' import database file to have '.bw2package' extension",
+                )
             )
         self.complete = all([exists, valid])
         self.completeChanged.emit()
@@ -1140,8 +1215,9 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
     @Slot(name="browseFile")
     def browse(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=self, caption="Select an excel database file",
-            filter="Excel (*.xlsx);; All Files (*.*)"
+            parent=self,
+            caption="Select an excel database file",
+            filter="Excel (*.xlsx);; All Files (*.*)",
         )
         if path:
             self.path.setText(path)
@@ -1153,7 +1229,10 @@ class ExcelDatabaseImport(QtWidgets.QWizardPage):
         valid = path.suffix.lower() in {".xlsx", ".xls"}
         if exists and not valid:
             import_signals.import_failure.emit(
-                ("Invalid extension", "Expecting excel file to have '.xls' or '.xlsx' extension")
+                (
+                    "Invalid extension",
+                    "Expecting excel file to have '.xls' or '.xlsx' extension",
+                )
             )
         self.complete = all([exists, valid])
         self.completeChanged.emit()
@@ -1185,7 +1264,7 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
         dir_path = str(dir_path)
         for i, filename in enumerate(file_list, start=1):
             if import_signals.cancel_sentinel:
-                log.info(f'Extraction canceled at position {i}!')
+                log.info(f"Extraction canceled at position {i}!")
                 raise errors.ImportCanceledError
 
             data.append(cls.extract_activity(dir_path, filename, db_name))
@@ -1206,13 +1285,13 @@ class ActivityBrowserBackend(bd.backends.SQLiteBackend):
     def _efficient_write_dataset(self, *args, **kwargs):
         index = args[0]
         if import_signals.cancel_sentinel:
-            log.info(f'\nWriting canceled at position {index}!')
+            log.info(f"\nWriting canceled at position {index}!")
             raise errors.ImportCanceledError
         import_signals.db_progress.emit(index + 1, self.total)
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
-bd.config.backends['activitybrowser'] = ActivityBrowserBackend
+bd.config.backends["activitybrowser"] = ActivityBrowserBackend
 
 
 class ImportSignals(QtCore.QObject):
@@ -1246,8 +1325,7 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
         import_signals.login_success.emit(success)
 
     def extract(self, target_dir):
-        """ Override extract method to redirect the stdout to dev null.
-        """
+        """Override extract method to redirect the stdout to dev null."""
         code = super().extract(target_dir=target_dir, stdout=subprocess.DEVNULL)
         if code != 0:
             # The archive was corrupted in some way.
@@ -1257,6 +1335,8 @@ class ABEcoinventDownloader(eidl.EcoinventDownloader):
     def handle_connection_timeout(self):
         msg = "The request timed out, please check your internet connection!"
         if eidl.eidlstorage.stored_dbs:
-            msg += ("\n\nIf you work offline you can use your previously downloaded databases" +
-                    " via the archive option of the import wizard.")
-        import_signals.connection_problem.emit(('Connection problem', msg))
+            msg += (
+                "\n\nIf you work offline you can use your previously downloaded databases"
+                + " via the archive option of the import wizard."
+            )
+        import_signals.connection_problem.emit(("Connection problem", msg))
