@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
-from .panel import ABTab
 from .left import LeftPanel
+from .panel import ABTab
 from .right import RightPanel

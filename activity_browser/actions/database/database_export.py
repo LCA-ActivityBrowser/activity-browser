@@ -9,6 +9,7 @@ class DatabaseExport(ABAction):
     """
     ABAction to open the DatabaseExportWizard.
     """
+
     icon = application.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon)
     text = "Export database..."
     tool_tip = "Export a database from this project"

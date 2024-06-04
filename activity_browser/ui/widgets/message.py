@@ -4,16 +4,18 @@ from PySide2.QtWidgets import QMessageBox
 
 
 def parameter_save_errorbox(parent, error) -> int:
-    """ Construct a messagebox using the given error
-     Can take either the Exception itself or a string
+    """Construct a messagebox using the given error
+    Can take either the Exception itself or a string
     """
     msgbox = QMessageBox(
         QMessageBox.Warning,
         "Cannot save parameters",
-        ("An error occurred while saving parameters."
-         "\nDiscard changes or cancel and continue editing?"),
+        (
+            "An error occurred while saving parameters."
+            "\nDiscard changes or cancel and continue editing?"
+        ),
         QMessageBox.Discard | QMessageBox.Cancel,
-        parent
+        parent,
     )
     msgbox.setWindowModality(Qt.ApplicationModal)
     msgbox.setDetailedText(str(error))
@@ -23,9 +25,7 @@ def parameter_save_errorbox(parent, error) -> int:
 
 
 def simple_warning_box(parent, title: str, message: str) -> int:
-    """ Build and return a simple warning message box
-     The box can have any given title and message.
+    """Build and return a simple warning message box
+    The box can have any given title and message.
     """
-    return QMessageBox.warning(
-        parent, title, message, QMessageBox.Ok, QMessageBox.Ok
-    )
+    return QMessageBox.warning(parent, title, message, QMessageBox.Ok, QMessageBox.Ok)

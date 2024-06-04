@@ -1,9 +1,9 @@
-from PySide2.QtCore import QThread, QEventLoop
+from PySide2.QtCore import QEventLoop, QThread
+
 from activity_browser.mod import bw2data as bd
 
 
 class ABThread(QThread):
-
     def run(self):
         """Reimplemented from QThread to close any database connections before finishing."""
         # call run_safely and finish by closing the connections

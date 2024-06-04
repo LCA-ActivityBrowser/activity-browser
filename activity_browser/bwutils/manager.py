@@ -2,20 +2,21 @@ from abc import abstractmethod
 from collections.abc import Iterator
 from typing import Iterable, List, Optional, Tuple
 
-from bw2calc import LCA
 import numpy as np
+from bw2calc import LCA
 from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
-from activity_browser.mod.bw2data.parameters import *
 from activity_browser.mod.bw2data.backends import ExchangeDataset
+from activity_browser.mod.bw2data.parameters import *
 
-from .utils import Index, Parameters, Indices, StaticParameters
+from .utils import Index, Indices, Parameters, StaticParameters
 
 
 class ParameterManager(object):
     """A manager for Brightway2 parameters, allowing for formula evaluation
     without touching the database.
     """
+
     def __init__(self):
         self.parameters: Parameters = Parameters.from_bw_parameters()
         self.initial: StaticParameters = StaticParameters()
@@ -47,7 +48,9 @@ class ParameterManager(object):
         ParameterSet(data).evaluate_and_set_amount_field()
         return StaticParameters.prune_result_data(data)
 
-    def recalculate_database_parameters(self, database: str, global_params: dict = None) -> dict:
+    def recalculate_database_parameters(
+        self, database: str, global_params: dict = None
+    ) -> dict:
         data = self.initial.by_database(database)
         if not data:
             return {}
@@ -60,7 +63,9 @@ class ParameterManager(object):
         new_symbols = get_new_symbols(data.values(), set(data))
         missing = new_symbols.difference(glo)
         if missing:
-            raise MissingName("The following variables aren't defined:\n{}".format("|".join(missing)))
+            raise MissingName(
+                "The following variables aren't defined:\n{}".format("|".join(missing))
+            )
 
         glo = Parameters.static(glo, needed=new_symbols) if new_symbols else None
 
@@ -75,7 +80,9 @@ class ParameterManager(object):
             all_db[database] = {x: y for x, y in db.items()} if db else {}
         return all_db
 
-    def recalculate_activity_parameters(self, group: str, global_params: dict = None) -> dict:
+    def recalculate_activity_parameters(
+        self, group: str, global_params: dict = None
+    ) -> dict:
         data = self.initial.act_by_group(group)
         if not data:
             return {}
@@ -88,15 +95,19 @@ class ParameterManager(object):
         new_symbols = get_new_symbols(data.values(), set(data))
         missing = new_symbols.difference(global_params)
         if missing:
-            raise MissingName("The following variables aren't defined:\n{}".format("|".join(missing)))
+            raise MissingName(
+                "The following variables aren't defined:\n{}".format("|".join(missing))
+            )
 
         glo = Parameters.static(glo, needed=new_symbols) if new_symbols else None
 
         ParameterSet(data, glo).evaluate_and_set_amount_field()
         return StaticParameters.prune_result_data(data)
 
-    def recalculate_exchanges(self, group: str, global_params: dict = None) -> Iterable[Tuple[int, float]]:
-        """ Constructs a list of exc.id/amount tuples for the
+    def recalculate_exchanges(
+        self, group: str, global_params: dict = None
+    ) -> Iterable[Tuple[int, float]]:
+        """Constructs a list of exc.id/amount tuples for the
         ParameterizedExchanges in the given group.
         """
         params = self.initial.exc_by_group(group)
@@ -108,30 +119,40 @@ class ParameterManager(object):
         interpreter.symtable.update(glo)
         return [(k, interpreter(v)) for k, v in params.items()]
 
-    def process_exchanges(self, global_params: dict = None, db_params: dict = None,
-                          build_indices: bool = True) -> np.ndarray:
+    def process_exchanges(
+        self,
+        global_params: dict = None,
+        db_params: dict = None,
+        build_indices: bool = True,
+    ) -> np.ndarray:
         dbs = db_params or {}
         complete_data = np.zeros(len(self.indices))
 
         offset = 0
         for p in self.initial.act_by_group_db:
-            combination = {x: y for x, y in global_params.items()} if global_params else {}
+            combination = (
+                {x: y for x, y in global_params.items()} if global_params else {}
+            )
             combination.update(dbs.get(p.database, {}))
-            combination.update(self.recalculate_activity_parameters(p.group, combination))
+            combination.update(
+                self.recalculate_activity_parameters(p.group, combination)
+            )
 
-            recalculated = self.recalculate_exchanges(p.group, global_params=combination)
+            recalculated = self.recalculate_exchanges(
+                p.group, global_params=combination
+            )
             # If the parameter group contains no ParameterizedExchanges, skip.
             if not recalculated:
                 continue
             # `data` contains the recalculated amounts for the exchanges.
             _, data = zip(*recalculated)
-            complete_data[offset:len(data) + offset] = data
+            complete_data[offset : len(data) + offset] = data
             offset += len(data)
 
         return complete_data
 
     def calculate(self) -> np.ndarray:
-        """ Convenience function that takes calculates the current parameters
+        """Convenience function that takes calculates the current parameters
         and returns a fully-formed set of exchange amounts and indices.
 
         All parameter types are recalculated in turn before interpreting the
@@ -144,7 +165,7 @@ class ParameterManager(object):
 
     @abstractmethod
     def recalculate(self, values: List[float]) -> np.ndarray:
-        """ Convenience function that takes the given new values and recalculates.
+        """Convenience function that takes the given new values and recalculates.
         Returning a fully-formed set of exchange amounts and indices.
 
         All parameter types are recalculated in turn before interpreting the
@@ -192,7 +213,7 @@ class ParameterManager(object):
 
     @staticmethod
     def has_parameterized_exchanges() -> bool:
-        """ Test if ParameterizedExchanges exist, no point to using this manager
+        """Test if ParameterizedExchanges exist, no point to using this manager
         otherwise.
         """
         return ParameterizedExchange.select().exists()
@@ -228,7 +249,8 @@ class ParameterManager(object):
         # that don't exist in the 'used_exchanges' set.
         for p in params:
             keep = [
-                i for i, exc in enumerate(params[p])
+                i
+                for i, exc in enumerate(params[p])
                 if (exc.input in used_exchanges and exc.output in used_exchanges)
             ]
             params[p] = [params[p][i] for i in keep]
@@ -279,8 +301,9 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
     def __init__(self, seed: Optional[int] = None):
         super().__init__()
         parameters = itertools.chain(
-            ProjectParameter.select(), DatabaseParameter.select(),
-            ActivityParameter.select()
+            ProjectParameter.select(),
+            DatabaseParameter.select(),
+            ActivityParameter.select(),
         )
         self.uncertainties = UncertaintyBase.from_dicts(
             *[getattr(p, "data", {}) for p in parameters]
@@ -326,10 +349,14 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
         dictionary.
         """
         for name, vals in data.items():
-            param = next((p for p in self.parameters
-                         if p.name == vals.get("name")
-                         and p.group == vals.get("group")),
-                         None)
+            param = next(
+                (
+                    p
+                    for p in self.parameters
+                    if p.name == vals.get("name") and p.group == vals.get("group")
+                ),
+                None,
+            )
             if param is None:
                 continue
             data[name]["values"].append(param.amount)

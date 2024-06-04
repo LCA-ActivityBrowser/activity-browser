@@ -1,8 +1,8 @@
-from PySide2 import QtWidgets, QtCore
 import pandas as pd
-
+from PySide2 import QtCore, QtWidgets
 
 from ...ui.icons import qicons
+
 """
     The basic premise of this module is to contain a series of different popup menus that will allow the user
     to make a choice that can help them to resolve an issue with their use of the AB.
@@ -22,7 +22,9 @@ class ProblemDataModel(QtCore.QAbstractTableModel):
     Intentionally coupled with the ABPopup class and not intended for use externally.
 
     """
+
     updated = QtCore.Signal()
+
     def __init__(self):
         super().__init__()
         self.columns = None
@@ -44,13 +46,13 @@ class ProblemDataModel(QtCore.QAbstractTableModel):
         return v
 
     def sync(self, *args, **kwargs) -> None:
-        assert('dataframe' in kwargs and 'columns in kwargs')
-        self.columns = kwargs['columns']
-        data = kwargs['dataframe']
+        assert "dataframe" in kwargs and "columns in kwargs"
+        self.columns = kwargs["columns"]
+        data = kwargs["dataframe"]
         self._dataframe = pd.DataFrame(data, columns=self.columns)
         self.updated.emit()
 
-    def headerData(self, section, orientation, role = QtCore.Qt.DisplayRole):
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.columns[section]
 
@@ -61,13 +63,16 @@ class ProblemDataFrame(QtWidgets.QTableView):
 
     Not intended for external use.
     """
-    def __init__(self, parent: QtWidgets.QWidget, dataframe: pd.DataFrame, cols: pd.Index):
+
+    def __init__(
+        self, parent: QtWidgets.QWidget, dataframe: pd.DataFrame, cols: pd.Index
+    ):
         super().__init__(parent)
         self.model = ProblemDataModel()
         self.model.updated.connect(self.update_proxy)
         self.model.sync(dataframe=dataframe, columns=cols)
 
-    def update(self, dataframe:pd.DataFrame, cols: pd.Index):
+    def update(self, dataframe: pd.DataFrame, cols: pd.Index):
         self.model.sync(dataframe=dataframe, columns=cols)
 
     def update_proxy(self):
@@ -92,6 +97,7 @@ class ABPopup(QtWidgets.QDialog):
 
 
     """
+
     def __init__(self):
         super().__init__()
         self.data_frame = ProblemDataFrame(self, pd.DataFrame({}), pd.Index([]))
@@ -110,10 +116,11 @@ class ABPopup(QtWidgets.QDialog):
         self.check_box.setVisible(False)
         self.button_layout = QtWidgets.QHBoxLayout()
         self.button_layout.addWidget(self.check_box)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum
-        ))
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+            )
+        )
 
     def dataframe(self, data: pd.DataFrame, columns: list = None):
         """
@@ -140,15 +147,17 @@ class ABPopup(QtWidgets.QDialog):
         self.check_box.setVisible(True)
         self.check_box.setTristate(False)
         self.check_box.setText("Excerpt")
-        self.check_box.setToolTip("If left unchecked the entire file is written with an additional column indicating "
-                             "the status of the exchange data in the scenario file.<br> Check to save a smaller "
-                             "excerpt of the file, containing only those exchanges that failed."
-                             )
+        self.check_box.setToolTip(
+            "If left unchecked the entire file is written with an additional column indicating "
+            "the status of the exchange data in the scenario file.<br> Check to save a smaller "
+            "excerpt of the file, containing only those exchanges that failed."
+        )
         self.check_box.setChecked(False)
         self.updateGeometry()
 
-
-    def dataframe_to_file(self, dataframe: pd.DataFrame, flags: pd.Index=None) -> None:
+    def dataframe_to_file(
+        self, dataframe: pd.DataFrame, flags: pd.Index = None
+    ) -> None:
         """
         Sets the class variables for determining those elements of the dataframe that contain error causing data
 
@@ -168,34 +177,36 @@ class ABPopup(QtWidgets.QDialog):
         if self.check_box.isChecked():
             self._dataframe = self._dataframe.loc[self._flags]
         elif self._dataframe is not None:
-            self._dataframe['Failed'] = [False for i in self._dataframe.index]
-            self._dataframe.loc[self._flags, 'Failed'] = True
+            self._dataframe["Failed"] = [False for i in self._dataframe.index]
+            self._dataframe.loc[self._flags, "Failed"] = True
         # Else we're not actually intending on saving anything
         else:
             return True
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self, caption="Choose the location to save the dataframe",
+            parent=self,
+            caption="Choose the location to save the dataframe",
             filter="Excel (*.xlsx *.xls);; CSV (*.csv)",
         )
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
+        if filepath.endswith(".xlsx") or filepath.endswith(".xls"):
             self._dataframe.to_excel(filepath, index=False)
             QtWidgets.QApplication.restoreOverrideCursor()
             return True
-        elif not filepath.endswith('.csv'):
-            filepath += '.csv'
-        self._dataframe.to_csv(filepath, index=False, sep=';')
+        elif not filepath.endswith(".csv"):
+            filepath += ".csv"
+        self._dataframe.to_csv(filepath, index=False, sep=";")
         QtWidgets.QApplication.restoreOverrideCursor()
         return True
 
-    @QtCore.Slot(name='affirmative')
+    @QtCore.Slot(name="affirmative")
     def affirmative(self):
         if self.save_dataframe():
             self.accept()
 
-    @QtCore.Slot(name='rejection')
+    @QtCore.Slot(name="rejection")
     def rejection(self):
         self.reject()
+
     # TODO set a max_width to the windows
 
     @staticmethod

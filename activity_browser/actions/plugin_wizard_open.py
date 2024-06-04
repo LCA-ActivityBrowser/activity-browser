@@ -6,6 +6,7 @@ from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWiz
 
 class PluginWizardOpen(ABAction):
     """ABAction to open the PluginWizard"""
+
     icon = qicons.plugin
     text = "Plugin manager..."
 

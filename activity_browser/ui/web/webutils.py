@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtWidgets, QtCore, QtGui, QtWebEngineWidgets
 import os
+
+from PySide2 import QtCore, QtGui, QtWebEngineWidgets, QtWidgets
 
 # type "localhost:3999" in Chrome for DevTools of AB web content
 from activity_browser.utils import get_base_path
-os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '3999'
+
+os.environ["QTWEBENGINE_REMOTE_DEBUGGING"] = "3999"
 
 
 class RestrictedQWebEnginePage(QtWebEngineWidgets.QWebEnginePage):
-    """ Filters links so that users cannot just navigate to any page on the web,
+    """Filters links so that users cannot just navigate to any page on the web,
     but just to those pages, that are listed in allowed_pages.
     This is achieved by re-implementing acceptNavigationRequest.
     The latter could also be adapted to accept, e.g. URLs within a domain.

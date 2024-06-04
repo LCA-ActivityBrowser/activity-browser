@@ -7,6 +7,7 @@ import openpyxl
 import pandas as pd
 
 from activity_browser import log
+
 from .utils import SUPERSTRUCTURE
 
 
@@ -24,6 +25,7 @@ def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
     except UnicodeDecodeError as e:
         log.error("Given document uses an unknown encoding: {}".format(e))
 
+
 def get_header_index(document_path: Union[str, Path], import_sheet: int):
     """Retrieves the line index for the column headers, will raise an
     exception if not found in the first 10 rows.
@@ -38,7 +40,9 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
                 return i
     except IndexError as e:
         wb.close()
-        raise IndexError("Expected headers not found in file").with_traceback(e.__traceback__)
+        raise IndexError("Expected headers not found in file").with_traceback(
+            e.__traceback__
+        )
     except UnicodeDecodeError as e:
         log.error("Given document uses an unknown encoding: {}".format(e))
         wb.close()
@@ -49,7 +53,10 @@ def valid_cols(name: str) -> bool:
     """Callable which evaluates if a specific column should be used."""
     return False if str(name).startswith("#") else True
 
-def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1) -> pd.DataFrame:
+
+def import_from_excel(
+    document_path: Union[str, Path], import_sheet: int = 1
+) -> pd.DataFrame:
     """Import all of the exchanges and their scenario amounts from a given
     document and sheet index.
 
@@ -68,13 +75,22 @@ def import_from_excel(document_path: Union[str, Path], import_sheet: int = 1) ->
     try:
         header_idx = get_header_index(document_path, import_sheet)
         data = pd.read_excel(
-            document_path, sheet_name=import_sheet, header=header_idx,
-            usecols=valid_cols, comment="*", na_values="", keep_default_na=False,
-            engine="openpyxl"
+            document_path,
+            sheet_name=import_sheet,
+            header=header_idx,
+            usecols=valid_cols,
+            comment="*",
+            na_values="",
+            keep_default_na=False,
+            engine="openpyxl",
         )
         diff = SUPERSTRUCTURE.difference(data.columns)
         if not diff.empty:
-            raise ValueError("Missing required column(s) for superstructure: {}".format(diff.to_list()))
+            raise ValueError(
+                "Missing required column(s) for superstructure: {}".format(
+                    diff.to_list()
+                )
+            )
 
         # Convert specific columns that may have tuples as strings
         columns = ["from categories", "from key", "to categories", "to key"]

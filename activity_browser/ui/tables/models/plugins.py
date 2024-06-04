@@ -4,8 +4,9 @@ from importlib import metadata
 import pandas as pd
 from PySide2.QtCore import QModelIndex
 
-from activity_browser.settings import project_settings, ab_settings
-from activity_browser.signals import qprojects, qparameters
+from activity_browser.settings import ab_settings, project_settings
+from activity_browser.signals import qparameters, qprojects
+
 from .base import PandasModel
 
 
@@ -25,9 +26,15 @@ class PluginsModel(PandasModel):
     def sync(self, index: QModelIndex = None, value: bool = None):
         data = []
         if index is None:
-            switches = [name in project_settings.get_plugins_list() for name in ab_settings.plugins.keys()]
+            switches = [
+                name in project_settings.get_plugins_list()
+                for name in ab_settings.plugins.keys()
+            ]
         else:
-            switches = [switch if j != index.row() else value for j, switch in enumerate(self._dataframe['use'])]
+            switches = [
+                switch if j != index.row() else value
+                for j, switch in enumerate(self._dataframe["use"])
+            ]
         for i, (name, plugin) in enumerate(ab_settings.plugins.items()):
             infos = {
                 "use": switches[i],
@@ -41,4 +48,4 @@ class PluginsModel(PandasModel):
         self.updated.emit()
 
     def selected(self):
-        return self._dataframe.loc[:, ['use', 'name']]
+        return self._dataframe.loc[:, ["use", "name"]]
