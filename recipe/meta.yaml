@@ -23,6 +23,7 @@ requirements:
   build:
     - python
     - setuptools
+    - pyinstaller
   run:
     - python >=3.8,<3.12
     - arrow
