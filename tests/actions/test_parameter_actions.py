@@ -125,7 +125,7 @@ class TestParameterNew:
             "name": "parameter_test",
             "database": "activity_tests",
             "code": "be8fb2776c354aa7ad61d8348828f3af",
-            "group": "activity_22cfa9e9ef870ff4a93cbf5d3beff363",
+            "group": "4748",
             "amount": "1.0"
         }
         wizard = ParameterWizard(key)
@@ -145,7 +145,7 @@ class TestParameterNew:
 
 
 def test_parameter_new_automatic(ab_app):
-    key = ('activity_tests', 'be8fb2776c354aa7ad61d8348828f3af')
+    key = ('activity_tests', 'dd4e2393573c49248e7299fbe03a169c_copy1')
     group = bw.get_activity(key)._document.id
 
     assert bw.projects.current == "default"
