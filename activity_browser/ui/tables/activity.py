@@ -30,6 +30,7 @@ class BaseExchangeTable(ABDataFrameView):
 
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
+
         self.downstream = False
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers |
                              QtWidgets.QAbstractItemView.DoubleClicked)
@@ -40,6 +41,10 @@ class BaseExchangeTable(ABDataFrameView):
             lambda: self.model.edit_cell(self.currentIndex())
         )
         self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.hide_exchange_columns)
+
+    def hide_exchange_columns(self):
+        self.hideColumn(self.model.exchange_column)
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -84,6 +89,7 @@ class ProductExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
         self.setItemDelegateForColumn(3, FormulaDelegate(self))
+
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "product"
 
