@@ -4,6 +4,7 @@ from abc import abstractmethod
 from copy import deepcopy
 from typing import Type
 
+from bw_processing import safe_filename
 from PySide2 import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from PySide2.QtCore import QObject, Qt, QUrl, Signal, Slot
 
@@ -103,7 +104,7 @@ ALL_FILTER = "All Files (*.*)"
 
 def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
     default = default_file_name or "Graph SVG Export"
-    safe_name = bd.utils.safe_filename(default, add_hash=False)
+    safe_name = safe_filename(default, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         caption="Choose location to save svg",
         dir=os.path.join(ab_settings.data_dir, safe_name),

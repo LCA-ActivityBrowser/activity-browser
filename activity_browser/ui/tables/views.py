@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+from bw_processing import safe_filename
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
 from PySide2.QtGui import QDoubleValidator, QKeyEvent
@@ -92,7 +93,7 @@ class ABDataFrameView(QtWidgets.QTableView):
 
         Uses the application directory for AB
         """
-        safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
+        safe_name = safe_filename(default_file_name, add_hash=False)
         caption = caption or "Choose location to save lca results"
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self,
