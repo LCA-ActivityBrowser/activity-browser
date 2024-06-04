@@ -3,7 +3,7 @@ from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import signals, project_settings
+from activity_browser import signals, project_settings, ab_settings
 from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import commontasks as bc
 
@@ -103,11 +103,8 @@ class ActivityTab(QtWidgets.QWidget):
         # Activity Description checkbox
         self.checkbox_activity_description = QtWidgets.QCheckBox('Description', parent=self)
         self.checkbox_activity_description.clicked.connect(self.toggle_activity_description_visibility)
-        # self.checkbox_description.setStyleSheet("QCheckBox::indicator { width: 20px; height: 20px;}")
         self.checkbox_activity_description.setChecked(not self.read_only)
-        self.checkbox_activity_description.setToolTip(
-            "Show/hide the activity description"
-        )
+        self.checkbox_activity_description.setToolTip("Show/hide the activity description")
         self.toggle_activity_description_visibility()
 
         # Reveal/hide uncertainty columns
@@ -124,54 +121,50 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
-        self.graph_action = toolbar.addAction(
-            qicons.graph_explorer, "Show in Graph Explorer", self.open_graph
-        )
+        self.graph_action = toolbar.addAction(qicons.graph_explorer, "Show in Graph Explorer", self.open_graph)
         toolbar.addWidget(self.checkbox_edit_act)
-        # toolbar.addWidget(QtWidgets.QLabel('Show:  '))
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
 
-        # 4 data tables displayed after the activity data
+        # Activity information
+        # this contains: activity name, location, database
+        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
+        self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
+
+        # Exchange tables
         self.production = ProductExchangeTable(self)
         self.technosphere = TechnosphereExchangeTable(self)
         self.biosphere = BiosphereExchangeTable(self)
         self.downstream = DownstreamExchangeTable(self)
 
-        self.exchange_tables = [
-            ("Products:", self.production),
-            ("Technosphere Flows:", self.technosphere),
-            ("Biosphere Flows:", self.biosphere),
-            ("Downstream Consumers:", self.downstream),
+        self.exchange_groups = [
+            DetailsGroupBox("Products:", self.production),
+            DetailsGroupBox("Technosphere Flows:", self.technosphere),
+            DetailsGroupBox("Biosphere Flows:", self.biosphere),
+            DetailsGroupBox("Downstream Consumers:", self.downstream),
         ]
-        self.grouped_tables = [DetailsGroupBox(l, t) for l, t in self.exchange_tables]
+        self.exchange_groups[-1].setChecked(False)  # hide Downstream table by default
 
-        # activity-specific data displayed and editable near the top of the tab
-        # this contains: activity name, location, database
-        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
-        self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
+        self.group_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        for group in self.exchange_groups: self.group_splitter.addWidget(group)
+        if state := ab_settings.settings.get("activity_table_layout", None):
+            self.group_splitter.restoreState(bytearray.fromhex(state))
 
-        # arrange activity data and exchange data into vertical layout
+        # Full layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 10, 4, 1)
+        layout.setAlignment(QtCore.Qt.AlignTop)
+
         layout.addWidget(toolbar)
         layout.addWidget(self.activity_data_grid)
         layout.addWidget(self.activity_description)
-        grouped_tables = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-        # TODO Include a Qt.QSplitter object for allowing users to redefine the space between tables
-        for group_box in self.grouped_tables:
-            grouped_tables.addWidget(group_box)
-        layout.addWidget(grouped_tables)
-        self.exchange_tables_read_only_changed()
+        layout.addWidget(self.group_splitter)
 
-#        layout.addStretch() # Commented out so that the grouped_tables splitter can utilize the entire window
-        layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
+        self.exchange_tables_read_only_changed()
         self.populate()
-        # Hide the downstream table by default
-        self.grouped_tables[-1].setChecked(False)
         self.update_tooltips()
         self.update_style()
         self.connect_signals()
@@ -185,6 +178,8 @@ class ActivityTab(QtWidgets.QWidget):
         self.activity.changed.connect(self.populate)
         self.activity.deleted.connect(self.deleteLater)
         bd.parameters.parameters_changed.connect(self.populate)
+
+        self.group_splitter.splitterMoved.connect(self.save_splitter_state)
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:
@@ -258,7 +253,7 @@ class ActivityTab(QtWidgets.QWidget):
         EditTriggers turned off to prevent DoubleClick-selection editing.
         DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add.
         """
-        for _, table in self.exchange_tables:
+        for table in [self.production, self.technosphere, self.biosphere, self.downstream]:
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
                 table.setAcceptDrops(False)
@@ -266,12 +261,14 @@ class ActivityTab(QtWidgets.QWidget):
                 table.remove_formula_action.setEnabled(False)
                 table.modify_uncertainty_action.setEnabled(False)
                 table.remove_uncertainty_action.setEnabled(False)
+                table.setSelectionMode(table.NoSelection)
             else:
                 table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
                 table.delete_exchange_action.setEnabled(True)
                 table.remove_formula_action.setEnabled(True)
                 table.modify_uncertainty_action.setEnabled(True)
                 table.remove_uncertainty_action.setEnabled(True)
+                table.setSelectionMode(table.SingleSelection)
                 if not table.downstream:  # downstream consumers table never accepts drops
                     table.setAcceptDrops(True)
 
@@ -309,3 +306,7 @@ class ActivityTab(QtWidgets.QWidget):
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
+
+    def save_splitter_state(self):
+        ab_settings.settings["activity_table_layout"] = bytearray(self.group_splitter.saveState()).hex()
+        ab_settings.write_settings()
