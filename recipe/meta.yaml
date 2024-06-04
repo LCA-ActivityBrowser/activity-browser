@@ -30,7 +30,7 @@ requirements:
     - eidl >=2.0.1
     - libxml2 <=2.10.4
     - networkx
-    - numpy >=1.23.5
+    - numpy >=1.23.5,<2
     - pandas <=2.1.4
     - pint <=0.21
     - pyperclip
